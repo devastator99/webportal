@@ -52,7 +52,7 @@ export const ChatInterface = () => {
       if (error) throw error;
       return data as ChatMessage[];
     },
-    enabled: !!user?.id, // Only run query if user is authenticated
+    enabled: !!user?.id,
   });
 
   const handleSendMessage = async () => {
@@ -83,7 +83,7 @@ export const ChatInterface = () => {
         title: "Message sent",
         description: "Your message has been sent successfully.",
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
         description: "Failed to send message. Please try again.",
@@ -119,30 +119,37 @@ export const ChatInterface = () => {
       <CardContent className="flex-1 flex flex-col">
         <ScrollArea className="flex-1 pr-4">
           <div className="space-y-4">
-            {messages?.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${
-                  msg.sender.id === user.id ? "justify-end" : "justify-start"
-                }`}
-              >
+            {messages?.map((msg) => {
+              // Add null check for msg.sender
+              if (!msg?.sender) return null;
+              
+              const senderName = msg.sender.first_name || msg.sender.last_name 
+                ? `${msg.sender.first_name || ''} ${msg.sender.last_name || ''}`.trim()
+                : 'Unknown User';
+
+              return (
                 <div
-                  className={`max-w-[80%] rounded-lg p-3 ${
-                    msg.sender.id === user.id
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
+                  key={msg.id}
+                  className={`flex ${
+                    msg.sender.id === user.id ? "justify-end" : "justify-start"
                   }`}
                 >
-                  <p className="text-sm font-medium">
-                    {msg.sender.first_name} {msg.sender.last_name}
-                  </p>
-                  <p className="text-sm">{msg.message}</p>
-                  <p className="text-xs opacity-70">
-                    {new Date(msg.created_at).toLocaleTimeString()}
-                  </p>
+                  <div
+                    className={`max-w-[80%] rounded-lg p-3 ${
+                      msg.sender.id === user.id
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
+                    }`}
+                  >
+                    <p className="text-sm font-medium">{senderName}</p>
+                    <p className="text-sm">{msg.message}</p>
+                    <p className="text-xs opacity-70">
+                      {new Date(msg.created_at).toLocaleTimeString()}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </ScrollArea>
         <div className="flex gap-2 mt-4">
