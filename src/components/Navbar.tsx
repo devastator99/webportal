@@ -11,16 +11,14 @@ export const Navbar = () => {
 
   const handleSignOut = async () => {
     try {
-      // Try standard sign out first
+      // Attempt to sign out
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        // If standard sign out fails, force clear the session
-        await supabase.auth.clearSession();
-        console.log("Forced session clear due to sign out error");
+        throw error;
       }
 
-      // Always navigate to auth page after sign out attempt
+      // Navigate to auth page after successful sign out
       navigate("/auth");
     } catch (error: any) {
       console.error("Sign out error:", error);
@@ -29,8 +27,6 @@ export const Navbar = () => {
         description: "An error occurred while signing out. Please try again.",
         variant: "destructive",
       });
-      // Still navigate to auth page even if there's an error
-      navigate("/auth");
     }
   };
 
