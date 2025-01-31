@@ -11,10 +11,24 @@ export const Navbar = () => {
 
   const handleSignOut = async () => {
     try {
-      // Attempt to sign out
+      // First, check if we have a session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        // If no session exists, just navigate to auth page
+        navigate("/auth");
+        return;
+      }
+
+      // Attempt to sign out if we have a session
       const { error } = await supabase.auth.signOut();
       
       if (error) {
+        // If error is session_not_found, we can safely ignore it
+        if (error.message.includes("session_not_found")) {
+          navigate("/auth");
+          return;
+        }
         throw error;
       }
 
