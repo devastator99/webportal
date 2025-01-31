@@ -9,6 +9,159 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      appointments: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          id: string
+          notes: string | null
+          patient_id: string
+          scheduled_at: string
+          status: Database["public"]["Enums"]["appointment_status"] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          id?: string
+          notes?: string | null
+          patient_id: string
+          scheduled_at: string
+          status?: Database["public"]["Enums"]["appointment_status"] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          scheduled_at?: string
+          status?: Database["public"]["Enums"]["appointment_status"] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          created_at: string
+          file_url: string | null
+          id: string
+          message: string | null
+          message_type: Database["public"]["Enums"]["message_type"] | null
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          message?: string | null
+          message_type?: Database["public"]["Enums"]["message_type"] | null
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          created_at?: string
+          file_url?: string | null
+          id?: string
+          message?: string | null
+          message_type?: Database["public"]["Enums"]["message_type"] | null
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
+      educational_resources: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_url: string
+          id: string
+          resource_type: Database["public"]["Enums"]["message_type"]
+          title: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_url: string
+          id?: string
+          resource_type: Database["public"]["Enums"]["message_type"]
+          title: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_url?: string
+          id?: string
+          resource_type?: Database["public"]["Enums"]["message_type"]
+          title?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
+      medical_records: {
+        Row: {
+          created_at: string
+          diagnosis: string | null
+          doctor_id: string
+          id: string
+          notes: string | null
+          patient_id: string
+          prescription: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          diagnosis?: string | null
+          doctor_id: string
+          id?: string
+          notes?: string | null
+          patient_id: string
+          prescription?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          diagnosis?: string | null
+          doctor_id?: string
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          prescription?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      patient_assignments: {
+        Row: {
+          created_at: string
+          doctor_id: string
+          id: string
+          nutritionist_id: string | null
+          patient_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          doctor_id: string
+          id?: string
+          nutritionist_id?: string | null
+          patient_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          doctor_id?: string
+          id?: string
+          nutritionist_id?: string | null
+          patient_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -70,6 +223,8 @@ export type Database = {
       }
     }
     Enums: {
+      appointment_status: "scheduled" | "completed" | "cancelled"
+      message_type: "text" | "file" | "video"
       user_type: "patient" | "doctor" | "nutritionist" | "administrator"
     }
     CompositeTypes: {
