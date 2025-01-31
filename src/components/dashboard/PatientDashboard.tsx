@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, MessageSquare, FileText, Clock } from "lucide-react";
+import { ChatInterface } from "../chat/ChatInterface";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
@@ -86,51 +87,54 @@ export const PatientDashboard = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Appointments</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {appointments?.slice(0, 5).map((appointment) => (
-                <div key={appointment.id} className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium">
-                      Dr. {appointment.doctor.first_name} {appointment.doctor.last_name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(appointment.scheduled_at).toLocaleDateString()}
-                    </p>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Appointments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {appointments?.slice(0, 5).map((appointment) => (
+                  <div key={appointment.id} className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">
+                        Dr. {appointment.doctor.first_name} {appointment.doctor.last_name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(appointment.scheduled_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <span className="capitalize px-2 py-1 bg-primary/10 rounded-full text-sm">
+                      {appointment.status}
+                    </span>
                   </div>
-                  <span className="capitalize px-2 py-1 bg-primary/10 rounded-full text-sm">
-                    {appointment.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Medical Records</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {medicalRecords?.slice(0, 5).map((record) => (
-                <div key={record.id} className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium">{record.diagnosis}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(record.created_at).toLocaleDateString()}
-                    </p>
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Medical Records</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {medicalRecords?.slice(0, 5).map((record) => (
+                  <div key={record.id} className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">{record.diagnosis}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(record.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <ChatInterface />
       </div>
     </div>
   );

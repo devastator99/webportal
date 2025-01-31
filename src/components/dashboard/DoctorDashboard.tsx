@@ -5,6 +5,7 @@ import { format } from "date-fns";
 import { StatsCards } from "./doctor/StatsCards";
 import { TodaySchedule } from "./doctor/TodaySchedule";
 import { RecentPatients } from "./doctor/RecentPatients";
+import { ChatInterface } from "../chat/ChatInterface";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
@@ -80,9 +81,12 @@ export const DoctorDashboard = () => {
         upcomingAppointmentsCount={appointments?.length || 0}
       />
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <TodaySchedule appointments={getTodayAppointments()} />
-        <RecentPatients patients={patients || []} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          <TodaySchedule appointments={getTodayAppointments()} />
+          <RecentPatients patients={patients || []} />
+        </div>
+        <ChatInterface />
       </div>
     </div>
   );
