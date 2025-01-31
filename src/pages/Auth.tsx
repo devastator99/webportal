@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -25,20 +25,23 @@ const Auth = () => {
 
       if (signInError) throw signInError;
 
-      // After successful login, fetch the user's role
+      // After successful login, fetch the user's roles
       const { data: roleData, error: roleError } = await supabase
         .from("user_roles")
         .select("role")
-        .single();
+        .order('created_at', { ascending: true });
 
       if (roleError) throw roleError;
 
-      // Redirect based on role
-      if (roleData.role === "doctor") {
+      // Get the primary role (first assigned role)
+      const primaryRole = roleData?.[0]?.role;
+
+      // Redirect based on primary role
+      if (primaryRole === "doctor") {
         navigate("/dashboard");
-      } else if (roleData.role === "patient") {
+      } else if (primaryRole === "patient") {
         navigate("/dashboard");
-      } else if (roleData.role === "administrator") {
+      } else if (primaryRole === "administrator") {
         navigate("/dashboard");
       } else {
         navigate("/");
