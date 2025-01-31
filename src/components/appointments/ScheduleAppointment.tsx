@@ -19,8 +19,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar as CalendarIcon, Clock } from "lucide-react";
-import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+
+interface Doctor {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+}
 
 export const ScheduleAppointment = () => {
   const { user } = useAuth();
@@ -40,7 +45,7 @@ export const ScheduleAppointment = () => {
 
       if (userRolesError) throw userRolesError;
 
-      if (!userRoles?.length) return [];
+      if (!userRoles?.length) return [] as Doctor[];
 
       const doctorIds = userRoles.map(role => role.user_id);
 
@@ -50,7 +55,7 @@ export const ScheduleAppointment = () => {
         .in("id", doctorIds);
 
       if (profilesError) throw profilesError;
-      return profiles;
+      return (profiles || []) as Doctor[];
     },
   });
 
