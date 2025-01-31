@@ -83,12 +83,13 @@ export const DoctorDashboard = () => {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="space-y-6">
+        <div className="space-y-6 lg:col-span-1">
           <TodaySchedule appointments={getTodayAppointments()} />
           <RecentPatients patients={patients || []} />
         </div>
-        <ChatInterface />
-        <AiAssistant />
+        <div className="lg:col-span-2">
+          <AiAssistant />
+        </div>
       </div>
     </div>
   );
