@@ -13,8 +13,10 @@ export const DoctorDashboard = () => {
       const { data, error } = await supabase
         .from("patient_assignments")
         .select(`
-          *,
-          patient:profiles!patient_id(first_name, last_name)
+          id,
+          patient_id,
+          created_at,
+          patient:profiles(first_name, last_name)
         `)
         .eq("doctor_id", user?.id);
 
@@ -29,8 +31,10 @@ export const DoctorDashboard = () => {
       const { data, error } = await supabase
         .from("appointments")
         .select(`
-          *,
-          patient:profiles!patient_id(first_name, last_name)
+          id,
+          scheduled_at,
+          status,
+          patient:profiles(first_name, last_name)
         `)
         .eq("doctor_id", user?.id)
         .eq("status", "scheduled")

@@ -13,8 +13,10 @@ export const NutritionistDashboard = () => {
       const { data, error } = await supabase
         .from("patient_assignments")
         .select(`
-          *,
-          patient:profiles!patient_id(first_name, last_name)
+          id,
+          patient_id,
+          created_at,
+          patient:profiles(first_name, last_name)
         `)
         .eq("nutritionist_id", user?.id);
 
