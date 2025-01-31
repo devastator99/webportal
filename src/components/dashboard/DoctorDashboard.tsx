@@ -14,7 +14,7 @@ export const DoctorDashboard = () => {
         .from("patient_assignments")
         .select(`
           *,
-          patient:patient_id(
+          patient:profiles!patient_assignments_patient_id_fkey(
             first_name,
             last_name
           )
@@ -33,7 +33,7 @@ export const DoctorDashboard = () => {
         .from("appointments")
         .select(`
           *,
-          patient:patient_id(
+          patient:profiles!appointments_patient_id_fkey(
             first_name,
             last_name
           )
