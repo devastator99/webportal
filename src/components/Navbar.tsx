@@ -15,7 +15,7 @@ export const Navbar = () => {
   return (
     <nav className="fixed w-full bg-white/80 backdrop-blur-md z-50 border-b border-[#D6BCFA]">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <div className="text-2xl font-bold text-[#9b87f5]">EndoCare</div>
+        <div className="text-2xl font-bold text-[#9b87f5]">Anubhuti</div>
         <div className="hidden md:flex space-x-8">
           <a href="#features" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Services</a>
           <a href="#testimonials" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Patient Stories</a>

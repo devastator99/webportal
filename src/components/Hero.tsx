@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 
 export const Hero = () => {
   return (
-    <div className="pt-32 pb-20 px-4 bg-[#F1F0FB]">
+    <div className="pt-32 pb-20 px-4 bg-white">
       <div className="container mx-auto text-center">
         <h1 className="text-4xl md:text-6xl font-bold text-[#7E69AB] mb-6 animate-fade-up">
           Expert Endocrinology Care for Your Health
