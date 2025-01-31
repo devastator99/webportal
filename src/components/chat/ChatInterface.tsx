@@ -9,6 +9,23 @@ import { MessageSquare, Send } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
+interface ChatMessage {
+  id: string;
+  message: string;
+  message_type: "text" | "file" | "video";
+  created_at: string;
+  sender: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+  };
+  receiver: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+  };
+}
+
 export const ChatInterface = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -24,14 +41,14 @@ export const ChatInterface = () => {
           message,
           message_type,
           created_at,
-          sender:profiles!chat_messages_sender_id_fkey(first_name, last_name),
-          receiver:profiles!chat_messages_receiver_id_fkey(first_name, last_name)
+          sender:profiles!chat_messages_sender_profile_fkey(id, first_name, last_name),
+          receiver:profiles!chat_messages_receiver_profile_fkey(id, first_name, last_name)
         `)
         .or(`sender_id.eq.${user?.id},receiver_id.eq.${user?.id}`)
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      return data;
+      return data as ChatMessage[];
     },
   });
 
