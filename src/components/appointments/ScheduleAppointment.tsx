@@ -33,19 +33,24 @@ export const ScheduleAppointment = () => {
   const { data: doctors } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data: userRoles, error: userRolesError } = await supabase
         .from("user_roles")
-        .select(`
-          user_id,
-          profiles:user_id(
-            first_name,
-            last_name
-          )
-        `)
+        .select("user_id")
         .eq("role", "doctor");
 
-      if (error) throw error;
-      return data;
+      if (userRolesError) throw userRolesError;
+
+      if (!userRoles?.length) return [];
+
+      const doctorIds = userRoles.map(role => role.user_id);
+
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name")
+        .in("id", doctorIds);
+
+      if (profilesError) throw profilesError;
+      return profiles;
     },
   });
 
@@ -118,8 +123,8 @@ export const ScheduleAppointment = () => {
               </SelectTrigger>
               <SelectContent>
                 {doctors?.map((doctor) => (
-                  <SelectItem key={doctor.user_id} value={doctor.user_id}>
-                    Dr. {doctor.profiles.first_name} {doctor.profiles.last_name}
+                  <SelectItem key={doctor.id} value={doctor.id}>
+                    Dr. {doctor.first_name} {doctor.last_name}
                   </SelectItem>
                 ))}
               </SelectContent>
