@@ -16,7 +16,7 @@ export const DoctorDashboard = () => {
           id,
           patient_id,
           created_at,
-          patient:profiles(first_name, last_name)
+          patient:profiles!patient_assignments_patient_profile_fkey(first_name, last_name)
         `)
         .eq("doctor_id", user?.id);
 
@@ -34,7 +34,7 @@ export const DoctorDashboard = () => {
           id,
           scheduled_at,
           status,
-          patient:profiles(first_name, last_name)
+          patient:profiles!appointments_patient_profile_fkey(first_name, last_name)
         `)
         .eq("doctor_id", user?.id)
         .eq("status", "scheduled")

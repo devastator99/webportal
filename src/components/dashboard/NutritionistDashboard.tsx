@@ -16,7 +16,7 @@ export const NutritionistDashboard = () => {
           id,
           patient_id,
           created_at,
-          patient:profiles(first_name, last_name)
+          patient:profiles!patient_assignments_patient_profile_fkey(first_name, last_name)
         `)
         .eq("nutritionist_id", user?.id);
 

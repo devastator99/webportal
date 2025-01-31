@@ -16,7 +16,7 @@ export const PatientDashboard = () => {
           id,
           scheduled_at,
           status,
-          doctor:profiles(first_name, last_name)
+          doctor:profiles!appointments_doctor_profile_fkey(first_name, last_name)
         `)
         .eq("patient_id", user?.id)
         .order("scheduled_at", { ascending: true });
