@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, X } from "lucide-react";
 import { useState } from "react";
+import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 
 const Index = () => {
   const { user } = useAuth();
@@ -18,6 +19,9 @@ const Index = () => {
     <div className="relative">
       <Navbar />
       <Hero />
+      <div className="container mx-auto px-4 py-8">
+        {user && <ScheduleAppointment />}
+      </div>
       <Features />
       <Testimonials />
       <Pricing />

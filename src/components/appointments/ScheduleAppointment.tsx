@@ -1,0 +1,175 @@
+import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { Calendar } from "@/components/ui/calendar";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Calendar as CalendarIcon, Clock } from "lucide-react";
+import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
+
+export const ScheduleAppointment = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [selectedDate, setSelectedDate] = useState<Date>();
+  const [selectedTime, setSelectedTime] = useState<string>();
+  const [selectedDoctor, setSelectedDoctor] = useState<string>();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const { data: doctors } = useQuery({
+    queryKey: ["doctors"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("user_roles")
+        .select(`
+          user_id,
+          profiles:user_id(
+            first_name,
+            last_name
+          )
+        `)
+        .eq("role", "doctor");
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const timeSlots = [
+    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+    "14:00", "14:30", "15:00", "15:30", "16:00", "16:30"
+  ];
+
+  const handleSchedule = async () => {
+    if (!selectedDate || !selectedTime || !selectedDoctor || !user) {
+      toast({
+        title: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const scheduledAt = new Date(selectedDate);
+    const [hours, minutes] = selectedTime.split(":");
+    scheduledAt.setHours(parseInt(hours), parseInt(minutes));
+
+    const { error } = await supabase
+      .from("appointments")
+      .insert({
+        patient_id: user.id,
+        doctor_id: selectedDoctor,
+        scheduled_at: scheduledAt.toISOString(),
+        status: "scheduled",
+      });
+
+    if (error) {
+      toast({
+        title: "Error scheduling appointment",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Appointment scheduled successfully",
+    });
+    setIsOpen(false);
+    setSelectedDate(undefined);
+    setSelectedTime(undefined);
+    setSelectedDoctor(undefined);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        <Button>
+          <CalendarIcon className="mr-2 h-4 w-4" />
+          Schedule Appointment
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Schedule an Appointment</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Select Doctor</label>
+            <Select
+              value={selectedDoctor}
+              onValueChange={setSelectedDoctor}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a doctor" />
+              </SelectTrigger>
+              <SelectContent>
+                {doctors?.map((doctor) => (
+                  <SelectItem key={doctor.user_id} value={doctor.user_id}>
+                    Dr. {doctor.profiles.first_name} {doctor.profiles.last_name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Select Date</label>
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              disabled={(date) => 
+                date < new Date() || 
+                date.getDay() === 0 || 
+                date.getDay() === 6
+              }
+              className="rounded-md border"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Select Time</label>
+            <Select
+              value={selectedTime}
+              onValueChange={setSelectedTime}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select a time">
+                  <div className="flex items-center">
+                    <Clock className="mr-2 h-4 w-4" />
+                    <span>{selectedTime || "Select time"}</span>
+                  </div>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {timeSlots.map((time) => (
+                  <SelectItem key={time} value={time}>
+                    {time}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Button onClick={handleSchedule}>
+            Schedule Appointment
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
