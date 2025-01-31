@@ -12,8 +12,12 @@ export const Navbar = () => {
   const handleSignOut = async () => {
     try {
       // First, check if we have a session
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
+      if (sessionError) {
+        throw sessionError;
+      }
+
       if (!session) {
         // If no session exists, just navigate to auth page
         navigate("/auth");
@@ -24,7 +28,7 @@ export const Navbar = () => {
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        // If error is session_not_found, we can safely ignore it
+        // If error is session_not_found, we can safely ignore it and proceed with navigation
         if (error.message.includes("session_not_found")) {
           navigate("/auth");
           return;
@@ -34,13 +38,19 @@ export const Navbar = () => {
 
       // Navigate to auth page after successful sign out
       navigate("/auth");
+      toast({
+        title: "Signed out successfully",
+        description: "You have been signed out of your account.",
+      });
     } catch (error: any) {
       console.error("Sign out error:", error);
       toast({
         title: "Error signing out",
-        description: "An error occurred while signing out. Please try again.",
+        description: error.message || "An error occurred while signing out. Please try again.",
         variant: "destructive",
       });
+      // Still navigate to auth page if there's an error
+      navigate("/auth");
     }
   };
 
