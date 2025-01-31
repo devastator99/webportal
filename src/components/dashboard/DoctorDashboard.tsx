@@ -2,7 +2,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, MessageSquare, FileText, UserPlus } from "lucide-react";
+import { Users, MessageSquare, FileText, UserPlus, Calendar, Clock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
@@ -45,9 +47,31 @@ export const DoctorDashboard = () => {
     },
   });
 
+  const { data: medicalRecords } = useQuery({
+    queryKey: ["medical_records", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("medical_records")
+        .select("*")
+        .eq("doctor_id", user?.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const getTodayAppointments = () => {
+    if (!appointments) return [];
+    const today = new Date();
+    return appointments.filter(
+      (apt) => format(new Date(apt.scheduled_at), "yyyy-MM-dd") === format(today, "yyyy-MM-dd")
+    );
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-saas-primary">Doctor Dashboard</h1>
+      <h1 className="text-3xl font-bold text-saas-purple">Doctor Dashboard</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
@@ -57,36 +81,40 @@ export const DoctorDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{patients?.length || 0}</div>
+            <p className="text-xs text-muted-foreground">Active patients under care</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Upcoming Appointments</CardTitle>
-            <UserPlus className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Today's Appointments</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{appointments?.length || 0}</div>
+            <div className="text-2xl font-bold">{getTodayAppointments().length}</div>
+            <p className="text-xs text-muted-foreground">Scheduled for today</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unread Messages</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Resources Shared</CardTitle>
+            <CardTitle className="text-sm font-medium">Medical Records</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">{medicalRecords?.length || 0}</div>
+            <p className="text-xs text-muted-foreground">Total records created</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Upcoming Consultations</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{appointments?.length || 0}</div>
+            <p className="text-xs text-muted-foreground">Pending appointments</p>
           </CardContent>
         </Card>
       </div>
@@ -94,32 +122,36 @@ export const DoctorDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
-            <CardTitle>Recent Appointments</CardTitle>
+            <CardTitle>Today's Schedule</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {appointments?.slice(0, 5).map((appointment) => (
-                <div key={appointment.id} className="flex justify-between items-center">
-                  <div>
-                    <p className="font-medium">
-                      {appointment.patient.first_name} {appointment.patient.last_name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(appointment.scheduled_at).toLocaleDateString()}
-                    </p>
+              {getTodayAppointments().length === 0 ? (
+                <p className="text-sm text-muted-foreground">No appointments scheduled for today</p>
+              ) : (
+                getTodayAppointments().map((appointment) => (
+                  <div key={appointment.id} className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">
+                        {appointment.patient.first_name} {appointment.patient.last_name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(appointment.scheduled_at), "h:mm a")}
+                      </p>
+                    </div>
+                    <Badge variant={appointment.status === "scheduled" ? "default" : "secondary"}>
+                      {appointment.status}
+                    </Badge>
                   </div>
-                  <span className="capitalize px-2 py-1 bg-primary/10 rounded-full text-sm">
-                    {appointment.status}
-                  </span>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Assigned Patients</CardTitle>
+            <CardTitle>Recent Patients</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -130,7 +162,7 @@ export const DoctorDashboard = () => {
                       {assignment.patient.first_name} {assignment.patient.last_name}
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(assignment.created_at).toLocaleDateString()}
+                      Assigned: {format(new Date(assignment.created_at), "MMM d, yyyy")}
                     </p>
                   </div>
                 </div>
