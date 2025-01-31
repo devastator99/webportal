@@ -34,6 +34,8 @@ export const ChatInterface = () => {
   const { data: messages, refetch } = useQuery({
     queryKey: ["chat_messages", user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
       const { data, error } = await supabase
         .from("chat_messages")
         .select(`
@@ -44,20 +46,30 @@ export const ChatInterface = () => {
           sender:profiles!chat_messages_sender_profile_fkey(id, first_name, last_name),
           receiver:profiles!chat_messages_receiver_profile_fkey(id, first_name, last_name)
         `)
-        .or(`sender_id.eq.${user?.id},receiver_id.eq.${user?.id}`)
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
         .order("created_at", { ascending: true });
 
       if (error) throw error;
       return data as ChatMessage[];
     },
+    enabled: !!user?.id, // Only run query if user is authenticated
   });
 
   const handleSendMessage = async () => {
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to send messages.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!newMessage.trim()) return;
 
     try {
       const { error } = await supabase.from("chat_messages").insert({
-        sender_id: user?.id,
+        sender_id: user.id,
         receiver_id: "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12", // Default to doctor for now
         message: newMessage,
         message_type: "text",
@@ -80,6 +92,22 @@ export const ChatInterface = () => {
     }
   };
 
+  if (!user) {
+    return (
+      <Card className="h-[600px] flex flex-col">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="h-5 w-5" />
+            Messages
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex-1 flex items-center justify-center">
+          <p className="text-muted-foreground">Please log in to use the chat.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader>
@@ -95,12 +123,12 @@ export const ChatInterface = () => {
               <div
                 key={msg.id}
                 className={`flex ${
-                  msg.sender.id === user?.id ? "justify-end" : "justify-start"
+                  msg.sender.id === user.id ? "justify-end" : "justify-start"
                 }`}
               >
                 <div
                   className={`max-w-[80%] rounded-lg p-3 ${
-                    msg.sender.id === user?.id
+                    msg.sender.id === user.id
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted"
                   }`}
