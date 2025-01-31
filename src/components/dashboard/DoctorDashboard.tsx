@@ -7,6 +7,7 @@ import { TodaySchedule } from "./doctor/TodaySchedule";
 import { RecentPatients } from "./doctor/RecentPatients";
 import { ChatInterface } from "../chat/ChatInterface";
 import { AiAssistant } from "./doctor/AiAssistant";
+import { DoctorAppointmentCalendar } from "./doctor/DoctorAppointmentCalendar";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
@@ -88,6 +89,7 @@ export const DoctorDashboard = () => {
           <RecentPatients patients={patients || []} />
         </div>
         <div className="lg:col-span-2 grid grid-cols-1 gap-6">
+          <DoctorAppointmentCalendar doctorId={user?.id || ""} />
           <ChatInterface />
           <AiAssistant />
         </div>
