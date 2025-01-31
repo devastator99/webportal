@@ -1,34 +1,34 @@
-import { CheckCircle, Zap, Shield, BarChart } from "lucide-react";
+import { Stethoscope, Brain, Activity, ClipboardCheck } from "lucide-react";
 
 const features = [
   {
-    icon: <Zap className="w-6 h-6 text-saas-purple" />,
-    title: "Lightning Fast",
-    description: "Experience blazing-fast performance with our optimized platform.",
+    icon: <Stethoscope className="w-6 h-6 text-[#9b87f5]" />,
+    title: "Hormone Disorders",
+    description: "Expert treatment for various hormonal imbalances and endocrine conditions.",
   },
   {
-    icon: <Shield className="w-6 h-6 text-saas-purple" />,
-    title: "Secure by Design",
-    description: "Enterprise-grade security to protect your valuable data.",
+    icon: <Brain className="w-6 h-6 text-[#9b87f5]" />,
+    title: "Thyroid Care",
+    description: "Comprehensive diagnosis and management of thyroid disorders.",
   },
   {
-    icon: <BarChart className="w-6 h-6 text-saas-purple" />,
-    title: "Advanced Analytics",
-    description: "Gain valuable insights with our powerful analytics tools.",
+    icon: <Activity className="w-6 h-6 text-[#9b87f5]" />,
+    title: "Diabetes Management",
+    description: "Personalized diabetes care and blood sugar management plans.",
   },
   {
-    icon: <CheckCircle className="w-6 h-6 text-saas-purple" />,
-    title: "Easy Integration",
-    description: "Seamlessly integrate with your existing workflow.",
+    icon: <ClipboardCheck className="w-6 h-6 text-[#9b87f5]" />,
+    title: "Preventive Care",
+    description: "Proactive endocrine health monitoring and prevention strategies.",
   },
 ];
 
 export const Features = () => {
   return (
-    <section id="features" className="py-20 bg-saas-light-purple">
+    <section id="features" className="py-20 bg-[#E5DEFF]">
       <div className="container mx-auto px-4">
-        <h2 className="text-3xl md:text-4xl font-bold text-center text-saas-dark mb-12">
-          Features that Set Us Apart
+        <h2 className="text-3xl md:text-4xl font-bold text-center text-[#7E69AB] mb-12">
+          Comprehensive Endocrinology Services
         </h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
           {features.map((feature, index) => (
@@ -37,7 +37,7 @@ export const Features = () => {
               className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
             >
               <div className="mb-4">{feature.icon}</div>
-              <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+              <h3 className="text-xl font-semibold mb-2 text-[#7E69AB]">{feature.title}</h3>
               <p className="text-gray-600">{feature.description}</p>
             </div>
           ))}
