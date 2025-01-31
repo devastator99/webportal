@@ -12,13 +12,7 @@ export const NutritionistDashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("patient_assignments")
-        .select(`
-          *,
-          patient:profiles!patient_assignments_patient_id_fkey(
-            first_name,
-            last_name
-          )
-        `)
+        .select("*, patient:profiles(*)")
         .eq("nutritionist_id", user?.id);
 
       if (error) throw error;

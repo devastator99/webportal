@@ -12,13 +12,7 @@ export const DoctorDashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("patient_assignments")
-        .select(`
-          *,
-          patient:profiles!patient_assignments_patient_id_fkey(
-            first_name,
-            last_name
-          )
-        `)
+        .select("*, patient:profiles(*)")
         .eq("doctor_id", user?.id);
 
       if (error) throw error;
@@ -31,13 +25,7 @@ export const DoctorDashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("appointments")
-        .select(`
-          *,
-          patient:profiles!appointments_patient_id_fkey(
-            first_name,
-            last_name
-          )
-        `)
+        .select("*, patient:profiles(*)")
         .eq("doctor_id", user?.id)
         .eq("status", "scheduled")
         .order("scheduled_at", { ascending: true });
