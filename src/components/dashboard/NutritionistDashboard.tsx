@@ -14,7 +14,7 @@ export const NutritionistDashboard = () => {
         .from("patient_assignments")
         .select(`
           *,
-          patient:profiles!patient_assignments_patient_id_fkey(
+          patient:profiles(
             first_name,
             last_name
           )

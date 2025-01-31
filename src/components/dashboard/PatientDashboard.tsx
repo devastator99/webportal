@@ -14,7 +14,7 @@ export const PatientDashboard = () => {
         .from("appointments")
         .select(`
           *,
-          doctor:profiles!appointments_doctor_id_fkey(
+          doctor:profiles(
             first_name,
             last_name
           )
