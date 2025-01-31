@@ -12,7 +12,10 @@ export const PatientDashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("appointments")
-        .select("*, doctor:profiles(*)")
+        .select(`
+          *,
+          doctor:profiles!doctor_id(first_name, last_name)
+        `)
         .eq("patient_id", user?.id)
         .order("scheduled_at", { ascending: true });
 
