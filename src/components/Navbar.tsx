@@ -11,19 +11,26 @@ export const Navbar = () => {
 
   const handleSignOut = async () => {
     try {
+      // Try standard sign out first
       const { error } = await supabase.auth.signOut();
+      
       if (error) {
-        throw error;
+        // If standard sign out fails, force clear the session
+        await supabase.auth.clearSession();
+        console.log("Forced session clear due to sign out error");
       }
-      // Don't navigate here - let the AuthContext handle navigation
-      // The AuthContext's onAuthStateChange will detect the sign out
-      // and handle the navigation automatically
+
+      // Always navigate to auth page after sign out attempt
+      navigate("/auth");
     } catch (error: any) {
+      console.error("Sign out error:", error);
       toast({
         title: "Error signing out",
-        description: error.message,
+        description: "An error occurred while signing out. Please try again.",
         variant: "destructive",
       });
+      // Still navigate to auth page even if there's an error
+      navigate("/auth");
     }
   };
 
