@@ -12,7 +12,13 @@ export const NutritionistDashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("patient_assignments")
-        .select("*, profiles!patient_assignments_patient_id_fkey(first_name, last_name)")
+        .select(`
+          *,
+          patient:patient_id(
+            first_name,
+            last_name
+          )
+        `)
         .eq("nutritionist_id", user?.id);
 
       if (error) throw error;
@@ -66,7 +72,7 @@ export const NutritionistDashboard = () => {
               <div key={assignment.id} className="flex justify-between items-center">
                 <div>
                   <p className="font-medium">
-                    {assignment.profiles.first_name} {assignment.profiles.last_name}
+                    {assignment.patient.first_name} {assignment.patient.last_name}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {new Date(assignment.created_at).toLocaleDateString()}

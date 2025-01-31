@@ -12,7 +12,13 @@ export const DoctorDashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("patient_assignments")
-        .select("*, profiles!patient_assignments_patient_id_fkey(first_name, last_name)")
+        .select(`
+          *,
+          patient:patient_id(
+            first_name,
+            last_name
+          )
+        `)
         .eq("doctor_id", user?.id);
 
       if (error) throw error;
@@ -25,7 +31,13 @@ export const DoctorDashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("appointments")
-        .select("*, profiles!appointments_patient_id_fkey(first_name, last_name)")
+        .select(`
+          *,
+          patient:patient_id(
+            first_name,
+            last_name
+          )
+        `)
         .eq("doctor_id", user?.id)
         .eq("status", "scheduled")
         .order("scheduled_at", { ascending: true });
@@ -92,7 +104,7 @@ export const DoctorDashboard = () => {
                 <div key={appointment.id} className="flex justify-between items-center">
                   <div>
                     <p className="font-medium">
-                      {appointment.profiles.first_name} {appointment.profiles.last_name}
+                      {appointment.patient.first_name} {appointment.patient.last_name}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {new Date(appointment.scheduled_at).toLocaleDateString()}
@@ -117,7 +129,7 @@ export const DoctorDashboard = () => {
                 <div key={assignment.id} className="flex justify-between items-center">
                   <div>
                     <p className="font-medium">
-                      {assignment.profiles.first_name} {assignment.profiles.last_name}
+                      {assignment.patient.first_name} {assignment.patient.last_name}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {new Date(assignment.created_at).toLocaleDateString()}

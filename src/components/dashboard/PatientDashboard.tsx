@@ -12,7 +12,13 @@ export const PatientDashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("appointments")
-        .select("*, profiles!appointments_doctor_id_fkey(first_name, last_name)")
+        .select(`
+          *,
+          doctor:doctor_id(
+            first_name,
+            last_name
+          )
+        `)
         .eq("patient_id", user?.id)
         .order("scheduled_at", { ascending: true });
 
@@ -92,7 +98,7 @@ export const PatientDashboard = () => {
                 <div key={appointment.id} className="flex justify-between items-center">
                   <div>
                     <p className="font-medium">
-                      Dr. {appointment.profiles.first_name} {appointment.profiles.last_name}
+                      Dr. {appointment.doctor.first_name} {appointment.doctor.last_name}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {new Date(appointment.scheduled_at).toLocaleDateString()}
