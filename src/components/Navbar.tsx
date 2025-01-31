@@ -15,15 +15,15 @@ export const Navbar = () => {
       if (error) {
         throw error;
       }
-      navigate("/auth");
+      // Don't navigate here - let the AuthContext handle navigation
+      // The AuthContext's onAuthStateChange will detect the sign out
+      // and handle the navigation automatically
     } catch (error: any) {
       toast({
         title: "Error signing out",
         description: error.message,
         variant: "destructive",
       });
-      // Force navigate to auth page even if there's an error
-      navigate("/auth");
     }
   };
 
