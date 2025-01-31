@@ -27,7 +27,11 @@ interface Doctor {
   last_name: string | null;
 }
 
-export const ScheduleAppointment = () => {
+interface ScheduleAppointmentProps {
+  children: React.ReactNode;
+}
+
+export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date>();
@@ -107,10 +111,7 @@ export const ScheduleAppointment = () => {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          Schedule Appointment
-        </Button>
+        {children}
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
