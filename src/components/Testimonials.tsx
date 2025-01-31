@@ -3,22 +3,22 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const testimonials = [
   {
-    quote: "The endocrinology team provided exceptional care for my thyroid condition. I'm feeling better than ever.",
-    author: "Sarah Johnson",
-    role: "Thyroid Patient",
-    avatar: "SJ",
+    quote: "डॉक्टर ने मेरी थायराइड की समस्या को बहुत अच्छी तरह से समझा और इलाज किया। अब मैं पहले से कहीं बेहतर महसूस करती हूं।",
+    author: "प्रिया शर्मा",
+    role: "थायराइड पेशेंट",
+    avatar: "PS",
   },
   {
-    quote: "Their diabetes management program has helped me maintain stable blood sugar levels and improve my overall health.",
-    author: "Michael Chen",
+    quote: "The diabetes management program here has helped me maintain my blood sugar levels effectively. The doctor's approach is very systematic.",
+    author: "Rajesh Kumar",
     role: "Diabetes Patient",
-    avatar: "MC",
+    avatar: "RK",
   },
   {
-    quote: "Professional, caring, and thorough in their approach to hormone therapy. Highly recommended.",
-    author: "Emily Davis",
-    role: "Hormone Therapy Patient",
-    avatar: "ED",
+    quote: "After struggling with PCOD for years, I finally found the right treatment here. The doctor's expertise has made a huge difference.",
+    author: "Anjali Mehta",
+    role: "PCOD Patient",
+    avatar: "AM",
   },
 ];
 
