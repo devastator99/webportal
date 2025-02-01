@@ -2,11 +2,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, MessageSquare, FileText, Clock } from "lucide-react";
+import { Calendar, MessageSquare, FileText, Clock, Heart, User, Hospital } from "lucide-react";
 import { ChatInterface } from "../chat/ChatInterface";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const { data: appointments } = useQuery({
     queryKey: ["appointments", user?.id],
@@ -25,6 +31,7 @@ export const PatientDashboard = () => {
       if (error) throw error;
       return data;
     },
+    enabled: !!user?.id,
   });
 
   const { data: medicalRecords } = useQuery({
@@ -39,11 +46,30 @@ export const PatientDashboard = () => {
       if (error) throw error;
       return data;
     },
+    enabled: !!user?.id,
+  });
+
+  const { data: profile } = useQuery({
+    queryKey: ["profile", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user?.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id,
   });
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-saas-primary">Patient Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Welcome, {profile?.first_name || "Patient"}</h1>
+        <Button onClick={() => navigate("/appointments/schedule")}>Schedule Appointment</Button>
+      </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
@@ -52,7 +78,7 @@ export const PatientDashboard = () => {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{appointments?.length || 0}</div>
+            <div className="text-2xl font-bold">{appointments?.filter(a => a.status === 'scheduled')?.length || 0}</div>
           </CardContent>
         </Card>
 
@@ -68,21 +94,23 @@ export const PatientDashboard = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unread Messages</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Health Status</CardTitle>
+            <Heart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold text-green-500">Good</div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Actions</CardTitle>
+            <CardTitle className="text-sm font-medium">Next Check-up</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">0</div>
+            <div className="text-2xl font-bold">
+              {appointments?.[0] ? new Date(appointments[0].scheduled_at).toLocaleDateString() : 'No appointments'}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -91,49 +119,60 @@ export const PatientDashboard = () => {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Recent Appointments</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Upcoming Appointments
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {appointments?.slice(0, 5).map((appointment) => (
-                  <div key={appointment.id} className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">
-                        Dr. {appointment.doctor.first_name} {appointment.doctor.last_name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(appointment.scheduled_at).toLocaleDateString()}
-                      </p>
+              <ScrollArea className="h-[300px] pr-4">
+                <div className="space-y-4">
+                  {appointments?.filter(a => a.status === 'scheduled')?.map((appointment) => (
+                    <div key={appointment.id} className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">
+                          Dr. {appointment.doctor.first_name} {appointment.doctor.last_name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(appointment.scheduled_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <span className="capitalize px-2 py-1 bg-primary/10 rounded-full text-sm">
+                        {appointment.status}
+                      </span>
                     </div>
-                    <span className="capitalize px-2 py-1 bg-primary/10 rounded-full text-sm">
-                      {appointment.status}
-                    </span>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Recent Medical Records</CardTitle>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Recent Medical Records
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {medicalRecords?.slice(0, 5).map((record) => (
-                  <div key={record.id} className="flex justify-between items-center">
-                    <div>
-                      <p className="font-medium">{record.diagnosis}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(record.created_at).toLocaleDateString()}
-                      </p>
+              <ScrollArea className="h-[300px] pr-4">
+                <div className="space-y-4">
+                  {medicalRecords?.map((record) => (
+                    <div key={record.id} className="flex justify-between items-center">
+                      <div>
+                        <p className="font-medium">{record.diagnosis || 'General Check-up'}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(record.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </div>
+        
         <ChatInterface />
       </div>
     </div>
