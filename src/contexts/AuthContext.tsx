@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 type AuthContextType = {
   user: User | null;
@@ -14,48 +15,67 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     // Check active sessions and sets the user
     const initializeAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        setUser(session?.user ?? null);
-        setIsLoading(false);
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (!session?.user) {
-          const currentPath = window.location.pathname;
-          if (currentPath !== '/auth') {
-            navigate("/auth");
+        if (sessionError) {
+          if (sessionError.message.includes("refresh_token_not_found")) {
+            // Clear any stale session data
+            await supabase.auth.signOut();
+            setUser(null);
+          } else {
+            throw sessionError;
           }
+        } else {
+          setUser(session?.user ?? null);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error checking auth session:", error);
+        toast({
+          title: "Authentication Error",
+          description: "There was an error with your session. Please sign in again.",
+          variant: "destructive",
+        });
         setUser(null);
+      } finally {
         setIsLoading(false);
-        navigate("/auth");
+        // Only redirect if we're not already on the auth page
+        if (!user && window.location.pathname !== '/auth') {
+          navigate("/auth");
+        }
       }
     };
 
     initializeAuth();
 
     // Listen for changes on auth state (sign in, sign out, etc.)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user ?? null);
-      setIsLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event);
       
-      if (!session?.user) {
-        const currentPath = window.location.pathname;
-        if (currentPath !== '/auth') {
-          navigate("/auth");
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        // Handle sign out
+        setUser(null);
+        navigate("/auth");
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        // Handle sign in
+        setUser(session?.user ?? null);
+        if (window.location.pathname === '/auth') {
+          navigate("/");
         }
       }
+      
+      setIsLoading(false);
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, toast]);
 
   return (
     <AuthContext.Provider value={{ user, isLoading }}>
