@@ -27,6 +27,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (sessionError.message.includes("refresh_token_not_found")) {
             // Clear any stale session data
             await supabase.auth.signOut();
+            localStorage.removeItem('supabase.auth.token');
             setUser(null);
           } else {
             throw sessionError;
@@ -38,10 +39,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error("Error checking auth session:", error);
         toast({
           title: "Authentication Error",
-          description: "There was an error with your session. Please sign in again.",
+          description: "There was an error with your session. Please try again.",
           variant: "destructive",
         });
         setUser(null);
+        localStorage.removeItem('supabase.auth.token');
       } finally {
         setIsLoading(false);
       }
@@ -56,6 +58,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (event === 'SIGNED_OUT') {
         // Handle sign out
         setUser(null);
+        localStorage.removeItem('supabase.auth.token');
         navigate("/");
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         // Handle sign in

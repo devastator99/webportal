@@ -25,8 +25,9 @@ export const Navbar = () => {
         throw error;
       }
 
-      // Clear any local storage or state if needed
+      // Clear any local storage or state
       localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('sb-hcaqodjylicmppxcbqbh-auth-token');
       
       // Navigate to index page after successful sign out
       navigate("/");
