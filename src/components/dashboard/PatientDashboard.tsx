@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, MessageSquare, FileText, Clock, Heart, User, Hospital } from "lucide-react";
+import { Calendar, MessageSquare, FileText, Clock, Heart, User, Hospital, LogOut } from "lucide-react";
 import { ChatInterface } from "../chat/ChatInterface";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,27 @@ export const PatientDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      navigate("/auth");
+      toast({
+        title: "Signed out successfully",
+        description: "You have been signed out of your account.",
+      });
+    } catch (error: any) {
+      console.error("Sign out error:", error);
+      toast({
+        title: "Error signing out",
+        description: error.message || "An error occurred while signing out. Please try again.",
+        variant: "destructive",
+      });
+      navigate("/auth");
+    }
+  };
 
   const { data: appointments } = useQuery({
     queryKey: ["appointments", user?.id],
@@ -68,7 +89,17 @@ export const PatientDashboard = () => {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Welcome, {profile?.first_name || "Patient"}</h1>
-        <Button onClick={() => navigate("/appointments/schedule")}>Schedule Appointment</Button>
+        <div className="flex gap-4">
+          <Button onClick={() => navigate("/appointments/schedule")}>Schedule Appointment</Button>
+          <Button 
+            variant="outline" 
+            onClick={handleSignOut}
+            className="gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
