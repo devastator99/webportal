@@ -17,6 +17,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const clearAuthData = async () => {
+    setUser(null);
+    localStorage.removeItem('supabase.auth.token');
+    localStorage.removeItem(`sb-${process.env.VITE_SUPABASE_PROJECT_ID}-auth-token`);
+    await supabase.auth.signOut();
+  };
+
   useEffect(() => {
     // Check active sessions and sets the user
     const initializeAuth = async () => {
@@ -25,10 +32,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (sessionError) {
           if (sessionError.message.includes("refresh_token_not_found")) {
-            // Clear any stale session data
-            await supabase.auth.signOut();
-            localStorage.removeItem('supabase.auth.token');
-            setUser(null);
+            await clearAuthData();
           } else {
             throw sessionError;
           }
@@ -38,12 +42,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } catch (error: any) {
         console.error("Error checking auth session:", error);
         toast({
-          title: "Authentication Error",
-          description: "There was an error with your session. Please try again.",
+          title: "Session Error",
+          description: "Your session has expired. Please sign in again.",
           variant: "destructive",
         });
-        setUser(null);
-        localStorage.removeItem('supabase.auth.token');
+        await clearAuthData();
       } finally {
         setIsLoading(false);
       }
@@ -56,12 +59,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("Auth state changed:", event);
       
       if (event === 'SIGNED_OUT') {
-        // Handle sign out
-        setUser(null);
-        localStorage.removeItem('supabase.auth.token');
+        await clearAuthData();
         navigate("/");
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        // Handle sign in
         setUser(session?.user ?? null);
         if (window.location.pathname === '/auth') {
           navigate("/");

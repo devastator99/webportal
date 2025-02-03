@@ -7,37 +7,37 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuthError } from "@supabase/supabase-js";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleAuthError = (error: AuthError) => {
     let errorMessage = "An error occurred during authentication.";
     
-    // Handle specific error cases
     if (error.message.includes("Email not confirmed")) {
       errorMessage = "Please check your email to confirm your account.";
     } else if (error.message.includes("Invalid login credentials")) {
-      errorMessage = "Invalid email or password.";
+      errorMessage = "Invalid email or password. Please try again.";
     } else if (error.message.includes("User already registered")) {
       errorMessage = "This email is already registered. Please sign in instead.";
     } else if (error.message.includes("Password should be at least 6 characters")) {
       errorMessage = "Password should be at least 6 characters long.";
     }
 
-    toast({
-      title: "Authentication Error",
-      description: errorMessage,
-      variant: "destructive",
-    });
+    setError(errorMessage);
   };
+
+  const clearError = () => setError(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    clearError();
     try {
       setLoading(true);
       const { error } = await supabase.auth.signInWithPassword({
@@ -48,8 +48,8 @@ const Auth = () => {
       if (error) throw error;
 
       toast({
-        title: "Successfully logged in",
-        description: "Welcome back!",
+        title: "Welcome back!",
+        description: "You have successfully signed in.",
       });
       
       navigate("/");
@@ -62,12 +62,9 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    clearError();
     if (password.length < 6) {
-      toast({
-        title: "Validation Error",
-        description: "Password should be at least 6 characters long.",
-        variant: "destructive",
-      });
+      setError("Password should be at least 6 characters long.");
       return;
     }
 
@@ -102,7 +99,12 @@ const Auth = () => {
           <CardDescription className="text-[#6E59A5]">Sign in to your account or create a new one</CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="login">
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          <Tabs defaultValue="login" onValueChange={clearError}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login" className="text-[#7E69AB]">Login</TabsTrigger>
               <TabsTrigger value="register" className="text-[#7E69AB]">Register</TabsTrigger>
@@ -117,6 +119,7 @@ const Auth = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     className="text-[#6E59A5]"
+                    disabled={loading}
                   />
                 </div>
                 <div>
@@ -127,10 +130,15 @@ const Auth = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     className="text-[#6E59A5]"
+                    disabled={loading}
                   />
                 </div>
-                <Button type="submit" className="w-full bg-[#9b87f5] hover:bg-[#7E69AB]" disabled={loading}>
-                  {loading ? "Loading..." : "Sign In"}
+                <Button 
+                  type="submit" 
+                  className="w-full bg-[#9b87f5] hover:bg-[#7E69AB]" 
+                  disabled={loading}
+                >
+                  {loading ? "Signing in..." : "Sign In"}
                 </Button>
               </form>
             </TabsContent>
@@ -144,6 +152,7 @@ const Auth = () => {
                     onChange={(e) => setEmail(e.target.value)}
                     required
                     className="text-[#6E59A5]"
+                    disabled={loading}
                   />
                 </div>
                 <div>
@@ -155,10 +164,15 @@ const Auth = () => {
                     required
                     className="text-[#6E59A5]"
                     minLength={6}
+                    disabled={loading}
                   />
                 </div>
-                <Button type="submit" className="w-full bg-[#9b87f5] hover:bg-[#7E69AB]" disabled={loading}>
-                  {loading ? "Loading..." : "Sign Up"}
+                <Button 
+                  type="submit" 
+                  className="w-full bg-[#9b87f5] hover:bg-[#7E69AB]" 
+                  disabled={loading}
+                >
+                  {loading ? "Signing up..." : "Sign Up"}
                 </Button>
               </form>
             </TabsContent>
