@@ -18,26 +18,19 @@ export const Navbar = () => {
         throw sessionError;
       }
 
-      if (!session) {
-        // If no session exists, just navigate to auth page
-        navigate("/auth");
-        return;
-      }
-
-      // Attempt to sign out if we have a session
+      // Attempt to sign out
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        // If error is session_not_found, we can safely ignore it and proceed with navigation
-        if (error.message.includes("session_not_found")) {
-          navigate("/auth");
-          return;
-        }
         throw error;
       }
 
-      // Navigate to auth page after successful sign out
-      navigate("/auth");
+      // Clear any local storage or state if needed
+      localStorage.removeItem('supabase.auth.token');
+      
+      // Navigate to index page after successful sign out
+      navigate("/");
+      
       toast({
         title: "Signed out successfully",
         description: "You have been signed out of your account.",
@@ -49,8 +42,8 @@ export const Navbar = () => {
         description: error.message || "An error occurred while signing out. Please try again.",
         variant: "destructive",
       });
-      // Still navigate to auth page if there's an error
-      navigate("/auth");
+      // Still navigate to index page if there's an error
+      navigate("/");
     }
   };
 
