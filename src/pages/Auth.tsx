@@ -21,6 +21,7 @@ const Auth = () => {
     console.error("Auth error:", error);
     let errorMessage = "An error occurred during authentication.";
     
+    // Handle specific error cases
     if (error.message.includes("Email not confirmed")) {
       errorMessage = "Please check your email to confirm your account.";
     } else if (error.message.includes("Invalid login credentials")) {
@@ -29,6 +30,8 @@ const Auth = () => {
       errorMessage = "This email is already registered. Please sign in instead.";
     } else if (error.message.includes("Password should be at least 6 characters")) {
       errorMessage = "Password should be at least 6 characters long.";
+    } else if (error.message.includes("Database error")) {
+      errorMessage = "There was an issue connecting to the database. Please try again later.";
     }
 
     setError(errorMessage);
@@ -47,19 +50,20 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
         password,
       });
 
       if (error) throw error;
 
-      toast({
-        title: "Welcome back!",
-        description: "You have successfully signed in.",
-      });
-      
-      navigate("/");
+      if (data.user) {
+        toast({
+          title: "Welcome back!",
+          description: "You have successfully signed in.",
+        });
+        navigate("/");
+      }
     } catch (error: any) {
       handleAuthError(error);
     } finally {
@@ -79,20 +83,23 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
-        email,
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
         options: {
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Please check your email for verification.",
-      });
+      if (data.user) {
+        toast({
+          title: "Success",
+          description: "Please check your email for verification.",
+        });
+        // Don't navigate away - user needs to verify email
+      }
     } catch (error: any) {
       handleAuthError(error);
     } finally {
