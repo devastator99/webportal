@@ -44,10 +44,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(null);
       } finally {
         setIsLoading(false);
-        // Only redirect if we're not already on the auth page
-        if (!user && window.location.pathname !== '/auth') {
-          navigate("/auth");
-        }
       }
     };
 
@@ -60,7 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (event === 'SIGNED_OUT') {
         // Handle sign out
         setUser(null);
-        navigate("/auth");
+        navigate("/");
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         // Handle sign in
         setUser(session?.user ?? null);
