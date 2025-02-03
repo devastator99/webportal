@@ -21,7 +21,6 @@ const Auth = () => {
     console.error("Auth error:", error);
     let errorMessage = "An error occurred during authentication.";
     
-    // Handle specific error cases
     if (error.message.includes("Email not confirmed")) {
       errorMessage = "Please check your email to confirm your account.";
     } else if (error.message.includes("Invalid login credentials")) {
@@ -30,8 +29,8 @@ const Auth = () => {
       errorMessage = "This email is already registered. Please sign in instead.";
     } else if (error.message.includes("Password should be at least 6 characters")) {
       errorMessage = "Password should be at least 6 characters long.";
-    } else if (error.message.includes("Database error")) {
-      errorMessage = "There was an issue connecting to the database. Please try again later.";
+    } else if (error.message.includes("Database error") || error.status === 500) {
+      errorMessage = "There was an issue connecting to the database. Please try again in a few moments.";
     }
 
     setError(errorMessage);
@@ -47,6 +46,12 @@ const Auth = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
+    
+    if (!email.trim() || !password) {
+      setError("Please enter both email and password.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -57,7 +62,7 @@ const Auth = () => {
 
       if (error) throw error;
 
-      if (data.user) {
+      if (data?.user) {
         toast({
           title: "Welcome back!",
           description: "You have successfully signed in.",
@@ -75,6 +80,11 @@ const Auth = () => {
     e.preventDefault();
     clearError();
     
+    if (!email.trim() || !password) {
+      setError("Please enter both email and password.");
+      return;
+    }
+
     if (password.length < 6) {
       setError("Password should be at least 6 characters long.");
       return;
@@ -93,12 +103,11 @@ const Auth = () => {
 
       if (error) throw error;
 
-      if (data.user) {
+      if (data?.user) {
         toast({
           title: "Success",
           description: "Please check your email for verification.",
         });
-        // Don't navigate away - user needs to verify email
       }
     } catch (error: any) {
       handleAuthError(error);
