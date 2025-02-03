@@ -98,6 +98,9 @@ const Auth = () => {
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            full_name: email.split('@')[0], // Set a default name from email
+          }
         },
       });
 
