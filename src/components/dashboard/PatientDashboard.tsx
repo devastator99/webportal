@@ -8,6 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { ScheduleAppointment } from "../appointments/ScheduleAppointment";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
@@ -90,7 +91,9 @@ export const PatientDashboard = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Welcome, {profile?.first_name || "Patient"}</h1>
         <div className="flex gap-4">
-          <Button onClick={() => navigate("/appointments/schedule")}>Schedule Appointment</Button>
+          <ScheduleAppointment>
+            <Button>Schedule Appointment</Button>
+          </ScheduleAppointment>
           <Button 
             variant="outline" 
             onClick={handleSignOut}
