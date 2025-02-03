@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AuthError } from "@supabase/supabase-js";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -14,49 +15,46 @@ const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const handleAuthError = (error: AuthError) => {
+    let errorMessage = "An error occurred during authentication.";
+    
+    // Handle specific error cases
+    if (error.message.includes("Email not confirmed")) {
+      errorMessage = "Please check your email to confirm your account.";
+    } else if (error.message.includes("Invalid login credentials")) {
+      errorMessage = "Invalid email or password.";
+    } else if (error.message.includes("User already registered")) {
+      errorMessage = "This email is already registered. Please sign in instead.";
+    } else if (error.message.includes("Password should be at least 6 characters")) {
+      errorMessage = "Password should be at least 6 characters long.";
+    }
+
+    toast({
+      title: "Authentication Error",
+      description: errorMessage,
+      variant: "destructive",
+    });
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       setLoading(true);
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (signInError) throw signInError;
-
-      // After successful login, fetch the user's roles
-      const { data: roleData, error: roleError } = await supabase
-        .from("user_roles")
-        .select("role")
-        .order('created_at', { ascending: true });
-
-      if (roleError) throw roleError;
-
-      // Get the primary role (first assigned role)
-      const primaryRole = roleData?.[0]?.role;
-
-      // Redirect based on primary role
-      if (primaryRole === "doctor") {
-        navigate("/dashboard");
-      } else if (primaryRole === "patient") {
-        navigate("/dashboard");
-      } else if (primaryRole === "administrator") {
-        navigate("/dashboard");
-      } else {
-        navigate("/");
-      }
+      if (error) throw error;
 
       toast({
         title: "Successfully logged in",
         description: "Welcome back!",
       });
+      
+      navigate("/");
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      handleAuthError(error);
     } finally {
       setLoading(false);
     }
@@ -64,11 +62,23 @@ const Auth = () => {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (password.length < 6) {
+      toast({
+        title: "Validation Error",
+        description: "Password should be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setLoading(true);
       const { error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: window.location.origin,
+        },
       });
 
       if (error) throw error;
@@ -78,11 +88,7 @@ const Auth = () => {
         description: "Please check your email for verification.",
       });
     } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      handleAuthError(error);
     } finally {
       setLoading(false);
     }
@@ -148,6 +154,7 @@ const Auth = () => {
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     className="text-[#6E59A5]"
+                    minLength={6}
                   />
                 </div>
                 <Button type="submit" className="w-full bg-[#9b87f5] hover:bg-[#7E69AB]" disabled={loading}>
