@@ -18,7 +18,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!user) {
-    return <Navigate to="/auth" />;
+    return <Navigate to="/" />;
   }
 
   return <>{children}</>;
@@ -51,6 +51,8 @@ const App = () => {
                   </ProtectedRoute>
                 }
               />
+              {/* Catch all other routes and redirect to Index */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <Toaster />
             <Sonner />
