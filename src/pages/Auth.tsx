@@ -92,14 +92,14 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>Welcome to Anubhuti</CardTitle>
-          <CardDescription>Sign in to your account or create a new one</CardDescription>
+          <CardTitle className="text-[#7E69AB]">Welcome to Anubhuti</CardTitle>
+          <CardDescription className="text-[#6E59A5]">Sign in to your account or create a new one</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="login">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
+              <TabsTrigger value="login" className="text-[#7E69AB]">Login</TabsTrigger>
+              <TabsTrigger value="register" className="text-[#7E69AB]">Register</TabsTrigger>
             </TabsList>
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
@@ -110,6 +110,7 @@ const Auth = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    className="text-[#6E59A5]"
                   />
                 </div>
                 <div>
@@ -119,9 +120,10 @@ const Auth = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    className="text-[#6E59A5]"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full bg-[#9b87f5] hover:bg-[#7E69AB]" disabled={loading}>
                   {loading ? "Loading..." : "Sign In"}
                 </Button>
               </form>
@@ -135,6 +137,7 @@ const Auth = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    className="text-[#6E59A5]"
                   />
                 </div>
                 <div>
@@ -144,9 +147,10 @@ const Auth = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    className="text-[#6E59A5]"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={loading}>
+                <Button type="submit" className="w-full bg-[#9b87f5] hover:bg-[#7E69AB]" disabled={loading}>
                   {loading ? "Loading..." : "Sign Up"}
                 </Button>
               </form>

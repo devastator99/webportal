@@ -38,7 +38,7 @@ export const Features = () => {
             >
               <div className="mb-4">{feature.icon}</div>
               <h3 className="text-xl font-semibold mb-2 text-[#7E69AB]">{feature.title}</h3>
-              <p className="text-gray-600">{feature.description}</p>
+              <p className="text-[#6E59A5]">{feature.description}</p>
             </div>
           ))}
         </div>

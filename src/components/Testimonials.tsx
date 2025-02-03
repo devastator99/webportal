@@ -33,14 +33,14 @@ export const Testimonials = () => {
           {testimonials.map((testimonial, index) => (
             <Card key={index} className="hover:shadow-lg transition-shadow border-[#D6BCFA]">
               <CardContent className="p-6">
-                <p className="text-gray-600 mb-6">"{testimonial.quote}"</p>
+                <p className="text-[#6E59A5] mb-6">"{testimonial.quote}"</p>
                 <div className="flex items-center">
                   <Avatar className="h-10 w-10 bg-[#E5DEFF]">
                     <AvatarFallback className="text-[#7E69AB]">{testimonial.avatar}</AvatarFallback>
                   </Avatar>
                   <div className="ml-4">
                     <div className="font-semibold text-[#7E69AB]">{testimonial.author}</div>
-                    <div className="text-sm text-gray-500">{testimonial.role}</div>
+                    <div className="text-[#6E59A5]">{testimonial.role}</div>
                   </div>
                 </div>
               </CardContent>

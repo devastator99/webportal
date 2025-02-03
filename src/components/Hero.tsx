@@ -11,7 +11,7 @@ export const Hero = () => {
         <h1 className="text-4xl md:text-6xl font-bold text-[#7E69AB] mb-6 animate-fade-up">
           Expert Endocrinology Care for Your Health
         </h1>
-        <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto animate-fade-up [animation-delay:200ms]">
+        <p className="text-xl text-[#6E59A5] mb-8 max-w-2xl mx-auto animate-fade-up [animation-delay:200ms]">
           Specialized care for hormonal health, diabetes management, and thyroid disorders with our experienced endocrinologists.
         </p>
         <div className="flex justify-center gap-4 animate-fade-up [animation-delay:400ms]">

@@ -46,10 +46,10 @@ export const Pricing = () => {
           {plans.map((plan, index) => (
             <Card key={index} className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <CardTitle className="text-2xl font-bold text-center">{plan.name}</CardTitle>
+                <CardTitle className="text-2xl font-bold text-center text-[#7E69AB]">{plan.name}</CardTitle>
                 <div className="text-4xl font-bold text-center text-[#9b87f5] mt-4">
                   {plan.price}
-                  <span className="text-lg text-gray-500">/consultation</span>
+                  <span className="text-lg text-[#6E59A5]">/consultation</span>
                 </div>
               </CardHeader>
               <CardContent>
@@ -57,7 +57,7 @@ export const Pricing = () => {
                   {plan.features.map((feature, featureIndex) => (
                     <li key={featureIndex} className="flex items-center">
                       <Check className="w-5 h-5 text-[#9b87f5] mr-2" />
-                      <span>{feature}</span>
+                      <span className="text-[#6E59A5]">{feature}</span>
                     </li>
                   ))}
                 </ul>
