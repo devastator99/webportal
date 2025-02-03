@@ -18,14 +18,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   const clearAuthData = async () => {
-    setUser(null);
-    localStorage.removeItem('supabase.auth.token');
-    localStorage.removeItem(`sb-${process.env.VITE_SUPABASE_PROJECT_ID}-auth-token`);
-    await supabase.auth.signOut();
+    try {
+      // Clear user state
+      setUser(null);
+      
+      // Clear all Supabase-related items from localStorage
+      localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem(`sb-${process.env.VITE_SUPABASE_PROJECT_ID}-auth-token`);
+      
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      // Navigate to home page
+      navigate("/");
+      
+      toast({
+        title: "Signed out",
+        description: "You have been successfully signed out.",
+      });
+    } catch (error: any) {
+      console.error("Error during sign out:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "An error occurred while signing out. Please try again.",
+      });
+    }
   };
 
   useEffect(() => {
-    // Check active sessions and sets the user
     const initializeAuth = async () => {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -42,9 +64,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } catch (error: any) {
         console.error("Error checking auth session:", error);
         toast({
+          variant: "destructive",
           title: "Session Error",
           description: "Your session has expired. Please sign in again.",
-          variant: "destructive",
         });
         await clearAuthData();
       } finally {
@@ -54,13 +76,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     initializeAuth();
 
-    // Listen for changes on auth state (sign in, sign out, etc.)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event);
       
       if (event === 'SIGNED_OUT') {
         await clearAuthData();
-        navigate("/");
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setUser(session?.user ?? null);
         if (window.location.pathname === '/auth') {

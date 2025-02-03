@@ -18,6 +18,7 @@ const Auth = () => {
   const navigate = useNavigate();
 
   const handleAuthError = (error: AuthError) => {
+    console.error("Auth error:", error);
     let errorMessage = "An error occurred during authentication.";
     
     if (error.message.includes("Email not confirmed")) {
@@ -31,6 +32,11 @@ const Auth = () => {
     }
 
     setError(errorMessage);
+    toast({
+      variant: "destructive",
+      title: "Authentication Error",
+      description: errorMessage,
+    });
   };
 
   const clearError = () => setError(null);
@@ -38,8 +44,9 @@ const Auth = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
+    setLoading(true);
+
     try {
-      setLoading(true);
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -63,13 +70,15 @@ const Auth = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     clearError();
+    
     if (password.length < 6) {
       setError("Password should be at least 6 characters long.");
       return;
     }
 
+    setLoading(true);
+
     try {
-      setLoading(true);
       const { error } = await supabase.auth.signUp({
         email,
         password,
@@ -106,8 +115,8 @@ const Auth = () => {
           )}
           <Tabs defaultValue="login" onValueChange={clearError}>
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login" className="text-[#7E69AB]">Login</TabsTrigger>
-              <TabsTrigger value="register" className="text-[#7E69AB]">Register</TabsTrigger>
+              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="register">Register</TabsTrigger>
             </TabsList>
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
@@ -118,8 +127,8 @@ const Auth = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="text-[#6E59A5]"
                     disabled={loading}
+                    className="text-[#6E59A5]"
                   />
                 </div>
                 <div>
@@ -129,8 +138,8 @@ const Auth = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="text-[#6E59A5]"
                     disabled={loading}
+                    className="text-[#6E59A5]"
                   />
                 </div>
                 <Button 
@@ -151,8 +160,8 @@ const Auth = () => {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="text-[#6E59A5]"
                     disabled={loading}
+                    className="text-[#6E59A5]"
                   />
                 </div>
                 <div>
@@ -162,9 +171,9 @@ const Auth = () => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                    disabled={loading}
                     className="text-[#6E59A5]"
                     minLength={6}
-                    disabled={loading}
                   />
                 </div>
                 <Button 
