@@ -59,11 +59,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
-          if (sessionError.message.includes("refresh_token_not_found")) {
-            await signOut();
-          } else {
-            throw sessionError;
-          }
+          console.error("Session error:", sessionError);
+          setUser(null);
         } else if (session?.user) {
           setUser(session.user);
           // Check user role and navigate accordingly
@@ -83,12 +80,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } catch (error: any) {
         console.error("Error checking auth session:", error);
-        toast({
-          variant: "destructive",
-          title: "Session Error",
-          description: "Your session has expired. Please sign in again.",
-        });
-        await signOut();
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -96,35 +88,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     initializeAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("Auth state changed:", event);
       
       if (event === 'SIGNED_OUT') {
         setUser(null);
-        navigate('/');
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setUser(session?.user ?? null);
-        if (session?.user) {
-          const { data: roleData } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .single();
-
-          if (roleData) {
-            console.log('User role after sign in:', roleData.role);
-            navigate('/dashboard');
-          }
-        }
       }
-      
-      setIsLoading(false);
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, toast]);
+  }, [navigate]);
 
   return (
     <AuthContext.Provider value={{ user, isLoading, signOut }}>
