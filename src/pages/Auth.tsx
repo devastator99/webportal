@@ -8,10 +8,12 @@ import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuthError } from "@supabase/supabase-js";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [userType, setUserType] = useState<"patient" | "doctor" | "nutritionist">("patient");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -99,7 +101,8 @@ const Auth = () => {
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
-            full_name: email.split('@')[0], // Set a default name from email
+            user_type: userType,
+            full_name: email.split('@')[0],
           }
         },
       });
@@ -194,6 +197,21 @@ const Auth = () => {
                     className="text-[#6E59A5]"
                     minLength={6}
                   />
+                </div>
+                <div>
+                  <Select
+                    value={userType}
+                    onValueChange={(value: "patient" | "doctor" | "nutritionist") => setUserType(value)}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select user type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="patient">Patient</SelectItem>
+                      <SelectItem value="doctor">Doctor</SelectItem>
+                      <SelectItem value="nutritionist">Nutritionist</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button 
                   type="submit" 

@@ -11,24 +11,12 @@ export const Navbar = () => {
 
   const handleSignOut = async () => {
     try {
-      // First, check if we have a session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError) {
-        throw sessionError;
-      }
-
-      // Attempt to sign out
       const { error } = await supabase.auth.signOut();
       
       if (error) {
         throw error;
       }
 
-      // Clear any local storage or state
-      localStorage.removeItem('supabase.auth.token');
-      localStorage.removeItem('sb-hcaqodjylicmppxcbqbh-auth-token');
-      
       // Navigate to index page after successful sign out
       navigate("/");
       
