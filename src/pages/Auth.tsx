@@ -21,18 +21,23 @@ const Auth = () => {
   const navigate = useNavigate();
 
   const handleAuthError = (error: AuthError) => {
-    console.error("Auth error:", error);
+    console.error("Auth error details:", {
+      message: error.message,
+      status: error.status,
+      name: error.name
+    });
+    
     let errorMessage = "An error occurred during authentication.";
     
-    if (error.message.includes("Email not confirmed")) {
+    if (error.message?.includes("Email not confirmed")) {
       errorMessage = "Please check your email to confirm your account.";
-    } else if (error.message.includes("Invalid login credentials")) {
+    } else if (error.message?.includes("Invalid login credentials")) {
       errorMessage = "Invalid email or password. Please try again.";
-    } else if (error.message.includes("User already registered")) {
+    } else if (error.message?.includes("User already registered")) {
       errorMessage = "This email is already registered. Please sign in instead.";
-    } else if (error.message.includes("Password should be at least 6 characters")) {
+    } else if (error.message?.includes("Password should be at least 6 characters")) {
       errorMessage = "Password should be at least 6 characters long.";
-    } else if (error.message.includes("Database error") || error.status === 500) {
+    } else if (error.message?.includes("Database error") || error.status === 500) {
       errorMessage = "There was an issue connecting to the database. Please try again in a few moments.";
     }
 
@@ -51,8 +56,9 @@ const Auth = () => {
     clearError();
     
     try {
-      console.log("Attempting test login with:", testEmail);
-      const { data, error } = await supabase.auth.signInWithPassword({
+      console.log("Starting test login process for:", testEmail);
+      
+      const { data: { session }, error } = await supabase.auth.signInWithPassword({
         email: testEmail,
         password: testPassword,
       });
@@ -62,16 +68,31 @@ const Auth = () => {
         throw error;
       }
 
-      if (data?.user) {
-        console.log("Test login successful:", data.user);
+      if (session?.user) {
+        console.log("Test login successful:", {
+          user: session.user,
+          session: session
+        });
+        
         toast({
           title: "Test login successful!",
           description: `Logged in as ${testEmail}`,
         });
-        navigate("/dashboard");
+        
+        // Ensure we're properly redirecting after successful login
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 100);
+      } else {
+        console.error("No session or user after successful login");
+        throw new Error("Login successful but no session created");
       }
     } catch (error: any) {
-      console.error("Test login catch block error:", error);
+      console.error("Test login catch block error:", {
+        error,
+        message: error.message,
+        details: error.details
+      });
       handleAuthError(error);
     } finally {
       setLoading(false);
@@ -90,21 +111,30 @@ const Auth = () => {
     setLoading(true);
 
     try {
-      console.log("Attempting login with:", email);
-      const { data, error } = await supabase.auth.signInWithPassword({
+      console.log("Starting login process for:", email);
+      
+      const { data: { session }, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
 
       if (error) throw error;
 
-      if (data?.user) {
-        console.log("Login successful:", data.user);
+      if (session?.user) {
+        console.log("Login successful:", {
+          user: session.user,
+          session: session
+        });
+        
         toast({
           title: "Welcome back!",
           description: "You have successfully signed in.",
         });
-        navigate("/dashboard");
+        
+        // Ensure we're properly redirecting after successful login
+        setTimeout(() => {
+          navigate("/dashboard");
+        }, 100);
       }
     } catch (error: any) {
       handleAuthError(error);
@@ -156,8 +186,6 @@ const Auth = () => {
       setLoading(false);
     }
   };
-
-  // ... keep existing code (JSX return statement)
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -211,6 +239,7 @@ const Auth = () => {
                 </Button>
               </form>
             </TabsContent>
+            
             <TabsContent value="register">
               <form onSubmit={handleSignUp} className="space-y-4">
                 <div>
