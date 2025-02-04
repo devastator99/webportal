@@ -2,13 +2,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, MessageSquare, FileText, Clock, Heart, User, Hospital, LogOut } from "lucide-react";
+import { Calendar, MessageSquare, FileText, Clock, Heart, LogOut } from "lucide-react";
 import { ChatInterface } from "../chat/ChatInterface";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { ScheduleAppointment } from "../appointments/ScheduleAppointment";
+import { DashboardSkeleton } from "./DashboardSkeleton";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
@@ -36,60 +37,60 @@ export const PatientDashboard = () => {
     }
   };
 
-  const { data: appointments } = useQuery({
-    queryKey: ["appointments", user?.id],
+  // Optimized query to fetch all patient data in one go
+  const { data: patientData, isLoading } = useQuery({
+    queryKey: ["patient_dashboard", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("appointments")
-        .select(`
-          id,
-          scheduled_at,
-          status,
-          doctor:profiles!appointments_doctor_profile_fkey(first_name, last_name)
-        `)
-        .eq("patient_id", user?.id)
-        .order("scheduled_at", { ascending: true });
+      const [
+        { data: appointments, error: appointmentsError },
+        { data: medicalRecords, error: medicalRecordsError },
+        { data: profile, error: profileError }
+      ] = await Promise.all([
+        supabase
+          .from("appointments")
+          .select(`
+            id,
+            scheduled_at,
+            status,
+            doctor:profiles!appointments_doctor_profile_fkey(first_name, last_name)
+          `)
+          .eq("patient_id", user?.id)
+          .order("scheduled_at", { ascending: true }),
+        supabase
+          .from("medical_records")
+          .select("*")
+          .eq("patient_id", user?.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user?.id)
+          .maybeSingle()
+      ]);
 
-      if (error) throw error;
-      return data;
+      if (appointmentsError) throw appointmentsError;
+      if (medicalRecordsError) throw medicalRecordsError;
+      if (profileError) throw profileError;
+
+      return {
+        appointments: appointments || [],
+        medicalRecords: medicalRecords || [],
+        profile
+      };
     },
     enabled: !!user?.id,
   });
 
-  const { data: medicalRecords } = useQuery({
-    queryKey: ["medical_records", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("medical_records")
-        .select("*")
-        .eq("patient_id", user?.id)
-        .order("created_at", { ascending: false });
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
 
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id,
-  });
-
-  const { data: profile } = useQuery({
-    queryKey: ["profile", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user?.id)
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id,
-  });
+  const scheduledAppointments = patientData?.appointments.filter(a => a.status === 'scheduled') || [];
 
   return (
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Welcome, {profile?.first_name || "Patient"}</h1>
+        <h1 className="text-3xl font-bold">Welcome, {patientData?.profile?.first_name || "Patient"}</h1>
         <div className="flex gap-4">
           <ScheduleAppointment>
             <Button>Schedule Appointment</Button>
@@ -112,7 +113,7 @@ export const PatientDashboard = () => {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{appointments?.filter(a => a.status === 'scheduled')?.length || 0}</div>
+            <div className="text-2xl font-bold">{scheduledAppointments.length}</div>
           </CardContent>
         </Card>
 
@@ -122,7 +123,7 @@ export const PatientDashboard = () => {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{medicalRecords?.length || 0}</div>
+            <div className="text-2xl font-bold">{patientData?.medicalRecords.length || 0}</div>
           </CardContent>
         </Card>
 
@@ -143,7 +144,7 @@ export const PatientDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {appointments?.[0] ? new Date(appointments[0].scheduled_at).toLocaleDateString() : 'No appointments'}
+              {scheduledAppointments.length > 0 ? new Date(scheduledAppointments[0].scheduled_at).toLocaleDateString() : 'No appointments'}
             </div>
           </CardContent>
         </Card>
@@ -161,7 +162,7 @@ export const PatientDashboard = () => {
             <CardContent>
               <ScrollArea className="h-[300px] pr-4">
                 <div className="space-y-4">
-                  {appointments?.filter(a => a.status === 'scheduled')?.map((appointment) => (
+                  {scheduledAppointments.map((appointment) => (
                     <div key={appointment.id} className="flex justify-between items-center">
                       <div>
                         <p className="font-medium">
@@ -191,7 +192,7 @@ export const PatientDashboard = () => {
             <CardContent>
               <ScrollArea className="h-[300px] pr-4">
                 <div className="space-y-4">
-                  {medicalRecords?.map((record) => (
+                  {patientData?.medicalRecords.map((record) => (
                     <div key={record.id} className="flex justify-between items-center">
                       <div>
                         <p className="font-medium">{record.diagnosis || 'General Check-up'}</p>
