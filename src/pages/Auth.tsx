@@ -4,6 +4,9 @@ import { Separator } from "@/components/ui/separator";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { TestLoginButtons } from "@/components/auth/TestLoginButtons";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Auth = () => {
   const {
@@ -14,6 +17,16 @@ const Auth = () => {
     handleTestLogin,
     setError,
   } = useAuthHandlers();
+
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard');
+    }
+  }, [user, navigate]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">

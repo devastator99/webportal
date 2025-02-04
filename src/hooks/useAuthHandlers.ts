@@ -10,11 +10,7 @@ export const useAuthHandlers = () => {
   const navigate = useNavigate();
 
   const handleAuthError = (error: any) => {
-    console.error("Auth error details:", {
-      message: error.message,
-      status: error.status,
-      name: error.name
-    });
+    console.error("Auth error:", error);
     
     let errorMessage = "An error occurred during authentication.";
     
@@ -43,24 +39,21 @@ export const useAuthHandlers = () => {
     try {
       console.log("Starting test login process for:", testEmail);
       
-      const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: { user, session }, error: signInError } = await supabase.auth.signInWithPassword({
         email: testEmail,
         password: testPassword,
       });
 
       if (signInError) throw signInError;
 
-      if (data?.user) {
-        console.log("Test login successful:", {
-          user: data.user,
-          session: data.session
-        });
+      if (user && session) {
+        console.log("Test login successful:", { user, session });
         
         // Get user role
         const { data: roleData } = await supabase
           .from('user_roles')
           .select('role')
-          .eq('user_id', data.user.id)
+          .eq('user_id', user.id)
           .single();
 
         console.log("User role:", roleData?.role);
@@ -70,10 +63,8 @@ export const useAuthHandlers = () => {
           description: `Logged in as ${testEmail} (${roleData?.role || 'unknown role'})`,
         });
         
-        // Navigate after a short delay to ensure state updates
-        setTimeout(() => {
-          navigate("/dashboard");
-        }, 500);
+        // Navigate after ensuring state is updated
+        navigate("/dashboard");
       }
     } catch (error: any) {
       console.error("Test login error:", error);
@@ -96,27 +87,22 @@ export const useAuthHandlers = () => {
     try {
       console.log("Starting login process for:", email);
       
-      const { data: { session }, error } = await supabase.auth.signInWithPassword({
+      const { data: { user, session }, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
 
       if (error) throw error;
 
-      if (session?.user) {
-        console.log("Login successful:", {
-          user: session.user,
-          session: session
-        });
+      if (user && session) {
+        console.log("Login successful:", { user, session });
         
         toast({
           title: "Welcome back!",
           description: "You have successfully signed in.",
         });
         
-        setTimeout(() => {
-          navigate("/dashboard");
-        }, 500);
+        navigate("/dashboard");
       }
     } catch (error: any) {
       handleAuthError(error);
