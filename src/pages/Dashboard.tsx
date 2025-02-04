@@ -20,6 +20,8 @@ const Dashboard = () => {
     queryFn: async () => {
       if (!user?.id) return null;
       
+      console.log("Fetching role for user:", user.id); // Debug log
+      
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
@@ -31,13 +33,16 @@ const Dashboard = () => {
         throw error;
       }
       
+      console.log("Retrieved user role:", data?.role); // Debug log
       return data?.role;
     },
     enabled: !!user?.id,
+    retry: 1,
   });
 
   useEffect(() => {
     if (error) {
+      console.error("Dashboard error:", error); // Debug log
       toast({
         title: "Error",
         description: "Failed to load dashboard. Please try again.",
@@ -67,7 +72,8 @@ const Dashboard = () => {
     );
   }
 
-  // Add console log to debug
+  // Add debug logs
+  console.log("Current user:", user);
   console.log("Current user role:", userRole);
 
   switch (userRole) {
