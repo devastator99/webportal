@@ -100,7 +100,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("Auth state changed:", event);
       
       if (event === 'SIGNED_OUT') {
-        await signOut();
+        setUser(null);
+        navigate('/');
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setUser(session?.user ?? null);
         if (session?.user) {

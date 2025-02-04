@@ -1,10 +1,30 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { LogOut } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export const Navbar = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "You have been signed out of your account.",
+      });
+      navigate("/");
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error signing out",
+        description: error.message || "An error occurred while signing out.",
+      });
+    }
+  };
 
   return (
     <nav className="fixed w-full bg-white/80 backdrop-blur-md z-50 border-b border-[#D6BCFA]">
@@ -17,10 +37,11 @@ export const Navbar = () => {
         </div>
         {user ? (
           <Button 
-            onClick={signOut} 
+            onClick={handleSignOut} 
             variant="outline" 
-            className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
+            className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2"
           >
+            <LogOut className="h-4 w-4" />
             Sign Out
           </Button>
         ) : (
