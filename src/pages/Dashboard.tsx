@@ -18,42 +18,49 @@ const Dashboard = () => {
   const { data: userRole, isLoading, error } = useQuery({
     queryKey: ["user_role", user?.id],
     queryFn: async () => {
-      if (!user?.id) return null;
+      if (!user?.id) {
+        console.log("No user ID available");
+        return null;
+      }
       
-      console.log("Fetching role for user:", user.id); // Debug log
+      console.log("Fetching role for user ID:", user.id);
       
       const { data, error } = await supabase
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error("Error fetching user role:", error);
         throw error;
       }
       
-      console.log("Retrieved user role:", data?.role); // Debug log
+      console.log("Retrieved user role data:", data);
       return data?.role;
     },
     enabled: !!user?.id,
-    retry: 1,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   useEffect(() => {
+    console.log("Current auth state:", { user, userRole, isLoading });
+    
     if (error) {
-      console.error("Dashboard error:", error); // Debug log
+      console.error("Dashboard error:", error);
       toast({
         title: "Error",
         description: "Failed to load dashboard. Please try again.",
         variant: "destructive",
       });
     }
-  }, [error, toast]);
+  }, [error, user, userRole, isLoading, toast]);
 
   // Redirect to auth if no user
   useEffect(() => {
     if (!user && !isLoading) {
+      console.log("No user found, redirecting to auth");
       navigate("/auth");
     }
   }, [user, isLoading, navigate]);
@@ -72,9 +79,7 @@ const Dashboard = () => {
     );
   }
 
-  // Add debug logs
-  console.log("Current user:", user);
-  console.log("Current user role:", userRole);
+  console.log("Rendering dashboard with role:", userRole);
 
   switch (userRole) {
     case "doctor":
@@ -93,6 +98,11 @@ const Dashboard = () => {
             You don't have the required permissions to access this page.
             Current role: {userRole || "No role assigned"}
           </p>
+          <pre className="mt-4 p-4 bg-gray-100 rounded">
+            Debug info:
+            User ID: {user?.id}
+            Role: {userRole}
+          </pre>
         </div>
       );
   }
