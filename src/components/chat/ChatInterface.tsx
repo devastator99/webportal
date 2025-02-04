@@ -6,7 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { MessageSquare, Send } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 interface ChatMessage {
@@ -30,6 +30,7 @@ export const ChatInterface = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [newMessage, setNewMessage] = useState("");
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const { data: messages, refetch } = useQuery({
     queryKey: ["chat_messages", user?.id],
@@ -54,6 +55,40 @@ export const ChatInterface = () => {
     },
     enabled: !!user?.id,
   });
+
+  // Scroll to bottom when new messages arrive
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const scrollArea = scrollAreaRef.current;
+      scrollArea.scrollTop = scrollArea.scrollHeight;
+    }
+  }, [messages]);
+
+  // Subscribe to real-time updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('chat_updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'chat_messages',
+          filter: `sender_id=eq.${user.id},receiver_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('New message received:', payload);
+          refetch();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, refetch]);
 
   const handleSendMessage = async () => {
     if (!user?.id) {
@@ -117,10 +152,9 @@ export const ChatInterface = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">
-        <ScrollArea className="flex-1 pr-4">
+        <ScrollArea className="flex-1 pr-4" ref={scrollAreaRef}>
           <div className="space-y-4">
             {messages?.map((msg) => {
-              // Add null check for msg.sender
               if (!msg?.sender) return null;
               
               const senderName = msg.sender.first_name || msg.sender.last_name 
