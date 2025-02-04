@@ -36,9 +36,19 @@ const Dashboard = () => {
         console.error("Error fetching user role:", error);
         throw error;
       }
+
+      if (!data) {
+        console.log("No role found for user:", user.id);
+        toast({
+          title: "No Role Assigned",
+          description: "Your account doesn't have a role assigned. Please contact support.",
+          variant: "destructive",
+        });
+        return null;
+      }
       
-      console.log("Retrieved user role data:", data);
-      return data?.role;
+      console.log("Retrieved user role:", data.role);
+      return data.role;
     },
     enabled: !!user?.id,
     retry: 2,
