@@ -37,8 +37,6 @@ const Auth = () => {
       errorMessage = "This email is already registered. Please sign in instead.";
     } else if (error.message?.includes("Password should be at least 6 characters")) {
       errorMessage = "Password should be at least 6 characters long.";
-    } else if (error.message?.includes("Database error") || error.status === 500) {
-      errorMessage = "There was an issue connecting to the database. Please try again in a few moments.";
     }
 
     setError(errorMessage);
@@ -58,41 +56,40 @@ const Auth = () => {
     try {
       console.log("Starting test login process for:", testEmail);
       
-      const { data: { session }, error } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: testEmail,
         password: testPassword,
       });
 
-      if (error) {
-        console.error("Test login error:", error);
-        throw error;
-      }
+      if (signInError) throw signInError;
 
-      if (session?.user) {
+      if (data?.user) {
         console.log("Test login successful:", {
-          user: session.user,
-          session: session
+          user: data.user,
+          session: data.session
         });
+        
+        // Get user role
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.user.id)
+          .single();
+
+        console.log("User role:", roleData?.role);
         
         toast({
-          title: "Test login successful!",
-          description: `Logged in as ${testEmail}`,
+          title: "Login successful!",
+          description: `Logged in as ${testEmail} (${roleData?.role || 'unknown role'})`,
         });
         
-        // Ensure we're properly redirecting after successful login
+        // Navigate after a short delay to ensure state updates
         setTimeout(() => {
           navigate("/dashboard");
-        }, 100);
-      } else {
-        console.error("No session or user after successful login");
-        throw new Error("Login successful but no session created");
+        }, 500);
       }
     } catch (error: any) {
-      console.error("Test login catch block error:", {
-        error,
-        message: error.message,
-        details: error.details
-      });
+      console.error("Test login error:", error);
       handleAuthError(error);
     } finally {
       setLoading(false);
