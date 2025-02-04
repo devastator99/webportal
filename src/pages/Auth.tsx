@@ -48,15 +48,22 @@ const Auth = () => {
 
   const handleTestLogin = async (testEmail: string, testPassword: string) => {
     setLoading(true);
+    clearError();
+    
     try {
+      console.log("Attempting test login with:", testEmail);
       const { data, error } = await supabase.auth.signInWithPassword({
         email: testEmail,
         password: testPassword,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Test login error:", error);
+        throw error;
+      }
 
       if (data?.user) {
+        console.log("Test login successful:", data.user);
         toast({
           title: "Test login successful!",
           description: `Logged in as ${testEmail}`,
@@ -64,6 +71,7 @@ const Auth = () => {
         navigate("/dashboard");
       }
     } catch (error: any) {
+      console.error("Test login catch block error:", error);
       handleAuthError(error);
     } finally {
       setLoading(false);
@@ -82,6 +90,7 @@ const Auth = () => {
     setLoading(true);
 
     try {
+      console.log("Attempting login with:", email);
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
@@ -90,11 +99,12 @@ const Auth = () => {
       if (error) throw error;
 
       if (data?.user) {
+        console.log("Login successful:", data.user);
         toast({
           title: "Welcome back!",
           description: "You have successfully signed in.",
         });
-        navigate("/");
+        navigate("/dashboard");
       }
     } catch (error: any) {
       handleAuthError(error);
@@ -146,6 +156,8 @@ const Auth = () => {
       setLoading(false);
     }
   };
+
+  // ... keep existing code (JSX return statement)
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
