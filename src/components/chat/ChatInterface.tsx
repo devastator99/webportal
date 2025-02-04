@@ -10,16 +10,41 @@ import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 
 export const ChatInterface = () => {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const { toast } = useToast();
   const [newMessage, setNewMessage] = useState("");
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
-  // Fetch doctor's ID for the current patient
+  // For doctors, fetch their assigned patients
+  const { data: assignedPatients } = useQuery({
+    queryKey: ["assigned_patients", user?.id],
+    queryFn: async () => {
+      if (!user?.id || userRole !== "doctor") return null;
+      
+      const { data, error } = await supabase
+        .from("patient_assignments")
+        .select(`
+          patient_id,
+          patient:profiles!patient_assignments_patient_profile_fkey(
+            id,
+            first_name,
+            last_name
+          )
+        `)
+        .eq("doctor_id", user.id);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.id && userRole === "doctor",
+  });
+
+  // For patients, fetch their assigned doctor
   const { data: doctorAssignment } = useQuery({
     queryKey: ["doctor_assignment", user?.id],
     queryFn: async () => {
-      if (!user?.id) return null;
+      if (!user?.id || userRole !== "patient") return null;
       
       const { data, error } = await supabase
         .from("patient_assignments")
@@ -34,21 +59,25 @@ export const ChatInterface = () => {
         .eq("patient_id", user.id)
         .maybeSingle();
 
-      if (error) {
-        console.error("Error fetching doctor assignment:", error);
-        return null;
-      }
+      if (error) throw error;
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && userRole === "patient",
   });
 
+  // Set first patient as selected by default
+  useEffect(() => {
+    if (userRole === "doctor" && assignedPatients?.length && !selectedPatientId) {
+      setSelectedPatientId(assignedPatients[0].patient_id);
+    }
+  }, [assignedPatients, userRole, selectedPatientId]);
+
   const { data: messages, refetch } = useQuery({
-    queryKey: ["chat_messages", user?.id],
+    queryKey: ["chat_messages", user?.id, selectedPatientId],
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const { data, error } = await supabase
+      const query = supabase
         .from("chat_messages")
         .select(`
           id,
@@ -57,14 +86,23 @@ export const ChatInterface = () => {
           created_at,
           sender:profiles!chat_messages_sender_profile_fkey(id, first_name, last_name),
           receiver:profiles!chat_messages_receiver_profile_fkey(id, first_name, last_name)
-        `)
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-        .order("created_at", { ascending: true });
+        `);
+
+      if (userRole === "doctor" && selectedPatientId) {
+        query.or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedPatientId}),and(sender_id.eq.${selectedPatientId},receiver_id.eq.${user.id})`);
+      } else if (userRole === "patient" && doctorAssignment?.doctor_id) {
+        query.or(`and(sender_id.eq.${user.id},receiver_id.eq.${doctorAssignment.doctor_id}),and(sender_id.eq.${doctorAssignment.doctor_id},receiver_id.eq.${user.id})`);
+      }
+
+      const { data, error } = await query.order("created_at", { ascending: true });
 
       if (error) throw error;
       return data;
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && (
+      (userRole === "doctor" && !!selectedPatientId) || 
+      (userRole === "patient" && !!doctorAssignment?.doctor_id)
+    ),
   });
 
   // Scroll to bottom when new messages arrive
@@ -87,7 +125,6 @@ export const ChatInterface = () => {
           event: 'INSERT',
           schema: 'public',
           table: 'chat_messages',
-          filter: `sender_id=eq.${user.id},receiver_id=eq.${user.id}`,
         },
         () => {
           refetch();
@@ -101,12 +138,14 @@ export const ChatInterface = () => {
   }, [user?.id, refetch]);
 
   const handleSendMessage = async () => {
-    if (!user?.id || !doctorAssignment?.doctor_id) {
+    const receiverId = userRole === "doctor" 
+      ? selectedPatientId 
+      : doctorAssignment?.doctor_id;
+
+    if (!user?.id || !receiverId) {
       toast({
         title: "Error",
-        description: doctorAssignment?.doctor_id 
-          ? "You must be logged in to send messages."
-          : "No doctor assigned. Please contact support.",
+        description: "Unable to send message. Please try again.",
         variant: "destructive",
       });
       return;
@@ -117,7 +156,7 @@ export const ChatInterface = () => {
     try {
       const { error } = await supabase.from("chat_messages").insert({
         sender_id: user.id,
-        receiver_id: doctorAssignment.doctor_id,
+        receiver_id: receiverId,
         message: newMessage,
         message_type: "text",
       });
@@ -156,15 +195,36 @@ export const ChatInterface = () => {
     );
   }
 
+  const getHeaderTitle = () => {
+    if (userRole === "doctor" && selectedPatientId) {
+      const patient = assignedPatients?.find(p => p.patient_id === selectedPatientId)?.patient;
+      return patient ? `Chat with ${patient.first_name} ${patient.last_name}` : "Select a patient";
+    } else if (userRole === "patient" && doctorAssignment?.doctor) {
+      return `Chat with Dr. ${doctorAssignment.doctor.first_name} ${doctorAssignment.doctor.last_name}`;
+    }
+    return "Messages";
+  };
+
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5" />
-          Messages {doctorAssignment?.doctor?.first_name && 
-            `with Dr. ${doctorAssignment.doctor.first_name} ${doctorAssignment.doctor.last_name}`
-          }
+          {getHeaderTitle()}
         </CardTitle>
+        {userRole === "doctor" && assignedPatients && assignedPatients.length > 0 && (
+          <select
+            className="mt-2 w-full p-2 rounded-md border"
+            value={selectedPatientId || ""}
+            onChange={(e) => setSelectedPatientId(e.target.value)}
+          >
+            {assignedPatients.map((assignment) => (
+              <option key={assignment.patient_id} value={assignment.patient_id}>
+                {assignment.patient.first_name} {assignment.patient.last_name}
+              </option>
+            ))}
+          </select>
+        )}
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">
         <ScrollArea className="flex-1 pr-4" ref={scrollAreaRef}>
@@ -182,7 +242,7 @@ export const ChatInterface = () => {
           value={newMessage}
           onChange={setNewMessage}
           onSend={handleSendMessage}
-          disabled={!doctorAssignment?.doctor_id}
+          disabled={userRole === "doctor" ? !selectedPatientId : !doctorAssignment?.doctor_id}
         />
       </CardContent>
     </Card>
