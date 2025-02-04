@@ -24,11 +24,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
+      // First clear the user state to prevent any race conditions
+      setUser(null);
+      
+      // Then attempt to sign out from Supabase
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      
-      // Clear user state
-      setUser(null);
       
       // Clear all Supabase-related items from localStorage
       localStorage.removeItem('supabase.auth.token');
@@ -43,6 +44,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
     } catch (error: any) {
       console.error("Sign out error:", error);
+      // If we get an AuthSessionMissingError, just clear everything
+      if (error.message?.includes("Auth session missing")) {
+        localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('sb-hcaqodjylicmppxcbqbh-auth-token');
+        navigate("/");
+        return;
+      }
       toast({
         variant: "destructive",
         title: "Error signing out",
