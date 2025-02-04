@@ -1,40 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
 
 export const Navbar = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-
-  const handleSignOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        throw error;
-      }
-
-      // Navigate to index page after successful sign out
-      navigate("/");
-      
-      toast({
-        title: "Signed out successfully",
-        description: "You have been signed out of your account.",
-      });
-    } catch (error: any) {
-      console.error("Sign out error:", error);
-      toast({
-        title: "Error signing out",
-        description: error.message || "An error occurred while signing out. Please try again.",
-        variant: "destructive",
-      });
-      // Still navigate to index page if there's an error
-      navigate("/");
-    }
-  };
 
   return (
     <nav className="fixed w-full bg-white/80 backdrop-blur-md z-50 border-b border-[#D6BCFA]">
@@ -46,11 +16,18 @@ export const Navbar = () => {
           <a href="#pricing" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Plans</a>
         </div>
         {user ? (
-          <Button onClick={handleSignOut} variant="outline" className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]">
+          <Button 
+            onClick={signOut} 
+            variant="outline" 
+            className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
+          >
             Sign Out
           </Button>
         ) : (
-          <Button onClick={() => navigate("/auth")} className="bg-[#9b87f5] hover:bg-[#7E69AB]">
+          <Button 
+            onClick={() => navigate("/auth")} 
+            className="bg-[#9b87f5] hover:bg-[#7E69AB]"
+          >
             Sign In
           </Button>
         )}

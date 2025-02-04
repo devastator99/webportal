@@ -8,9 +8,11 @@ import { RecentPatients } from "./doctor/RecentPatients";
 import { ChatInterface } from "../chat/ChatInterface";
 import { AiAssistant } from "./doctor/AiAssistant";
 import { DoctorAppointmentCalendar } from "./doctor/DoctorAppointmentCalendar";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 
 export const DoctorDashboard = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
 
   const { data: patients } = useQuery({
     queryKey: ["patients", user?.id],
@@ -74,7 +76,17 @@ export const DoctorDashboard = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-saas-purple">Doctor Dashboard</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-saas-purple">Doctor Dashboard</h1>
+        <Button 
+          variant="outline" 
+          onClick={signOut}
+          className="gap-2"
+        >
+          <LogOut className="h-4 w-4" />
+          Sign Out
+        </Button>
+      </div>
       
       <StatsCards
         patientsCount={patients?.length || 0}

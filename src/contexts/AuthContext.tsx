@@ -7,9 +7,14 @@ import { useToast } from "@/hooks/use-toast";
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
+  signOut: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthContextType>({ user: null, isLoading: true });
+const AuthContext = createContext<AuthContextType>({ 
+  user: null, 
+  isLoading: true,
+  signOut: async () => {} 
+});
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -17,8 +22,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const clearAuthData = async () => {
+  const signOut = async () => {
     try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
       // Clear user state
       setUser(null);
       
@@ -26,24 +34,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.removeItem('supabase.auth.token');
       localStorage.removeItem('sb-hcaqodjylicmppxcbqbh-auth-token');
       
-      // Sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
       // Navigate to home page
       navigate("/");
       
       toast({
-        title: "Signed out",
-        description: "You have been successfully signed out.",
+        title: "Signed out successfully",
+        description: "You have been signed out of your account.",
       });
     } catch (error: any) {
-      console.error("Error during sign out:", error);
+      console.error("Sign out error:", error);
       toast({
         variant: "destructive",
-        title: "Error",
-        description: "An error occurred while signing out. Please try again.",
+        title: "Error signing out",
+        description: error.message || "An error occurred while signing out.",
       });
+      // Still navigate to home page if there's an error
+      navigate("/");
     }
   };
 
@@ -54,7 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (sessionError) {
           if (sessionError.message.includes("refresh_token_not_found")) {
-            await clearAuthData();
+            await signOut();
           } else {
             throw sessionError;
           }
@@ -82,7 +88,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           title: "Session Error",
           description: "Your session has expired. Please sign in again.",
         });
-        await clearAuthData();
+        await signOut();
       } finally {
         setIsLoading(false);
       }
@@ -94,11 +100,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("Auth state changed:", event);
       
       if (event === 'SIGNED_OUT') {
-        await clearAuthData();
+        await signOut();
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setUser(session?.user ?? null);
         if (session?.user) {
-          // Check user role when signed in
           const { data: roleData } = await supabase
             .from('user_roles')
             .select('role')
@@ -107,7 +112,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
           if (roleData) {
             console.log('User role after sign in:', roleData.role);
-            // Navigate to dashboard for authenticated users
             navigate('/dashboard');
           }
         }
@@ -122,7 +126,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [navigate, toast]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading }}>
+    <AuthContext.Provider value={{ user, isLoading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
