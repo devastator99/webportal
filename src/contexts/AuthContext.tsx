@@ -24,7 +24,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Clear all Supabase-related items from localStorage
       localStorage.removeItem('supabase.auth.token');
-      localStorage.removeItem(`sb-${process.env.VITE_SUPABASE_PROJECT_ID}-auth-token`);
+      localStorage.removeItem('sb-hcaqodjylicmppxcbqbh-auth-token');
       
       // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
@@ -58,8 +58,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           } else {
             throw sessionError;
           }
-        } else {
-          setUser(session?.user ?? null);
+        } else if (session?.user) {
+          setUser(session.user);
+          // Check user role and navigate accordingly
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .single();
+
+          if (roleData) {
+            console.log('User role:', roleData.role);
+            // Navigate to dashboard for authenticated users
+            if (window.location.pathname === '/' || window.location.pathname === '/auth') {
+              navigate('/dashboard');
+            }
+          }
         }
       } catch (error: any) {
         console.error("Error checking auth session:", error);
@@ -83,8 +97,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         await clearAuthData();
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setUser(session?.user ?? null);
-        if (window.location.pathname === '/auth') {
-          navigate("/");
+        if (session?.user) {
+          // Check user role when signed in
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .single();
+
+          if (roleData) {
+            console.log('User role after sign in:', roleData.role);
+            // Navigate to dashboard for authenticated users
+            navigate('/dashboard');
+          }
         }
       }
       
