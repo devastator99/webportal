@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AuthError } from "@supabase/supabase-js";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -44,6 +45,30 @@ const Auth = () => {
   };
 
   const clearError = () => setError(null);
+
+  const handleTestLogin = async (testEmail: string, testPassword: string) => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: testEmail,
+        password: testPassword,
+      });
+
+      if (error) throw error;
+
+      if (data?.user) {
+        toast({
+          title: "Test login successful!",
+          description: `Logged in as ${testEmail}`,
+        });
+        navigate("/dashboard");
+      }
+    } catch (error: any) {
+      handleAuthError(error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,6 +165,7 @@ const Auth = () => {
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="register">Register</TabsTrigger>
             </TabsList>
+            
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
@@ -222,6 +248,31 @@ const Auth = () => {
                 </Button>
               </form>
             </TabsContent>
+            
+            <div className="mt-6">
+              <Separator className="my-4" />
+              <h3 className="text-sm font-medium text-[#7E69AB] mb-4">Quick Test Logins</h3>
+              <div className="space-y-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
+                  onClick={() => handleTestLogin("doctor@test.com", "test123")}
+                  disabled={loading}
+                >
+                  Login as Test Doctor
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
+                  onClick={() => handleTestLogin("patient@test.com", "test123")}
+                  disabled={loading}
+                >
+                  Login as Test Patient
+                </Button>
+              </div>
+            </div>
           </Tabs>
         </CardContent>
       </Card>
