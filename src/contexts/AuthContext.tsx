@@ -4,38 +4,56 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
+type UserRole = "doctor" | "patient" | "administrator" | "nutritionist";
+
 type AuthContextType = {
   user: User | null;
+  userRole: UserRole | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType>({ 
-  user: null, 
+  user: null,
+  userRole: null,
   isLoading: true,
   signOut: async () => {} 
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const fetchUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data?.role as UserRole;
+    } catch (error) {
+      console.error('Error fetching user role:', error);
+      return null;
+    }
+  };
+
   const signOut = async () => {
     try {
-      // First clear the user state to prevent any race conditions
       setUser(null);
+      setUserRole(null);
       
-      // Then attempt to sign out from Supabase
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
-      // Clear all Supabase-related items from localStorage
       localStorage.removeItem('supabase.auth.token');
       localStorage.removeItem('sb-hcaqodjylicmppxcbqbh-auth-token');
       
-      // Navigate to home page
       navigate("/");
       
       toast({
@@ -44,7 +62,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
     } catch (error: any) {
       console.error("Sign out error:", error);
-      // If we get an AuthSessionMissingError, just clear everything
       if (error.message?.includes("Auth session missing")) {
         localStorage.removeItem('supabase.auth.token');
         localStorage.removeItem('sb-hcaqodjylicmppxcbqbh-auth-token');
@@ -56,7 +73,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Error signing out",
         description: error.message || "An error occurred while signing out.",
       });
-      // Still navigate to home page if there's an error
       navigate("/");
     }
   };
@@ -69,26 +85,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (sessionError) {
           console.error("Session error:", sessionError);
           setUser(null);
+          setUserRole(null);
         } else if (session?.user) {
           setUser(session.user);
-          // Check user role and navigate accordingly
-          const { data: roleData } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', session.user.id)
-            .single();
-
-          if (roleData) {
-            console.log('User role:', roleData.role);
-            // Navigate to dashboard for authenticated users
-            if (window.location.pathname === '/' || window.location.pathname === '/auth') {
-              navigate('/dashboard');
-            }
+          const role = await fetchUserRole(session.user.id);
+          setUserRole(role);
+          
+          if (window.location.pathname === '/' || window.location.pathname === '/auth') {
+            navigate('/dashboard');
           }
         }
       } catch (error: any) {
         console.error("Error checking auth session:", error);
         setUser(null);
+        setUserRole(null);
       } finally {
         setIsLoading(false);
       }
@@ -96,13 +106,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     initializeAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event);
       
       if (event === 'SIGNED_OUT') {
         setUser(null);
+        setUserRole(null);
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setUser(session?.user ?? null);
+        if (session?.user) {
+          const role = await fetchUserRole(session.user.id);
+          setUserRole(role);
+        }
       }
     });
 
@@ -112,7 +127,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [navigate]);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, signOut }}>
+    <AuthContext.Provider value={{ user, userRole, isLoading, signOut }}>
       {children}
     </AuthContext.Provider>
   );
