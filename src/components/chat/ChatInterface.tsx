@@ -32,6 +32,34 @@ export const ChatInterface = () => {
   const [newMessage, setNewMessage] = useState("");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
+  // Fetch doctor's ID for the current patient
+  const { data: doctorAssignment } = useQuery({
+    queryKey: ["doctor_assignment", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      
+      const { data, error } = await supabase
+        .from("patient_assignments")
+        .select(`
+          doctor_id,
+          doctor:profiles!patient_assignments_doctor_profile_fkey(
+            id,
+            first_name,
+            last_name
+          )
+        `)
+        .eq("patient_id", user.id)
+        .single();
+
+      if (error) {
+        console.error("Error fetching doctor assignment:", error);
+        return null;
+      }
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
   const { data: messages, refetch } = useQuery({
     queryKey: ["chat_messages", user?.id],
     queryFn: async () => {
@@ -91,10 +119,12 @@ export const ChatInterface = () => {
   }, [user?.id, refetch]);
 
   const handleSendMessage = async () => {
-    if (!user?.id) {
+    if (!user?.id || !doctorAssignment?.doctor_id) {
       toast({
         title: "Error",
-        description: "You must be logged in to send messages.",
+        description: doctorAssignment?.doctor_id 
+          ? "You must be logged in to send messages."
+          : "No doctor assigned. Please contact support.",
         variant: "destructive",
       });
       return;
@@ -105,7 +135,7 @@ export const ChatInterface = () => {
     try {
       const { error } = await supabase.from("chat_messages").insert({
         sender_id: user.id,
-        receiver_id: "b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12", // Default to doctor for now
+        receiver_id: doctorAssignment.doctor_id,
         message: newMessage,
         message_type: "text",
       });
@@ -119,6 +149,7 @@ export const ChatInterface = () => {
         description: "Your message has been sent successfully.",
       });
     } catch (error: any) {
+      console.error("Error sending message:", error);
       toast({
         title: "Error",
         description: "Failed to send message. Please try again.",
@@ -148,7 +179,7 @@ export const ChatInterface = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5" />
-          Messages
+          Messages {doctorAssignment?.doctor?.first_name && `with Dr. ${doctorAssignment.doctor.first_name} ${doctorAssignment.doctor.last_name}`}
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">
