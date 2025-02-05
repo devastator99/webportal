@@ -5,6 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { renderWithProviders } from '@/test/utils';
 import Auth from '../Auth';
 import { supabase } from '@/integrations/supabase/client';
+import { AuthError } from '@supabase/supabase-js';
 
 describe('Auth Component', () => {
   beforeEach(() => {
@@ -99,13 +100,7 @@ describe('Auth Component', () => {
   it('handles login error', async () => {
     const mockSignIn = vi.spyOn(supabase.auth, 'signInWithPassword').mockResolvedValueOnce({
       data: { user: null, session: null },
-      error: {
-        message: 'Invalid login credentials',
-        name: 'AuthError',
-        status: 400,
-        code: 'invalid_credentials',
-        __isAuthError: true,
-      },
+      error: new AuthError('Invalid login credentials', 400),
     });
 
     renderWithProviders(<Auth />);
