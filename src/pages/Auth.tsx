@@ -1,5 +1,4 @@
-
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthForm } from "@/components/auth/AuthForm";
@@ -13,17 +12,15 @@ const Auth = () => {
   const { loading, error, handleLogin, handleSignUp, handleTestLogin } = useAuthHandlers();
   const [isLoginMode, setIsLoginMode] = useState(true);
 
-  // Add console log to debug auth state
-  console.log("Auth state in Auth page:", { user, authLoading });
+  console.log("Auth state in Auth page:", { user, authLoading, loading });
 
   useEffect(() => {
-    // Only redirect if we have user data and auth is not in loading state
     if (user && !authLoading) {
       navigate("/dashboard");
     }
   }, [user, authLoading, navigate]);
 
-  // Show loading spinner only during initial auth check
+  // Show loading spinner during initial auth check
   if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
