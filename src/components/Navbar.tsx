@@ -25,6 +25,13 @@ export const Navbar = () => {
   // Add console log to debug auth state
   console.log("Auth state in Navbar:", { user });
 
+  const isAuthPage = window.location.pathname === "/auth";
+  const isHomePage = window.location.pathname === "/";
+
+  if (isAuthPage) {
+    return null; // Don't show navbar on auth page
+  }
+
   return (
     <nav className="fixed w-full bg-white/80 backdrop-blur-md z-50 border-b border-[#D6BCFA]">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -34,24 +41,29 @@ export const Navbar = () => {
           <a href="#testimonials" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Patient Stories</a>
           <a href="#pricing" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Plans</a>
         </div>
-        {window.location.pathname === "/" ? (
+        {isHomePage ? (
           <Button 
             onClick={() => navigate("/auth")} 
             className="bg-[#9b87f5] hover:bg-[#7E69AB]"
           >
             Sign In
           </Button>
+        ) : user ? (
+          <Button 
+            onClick={handleSignOut} 
+            variant="outline" 
+            className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
         ) : (
-          user && (
-            <Button 
-              onClick={handleSignOut} 
-              variant="outline" 
-              className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </Button>
-          )
+          <Button 
+            onClick={() => navigate("/auth")} 
+            className="bg-[#9b87f5] hover:bg-[#7E69AB]"
+          >
+            Sign In
+          </Button>
         )}
       </div>
     </nav>
