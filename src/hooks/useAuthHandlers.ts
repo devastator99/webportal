@@ -101,20 +101,16 @@ export const useAuthHandlers = () => {
       if (signUpError) throw signUpError;
 
       if (data?.user) {
-        // Immediately attempt to sign in since email confirmation is disabled
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
-        });
-
-        if (signInError) throw signInError;
-
         toast({
-          title: "Welcome!",
-          description: "Your account has been created successfully.",
+          title: "Registration successful!",
+          description: "Your account has been created. Please sign in.",
         });
         
-        navigate("/dashboard");
+        // Sign out the user after registration
+        await supabase.auth.signOut();
+        
+        // Redirect to auth page for login
+        navigate("/auth");
       }
     } catch (error: any) {
       handleAuthError(error);
