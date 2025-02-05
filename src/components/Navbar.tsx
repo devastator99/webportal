@@ -28,20 +28,26 @@ export const Navbar = () => {
   const isAuthPage = window.location.pathname === "/auth";
   const isHomePage = window.location.pathname === "/";
 
+  // Don't show navbar on auth page
   if (isAuthPage) {
-    return null; // Don't show navbar on auth page
+    return null;
   }
 
   return (
     <nav className="fixed w-full bg-white/80 backdrop-blur-md z-50 border-b border-[#D6BCFA]">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <div className="text-2xl font-bold text-[#9b87f5]">Anubhuti</div>
+        <div 
+          className="text-2xl font-bold text-[#9b87f5] cursor-pointer" 
+          onClick={() => navigate("/")}
+        >
+          Anubhuti
+        </div>
         <div className="hidden md:flex space-x-8">
           <a href="#features" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Services</a>
           <a href="#testimonials" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Patient Stories</a>
           <a href="#pricing" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Plans</a>
         </div>
-        {isHomePage || !user ? (
+        {!user ? (
           <Button 
             onClick={() => navigate("/auth")} 
             className="bg-[#9b87f5] hover:bg-[#7E69AB]"

@@ -13,24 +13,17 @@ const Auth = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
 
   useEffect(() => {
-    // Only redirect if user is already authenticated
     if (user && !isLoading) {
       navigate("/dashboard");
     }
   }, [user, isLoading, navigate]);
 
-  // Show loading spinner while checking auth state
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
       </div>
     );
-  }
-
-  // Don't render anything if user is authenticated (will redirect)
-  if (user) {
-    return null;
   }
 
   return (
