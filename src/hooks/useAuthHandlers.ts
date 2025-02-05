@@ -63,7 +63,7 @@ export const useAuthHandlers = () => {
     }
   };
 
-  const handleSignUp = async (email: string, password: string, userType: string) => {
+  const handleSignUp = async (email: string, password: string, userType: string, firstName?: string, lastName?: string) => {
     setError(null);
     
     if (!email.trim() || !password) {
@@ -76,6 +76,11 @@ export const useAuthHandlers = () => {
       return;
     }
 
+    if (!firstName || !lastName) {
+      setError("Please enter both first name and last name.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -85,7 +90,8 @@ export const useAuthHandlers = () => {
         options: {
           data: {
             user_type: userType,
-            full_name: email.split('@')[0],
+            first_name: firstName,
+            last_name: lastName
           }
         },
       });

@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 interface AuthFormProps {
   type: "login" | "register";
-  onSubmit: (email: string, password: string, userType?: string) => Promise<void>;
+  onSubmit: (email: string, password: string, userType?: string, firstName?: string, lastName?: string) => Promise<void>;
   error: string | null;
   loading: boolean;
 }
@@ -14,6 +14,8 @@ interface AuthFormProps {
 export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [userType, setUserType] = useState<"patient" | "doctor" | "nutritionist">("patient");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,7 +24,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
     
     try {
       if (type === "register") {
-        await onSubmit(email, password, userType);
+        await onSubmit(email, password, userType, firstName, lastName);
       } else {
         await onSubmit(email, password);
       }
@@ -37,6 +39,32 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
         <Alert variant="destructive">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+      )}
+      {type === "register" && (
+        <>
+          <div>
+            <Input
+              type="text"
+              placeholder="First Name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
+              disabled={loading}
+              className="text-[#6E59A5]"
+            />
+          </div>
+          <div>
+            <Input
+              type="text"
+              placeholder="Last Name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              disabled={loading}
+              className="text-[#6E59A5]"
+            />
+          </div>
+        </>
       )}
       <div>
         <Input
