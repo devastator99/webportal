@@ -55,7 +55,10 @@ const Auth = () => {
             </div>
 
             <div className="mt-6">
-              <TestLoginButtons onTestLogin={handleTestLogin} />
+              <TestLoginButtons 
+                onTestLogin={handleTestLogin} 
+                loading={loading}
+              />
             </div>
           </div>
         </div>
