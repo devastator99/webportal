@@ -7,6 +7,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 
 type MedicalRecord = {
   id: string;
@@ -23,6 +24,24 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  // Fetch doctor assignment to check if patient has an assigned doctor
+  const { data: doctorAssignment } = useQuery({
+    queryKey: ["doctor_assignment"],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return null;
+
+      const { data, error } = await supabase
+        .from("patient_assignments")
+        .select("doctor_id")
+        .eq("patient_id", session.user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    }
+  });
+
   const handleFileUpload = async (recordId: string, file: File) => {
     try {
       setIsUploading(true);
@@ -36,6 +55,16 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
           variant: "destructive",
         });
         navigate('/auth');
+        return;
+      }
+
+      // Check if patient has an assigned doctor
+      if (!doctorAssignment?.doctor_id) {
+        toast({
+          title: "No doctor assigned",
+          description: "You need to be assigned to a doctor before uploading documents.",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -55,7 +84,7 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
         .from('medical_files')
         .getPublicUrl(filePath);
 
-      // Create document record using raw query since table types aren't updated yet
+      // Create document record
       const { error: dbError } = await supabase
         .from('medical_documents')
         .insert({
@@ -64,7 +93,7 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
           file_path: filePath,
           file_type: file.type,
           file_size: file.size
-        } as any); // Using type assertion temporarily
+        });
 
       if (dbError) throw dbError;
 
@@ -75,7 +104,7 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
     } catch (error: any) {
       console.error('Upload error:', error);
       
-      // Handle authentication errors specifically
+      // Handle specific error cases
       if (error.message?.includes('JWT')) {
         toast({
           title: "Session expired",
@@ -83,6 +112,15 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
           variant: "destructive",
         });
         navigate('/auth');
+        return;
+      }
+
+      if (error.code === 'PGRST301') {
+        toast({
+          title: "Access denied",
+          description: "You can only upload documents to your own medical records.",
+          variant: "destructive",
+        });
         return;
       }
 
@@ -121,6 +159,15 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
                     size="sm"
                     className="flex items-center gap-2"
                     onClick={() => {
+                      if (!doctorAssignment?.doctor_id) {
+                        toast({
+                          title: "No doctor assigned",
+                          description: "You need to be assigned to a doctor before uploading documents.",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      
                       const input = document.createElement('input');
                       input.type = 'file';
                       input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
@@ -132,7 +179,7 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
                       };
                       input.click();
                     }}
-                    disabled={isUploading}
+                    disabled={isUploading || !doctorAssignment?.doctor_id}
                   >
                     <Upload className="h-4 w-4" />
                     Upload Document
