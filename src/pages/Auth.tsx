@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,21 +8,23 @@ import { TestLoginButtons } from "@/components/auth/TestLoginButtons";
 import { Button } from "@/components/ui/button";
 
 const Auth = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { loading, error, handleLogin, handleSignUp, handleTestLogin } = useAuthHandlers();
   const [isLoginMode, setIsLoginMode] = useState(true);
 
   // Add console log to debug auth state
-  console.log("Auth state in Auth page:", { user, isLoading });
+  console.log("Auth state in Auth page:", { user, authLoading });
 
   useEffect(() => {
-    if (user && !isLoading) {
+    // Only redirect if we have user data and auth is not in loading state
+    if (user && !authLoading) {
       navigate("/dashboard");
     }
-  }, [user, isLoading, navigate]);
+  }, [user, authLoading, navigate]);
 
-  if (isLoading) {
+  // Show loading spinner only during initial auth check
+  if (authLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
