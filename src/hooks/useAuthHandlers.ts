@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +21,8 @@ export const useAuthHandlers = () => {
       errorMessage = "Invalid email or password. Please try again.";
     } else if (error.message?.includes("Password should be at least 6 characters")) {
       errorMessage = "Password should be at least 6 characters long.";
+    } else if (error.message) {
+      errorMessage = error.message;
     }
 
     setError(errorMessage);
@@ -31,13 +34,12 @@ export const useAuthHandlers = () => {
   };
 
   const handleLogin = async (email: string, password: string) => {
-    setError(null);
-    
     if (!email.trim() || !password) {
       setError("Please enter both email and password.");
       return;
     }
 
+    setError(null);
     setLoading(true);
 
     try {
@@ -63,7 +65,13 @@ export const useAuthHandlers = () => {
     }
   };
 
-  const handleSignUp = async (email: string, password: string, userType: string, firstName?: string, lastName?: string) => {
+  const handleSignUp = async (
+    email: string, 
+    password: string, 
+    userType: string, 
+    firstName?: string, 
+    lastName?: string
+  ) => {
     setError(null);
     
     if (!email.trim() || !password) {
@@ -104,7 +112,6 @@ export const useAuthHandlers = () => {
           description: "Please check your email to confirm your account.",
         });
         
-        // Clear form and redirect to login
         navigate('/auth');
       }
     } catch (error: any) {

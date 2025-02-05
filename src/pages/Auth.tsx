@@ -13,8 +13,10 @@ const Auth = () => {
   const { loading, error, handleLogin, handleSignUp, handleTestLogin } = useAuthHandlers();
   const [isLoginMode, setIsLoginMode] = useState(true);
 
+  // Debug log
   console.log("Auth state in Auth page:", { user, authLoading, loading });
 
+  // Redirect if already authenticated
   useEffect(() => {
     if (user && !authLoading) {
       navigate("/dashboard");
@@ -78,7 +80,7 @@ const Auth = () => {
               <div className="mt-6">
                 <TestLoginButtons 
                   onTestLogin={handleTestLogin} 
-                  loading={loading}
+                  loading={loading} 
                 />
               </div>
             </div>
