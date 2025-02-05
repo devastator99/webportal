@@ -12,14 +12,8 @@ export const Navbar = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
-      navigate("/");
     } catch (error: any) {
       console.error("Error in Navbar signOut:", error);
-      // If we get an AuthSessionMissingError, just navigate to home
-      if (error.message?.includes("Auth session missing")) {
-        navigate("/");
-        return;
-      }
       toast({
         variant: "destructive",
         title: "Error signing out",

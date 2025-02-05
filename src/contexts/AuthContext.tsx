@@ -45,16 +45,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
-      setUser(null);
-      setUserRole(null);
-      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
+      // Clear all auth state
+      setUser(null);
+      setUserRole(null);
+      
+      // Clear local storage
       localStorage.removeItem('supabase.auth.token');
       localStorage.removeItem('sb-hcaqodjylicmppxcbqbh-auth-token');
       
-      navigate("/");
+      // Force a page reload to clear any cached state
+      window.location.href = '/';
       
       toast({
         title: "Signed out successfully",
@@ -63,9 +66,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error: any) {
       console.error("Sign out error:", error);
       if (error.message?.includes("Auth session missing")) {
+        setUser(null);
+        setUserRole(null);
         localStorage.removeItem('supabase.auth.token');
         localStorage.removeItem('sb-hcaqodjylicmppxcbqbh-auth-token');
-        navigate("/");
+        window.location.href = '/';
         return;
       }
       toast({
@@ -73,7 +78,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Error signing out",
         description: error.message || "An error occurred while signing out.",
       });
-      navigate("/");
     }
   };
 
@@ -94,6 +98,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (window.location.pathname === '/' || window.location.pathname === '/auth') {
             navigate('/dashboard');
           }
+        } else {
+          // Explicitly set null when no session exists
+          setUser(null);
+          setUserRole(null);
         }
       } catch (error: any) {
         console.error("Error checking auth session:", error);
@@ -107,9 +115,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event);
+      console.log("Auth state changed:", event, session);
       
-      if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT' || !session) {
         setUser(null);
         setUserRole(null);
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
