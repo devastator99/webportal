@@ -17,15 +17,15 @@ const Index = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   return (
-    <div className="relative min-h-screen">
+    <div className="min-h-screen w-full bg-white">
       <Navbar />
-      <main>
+      <div className="w-full">
         <Hero />
         <Features />
         <Testimonials />
         <Pricing />
-      </main>
-      <Footer />
+        <Footer />
+      </div>
 
       {user && (
         <>
