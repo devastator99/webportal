@@ -45,19 +45,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
       setUser(null);
       setUserRole(null);
       localStorage.clear();
-      
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
       
       toast({
         title: "Signed out successfully",
         description: "You have been signed out of your account.",
       });
       
-      navigate('/');
+      navigate('/auth');
     } catch (error: any) {
       console.error("Sign out error:", error);
       toast({
@@ -65,7 +65,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Error signing out",
         description: error.message || "An error occurred while signing out.",
       });
-      navigate('/');
     }
   };
 
@@ -86,16 +85,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(session.user);
           const role = await fetchUserRole(session.user.id);
           setUserRole(role);
-          
-          // Only redirect if we're on auth page and have a valid session
-          if (window.location.pathname === '/auth') {
-            navigate('/dashboard');
-          }
         } else {
           setUser(null);
           setUserRole(null);
           
-          // If we're on dashboard without a session, redirect to auth
+          // Only redirect to auth if we're on dashboard without a session
           if (window.location.pathname === '/dashboard') {
             navigate('/auth');
           }
@@ -117,14 +111,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (event === 'SIGNED_OUT' || !session) {
         setUser(null);
         setUserRole(null);
-        navigate('/auth');
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        setUser(session?.user ?? null);
-        if (session?.user) {
-          const role = await fetchUserRole(session.user.id);
-          setUserRole(role);
-          navigate('/dashboard');
+        if (window.location.pathname === '/dashboard') {
+          navigate('/auth');
         }
+      } else if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user);
+        const role = await fetchUserRole(session.user.id);
+        setUserRole(role);
+        navigate('/dashboard');
       }
     });
 
