@@ -40,8 +40,43 @@ describe('Auth Component', () => {
   it('handles successful login', async () => {
     const mockSignIn = vi.spyOn(supabase.auth, 'signInWithPassword').mockResolvedValueOnce({
       data: {
-        user: { id: '123', email: 'test@example.com' },
-        session: { access_token: 'token' },
+        user: {
+          id: '123',
+          email: 'test@example.com',
+          app_metadata: {},
+          user_metadata: {},
+          aud: 'authenticated',
+          created_at: '2024-01-01T00:00:00.000Z',
+          role: 'authenticated',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          phone: '',
+          confirmed_at: '2024-01-01T00:00:00.000Z',
+          last_sign_in_at: '2024-01-01T00:00:00.000Z',
+          factors: null,
+          identities: [],
+        },
+        session: {
+          access_token: 'token',
+          refresh_token: 'refresh_token',
+          expires_in: 3600,
+          token_type: 'bearer',
+          user: {
+            id: '123',
+            email: 'test@example.com',
+            app_metadata: {},
+            user_metadata: {},
+            aud: 'authenticated',
+            created_at: '2024-01-01T00:00:00.000Z',
+            role: 'authenticated',
+            updated_at: '2024-01-01T00:00:00.000Z',
+            phone: '',
+            confirmed_at: '2024-01-01T00:00:00.000Z',
+            last_sign_in_at: '2024-01-01T00:00:00.000Z',
+            factors: null,
+            identities: [],
+          },
+          expires_at: 1234567890,
+        },
       },
       error: null,
     });
@@ -64,7 +99,13 @@ describe('Auth Component', () => {
   it('handles login error', async () => {
     const mockSignIn = vi.spyOn(supabase.auth, 'signInWithPassword').mockResolvedValueOnce({
       data: { user: null, session: null },
-      error: { message: 'Invalid login credentials' },
+      error: {
+        message: 'Invalid login credentials',
+        name: 'AuthError',
+        status: 400,
+        code: 'invalid_credentials',
+        __isAuthError: true,
+      },
     });
 
     renderWithProviders(<Auth />);
@@ -83,8 +124,43 @@ describe('Auth Component', () => {
   it('handles test user login', async () => {
     const mockSignIn = vi.spyOn(supabase.auth, 'signInWithPassword').mockResolvedValueOnce({
       data: {
-        user: { id: '123', email: 'doctor@test.com' },
-        session: { access_token: 'token' },
+        user: {
+          id: '123',
+          email: 'doctor@test.com',
+          app_metadata: {},
+          user_metadata: {},
+          aud: 'authenticated',
+          created_at: '2024-01-01T00:00:00.000Z',
+          role: 'authenticated',
+          updated_at: '2024-01-01T00:00:00.000Z',
+          phone: '',
+          confirmed_at: '2024-01-01T00:00:00.000Z',
+          last_sign_in_at: '2024-01-01T00:00:00.000Z',
+          factors: null,
+          identities: [],
+        },
+        session: {
+          access_token: 'token',
+          refresh_token: 'refresh_token',
+          expires_in: 3600,
+          token_type: 'bearer',
+          user: {
+            id: '123',
+            email: 'doctor@test.com',
+            app_metadata: {},
+            user_metadata: {},
+            aud: 'authenticated',
+            created_at: '2024-01-01T00:00:00.000Z',
+            role: 'authenticated',
+            updated_at: '2024-01-01T00:00:00.000Z',
+            phone: '',
+            confirmed_at: '2024-01-01T00:00:00.000Z',
+            last_sign_in_at: '2024-01-01T00:00:00.000Z',
+            factors: null,
+            identities: [],
+          },
+          expires_at: 1234567890,
+        },
       },
       error: null,
     });
@@ -102,3 +178,4 @@ describe('Auth Component', () => {
     });
   });
 });
+
