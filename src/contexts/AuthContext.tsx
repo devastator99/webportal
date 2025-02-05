@@ -45,20 +45,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
+    setIsLoading(true); // Set loading at start of signout
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
       setUser(null);
       setUserRole(null);
-      localStorage.clear();
-      setIsLoading(false); // Make sure to set loading to false after signout
-      
-      // Let the Navbar handle navigation and toast
     } catch (error: any) {
       console.error("Sign out error:", error);
-      setIsLoading(false); // Make sure to set loading to false even on error
       throw error;
+    } finally {
+      setIsLoading(false); // Always set loading to false after signout
     }
   };
 
@@ -67,8 +65,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const initializeAuth = async () => {
       try {
-        // Set loading true at the start of the auth check
-        if (mounted) setIsLoading(true);
+        if (!mounted) return; // Check if component is mounted before proceeding
+        setIsLoading(true);
 
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
@@ -77,14 +75,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (mounted) {
             setUser(null);
             setUserRole(null);
-            setIsLoading(false);
           }
           return;
         }
 
         if (session?.user && mounted) {
-          setUser(session.user);
           const role = await fetchUserRole(session.user.id);
+          setUser(session.user);
           setUserRole(role);
           console.log("Session initialized with user:", session.user.email, "role:", role);
         } else if (mounted) {
@@ -99,36 +96,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUserRole(null);
         }
       } finally {
-        // Always set loading to false when done
-        if (mounted) setIsLoading(false);
+        if (mounted) {
+          setIsLoading(false); // Always set loading to false when done
+        }
       }
     };
-
-    initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("Auth state changed:", event, session?.user?.email);
       
-      if (event === 'SIGNED_OUT' || !session) {
-        if (mounted) {
+      if (!mounted) return; // Check if component is mounted before proceeding
+      
+      setIsLoading(true); // Set loading at start of auth state change
+      
+      try {
+        if (event === 'SIGNED_OUT' || !session) {
           setUser(null);
           setUserRole(null);
-          setIsLoading(false);
-        }
-        console.log("User signed out or session ended");
-      } else if (event === 'SIGNED_IN' && session?.user) {
-        let newRole = null;
-        if (mounted) {
-          setIsLoading(true); // Set loading while fetching role
+          console.log("User signed out or session ended");
+        } else if (event === 'SIGNED_IN' && session?.user) {
+          const newRole = await fetchUserRole(session.user.id);
           setUser(session.user);
-          newRole = await fetchUserRole(session.user.id);
           setUserRole(newRole);
-          setIsLoading(false); // Set loading to false after everything is done
+          console.log("User signed in:", session.user.email, "role:", newRole);
+          navigate('/dashboard');
         }
-        console.log("User signed in:", session.user.email, "role:", newRole);
-        navigate('/dashboard');
+      } catch (error) {
+        console.error("Error handling auth state change:", error);
+        setUser(null);
+        setUserRole(null);
+      } finally {
+        if (mounted) {
+          setIsLoading(false); // Always set loading to false after auth state change
+        }
       }
     });
+
+    initializeAuth();
 
     return () => {
       mounted = false;
