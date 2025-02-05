@@ -63,7 +63,6 @@ export const useAuthHandlers = () => {
           description: `Logged in as ${testEmail} (${roleData?.role || 'unknown role'})`,
         });
         
-        // Navigate after ensuring state is updated
         navigate("/dashboard");
       }
     } catch (error: any) {
@@ -143,8 +142,8 @@ export const useAuthHandlers = () => {
 
       if (data?.user) {
         toast({
-          title: "Success",
-          description: "Please check your email for verification.",
+          title: "Registration successful!",
+          description: "Please check your email for verification and then sign in.",
         });
       }
     } catch (error: any) {

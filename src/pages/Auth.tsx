@@ -4,7 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { TestLoginButtons } from "@/components/auth/TestLoginButtons";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -20,6 +20,7 @@ const Auth = () => {
 
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("login");
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -27,6 +28,10 @@ const Auth = () => {
       navigate('/dashboard');
     }
   }, [user, navigate]);
+
+  const handleSignUpSuccess = () => {
+    setActiveTab("login");
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -38,7 +43,7 @@ const Auth = () => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="login" onValueChange={() => setError(null)}>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="register">Register</TabsTrigger>
@@ -56,7 +61,10 @@ const Auth = () => {
             <TabsContent value="register">
               <AuthForm
                 type="register"
-                onSubmit={handleSignUp}
+                onSubmit={async (email, password, userType) => {
+                  await handleSignUp(email, password, userType);
+                  handleSignUpSuccess();
+                }}
                 error={error}
                 loading={loading}
               />
