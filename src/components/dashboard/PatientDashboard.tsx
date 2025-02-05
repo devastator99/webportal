@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -92,6 +93,7 @@ export const PatientDashboard = () => {
     <div className="container mx-auto p-6 space-y-6">
       <PatientHeader 
         firstName={patientData?.profile?.first_name}
+        lastName={patientData?.profile?.last_name}
         onSignOut={handleSignOut}
       />
       
