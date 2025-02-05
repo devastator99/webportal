@@ -45,39 +45,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      // Clear all auth state
+      // First clear the local state
       setUser(null);
       setUserRole(null);
       
-      // Clear local storage
-      localStorage.removeItem('supabase.auth.token');
-      localStorage.removeItem('sb-hcaqodjylicmppxcbqbh-auth-token');
+      // Then sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
       
-      // Force a page reload to clear any cached state
-      window.location.href = '/';
+      // Clear any stored tokens
+      localStorage.clear();
       
+      // Show success message
       toast({
         title: "Signed out successfully",
         description: "You have been signed out of your account.",
       });
+      
+      // Force a full page reload to clear all state
+      window.location.href = '/';
     } catch (error: any) {
       console.error("Sign out error:", error);
-      if (error.message?.includes("Auth session missing")) {
-        setUser(null);
-        setUserRole(null);
-        localStorage.removeItem('supabase.auth.token');
-        localStorage.removeItem('sb-hcaqodjylicmppxcbqbh-auth-token');
-        window.location.href = '/';
-        return;
-      }
       toast({
         variant: "destructive",
         title: "Error signing out",
         description: error.message || "An error occurred while signing out.",
       });
+      // Even if there's an error, clear local state and redirect
+      setUser(null);
+      setUserRole(null);
+      localStorage.clear();
+      window.location.href = '/';
     }
   };
 
@@ -99,7 +97,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             navigate('/dashboard');
           }
         } else {
-          // Explicitly set null when no session exists
           setUser(null);
           setUserRole(null);
         }
