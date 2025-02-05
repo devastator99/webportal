@@ -1,11 +1,12 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Upload, File } from "lucide-react";
+import { FileText, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 type MedicalRecord = {
   id: string;
@@ -13,25 +14,30 @@ type MedicalRecord = {
   created_at: string;
 };
 
-type MedicalDocument = {
-  id: string;
-  file_name: string;
-  file_path: string;
-  uploaded_at: string;
-};
-
 type MedicalRecordsListProps = {
   records: MedicalRecord[];
 };
 
 export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
-  const [selectedRecord, setSelectedRecord] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleFileUpload = async (recordId: string, file: File) => {
     try {
       setIsUploading(true);
+
+      // Check auth status first
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to upload documents.",
+          variant: "destructive",
+        });
+        navigate('/auth');
+        return;
+      }
 
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
@@ -49,7 +55,7 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
         .from('medical_files')
         .getPublicUrl(filePath);
 
-      // Create document record
+      // Create document record using raw query since table types aren't updated yet
       const { error: dbError } = await supabase
         .from('medical_documents')
         .insert({
@@ -58,7 +64,7 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
           file_path: filePath,
           file_type: file.type,
           file_size: file.size
-        });
+        } as any); // Using type assertion temporarily
 
       if (dbError) throw dbError;
 
@@ -68,6 +74,18 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
       });
     } catch (error: any) {
       console.error('Upload error:', error);
+      
+      // Handle authentication errors specifically
+      if (error.message?.includes('JWT')) {
+        toast({
+          title: "Session expired",
+          description: "Please log in again to continue.",
+          variant: "destructive",
+        });
+        navigate('/auth');
+        return;
+      }
+
       toast({
         title: "Error uploading document",
         description: error.message,
@@ -75,7 +93,6 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
       });
     } finally {
       setIsUploading(false);
-      setSelectedRecord(null);
     }
   };
 
