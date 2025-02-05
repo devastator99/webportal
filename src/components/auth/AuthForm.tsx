@@ -18,6 +18,8 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (loading) return;
+    
     try {
       if (type === "register") {
         await onSubmit(email, password, userType);
