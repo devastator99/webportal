@@ -52,10 +52,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserRole(null);
       localStorage.clear();
       
-      navigate('/');
+      // Let the Navbar handle navigation and toast
     } catch (error: any) {
       console.error("Sign out error:", error);
-      throw error; // Let the Navbar component handle the error
+      throw error;
     }
   };
 
@@ -76,14 +76,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(session.user);
           const role = await fetchUserRole(session.user.id);
           setUserRole(role);
+          console.log("Session initialized with user:", session.user.email, "role:", role);
         } else {
           setUser(null);
           setUserRole(null);
-          
-          // Only redirect to auth if we're on dashboard without a session
-          if (window.location.pathname === '/dashboard') {
-            navigate('/auth');
-          }
+          console.log("No active session found");
         }
       } catch (error: any) {
         console.error("Error checking auth session:", error);
@@ -97,18 +94,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     initializeAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state changed:", event, session);
+      console.log("Auth state changed:", event, session?.user?.email);
       
       if (event === 'SIGNED_OUT' || !session) {
         setUser(null);
         setUserRole(null);
-        if (window.location.pathname === '/dashboard') {
-          navigate('/auth');
-        }
+        console.log("User signed out or session ended");
       } else if (event === 'SIGNED_IN' && session?.user) {
         setUser(session.user);
         const role = await fetchUserRole(session.user.id);
         setUserRole(role);
+        console.log("User signed in:", session.user.email, "role:", role);
         navigate('/dashboard');
       }
     });
