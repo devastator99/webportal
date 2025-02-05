@@ -37,47 +37,6 @@ export const useAuthHandlers = () => {
     });
   };
 
-  const handleTestLogin = async (testEmail: string, testPassword: string) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      console.log("Starting test login process for:", testEmail);
-      
-      const { data: { user, session }, error: signInError } = await supabase.auth.signInWithPassword({
-        email: testEmail,
-        password: testPassword,
-      });
-
-      if (signInError) throw signInError;
-
-      if (user && session) {
-        console.log("Test login successful:", { user, session });
-        
-        // Get user role
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .single();
-
-        console.log("User role:", roleData?.role);
-        
-        toast({
-          title: "Login successful!",
-          description: `Logged in as ${testEmail} (${roleData?.role || 'unknown role'})`,
-        });
-        
-        navigate("/dashboard");
-      }
-    } catch (error: any) {
-      console.error("Test login error:", error);
-      handleAuthError(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleLogin = async (email: string, password: string) => {
     setError(null);
     
@@ -89,8 +48,6 @@ export const useAuthHandlers = () => {
     setLoading(true);
 
     try {
-      console.log("Starting login process for:", email);
-      
       const { data: { user, session }, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
@@ -99,8 +56,6 @@ export const useAuthHandlers = () => {
       if (error) throw error;
 
       if (user && session) {
-        console.log("Login successful:", { user, session });
-        
         toast({
           title: "Welcome back!",
           description: "You have successfully signed in.",
@@ -131,22 +86,11 @@ export const useAuthHandlers = () => {
     setLoading(true);
 
     try {
-      // First check if user exists
-      const { data: existingUser } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('id', email)
-        .single();
-
-      if (existingUser) {
-        throw { message: "User already registered" };
-      }
-
-      const { data, error } = await supabase.auth.signUp({
+      // First, attempt to sign up
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
           data: {
             user_type: userType,
             full_name: email.split('@')[0],
@@ -154,13 +98,56 @@ export const useAuthHandlers = () => {
         },
       });
 
-      if (error) throw error;
+      if (signUpError) throw signUpError;
 
       if (data?.user) {
-        toast({
-          title: "Registration successful!",
-          description: "Please check your email for verification and then sign in.",
+        // Immediately attempt to sign in since email confirmation is disabled
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
         });
+
+        if (signInError) throw signInError;
+
+        toast({
+          title: "Welcome!",
+          description: "Your account has been created successfully.",
+        });
+        
+        navigate("/dashboard");
+      }
+    } catch (error: any) {
+      handleAuthError(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTestLogin = async (testEmail: string, testPassword: string) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const { data: { user, session }, error: signInError } = await supabase.auth.signInWithPassword({
+        email: testEmail,
+        password: testPassword,
+      });
+
+      if (signInError) throw signInError;
+
+      if (user && session) {
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+        
+        toast({
+          title: "Login successful!",
+          description: `Logged in as ${testEmail} (${roleData?.role || 'unknown role'})`,
+        });
+        
+        navigate("/dashboard");
       }
     } catch (error: any) {
       handleAuthError(error);
