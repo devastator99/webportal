@@ -14,13 +14,18 @@ export const useAuthHandlers = () => {
     
     let errorMessage = "An error occurred during authentication.";
     
-    if (error.message?.includes("Email not confirmed")) {
+    // Check for specific error messages in both error.message and error.body
+    const errorBody = error.body ? JSON.parse(error.body) : null;
+    const errorCode = errorBody?.code || error.code;
+    const errorMsg = errorBody?.message || error.message;
+
+    if (errorMsg?.includes("Email not confirmed")) {
       errorMessage = "Please check your email to confirm your account.";
-    } else if (error.message?.includes("Invalid login credentials")) {
-      errorMessage = "Invalid email or password. Please try again.";
-    } else if (error.message?.includes("User already registered")) {
+    } else if (errorCode === "user_already_exists" || errorMsg?.includes("already registered")) {
       errorMessage = "This email is already registered. Please sign in instead.";
-    } else if (error.message?.includes("Password should be at least 6 characters")) {
+    } else if (errorMsg?.includes("Invalid login credentials")) {
+      errorMessage = "Invalid email or password. Please try again.";
+    } else if (errorMsg?.includes("Password should be at least 6 characters")) {
       errorMessage = "Password should be at least 6 characters long.";
     }
 
@@ -126,6 +131,17 @@ export const useAuthHandlers = () => {
     setLoading(true);
 
     try {
+      // First check if user exists
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', email)
+        .single();
+
+      if (existingUser) {
+        throw { message: "User already registered" };
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
