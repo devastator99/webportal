@@ -22,14 +22,11 @@ export const Navbar = () => {
     }
   };
 
-  // Add console log to debug auth state
-  console.log("Auth state in Navbar:", { user });
-
-  const isAuthPage = window.location.pathname === "/auth";
-  const isHomePage = window.location.pathname === "/";
+  // Add console log to debug auth state and current path
+  console.log("Auth state in Navbar:", { user, path: window.location.pathname });
 
   // Don't show navbar on auth page
-  if (isAuthPage) {
+  if (window.location.pathname === "/auth") {
     return null;
   }
 

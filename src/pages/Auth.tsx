@@ -12,6 +12,9 @@ const Auth = () => {
   const { loading, error, handleLogin, handleSignUp, handleTestLogin } = useAuthHandlers();
   const [isLoginMode, setIsLoginMode] = useState(true);
 
+  // Add console log to debug auth state
+  console.log("Auth state in Auth page:", { user, isLoading });
+
   useEffect(() => {
     if (user && !isLoading) {
       navigate("/dashboard");
