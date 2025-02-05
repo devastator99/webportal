@@ -34,22 +34,24 @@ export const Navbar = () => {
           <a href="#testimonials" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Patient Stories</a>
           <a href="#pricing" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Plans</a>
         </div>
-        {user ? (
-          <Button 
-            onClick={handleSignOut} 
-            variant="outline" 
-            className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
-        ) : (
+        {window.location.pathname === "/" ? (
           <Button 
             onClick={() => navigate("/auth")} 
             className="bg-[#9b87f5] hover:bg-[#7E69AB]"
           >
             Sign In
           </Button>
+        ) : (
+          user && (
+            <Button 
+              onClick={handleSignOut} 
+              variant="outline" 
+              className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </Button>
+          )
         )}
       </div>
     </nav>
