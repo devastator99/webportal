@@ -28,6 +28,9 @@ export const Navbar = () => {
     }
   };
 
+  // Add console log to debug auth state
+  console.log("Auth state in Navbar:", { user });
+
   return (
     <nav className="fixed w-full bg-white/80 backdrop-blur-md z-50 border-b border-[#D6BCFA]">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -37,7 +40,7 @@ export const Navbar = () => {
           <a href="#testimonials" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Patient Stories</a>
           <a href="#pricing" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Plans</a>
         </div>
-        {user ? (
+        {user?.id ? (
           <Button 
             onClick={handleSignOut} 
             variant="outline" 
