@@ -49,12 +49,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(null);
       setUserRole(null);
       
+      // Clear any stored tokens
+      localStorage.clear();
+      
       // Then sign out from Supabase
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-      
-      // Clear any stored tokens
-      localStorage.clear();
       
       // Show success message
       toast({
@@ -88,17 +88,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           console.error("Session error:", sessionError);
           setUser(null);
           setUserRole(null);
-        } else if (session?.user) {
+          setIsLoading(false);
+          return;
+        }
+
+        if (session?.user) {
           setUser(session.user);
           const role = await fetchUserRole(session.user.id);
           setUserRole(role);
           
-          if (window.location.pathname === '/' || window.location.pathname === '/auth') {
+          // Only redirect if we're on auth page and have a valid session
+          if (window.location.pathname === '/auth') {
             navigate('/dashboard');
           }
         } else {
           setUser(null);
           setUserRole(null);
+          
+          // If we're on dashboard without a session, redirect to auth
+          if (window.location.pathname === '/dashboard') {
+            navigate('/auth');
+          }
         }
       } catch (error: any) {
         console.error("Error checking auth session:", error);
@@ -117,6 +127,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (event === 'SIGNED_OUT' || !session) {
         setUser(null);
         setUserRole(null);
+        navigate('/auth');
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setUser(session?.user ?? null);
         if (session?.user) {

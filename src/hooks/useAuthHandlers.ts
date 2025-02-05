@@ -14,7 +14,6 @@ export const useAuthHandlers = () => {
     
     let errorMessage = "An error occurred during authentication.";
     
-    // Check for specific error messages in both error.message and error.body
     const errorBody = error.body ? JSON.parse(error.body) : null;
     const errorCode = errorBody?.code || error.code;
     const errorMsg = errorBody?.message || error.message;
@@ -101,20 +100,20 @@ export const useAuthHandlers = () => {
       if (signUpError) throw signUpError;
 
       if (data?.user) {
-        // After successful registration, show success message
-        toast({
-          title: "Registration successful!",
-          description: "Please sign in with your new account.",
-        });
-        
-        // Sign out after registration to ensure clean state
+        // Force sign out to clear any existing session
         await supabase.auth.signOut();
         
-        // Clear any stored auth data
+        // Clear all local storage to ensure clean state
         localStorage.clear();
         
-        // Redirect to auth page and set the tab to login
-        navigate("/auth");
+        // Show success message
+        toast({
+          title: "Registration successful!",
+          description: "Please sign in with your new account to continue.",
+        });
+        
+        // Use window.location for a full page reload and redirect
+        window.location.href = '/auth';
       }
     } catch (error: any) {
       handleAuthError(error);
