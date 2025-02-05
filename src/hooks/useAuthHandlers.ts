@@ -100,19 +100,22 @@ export const useAuthHandlers = () => {
       if (signUpError) throw signUpError;
 
       if (data?.user) {
-        // Force sign out to clear any existing session
-        await supabase.auth.signOut();
-        
-        // Clear all local storage to ensure clean state
-        localStorage.clear();
-        
-        // Show success message
+        // First show success message
         toast({
           title: "Registration successful!",
           description: "Please sign in with your new account to continue.",
         });
+
+        // Clear all local storage to ensure clean state
+        localStorage.clear();
         
-        // Use window.location for a full page reload and redirect
+        // Force sign out to clear any existing session
+        await supabase.auth.signOut();
+
+        // Small delay to ensure state is cleared
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Force a full page reload and redirect to auth
         window.location.href = '/auth';
       }
     } catch (error: any) {
