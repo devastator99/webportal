@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Send } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ChatInput } from "./ChatInput";
@@ -48,7 +48,9 @@ export const ChatInterface = () => {
     if (!user?.id || !receiverId) {
       toast({
         title: "Error",
-        description: "Unable to send message. Please try again.",
+        description: userRole === "doctor" 
+          ? "Please select a patient first." 
+          : "You don't have an assigned doctor yet.",
         variant: "destructive",
       });
       return;
@@ -69,7 +71,6 @@ export const ChatInterface = () => {
       setNewMessage("");
       toast({
         title: "Message sent",
-        description: "Your message has been sent successfully.",
       });
     } catch (error: any) {
       console.error("Error sending message:", error);

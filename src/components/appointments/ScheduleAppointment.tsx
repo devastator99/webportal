@@ -18,8 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar as CalendarIcon, Clock } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 
 interface Doctor {
   id: string;
@@ -38,10 +39,12 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
   const [selectedTime, setSelectedTime] = useState<string>();
   const [selectedDoctor, setSelectedDoctor] = useState<string>();
   const [isOpen, setIsOpen] = useState(false);
+  const [file, setFile] = useState<File | null>(null);
 
   const { data: doctors } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
+      // First get all users with doctor role
       const { data: userRoles, error: userRolesError } = await supabase
         .from("user_roles")
         .select("user_id")
@@ -53,6 +56,7 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
 
       const doctorIds = userRoles.map(role => role.user_id);
 
+      // Then get their profile information
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("id, first_name, last_name")
@@ -68,6 +72,26 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
     "14:00", "14:30", "15:00", "15:30", "16:00", "16:30"
   ];
 
+  const handleFileUpload = async (file: File) => {
+    if (!file) return null;
+
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { error: uploadError, data } = await supabase.storage
+      .from('medical_files')
+      .upload(filePath, file);
+
+    if (uploadError) throw uploadError;
+
+    const { data: { publicUrl } } = supabase.storage
+      .from('medical_files')
+      .getPublicUrl(filePath);
+
+    return publicUrl;
+  };
+
   const handleSchedule = async () => {
     if (!selectedDate || !selectedTime || !selectedDoctor || !user) {
       toast({
@@ -77,35 +101,43 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       return;
     }
 
-    const scheduledAt = new Date(selectedDate);
-    const [hours, minutes] = selectedTime.split(":");
-    scheduledAt.setHours(parseInt(hours), parseInt(minutes));
+    try {
+      const scheduledAt = new Date(selectedDate);
+      const [hours, minutes] = selectedTime.split(":");
+      scheduledAt.setHours(parseInt(hours), parseInt(minutes));
 
-    const { error } = await supabase
-      .from("appointments")
-      .insert({
-        patient_id: user.id,
-        doctor_id: selectedDoctor,
-        scheduled_at: scheduledAt.toISOString(),
-        status: "scheduled",
+      let fileUrl = null;
+      if (file) {
+        fileUrl = await handleFileUpload(file);
+      }
+
+      const { error } = await supabase
+        .from("appointments")
+        .insert({
+          patient_id: user.id,
+          doctor_id: selectedDoctor,
+          scheduled_at: scheduledAt.toISOString(),
+          status: "scheduled",
+          notes: fileUrl ? `Attached document: ${fileUrl}` : null,
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Appointment scheduled successfully",
       });
-
-    if (error) {
+      setIsOpen(false);
+      setSelectedDate(undefined);
+      setSelectedTime(undefined);
+      setSelectedDoctor(undefined);
+      setFile(null);
+    } catch (error: any) {
       toast({
         title: "Error scheduling appointment",
         description: error.message,
         variant: "destructive",
       });
-      return;
     }
-
-    toast({
-      title: "Appointment scheduled successfully",
-    });
-    setIsOpen(false);
-    setSelectedDate(undefined);
-    setSelectedTime(undefined);
-    setSelectedDoctor(undefined);
   };
 
   return (
@@ -174,6 +206,15 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="grid gap-2">
+            <label className="text-sm font-medium">Upload Document (Optional)</label>
+            <Input
+              type="file"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+            />
           </div>
 
           <Button onClick={handleSchedule}>
