@@ -117,14 +117,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
         console.log("User signed out or session ended");
       } else if (event === 'SIGNED_IN' && session?.user) {
+        let newRole = null;
         if (mounted) {
           setIsLoading(true); // Set loading while fetching role
           setUser(session.user);
-          const role = await fetchUserRole(session.user.id);
-          setUserRole(role);
+          newRole = await fetchUserRole(session.user.id);
+          setUserRole(newRole);
           setIsLoading(false); // Set loading to false after everything is done
         }
-        console.log("User signed in:", session.user.email, "role:", role);
+        console.log("User signed in:", session.user.email, "role:", newRole);
         navigate('/dashboard');
       }
     });
