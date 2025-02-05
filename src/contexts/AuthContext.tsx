@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,43 +52,55 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(null);
       setUserRole(null);
       localStorage.clear();
+      setIsLoading(false); // Make sure to set loading to false after signout
       
       // Let the Navbar handle navigation and toast
     } catch (error: any) {
       console.error("Sign out error:", error);
+      setIsLoading(false); // Make sure to set loading to false even on error
       throw error;
     }
   };
 
   useEffect(() => {
+    let mounted = true;
+
     const initializeAuth = async () => {
       try {
+        // Set loading true at the start of the auth check
+        if (mounted) setIsLoading(true);
+
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
           console.error("Session error:", sessionError);
-          setUser(null);
-          setUserRole(null);
-          setIsLoading(false);
+          if (mounted) {
+            setUser(null);
+            setUserRole(null);
+            setIsLoading(false);
+          }
           return;
         }
 
-        if (session?.user) {
+        if (session?.user && mounted) {
           setUser(session.user);
           const role = await fetchUserRole(session.user.id);
           setUserRole(role);
           console.log("Session initialized with user:", session.user.email, "role:", role);
-        } else {
+        } else if (mounted) {
           setUser(null);
           setUserRole(null);
           console.log("No active session found");
         }
       } catch (error: any) {
         console.error("Error checking auth session:", error);
-        setUser(null);
-        setUserRole(null);
+        if (mounted) {
+          setUser(null);
+          setUserRole(null);
+        }
       } finally {
-        setIsLoading(false);
+        // Always set loading to false when done
+        if (mounted) setIsLoading(false);
       }
     };
 
@@ -97,19 +110,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("Auth state changed:", event, session?.user?.email);
       
       if (event === 'SIGNED_OUT' || !session) {
-        setUser(null);
-        setUserRole(null);
+        if (mounted) {
+          setUser(null);
+          setUserRole(null);
+          setIsLoading(false);
+        }
         console.log("User signed out or session ended");
       } else if (event === 'SIGNED_IN' && session?.user) {
-        setUser(session.user);
-        const role = await fetchUserRole(session.user.id);
-        setUserRole(role);
+        if (mounted) {
+          setIsLoading(true); // Set loading while fetching role
+          setUser(session.user);
+          const role = await fetchUserRole(session.user.id);
+          setUserRole(role);
+          setIsLoading(false); // Set loading to false after everything is done
+        }
         console.log("User signed in:", session.user.email, "role:", role);
         navigate('/dashboard');
       }
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, [navigate]);
