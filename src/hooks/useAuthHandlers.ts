@@ -101,15 +101,19 @@ export const useAuthHandlers = () => {
       if (signUpError) throw signUpError;
 
       if (data?.user) {
+        // After successful registration, show success message
         toast({
           title: "Registration successful!",
-          description: "Your account has been created. Please sign in.",
+          description: "Please sign in with your new account.",
         });
         
-        // Sign out the user after registration
+        // Sign out after registration to ensure clean state
         await supabase.auth.signOut();
         
-        // Redirect to auth page for login
+        // Clear any stored auth data
+        localStorage.clear();
+        
+        // Redirect to auth page and set the tab to login
         navigate("/auth");
       }
     } catch (error: any) {
