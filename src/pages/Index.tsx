@@ -17,9 +17,9 @@ const Index = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   return (
-    <div className="bg-white">
+    <div className="relative min-h-screen bg-white">
       <Navbar />
-      <div className="min-h-screen flex flex-col">
+      <div className="w-full">
         <Hero />
         <Features />
         <Testimonials />
