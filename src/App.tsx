@@ -9,22 +9,22 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import { useAuth } from "./contexts/AuthContext";
 
-// Protected Route component needs to be inside BrowserRouter
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
-    return null; // or a loading spinner
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
+    </div>;
   }
 
   if (!user) {
-    return <Navigate to="/" />;
+    return <Navigate to="/auth" />;
   }
 
   return <>{children}</>;
 };
 
-// Create QueryClient instance outside of component
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -51,7 +51,6 @@ const App = () => {
                   </ProtectedRoute>
                 }
               />
-              {/* Catch all other routes and redirect to Index */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
             <Toaster />

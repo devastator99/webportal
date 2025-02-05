@@ -45,25 +45,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
-      // First clear the local state
       setUser(null);
       setUserRole(null);
-      
-      // Clear any stored tokens
       localStorage.clear();
       
-      // Then sign out from Supabase
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
-      // Show success message
       toast({
         title: "Signed out successfully",
         description: "You have been signed out of your account.",
       });
       
-      // Force a full page reload to clear all state
-      window.location.href = '/';
+      navigate('/');
     } catch (error: any) {
       console.error("Sign out error:", error);
       toast({
@@ -71,11 +65,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Error signing out",
         description: error.message || "An error occurred while signing out.",
       });
-      // Even if there's an error, clear local state and redirect
-      setUser(null);
-      setUserRole(null);
-      localStorage.clear();
-      window.location.href = '/';
+      navigate('/');
     }
   };
 
@@ -133,6 +123,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (session?.user) {
           const role = await fetchUserRole(session.user.id);
           setUserRole(role);
+          navigate('/dashboard');
         }
       }
     });

@@ -1,88 +1,65 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { AuthForm } from "@/components/auth/AuthForm";
-import { TestLoginButtons } from "@/components/auth/TestLoginButtons";
-import { useAuthHandlers } from "@/hooks/useAuthHandlers";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { AuthForm } from "@/components/auth/AuthForm";
+import { useAuthHandlers } from "@/hooks/useAuthHandlers";
+import { TestLoginButtons } from "@/components/auth/TestLoginButtons";
 
 const Auth = () => {
-  const {
-    loading,
-    error,
-    handleLogin,
-    handleSignUp,
-    handleTestLogin,
-    setError,
-  } = useAuthHandlers();
-
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("login");
+  const { loading, error, handleLogin, handleSignUp, handleTestLogin } = useAuthHandlers();
 
-  // Redirect if already authenticated
   useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
+    if (user && !isLoading) {
+      navigate("/dashboard");
     }
-  }, [user, navigate]);
+  }, [user, isLoading, navigate]);
 
-  const handleSignUpSuccess = () => {
-    setActiveTab("login");
-  };
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
+    </div>;
+  }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-[#7E69AB]">Welcome to Anubhuti</CardTitle>
-          <CardDescription className="text-[#6E59A5]">
-            Sign in to your account or create a new one
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="register">Register</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="login">
-              <AuthForm
-                type="login"
-                onSubmit={handleLogin}
-                error={error}
-                loading={loading}
-              />
-            </TabsContent>
-            
-            <TabsContent value="register">
-              <AuthForm
-                type="register"
-                onSubmit={async (email, password, userType) => {
-                  await handleSignUp(email, password, userType);
-                  handleSignUpSuccess();
-                }}
-                error={error}
-                loading={loading}
-              />
-            </TabsContent>
-            
-            <div className="mt-6">
-              <Separator className="my-4" />
-              <h3 className="text-sm font-medium text-[#7E69AB] mb-4">
-                Quick Test Logins
-              </h3>
-              <TestLoginButtons
-                onTestLogin={handleTestLogin}
-                loading={loading}
-              />
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+          Welcome back
+        </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Please sign in to your account or create a new one
+        </p>
+      </div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+          <AuthForm
+            type="login"
+            onSubmit={handleLogin}
+            error={error}
+            loading={loading}
+          />
+          
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">
+                  Or continue with test accounts
+                </span>
+              </div>
             </div>
-          </Tabs>
-        </CardContent>
-      </Card>
+
+            <div className="mt-6">
+              <TestLoginButtons onTestLogin={handleTestLogin} />
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
