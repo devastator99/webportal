@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,61 +19,68 @@ const Dashboard = () => {
     queryKey: ["user_role", user?.id],
     queryFn: async () => {
       if (!user?.id) {
-        console.log("No user ID available");
+        console.log("No user ID available for role query");
         return null;
       }
       
-      console.log("Fetching role for user ID:", user.id);
-      
-      const { data, error } = await supabase
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .maybeSingle();
+      try {
+        console.log("Fetching role for user ID:", user.id);
+        
+        const { data, error } = await supabase
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
 
-      if (error) {
-        console.error("Error fetching user role:", error);
-        throw error;
-      }
+        if (error) {
+          console.error("Error fetching user role:", error);
+          throw error;
+        }
 
-      if (!data) {
-        console.log("No role found for user:", user.id);
+        if (!data) {
+          console.log("No role found for user:", user.id);
+          toast({
+            title: "No Role Found",
+            description: "Your account doesn't have a role assigned. Please contact support.",
+            variant: "destructive",
+          });
+          return null;
+        }
+        
+        console.log("Retrieved user role:", data.role);
+        return data.role;
+      } catch (error: any) {
+        console.error("Role query error:", error);
         toast({
-          title: "No Role Assigned",
-          description: "Your account doesn't have a role assigned. Please contact support.",
+          title: "Error Loading Role",
+          description: "Failed to load your user role. Please try logging in again.",
           variant: "destructive",
         });
-        return null;
+        throw error;
       }
-      
-      console.log("Retrieved user role:", data.role);
-      return data.role;
     },
     enabled: !!user?.id,
-    retry: 2,
+    retry: 1,
     retryDelay: 1000,
   });
 
   useEffect(() => {
-    console.log("Current auth state:", { user, userRole, isLoading });
-    
+    if (!user && !isLoading) {
+      console.log("No user found, redirecting to auth");
+      navigate("/auth");
+      return;
+    }
+
     if (error) {
       console.error("Dashboard error:", error);
       toast({
         title: "Error",
-        description: "Failed to load dashboard. Please try again.",
+        description: "Failed to load dashboard. Please try logging in again.",
         variant: "destructive",
       });
-    }
-  }, [error, user, userRole, isLoading, toast]);
-
-  // Redirect to auth if no user
-  useEffect(() => {
-    if (!user && !isLoading) {
-      console.log("No user found, redirecting to auth");
       navigate("/auth");
     }
-  }, [user, isLoading, navigate]);
+  }, [error, user, isLoading, navigate, toast]);
 
   if (isLoading) {
     return (
@@ -86,6 +92,22 @@ const Dashboard = () => {
           <Skeleton className="h-32" />
           <Skeleton className="h-32" />
         </div>
+      </div>
+    );
+  }
+
+  if (!userRole) {
+    return (
+      <div className="container mx-auto p-6">
+        <h1 className="text-2xl font-bold text-red-500">Access Error</h1>
+        <p className="text-gray-600">
+          Unable to determine your user role. Please try logging out and back in.
+        </p>
+        <pre className="mt-4 p-4 bg-gray-100 rounded">
+          Debug info:
+          User ID: {user?.id}
+          Role: {userRole || "No role assigned"}
+        </pre>
       </div>
     );
   }
