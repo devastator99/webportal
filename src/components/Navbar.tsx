@@ -12,6 +12,11 @@ export const Navbar = () => {
   const handleSignOut = async () => {
     try {
       await signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "You have been signed out of your account.",
+      });
+      navigate('/');
     } catch (error: any) {
       console.error("Error in Navbar signOut:", error);
       toast({
@@ -53,7 +58,7 @@ export const Navbar = () => {
           </Button>
         ) : (
           <Button 
-            onClick={handleSignOut} 
+            onClick={handleSignOut}
             variant="outline" 
             className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2"
           >

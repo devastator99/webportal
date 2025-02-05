@@ -52,19 +52,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUserRole(null);
       localStorage.clear();
       
-      toast({
-        title: "Signed out successfully",
-        description: "You have been signed out of your account.",
-      });
-      
-      navigate('/auth');
+      navigate('/');
     } catch (error: any) {
       console.error("Sign out error:", error);
-      toast({
-        variant: "destructive",
-        title: "Error signing out",
-        description: error.message || "An error occurred while signing out.",
-      });
+      throw error; // Let the Navbar component handle the error
     }
   };
 
