@@ -17,43 +17,43 @@ const Index = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   return (
-    <div className="relative min-h-screen flex flex-col">
+    <div className="bg-white">
       <Navbar />
-      <main className="flex-grow">
+      <div className="min-h-screen flex flex-col">
         <Hero />
         <Features />
         <Testimonials />
         <Pricing />
-      </main>
-      <Footer />
+        <Footer />
 
-      {user && (
-        <>
-          {isChatOpen ? (
-            <div className="fixed bottom-4 right-4 w-[400px] z-50">
-              <div className="relative">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-2 z-50"
-                  onClick={() => setIsChatOpen(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-                <ChatInterface />
+        {user && (
+          <>
+            {isChatOpen ? (
+              <div className="fixed bottom-4 right-4 w-[400px] z-50">
+                <div className="relative">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-2 z-50"
+                    onClick={() => setIsChatOpen(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <ChatInterface />
+                </div>
               </div>
-            </div>
-          ) : (
-            <Button
-              className="fixed bottom-4 right-4 shadow-lg"
-              onClick={() => setIsChatOpen(true)}
-            >
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Chat with Doctor
-            </Button>
-          )}
-        </>
-      )}
+            ) : (
+              <Button
+                className="fixed bottom-4 right-4 shadow-lg"
+                onClick={() => setIsChatOpen(true)}
+              >
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Chat with Doctor
+              </Button>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 };
