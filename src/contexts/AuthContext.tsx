@@ -24,7 +24,7 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -45,8 +45,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signOut = async () => {
-    setIsLoading(true); // Set loading at start of signout
     try {
+      setIsLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error("Sign out error:", error);
       throw error;
     } finally {
-      setIsLoading(false); // Always set loading to false after signout
+      setIsLoading(false);
     }
   };
 
@@ -64,10 +64,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let mounted = true;
 
     const initializeAuth = async () => {
-      try {
-        if (!mounted) return; // Check if component is mounted before proceeding
-        setIsLoading(true);
+      if (!mounted) return;
 
+      try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -95,19 +94,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(null);
           setUserRole(null);
         }
-      } finally {
-        if (mounted) {
-          setIsLoading(false); // Always set loading to false when done
-        }
       }
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+
       console.log("Auth state changed:", event, session?.user?.email);
-      
-      if (!mounted) return; // Check if component is mounted before proceeding
-      
-      setIsLoading(true); // Set loading at start of auth state change
       
       try {
         if (event === 'SIGNED_OUT' || !session) {
@@ -125,10 +118,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error("Error handling auth state change:", error);
         setUser(null);
         setUserRole(null);
-      } finally {
-        if (mounted) {
-          setIsLoading(false); // Always set loading to false after auth state change
-        }
       }
     });
 
