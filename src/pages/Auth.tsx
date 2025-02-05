@@ -7,30 +7,16 @@ import { TestLoginButtons } from "@/components/auth/TestLoginButtons";
 import { Button } from "@/components/ui/button";
 
 const Auth = () => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { loading, error, handleLogin, handleSignUp, handleTestLogin } = useAuthHandlers();
   const [isLoginMode, setIsLoginMode] = useState(true);
 
   useEffect(() => {
-    if (user && !authLoading) {
+    if (user) {
       navigate("/dashboard");
     }
-  }, [user, authLoading, navigate]);
-
-  // Only show loading spinner when checking auth status
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
-      </div>
-    );
-  }
-
-  // Don't render the form if we're already authenticated
-  if (user) {
-    return null;
-  }
+  }, [user, navigate]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">

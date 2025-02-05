@@ -14,17 +14,11 @@ export const useAuthHandlers = () => {
     
     let errorMessage = "An error occurred during authentication.";
     
-    const errorBody = error.body ? JSON.parse(error.body) : null;
-    const errorCode = errorBody?.code || error.code;
-    const errorMsg = errorBody?.message || error.message;
-
-    if (errorMsg?.includes("Email not confirmed")) {
+    if (error.message?.includes("Email not confirmed")) {
       errorMessage = "Please check your email to confirm your account.";
-    } else if (errorCode === "user_already_exists" || errorMsg?.includes("already registered")) {
-      errorMessage = "This email is already registered. Please sign in instead.";
-    } else if (errorMsg?.includes("Invalid login credentials")) {
+    } else if (error.message?.includes("Invalid login credentials")) {
       errorMessage = "Invalid email or password. Please try again.";
-    } else if (errorMsg?.includes("Password should be at least 6 characters")) {
+    } else if (error.message?.includes("Password should be at least 6 characters")) {
       errorMessage = "Password should be at least 6 characters long.";
     }
 
@@ -85,7 +79,6 @@ export const useAuthHandlers = () => {
     setLoading(true);
 
     try {
-      // First, attempt to sign up
       const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -100,23 +93,13 @@ export const useAuthHandlers = () => {
       if (signUpError) throw signUpError;
 
       if (data?.user) {
-        // First show success message
         toast({
           title: "Registration successful!",
-          description: "Please sign in with your new account to continue.",
+          description: "Please check your email to confirm your account.",
         });
-
-        // Clear all local storage to ensure clean state
-        localStorage.clear();
         
-        // Force sign out to clear any existing session
-        await supabase.auth.signOut();
-
-        // Small delay to ensure state is cleared
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Force a full page reload and redirect to auth
-        window.location.href = '/auth';
+        // Clear form and redirect to login
+        navigate('/auth');
       }
     } catch (error: any) {
       handleAuthError(error);
