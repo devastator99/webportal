@@ -1,8 +1,9 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Send } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ChatInput } from "./ChatInput";
@@ -38,6 +39,24 @@ export const ChatInterface = () => {
       return data;
     },
     enabled: !!user?.id && userRole === "patient",
+  });
+
+  // For doctors, fetch selected patient details
+  const { data: selectedPatient } = useQuery({
+    queryKey: ["selected_patient", selectedPatientId],
+    queryFn: async () => {
+      if (!selectedPatientId) return null;
+      
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name")
+        .eq("id", selectedPatientId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!selectedPatientId,
   });
 
   const handleSendMessage = async () => {
@@ -99,8 +118,8 @@ export const ChatInterface = () => {
   }
 
   const getHeaderTitle = () => {
-    if (userRole === "doctor" && selectedPatientId) {
-      return "Chat with Patient";
+    if (userRole === "doctor" && selectedPatient) {
+      return `Chat with ${selectedPatient.first_name} ${selectedPatient.last_name}`;
     } else if (userRole === "patient" && doctorAssignment?.doctor) {
       return `Chat with Dr. ${doctorAssignment.doctor.first_name} ${doctorAssignment.doctor.last_name}`;
     }

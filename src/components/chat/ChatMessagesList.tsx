@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -78,6 +79,14 @@ export const ChatMessagesList = ({ selectedPatientId, doctorAssignment }: ChatMe
       supabase.removeChannel(channel);
     };
   }, [user?.id, refetch]);
+
+  if (!messages?.length) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+        No messages yet. Start a conversation!
+      </div>
+    );
+  }
 
   return (
     <ScrollArea className="flex-1 pr-4" ref={scrollAreaRef}>

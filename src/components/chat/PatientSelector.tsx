@@ -1,6 +1,9 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface PatientSelectorProps {
   selectedPatientId: string | null;
@@ -10,7 +13,7 @@ interface PatientSelectorProps {
 export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientSelectorProps) => {
   const { user } = useAuth();
 
-  const { data: assignedPatients } = useQuery({
+  const { data: assignedPatients, isLoading } = useQuery({
     queryKey: ["assigned_patients", user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
@@ -33,17 +36,35 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
     enabled: !!user?.id,
   });
 
+  if (isLoading) {
+    return <div>Loading patients...</div>;
+  }
+
+  if (!assignedPatients?.length) {
+    return <div className="text-sm text-muted-foreground">No patients assigned yet.</div>;
+  }
+
   return (
-    <select
-      className="mt-2 w-full p-2 rounded-md border"
-      value={selectedPatientId || ""}
-      onChange={(e) => onPatientSelect(e.target.value)}
-    >
-      {assignedPatients?.map((assignment) => (
-        <option key={assignment.patient_id} value={assignment.patient_id}>
-          {assignment.patient.first_name} {assignment.patient.last_name}
-        </option>
-      ))}
-    </select>
+    <div className="space-y-2">
+      <Label htmlFor="patient-select">Select Patient</Label>
+      <Select
+        value={selectedPatientId || ""}
+        onValueChange={onPatientSelect}
+      >
+        <SelectTrigger id="patient-select">
+          <SelectValue placeholder="Select a patient" />
+        </SelectTrigger>
+        <SelectContent>
+          {assignedPatients.map((assignment) => (
+            <SelectItem 
+              key={assignment.patient_id} 
+              value={assignment.patient_id}
+            >
+              {assignment.patient.first_name} {assignment.patient.last_name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 };
