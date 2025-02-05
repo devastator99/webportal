@@ -41,14 +41,14 @@ export const Navbar = () => {
           <a href="#testimonials" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Patient Stories</a>
           <a href="#pricing" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Plans</a>
         </div>
-        {isHomePage ? (
+        {isHomePage || !user ? (
           <Button 
             onClick={() => navigate("/auth")} 
             className="bg-[#9b87f5] hover:bg-[#7E69AB]"
           >
             Sign In
           </Button>
-        ) : user ? (
+        ) : (
           <Button 
             onClick={handleSignOut} 
             variant="outline" 
@@ -56,13 +56,6 @@ export const Navbar = () => {
           >
             <LogOut className="h-4 w-4" />
             Sign Out
-          </Button>
-        ) : (
-          <Button 
-            onClick={() => navigate("/auth")} 
-            className="bg-[#9b87f5] hover:bg-[#7E69AB]"
-          >
-            Sign In
           </Button>
         )}
       </div>
