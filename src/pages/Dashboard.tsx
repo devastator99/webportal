@@ -11,11 +11,14 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const { data: userRole, isLoading, error } = useQuery({
+  console.log("Dashboard render - User:", user?.id);
+  console.log("Auth loading:", authLoading);
+
+  const { data: userRole, isLoading: roleLoading, error } = useQuery({
     queryKey: ["user_role", user?.id],
     queryFn: async () => {
       if (!user?.id) {
@@ -37,6 +40,8 @@ const Dashboard = () => {
           throw error;
         }
 
+        console.log("Role query result:", data);
+        
         if (!data) {
           console.log("No role found for user:", user.id);
           toast({
@@ -65,7 +70,7 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    if (!user && !isLoading) {
+    if (!user && !authLoading) {
       console.log("No user found, redirecting to auth");
       navigate("/auth");
       return;
@@ -80,9 +85,10 @@ const Dashboard = () => {
       });
       navigate("/auth");
     }
-  }, [error, user, isLoading, navigate, toast]);
+  }, [error, user, authLoading, navigate, toast]);
 
-  if (isLoading) {
+  if (authLoading || roleLoading) {
+    console.log("Dashboard is loading...");
     return (
       <div className="container mx-auto p-6 space-y-6">
         <Skeleton className="h-8 w-48" />
@@ -96,7 +102,13 @@ const Dashboard = () => {
     );
   }
 
+  if (!user) {
+    console.log("No user found in Dashboard");
+    return null;
+  }
+
   if (!userRole) {
+    console.log("No user role found");
     return (
       <div className="container mx-auto p-6">
         <h1 className="text-2xl font-bold text-red-500">Access Error</h1>
