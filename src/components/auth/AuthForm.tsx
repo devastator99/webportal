@@ -18,10 +18,14 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (type === "register") {
-      await onSubmit(email, password, userType);
-    } else {
-      await onSubmit(email, password);
+    try {
+      if (type === "register") {
+        await onSubmit(email, password, userType);
+      } else {
+        await onSubmit(email, password);
+      }
+    } catch (error) {
+      console.error("Form submission error:", error);
     }
   };
 
