@@ -1,3 +1,4 @@
+
 import { Hero } from "@/components/Hero";
 import { Features } from "@/components/Features";
 import { Testimonials } from "@/components/Testimonials";
@@ -11,16 +12,19 @@ import { MessageCircle, X } from "lucide-react";
 import { useState } from "react";
 
 const Index = () => {
+  console.log("Rendering Index page"); // Debug log
   const { user } = useAuth();
   const [isChatOpen, setIsChatOpen] = useState(false);
 
   return (
-    <div className="relative">
+    <div className="relative min-h-screen">
       <Navbar />
-      <Hero />
-      <Features />
-      <Testimonials />
-      <Pricing />
+      <main>
+        <Hero />
+        <Features />
+        <Testimonials />
+        <Pricing />
+      </main>
       <Footer />
 
       {user && (
