@@ -18,9 +18,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar as CalendarIcon, Clock, Upload } from "lucide-react";
+import { Calendar as CalendarIcon, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Input } from "@/components/ui/input";
 
 interface Doctor {
   id: string;
@@ -39,7 +38,6 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
   const [selectedTime, setSelectedTime] = useState<string>();
   const [selectedDoctor, setSelectedDoctor] = useState<string>();
   const [isOpen, setIsOpen] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
 
   const { data: doctors } = useQuery({
     queryKey: ["doctors"],
@@ -68,25 +66,6 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
     "14:00", "14:30", "15:00", "15:30", "16:00", "16:30"
   ];
 
-  const handleFileUpload = async (file: File) => {
-    if (!file) return null;
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    const { error: uploadError, data } = await supabase.storage
-      .from('medical_files')
-      .upload(filePath, file);
-
-    if (uploadError) throw uploadError;
-
-    const { data: { publicUrl } } = supabase.storage
-      .from('medical_files')
-      .getPublicUrl(filePath);
-
-    return publicUrl;
-  };
-
   const handleSchedule = async () => {
     if (!selectedDate || !selectedTime || !selectedDoctor || !user) {
       toast({
@@ -101,11 +80,6 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       const [hours, minutes] = selectedTime.split(":");
       scheduledAt.setHours(parseInt(hours), parseInt(minutes));
 
-      let fileUrl = null;
-      if (file) {
-        fileUrl = await handleFileUpload(file);
-      }
-
       const { error } = await supabase
         .from("appointments")
         .insert({
@@ -113,19 +87,18 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
           doctor_id: selectedDoctor,
           scheduled_at: scheduledAt.toISOString(),
           status: "scheduled",
-          notes: fileUrl ? `Attached document: ${fileUrl}` : null,
         });
 
       if (error) throw error;
 
       toast({
         title: "Appointment scheduled successfully",
+        description: "You will be notified about the payment details shortly.",
       });
       setIsOpen(false);
       setSelectedDate(undefined);
       setSelectedTime(undefined);
       setSelectedDoctor(undefined);
-      setFile(null);
     } catch (error: any) {
       toast({
         title: "Error scheduling appointment",
@@ -187,13 +160,6 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
               ))}
             </SelectContent>
           </Select>
-
-          <Input
-            type="file"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-            className="text-sm"
-          />
 
           <Button onClick={handleSchedule}>
             Schedule Appointment
