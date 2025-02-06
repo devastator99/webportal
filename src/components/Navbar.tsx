@@ -47,11 +47,7 @@ export const Navbar = ({ onForceLogout }: NavbarProps) => {
     }
   };
 
-  const handleGetStarted = () => {
-    console.log("Get Started clicked, navigating to /auth");
-    navigate("/auth", { replace: true });
-  };
-
+  // Don't show navbar on auth page
   if (location.pathname === "/auth") {
     return null;
   }
@@ -70,21 +66,15 @@ export const Navbar = ({ onForceLogout }: NavbarProps) => {
           <a href="#testimonials" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Patient Stories</a>
           <a href="#pricing" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Plans</a>
         </div>
-        {location.pathname === "/" && !user ? (
+        {!user && (
           <Button 
-            onClick={handleGetStarted}
+            onClick={() => navigate("/auth")}
             className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
           >
-            Get Started
+            {location.pathname === "/" ? "Get Started" : "Sign In"}
           </Button>
-        ) : !user ? (
-          <Button 
-            onClick={handleGetStarted}
-            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
-          >
-            Sign In
-          </Button>
-        ) : (
+        )}
+        {user && (
           <Button 
             onClick={handleSignOut}
             variant="outline" 
