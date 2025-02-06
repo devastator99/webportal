@@ -63,7 +63,7 @@ export const Navbar = () => {
           <a href="#testimonials" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Patient Stories</a>
           <a href="#pricing" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Plans</a>
         </div>
-        {location.pathname === "/" ? (
+        {location.pathname === "/" && !user ? (
           <Button 
             onClick={handleGetStarted} 
             className="bg-[#9b87f5] hover:bg-[#7E69AB]"

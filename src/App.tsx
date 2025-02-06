@@ -45,12 +45,7 @@ const AppRoutes = () => {
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Index />} />
-        <Route 
-          path="/auth" 
-          element={
-            user ? <Navigate to="/dashboard" replace /> : <Auth />
-          }
-        />
+        <Route path="/auth" element={<Auth />} />
         
         {/* Protected routes */}
         <Route
