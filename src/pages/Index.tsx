@@ -21,52 +21,56 @@ const Index = () => {
     };
   }, [user, isLoading]);
 
-  // Add more detailed logging
-  console.log("Index render cycle - Auth state:", { user, isLoading });
+  // Add detailed logging for debugging
+  console.log("Index render cycle - Current state:", {
+    user,
+    isLoading,
+    isChatOpen,
+    currentTime: new Date().toISOString()
+  });
 
-  // Always render the main content, regardless of auth state
   return (
-    <main className="flex min-h-screen flex-col">
+    <>
       <Navbar />
-      <div className="flex-1 flex flex-col">
-        <div className="flex-grow">
+      <main className="min-h-screen bg-white">
+        <div className="relative">
           <Hero />
           <Features />
           <Testimonials />
           <Pricing />
+          <Footer />
         </div>
-        <Footer />
-      </div>
 
-      {/* Only render chat when user is authenticated and loading is complete */}
-      {!isLoading && user && (
-        <div className="fixed bottom-4 right-4 z-50">
-          {isChatOpen ? (
-            <div className="w-[400px]">
-              <div className="relative bg-white rounded-lg shadow-lg">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-2 z-50"
-                  onClick={() => setIsChatOpen(false)}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
-                <ChatInterface />
+        {/* Chat interface */}
+        {!isLoading && user && (
+          <div className="fixed bottom-4 right-4 z-50">
+            {isChatOpen ? (
+              <div className="w-[400px]">
+                <div className="relative bg-white rounded-lg shadow-lg">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-2 z-50"
+                    onClick={() => setIsChatOpen(false)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                  <ChatInterface />
+                </div>
               </div>
-            </div>
-          ) : (
-            <Button 
-              onClick={() => setIsChatOpen(true)}
-              className="shadow-lg"
-            >
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Chat with Doctor
-            </Button>
-          )}
-        </div>
-      )}
-    </main>
+            ) : (
+              <Button 
+                onClick={() => setIsChatOpen(true)}
+                className="shadow-lg bg-[#9b87f5] hover:bg-[#7E69AB]"
+              >
+                <MessageCircle className="mr-2 h-4 w-4" />
+                Chat with Doctor
+              </Button>
+            )}
+          </div>
+        )}
+      </main>
+    </>
   );
 };
 
