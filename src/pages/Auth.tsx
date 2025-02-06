@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,6 +18,7 @@ const Auth = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (user && !authLoading) {
+      console.log("User is authenticated, redirecting to dashboard");
       navigate("/dashboard");
     }
   }, [user, authLoading, navigate]);
