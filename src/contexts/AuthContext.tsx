@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { User, AuthError } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,10 +9,10 @@ type UserRole = "doctor" | "patient" | "administrator" | "nutritionist";
 type AuthContextType = {
   user: User | null;
   userRole: UserRole | null;
-  isLoading: boolean;  // Added explicit loading state
-  isInitialized: boolean; // Added initialization state
+  isLoading: boolean;
+  isInitialized: boolean;
   signOut: () => Promise<void>;
-  error: string | null; // Added error state
+  error: string | null;
 };
 
 const AuthContext = createContext<AuthContextType>({
@@ -79,6 +78,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Handle page visibility changes
+  useEffect(() => {
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'hidden') {
+        // Store the timestamp when the page becomes hidden
+        localStorage.setItem('lastActive', new Date().toISOString());
+      } else if (document.visibilityState === 'visible') {
+        const lastActive = localStorage.getItem('lastActive');
+        if (lastActive) {
+          const inactiveTime = new Date().getTime() - new Date(lastActive).getTime();
+          // If inactive for more than 30 minutes, sign out
+          if (inactiveTime > 30 * 60 * 1000) {
+            await signOut();
+            toast({
+              title: "Session expired",
+              description: "You've been signed out due to inactivity.",
+            });
+          }
+        }
+      }
+    };
+
+    // Handle page close/refresh
+    const handleBeforeUnload = () => {
+      localStorage.setItem('lastActive', new Date().toISOString());
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [toast]);
+
   // Initialize auth state
   useEffect(() => {
     let mounted = true;
@@ -87,6 +122,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         setIsLoading(true);
         setError(null);
+
+        // Check last active timestamp on initialization
+        const lastActive = localStorage.getItem('lastActive');
+        if (lastActive) {
+          const inactiveTime = new Date().getTime() - new Date(lastActive).getTime();
+          if (inactiveTime > 30 * 60 * 1000) {
+            await signOut();
+            return;
+          }
+        }
 
         // Get initial session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
