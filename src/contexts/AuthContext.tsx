@@ -52,19 +52,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
+      console.log("Starting sign out process...");
       setIsLoading(true);
       setError(null);
+      
+      // Clear any stored session data
+      localStorage.removeItem('lastActive');
+      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
       setUser(null);
       setUserRole(null);
-      navigate('/auth');
       
-      toast({
-        title: "Signed out successfully",
-        description: "You have been logged out of your account.",
-      });
+      console.log("Sign out successful, redirecting...");
+      // Force a hard redirect to clear all state
+      window.location.href = '/';
+      
     } catch (error: any) {
       console.error("Sign out error:", error);
       setError(error.message);
