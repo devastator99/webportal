@@ -1,7 +1,8 @@
+
 export const Hero = () => {
   console.log("Hero component rendering");
   return (
-    <section className="relative w-full pt-32 pb-20 px-4 bg-white overflow-hidden">
+    <section className="relative w-full pt-40 pb-20 px-4 bg-white overflow-hidden">
       <div className="container mx-auto text-center relative z-10">
         <h1 className="text-4xl md:text-6xl font-bold text-[#7E69AB] mb-6 animate-fade-up">
           Expert Endocrinology Care for Your Health
