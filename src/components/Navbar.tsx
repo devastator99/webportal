@@ -53,6 +53,12 @@ export const Navbar = () => {
 
   const shouldShowAuthButtons = location.pathname !== "/";
 
+  const handleGetStarted = () => {
+    console.log("Get Started clicked, current location:", location.pathname);
+    console.log("Current user state:", user);
+    navigate("/auth");
+  };
+
   return (
     <nav className="sticky top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-[#D6BCFA]">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -87,7 +93,7 @@ export const Navbar = () => {
           )
         ) : (
           <Button 
-            onClick={() => navigate("/auth")} 
+            onClick={handleGetStarted} 
             className="bg-[#9b87f5] hover:bg-[#7E69AB]"
           >
             Get Started
