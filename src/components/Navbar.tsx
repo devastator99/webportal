@@ -54,7 +54,7 @@ export const Navbar = ({ onForceLogout }: NavbarProps) => {
 
   const handleGetStarted = () => {
     console.log("Get Started clicked, navigating to /auth");
-    navigate("/auth");
+    navigate("/auth", { replace: true });
   };
 
   return (
