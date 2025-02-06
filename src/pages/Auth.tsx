@@ -12,18 +12,17 @@ const Auth = () => {
   const { loading, error, handleLogin, handleSignUp, handleTestLogin } = useAuthHandlers();
   const [isLoginMode, setIsLoginMode] = useState(true);
 
-  console.log("[Auth] Page rendered", { user, authLoading, loading, isInitialized });
-
-  // Redirect if already authenticated
+  // Only redirect if we're initialized and have a user
   useEffect(() => {
-    if (user && isInitialized) {
-      console.log("[Auth] User is authenticated, redirecting to dashboard");
+    if (isInitialized && user) {
+      console.log("[Auth] Redirecting authenticated user to dashboard");
       navigate("/dashboard", { replace: true });
     }
   }, [user, isInitialized, navigate]);
 
   // Show loading spinner only during initial auth check
-  if (authLoading || !isInitialized) {
+  if (!isInitialized) {
+    console.log("[Auth] Waiting for auth initialization...");
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
@@ -31,11 +30,14 @@ const Auth = () => {
     );
   }
 
-  // Don't render the auth form if we're authenticated (prevents flash before redirect)
+  // If we're initialized and have a user, don't render anything (redirect will happen)
   if (user) {
+    console.log("[Auth] User exists, waiting for redirect...");
     return null;
   }
 
+  // We're initialized and have no user, show the auth form
+  console.log("[Auth] Rendering auth form");
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
