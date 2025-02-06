@@ -41,7 +41,9 @@ const ForceLogout = () => {
   useEffect(() => {
     const performLogout = async () => {
       try {
+        console.log("Starting force logout process...");
         await signOut();
+        console.log("Logout successful");
         toast({
           title: "Logged out",
           description: "You have been successfully logged out.",
