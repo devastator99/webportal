@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -53,6 +54,7 @@ export const Navbar = ({ onForceLogout }: NavbarProps) => {
 
   const handleGetStarted = () => {
     console.log("Get Started clicked, navigating to /auth");
+    // Using navigate with replace: true to avoid navigation stack issues
     navigate("/auth", { replace: true });
   };
 
@@ -73,14 +75,14 @@ export const Navbar = ({ onForceLogout }: NavbarProps) => {
         {location.pathname === "/" && !user ? (
           <Button 
             onClick={handleGetStarted} 
-            className="bg-[#9b87f5] hover:bg-[#7E69AB]"
+            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
           >
             Get Started
           </Button>
         ) : !user ? (
           <Button 
             onClick={() => navigate("/auth")} 
-            className="bg-[#9b87f5] hover:bg-[#7E69AB]"
+            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
           >
             Sign In
           </Button>
