@@ -19,7 +19,7 @@ const Auth = () => {
   }, [user, navigate]);
 
   if (!isInitialized) {
-    return null; // Don't show anything during initialization
+    return null;
   }
 
   return (
@@ -35,12 +35,43 @@ const Auth = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <AuthForm
-            type={isLoginMode ? "login" : "register"}
-            onSubmit={isLoginMode ? handleLogin : handleSignUp}
-            error={error}
-            loading={loading}
-          />
+          {isLoginMode ? (
+            <>
+              <AuthForm
+                type="login"
+                onSubmit={handleLogin}
+                error={error}
+                loading={loading}
+              />
+              
+              <div className="mt-6">
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300" />
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">
+                      Or continue with test accounts
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <TestLoginButtons 
+                    onTestLogin={handleTestLogin} 
+                    loading={loading} 
+                  />
+                </div>
+              </div>
+            </>
+          ) : (
+            <AuthForm
+              type="register"
+              onSubmit={handleSignUp}
+              error={error}
+              loading={loading}
+            />
+          )}
           
           <div className="mt-6">
             <Button
@@ -53,28 +84,6 @@ const Auth = () => {
               {isLoginMode ? "Need an account? Sign up" : "Already have an account? Sign in"}
             </Button>
           </div>
-
-          {isLoginMode && (
-            <div className="mt-6">
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300" />
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-2 bg-white text-gray-500">
-                    Or continue with test accounts
-                  </span>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <TestLoginButtons 
-                  onTestLogin={handleTestLogin} 
-                  loading={loading} 
-                />
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>
