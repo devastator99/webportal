@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -54,8 +53,11 @@ export const Navbar = ({ onForceLogout }: NavbarProps) => {
 
   const handleGetStarted = () => {
     console.log("Get Started clicked, navigating to /auth");
-    // Using navigate with replace: true to avoid navigation stack issues
-    navigate("/auth", { replace: true });
+    if (user) {
+      navigate("/dashboard", { replace: true });
+    } else {
+      navigate("/auth", { replace: true });
+    }
   };
 
   return (
