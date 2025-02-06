@@ -33,7 +33,8 @@ export const Navbar = ({ onForceLogout }: NavbarProps) => {
   }
 
   const handleSignIn = () => {
-    navigate("/auth");
+    console.log("[Navbar] Navigating to auth page");
+    navigate("/auth", { replace: true });
   };
 
   return (
