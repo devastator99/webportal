@@ -29,48 +29,56 @@ const Index = () => {
     currentTime: new Date().toISOString()
   });
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
+      </div>
+    );
+  }
+
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       <Navbar />
-      <main className="min-h-screen bg-white">
+      <div className="flex-1">
         <div className="relative">
           <Hero />
           <Features />
           <Testimonials />
           <Pricing />
-          <Footer />
         </div>
+      </div>
+      <Footer />
 
-        {/* Chat interface */}
-        {!isLoading && user && (
-          <div className="fixed bottom-4 right-4 z-50">
-            {isChatOpen ? (
-              <div className="w-[400px]">
-                <div className="relative bg-white rounded-lg shadow-lg">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-2 top-2 z-50"
-                    onClick={() => setIsChatOpen(false)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                  <ChatInterface />
-                </div>
+      {/* Chat interface */}
+      {user && (
+        <div className="fixed bottom-4 right-4 z-50">
+          {isChatOpen ? (
+            <div className="w-[400px]">
+              <div className="relative bg-white rounded-lg shadow-lg">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-2 z-50"
+                  onClick={() => setIsChatOpen(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                <ChatInterface />
               </div>
-            ) : (
-              <Button 
-                onClick={() => setIsChatOpen(true)}
-                className="shadow-lg bg-[#9b87f5] hover:bg-[#7E69AB]"
-              >
-                <MessageCircle className="mr-2 h-4 w-4" />
-                Chat with Doctor
-              </Button>
-            )}
-          </div>
-        )}
-      </main>
-    </>
+            </div>
+          ) : (
+            <Button 
+              onClick={() => setIsChatOpen(true)}
+              className="shadow-lg bg-[#9b87f5] hover:bg-[#7E69AB]"
+            >
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Chat with Doctor
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 

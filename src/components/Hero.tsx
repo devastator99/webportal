@@ -2,8 +2,8 @@ import { Button } from "@/components/ui/button";
 
 export const Hero = () => {
   return (
-    <div className="w-full pt-32 pb-20 px-4 bg-white">
-      <div className="container mx-auto text-center">
+    <section className="relative w-full pt-32 pb-20 px-4 bg-white overflow-hidden">
+      <div className="container mx-auto text-center relative z-10">
         <h1 className="text-4xl md:text-6xl font-bold text-[#7E69AB] mb-6 animate-fade-up">
           Expert Endocrinology Care for Your Health
         </h1>
@@ -16,6 +16,6 @@ export const Hero = () => {
           </Button>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
