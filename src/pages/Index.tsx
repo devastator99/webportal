@@ -3,9 +3,13 @@ import { Features } from "@/components/Features";
 import { Testimonials } from "@/components/Testimonials";
 import { Pricing } from "@/components/Pricing";
 import { Footer } from "@/components/Footer";
+import { useEffect } from "react";
 
 export default function Index() {
-  console.log("Index component rendering");
+  useEffect(() => {
+    console.log("Index page mounted");
+  }, []);
+
   return (
     <main className="min-h-screen flex flex-col bg-white">
       <Hero />

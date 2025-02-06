@@ -57,7 +57,7 @@ export const Navbar = ({ onForceLogout }: NavbarProps) => {
   };
 
   return (
-    <nav className="sticky top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-[#D6BCFA]">
+    <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-[#D6BCFA]">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <div 
           className="text-2xl font-bold text-[#9b87f5] cursor-pointer" 
