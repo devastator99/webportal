@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -13,13 +12,15 @@ export const Navbar = () => {
 
   const handleSignOut = async () => {
     try {
+      console.log("Initiating sign out...");
       await signOut();
       console.log("Sign out successful");
       toast({
         title: "Signed out successfully",
         description: "You have been signed out of your account.",
       });
-      navigate('/');
+      // Force navigation to root after signout
+      window.location.href = '/';
     } catch (error: any) {
       console.error("Error in Navbar signOut:", error);
       toast({
