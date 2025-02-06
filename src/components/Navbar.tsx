@@ -19,8 +19,6 @@ export const Navbar = () => {
         title: "Signed out successfully",
         description: "You have been signed out of your account.",
       });
-      // Force navigation to root after signout
-      window.location.href = '/';
     } catch (error: any) {
       console.error("Error in Navbar signOut:", error);
       toast({
@@ -31,15 +29,12 @@ export const Navbar = () => {
     }
   };
 
-  // Add console log to debug auth state and current path
-  console.log("Auth state in Navbar:", { user, path: location.pathname });
-
   // Don't show navbar on auth page
   if (location.pathname === "/auth") {
     return null;
   }
 
-  const shouldShowAuthButtons = location.pathname !== "/"; // Only show auth buttons on non-index pages
+  const shouldShowAuthButtons = location.pathname !== "/";
 
   return (
     <nav className="fixed w-full bg-white/80 backdrop-blur-md z-50 border-b border-[#D6BCFA]">

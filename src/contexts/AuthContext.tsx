@@ -56,17 +56,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(true);
       setError(null);
       
-      // Clear any stored session data
-      localStorage.removeItem('lastActive');
+      // Clear all local storage data
+      localStorage.clear();
       
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
+      // Clear state
       setUser(null);
       setUserRole(null);
       
       console.log("Sign out successful, redirecting...");
-      // Force a hard redirect to clear all state
+      
+      // Force a complete page reload to clear all state
       window.location.href = '/';
       
     } catch (error: any) {
