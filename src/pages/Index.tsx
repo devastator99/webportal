@@ -1,106 +1,42 @@
-import { Hero } from "@/components/Hero";
-import { Features } from "@/components/Features";
-import { Testimonials } from "@/components/Testimonials";
-import { Pricing } from "@/components/Pricing";
-import { Footer } from "@/components/Footer";
-import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { LogIn } from "lucide-react";
 
 export default function Index() {
-  const { user, isLoading } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-  const [loadingTimeout, setLoadingTimeout] = useState(false);
 
-  const forceSignOut = async () => {
-    try {
-      // First check if we have a session
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        // If we have a session, sign out properly
-        await supabase.auth.signOut();
-      }
-      
-      // Clear storage after signing out
-      localStorage.clear();
-      sessionStorage.clear();
-      
-      toast({
-        title: "Signed out successfully",
-        description: "All session data has been cleared.",
-      });
-      
-      // Use navigate instead of window.location to maintain React state
-      navigate('/', { replace: true });
-    } catch (error) {
-      console.error("Force sign out error:", error);
-      
-      toast({
-        variant: "destructive",
-        title: "Error during sign out",
-        description: "Session data has been cleared. Please try again.",
-      });
-      
-      // Still navigate even on error
-      navigate('/', { replace: true });
-    }
+  const handleGetStarted = () => {
+    console.log("[Index] Navigating to auth page");
+    navigate("/auth", { replace: true });
   };
 
-  useEffect(() => {
-    let mounted = true;
-
-    // Only show loading timeout if we're actually stuck
-    const timeoutId = setTimeout(() => {
-      if (mounted && isLoading) {
-        setLoadingTimeout(true);
-      }
-    }, 5000); // 5 seconds timeout
-
-    // Only redirect if we have a user and are not loading
-    if (user && !isLoading) {
-      navigate("/dashboard", { replace: true });
-    }
-
-    return () => {
-      mounted = false;
-      clearTimeout(timeoutId);
-    };
-  }, [user, isLoading, navigate]);
-
-  // Loading overlay with timeout message and force sign out button
-  if (isLoading) {
-    return (
-      <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex flex-col items-center justify-center z-40">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5] mb-4"></div>
-        {loadingTimeout && (
-          <div className="text-center px-4 py-2 bg-white rounded-md shadow">
-            <p>Loading is taking longer than expected.</p>
-            <p>You can try forcing a sign out below if needed.</p>
-            <Button 
-              onClick={forceSignOut}
-              className="mt-4 bg-red-500 hover:bg-red-600 text-white"
-            >
-              Force Sign Out
-            </Button>
-          </div>
-        )}
-      </div>
-    );
+  // Redirect authenticated users to dashboard
+  if (user) {
+    navigate("/dashboard", { replace: true });
+    return null;
   }
 
-  // Only render the main content if not authenticated and not loading
   return (
-    <main className="min-h-screen flex flex-col bg-white">
-      <Hero />
-      <Features />
-      <Testimonials />
-      <Pricing />
-      <Footer />
-    </main>
+    <div className="min-h-screen bg-gradient-to-b from-white to-purple-50">
+      <div className="container mx-auto px-4 py-16 flex flex-col items-center justify-center min-h-screen text-center">
+        <h1 className="text-5xl md:text-6xl font-bold text-[#6E59A5] mb-6 animate-fade-up">
+          Anubhuti
+        </h1>
+        <p className="text-xl md:text-2xl text-[#7E69AB] mb-8 max-w-2xl animate-fade-up">
+          Expert Endocrinology Care Platform - Your path to better health starts here
+        </p>
+        <div className="space-y-4 animate-fade-up">
+          <Button 
+            onClick={handleGetStarted}
+            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white px-8 py-6 text-lg flex items-center gap-2"
+          >
+            <LogIn className="h-5 w-5" />
+            Get Started
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }

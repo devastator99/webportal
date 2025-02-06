@@ -2,8 +2,6 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { LogOut, LogIn } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface NavbarProps {
   onForceLogout?: () => void;
@@ -13,7 +11,6 @@ export const Navbar = ({ onForceLogout }: NavbarProps) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const { toast } = useToast();
 
   const handleSignOut = async () => {
     try {
@@ -45,11 +42,6 @@ export const Navbar = ({ onForceLogout }: NavbarProps) => {
           onClick={() => navigate("/")}
         >
           Anubhuti
-        </div>
-        <div className="hidden md:flex space-x-8">
-          <a href="#features" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Services</a>
-          <a href="#testimonials" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Patient Stories</a>
-          <a href="#pricing" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Plans</a>
         </div>
         {!user && (
           <Button 
