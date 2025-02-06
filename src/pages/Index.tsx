@@ -1,4 +1,3 @@
-
 import { Hero } from "@/components/Hero";
 import { Features } from "@/components/Features";
 import { Testimonials } from "@/components/Testimonials";
@@ -19,27 +18,43 @@ export default function Index() {
 
   const forceSignOut = async () => {
     try {
-      // Clear all storage
+      // First check if there's an active session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        await supabase.auth.signOut();
+      }
+      
+      // Clear storage after successful sign out
       localStorage.clear();
       sessionStorage.clear();
-      
-      // Reset Supabase session
-      await supabase.auth.signOut();
       
       toast({
         title: "Forced sign out successful",
         description: "All session data has been cleared.",
       });
       
-      // Force page reload
-      window.location.reload();
+      // Force page reload after a short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     } catch (error) {
       console.error("Force sign out error:", error);
+      
+      // Even if sign out fails, clear storage
+      localStorage.clear();
+      sessionStorage.clear();
+      
       toast({
         variant: "destructive",
         title: "Error during force sign out",
         description: "Please try clearing your browser cache and reloading.",
       });
+      
+      // Force page reload after a short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 100);
     }
   };
 
