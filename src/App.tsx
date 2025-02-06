@@ -24,7 +24,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!user) {
-    console.log("No user found, redirecting to auth");
+    console.log("No user found in ProtectedRoute, redirecting to auth");
     return <Navigate to="/auth" replace />;
   }
 
@@ -32,8 +32,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppRoutes = () => {
-  const { isInitialized } = useAuth();
-  console.log("AppRoutes rendered, isInitialized:", isInitialized);
+  const { user, isInitialized } = useAuth();
+  console.log("AppRoutes rendered", { isInitialized, user });
+
+  if (!isInitialized) {
+    return <LoadingSpinner />;
+  }
 
   return (
     <>
@@ -41,7 +45,12 @@ const AppRoutes = () => {
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Index />} />
-        <Route path="/auth" element={<Auth />} />
+        <Route 
+          path="/auth" 
+          element={
+            user ? <Navigate to="/dashboard" replace /> : <Auth />
+          } 
+        />
         
         {/* Protected routes */}
         <Route

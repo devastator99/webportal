@@ -12,14 +12,13 @@ const Auth = () => {
   const { loading, error, handleLogin, handleSignUp, handleTestLogin } = useAuthHandlers();
   const [isLoginMode, setIsLoginMode] = useState(true);
 
-  // Debug log
-  console.log("Auth state in Auth page:", { user, authLoading, loading });
+  console.log("Auth page rendered", { user, authLoading, loading });
 
   // Redirect if already authenticated
   useEffect(() => {
     if (user && !authLoading) {
-      console.log("User is authenticated, redirecting to dashboard");
-      navigate("/dashboard");
+      console.log("User is authenticated in Auth page, redirecting to dashboard");
+      navigate("/dashboard", { replace: true });
     }
   }, [user, authLoading, navigate]);
 
