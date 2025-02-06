@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthForm } from "@/components/auth/AuthForm";
@@ -12,12 +12,12 @@ const Auth = () => {
   const { loading, error, handleLogin, handleSignUp, handleTestLogin } = useAuthHandlers();
   const [isLoginMode, setIsLoginMode] = useState(true);
 
-  console.log("Auth page rendered", { user, authLoading, loading });
+  console.log("[Auth] Page rendered", { user, authLoading, loading });
 
   // Redirect if already authenticated
   useEffect(() => {
     if (user && !authLoading) {
-      console.log("User is authenticated in Auth page, redirecting to dashboard");
+      console.log("[Auth] User is authenticated, redirecting to dashboard");
       navigate("/dashboard", { replace: true });
     }
   }, [user, authLoading, navigate]);
