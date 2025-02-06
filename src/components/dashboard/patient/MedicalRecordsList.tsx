@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, Upload } from "lucide-react";
@@ -24,24 +23,6 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Fetch doctor assignment to check if patient has an assigned doctor
-  const { data: doctorAssignment } = useQuery({
-    queryKey: ["doctor_assignment"],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return null;
-
-      const { data, error } = await supabase
-        .from("patient_assignments")
-        .select("doctor_id")
-        .eq("patient_id", session.user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data;
-    }
-  });
-
   const handleFileUpload = async (recordId: string, file: File) => {
     try {
       setIsUploading(true);
@@ -58,16 +39,6 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
         return;
       }
 
-      // Check if patient has an assigned doctor
-      if (!doctorAssignment?.doctor_id) {
-        toast({
-          title: "No doctor assigned",
-          description: "You need to be assigned to a doctor before uploading documents.",
-          variant: "destructive",
-        });
-        return;
-      }
-
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
@@ -78,11 +49,6 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
         .upload(filePath, file);
 
       if (uploadError) throw uploadError;
-
-      // Get the public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('medical_files')
-        .getPublicUrl(filePath);
 
       // Create document record
       const { error: dbError } = await supabase
@@ -103,30 +69,9 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
       });
     } catch (error: any) {
       console.error('Upload error:', error);
-      
-      // Handle specific error cases
-      if (error.message?.includes('JWT')) {
-        toast({
-          title: "Session expired",
-          description: "Please log in again to continue.",
-          variant: "destructive",
-        });
-        navigate('/auth');
-        return;
-      }
-
-      if (error.code === 'PGRST301') {
-        toast({
-          title: "Access denied",
-          description: "You can only upload documents to your own medical records.",
-          variant: "destructive",
-        });
-        return;
-      }
-
       toast({
         title: "Error uploading document",
-        description: error.message,
+        description: error.message || "Failed to upload document",
         variant: "destructive",
       });
     } finally {
@@ -159,15 +104,6 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
                     size="sm"
                     className="flex items-center gap-2"
                     onClick={() => {
-                      if (!doctorAssignment?.doctor_id) {
-                        toast({
-                          title: "No doctor assigned",
-                          description: "You need to be assigned to a doctor before uploading documents.",
-                          variant: "destructive",
-                        });
-                        return;
-                      }
-                      
                       const input = document.createElement('input');
                       input.type = 'file';
                       input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
@@ -179,7 +115,7 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
                       };
                       input.click();
                     }}
-                    disabled={isUploading || !doctorAssignment?.doctor_id}
+                    disabled={isUploading}
                   >
                     <Upload className="h-4 w-4" />
                     Upload Document

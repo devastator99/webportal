@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -60,6 +59,8 @@ export const ChatInterface = () => {
   });
 
   const handleSendMessage = async () => {
+    if (!newMessage.trim()) return;
+
     const receiverId = userRole === "doctor" 
       ? selectedPatientId 
       : doctorAssignment?.doctor_id;
@@ -74,8 +75,6 @@ export const ChatInterface = () => {
       });
       return;
     }
-
-    if (!newMessage.trim()) return;
 
     try {
       const { error } = await supabase.from("chat_messages").insert({
@@ -100,22 +99,6 @@ export const ChatInterface = () => {
       });
     }
   };
-
-  if (!user) {
-    return (
-      <Card className="h-[600px] flex flex-col">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-5 w-5" />
-            Messages
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex-1 flex items-center justify-center">
-          <p className="text-muted-foreground">Please log in to use the chat.</p>
-        </CardContent>
-      </Card>
-    );
-  }
 
   const getHeaderTitle = () => {
     if (userRole === "doctor" && selectedPatient) {
