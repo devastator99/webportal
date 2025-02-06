@@ -59,8 +59,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(null);
       setUserRole(null);
       
-      // Clear local storage
+      // Clear local storage and session
       localStorage.clear();
+      sessionStorage.clear();
+      
+      // Reset Supabase session
+      await supabase.auth.setSession(null);
       
       // Navigate to home page
       navigate('/', { replace: true });
@@ -76,6 +80,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Error signing out",
         description: error.message || "An error occurred while signing out.",
       });
+      
+      // Force clear state even if there's an error
+      setUser(null);
+      setUserRole(null);
+      localStorage.clear();
+      sessionStorage.clear();
+      navigate('/', { replace: true });
     } finally {
       setIsLoading(false);
     }
@@ -97,6 +108,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
+        // Clear state on initialization error
+        setUser(null);
+        setUserRole(null);
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -116,22 +130,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (event === 'SIGNED_OUT' || !session) {
           setUser(null);
           setUserRole(null);
-          navigate('/');
+          navigate('/', { replace: true });
         } else if (session?.user) {
           const role = await fetchUserRole(session.user.id);
           setUser(session.user);
           setUserRole(role);
           if (event === 'SIGNED_IN') {
-            navigate('/dashboard');
+            navigate('/dashboard', { replace: true });
           }
         }
       } catch (error: any) {
         console.error("Error handling auth state change:", error);
+        // Clear state on error
+        setUser(null);
+        setUserRole(null);
         toast({
           variant: "destructive",
           title: "Authentication Error",
           description: error.message || "An error occurred.",
         });
+        navigate('/', { replace: true });
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -158,7 +176,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         error 
       }}
     >
-      {isInitialized ? children : null}
+      {children}
     </AuthContext.Provider>
   );
 };
