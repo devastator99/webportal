@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -10,6 +9,7 @@ import { PatientHeader } from "./patient/PatientHeader";
 import { PatientStats } from "./patient/PatientStats";
 import { AppointmentsList } from "./patient/AppointmentsList";
 import { MedicalRecordsList } from "./patient/MedicalRecordsList";
+import { PatientFlow } from "./patient/PatientFlow";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
@@ -102,6 +102,8 @@ export const PatientDashboard = () => {
         medicalRecordsCount={patientData?.medicalRecords.length || 0}
         nextAppointmentDate={nextAppointmentDate}
       />
+
+      <PatientFlow />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
