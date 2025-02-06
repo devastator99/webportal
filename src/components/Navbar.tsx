@@ -52,6 +52,12 @@ export const Navbar = ({ onForceLogout }: NavbarProps) => {
     return null;
   }
 
+  const handleGetStarted = () => {
+    console.log("Get Started clicked, navigating to /auth");
+    // Force a hard navigation to ensure clean state
+    window.location.href = "/auth";
+  };
+
   return (
     <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-[#D6BCFA]">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
@@ -68,10 +74,7 @@ export const Navbar = ({ onForceLogout }: NavbarProps) => {
         </div>
         {!user && (
           <Button 
-            onClick={() => {
-              console.log("Get Started clicked, navigating to /auth");
-              navigate("/auth", { replace: true });
-            }}
+            onClick={handleGetStarted}
             className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
           >
             Get Started
