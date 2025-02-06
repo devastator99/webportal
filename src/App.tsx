@@ -31,9 +31,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppRoutes = () => {
-  const { isInitialized } = useAuth();
-
-  if (!isInitialized) {
+  const { isInitialized, isLoading } = useAuth();
+  
+  // Only show loading spinner if we're still initializing
+  if (!isInitialized && isLoading) {
     return <LoadingSpinner />;
   }
 

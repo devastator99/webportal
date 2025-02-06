@@ -7,11 +7,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
 
 export default function Index() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isInitialized } = useAuth();
 
   useEffect(() => {
-    console.log("Index component mounted, auth state:", { user, isLoading });
-  }, [user, isLoading]);
+    console.log("Index component mounted, auth state:", { user, isLoading, isInitialized });
+  }, [user, isLoading, isInitialized]);
+
+  // Don't render anything until we're initialized
+  if (!isInitialized) {
+    return null;
+  }
 
   return (
     <main className="min-h-screen flex flex-col bg-white">
