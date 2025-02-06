@@ -133,10 +133,8 @@ const AppRoutes = () => {
           path="/auth" 
           element={
             user ? (
-              console.log("[AppRoutes] User already authenticated, redirecting to dashboard"),
               <Navigate to="/dashboard" replace />
             ) : (
-              console.log("[AppRoutes] Rendering Auth component"),
               <Auth />
             )
           }
