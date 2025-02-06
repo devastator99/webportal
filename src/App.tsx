@@ -12,25 +12,34 @@ import { useAuth } from "./contexts/AuthContext";
 import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 
-const LoadingSpinner = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
-  </div>
-);
+const LoadingSpinner = () => {
+  console.log("LoadingSpinner rendered");
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
+    </div>
+  );
+};
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
-  console.log("ProtectedRoute check:", { user: user?.email, isLoading });
+  console.log("ProtectedRoute check:", { 
+    user: user?.email, 
+    isLoading,
+    timestamp: new Date().toISOString()
+  });
 
   if (isLoading) {
+    console.log("ProtectedRoute: Loading state detected");
     return <LoadingSpinner />;
   }
 
   if (!user) {
-    console.log("No user found in ProtectedRoute, redirecting to auth");
+    console.log("ProtectedRoute: No user found, redirecting to auth");
     return <Navigate to="/auth" replace />;
   }
 
+  console.log("ProtectedRoute: User authenticated, rendering children");
   return <>{children}</>;
 };
 
@@ -41,16 +50,15 @@ const ForceLogout = () => {
   useEffect(() => {
     const performLogout = async () => {
       try {
-        console.log("Starting force logout process...");
+        console.log("Starting force logout process...", new Date().toISOString());
         await signOut();
-        console.log("Logout successful");
+        console.log("Logout successful", new Date().toISOString());
         toast({
           title: "Logged out",
           description: "You have been successfully logged out.",
         });
       } catch (error) {
-        console.error("Force logout error:", error);
-        // Force clear local storage and reload as fallback
+        console.error("Force logout error:", error, new Date().toISOString());
         localStorage.clear();
         sessionStorage.clear();
         window.location.reload();
@@ -69,7 +77,9 @@ const AppRoutes = () => {
     isInitialized, 
     isLoading,
     userEmail: user?.email,
-    userId: user?.id 
+    userId: user?.id,
+    currentPath: window.location.pathname,
+    timestamp: new Date().toISOString()
   });
 
   if (!isInitialized) {
@@ -113,7 +123,10 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
-  console.log("App component rendered");
+  console.log("App component rendered", {
+    timestamp: new Date().toISOString(),
+    pathname: window.location.pathname
+  });
   
   return (
     <QueryClientProvider client={queryClient}>
