@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,8 +16,9 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  console.log("Dashboard render - User:", user?.id);
-  console.log("Auth loading:", authLoading);
+  console.log("Dashboard render - Full user object:", user);
+  console.log("Auth loading state:", authLoading);
+  console.log("Current timestamp:", new Date().toISOString());
 
   const { data: userRole, isLoading: roleLoading, error } = useQuery({
     queryKey: ["user_role", user?.id],
@@ -27,7 +29,7 @@ const Dashboard = () => {
       }
       
       try {
-        console.log("Fetching role for user ID:", user.id);
+        console.log("Starting role fetch for user ID:", user.id);
         
         const { data, error } = await supabase
           .from("user_roles")
@@ -35,13 +37,13 @@ const Dashboard = () => {
           .eq("user_id", user.id)
           .maybeSingle();
 
+        console.log("Role query response:", { data, error });
+
         if (error) {
           console.error("Error fetching user role:", error);
           throw error;
         }
 
-        console.log("Role query result:", data);
-        
         if (!data) {
           console.log("No role found for user:", user.id);
           toast({
@@ -52,7 +54,7 @@ const Dashboard = () => {
           return null;
         }
         
-        console.log("Retrieved user role:", data.role);
+        console.log("Successfully retrieved user role:", data.role);
         return data.role;
       } catch (error: any) {
         console.error("Role query error:", error);
@@ -70,6 +72,14 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
+    console.log("Dashboard useEffect - Current state:", {
+      user: user?.id,
+      authLoading,
+      roleLoading,
+      userRole,
+      error: error?.message
+    });
+
     if (!user && !authLoading) {
       console.log("No user found, redirecting to auth");
       navigate("/auth");
@@ -88,7 +98,7 @@ const Dashboard = () => {
   }, [error, user, authLoading, navigate, toast]);
 
   if (authLoading || roleLoading) {
-    console.log("Dashboard is loading...");
+    console.log("Dashboard is loading... States:", { authLoading, roleLoading });
     return (
       <div className="container mx-auto p-6 space-y-6">
         <Skeleton className="h-8 w-48" />
@@ -108,7 +118,10 @@ const Dashboard = () => {
   }
 
   if (!userRole) {
-    console.log("No user role found");
+    console.log("No user role found. User info:", {
+      id: user?.id,
+      email: user?.email
+    });
     return (
       <div className="container mx-auto p-6">
         <h1 className="text-2xl font-bold text-red-500">Access Error</h1>
