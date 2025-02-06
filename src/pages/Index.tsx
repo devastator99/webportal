@@ -51,6 +51,15 @@ export default function Index() {
     }
   };
 
+  const handleGetStarted = () => {
+    console.log("Get Started clicked");
+    if (user) {
+      navigate("/dashboard");
+    } else {
+      navigate("/auth");
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -96,7 +105,7 @@ export default function Index() {
   // Only render the main content if not authenticated and not loading
   return (
     <main className="min-h-screen flex flex-col bg-white">
-      <Hero />
+      <Hero onGetStarted={handleGetStarted} />
       <Features />
       <Testimonials />
       <Pricing />

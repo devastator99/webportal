@@ -1,15 +1,27 @@
+import { Button } from "@/components/ui/button";
 
-export const Hero = () => {
-  console.log("Hero component rendering");
+interface HeroProps {
+  onGetStarted?: () => void;
+}
+
+export const Hero = ({ onGetStarted }: HeroProps) => {
   return (
-    <section className="relative w-full pt-20 md:pt-32 pb-20 px-4 bg-white overflow-hidden">
-      <div className="container mx-auto text-center relative z-10">
-        <h1 className="text-4xl md:text-6xl font-bold text-[#7E69AB] mb-6 animate-fade-up">
-          Expert Endocrinology Care for Your Health
-        </h1>
-        <p className="text-xl text-[#6E59A5] mb-8 max-w-2xl mx-auto animate-fade-up">
-          Specialized care for hormonal health, diabetes management, and thyroid disorders with our experienced endocrinologists.
-        </p>
+    <section className="relative py-20 md:py-32 overflow-hidden">
+      <div className="container mx-auto px-4">
+        <div className="max-w-3xl mx-auto text-center">
+          <h1 className="text-4xl md:text-6xl font-bold text-[#6E59A5] mb-6">
+            Your Mental Health Journey Starts Here
+          </h1>
+          <p className="text-lg md:text-xl text-[#7E69AB] mb-8">
+            Connect with experienced therapists and start your path to better mental well-being today.
+          </p>
+          <Button
+            onClick={onGetStarted}
+            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white px-8 py-3 rounded-lg text-lg"
+          >
+            Get Started
+          </Button>
+        </div>
       </div>
     </section>
   );
