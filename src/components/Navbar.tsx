@@ -4,7 +4,11 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-export const Navbar = () => {
+interface NavbarProps {
+  onForceLogout?: () => void;
+}
+
+export const Navbar = ({ onForceLogout }: NavbarProps) => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,17 +30,20 @@ export const Navbar = () => {
     } catch (error: any) {
       console.error("Error in Navbar signOut:", error);
       
-      localStorage.clear();
-      sessionStorage.clear();
+      if (onForceLogout) {
+        onForceLogout();
+      } else {
+        localStorage.clear();
+        sessionStorage.clear();
+        navigate('/', { replace: true });
+        window.location.reload();
+      }
       
       toast({
         variant: "destructive",
         title: "Error signing out",
         description: "You have been forcefully signed out due to an error.",
       });
-      
-      navigate('/', { replace: true });
-      window.location.reload();
     }
   };
 

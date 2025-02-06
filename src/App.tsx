@@ -9,7 +9,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import { useAuth } from "./contexts/AuthContext";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 const LoadingSpinner = () => {
@@ -46,9 +46,13 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const ForceLogout = () => {
   const { signOut } = useAuth();
   const { toast } = useToast();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
     const performLogout = async () => {
+      if (isLoggingOut) return; // Prevent multiple logout attempts
+      
+      setIsLoggingOut(true);
       try {
         console.log("Starting force logout process...", new Date().toISOString());
         await signOut();
@@ -66,13 +70,15 @@ const ForceLogout = () => {
     };
 
     performLogout();
-  }, [signOut, toast]);
+  }, [signOut, toast, isLoggingOut]);
 
   return null;
 };
 
 const AppRoutes = () => {
   const { user, isInitialized, isLoading } = useAuth();
+  const [needsForceLogout, setNeedsForceLogout] = useState(false);
+  
   console.log("AppRoutes rendered", { 
     isInitialized, 
     isLoading,
@@ -89,8 +95,8 @@ const AppRoutes = () => {
 
   return (
     <>
-      <ForceLogout />
-      <Navbar />
+      {needsForceLogout && <ForceLogout />}
+      <Navbar onForceLogout={() => setNeedsForceLogout(true)} />
       <Routes>
         <Route path="/" element={<Index />} />
         <Route 
