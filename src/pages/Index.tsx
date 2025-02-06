@@ -27,7 +27,6 @@ export default function Index() {
       sessionStorageKeys: Object.keys(sessionStorage)
     });
 
-    // If user is authenticated, redirect to dashboard
     if (user && !isLoading) {
       console.log("User is authenticated, redirecting to dashboard");
       navigate("/dashboard", { replace: true });
@@ -45,7 +44,6 @@ export default function Index() {
         }
       });
       
-      // Clear all storage
       localStorage.clear();
       sessionStorage.clear();
       
@@ -63,53 +61,45 @@ export default function Index() {
         description: "You have been forcefully signed out.",
       });
       
-      // Force reload the page
       window.location.reload();
     } catch (error) {
       console.error("Force sign out error:", error);
-      // Even if signOut fails, clear storage and reload
       localStorage.clear();
       sessionStorage.clear();
       window.location.reload();
     }
   };
 
-  // Always show force sign out button for testing purposes
-  const forceSignOutButton = (
-    <div className="fixed top-20 right-4 z-50">
-      <Button 
-        variant="destructive"
-        onClick={handleForceSignOut}
-        className="flex items-center gap-2"
-      >
-        <LogOut className="h-4 w-4" />
-        Force Sign Out
-      </Button>
-    </div>
-  );
+  // Force sign out button now rendered at the top level, outside of any conditions
+  return (
+    <>
+      {/* Force Sign Out button - always visible */}
+      <div className="fixed top-20 right-4 z-[9999] bg-destructive rounded-md shadow-lg">
+        <Button 
+          variant="destructive"
+          onClick={handleForceSignOut}
+          className="flex items-center gap-2 !bg-destructive hover:!bg-destructive/90"
+        >
+          <LogOut className="h-4 w-4" />
+          Force Sign Out
+        </Button>
+      </div>
 
-  // Show loading overlay if loading
-  const loadingOverlay = isLoading ? (
-    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-40">
-      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
-    </div>
-  ) : null;
+      {/* Loading overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-40">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
+        </div>
+      )}
 
-  // If not loading and no user, render landing page
-  if (!user) {
-    return (
+      {/* Main content */}
       <main className="min-h-screen flex flex-col bg-white">
-        {loadingOverlay}
-        {forceSignOutButton}
         <Hero />
         <Features />
         <Testimonials />
         <Pricing />
         <Footer />
       </main>
-    );
-  }
-
-  // This is a fallback return, though it should never be reached
-  return forceSignOutButton;
+    </>
+  );
 }
