@@ -14,12 +14,12 @@ export default function Index() {
   }, [user, isLoading]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <main className="min-h-screen flex flex-col bg-white">
       <Hero />
       <Features />
       <Testimonials />
       <Pricing />
       <Footer />
-    </div>
+    </main>
   );
 }
