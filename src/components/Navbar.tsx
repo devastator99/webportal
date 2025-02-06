@@ -68,7 +68,10 @@ export const Navbar = ({ onForceLogout }: NavbarProps) => {
         </div>
         {!user && (
           <Button 
-            onClick={() => navigate("/auth")}
+            onClick={() => {
+              console.log("Get Started clicked, navigating to /auth");
+              navigate("/auth", { replace: true });
+            }}
             className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
           >
             Get Started
