@@ -16,10 +16,14 @@ export default function Index() {
   const { toast } = useToast();
 
   useEffect(() => {
-    console.log("Index page mounted, auth state:", { 
+    console.log("Index page authentication state:", { 
       isLoading, 
       userEmail: user?.email,
-      timestamp: new Date().toISOString()
+      userId: user?.id,
+      userRole: user?.role,
+      timestamp: new Date().toISOString(),
+      localStorageKeys: Object.keys(localStorage),
+      sessionStorageKeys: Object.keys(sessionStorage)
     });
 
     // If user is authenticated, redirect to dashboard
@@ -32,9 +36,24 @@ export default function Index() {
 
   const handleForceSignOut = async () => {
     try {
-      console.log("Force sign out initiated");
+      console.log("Force sign out initiated", {
+        timestamp: new Date().toISOString(),
+        beforeClear: {
+          localStorageKeys: Object.keys(localStorage),
+          sessionStorageKeys: Object.keys(sessionStorage)
+        }
+      });
+      
+      // Clear all storage
       localStorage.clear();
       sessionStorage.clear();
+      
+      console.log("Storage cleared", {
+        afterClear: {
+          localStorageKeys: Object.keys(localStorage),
+          sessionStorageKeys: Object.keys(sessionStorage)
+        }
+      });
       
       await signOut();
       
