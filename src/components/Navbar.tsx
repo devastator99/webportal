@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { LogOut } from "lucide-react";
+import { LogOut, LogIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface NavbarProps {
@@ -52,8 +52,8 @@ export const Navbar = ({ onForceLogout }: NavbarProps) => {
     return null;
   }
 
-  const handleGetStarted = () => {
-    console.log("Get Started clicked, navigating to /auth");
+  const handleSignIn = () => {
+    console.log("Sign In clicked, navigating to /auth");
     // Clear any existing auth state before navigating
     localStorage.removeItem('supabase.auth.token');
     sessionStorage.clear();
@@ -76,10 +76,11 @@ export const Navbar = ({ onForceLogout }: NavbarProps) => {
         </div>
         {!user && (
           <Button 
-            onClick={handleGetStarted}
-            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
+            onClick={handleSignIn}
+            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2"
           >
-            Get Started
+            <LogIn className="h-4 w-4" />
+            Sign In
           </Button>
         )}
         {user && (
