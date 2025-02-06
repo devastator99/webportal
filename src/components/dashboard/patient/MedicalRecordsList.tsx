@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 type MedicalRecord = {
   id: string;
@@ -48,7 +49,12 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
         .from('medical_files')
         .upload(filePath, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        if (uploadError.message.includes('Permission denied')) {
+          throw new Error("You don't have permission to upload files to this medical record.");
+        }
+        throw uploadError;
+      }
 
       // Create document record
       const { error: dbError } = await supabase
@@ -61,23 +67,48 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
           file_size: file.size
         });
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        if (dbError.message.includes('foreign key constraint')) {
+          throw new Error("Unable to link document to the medical record. Please ensure the record exists.");
+        }
+        throw dbError;
+      }
 
       toast({
         title: "Document uploaded successfully",
-        description: "Your medical document has been uploaded.",
+        description: "Your medical document has been uploaded and saved.",
       });
     } catch (error: any) {
       console.error('Upload error:', error);
       toast({
         title: "Error uploading document",
-        description: error.message || "Failed to upload document",
+        description: error.message || "Failed to upload document. Please ensure you have the right permissions.",
         variant: "destructive",
       });
     } finally {
       setIsUploading(false);
     }
   };
+
+  if (!records.length) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Medical Records
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertDescription>
+              No medical records found. Records will appear here once they are created by your doctor.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>
@@ -118,7 +149,7 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
                     disabled={isUploading}
                   >
                     <Upload className="h-4 w-4" />
-                    Upload Document
+                    {isUploading ? 'Uploading...' : 'Upload Document'}
                   </Button>
                 </div>
               </div>
