@@ -255,6 +255,50 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount: number
+          appointment_id: string
+          created_at: string
+          currency: string
+          id: string
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          status: Database["public"]["Enums"]["payment_status"] | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          appointment_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          status?: Database["public"]["Enums"]["payment_status"] | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          appointment_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          status?: Database["public"]["Enums"]["payment_status"] | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_appointment_id_fkey"
+            columns: ["appointment_id"]
+            isOneToOne: false
+            referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -305,7 +349,23 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      detailed_payment_reports: {
+        Row: {
+          amount: number | null
+          appointment_date: string | null
+          currency: string | null
+          doctor_first_name: string | null
+          doctor_last_name: string | null
+          patient_first_name: string | null
+          patient_last_name: string | null
+          payment_date: string | null
+          payment_id: string | null
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          status: Database["public"]["Enums"]["payment_status"] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       has_role: {
@@ -322,6 +382,7 @@ export type Database = {
     Enums: {
       appointment_status: "scheduled" | "completed" | "cancelled"
       message_type: "text" | "file" | "video"
+      payment_status: "pending" | "completed" | "failed"
       user_type: "patient" | "doctor" | "nutritionist" | "administrator"
     }
     CompositeTypes: {
