@@ -88,20 +88,18 @@ export default function Index() {
     </div>
   );
 
-  // Show loading state
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
-        {forceSignOutButton}
-      </div>
-    );
-  }
+  // Show loading overlay if loading
+  const loadingOverlay = isLoading ? (
+    <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-40">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
+    </div>
+  ) : null;
 
   // If not loading and no user, render landing page
-  if (!isLoading && !user) {
+  if (!user) {
     return (
       <main className="min-h-screen flex flex-col bg-white">
+        {loadingOverlay}
         {forceSignOutButton}
         <Hero />
         <Features />
