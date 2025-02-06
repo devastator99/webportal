@@ -43,11 +43,13 @@ const AppRoutes = () => {
     <>
       <Navbar />
       <Routes>
-        {/* Public routes */}
         <Route path="/" element={<Index />} />
-        <Route path="/auth" element={<Auth />} />
-        
-        {/* Protected routes */}
+        <Route 
+          path="/auth" 
+          element={
+            user ? <Navigate to="/dashboard" replace /> : <Auth />
+          }
+        />
         <Route
           path="/dashboard"
           element={
@@ -56,8 +58,6 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-        
-        {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>

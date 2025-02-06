@@ -5,6 +5,7 @@ import { Pricing } from "@/components/Pricing";
 import { Footer } from "@/components/Footer";
 
 export default function Index() {
+  console.log("Index component rendering");
   return (
     <main className="min-h-screen flex flex-col bg-white">
       <Hero />
