@@ -58,8 +58,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log("Clearing auth state at:", new Date().toISOString());
     setUser(null);
     setUserRole(null);
+    setError(null);
+    
+    // Clear all storage
     localStorage.clear();
     sessionStorage.clear();
+    
+    // Reset Supabase session
+    supabase.auth.setSession(null);
+    
+    console.log("Auth state cleared at:", new Date().toISOString());
   };
 
   const signOut = async () => {
@@ -67,34 +75,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(true);
       console.log("Starting sign out process at:", new Date().toISOString());
       
-      // Properly type the Promise.race return value
-      const result = await Promise.race([
+      await Promise.race([
         supabase.auth.signOut(),
-        new Promise<{ error: Error }>((_, reject) => 
-          setTimeout(() => reject({ error: new Error("Sign out timed out") }), 5000)
-        )
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Sign out timed out")), 5000))
       ]);
-
-      // Now TypeScript knows about the error property
-      if ('error' in result && result.error) throw result.error;
       
-      // Clear all state and storage
       clearAuthState();
-      
-      // Reset Supabase session
-      await supabase.auth.setSession(null);
-      
-      // Navigate to home page
-      navigate('/', { replace: true });
       
       toast({
         title: "Signed out successfully",
         description: "You have been signed out of your account.",
       });
-    } catch (error: any) {
+      
+      // Force navigate to home
+      navigate('/', { replace: true });
+      
+      // Force page reload to clear any remaining state
+      window.location.reload();
+    } catch (error) {
       console.error("Sign out error:", error);
       
-      // Force clear state even if there's an error
       clearAuthState();
       
       toast({
@@ -106,7 +106,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Force navigate to home
       navigate('/', { replace: true });
       
-      // Reload the page as a last resort
+      // Force page reload
       window.location.reload();
     } finally {
       setIsLoading(false);
