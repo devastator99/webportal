@@ -28,11 +28,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      console.log("Current session state:", {
+      console.log("[ProtectedRoute] Session check:", {
         hasSession: !!session,
         sessionUser: session?.user?.email,
         contextUser: user?.email,
         isLoading,
+        pathname: window.location.pathname,
         timestamp: new Date().toISOString()
       });
     };
@@ -41,13 +42,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }, [user, isLoading]);
 
   if (isLoading) {
+    console.log("[ProtectedRoute] Still loading...");
     return <LoadingSpinner />;
   }
 
   if (!user) {
+    console.log("[ProtectedRoute] No user, redirecting to /auth");
     return <Navigate to="/auth" replace />;
   }
 
+  console.log("[ProtectedRoute] User authenticated, rendering children");
   return <>{children}</>;
 };
 
@@ -63,7 +67,7 @@ const ForceLogout = () => {
       setIsLoggingOut(true);
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        console.log("Force logout - Current session:", {
+        console.log("[ForceLogout] Current session:", {
           hasSession: !!session,
           sessionUser: session?.user?.email,
           timestamp: new Date().toISOString()
@@ -77,7 +81,7 @@ const ForceLogout = () => {
           description: "You have been successfully logged out.",
         });
       } catch (error) {
-        console.error("Force logout error:", error);
+        console.error("[ForceLogout] Error:", error);
         localStorage.clear();
         sessionStorage.clear();
         window.location.reload();
@@ -97,7 +101,7 @@ const AppRoutes = () => {
   useEffect(() => {
     const checkAuthState = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      console.log("AppRoutes - Auth state check:", {
+      console.log("[AppRoutes] Auth state check:", {
         hasSession: !!session,
         sessionUser: session?.user?.email,
         contextUser: user?.email,
@@ -111,10 +115,12 @@ const AppRoutes = () => {
   }, [user, isInitialized]);
 
   if (!isInitialized) {
+    console.log("[AppRoutes] Not initialized yet");
     return <LoadingSpinner />;
   }
 
   if (needsForceLogout) {
+    console.log("[AppRoutes] Force logout needed");
     return <ForceLogout />;
   }
 
@@ -126,7 +132,13 @@ const AppRoutes = () => {
         <Route 
           path="/auth" 
           element={
-            user ? <Navigate to="/dashboard" replace /> : <Auth />
+            user ? (
+              console.log("[AppRoutes] User already authenticated, redirecting to dashboard"),
+              <Navigate to="/dashboard" replace />
+            ) : (
+              console.log("[AppRoutes] Rendering Auth component"),
+              <Auth />
+            )
           }
         />
         <Route
@@ -164,7 +176,7 @@ const App = () => {
   useEffect(() => {
     const checkInitialSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      console.log("Initial app load - Session check:", {
+      console.log("[App] Initial session check:", {
         hasSession: !!session,
         sessionUser: session?.user?.email,
         pathname: window.location.pathname,
