@@ -24,6 +24,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!user) {
+    console.log("No user found, redirecting to auth");
     return <Navigate to="/auth" replace />;
   }
 
@@ -32,16 +33,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
 const AppRoutes = () => {
   const { isInitialized } = useAuth();
+  console.log("AppRoutes rendered, isInitialized:", isInitialized);
 
   return (
     <>
       <Navbar />
       <Routes>
-        {/* Public routes - no auth check needed */}
+        {/* Public routes */}
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
         
-        {/* Protected routes - only accessible when authenticated */}
+        {/* Protected routes */}
         <Route
           path="/dashboard"
           element={
@@ -50,6 +52,8 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+        
+        {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
@@ -66,6 +70,8 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
+  console.log("App component rendered");
+  
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
