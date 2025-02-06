@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 export const Hero = () => {
+  const navigate = useNavigate();
+
   return (
     <section className="relative w-full pt-32 pb-20 px-4 bg-white overflow-hidden">
       <div className="container mx-auto text-center relative z-10">
@@ -11,8 +14,12 @@ export const Hero = () => {
           Specialized care for hormonal health, diabetes management, and thyroid disorders with our experienced endocrinologists.
         </p>
         <div className="flex justify-center gap-4 animate-fade-up [animation-delay:400ms]">
-          <Button variant="outline" className="text-lg px-8 py-6 border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]">
-            Learn More
+          <Button 
+            variant="outline" 
+            className="text-lg px-8 py-6 border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
+            onClick={() => navigate("/auth")}
+          >
+            Get Started
           </Button>
         </div>
       </div>
