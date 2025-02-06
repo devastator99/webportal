@@ -16,41 +16,27 @@ const Index = () => {
 
   useEffect(() => {
     console.log("Index component mounted, auth state:", { user, isLoading });
-    return () => {
-      console.log("Index component unmounted");
-    };
   }, [user, isLoading]);
-
-  // Add detailed logging for debugging
-  console.log("Index render cycle - Current state:", {
-    user,
-    isLoading,
-    isChatOpen,
-    currentTime: new Date().toISOString()
-  });
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
-      <div className="flex-1">
-        <div className="relative">
-          <Hero />
-          <Features />
-          <Testimonials />
-          <Pricing />
-        </div>
-      </div>
+      <main className="flex-1">
+        <Hero />
+        <Features />
+        <Testimonials />
+        <Pricing />
+      </main>
       <Footer />
 
-      {/* Chat interface */}
       {user && (
         <div className="fixed bottom-4 right-4 z-50">
           {isChatOpen ? (
