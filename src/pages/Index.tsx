@@ -44,50 +44,45 @@ export default function Index() {
   };
 
   useEffect(() => {
+    let mounted = true;
+    
     // Add a timeout to detect stuck loading states
     const timeoutId = setTimeout(() => {
-      setLoadingTimeout(true);
-      // Force clear the session if we're stuck loading
-      localStorage.clear();
-      sessionStorage.clear();
-      supabase.auth.signOut();
-      window.location.reload();
-      
-      toast({
-        title: "Session cleared",
-        description: "Your session was cleared due to a timeout.",
-        variant: "default"
-      });
+      if (mounted && isLoading) {
+        setLoadingTimeout(true);
+        // Force clear the session if we're stuck loading
+        localStorage.clear();
+        sessionStorage.clear();
+        supabase.auth.signOut();
+        window.location.reload();
+        
+        toast({
+          title: "Session cleared",
+          description: "Your session was cleared due to a timeout.",
+          variant: "default"
+        });
+      }
     }, 5000); // 5 seconds timeout
 
-    // Check current session on mount
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log("Index page session check:", {
-        hasSession: !!session,
-        timestamp: new Date().toISOString()
-      });
-    };
-    
-    checkSession();
+    // Only log session check in development
+    if (process.env.NODE_ENV === 'development') {
+      const checkSession = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log("Index page session check:", {
+          hasSession: !!session,
+          timestamp: new Date().toISOString()
+        });
+      };
+      checkSession();
+    }
 
-    console.log("Index page authentication state:", { 
-      isLoading, 
-      userEmail: user?.email,
-      userId: user?.id,
-      userRole: user?.role,
-      timestamp: new Date().toISOString(),
-      localStorageKeys: Object.keys(localStorage),
-      sessionStorageKeys: Object.keys(sessionStorage)
-    });
-
+    // Only redirect if we have a user and are not loading
     if (user && !isLoading) {
-      console.log("User is authenticated, redirecting to dashboard");
       navigate("/dashboard", { replace: true });
-      return;
     }
 
     return () => {
+      mounted = false;
       clearTimeout(timeoutId);
     };
   }, [user, isLoading, navigate, toast]);
