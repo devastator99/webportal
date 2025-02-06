@@ -1,4 +1,3 @@
-
 import { Hero } from "@/components/Hero";
 import { Features } from "@/components/Features";
 import { Testimonials } from "@/components/Testimonials";
@@ -9,12 +8,45 @@ import { ChatInterface } from "@/components/chat/ChatInterface";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { MessageCircle, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
-  console.log("Rendering Index page"); // Debug log
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const { toast } = useToast();
+
+  // Add debug logs
+  useEffect(() => {
+    console.log("Index component mounted");
+    console.log("Auth state:", { user, isLoading });
+    
+    // Handle any rendering errors
+    const handleError = (error: Error) => {
+      console.error("Rendering error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error loading page",
+        description: "Please refresh the page or try again later.",
+      });
+    };
+
+    window.addEventListener('error', (e) => handleError(e.error));
+    return () => {
+      window.removeEventListener('error', (e) => handleError(e.error));
+      console.log("Index component unmounted");
+    };
+  }, [toast]);
+
+  // Add loading state handling
+  if (isLoading) {
+    console.log("Auth is loading...");
+    return <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
+    </div>;
+  }
+
+  console.log("Rendering Index components");
 
   return (
     <div className="relative min-h-screen bg-white">
