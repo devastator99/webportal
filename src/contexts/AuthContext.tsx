@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { User, AuthError } from "@supabase/supabase-js";
+import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -45,20 +45,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return data?.role as UserRole;
     } catch (error) {
       console.error('Error fetching user role:', error);
-      setError('Failed to fetch user role');
       return null;
     }
   };
 
   const signOut = async () => {
     try {
-      console.log("Starting sign out process...");
       setIsLoading(true);
-      setError(null);
-      
-      // Clear all local storage data
-      localStorage.clear();
-      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
@@ -66,14 +59,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(null);
       setUserRole(null);
       
-      console.log("Sign out successful, redirecting...");
+      // Clear local storage
+      localStorage.clear();
       
-      // Force a complete page reload to clear all state
-      window.location.href = '/';
+      // Navigate to home page
+      navigate('/', { replace: true });
       
+      toast({
+        title: "Signed out successfully",
+        description: "You have been signed out of your account.",
+      });
     } catch (error: any) {
       console.error("Sign out error:", error);
-      setError(error.message);
       toast({
         variant: "destructive",
         title: "Error signing out",
@@ -84,83 +81,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Handle page visibility changes
-  useEffect(() => {
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'hidden') {
-        // Store the timestamp when the page becomes hidden
-        localStorage.setItem('lastActive', new Date().toISOString());
-      } else if (document.visibilityState === 'visible') {
-        const lastActive = localStorage.getItem('lastActive');
-        if (lastActive) {
-          const inactiveTime = new Date().getTime() - new Date(lastActive).getTime();
-          // If inactive for more than 30 minutes, sign out
-          if (inactiveTime > 30 * 60 * 1000) {
-            await signOut();
-            toast({
-              title: "Session expired",
-              description: "You've been signed out due to inactivity.",
-            });
-          }
-        }
-      }
-    };
-
-    // Handle page close/refresh
-    const handleBeforeUnload = () => {
-      localStorage.setItem('lastActive', new Date().toISOString());
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [toast]);
-
-  // Initialize auth state
   useEffect(() => {
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
         setIsLoading(true);
-        setError(null);
-
-        // Check last active timestamp on initialization
-        const lastActive = localStorage.getItem('lastActive');
-        if (lastActive) {
-          const inactiveTime = new Date().getTime() - new Date(lastActive).getTime();
-          if (inactiveTime > 30 * 60 * 1000) {
-            await signOut();
-            return;
-          }
-        }
-
-        // Get initial session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (sessionError) throw sessionError;
-
         if (session?.user && mounted) {
           const role = await fetchUserRole(session.user.id);
           setUser(session.user);
           setUserRole(role);
-          console.log("Session initialized with user:", session.user.email, "role:", role);
-        } else if (mounted) {
-          setUser(null);
-          setUserRole(null);
-          console.log("No active session found");
+          console.log("Session initialized with user:", session.user.email);
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error("Error initializing auth:", error);
-        setError(error.message);
-        if (mounted) {
-          setUser(null);
-          setUserRole(null);
-        }
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -169,7 +105,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
@@ -177,27 +112,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       try {
         setIsLoading(true);
-        setError(null);
         
         if (event === 'SIGNED_OUT' || !session) {
           setUser(null);
           setUserRole(null);
-          navigate('/auth');
-          console.log("User signed out or session ended");
-        } else if (event === 'SIGNED_IN' && session?.user) {
-          const newRole = await fetchUserRole(session.user.id);
+          navigate('/');
+        } else if (session?.user) {
+          const role = await fetchUserRole(session.user.id);
           setUser(session.user);
-          setUserRole(newRole);
-          console.log("User signed in:", session.user.email, "role:", newRole);
-          navigate('/dashboard');
+          setUserRole(role);
+          if (event === 'SIGNED_IN') {
+            navigate('/dashboard');
+          }
         }
       } catch (error: any) {
         console.error("Error handling auth state change:", error);
-        setError(error.message);
         toast({
           variant: "destructive",
           title: "Authentication Error",
-          description: error.message || "An error occurred while processing authentication.",
+          description: error.message || "An error occurred.",
         });
       } finally {
         if (mounted) {
