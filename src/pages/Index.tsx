@@ -16,42 +16,30 @@ const Index = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const { toast } = useToast();
 
-  // Add debug logs
   useEffect(() => {
     console.log("Index component mounted");
     console.log("Auth state:", { user, isLoading });
-    
-    // Handle any rendering errors
-    const handleError = (error: Error) => {
-      console.error("Rendering error:", error);
-      toast({
-        variant: "destructive",
-        title: "Error loading page",
-        description: "Please refresh the page or try again later.",
-      });
-    };
-
-    window.addEventListener('error', (e) => handleError(e.error));
     return () => {
-      window.removeEventListener('error', (e) => handleError(e.error));
       console.log("Index component unmounted");
     };
-  }, [toast]);
+  }, [user, isLoading]);
 
-  // Add loading state handling
+  // Show loading state
   if (isLoading) {
     console.log("Auth is loading...");
-    return <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
-    </div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
+      </div>
+    );
   }
 
-  console.log("Rendering Index components");
-
+  console.log("Rendering Index with components");
+  
   return (
     <div className="relative min-h-screen bg-white">
       <Navbar />
-      <div className="w-full">
+      <main className="w-full">
         <Hero />
         <Features />
         <Testimonials />
@@ -85,7 +73,7 @@ const Index = () => {
             )}
           </>
         )}
-      </div>
+      </main>
     </div>
   );
 };
