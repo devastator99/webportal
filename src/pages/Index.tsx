@@ -21,40 +21,37 @@ export default function Index() {
       // First check if there's an active session
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (session) {
-        await supabase.auth.signOut();
-      }
-      
-      // Clear storage after successful sign out
+      // Clear storage first
       localStorage.clear();
       sessionStorage.clear();
       
+      // Only attempt to sign out if there's an active session
+      if (session?.access_token) {
+        await supabase.auth.signOut();
+      }
+      
       toast({
-        title: "Forced sign out successful",
+        title: "Signed out successfully",
         description: "All session data has been cleared.",
       });
       
-      // Force page reload after a short delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
+      // Use navigate instead of reload to maintain React state
+      navigate('/', { replace: true });
     } catch (error) {
       console.error("Force sign out error:", error);
       
-      // Even if sign out fails, clear storage
+      // Clear storage in case of error
       localStorage.clear();
       sessionStorage.clear();
       
       toast({
         variant: "destructive",
-        title: "Error during force sign out",
-        description: "Please try clearing your browser cache and reloading.",
+        title: "Error during sign out",
+        description: "Session data has been cleared. Please reload the page.",
       });
       
-      // Force page reload after a short delay
-      setTimeout(() => {
-        window.location.reload();
-      }, 100);
+      // Use navigate instead of reload
+      navigate('/', { replace: true });
     }
   };
 
