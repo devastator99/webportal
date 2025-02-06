@@ -23,6 +23,7 @@ export default function Index() {
     if (user && !isLoading) {
       console.log("User is authenticated, redirecting to dashboard");
       navigate("/dashboard", { replace: true });
+      return;
     }
   }, [user, isLoading, navigate]);
 
@@ -35,14 +36,19 @@ export default function Index() {
     );
   }
 
-  // Only render landing page if user is not authenticated
-  return (
-    <main className="min-h-screen flex flex-col bg-white">
-      <Hero />
-      <Features />
-      <Testimonials />
-      <Pricing />
-      <Footer />
-    </main>
-  );
+  // If not loading and no user, render landing page
+  if (!isLoading && !user) {
+    return (
+      <main className="min-h-screen flex flex-col bg-white">
+        <Hero />
+        <Features />
+        <Testimonials />
+        <Pricing />
+        <Footer />
+      </main>
+    );
+  }
+
+  // This is a fallback return, though it should never be reached
+  return null;
 }
