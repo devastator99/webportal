@@ -21,21 +21,24 @@ const Index = () => {
     };
   }, [user, isLoading]);
 
-  console.log("Rendering Index component with layout structure");
+  // Add more detailed logging
+  console.log("Index render cycle - Auth state:", { user, isLoading });
 
+  // Always render the main content, regardless of auth state
   return (
-    <div className="min-h-screen flex flex-col">
+    <main className="flex min-h-screen flex-col">
       <Navbar />
-      <div className="flex-1">
-        <div className="relative">
+      <div className="flex-1 flex flex-col">
+        <div className="flex-grow">
           <Hero />
           <Features />
           <Testimonials />
           <Pricing />
         </div>
+        <Footer />
       </div>
-      <Footer />
 
+      {/* Only render chat when user is authenticated and loading is complete */}
       {!isLoading && user && (
         <div className="fixed bottom-4 right-4 z-50">
           {isChatOpen ? (
@@ -63,7 +66,7 @@ const Index = () => {
           )}
         </div>
       )}
-    </div>
+    </main>
   );
 };
 
