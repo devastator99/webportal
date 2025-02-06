@@ -44,8 +44,6 @@ export const Navbar = () => {
     return null;
   }
 
-  const shouldShowAuthButtons = location.pathname !== "/";
-
   const handleGetStarted = () => {
     console.log("Get Started clicked, navigating to /auth");
     navigate("/auth");
@@ -65,30 +63,28 @@ export const Navbar = () => {
           <a href="#testimonials" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Patient Stories</a>
           <a href="#pricing" className="text-[#7E69AB] hover:text-[#9b87f5] transition-colors">Plans</a>
         </div>
-        {shouldShowAuthButtons ? (
-          !user ? (
-            <Button 
-              onClick={() => navigate("/auth")} 
-              className="bg-[#9b87f5] hover:bg-[#7E69AB]"
-            >
-              Sign In
-            </Button>
-          ) : (
-            <Button 
-              onClick={handleSignOut}
-              variant="outline" 
-              className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </Button>
-          )
-        ) : (
+        {location.pathname === "/" ? (
           <Button 
             onClick={handleGetStarted} 
             className="bg-[#9b87f5] hover:bg-[#7E69AB]"
           >
             Get Started
+          </Button>
+        ) : !user ? (
+          <Button 
+            onClick={() => navigate("/auth")} 
+            className="bg-[#9b87f5] hover:bg-[#7E69AB]"
+          >
+            Sign In
+          </Button>
+        ) : (
+          <Button 
+            onClick={handleSignOut}
+            variant="outline" 
+            className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
           </Button>
         )}
       </div>
