@@ -33,9 +33,7 @@ export const Navbar = ({ onForceLogout }: NavbarProps) => {
   }
 
   const handleSignIn = () => {
-    console.log("[Navbar] Navigating to /auth");
-    // Force navigation to auth page and clear navigation history
-    window.location.href = "/auth";
+    navigate("/auth");
   };
 
   return (
