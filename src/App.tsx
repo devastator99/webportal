@@ -9,6 +9,8 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import { useAuth } from "./contexts/AuthContext";
+import { useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center min-h-screen">
@@ -32,6 +34,33 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const ForceLogout = () => {
+  const { signOut } = useAuth();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const performLogout = async () => {
+      try {
+        await signOut();
+        toast({
+          title: "Logged out",
+          description: "You have been successfully logged out.",
+        });
+      } catch (error) {
+        console.error("Force logout error:", error);
+        // Force clear local storage and reload as fallback
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.reload();
+      }
+    };
+
+    performLogout();
+  }, [signOut, toast]);
+
+  return null;
+};
+
 const AppRoutes = () => {
   const { user, isInitialized, isLoading } = useAuth();
   console.log("AppRoutes rendered", { 
@@ -48,6 +77,7 @@ const AppRoutes = () => {
 
   return (
     <>
+      <ForceLogout />
       <Navbar />
       <Routes>
         <Route path="/" element={<Index />} />
