@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,15 +35,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchUserRole = async (userId: string): Promise<UserRole | null> => {
     try {
-      console.log("Fetching user role for ID:", userId, "at:", new Date().toISOString());
-      
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .maybeSingle();
-
-      console.log("Role fetch result:", { data, error, timestamp: new Date().toISOString() });
 
       if (error) throw error;
       return data?.role as UserRole;
@@ -55,47 +50,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const clearAuthState = () => {
-    console.log("Clearing auth state at:", new Date().toISOString());
     setUser(null);
     setUserRole(null);
     setError(null);
-    
-    // Clear all storage
-    localStorage.clear();
-    sessionStorage.clear();
-    
-    // Reset Supabase session
-    supabase.auth.setSession(null);
-    
-    console.log("Auth state cleared at:", new Date().toISOString());
   };
 
   const signOut = async () => {
     try {
       setIsLoading(true);
-      console.log("Starting sign out process at:", new Date().toISOString());
       
-      await Promise.race([
-        supabase.auth.signOut(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Sign out timed out")), 5000))
-      ]);
-      
+      // Clear state first
       clearAuthState();
+      
+      // Then sign out from Supabase
+      await supabase.auth.signOut();
       
       toast({
         title: "Signed out successfully",
         description: "You have been signed out of your account.",
       });
       
-      // Force navigate to home
+      // Navigate to home
       navigate('/', { replace: true });
-      
-      // Force page reload to clear any remaining state
-      window.location.reload();
     } catch (error) {
       console.error("Sign out error:", error);
-      
-      clearAuthState();
       
       toast({
         variant: "destructive",
@@ -103,11 +81,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: "You have been forcefully signed out due to an error.",
       });
       
-      // Force navigate to home
+      // Navigate to home even on error
       navigate('/', { replace: true });
-      
-      // Force page reload
-      window.location.reload();
     } finally {
       setIsLoading(false);
     }
@@ -118,23 +93,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const initializeAuth = async () => {
       try {
-        console.log("Initializing auth at:", new Date().toISOString());
         setIsLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         
-        console.log("Got session:", {
-          hasSession: !!session,
-          userEmail: session?.user?.email,
-          timestamp: new Date().toISOString()
-        });
-        
         if (session?.user && mounted) {
           const role = await fetchUserRole(session.user.id);
-          console.log("Initialization complete:", {
-            userEmail: session.user.email,
-            role,
-            timestamp: new Date().toISOString()
-          });
           setUser(session.user);
           setUserRole(role);
         }
@@ -152,40 +115,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      console.log("Auth state changed:", {
-        event,
-        userEmail: session?.user?.email,
-        timestamp: new Date().toISOString()
-      });
-      
       try {
         setIsLoading(true);
         
         if (event === 'SIGNED_OUT' || !session) {
-          console.log("User signed out or no session at:", new Date().toISOString());
           clearAuthState();
           navigate('/', { replace: true });
         } else if (session?.user) {
           const role = await fetchUserRole(session.user.id);
-          console.log("User authenticated:", {
-            event,
-            userEmail: session.user.email,
-            role,
-            timestamp: new Date().toISOString()
-          });
           setUser(session.user);
           setUserRole(role);
           if (event === 'SIGNED_IN') {
             navigate('/dashboard', { replace: true });
           }
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error("Error handling auth state change:", error);
         clearAuthState();
         toast({
           variant: "destructive",
           title: "Authentication Error",
-          description: error.message || "An error occurred.",
+          description: "An error occurred during authentication.",
         });
         navigate('/', { replace: true });
       } finally {
