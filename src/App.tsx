@@ -18,6 +18,7 @@ const LoadingSpinner = () => (
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
+  console.log("ProtectedRoute check:", { user: user?.email, isLoading });
 
   if (isLoading) {
     return <LoadingSpinner />;
@@ -32,10 +33,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppRoutes = () => {
-  const { user, isInitialized } = useAuth();
-  console.log("AppRoutes rendered", { isInitialized, user });
+  const { user, isInitialized, isLoading } = useAuth();
+  console.log("AppRoutes rendered", { 
+    isInitialized, 
+    isLoading,
+    userEmail: user?.email,
+    userId: user?.id 
+  });
 
   if (!isInitialized) {
+    console.log("Auth not initialized yet, showing loading spinner");
     return <LoadingSpinner />;
   }
 
