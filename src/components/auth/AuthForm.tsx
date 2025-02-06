@@ -32,7 +32,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
         if (userType === "doctor") {
           setProcessingPayment(true);
           try {
-            const paymentResult = await createMockPayment(5000); // ₹5000 registration fee
+            const paymentResult = await createMockPayment(500); // ₹500 registration fee
             toast({
               title: "Payment successful",
               description: `Payment ID: ${paymentResult.razorpay_payment_id}`,
@@ -125,7 +125,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="patient">Patient</SelectItem>
-              <SelectItem value="doctor">Doctor (₹5000 registration fee)</SelectItem>
+              <SelectItem value="doctor">Doctor (₹500 registration fee)</SelectItem>
               <SelectItem value="nutritionist">Nutritionist</SelectItem>
             </SelectContent>
           </Select>
