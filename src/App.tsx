@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -50,7 +51,7 @@ const ForceLogout = () => {
 
   useEffect(() => {
     const performLogout = async () => {
-      if (isLoggingOut) return; // Prevent multiple logout attempts
+      if (isLoggingOut) return;
       
       setIsLoggingOut(true);
       try {
@@ -72,7 +73,7 @@ const ForceLogout = () => {
     performLogout();
   }, [signOut, toast, isLoggingOut]);
 
-  return null;
+  return <LoadingSpinner />;
 };
 
 const AppRoutes = () => {
@@ -93,9 +94,12 @@ const AppRoutes = () => {
     return <LoadingSpinner />;
   }
 
+  if (needsForceLogout) {
+    return <ForceLogout />;
+  }
+
   return (
     <>
-      {needsForceLogout && <ForceLogout />}
       <Navbar onForceLogout={() => setNeedsForceLogout(true)} />
       <Routes>
         <Route path="/" element={<Index />} />
@@ -113,7 +117,7 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </>
   );
