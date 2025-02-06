@@ -6,6 +6,7 @@ import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { TestLoginButtons } from "@/components/auth/TestLoginButtons";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { LucideLoader2 } from "lucide-react";
 
 const Auth = () => {
   const { user, isInitialized } = useAuth();
@@ -14,13 +15,19 @@ const Auth = () => {
   const { loading, error, handleLogin, handleSignUp, handleTestLogin } = useAuthHandlers();
 
   useEffect(() => {
+    console.log("Auth state:", { isInitialized, user, loading, error });
     if (user) {
       navigate("/dashboard", { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, isInitialized, loading, error]);
 
   if (!isInitialized) {
-    return null;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center">
+        <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
+        <p className="mt-4 text-purple-800">Initializing authentication...</p>
+      </div>
+    );
   }
 
   return (
