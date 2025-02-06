@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,7 +14,6 @@ import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 
 const LoadingSpinner = () => {
-  console.log("LoadingSpinner rendered");
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
@@ -25,23 +23,15 @@ const LoadingSpinner = () => {
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
-  console.log("ProtectedRoute check:", { 
-    user: user?.email, 
-    isLoading,
-    timestamp: new Date().toISOString()
-  });
-
+  
   if (isLoading) {
-    console.log("ProtectedRoute: Loading state detected");
     return <LoadingSpinner />;
   }
 
   if (!user) {
-    console.log("ProtectedRoute: No user found, redirecting to auth");
     return <Navigate to="/auth" replace />;
   }
 
-  console.log("ProtectedRoute: User authenticated, rendering children");
   return <>{children}</>;
 };
 
@@ -56,15 +46,13 @@ const ForceLogout = () => {
       
       setIsLoggingOut(true);
       try {
-        console.log("Starting force logout process...", new Date().toISOString());
         await signOut();
-        console.log("Logout successful", new Date().toISOString());
         toast({
           title: "Logged out",
           description: "You have been successfully logged out.",
         });
       } catch (error) {
-        console.error("Force logout error:", error, new Date().toISOString());
+        console.error("Force logout error:", error);
         localStorage.clear();
         sessionStorage.clear();
         window.location.reload();
@@ -78,21 +66,10 @@ const ForceLogout = () => {
 };
 
 const AppRoutes = () => {
-  const { user, isInitialized, isLoading } = useAuth();
+  const { user, isInitialized } = useAuth();
   const [needsForceLogout, setNeedsForceLogout] = useState(false);
-  
-  console.log("AppRoutes rendered", { 
-    isInitialized, 
-    isLoading,
-    userEmail: user?.email,
-    userId: user?.id,
-    userRole: user?.role,
-    currentPath: window.location.pathname,
-    timestamp: new Date().toISOString()
-  });
 
   if (!isInitialized) {
-    console.log("Auth not initialized yet, showing loading spinner");
     return <LoadingSpinner />;
   }
 
@@ -107,9 +84,7 @@ const AppRoutes = () => {
         <Route path="/" element={<Index />} />
         <Route 
           path="/auth" 
-          element={
-            user ? <Navigate to="/dashboard" replace /> : <Auth />
-          }
+          element={user ? <Navigate to="/dashboard" replace /> : <Auth />}
         />
         <Route
           path="/dashboard"
@@ -127,7 +102,7 @@ const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   );
@@ -143,11 +118,6 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
-  console.log("App component rendered", {
-    timestamp: new Date().toISOString(),
-    pathname: window.location.pathname
-  });
-  
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
