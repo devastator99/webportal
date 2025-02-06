@@ -9,6 +9,7 @@ import { Navbar } from "@/components/Navbar";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Admin from "./pages/Admin";
 import { useAuth } from "./contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -85,6 +86,7 @@ const AppRoutes = () => {
     isLoading,
     userEmail: user?.email,
     userId: user?.id,
+    userRole: user?.role,
     currentPath: window.location.pathname,
     timestamp: new Date().toISOString()
   });
@@ -114,6 +116,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <Admin />
             </ProtectedRoute>
           }
         />
