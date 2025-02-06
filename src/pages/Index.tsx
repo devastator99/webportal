@@ -5,12 +5,37 @@ import { Testimonials } from "@/components/Testimonials";
 import { Pricing } from "@/components/Pricing";
 import { Footer } from "@/components/Footer";
 import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 export default function Index() {
-  useEffect(() => {
-    console.log("Index page mounted");
-  }, []);
+  const { user, isLoading } = useAuth();
+  const navigate = useNavigate();
 
+  useEffect(() => {
+    console.log("Index page mounted, auth state:", { 
+      isLoading, 
+      userEmail: user?.email,
+      timestamp: new Date().toISOString()
+    });
+
+    // If user is authenticated, redirect to dashboard
+    if (user && !isLoading) {
+      console.log("User is authenticated, redirecting to dashboard");
+      navigate("/dashboard", { replace: true });
+    }
+  }, [user, isLoading, navigate]);
+
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
+      </div>
+    );
+  }
+
+  // Only render landing page if user is not authenticated
   return (
     <main className="min-h-screen flex flex-col bg-white">
       <Hero />
