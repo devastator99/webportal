@@ -7,10 +7,13 @@ import { Footer } from "@/components/Footer";
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Index() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   useEffect(() => {
     console.log("Index page mounted, auth state:", { 
@@ -27,11 +30,42 @@ export default function Index() {
     }
   }, [user, isLoading, navigate]);
 
-  // Show loading state while checking authentication
+  const handleForceSignOut = async () => {
+    try {
+      console.log("Force sign out initiated");
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      await signOut();
+      
+      toast({
+        title: "Signed out successfully",
+        description: "You have been forcefully signed out.",
+      });
+      
+      // Force reload the page
+      window.location.reload();
+    } catch (error) {
+      console.error("Force sign out error:", error);
+      // Even if signOut fails, clear storage and reload
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.reload();
+    }
+  };
+
+  // Show loading state with force sign out button
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
+        <Button 
+          variant="destructive"
+          onClick={handleForceSignOut}
+          className="mt-4"
+        >
+          Force Sign Out
+        </Button>
       </div>
     );
   }
