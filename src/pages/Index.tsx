@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { LogOut } from "lucide-react";
 
 export default function Index() {
   const { user, isLoading, signOut } = useAuth();
@@ -73,18 +74,26 @@ export default function Index() {
     }
   };
 
-  // Show loading state with force sign out button
+  // Always show force sign out button for testing purposes
+  const forceSignOutButton = (
+    <div className="fixed top-20 right-4 z-50">
+      <Button 
+        variant="destructive"
+        onClick={handleForceSignOut}
+        className="flex items-center gap-2"
+      >
+        <LogOut className="h-4 w-4" />
+        Force Sign Out
+      </Button>
+    </div>
+  );
+
+  // Show loading state
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
-        <Button 
-          variant="destructive"
-          onClick={handleForceSignOut}
-          className="mt-4"
-        >
-          Force Sign Out
-        </Button>
+        {forceSignOutButton}
       </div>
     );
   }
@@ -93,6 +102,7 @@ export default function Index() {
   if (!isLoading && !user) {
     return (
       <main className="min-h-screen flex flex-col bg-white">
+        {forceSignOutButton}
         <Hero />
         <Features />
         <Testimonials />
@@ -103,5 +113,5 @@ export default function Index() {
   }
 
   // This is a fallback return, though it should never be reached
-  return null;
+  return forceSignOutButton;
 }
