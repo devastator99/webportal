@@ -1,9 +1,4 @@
-import { Button } from "@/components/ui/button";
-import { useNavigate } from "react-router-dom";
-
 export const Hero = () => {
-  const navigate = useNavigate();
-
   return (
     <section className="relative w-full pt-32 pb-20 px-4 bg-white overflow-hidden">
       <div className="container mx-auto text-center relative z-10">

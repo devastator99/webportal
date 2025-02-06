@@ -31,19 +31,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppRoutes = () => {
-  const { isInitialized, isLoading } = useAuth();
-  
-  // Only show loading spinner if we're still initializing
-  if (!isInitialized && isLoading) {
-    return <LoadingSpinner />;
-  }
+  const { isInitialized } = useAuth();
 
   return (
     <>
       <Navbar />
       <Routes>
+        {/* Public routes - no auth check needed */}
         <Route path="/" element={<Index />} />
         <Route path="/auth" element={<Auth />} />
+        
+        {/* Protected routes - only accessible when authenticated */}
         <Route
           path="/dashboard"
           element={
