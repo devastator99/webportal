@@ -14,7 +14,6 @@ const Index = () => {
   const { user, isLoading } = useAuth();
   const [isChatOpen, setIsChatOpen] = useState(false);
 
-  // Add console logs to track component lifecycle and auth state
   useEffect(() => {
     console.log("Index component mounted, auth state:", { user, isLoading });
     return () => {
@@ -22,46 +21,49 @@ const Index = () => {
     };
   }, [user, isLoading]);
 
-  console.log("Rendering Index component");
+  console.log("Rendering Index component with layout structure");
 
   return (
-    <>
+    <div className="min-h-screen flex flex-col">
       <Navbar />
-      <div className="flex flex-col min-h-screen">
-        <main className="flex-grow">
+      <div className="flex-1">
+        <div className="relative">
           <Hero />
           <Features />
           <Testimonials />
           <Pricing />
-        </main>
-        <Footer />
-
-        {!isLoading && user && (
-          <div className="fixed bottom-4 right-4 z-50">
-            {isChatOpen ? (
-              <div className="w-[400px]">
-                <div className="relative">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-2 top-2 z-50"
-                    onClick={() => setIsChatOpen(false)}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
-                  <ChatInterface />
-                </div>
-              </div>
-            ) : (
-              <Button onClick={() => setIsChatOpen(true)}>
-                <MessageCircle className="mr-2 h-4 w-4" />
-                Chat with Doctor
-              </Button>
-            )}
-          </div>
-        )}
+        </div>
       </div>
-    </>
+      <Footer />
+
+      {!isLoading && user && (
+        <div className="fixed bottom-4 right-4 z-50">
+          {isChatOpen ? (
+            <div className="w-[400px]">
+              <div className="relative bg-white rounded-lg shadow-lg">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-2 z-50"
+                  onClick={() => setIsChatOpen(false)}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+                <ChatInterface />
+              </div>
+            </div>
+          ) : (
+            <Button 
+              onClick={() => setIsChatOpen(true)}
+              className="shadow-lg"
+            >
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Chat with Doctor
+            </Button>
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 
