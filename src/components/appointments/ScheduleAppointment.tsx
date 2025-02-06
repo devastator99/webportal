@@ -44,19 +44,15 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
   const { data: doctors } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
-      // First get all users with doctor role
       const { data: userRoles, error: userRolesError } = await supabase
         .from("user_roles")
         .select("user_id")
         .eq("role", "doctor");
 
       if (userRolesError) throw userRolesError;
-
       if (!userRoles?.length) return [] as Doctor[];
 
       const doctorIds = userRoles.map(role => role.user_id);
-
-      // Then get their profile information
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("id, first_name, last_name")
@@ -74,7 +70,6 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
 
   const handleFileUpload = async (file: File) => {
     if (!file) return null;
-
     const fileExt = file.name.split('.').pop();
     const fileName = `${Math.random()}.${fileExt}`;
     const filePath = `${fileName}`;
@@ -145,77 +140,60 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle>Schedule an Appointment</DialogTitle>
+          <DialogTitle>Schedule Appointment</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Select Doctor</label>
-            <Select
-              value={selectedDoctor}
-              onValueChange={setSelectedDoctor}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a doctor" />
-              </SelectTrigger>
-              <SelectContent>
-                {doctors?.map((doctor) => (
-                  <SelectItem key={doctor.id} value={doctor.id}>
-                    Dr. {doctor.first_name} {doctor.last_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="grid gap-3 py-3">
+          <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select a doctor" />
+            </SelectTrigger>
+            <SelectContent>
+              {doctors?.map((doctor) => (
+                <SelectItem key={doctor.id} value={doctor.id}>
+                  Dr. {doctor.first_name} {doctor.last_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Select Date</label>
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              disabled={(date) => 
-                date < new Date() || 
-                date.getDay() === 0 || 
-                date.getDay() === 6
-              }
-              className="rounded-md border"
-            />
-          </div>
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={setSelectedDate}
+            disabled={(date) => 
+              date < new Date() || 
+              date.getDay() === 0 || 
+              date.getDay() === 6
+            }
+            className="rounded-md border p-2"
+          />
 
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Select Time</label>
-            <Select
-              value={selectedTime}
-              onValueChange={setSelectedTime}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select a time">
-                  <div className="flex items-center">
-                    <Clock className="mr-2 h-4 w-4" />
-                    <span>{selectedTime || "Select time"}</span>
-                  </div>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {timeSlots.map((time) => (
-                  <SelectItem key={time} value={time}>
-                    {time}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          <Select value={selectedTime} onValueChange={setSelectedTime}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select time">
+                <div className="flex items-center">
+                  <Clock className="mr-2 h-4 w-4" />
+                  <span>{selectedTime || "Select time"}</span>
+                </div>
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {timeSlots.map((time) => (
+                <SelectItem key={time} value={time}>
+                  {time}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          <div className="grid gap-2">
-            <label className="text-sm font-medium">Upload Document (Optional)</label>
-            <Input
-              type="file"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-            />
-          </div>
+          <Input
+            type="file"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+            className="text-sm"
+          />
 
           <Button onClick={handleSchedule}>
             Schedule Appointment
