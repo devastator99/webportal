@@ -49,19 +49,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const clearAuthState = () => {
+    setUser(null);
+    setUserRole(null);
+    localStorage.clear();
+    sessionStorage.clear();
+  };
+
   const signOut = async () => {
     try {
       setIsLoading(true);
-      const { error } = await supabase.auth.signOut();
+      
+      // Attempt to sign out from Supabase
+      const { error } = await Promise.race([
+        supabase.auth.signOut(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Sign out timed out")), 5000)
+        )
+      ]);
+      
       if (error) throw error;
       
-      // Clear state
-      setUser(null);
-      setUserRole(null);
-      
-      // Clear local storage and session
-      localStorage.clear();
-      sessionStorage.clear();
+      // Clear all state and storage
+      clearAuthState();
       
       // Reset Supabase session
       await supabase.auth.setSession(null);
@@ -75,18 +85,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
     } catch (error: any) {
       console.error("Sign out error:", error);
-      toast({
-        variant: "destructive",
-        title: "Error signing out",
-        description: error.message || "An error occurred while signing out.",
-      });
       
       // Force clear state even if there's an error
-      setUser(null);
-      setUserRole(null);
-      localStorage.clear();
-      sessionStorage.clear();
+      clearAuthState();
+      
+      toast({
+        variant: "destructive",
+        title: "Error during sign out",
+        description: "You have been forcefully signed out due to an error.",
+      });
+      
+      // Force navigate to home
       navigate('/', { replace: true });
+      
+      // Reload the page as a last resort
+      window.location.reload();
     } finally {
       setIsLoading(false);
     }
@@ -108,9 +121,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
-        // Clear state on initialization error
-        setUser(null);
-        setUserRole(null);
+        clearAuthState();
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -128,8 +139,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(true);
         
         if (event === 'SIGNED_OUT' || !session) {
-          setUser(null);
-          setUserRole(null);
+          clearAuthState();
           navigate('/', { replace: true });
         } else if (session?.user) {
           const role = await fetchUserRole(session.user.id);
@@ -141,9 +151,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       } catch (error: any) {
         console.error("Error handling auth state change:", error);
-        // Clear state on error
-        setUser(null);
-        setUserRole(null);
+        clearAuthState();
         toast({
           variant: "destructive",
           title: "Authentication Error",

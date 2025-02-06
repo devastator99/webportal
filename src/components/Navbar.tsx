@@ -12,14 +12,37 @@ export const Navbar = () => {
 
   const handleSignOut = async () => {
     try {
-      await signOut();
+      // Show loading state in UI
+      toast({
+        title: "Signing out...",
+        description: "Please wait while we sign you out.",
+      });
+      
+      await Promise.race([
+        signOut(),
+        // Timeout after 5 seconds
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Sign out timed out")), 5000)
+        )
+      ]);
     } catch (error: any) {
       console.error("Error in Navbar signOut:", error);
+      
+      // Force clear local storage and redirect even if there's an error
+      localStorage.clear();
+      sessionStorage.clear();
+      
       toast({
         variant: "destructive",
         title: "Error signing out",
-        description: error.message || "An error occurred while signing out.",
+        description: "You have been forcefully signed out due to an error.",
       });
+      
+      // Force navigate to home page
+      navigate('/', { replace: true });
+      
+      // Reload the page as a last resort to clear any stuck states
+      window.location.reload();
     }
   };
 
