@@ -14,6 +14,7 @@ const Index = () => {
   const { user, isLoading } = useAuth();
   const [isChatOpen, setIsChatOpen] = useState(false);
 
+  // Add console logs to track component lifecycle and auth state
   useEffect(() => {
     console.log("Index component mounted, auth state:", { user, isLoading });
     return () => {
@@ -21,22 +22,24 @@ const Index = () => {
     };
   }, [user, isLoading]);
 
-  // Even if auth is loading, we should show the landing page content
-  // Only hide chat functionality while loading
+  console.log("Rendering Index component");
+
   return (
-    <div className="relative min-h-screen bg-white">
+    <>
       <Navbar />
-      <main className="w-full">
-        <Hero />
-        <Features />
-        <Testimonials />
-        <Pricing />
+      <div className="flex flex-col min-h-screen">
+        <main className="flex-grow">
+          <Hero />
+          <Features />
+          <Testimonials />
+          <Pricing />
+        </main>
         <Footer />
 
         {!isLoading && user && (
-          <>
+          <div className="fixed bottom-4 right-4 z-50">
             {isChatOpen ? (
-              <div className="fixed bottom-4 right-4 w-[400px] z-50">
+              <div className="w-[400px]">
                 <div className="relative">
                   <Button
                     variant="ghost"
@@ -50,18 +53,15 @@ const Index = () => {
                 </div>
               </div>
             ) : (
-              <Button
-                className="fixed bottom-4 right-4 shadow-lg"
-                onClick={() => setIsChatOpen(true)}
-              >
+              <Button onClick={() => setIsChatOpen(true)}>
                 <MessageCircle className="mr-2 h-4 w-4" />
                 Chat with Doctor
               </Button>
             )}
-          </>
+          </div>
         )}
-      </main>
-    </div>
+      </div>
+    </>
   );
 };
 
