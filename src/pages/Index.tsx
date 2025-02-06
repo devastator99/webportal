@@ -45,36 +45,13 @@ export default function Index() {
 
   useEffect(() => {
     let mounted = true;
-    
-    // Add a timeout to detect stuck loading states
+
+    // Only show loading timeout if we're actually stuck
     const timeoutId = setTimeout(() => {
       if (mounted && isLoading) {
         setLoadingTimeout(true);
-        // Force clear the session if we're stuck loading
-        localStorage.clear();
-        sessionStorage.clear();
-        supabase.auth.signOut();
-        window.location.reload();
-        
-        toast({
-          title: "Session cleared",
-          description: "Your session was cleared due to a timeout.",
-          variant: "default"
-        });
       }
     }, 5000); // 5 seconds timeout
-
-    // Only log session check in development
-    if (process.env.NODE_ENV === 'development') {
-      const checkSession = async () => {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log("Index page session check:", {
-          hasSession: !!session,
-          timestamp: new Date().toISOString()
-        });
-      };
-      checkSession();
-    }
 
     // Only redirect if we have a user and are not loading
     if (user && !isLoading) {
@@ -85,7 +62,7 @@ export default function Index() {
       mounted = false;
       clearTimeout(timeoutId);
     };
-  }, [user, isLoading, navigate, toast]);
+  }, [user, isLoading, navigate]);
 
   // Loading overlay with timeout message and force sign out button
   if (isLoading) {
@@ -95,7 +72,7 @@ export default function Index() {
         {loadingTimeout && (
           <div className="text-center px-4 py-2 bg-white rounded-md shadow">
             <p>Loading is taking longer than expected.</p>
-            <p>Session data will be cleared automatically...</p>
+            <p>You can try forcing a sign out below if needed.</p>
             <Button 
               onClick={forceSignOut}
               className="mt-4 bg-red-500 hover:bg-red-600 text-white"
