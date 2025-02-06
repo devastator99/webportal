@@ -124,6 +124,12 @@ const AppRoutes = () => {
     return <ForceLogout />;
   }
 
+  console.log("[AppRoutes] Current auth state:", { 
+    isAuthenticated: !!user,
+    userEmail: user?.email,
+    pathname: window.location.pathname
+  });
+
   return (
     <>
       <Navbar onForceLogout={() => setNeedsForceLogout(true)} />
