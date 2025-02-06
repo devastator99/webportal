@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,11 +36,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchUserRole = async (userId: string): Promise<UserRole | null> => {
     try {
+      console.log("Fetching user role for ID:", userId, "at:", new Date().toISOString());
+      
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .maybeSingle();
+
+      console.log("Role fetch result:", { data, error, timestamp: new Date().toISOString() });
 
       if (error) throw error;
       return data?.role as UserRole;
@@ -50,6 +55,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const clearAuthState = () => {
+    console.log("Clearing auth state at:", new Date().toISOString());
     setUser(null);
     setUserRole(null);
     localStorage.clear();
@@ -59,6 +65,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       setIsLoading(true);
+      console.log("Starting sign out process at:", new Date().toISOString());
       
       // Properly type the Promise.race return value
       const result = await Promise.race([
@@ -111,14 +118,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const initializeAuth = async () => {
       try {
+        console.log("Initializing auth at:", new Date().toISOString());
         setIsLoading(true);
         const { data: { session } } = await supabase.auth.getSession();
         
+        console.log("Got session:", {
+          hasSession: !!session,
+          userEmail: session?.user?.email,
+          timestamp: new Date().toISOString()
+        });
+        
         if (session?.user && mounted) {
           const role = await fetchUserRole(session.user.id);
+          console.log("Initialization complete:", {
+            userEmail: session.user.email,
+            role,
+            timestamp: new Date().toISOString()
+          });
           setUser(session.user);
           setUserRole(role);
-          console.log("Session initialized with user:", session.user.email);
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
@@ -134,16 +152,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      console.log("Auth state changed:", event, session?.user?.email);
+      console.log("Auth state changed:", {
+        event,
+        userEmail: session?.user?.email,
+        timestamp: new Date().toISOString()
+      });
       
       try {
         setIsLoading(true);
         
         if (event === 'SIGNED_OUT' || !session) {
+          console.log("User signed out or no session at:", new Date().toISOString());
           clearAuthState();
           navigate('/', { replace: true });
         } else if (session?.user) {
           const role = await fetchUserRole(session.user.id);
+          console.log("User authenticated:", {
+            event,
+            userEmail: session.user.email,
+            role,
+            timestamp: new Date().toISOString()
+          });
           setUser(session.user);
           setUserRole(role);
           if (event === 'SIGNED_IN') {
