@@ -13,15 +13,6 @@ export const Hero = () => {
         <p className="text-xl text-[#6E59A5] mb-8 max-w-2xl mx-auto animate-fade-up [animation-delay:200ms]">
           Specialized care for hormonal health, diabetes management, and thyroid disorders with our experienced endocrinologists.
         </p>
-        <div className="flex justify-center gap-4 animate-fade-up [animation-delay:400ms]">
-          <Button 
-            variant="outline" 
-            className="text-lg px-8 py-6 border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
-            onClick={() => navigate("/auth")}
-          >
-            Get Started
-          </Button>
-        </div>
       </div>
     </section>
   );
