@@ -7,28 +7,33 @@ import { TestLoginButtons } from "@/components/auth/TestLoginButtons";
 import { Button } from "@/components/ui/button";
 
 const Auth = () => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, isInitialized } = useAuth();
   const navigate = useNavigate();
   const { loading, error, handleLogin, handleSignUp, handleTestLogin } = useAuthHandlers();
   const [isLoginMode, setIsLoginMode] = useState(true);
 
-  console.log("[Auth] Page rendered", { user, authLoading, loading });
+  console.log("[Auth] Page rendered", { user, authLoading, loading, isInitialized });
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (user && !authLoading) {
+    if (user && isInitialized) {
       console.log("[Auth] User is authenticated, redirecting to dashboard");
       navigate("/dashboard", { replace: true });
     }
-  }, [user, authLoading, navigate]);
+  }, [user, isInitialized, navigate]);
 
-  // Show loading spinner during initial auth check
-  if (authLoading) {
+  // Show loading spinner only during initial auth check
+  if (authLoading || !isInitialized) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
       </div>
     );
+  }
+
+  // Don't render the auth form if we're authenticated (prevents flash before redirect)
+  if (user) {
+    return null;
   }
 
   return (
