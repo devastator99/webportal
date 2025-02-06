@@ -10,7 +10,7 @@ const Auth = () => {
   const { user, isInitialized } = useAuth();
   const navigate = useNavigate();
   const { loading, error, handleLogin, handleSignUp, handleTestLogin } = useAuthHandlers();
-  const [isLoginMode, setIsLoginMode] = useState(true);
+  const [isLoginMode, setIsLoginMode] = useState(true); // Always start with login mode
 
   useEffect(() => {
     if (user) {
