@@ -18,19 +18,24 @@ export default function Index() {
 
   const forceSignOut = async () => {
     try {
-      // First clear storage
+      // First check if we have a session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        // If we have a session, sign out properly
+        await supabase.auth.signOut();
+      }
+      
+      // Clear storage after signing out
       localStorage.clear();
       sessionStorage.clear();
-
-      // Then attempt to sign out from Supabase
-      await supabase.auth.signOut();
       
       toast({
         title: "Signed out successfully",
         description: "All session data has been cleared.",
       });
       
-      // Navigate to home page
+      // Use navigate instead of window.location to maintain React state
       navigate('/', { replace: true });
     } catch (error) {
       console.error("Force sign out error:", error);
@@ -41,7 +46,7 @@ export default function Index() {
         description: "Session data has been cleared. Please try again.",
       });
       
-      // Navigate to home page even on error
+      // Still navigate even on error
       navigate('/', { replace: true });
     }
   };
