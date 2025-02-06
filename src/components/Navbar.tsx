@@ -54,6 +54,9 @@ export const Navbar = ({ onForceLogout }: NavbarProps) => {
 
   const handleGetStarted = () => {
     console.log("Get Started clicked, navigating to /auth");
+    // Clear any existing auth state before navigating
+    localStorage.removeItem('supabase.auth.token');
+    sessionStorage.clear();
     navigate("/auth", { replace: true });
   };
 

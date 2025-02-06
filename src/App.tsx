@@ -70,7 +70,7 @@ const ForceLogout = () => {
         });
 
         await signOut();
-        await supabase.auth.signOut(); // Explicit signout from Supabase
+        await supabase.auth.signOut();
         
         toast({
           title: "Logged out",
@@ -125,7 +125,9 @@ const AppRoutes = () => {
         <Route path="/" element={<Index />} />
         <Route 
           path="/auth" 
-          element={user ? <Navigate to="/dashboard" replace /> : <Auth />}
+          element={
+            user ? <Navigate to="/dashboard" replace /> : <Auth />
+          }
         />
         <Route
           path="/dashboard"
