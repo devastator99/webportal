@@ -9,7 +9,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import { useAuth } from "./contexts/AuthContext";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -24,112 +24,31 @@ const LoadingSpinner = () => {
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
   
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log("[ProtectedRoute] Session check:", {
-        hasSession: !!session,
-        sessionUser: session?.user?.email,
-        contextUser: user?.email,
-        isLoading,
-        pathname: window.location.pathname,
-        timestamp: new Date().toISOString()
-      });
-    };
-    
-    checkSession();
-  }, [user, isLoading]);
-
   if (isLoading) {
-    console.log("[ProtectedRoute] Still loading...");
     return <LoadingSpinner />;
   }
 
   if (!user) {
-    console.log("[ProtectedRoute] No user, redirecting to /auth");
     return <Navigate to="/auth" replace />;
   }
 
-  console.log("[ProtectedRoute] User authenticated, rendering children");
   return <>{children}</>;
-};
-
-const ForceLogout = () => {
-  const { signOut } = useAuth();
-  const { toast } = useToast();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  useEffect(() => {
-    const performLogout = async () => {
-      if (isLoggingOut) return;
-      
-      setIsLoggingOut(true);
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        console.log("[ForceLogout] Current session:", {
-          hasSession: !!session,
-          sessionUser: session?.user?.email,
-          timestamp: new Date().toISOString()
-        });
-
-        await signOut();
-        await supabase.auth.signOut();
-        
-        toast({
-          title: "Logged out",
-          description: "You have been successfully logged out.",
-        });
-      } catch (error) {
-        console.error("[ForceLogout] Error:", error);
-        localStorage.clear();
-        sessionStorage.clear();
-        window.location.reload();
-      }
-    };
-
-    performLogout();
-  }, [signOut, toast, isLoggingOut]);
-
-  return <LoadingSpinner />;
 };
 
 const AppRoutes = () => {
   const { user, isInitialized } = useAuth();
-  const [needsForceLogout, setNeedsForceLogout] = useState(false);
-
-  useEffect(() => {
-    const checkAuthState = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log("[AppRoutes] Auth state check:", {
-        hasSession: !!session,
-        sessionUser: session?.user?.email,
-        contextUser: user?.email,
-        isInitialized,
-        pathname: window.location.pathname,
-        timestamp: new Date().toISOString()
-      });
-    };
-
-    checkAuthState();
-  }, [user, isInitialized]);
 
   if (!isInitialized) {
-    console.log("[AppRoutes] Not initialized yet");
     return <LoadingSpinner />;
-  }
-
-  if (needsForceLogout) {
-    console.log("[AppRoutes] Force logout needed");
-    return <ForceLogout />;
   }
 
   return (
     <>
-      {user && <Navbar onForceLogout={() => setNeedsForceLogout(true)} />}
+      {user && <Navbar />}
       <Routes>
         <Route 
           path="/" 
-          element={<Navigate to="/auth" replace />} 
+          element={<Navigate to={user ? "/dashboard" : "/auth"} replace />} 
         />
         <Route 
           path="/auth" 
@@ -173,20 +92,6 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
-  useEffect(() => {
-    const checkInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log("[App] Initial session check:", {
-        hasSession: !!session,
-        sessionUser: session?.user?.email,
-        pathname: window.location.pathname,
-        timestamp: new Date().toISOString()
-      });
-    };
-
-    checkInitialSession();
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>

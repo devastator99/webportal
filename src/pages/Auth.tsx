@@ -7,37 +7,21 @@ import { TestLoginButtons } from "@/components/auth/TestLoginButtons";
 import { Button } from "@/components/ui/button";
 
 const Auth = () => {
-  const { user, isLoading: authLoading, isInitialized } = useAuth();
+  const { user, isInitialized } = useAuth();
   const navigate = useNavigate();
   const { loading, error, handleLogin, handleSignUp, handleTestLogin } = useAuthHandlers();
   const [isLoginMode, setIsLoginMode] = useState(true);
 
-  // Only redirect if we're initialized and have a user
   useEffect(() => {
-    if (isInitialized && user) {
-      console.log("[Auth] Redirecting authenticated user to dashboard");
+    if (user) {
       navigate("/dashboard", { replace: true });
     }
-  }, [user, isInitialized, navigate]);
+  }, [user, navigate]);
 
-  // Show loading spinner only during initial auth check
   if (!isInitialized) {
-    console.log("[Auth] Waiting for auth initialization...");
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
-      </div>
-    );
+    return null; // Don't show anything during initialization
   }
 
-  // If we're initialized and have a user, don't render anything (redirect will happen)
-  if (user) {
-    console.log("[Auth] User exists, waiting for redirect...");
-    return null;
-  }
-
-  // We're initialized and have no user, show the auth form
-  console.log("[Auth] Rendering auth form");
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
