@@ -96,24 +96,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (mounted) {
             setUser(session.user);
             setUserRole(role);
-            navigate('/dashboard', { replace: true });
           }
           console.log("AuthContext: Initialization complete with user");
         } else {
           console.log("AuthContext: No session found");
           if (mounted) {
             clearAuthState();
-            setIsLoading(false);
           }
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
         if (mounted) {
           clearAuthState();
-          setIsLoading(false);
         }
       } finally {
         if (mounted) {
+          setIsLoading(false);
           setIsInitialized(true);
           console.log("AuthContext: Initialization complete");
         }
@@ -126,6 +124,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (!mounted) return;
 
       try {
+        setIsLoading(true);
+        
         if (event === 'SIGNED_OUT' || !session) {
           clearAuthState();
           navigate('/', { replace: true });
