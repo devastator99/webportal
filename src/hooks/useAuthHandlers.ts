@@ -11,7 +11,7 @@ export const useAuthHandlers = () => {
   const navigate = useNavigate();
 
   const handleAuthError = (error: any) => {
-    console.error("Auth error:", error);
+    console.error("[AuthHandlers] Auth error:", error);
     
     let errorMessage = "An error occurred during authentication.";
     
@@ -34,6 +34,8 @@ export const useAuthHandlers = () => {
   };
 
   const handleLogin = async (email: string, password: string) => {
+    console.log("[AuthHandlers] Starting login process");
+    
     if (!email.trim() || !password) {
       setError("Please enter both email and password.");
       return;
@@ -43,21 +45,19 @@ export const useAuthHandlers = () => {
     setLoading(true);
 
     try {
-      const { data: { user, session }, error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
 
       if (error) throw error;
 
-      if (user && session) {
-        // Get user role
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .single();
+      console.log("[AuthHandlers] Login successful:", {
+        userId: data.user?.id,
+        hasSession: !!data.session
+      });
 
+      if (data.user) {
         toast({
           title: "Welcome back!",
           description: "You have successfully signed in.",
@@ -79,6 +79,7 @@ export const useAuthHandlers = () => {
     firstName?: string, 
     lastName?: string
   ) => {
+    console.log("[AuthHandlers] Starting signup process");
     setError(null);
     
     if (!email.trim() || !password) {
@@ -99,7 +100,7 @@ export const useAuthHandlers = () => {
     setLoading(true);
 
     try {
-      const { data, error: signUpError } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
         options: {
@@ -111,23 +112,19 @@ export const useAuthHandlers = () => {
         },
       });
 
-      if (signUpError) throw signUpError;
+      if (error) throw error;
 
-      if (data?.user) {
-        // Get user role after registration
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', data.user.id)
-          .single();
+      console.log("[AuthHandlers] Signup successful:", {
+        userId: data.user?.id,
+        hasSession: !!data.session
+      });
 
-        toast({
-          title: "Registration successful!",
-          description: "Your account has been created.",
-        });
-        
-        navigate('/dashboard');
-      }
+      toast({
+        title: "Registration successful!",
+        description: "Your account has been created. Please check your email for confirmation.",
+      });
+      
+      navigate('/dashboard');
     } catch (error: any) {
       handleAuthError(error);
     } finally {
@@ -136,31 +133,29 @@ export const useAuthHandlers = () => {
   };
 
   const handleTestLogin = async (testEmail: string, testPassword: string) => {
+    console.log("[AuthHandlers] Starting test login");
     setLoading(true);
     setError(null);
     
     try {
-      const { data: { user, session }, error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: testEmail,
         password: testPassword,
       });
 
-      if (signInError) throw signInError;
+      if (error) throw error;
 
-      if (user && session) {
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', user.id)
-          .single();
-        
-        toast({
-          title: "Login successful!",
-          description: `Logged in as ${testEmail} (${roleData?.role || 'unknown role'})`,
-        });
-        
-        navigate("/dashboard");
-      }
+      console.log("[AuthHandlers] Test login successful:", {
+        userId: data.user?.id,
+        hasSession: !!data.session
+      });
+
+      toast({
+        title: "Login successful!",
+        description: `Logged in as ${testEmail}`,
+      });
+      
+      navigate("/dashboard");
     } catch (error: any) {
       handleAuthError(error);
     } finally {

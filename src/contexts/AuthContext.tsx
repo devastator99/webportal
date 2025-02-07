@@ -34,18 +34,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const fetchUserRole = async (userId: string): Promise<UserRole | null> => {
+  const fetchUserRole = async (userId: string) => {
     try {
+      console.log("[AuthContext] Fetching user role for:", userId);
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (error) throw error;
-      return data?.role as UserRole;
+      if (error) {
+        console.error('[AuthContext] Error fetching user role:', error);
+        throw error;
+      }
+
+      if (!data) {
+        console.warn('[AuthContext] No role found for user:', userId);
+        return null;
+      }
+
+      console.log('[AuthContext] User role fetched:', data.role);
+      return data.role as UserRole;
     } catch (error) {
-      console.error('Error fetching user role:', error);
+      console.error('[AuthContext] Error in fetchUserRole:', error);
       return null;
     }
   };
@@ -57,7 +68,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const handleAuthStateChange = async (session: any) => {
-    console.log("AuthContext: Handling auth state change", { session });
+    console.log("[AuthContext] Auth state changed:", { 
+      hasSession: !!session,
+      userId: session?.user?.id 
+    });
     
     try {
       if (!session?.user) {
@@ -68,13 +82,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const role = await fetchUserRole(session.user.id);
       setUser(session.user);
       setUserRole(role);
-    } catch (error) {
-      console.error("Error handling auth state change:", error);
+      
+      console.log("[AuthContext] Auth state updated:", { 
+        userId: session.user.id,
+        role 
+      });
+    } catch (error: any) {
+      console.error("[AuthContext] Error handling auth state:", error);
       clearAuthState();
       toast({
         variant: "destructive",
         title: "Authentication Error",
-        description: "An error occurred during authentication.",
+        description: error.message || "An error occurred during authentication.",
       });
     }
   };
@@ -82,22 +101,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       setIsLoading(true);
-      await supabase.auth.signOut();
+      console.log("[AuthContext] Starting sign out process");
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) throw error;
+      
       clearAuthState();
+      navigate('/', { replace: true });
       
       toast({
         title: "Signed out successfully",
         description: "You have been signed out of your account.",
       });
-      
-      navigate('/', { replace: true });
-    } catch (error) {
-      console.error("Sign out error:", error);
-      
+    } catch (error: any) {
+      console.error("[AuthContext] Sign out error:", error);
       toast({
         variant: "destructive",
         title: "Error during sign out",
-        description: "An error occurred during sign out.",
+        description: error.message || "An error occurred during sign out.",
       });
     } finally {
       setIsLoading(false);
@@ -106,12 +127,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     let mounted = true;
-    console.log("AuthContext: Starting initialization");
+    console.log("[AuthContext] Initializing auth context");
 
     const initializeAuth = async () => {
       try {
-        console.log("AuthContext: Getting session");
         const { data: { session } } = await supabase.auth.getSession();
+        console.log("[AuthContext] Initial session:", { 
+          hasSession: !!session,
+          userId: session?.user?.id 
+        });
         
         if (mounted) {
           await handleAuthStateChange(session);
@@ -119,7 +143,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setIsLoading(false);
         }
       } catch (error) {
-        console.error("Error initializing auth:", error);
+        console.error("[AuthContext] Initialization error:", error);
         if (mounted) {
           clearAuthState();
           setIsInitialized(true);
@@ -129,25 +153,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("AuthContext: Auth state change:", event);
+      console.log("[AuthContext] Auth state change event:", event);
       
       if (!mounted) return;
 
       setIsLoading(true);
+      await handleAuthStateChange(session);
+      setIsLoading(false);
 
-      try {
-        await handleAuthStateChange(session);
-
-        // Handle navigation based on auth state
-        if (event === 'SIGNED_IN') {
-          navigate('/dashboard', { replace: true });
-        } else if (event === 'SIGNED_OUT') {
-          navigate('/', { replace: true });
-        }
-      } finally {
-        if (mounted) {
-          setIsLoading(false);
-        }
+      if (event === 'SIGNED_IN') {
+        navigate('/dashboard');
+      } else if (event === 'SIGNED_OUT') {
+        navigate('/');
       }
     });
 
