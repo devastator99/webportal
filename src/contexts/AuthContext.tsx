@@ -96,18 +96,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (mounted) {
             setUser(session.user);
             setUserRole(role);
+            navigate('/dashboard', { replace: true });
           }
           console.log("AuthContext: Initialization complete with user");
         } else {
           console.log("AuthContext: No session found");
-          if (mounted) clearAuthState();
+          if (mounted) {
+            clearAuthState();
+            setIsLoading(false);
+          }
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
-        if (mounted) clearAuthState();
+        if (mounted) {
+          clearAuthState();
+          setIsLoading(false);
+        }
       } finally {
         if (mounted) {
-          setIsLoading(false);
           setIsInitialized(true);
           console.log("AuthContext: Initialization complete");
         }
@@ -127,6 +133,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const role = await fetchUserRole(session.user.id);
           setUser(session.user);
           setUserRole(role);
+          if (event === 'SIGNED_IN') {
+            navigate('/dashboard', { replace: true });
+          }
         }
       } catch (error) {
         console.error("Error handling auth state change:", error);
