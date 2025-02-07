@@ -73,15 +73,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       userId: session?.user?.id 
     });
     
+    // If no session/user, just clear state and return early
     if (!session?.user) {
       clearAuthState();
       setIsLoading(false);
+      setIsInitialized(true);
       return;
     }
 
+    // Only fetch role if we have a logged in user
     try {
-      const role = await fetchUserRole(session.user.id);
       setUser(session.user);
+      const role = await fetchUserRole(session.user.id);
       setUserRole(role);
       
       console.log("[AuthContext] Auth state updated:", { 
@@ -98,6 +101,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
     } finally {
       setIsLoading(false);
+      setIsInitialized(true);
     }
   };
 
@@ -142,7 +146,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         
         if (mounted) {
           await handleAuthStateChange(session);
-          setIsInitialized(true);
         }
       } catch (error) {
         console.error("[AuthContext] Initialization error:", error);
