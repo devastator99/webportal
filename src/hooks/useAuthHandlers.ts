@@ -51,6 +51,13 @@ export const useAuthHandlers = () => {
       if (error) throw error;
 
       if (user && session) {
+        // Get user role
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+
         toast({
           title: "Welcome back!",
           description: "You have successfully signed in.",
@@ -107,12 +114,19 @@ export const useAuthHandlers = () => {
       if (signUpError) throw signUpError;
 
       if (data?.user) {
+        // Get user role after registration
+        const { data: roleData } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', data.user.id)
+          .single();
+
         toast({
           title: "Registration successful!",
-          description: "Please check your email to confirm your account.",
+          description: "Your account has been created.",
         });
         
-        navigate('/auth');
+        navigate('/dashboard');
       }
     } catch (error: any) {
       handleAuthError(error);

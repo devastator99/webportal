@@ -82,7 +82,7 @@ const Dashboard = () => {
 
     if (!user && !authLoading) {
       console.log("No user found, redirecting to auth");
-      navigate("/auth");
+      navigate("/");
       return;
     }
 
@@ -93,7 +93,7 @@ const Dashboard = () => {
         description: "Failed to load dashboard. Please try logging in again.",
         variant: "destructive",
       });
-      navigate("/auth");
+      navigate("/");
     }
   }, [error, user, authLoading, navigate, toast]);
 
