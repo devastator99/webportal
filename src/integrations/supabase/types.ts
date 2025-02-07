@@ -368,6 +368,12 @@ export type Database = {
       }
     }
     Functions: {
+      check_user_role: {
+        Args: {
+          role_to_check: Database["public"]["Enums"]["user_type"]
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           role: Database["public"]["Enums"]["user_type"]
