@@ -16,31 +16,17 @@ const Auth = () => {
   const { loading, error, handleLogin, handleSignUp, handleTestLogin } = useAuthHandlers();
 
   useEffect(() => {
-    // Enhanced logging to debug initialization state
-    console.log("Auth component mount");
-    console.log("Current auth state:", { 
-      isInitialized,
-      user: user ? 'User exists' : 'No user',
-      loading,
-      error: error || 'No error'
-    });
-
     if (user) {
       console.log("User detected, redirecting to dashboard");
       navigate("/dashboard", { replace: true });
     }
-  }, [user, navigate, isInitialized, loading, error]);
-
-  // Add immediate logging for initialization state
-  console.log("Auth render state:", { isInitialized, loading });
+  }, [user, navigate]);
 
   if (!isInitialized) {
-    console.log("Auth not initialized, showing loader");
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center">
         <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
         <p className="mt-4 text-purple-800">Initializing authentication...</p>
-        <p className="mt-2 text-sm text-purple-600">Please wait while we set up your session</p>
       </div>
     );
   }
