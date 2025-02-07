@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { Navbar } from "@/components/Navbar";
-import Auth from "./pages/Auth";
+import { LandingPage } from "@/pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import { useAuth } from "./contexts/AuthContext";
@@ -27,7 +27,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <>{children}</>;
@@ -42,15 +42,9 @@ const AppRoutes = () => {
 
   return (
     <>
-      {user && <Navbar />}
+      <Navbar />
       <Routes>
-        <Route 
-          path="/" 
-          element={<Navigate to="/auth" replace />} 
-        />
-        <Route path="/auth" element={
-          user ? <Navigate to="/dashboard" replace /> : <Auth />
-        } />
+        <Route path="/" element={<LandingPage />} />
         <Route
           path="/dashboard"
           element={
@@ -99,4 +93,3 @@ const App = () => {
 };
 
 export default App;
-
