@@ -56,6 +56,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setError(null);
   };
 
+  const handleAuthStateChange = async (session: any) => {
+    console.log("AuthContext: Handling auth state change", { session });
+    
+    try {
+      if (!session?.user) {
+        clearAuthState();
+        return;
+      }
+
+      const role = await fetchUserRole(session.user.id);
+      setUser(session.user);
+      setUserRole(role);
+    } catch (error) {
+      console.error("Error handling auth state change:", error);
+      clearAuthState();
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "An error occurred during authentication.",
+      });
+    }
+  };
+
   const signOut = async () => {
     try {
       setIsLoading(true);
@@ -90,30 +113,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.log("AuthContext: Getting session");
         const { data: { session } } = await supabase.auth.getSession();
         
-        if (session?.user && mounted) {
-          console.log("AuthContext: Session found, fetching role");
-          const role = await fetchUserRole(session.user.id);
-          if (mounted) {
-            setUser(session.user);
-            setUserRole(role);
-          }
-          console.log("AuthContext: Initialization complete with user");
-        } else {
-          console.log("AuthContext: No session found");
-          if (mounted) {
-            clearAuthState();
-          }
+        if (mounted) {
+          await handleAuthStateChange(session);
+          setIsInitialized(true);
+          setIsLoading(false);
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
         if (mounted) {
           clearAuthState();
-        }
-      } finally {
-        if (mounted) {
-          setIsLoading(false);
           setIsInitialized(true);
-          console.log("AuthContext: Initialization complete");
+          setIsLoading(false);
         }
       }
     };
@@ -123,29 +133,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (!mounted) return;
 
+      setIsLoading(true);
+
       try {
-        setIsLoading(true);
-        
-        if (event === 'SIGNED_OUT' || !session) {
-          clearAuthState();
+        await handleAuthStateChange(session);
+
+        // Handle navigation based on auth state
+        if (event === 'SIGNED_IN') {
+          navigate('/dashboard', { replace: true });
+        } else if (event === 'SIGNED_OUT') {
           navigate('/', { replace: true });
-        } else if (session?.user) {
-          const role = await fetchUserRole(session.user.id);
-          setUser(session.user);
-          setUserRole(role);
-          if (event === 'SIGNED_IN') {
-            navigate('/dashboard', { replace: true });
-          }
         }
-      } catch (error) {
-        console.error("Error handling auth state change:", error);
-        clearAuthState();
-        toast({
-          variant: "destructive",
-          title: "Authentication Error",
-          description: "An error occurred during authentication.",
-        });
-        navigate('/', { replace: true });
       } finally {
         if (mounted) {
           setIsLoading(false);

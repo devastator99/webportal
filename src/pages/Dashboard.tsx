@@ -12,13 +12,16 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 
 const Dashboard = () => {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading: authLoading, isInitialized } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  console.log("Dashboard render - Full user object:", user);
-  console.log("Auth loading state:", authLoading);
-  console.log("Current timestamp:", new Date().toISOString());
+  console.log("Dashboard render - Current state:", {
+    user,
+    authLoading,
+    isInitialized,
+    timestamp: new Date().toISOString()
+  });
 
   const { data: userRole, isLoading: roleLoading, error } = useQuery({
     queryKey: ["user_role", user?.id],
@@ -66,7 +69,7 @@ const Dashboard = () => {
         throw error;
       }
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && isInitialized,
     retry: 1,
     retryDelay: 1000,
   });
@@ -77,11 +80,13 @@ const Dashboard = () => {
       authLoading,
       roleLoading,
       userRole,
+      isInitialized,
       error: error?.message
     });
 
-    if (!user && !authLoading) {
-      console.log("No user found, redirecting to auth");
+    // Only redirect if auth is initialized and user is not present
+    if (isInitialized && !user && !authLoading) {
+      console.log("No authenticated user found, redirecting to auth");
       navigate("/");
       return;
     }
@@ -95,7 +100,7 @@ const Dashboard = () => {
       });
       navigate("/");
     }
-  }, [error, user, authLoading, navigate, toast]);
+  }, [error, user, authLoading, isInitialized, navigate, toast]);
 
   if (authLoading || roleLoading) {
     console.log("Dashboard is loading... States:", { authLoading, roleLoading });
