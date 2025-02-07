@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,11 +59,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       setIsLoading(true);
-      
-      // Clear state first
       clearAuthState();
-      
-      // Then sign out from Supabase
       await supabase.auth.signOut();
       
       toast({
@@ -70,7 +67,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: "You have been signed out of your account.",
       });
       
-      // Navigate to home
       navigate('/', { replace: true });
     } catch (error) {
       console.error("Sign out error:", error);
@@ -81,7 +77,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: "You have been forcefully signed out due to an error.",
       });
       
-      // Navigate to home even on error
       navigate('/', { replace: true });
     } finally {
       setIsLoading(false);
@@ -89,17 +84,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
+    console.log("AuthContext: Starting initialization");
     let mounted = true;
 
     const initializeAuth = async () => {
       try {
-        setIsLoading(true);
+        console.log("AuthContext: Getting session");
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session?.user && mounted) {
+          console.log("AuthContext: Session found, fetching role");
           const role = await fetchUserRole(session.user.id);
           setUser(session.user);
           setUserRole(role);
+          console.log("AuthContext: Initialization complete with user");
+        } else {
+          console.log("AuthContext: No session found");
+          clearAuthState();
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
@@ -108,6 +109,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (mounted) {
           setIsLoading(false);
           setIsInitialized(true);
+          console.log("AuthContext: Initialization complete");
         }
       }
     };
@@ -115,6 +117,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
+      console.log("AuthContext: Auth state change:", event);
+      
       try {
         setIsLoading(true);
         
