@@ -59,8 +59,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       setIsLoading(true);
-      clearAuthState();
       await supabase.auth.signOut();
+      clearAuthState();
       
       toast({
         title: "Signed out successfully",
@@ -74,18 +74,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       toast({
         variant: "destructive",
         title: "Error during sign out",
-        description: "You have been forcefully signed out due to an error.",
+        description: "An error occurred during sign out.",
       });
-      
-      navigate('/', { replace: true });
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    console.log("AuthContext: Starting initialization");
     let mounted = true;
+    console.log("AuthContext: Starting initialization");
 
     const initializeAuth = async () => {
       try {
@@ -95,16 +93,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (session?.user && mounted) {
           console.log("AuthContext: Session found, fetching role");
           const role = await fetchUserRole(session.user.id);
-          setUser(session.user);
-          setUserRole(role);
+          if (mounted) {
+            setUser(session.user);
+            setUserRole(role);
+          }
           console.log("AuthContext: Initialization complete with user");
         } else {
           console.log("AuthContext: No session found");
-          clearAuthState();
+          if (mounted) clearAuthState();
         }
       } catch (error) {
         console.error("Error initializing auth:", error);
-        clearAuthState();
+        if (mounted) clearAuthState();
       } finally {
         if (mounted) {
           setIsLoading(false);
@@ -115,13 +115,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
-
       console.log("AuthContext: Auth state change:", event);
       
+      if (!mounted) return;
+
       try {
-        setIsLoading(true);
-        
         if (event === 'SIGNED_OUT' || !session) {
           clearAuthState();
           navigate('/', { replace: true });
@@ -129,9 +127,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           const role = await fetchUserRole(session.user.id);
           setUser(session.user);
           setUserRole(role);
-          if (event === 'SIGNED_IN') {
-            navigate('/dashboard', { replace: true });
-          }
         }
       } catch (error) {
         console.error("Error handling auth state change:", error);
