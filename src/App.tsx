@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,9 +10,6 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import { useAuth } from "./contexts/AuthContext";
-import { useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 const LoadingSpinner = () => {
   return (
@@ -48,18 +46,15 @@ const AppRoutes = () => {
       <Routes>
         <Route 
           path="/" 
-          element={<Navigate to={user ? "/dashboard" : "/auth"} replace />} 
-        />
-        <Route 
-          path="/auth" 
           element={
             user ? (
               <Navigate to="/dashboard" replace />
             ) : (
-              <Auth />
+              <Navigate to="/auth" replace />
             )
-          }
+          } 
         />
+        <Route path="/auth" element={<Auth />} />
         <Route
           path="/dashboard"
           element={
