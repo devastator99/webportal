@@ -46,15 +46,11 @@ const AppRoutes = () => {
       <Routes>
         <Route 
           path="/" 
-          element={
-            user ? (
-              <Navigate to="/dashboard" replace />
-            ) : (
-              <Navigate to="/auth" replace />
-            )
-          } 
+          element={<Navigate to="/auth" replace />} 
         />
-        <Route path="/auth" element={<Auth />} />
+        <Route path="/auth" element={
+          user ? <Navigate to="/dashboard" replace /> : <Auth />
+        } />
         <Route
           path="/dashboard"
           element={
@@ -103,3 +99,4 @@ const App = () => {
 };
 
 export default App;
+
