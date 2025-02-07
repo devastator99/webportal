@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) {
         console.error('[AuthContext] Error fetching user role:', error);
-        throw error;
+        return null;
       }
 
       if (!data) {
@@ -73,12 +73,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       userId: session?.user?.id 
     });
     
-    try {
-      if (!session?.user) {
-        clearAuthState();
-        return;
-      }
+    if (!session?.user) {
+      clearAuthState();
+      setIsLoading(false);
+      return;
+    }
 
+    try {
       const role = await fetchUserRole(session.user.id);
       setUser(session.user);
       setUserRole(role);
@@ -95,6 +96,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Authentication Error",
         description: error.message || "An error occurred during authentication.",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -140,7 +143,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (mounted) {
           await handleAuthStateChange(session);
           setIsInitialized(true);
-          setIsLoading(false);
         }
       } catch (error) {
         console.error("[AuthContext] Initialization error:", error);
@@ -157,15 +159,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (!mounted) return;
 
-      setIsLoading(true);
-      await handleAuthStateChange(session);
-      setIsLoading(false);
-
       if (event === 'SIGNED_IN') {
         navigate('/dashboard');
       } else if (event === 'SIGNED_OUT') {
         navigate('/');
       }
+
+      await handleAuthStateChange(session);
     });
 
     initializeAuth();
