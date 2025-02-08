@@ -13,32 +13,41 @@ export type Database = {
         Row: {
           created_at: string
           doctor_id: string
+          email_notification_sent: boolean | null
           id: string
           notes: string | null
           patient_id: string
+          payment_confirmed: boolean | null
           scheduled_at: string
           status: Database["public"]["Enums"]["appointment_status"] | null
           updated_at: string
+          whatsapp_notification_sent: boolean | null
         }
         Insert: {
           created_at?: string
           doctor_id: string
+          email_notification_sent?: boolean | null
           id?: string
           notes?: string | null
           patient_id: string
+          payment_confirmed?: boolean | null
           scheduled_at: string
           status?: Database["public"]["Enums"]["appointment_status"] | null
           updated_at?: string
+          whatsapp_notification_sent?: boolean | null
         }
         Update: {
           created_at?: string
           doctor_id?: string
+          email_notification_sent?: boolean | null
           id?: string
           notes?: string | null
           patient_id?: string
+          payment_confirmed?: boolean | null
           scheduled_at?: string
           status?: Database["public"]["Enums"]["appointment_status"] | null
           updated_at?: string
+          whatsapp_notification_sent?: boolean | null
         }
         Relationships: [
           {
@@ -96,6 +105,47 @@ export type Database = {
           {
             foreignKeyName: "chat_messages_sender_profile_fkey"
             columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_availability: {
+        Row: {
+          created_at: string
+          day_of_week: number
+          doctor_id: string | null
+          end_time: string
+          id: string
+          is_available: boolean | null
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          day_of_week: number
+          doctor_id?: string | null
+          end_time: string
+          id?: string
+          is_available?: boolean | null
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          day_of_week?: number
+          doctor_id?: string | null
+          end_time?: string
+          id?: string
+          is_available?: boolean | null
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_availability_doctor_id_fkey"
+            columns: ["doctor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -301,6 +351,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          consultation_fee: number | null
           created_at: string
           first_name: string | null
           id: string
@@ -309,6 +360,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          consultation_fee?: number | null
           created_at?: string
           first_name?: string | null
           id: string
@@ -317,6 +369,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          consultation_fee?: number | null
           created_at?: string
           first_name?: string | null
           id?: string

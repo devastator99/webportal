@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Calendar } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
+import { createMockPayment } from "@/utils/mockPayment";
 import {
   Dialog,
   DialogContent,
@@ -18,17 +20,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar as CalendarIcon, Clock } from "lucide-react";
+import { Calendar as CalendarIcon, Clock, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { format, isWithinInterval, setHours, setMinutes, parseISO } from "date-fns";
 
 interface Doctor {
   id: string;
   first_name: string | null;
   last_name: string | null;
+  consultation_fee: number;
+}
+
+interface DoctorAvailability {
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
 }
 
 interface ScheduleAppointmentProps {
   children: React.ReactNode;
+}
+
+interface PaymentStep {
+  status: "idle" | "processing" | "success" | "error";
+  error?: string;
 }
 
 export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
@@ -38,6 +54,8 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
   const [selectedTime, setSelectedTime] = useState<string>();
   const [selectedDoctor, setSelectedDoctor] = useState<string>();
   const [isOpen, setIsOpen] = useState(false);
+  const [step, setStep] = useState<"selection" | "confirmation" | "payment">("selection");
+  const [paymentStep, setPaymentStep] = useState<PaymentStep>({ status: "idle" });
 
   const { data: doctors } = useQuery({
     queryKey: ["doctors"],
@@ -53,7 +71,7 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       const doctorIds = userRoles.map(role => role.user_id);
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, first_name, last_name")
+        .select("id, first_name, last_name, consultation_fee")
         .in("id", doctorIds);
 
       if (profilesError) throw profilesError;
@@ -61,13 +79,50 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
     },
   });
 
-  const timeSlots = [
-    "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
-    "14:00", "14:30", "15:00", "15:30", "16:00", "16:30"
-  ];
+  const { data: doctorAvailability } = useQuery({
+    queryKey: ["doctor_availability", selectedDoctor],
+    queryFn: async () => {
+      if (!selectedDoctor) return null;
+      
+      const { data, error } = await supabase
+        .from("doctor_availability")
+        .select("*")
+        .eq("doctor_id", selectedDoctor)
+        .eq("is_available", true);
+
+      if (error) throw error;
+      return data as DoctorAvailability[];
+    },
+    enabled: !!selectedDoctor,
+  });
+
+  const selectedDoctorData = doctors?.find(d => d.id === selectedDoctor);
+
+  const getAvailableTimeSlots = () => {
+    if (!selectedDate || !doctorAvailability) return [];
+
+    const dayOfWeek = selectedDate.getDay();
+    const dayAvailability = doctorAvailability.find(a => a.day_of_week === dayOfWeek);
+    
+    if (!dayAvailability) return [];
+
+    const slots = [];
+    const [startHour, startMinute] = dayAvailability.start_time.split(':').map(Number);
+    const [endHour, endMinute] = dayAvailability.end_time.split(':').map(Number);
+    
+    let current = setHours(setMinutes(selectedDate, startMinute), startHour);
+    const end = setHours(setMinutes(selectedDate, endMinute), endHour);
+
+    while (current < end) {
+      slots.push(format(current, 'HH:mm'));
+      current = new Date(current.getTime() + 30 * 60000); // Add 30 minutes
+    }
+
+    return slots;
+  };
 
   const handleSchedule = async () => {
-    if (!selectedDate || !selectedTime || !selectedDoctor || !user) {
+    if (!selectedDate || !selectedTime || !selectedDoctor || !user || !selectedDoctorData) {
       toast({
         title: "Please fill in all fields",
         variant: "destructive",
@@ -76,35 +131,172 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
     }
 
     try {
-      const scheduledAt = new Date(selectedDate);
-      const [hours, minutes] = selectedTime.split(":");
-      scheduledAt.setHours(parseInt(hours), parseInt(minutes));
-
-      const { error } = await supabase
-        .from("appointments")
-        .insert({
-          patient_id: user.id,
-          doctor_id: selectedDoctor,
-          scheduled_at: scheduledAt.toISOString(),
-          status: "scheduled",
-        });
-
-      if (error) throw error;
-
-      toast({
-        title: "Appointment scheduled successfully",
-        description: "You will be notified about the payment details shortly.",
-      });
-      setIsOpen(false);
-      setSelectedDate(undefined);
-      setSelectedTime(undefined);
-      setSelectedDoctor(undefined);
+      setStep("confirmation");
     } catch (error: any) {
       toast({
         title: "Error scheduling appointment",
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const handleConfirmAppointment = async () => {
+    if (!selectedDate || !selectedTime || !selectedDoctor || !user || !selectedDoctorData) return;
+
+    setStep("payment");
+    setPaymentStep({ status: "processing" });
+
+    try {
+      // Mock payment processing
+      const payment = await createMockPayment(selectedDoctorData.consultation_fee);
+
+      if (payment.status === "completed") {
+        const scheduledAt = new Date(selectedDate);
+        const [hours, minutes] = selectedTime.split(":");
+        scheduledAt.setHours(parseInt(hours), parseInt(minutes));
+
+        const { error: appointmentError } = await supabase
+          .from("appointments")
+          .insert({
+            patient_id: user.id,
+            doctor_id: selectedDoctor,
+            scheduled_at: scheduledAt.toISOString(),
+            status: "scheduled",
+            payment_confirmed: true,
+          });
+
+        if (appointmentError) throw appointmentError;
+
+        setPaymentStep({ status: "success" });
+        toast({
+          title: "Appointment scheduled successfully",
+          description: "Your appointment has been confirmed and payment processed.",
+        });
+
+        // Reset form after successful scheduling
+        setTimeout(() => {
+          setIsOpen(false);
+          setStep("selection");
+          setSelectedDate(undefined);
+          setSelectedTime(undefined);
+          setSelectedDoctor(undefined);
+          setPaymentStep({ status: "idle" });
+        }, 2000);
+      }
+    } catch (error: any) {
+      setPaymentStep({ status: "error", error: error.message });
+      toast({
+        title: "Error processing payment",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const renderStep = () => {
+    switch (step) {
+      case "selection":
+        return (
+          <div className="grid gap-3 py-3">
+            <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a doctor" />
+              </SelectTrigger>
+              <SelectContent>
+                {doctors?.map((doctor) => (
+                  <SelectItem key={doctor.id} value={doctor.id}>
+                    Dr. {doctor.first_name} {doctor.last_name} - ₹{doctor.consultation_fee}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Calendar
+              mode="single"
+              selected={selectedDate}
+              onSelect={setSelectedDate}
+              disabled={(date) => 
+                date < new Date() || 
+                date.getDay() === 0 || 
+                date.getDay() === 6
+              }
+              className="rounded-md border p-2"
+            />
+
+            <Select value={selectedTime} onValueChange={setSelectedTime}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select time">
+                  <div className="flex items-center">
+                    <Clock className="mr-2 h-4 w-4" />
+                    <span>{selectedTime || "Select time"}</span>
+                  </div>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {getAvailableTimeSlots().map((time) => (
+                  <SelectItem key={time} value={time}>
+                    {time}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Button onClick={handleSchedule} disabled={!selectedDate || !selectedTime || !selectedDoctor}>
+              Continue to Confirmation
+            </Button>
+          </div>
+        );
+
+      case "confirmation":
+        return (
+          <div className="space-y-4 py-3">
+            <div className="rounded-lg border p-4 space-y-2">
+              <p className="font-medium">Appointment Details</p>
+              <p>Doctor: Dr. {selectedDoctorData?.first_name} {selectedDoctorData?.last_name}</p>
+              <p>Date: {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : ''}</p>
+              <p>Time: {selectedTime}</p>
+              <p className="font-medium mt-2">Consultation Fee: ₹{selectedDoctorData?.consultation_fee}</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setStep("selection")}>
+                Back
+              </Button>
+              <Button onClick={handleConfirmAppointment}>
+                Proceed to Payment
+              </Button>
+            </div>
+          </div>
+        );
+
+      case "payment":
+        return (
+          <div className="space-y-4 py-3">
+            {paymentStep.status === "processing" && (
+              <div className="text-center space-y-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+                <p>Processing payment...</p>
+              </div>
+            )}
+
+            {paymentStep.status === "success" && (
+              <div className="text-center space-y-3 text-green-600">
+                <p className="text-lg font-medium">Payment Successful!</p>
+                <p>Your appointment has been confirmed.</p>
+              </div>
+            )}
+
+            {paymentStep.status === "error" && (
+              <div className="text-center space-y-3">
+                <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
+                <p className="text-destructive">{paymentStep.error}</p>
+                <Button variant="outline" onClick={() => setStep("confirmation")}>
+                  Try Again
+                </Button>
+              </div>
+            )}
+          </div>
+        );
     }
   };
 
@@ -115,56 +307,13 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       </DialogTrigger>
       <DialogContent className="sm:max-w-[400px]">
         <DialogHeader>
-          <DialogTitle>Schedule Appointment</DialogTitle>
+          <DialogTitle>
+            {step === "selection" && "Schedule Appointment"}
+            {step === "confirmation" && "Confirm Appointment"}
+            {step === "payment" && "Payment"}
+          </DialogTitle>
         </DialogHeader>
-        <div className="grid gap-3 py-3">
-          <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select a doctor" />
-            </SelectTrigger>
-            <SelectContent>
-              {doctors?.map((doctor) => (
-                <SelectItem key={doctor.id} value={doctor.id}>
-                  Dr. {doctor.first_name} {doctor.last_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Calendar
-            mode="single"
-            selected={selectedDate}
-            onSelect={setSelectedDate}
-            disabled={(date) => 
-              date < new Date() || 
-              date.getDay() === 0 || 
-              date.getDay() === 6
-            }
-            className="rounded-md border p-2"
-          />
-
-          <Select value={selectedTime} onValueChange={setSelectedTime}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select time">
-                <div className="flex items-center">
-                  <Clock className="mr-2 h-4 w-4" />
-                  <span>{selectedTime || "Select time"}</span>
-                </div>
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {timeSlots.map((time) => (
-                <SelectItem key={time} value={time}>
-                  {time}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <Button onClick={handleSchedule}>
-            Schedule Appointment
-          </Button>
-        </div>
+        {renderStep()}
       </DialogContent>
     </Dialog>
   );
