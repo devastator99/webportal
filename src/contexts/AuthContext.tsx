@@ -46,56 +46,48 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  useEffect(() => {
-    // Initial session check
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+  const handleAuthStateChange = async (session: any) => {
+    try {
       if (session?.user) {
         setUser(session.user);
         const role = await fetchUserRole(session.user.id);
         setUserRole(role);
+      } else {
+        setUser(null);
+        setUserRole(null);
       }
+    } catch (error) {
+      console.error('Error in handleAuthStateChange:', error);
+    } finally {
       setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleAuthStateChange(session);
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state change event:", event);
-      
-      if (event === 'SIGNED_OUT') {
-        console.log("User signed out, clearing state");
-        setUser(null);
-        setUserRole(null);
-        setIsLoading(false);
-        navigate('/');
-        return;
-      }
-
-      if (session?.user) {
-        setUser(session.user);
-        const role = await fetchUserRole(session.user.id);
-        setUserRole(role);
-      }
-      
-      setIsLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      handleAuthStateChange(session);
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, []);
 
   const signOut = async () => {
     try {
-      console.log("Starting sign out process");
       setIsLoading(true);
-      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
-      console.log("Sign out successful");
       setUser(null);
       setUserRole(null);
-      navigate('/');
+      navigate('/', { replace: true });
       
       toast({
         title: "Signed out successfully"

@@ -15,13 +15,9 @@ export const Navbar = () => {
   const { loading, error, handleLogin, handleSignUp } = useAuthHandlers();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error("Error in handleSignOut:", error);
-    }
-  };
+  if (isLoading) {
+    return null; // Don't render anything while checking auth state
+  }
 
   return (
     <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-[#D6BCFA]">
@@ -32,7 +28,7 @@ export const Navbar = () => {
         >
           Anubhuti
         </div>
-        {!user && !isLoading && (
+        {!user && (
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button 
@@ -62,9 +58,9 @@ export const Navbar = () => {
             </DialogContent>
           </Dialog>
         )}
-        {user && !isLoading && (
+        {user && (
           <Button 
-            onClick={handleSignOut}
+            onClick={signOut}
             variant="outline" 
             className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2"
             disabled={isLoading}
