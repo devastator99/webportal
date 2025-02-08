@@ -25,7 +25,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
   
   if (isLoading) {
-    return <LoadingSpinner />;
+    return <Navigate to="/" replace />;
   }
 
   if (!user) {
@@ -39,14 +39,10 @@ const AppRoutes = () => {
   const { user, isInitialized } = useAuth();
 
   useEffect(() => {
-    // Force sign out immediately
     forceSignOut();
-  }, []); // Run once when component mounts
+  }, []); 
 
-  if (!isInitialized) {
-    return <LoadingSpinner />;
-  }
-
+  // Remove the loading spinner check
   return (
     <>
       <Navbar />
