@@ -1,11 +1,10 @@
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { TestLoginButtons } from "@/components/auth/TestLoginButtons";
-import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { LucideLoader2 } from "lucide-react";
 
@@ -17,8 +16,7 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
-      console.log("User detected, redirecting to dashboard");
-      navigate("/dashboard", { replace: true });
+      navigate("/dashboard");
     }
   }, [user, navigate]);
 
@@ -26,7 +24,6 @@ const Auth = () => {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center">
         <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
-        <p className="mt-4 text-purple-800">Loading...</p>
       </div>
     );
   }
@@ -42,9 +39,6 @@ const Auth = () => {
           <h2 className="mt-6 text-center text-3xl font-extrabold text-saas-dark">
             {isLoginMode ? "Welcome back" : "Create your account"}
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            {isLoginMode ? "Sign in to your account" : "Sign up for a new account"}
-          </p>
         </motion.div>
       </div>
 
