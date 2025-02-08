@@ -2,14 +2,14 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { LogOut, LogIn } from "lucide-react";
+import { LogOut, LogIn, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 
 export const Navbar = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, forceSignOut } = useAuth();
   const navigate = useNavigate();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const { loading, error, handleLogin, handleSignUp } = useAuthHandlers();
@@ -21,6 +21,15 @@ export const Navbar = () => {
       await signOut();
     } catch (error: any) {
       console.error("[Navbar] Sign out error:", error);
+    }
+  };
+
+  const handleForceSignOut = async () => {
+    try {
+      console.log("[Navbar] Starting force sign out process");
+      await forceSignOut();
+    } catch (error: any) {
+      console.error("[Navbar] Force sign out error:", error);
     }
   };
 
@@ -64,14 +73,24 @@ export const Navbar = () => {
           </Dialog>
         )}
         {user && (
-          <Button 
-            onClick={handleSignOut}
-            variant="outline" 
-            className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              onClick={handleForceSignOut}
+              variant="destructive" 
+              className="gap-2"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              Force Sign Out
+            </Button>
+            <Button 
+              onClick={handleSignOut}
+              variant="outline" 
+              className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </Button>
+          </div>
         )}
       </div>
     </nav>
