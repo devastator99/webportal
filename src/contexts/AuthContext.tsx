@@ -216,10 +216,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (!mounted) return;
 
-      switch (event as AuthChangeEvent) {
+      switch (event) {
         case 'SIGNED_OUT':
+          console.log("[AuthContext] User signed out");
+          clearAuthState();
+          break;
         case 'USER_DELETED':
-          console.log("[AuthContext] User signed out or deleted");
+          console.log("[AuthContext] User account deleted");
           clearAuthState();
           break;
         case 'TOKEN_REFRESHED':
@@ -262,3 +265,4 @@ export const useAuth = () => {
   }
   return context;
 };
+
