@@ -37,44 +37,57 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchUserRole = async (userId: string) => {
     try {
       console.log("[AuthContext] Fetching user role for:", userId);
-      const { data, error } = await supabase
+      const { data: roleData, error: roleError } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .maybeSingle();
 
-      if (error) {
-        console.error('[AuthContext] Error fetching user role:', error);
-        return null;
+      if (roleError) {
+        console.error('[AuthContext] Error fetching user role:', roleError);
+        throw roleError;
       }
 
-      if (!data) {
+      if (!roleData) {
         console.warn('[AuthContext] No role found for user:', userId);
         return null;
       }
 
-      console.log('[AuthContext] User role fetched:', data.role);
-      return data.role as UserRole;
+      console.log('[AuthContext] User role fetched:', roleData.role);
+      return roleData.role as UserRole;
     } catch (error) {
       console.error('[AuthContext] Error in fetchUserRole:', error);
-      return null;
+      throw error;
     }
   };
 
-  const handleRoleBasedRedirect = (role: UserRole | null) => {
-    if (!role) return;
+  const handleRoleBasedRedirect = (role: UserRole | null, currentPath: string) => {
+    if (!role) {
+      console.log("[AuthContext] No role found, redirecting to root");
+      navigate("/", { replace: true });
+      return;
+    }
     
+    const isOnAuthPage = currentPath === "/auth";
+    const isOnRootPage = currentPath === "/";
+    
+    if (!isOnAuthPage && !isOnRootPage) {
+      console.log("[AuthContext] User is on a protected route, keeping current location");
+      return;
+    }
+
+    console.log("[AuthContext] Redirecting based on role:", role);
     switch (role) {
       case "administrator":
-        navigate("/admin");
+        navigate("/admin", { replace: true });
         break;
       case "doctor":
       case "patient":
       case "nutritionist":
-        navigate("/dashboard");
+        navigate("/dashboard", { replace: true });
         break;
       default:
-        navigate("/");
+        navigate("/", { replace: true });
         break;
     }
   };
@@ -91,14 +104,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       userId: session?.user?.id 
     });
     
-    if (!session?.user) {
-      clearAuthState();
-      setIsLoading(false);
-      setIsInitialized(true);
-      return;
-    }
-
     try {
+      if (!session?.user) {
+        clearAuthState();
+        navigate("/", { replace: true });
+        return;
+      }
+
       setUser(session.user);
       const role = await fetchUserRole(session.user.id);
       setUserRole(role);
@@ -108,8 +120,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         role 
       });
 
-      // Redirect based on role
-      handleRoleBasedRedirect(role);
+      // Get current path and handle redirect
+      const currentPath = window.location.pathname;
+      handleRoleBasedRedirect(role, currentPath);
     } catch (error: any) {
       console.error("[AuthContext] Error handling auth state:", error);
       clearAuthState();
@@ -118,6 +131,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Authentication Error",
         description: error.message || "An error occurred during authentication.",
       });
+      navigate("/", { replace: true });
     } finally {
       setIsLoading(false);
       setIsInitialized(true);
@@ -172,6 +186,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           clearAuthState();
           setIsInitialized(true);
           setIsLoading(false);
+          navigate("/", { replace: true });
         }
       }
     };
@@ -180,7 +195,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("[AuthContext] Auth state change event:", event);
       
       if (!mounted) return;
-
       await handleAuthStateChange(session);
     });
 
