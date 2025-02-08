@@ -7,10 +7,9 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
-import { toast } from "sonner";
 
 export const Navbar = () => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isLoading } = useAuth();
   const navigate = useNavigate();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const { loading, error, handleLogin, handleSignUp } = useAuthHandlers();
@@ -18,13 +17,9 @@ export const Navbar = () => {
 
   const handleSignOut = async () => {
     try {
-      console.log("[Navbar] Starting sign out process");
       await signOut();
-      toast.success("Signed out successfully");
-      navigate("/", { replace: true });
-    } catch (error: any) {
-      console.error("[Navbar] Sign out error:", error);
-      toast.error("Error signing out");
+    } catch (error) {
+      console.error("Error in handleSignOut:", error);
     }
   };
 
@@ -37,7 +32,7 @@ export const Navbar = () => {
         >
           Anubhuti
         </div>
-        {!user && (
+        {!user && !isLoading && (
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button 
@@ -67,11 +62,12 @@ export const Navbar = () => {
             </DialogContent>
           </Dialog>
         )}
-        {user && (
+        {user && !isLoading && (
           <Button 
             onClick={handleSignOut}
             variant="outline" 
             className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2"
+            disabled={isLoading}
           >
             <LogOut className="h-4 w-4" />
             Sign Out

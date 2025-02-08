@@ -30,7 +30,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchUserRole = async (userId: string) => {
     try {
-      console.log("Fetching role for user:", userId);
       const { data, error } = await supabase
         .rpc('get_user_role', { checking_user_id: userId })
         .maybeSingle();
@@ -40,7 +39,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return null;
       }
       
-      console.log("Role fetch result:", data);
       return data?.role as UserRole;
     } catch (error) {
       console.error('Error in fetchUserRole:', error);
@@ -49,62 +47,70 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    console.log("AuthProvider mounted");
-    
     // Initial session check
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log("Initial session check:", session?.user?.id);
-      
       if (session?.user) {
         setUser(session.user);
         const role = await fetchUserRole(session.user.id);
         setUserRole(role);
       }
-      
       setIsLoading(false);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Auth state change:", event, session?.user?.id);
+      console.log("Auth state change event:", event);
       
+      if (event === 'SIGNED_OUT') {
+        console.log("User signed out, clearing state");
+        setUser(null);
+        setUserRole(null);
+        setIsLoading(false);
+        navigate('/');
+        return;
+      }
+
       if (session?.user) {
         setUser(session.user);
         const role = await fetchUserRole(session.user.id);
         setUserRole(role);
-      } else {
-        setUser(null);
-        setUserRole(null);
       }
       
       setIsLoading(false);
     });
 
     return () => {
-      console.log("Cleaning up auth subscription");
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate]);
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      console.log("Starting sign out process");
+      setIsLoading(true);
+      
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      console.log("Sign out successful");
       setUser(null);
       setUserRole(null);
       navigate('/');
+      
       toast({
         title: "Signed out successfully"
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error signing out:', error);
       toast({
         variant: "destructive",
-        title: "Error signing out"
+        title: "Error signing out",
+        description: error.message
       });
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  console.log("AuthProvider state:", { user: user?.id, userRole, isLoading });
 
   return (
     <AuthContext.Provider value={{ user, userRole, isLoading, signOut }}>
