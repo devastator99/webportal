@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { User, AuthChangeEvent } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -211,26 +210,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session) => {
       console.log("[AuthContext] Auth state change event:", event);
       
       if (!mounted) return;
 
-      switch (event) {
-        case 'SIGNED_OUT':
-          console.log("[AuthContext] User signed out");
-          clearAuthState();
-          break;
-        case 'USER_DELETED':
-          console.log("[AuthContext] User account deleted");
-          clearAuthState();
-          break;
-        case 'TOKEN_REFRESHED':
-        case 'SIGNED_IN':
-          await handleAuthStateChange(session);
-          break;
-        default:
-          await handleAuthStateChange(session);
+      if (event === 'SIGNED_OUT') {
+        console.log("[AuthContext] User signed out");
+        clearAuthState();
+      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        await handleAuthStateChange(session);
+      } else {
+        // Handle any other valid auth events by re-checking the session
+        await handleAuthStateChange(session);
       }
     });
 
@@ -265,4 +257,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
