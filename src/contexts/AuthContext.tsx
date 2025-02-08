@@ -65,7 +65,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
     
-    // Only redirect if on the root path
     const isOnRootPath = currentPath === "/" || currentPath === "/index";
     if (!isOnRootPath) {
       console.log("[AuthContext] User is not on root path, keeping current location");
@@ -83,16 +82,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         navigate("/dashboard", { replace: true });
         break;
       default:
-        // If no matching role, stay on current path
         break;
     }
   };
 
   const clearAuthState = () => {
+    console.log("[AuthContext] Clearing auth state");
     setUser(null);
     setUserRole(null);
     setError(null);
     setIsLoading(false);
+    
+    // Always redirect to root on clear auth state
+    console.log("[AuthContext] Redirecting to root after clearing auth state");
+    navigate('/', { replace: true });
+  };
+
+  const signOut = async () => {
+    try {
+      setIsLoading(true);
+      console.log("[AuthContext] Starting sign out process");
+      
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      console.log("[AuthContext] Sign out successful");
+      clearAuthState();
+      
+      toast({
+        title: "Signed out successfully",
+        description: "You have been signed out of your account.",
+      });
+    } catch (error: any) {
+      console.error("[AuthContext] Sign out error:", error);
+      // Still clear state even if there's an error
+      clearAuthState();
+      
+      toast({
+        variant: "destructive",
+        title: "Error during sign out",
+        description: error.message || "An error occurred during sign out.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleAuthStateChange = async (session: any) => {
@@ -103,6 +136,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     try {
       if (!session?.user) {
+        console.log("[AuthContext] No session, clearing auth state");
         clearAuthState();
         return;
       }
@@ -116,7 +150,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         role 
       });
 
-      // Get current path and handle redirect
       const currentPath = window.location.pathname;
       handleRoleBasedRedirect(role, currentPath);
     } catch (error: any) {
@@ -130,33 +163,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } finally {
       setIsLoading(false);
       setIsInitialized(true);
-    }
-  };
-
-  const signOut = async () => {
-    try {
-      setIsLoading(true);
-      console.log("[AuthContext] Starting sign out process");
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) throw error;
-      
-      clearAuthState();
-      navigate('/', { replace: true });
-      
-      toast({
-        title: "Signed out successfully",
-        description: "You have been signed out of your account.",
-      });
-    } catch (error: any) {
-      console.error("[AuthContext] Sign out error:", error);
-      toast({
-        variant: "destructive",
-        title: "Error during sign out",
-        description: error.message || "An error occurred during sign out.",
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -184,11 +190,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
+    // Subscribe to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("[AuthContext] Auth state change event:", event);
       
       if (!mounted) return;
-      await handleAuthStateChange(session);
+
+      // Handle specific auth events
+      switch (event) {
+        case 'SIGNED_OUT':
+        case 'USER_DELETED':
+          console.log("[AuthContext] User signed out or deleted");
+          clearAuthState();
+          break;
+        case 'TOKEN_REFRESHED':
+        case 'SIGNED_IN':
+          await handleAuthStateChange(session);
+          break;
+        default:
+          await handleAuthStateChange(session);
+      }
     });
 
     initializeAuth();
