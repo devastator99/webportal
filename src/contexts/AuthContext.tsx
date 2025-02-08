@@ -28,46 +28,62 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Fetch user role from Supabase
   const fetchUserRole = async (userId: string) => {
     try {
+      console.log("Fetching role for user:", userId);
       const { data, error } = await supabase
         .rpc('get_user_role', { checking_user_id: userId })
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching role:', error);
+        return null;
+      }
+      
+      console.log("Role fetch result:", data);
       return data?.role as UserRole;
     } catch (error) {
-      console.error('Error fetching user role:', error);
+      console.error('Error in fetchUserRole:', error);
       return null;
     }
   };
 
-  // Handle auth state changes
   useEffect(() => {
-    // Get initial session
+    console.log("AuthProvider mounted");
+    
+    // Initial session check
     supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setUser(session?.user ?? null);
+      console.log("Initial session check:", session?.user?.id);
+      
       if (session?.user) {
+        setUser(session.user);
         const role = await fetchUserRole(session.user.id);
         setUserRole(role);
       }
+      
       setIsLoading(false);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null);
+      console.log("Auth state change:", event, session?.user?.id);
+      
       if (session?.user) {
+        setUser(session.user);
         const role = await fetchUserRole(session.user.id);
         setUserRole(role);
       } else {
+        setUser(null);
         setUserRole(null);
       }
+      
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      console.log("Cleaning up auth subscription");
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
@@ -87,6 +103,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
     }
   };
+
+  console.log("AuthProvider state:", { user: user?.id, userRole, isLoading });
 
   return (
     <AuthContext.Provider value={{ user, userRole, isLoading, signOut }}>

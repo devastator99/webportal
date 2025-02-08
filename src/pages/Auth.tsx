@@ -1,6 +1,5 @@
 
-import { useState } from "react";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthForm } from "@/components/auth/AuthForm";
@@ -18,16 +17,23 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
+      console.log("User found in Auth, redirecting to dashboard");
       navigate("/dashboard");
     }
   }, [user, navigate]);
 
+  // Show loading state while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center">
         <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
       </div>
     );
+  }
+
+  // If user is logged in, useEffect will handle redirect
+  if (user) {
+    return null;
   }
 
   return (
