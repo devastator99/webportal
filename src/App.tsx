@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,8 +9,23 @@ import { LandingPage } from "@/pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import { useAuth } from "./contexts/AuthContext";
+import { useEffect, useState } from "react";
+import { forceSignOut } from "@/utils/authUtils";
 
 const LoadingSpinner = () => {
+  // If loading takes more than 5 seconds, show force sign out message
+  const [showForcedSignOut, setShowForcedSignOut] = useState(false);
+  
+  useEffect(() => {
+    // If we're still loading after 5 seconds, force sign out
+    const timeout = setTimeout(() => {
+      console.log("[LoadingSpinner] Loading timeout reached, forcing sign out");
+      forceSignOut();
+    }, 5000);
+
+    return () => clearTimeout(timeout);
+  }, []);
+
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
