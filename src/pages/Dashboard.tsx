@@ -1,5 +1,5 @@
 
-import { useAuth, NoRoleWarning } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PatientDashboard } from "@/components/dashboard/PatientDashboard";
@@ -7,6 +7,7 @@ import { DoctorDashboard } from "@/components/dashboard/DoctorDashboard";
 import { NutritionistDashboard } from "@/components/dashboard/NutritionistDashboard";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { NoRoleWarning } from "@/components/auth/NoRoleWarning";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";

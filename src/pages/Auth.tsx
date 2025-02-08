@@ -1,4 +1,5 @@
 
+import { useState } from "react";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,6 +7,7 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { TestLoginButtons } from "@/components/auth/TestLoginButtons";
 import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 import { LucideLoader2 } from "lucide-react";
 
 const Auth = () => {
