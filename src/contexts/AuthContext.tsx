@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { User, AuthChangeEvent } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { forceSignOut } from "@/utils/authUtils";
 
 type UserRole = "doctor" | "patient" | "administrator" | "nutritionist";
 
@@ -15,6 +15,7 @@ type AuthContextType = {
   isLoading: boolean;
   isInitialized: boolean;
   signOut: () => Promise<void>;
+  forceSignOut: () => Promise<void>;
   error: string | null;
 };
 
@@ -24,6 +25,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   isInitialized: false,
   signOut: async () => {},
+  forceSignOut: async () => {},
   error: null
 });
 
@@ -243,6 +245,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         isLoading, 
         isInitialized,
         signOut,
+        forceSignOut,
         error 
       }}
     >
