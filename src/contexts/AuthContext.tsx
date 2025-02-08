@@ -38,9 +38,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log("[AuthContext] Fetching user role for:", userId);
       const { data: roleData, error: roleError } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
+        .rpc('get_user_role', { checking_user_id: userId })
         .maybeSingle();
 
       if (roleError) {
@@ -69,7 +67,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
     
     const isOnAuthPage = currentPath === "/auth";
-    const isOnRootPage = currentPath === "/";
+    const isOnRootPage = currentPath === "/" || currentPath === "/index";
     
     if (!isOnAuthPage && !isOnRootPage) {
       console.log("[AuthContext] User is on a protected route, keeping current location");
@@ -96,6 +94,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUser(null);
     setUserRole(null);
     setError(null);
+    setIsLoading(false);
   };
 
   const handleAuthStateChange = async (session: any) => {
@@ -185,7 +184,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (mounted) {
           clearAuthState();
           setIsInitialized(true);
-          setIsLoading(false);
           navigate("/", { replace: true });
         }
       }
