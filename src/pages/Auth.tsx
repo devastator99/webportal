@@ -10,7 +10,7 @@ import { motion } from "framer-motion";
 import { LucideLoader2 } from "lucide-react";
 
 const Auth = () => {
-  const { user, isInitialized } = useAuth();
+  const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const { loading, error, handleLogin, handleSignUp, handleTestLogin } = useAuthHandlers();
@@ -22,11 +22,11 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
-  if (!isInitialized) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center">
         <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
-        <p className="mt-4 text-purple-800">Initializing authentication...</p>
+        <p className="mt-4 text-purple-800">Loading...</p>
       </div>
     );
   }

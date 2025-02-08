@@ -12,14 +12,13 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
-  const { user, isLoading: authLoading, isInitialized, signOut } = useAuth();
+  const { user, isLoading: authLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   console.log("Dashboard render - Current state:", {
     user,
     authLoading,
-    isInitialized,
     timestamp: new Date().toISOString()
   });
 
@@ -57,9 +56,9 @@ const Dashboard = () => {
         throw error;
       }
     },
-    enabled: !!user?.id && isInitialized,
+    enabled: !!user?.id,
     staleTime: 30000, // Cache for 30 seconds
-    gcTime: 60000, // Keep in cache for 1 minute (replaced cacheTime)
+    gcTime: 60000, // Keep in cache for 1 minute
     retry: 1,
   });
 
@@ -69,11 +68,10 @@ const Dashboard = () => {
       authLoading,
       roleLoading,
       userRole,
-      isInitialized,
       error: error?.message
     });
 
-    if (isInitialized && !user && !authLoading) {
+    if (!authLoading && !user) {
       console.log("No authenticated user found, redirecting to auth");
       navigate("/");
       return;
@@ -88,24 +86,18 @@ const Dashboard = () => {
       });
       navigate("/");
     }
-  }, [error, user, authLoading, isInitialized, navigate, toast]);
+  }, [error, user, authLoading, navigate, toast]);
 
-  // Early return for initial loading state
-  if (!isInitialized || authLoading) {
-    console.log("Waiting for auth initialization...");
+  // Show loading state while authenticating or fetching role
+  if (authLoading || roleLoading) {
+    console.log("Loading dashboard state...");
     return <DashboardSkeleton />;
   }
 
-  // After initialization, if no user is found, redirect will happen in useEffect
+  // After loading, if no user is found, redirect will happen in useEffect
   if (!user) {
     console.log("No user found in Dashboard");
     return null;
-  }
-
-  // Show loading state while fetching role
-  if (roleLoading) {
-    console.log("Loading user role...");
-    return <DashboardSkeleton />;
   }
 
   // Handle no role case
