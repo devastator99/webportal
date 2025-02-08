@@ -61,16 +61,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handleRoleBasedRedirect = (role: UserRole | null, currentPath: string) => {
     if (!role) {
-      console.log("[AuthContext] No role found, redirecting to root");
-      navigate("/", { replace: true });
+      console.log("[AuthContext] No role found, staying on current path");
       return;
     }
     
-    const isOnAuthPage = currentPath === "/auth";
-    const isOnRootPage = currentPath === "/" || currentPath === "/index";
-    
-    if (!isOnAuthPage && !isOnRootPage) {
-      console.log("[AuthContext] User is on a protected route, keeping current location");
+    // Only redirect if on the root path
+    const isOnRootPath = currentPath === "/" || currentPath === "/index";
+    if (!isOnRootPath) {
+      console.log("[AuthContext] User is not on root path, keeping current location");
       return;
     }
 
@@ -85,7 +83,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         navigate("/dashboard", { replace: true });
         break;
       default:
-        navigate("/", { replace: true });
+        // If no matching role, stay on current path
         break;
     }
   };
@@ -106,7 +104,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       if (!session?.user) {
         clearAuthState();
-        navigate("/", { replace: true });
         return;
       }
 
@@ -130,7 +127,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Authentication Error",
         description: error.message || "An error occurred during authentication.",
       });
-      navigate("/", { replace: true });
     } finally {
       setIsLoading(false);
       setIsInitialized(true);
@@ -184,7 +180,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (mounted) {
           clearAuthState();
           setIsInitialized(true);
-          navigate("/", { replace: true });
         }
       }
     };
