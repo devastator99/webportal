@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { LogOut, LogIn } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
@@ -14,6 +14,13 @@ export const Navbar = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
   const { loading, error, handleLogin, handleSignUp } = useAuthHandlers();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (user && !isLoading) {
+      navigate('/dashboard');
+      setIsDialogOpen(false);
+    }
+  }, [user, isLoading, navigate]);
 
   if (isLoading) {
     return null; // Don't render anything while checking auth state

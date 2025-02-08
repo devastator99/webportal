@@ -2,11 +2,13 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 export const useAuthHandlers = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleLogin = async (email: string, password: string) => {
     setLoading(true);
@@ -19,6 +21,8 @@ export const useAuthHandlers = () => {
       });
 
       if (error) throw error;
+      
+      navigate('/dashboard');
       
       toast({
         title: "Welcome back!",
@@ -51,6 +55,8 @@ export const useAuthHandlers = () => {
 
       if (error) throw error;
 
+      navigate('/dashboard');
+
       toast({
         title: "Account created successfully!",
         description: "Please check your email to confirm your account."
@@ -79,6 +85,8 @@ export const useAuthHandlers = () => {
       });
 
       if (error) throw error;
+
+      navigate('/dashboard');
 
       toast({
         title: "Logged in successfully",
