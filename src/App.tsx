@@ -13,22 +13,10 @@ import { useAuth } from "./contexts/AuthContext";
 import { useEffect } from "react";
 import { forceSignOut } from "@/utils/authUtils";
 
-const LoadingSpinner = () => {
-  return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#9b87f5]"></div>
-    </div>
-  );
-};
-
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
   
-  if (isLoading) {
-    return <Navigate to="/" replace />;
-  }
-
-  if (!user) {
+  if (isLoading || !user) {
     return <Navigate to="/" replace />;
   }
 
@@ -36,13 +24,16 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppRoutes = () => {
-  const { user, isInitialized } = useAuth();
+  const { user } = useAuth();
 
   useEffect(() => {
-    forceSignOut();
+    const shouldForceSignOut = sessionStorage.getItem('shouldForceSignOut');
+    if (!shouldForceSignOut) {
+      sessionStorage.setItem('shouldForceSignOut', 'true');
+      forceSignOut();
+    }
   }, []); 
 
-  // Remove the loading spinner check
   return (
     <>
       <Navbar />
