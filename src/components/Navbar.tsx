@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
+import { toast } from "sonner";
 
 export const Navbar = () => {
   const { user, signOut } = useAuth();
@@ -19,8 +20,11 @@ export const Navbar = () => {
     try {
       console.log("[Navbar] Starting sign out process");
       await signOut();
+      toast.success("Signed out successfully");
+      navigate("/", { replace: true });
     } catch (error: any) {
       console.error("[Navbar] Sign out error:", error);
+      toast.error("Error signing out");
     }
   };
 
