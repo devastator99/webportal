@@ -61,6 +61,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const handleRoleBasedRedirect = (role: UserRole | null) => {
+    if (!role) return;
+    
+    switch (role) {
+      case "administrator":
+        navigate("/admin");
+        break;
+      case "doctor":
+      case "patient":
+      case "nutritionist":
+        navigate("/dashboard");
+        break;
+      default:
+        navigate("/");
+        break;
+    }
+  };
+
   const clearAuthState = () => {
     setUser(null);
     setUserRole(null);
@@ -73,7 +91,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       userId: session?.user?.id 
     });
     
-    // If no session/user, just clear state and return early
     if (!session?.user) {
       clearAuthState();
       setIsLoading(false);
@@ -81,7 +98,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
 
-    // Only fetch role if we have a logged in user
     try {
       setUser(session.user);
       const role = await fetchUserRole(session.user.id);
@@ -91,6 +107,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         userId: session.user.id,
         role 
       });
+
+      // Redirect based on role
+      handleRoleBasedRedirect(role);
     } catch (error: any) {
       console.error("[AuthContext] Error handling auth state:", error);
       clearAuthState();
@@ -161,12 +180,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("[AuthContext] Auth state change event:", event);
       
       if (!mounted) return;
-
-      if (event === 'SIGNED_IN') {
-        navigate('/dashboard');
-      } else if (event === 'SIGNED_OUT') {
-        navigate('/');
-      }
 
       await handleAuthStateChange(session);
     });
