@@ -1,5 +1,5 @@
 
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, NoRoleWarning } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { PatientDashboard } from "@/components/dashboard/PatientDashboard";
@@ -10,8 +10,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
 
 const Dashboard = () => {
   const { user, isLoading: authLoading, isInitialized, signOut } = useAuth();
@@ -51,11 +49,6 @@ const Dashboard = () => {
 
         if (!data) {
           console.log("No role found for user:", user.id);
-          toast({
-            title: "No Role Found",
-            description: "Your account doesn't have a role assigned. Please contact support.",
-            variant: "destructive",
-          });
           return null;
         }
         
@@ -63,11 +56,6 @@ const Dashboard = () => {
         return data.role;
       } catch (error: any) {
         console.error("Role query error:", error);
-        toast({
-          title: "Error Loading Role",
-          description: "Failed to load your user role. Please try logging in again.",
-          variant: "destructive",
-        });
         throw error;
       }
     },
@@ -124,33 +112,7 @@ const Dashboard = () => {
   }
 
   if (!userRole) {
-    console.log("No user role found. User info:", {
-      id: user?.id,
-      email: user?.email
-    });
-    return (
-      <div className="container mx-auto p-6 space-y-6">
-        <div className="bg-destructive/10 border border-destructive rounded-lg p-6">
-          <h1 className="text-2xl font-bold text-destructive mb-4">Access Error</h1>
-          <p className="text-gray-600 mb-6">
-            Your account doesn't have any role assigned. Please contact support or sign out and try again with a different account.
-          </p>
-          <Button 
-            onClick={signOut}
-            variant="outline" 
-            className="border-destructive text-destructive hover:bg-destructive/10 gap-2"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
-          <pre className="mt-6 p-4 bg-gray-100 rounded text-sm">
-            Debug info:{"\n"}
-            User ID: {user?.id}{"\n"}
-            Email: {user?.email}
-          </pre>
-        </div>
-      </div>
-    );
+    return <NoRoleWarning onSignOut={signOut} />;
   }
 
   console.log("Rendering dashboard with role:", userRole);
@@ -165,30 +127,7 @@ const Dashboard = () => {
     case "administrator":
       return <AdminDashboard />;
     default:
-      return (
-        <div className="container mx-auto p-6">
-          <div className="bg-destructive/10 border border-destructive rounded-lg p-6">
-            <h1 className="text-2xl font-bold text-destructive mb-4">Access Denied</h1>
-            <p className="text-gray-600 mb-6">
-              You don't have the required permissions to access this page.
-              Current role: {userRole || "No role assigned"}
-            </p>
-            <Button 
-              onClick={signOut}
-              variant="outline" 
-              className="border-destructive text-destructive hover:bg-destructive/10 gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </Button>
-            <pre className="mt-6 p-4 bg-gray-100 rounded text-sm">
-              Debug info:{"\n"}
-              User ID: {user?.id}{"\n"}
-              Role: {userRole}
-            </pre>
-          </div>
-        </div>
-      );
+      return <NoRoleWarning onSignOut={signOut} />;
   }
 };
 

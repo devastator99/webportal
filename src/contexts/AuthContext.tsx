@@ -4,6 +4,8 @@ import { User, AuthChangeEvent } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 type UserRole = "doctor" | "patient" | "administrator" | "nutritionist";
 
@@ -24,6 +26,25 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
   error: null
 });
+
+export const NoRoleWarning = ({ onSignOut }: { onSignOut: () => Promise<void> }) => (
+  <div className="container mx-auto p-6">
+    <div className="bg-destructive/10 border border-destructive rounded-lg p-6">
+      <h1 className="text-2xl font-bold text-destructive mb-4">No Role Assigned</h1>
+      <p className="text-gray-600 mb-6">
+        Your account doesn't have a role assigned. Please contact support or sign out and try again.
+      </p>
+      <Button 
+        onClick={onSignOut}
+        variant="outline" 
+        className="border-destructive text-destructive hover:bg-destructive/10 gap-2"
+      >
+        <LogOut className="h-4 w-4" />
+        Sign Out
+      </Button>
+    </div>
+  </div>
+);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
@@ -48,18 +69,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (!roleData) {
         console.warn('[AuthContext] No role found for user:', userId);
-        toast({
-          variant: "destructive",
-          title: "No Role Assigned",
-          description: "Your account doesn't have a role assigned. Please contact support or sign out.",
-        });
+        setUserRole(null);
         return null;
       }
 
       console.log('[AuthContext] User role fetched:', roleData.role);
+      setUserRole(roleData.role as UserRole);
       return roleData.role as UserRole;
     } catch (error) {
       console.error('[AuthContext] Error in fetchUserRole:', error);
+      setUserRole(null);
       throw error;
     }
   };
@@ -146,7 +165,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       setUser(session.user);
       const role = await fetchUserRole(session.user.id);
-      setUserRole(role);
       
       console.log("[AuthContext] Auth state updated:", { 
         userId: session.user.id,
@@ -200,7 +218,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       switch (event as AuthChangeEvent) {
         case 'SIGNED_OUT':
-          console.log("[AuthContext] User signed out");
+        case 'USER_DELETED':
+          console.log("[AuthContext] User signed out or deleted");
           clearAuthState();
           break;
         case 'TOKEN_REFRESHED':
