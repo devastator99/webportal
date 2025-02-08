@@ -59,7 +59,7 @@ const Dashboard = () => {
     },
     enabled: !!user?.id && isInitialized,
     staleTime: 30000, // Cache for 30 seconds
-    cacheTime: 60000, // Keep in cache for 1 minute
+    gcTime: 60000, // Keep in cache for 1 minute (replaced cacheTime)
     retry: 1,
   });
 
