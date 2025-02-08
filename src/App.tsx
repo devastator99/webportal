@@ -10,8 +10,6 @@ import { LandingPage } from "@/pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import { useAuth } from "./contexts/AuthContext";
-import { useEffect } from "react";
-import { forceSignOut } from "@/utils/authUtils";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
@@ -24,16 +22,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppRoutes = () => {
-  const { user } = useAuth();
-
-  useEffect(() => {
-    const shouldForceSignOut = sessionStorage.getItem('shouldForceSignOut');
-    if (!shouldForceSignOut) {
-      sessionStorage.setItem('shouldForceSignOut', 'true');
-      forceSignOut();
-    }
-  }, []); 
-
   return (
     <>
       <Navbar />
@@ -87,3 +75,4 @@ const App = () => {
 };
 
 export default App;
+

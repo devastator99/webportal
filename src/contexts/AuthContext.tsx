@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { User, AuthChangeEvent } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,7 +6,6 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { forceSignOut } from "@/utils/authUtils";
 
 type UserRole = "doctor" | "patient" | "administrator" | "nutritionist";
 
@@ -13,9 +13,7 @@ type AuthContextType = {
   user: User | null;
   userRole: UserRole | null;
   isLoading: boolean;
-  isInitialized: boolean;
   signOut: () => Promise<void>;
-  forceSignOut: () => Promise<void>;
   error: string | null;
 };
 
@@ -23,9 +21,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   userRole: null,
   isLoading: true,
-  isInitialized: false,
   signOut: async () => {},
-  forceSignOut: async () => {},
   error: null
 });
 
@@ -52,7 +48,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -118,7 +113,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUserRole(null);
     setError(null);
     setIsLoading(false);
-    setIsInitialized(true);
     
     console.log("[AuthContext] Redirecting to root after clearing auth state");
     navigate('/', { replace: true });
@@ -131,6 +125,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      // Clear all storage
+      localStorage.clear();
+      sessionStorage.clear();
       
       console.log("[AuthContext] Sign out successful");
       clearAuthState();
@@ -178,7 +176,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       handleRoleBasedRedirect(role, currentPath);
       
       setIsLoading(false);
-      setIsInitialized(true);
     } catch (error: any) {
       console.error("[AuthContext] Error handling auth state:", error);
       clearAuthState();
@@ -242,10 +239,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       value={{ 
         user, 
         userRole, 
-        isLoading, 
-        isInitialized,
+        isLoading,
         signOut,
-        forceSignOut,
         error 
       }}
     >
@@ -261,3 +256,4 @@ export const useAuth = () => {
   }
   return context;
 };
+
