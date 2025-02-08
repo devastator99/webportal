@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 import { LogOut } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type PatientHeaderProps = {
   firstName: string | undefined;
@@ -10,21 +11,25 @@ type PatientHeaderProps = {
 };
 
 export const PatientHeader = ({ firstName, lastName, onSignOut }: PatientHeaderProps) => {
+  const isMobile = useIsMobile();
   const displayName = firstName 
     ? `${firstName}${lastName ? ` ${lastName}` : ''}`
     : "Patient";
 
   return (
-    <div className="flex items-center justify-between">
-      <h1 className="text-3xl font-bold">Welcome, {displayName}</h1>
-      <div className="flex gap-4">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <h1 className="text-2xl sm:text-3xl font-bold">Welcome, {displayName}</h1>
+      <div className="flex gap-2 sm:gap-4">
         <ScheduleAppointment>
-          <Button>Schedule Appointment</Button>
+          <Button className="flex-1 sm:flex-initial" size={isMobile ? "lg" : "default"}>
+            Schedule Appointment
+          </Button>
         </ScheduleAppointment>
         <Button 
           variant="outline" 
           onClick={onSignOut}
           className="gap-2"
+          size={isMobile ? "lg" : "default"}
         >
           <LogOut className="h-4 w-4" />
           Sign Out
