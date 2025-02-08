@@ -9,10 +9,12 @@ import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 
 const Dashboard = () => {
-  const { user, isLoading: authLoading, isInitialized } = useAuth();
+  const { user, isLoading: authLoading, isInitialized, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -84,7 +86,6 @@ const Dashboard = () => {
       error: error?.message
     });
 
-    // Only redirect if auth is initialized and user is not present
     if (isInitialized && !user && !authLoading) {
       console.log("No authenticated user found, redirecting to auth");
       navigate("/");
@@ -128,16 +129,26 @@ const Dashboard = () => {
       email: user?.email
     });
     return (
-      <div className="container mx-auto p-6">
-        <h1 className="text-2xl font-bold text-red-500">Access Error</h1>
-        <p className="text-gray-600">
-          Unable to determine your user role. Please try logging out and back in.
-        </p>
-        <pre className="mt-4 p-4 bg-gray-100 rounded">
-          Debug info:
-          User ID: {user?.id}
-          Role: {userRole || "No role assigned"}
-        </pre>
+      <div className="container mx-auto p-6 space-y-6">
+        <div className="bg-destructive/10 border border-destructive rounded-lg p-6">
+          <h1 className="text-2xl font-bold text-destructive mb-4">Access Error</h1>
+          <p className="text-gray-600 mb-6">
+            Your account doesn't have any role assigned. Please contact support or sign out and try again with a different account.
+          </p>
+          <Button 
+            onClick={signOut}
+            variant="outline" 
+            className="border-destructive text-destructive hover:bg-destructive/10 gap-2"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
+          <pre className="mt-6 p-4 bg-gray-100 rounded text-sm">
+            Debug info:{"\n"}
+            User ID: {user?.id}{"\n"}
+            Email: {user?.email}
+          </pre>
+        </div>
       </div>
     );
   }
@@ -156,16 +167,26 @@ const Dashboard = () => {
     default:
       return (
         <div className="container mx-auto p-6">
-          <h1 className="text-2xl font-bold text-red-500">Access Denied</h1>
-          <p className="text-gray-600">
-            You don't have the required permissions to access this page.
-            Current role: {userRole || "No role assigned"}
-          </p>
-          <pre className="mt-4 p-4 bg-gray-100 rounded">
-            Debug info:
-            User ID: {user?.id}
-            Role: {userRole}
-          </pre>
+          <div className="bg-destructive/10 border border-destructive rounded-lg p-6">
+            <h1 className="text-2xl font-bold text-destructive mb-4">Access Denied</h1>
+            <p className="text-gray-600 mb-6">
+              You don't have the required permissions to access this page.
+              Current role: {userRole || "No role assigned"}
+            </p>
+            <Button 
+              onClick={signOut}
+              variant="outline" 
+              className="border-destructive text-destructive hover:bg-destructive/10 gap-2"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </Button>
+            <pre className="mt-6 p-4 bg-gray-100 rounded text-sm">
+              Debug info:{"\n"}
+              User ID: {user?.id}{"\n"}
+              Role: {userRole}
+            </pre>
+          </div>
         </div>
       );
   }

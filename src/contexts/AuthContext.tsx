@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { User } from "@supabase/supabase-js";
+import { User, AuthChangeEvent } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -48,6 +48,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (!roleData) {
         console.warn('[AuthContext] No role found for user:', userId);
+        toast({
+          variant: "destructive",
+          title: "No Role Assigned",
+          description: "Your account doesn't have a role assigned. Please contact support or sign out.",
+        });
         return null;
       }
 
@@ -93,7 +98,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setError(null);
     setIsLoading(false);
     
-    // Always redirect to root on clear auth state
     console.log("[AuthContext] Redirecting to root after clearing auth state");
     navigate('/', { replace: true });
   };
@@ -115,7 +119,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
     } catch (error: any) {
       console.error("[AuthContext] Sign out error:", error);
-      // Still clear state even if there's an error
       clearAuthState();
       
       toast({
@@ -190,17 +193,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    // Subscribe to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       console.log("[AuthContext] Auth state change event:", event);
       
       if (!mounted) return;
 
-      // Handle specific auth events
-      switch (event) {
+      switch (event as AuthChangeEvent) {
         case 'SIGNED_OUT':
-        case 'USER_DELETED':
-          console.log("[AuthContext] User signed out or deleted");
+          console.log("[AuthContext] User signed out");
           clearAuthState();
           break;
         case 'TOKEN_REFRESHED':
