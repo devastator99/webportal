@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Calendar as CalendarIcon, Clock, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format, isWithinInterval, setHours, setMinutes, parseISO } from "date-fns";
+import { format, setHours, setMinutes } from "date-fns";
 
 interface Doctor {
   id: string;
@@ -57,24 +57,37 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
   const [step, setStep] = useState<"selection" | "confirmation" | "payment">("selection");
   const [paymentStep, setPaymentStep] = useState<PaymentStep>({ status: "idle" });
 
-  const { data: doctors } = useQuery({
+  const { data: doctors, isLoading: isDoctorsLoading } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
-      const { data: userRoles, error: userRolesError } = await supabase
+      const { data: doctorRoles, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id")
         .eq("role", "doctor");
 
-      if (userRolesError) throw userRolesError;
-      if (!userRoles?.length) return [] as Doctor[];
+      if (rolesError) {
+        console.error("Error fetching doctor roles:", rolesError);
+        throw rolesError;
+      }
 
-      const doctorIds = userRoles.map(role => role.user_id);
+      if (!doctorRoles?.length) {
+        console.log("No doctors found in user_roles");
+        return [];
+      }
+
+      const doctorIds = doctorRoles.map(role => role.user_id);
+
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
         .select("id, first_name, last_name, consultation_fee")
         .in("id", doctorIds);
 
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.error("Error fetching doctor profiles:", profilesError);
+        throw profilesError;
+      }
+
+      console.log("Fetched doctors:", profiles);
       return (profiles || []) as Doctor[];
     },
   });
@@ -148,7 +161,6 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
     setPaymentStep({ status: "processing" });
 
     try {
-      // Mock payment processing
       const payment = await createMockPayment(selectedDoctorData.consultation_fee);
 
       if (payment.status === "completed") {
@@ -174,7 +186,6 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
           description: "Your appointment has been confirmed and payment processed.",
         });
 
-        // Reset form after successful scheduling
         setTimeout(() => {
           setIsOpen(false);
           setStep("selection");
@@ -204,11 +215,17 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
                 <SelectValue placeholder="Select a doctor" />
               </SelectTrigger>
               <SelectContent>
-                {doctors?.map((doctor) => (
-                  <SelectItem key={doctor.id} value={doctor.id}>
-                    Dr. {doctor.first_name} {doctor.last_name} - ₹{doctor.consultation_fee}
-                  </SelectItem>
-                ))}
+                {isDoctorsLoading ? (
+                  <SelectItem value="loading" disabled>Loading doctors...</SelectItem>
+                ) : doctors?.length === 0 ? (
+                  <SelectItem value="none" disabled>No doctors available</SelectItem>
+                ) : (
+                  doctors?.map((doctor) => (
+                    <SelectItem key={doctor.id} value={doctor.id}>
+                      Dr. {doctor.first_name} {doctor.last_name} - ₹{doctor.consultation_fee}
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
 
@@ -312,6 +329,11 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
             {step === "confirmation" && "Confirm Appointment"}
             {step === "payment" && "Payment"}
           </DialogTitle>
+          <DialogDescription>
+            {step === "selection" && "Choose your preferred doctor and appointment time"}
+            {step === "confirmation" && "Review your appointment details"}
+            {step === "payment" && "Complete your payment to confirm the appointment"}
+          </DialogDescription>
         </DialogHeader>
         {renderStep()}
       </DialogContent>
