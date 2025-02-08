@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { User, AuthChangeEvent } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -115,6 +116,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setUserRole(null);
     setError(null);
     setIsLoading(false);
+    setIsInitialized(true);
     
     console.log("[AuthContext] Redirecting to root after clearing auth state");
     navigate('/', { replace: true });
@@ -172,6 +174,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       const currentPath = window.location.pathname;
       handleRoleBasedRedirect(role, currentPath);
+      
+      setIsLoading(false);
+      setIsInitialized(true);
     } catch (error: any) {
       console.error("[AuthContext] Error handling auth state:", error);
       clearAuthState();
@@ -180,9 +185,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         title: "Authentication Error",
         description: error.message || "An error occurred during authentication.",
       });
-    } finally {
-      setIsLoading(false);
-      setIsInitialized(true);
     }
   };
 
@@ -205,7 +207,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error("[AuthContext] Initialization error:", error);
         if (mounted) {
           clearAuthState();
-          setIsInitialized(true);
         }
       }
     };

@@ -6,7 +6,7 @@ import { PatientDashboard } from "@/components/dashboard/PatientDashboard";
 import { DoctorDashboard } from "@/components/dashboard/DoctorDashboard";
 import { NutritionistDashboard } from "@/components/dashboard/NutritionistDashboard";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
-import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -35,9 +35,7 @@ const Dashboard = () => {
         console.log("Starting role fetch for user ID:", user.id);
         
         const { data, error } = await supabase
-          .from("user_roles")
-          .select("role")
-          .eq("user_id", user.id)
+          .rpc('get_user_role', { checking_user_id: user.id })
           .maybeSingle();
 
         console.log("Role query response:", { data, error });
@@ -60,8 +58,9 @@ const Dashboard = () => {
       }
     },
     enabled: !!user?.id && isInitialized,
+    staleTime: 30000, // Cache for 30 seconds
+    cacheTime: 60000, // Keep in cache for 1 minute
     retry: 1,
-    retryDelay: 1000,
   });
 
   useEffect(() => {
@@ -91,32 +90,33 @@ const Dashboard = () => {
     }
   }, [error, user, authLoading, isInitialized, navigate, toast]);
 
-  if (authLoading || roleLoading) {
-    console.log("Dashboard is loading... States:", { authLoading, roleLoading });
-    return (
-      <div className="container mx-auto p-6 space-y-6">
-        <Skeleton className="h-8 w-48" />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-        </div>
-      </div>
-    );
+  // Early return for initial loading state
+  if (!isInitialized || authLoading) {
+    console.log("Waiting for auth initialization...");
+    return <DashboardSkeleton />;
   }
 
+  // After initialization, if no user is found, redirect will happen in useEffect
   if (!user) {
     console.log("No user found in Dashboard");
     return null;
   }
 
+  // Show loading state while fetching role
+  if (roleLoading) {
+    console.log("Loading user role...");
+    return <DashboardSkeleton />;
+  }
+
+  // Handle no role case
   if (!userRole) {
+    console.log("No role found for user");
     return <NoRoleWarning onSignOut={signOut} />;
   }
 
-  console.log("Rendering dashboard with role:", userRole);
+  console.log("Rendering dashboard for role:", userRole);
 
+  // Render appropriate dashboard based on role
   switch (userRole) {
     case "doctor":
       return <DoctorDashboard />;
