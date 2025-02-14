@@ -30,8 +30,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchUserRole = async (userId: string) => {
     try {
+      // Direct query to user_roles table instead of using RPC
       const { data, error } = await supabase
-        .rpc('get_user_role', { checking_user_id: userId })
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
         .maybeSingle();
 
       if (error) {
@@ -43,7 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
         return null;
       }
-      
+
       return data?.role as UserRole;
     } catch (error) {
       console.error('Error in fetchUserRole:', error);
