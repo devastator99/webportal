@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data, error } = await supabase
         .rpc('get_user_role', { checking_user_id: userId })
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching role:', error);
