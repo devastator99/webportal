@@ -12,13 +12,12 @@ type PatientHeaderProps = {
 
 export const PatientHeader = ({ firstName, lastName, onSignOut }: PatientHeaderProps) => {
   const isMobile = useIsMobile();
-  const displayName = firstName 
-    ? `${firstName}${lastName ? ` ${lastName}` : ''}`
-    : "Patient";
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
-      <h1 className="text-2xl sm:text-3xl font-bold">Welcome, {displayName}</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold truncate">
+        Welcome, {firstName && lastName ? `${firstName} ${lastName}` : "Patient"}
+      </h1>
       <div className="flex gap-2 sm:gap-4 w-full sm:w-auto">
         <ScheduleAppointment>
           <Button 

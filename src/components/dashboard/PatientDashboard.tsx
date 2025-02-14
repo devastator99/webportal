@@ -92,9 +92,9 @@ export const PatientDashboard = () => {
     : null;
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="min-h-screen pt-20">
       <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-b">
-        <div className="container mx-auto p-6">
+        <div className="container mx-auto p-4">
           <PatientHeader 
             firstName={patientData?.profile?.first_name}
             lastName={patientData?.profile?.last_name}
@@ -103,14 +103,14 @@ export const PatientDashboard = () => {
         </div>
       </div>
 
-      <div className="mt-24">
+      <div className="container mx-auto p-6 space-y-6">
         <PatientStats 
           appointmentsCount={scheduledAppointments.length}
           medicalRecordsCount={patientData?.medicalRecords.length || 0}
           nextAppointmentDate={nextAppointmentDate}
         />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
             <AppointmentsList appointments={scheduledAppointments} />
             <MedicalRecordsList records={patientData?.medicalRecords || []} />
