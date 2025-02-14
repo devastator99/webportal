@@ -40,10 +40,26 @@ export const PatientDashboard = () => {
   const { data: patientData, isLoading } = useQuery({
     queryKey: ["patient_dashboard", user?.id],
     queryFn: async () => {
+      if (!user?.id) throw new Error("No user ID");
+
+      // First get the profile data
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("first_name, last_name")
+        .eq("id", user.id)
+        .single();
+
+      if (profileError) {
+        console.error("Profile fetch error:", profileError);
+        throw profileError;
+      }
+
+      console.log("Profile data:", profile); // Debug log
+
+      // Then get appointments and medical records
       const [
         { data: appointments, error: appointmentsError },
-        { data: medicalRecords, error: medicalRecordsError },
-        { data: profile, error: profileError }
+        { data: medicalRecords, error: medicalRecordsError }
       ] = await Promise.all([
         supabase
           .from("appointments")
@@ -53,30 +69,22 @@ export const PatientDashboard = () => {
             status,
             doctor:profiles!appointments_doctor_profile_fkey(first_name, last_name)
           `)
-          .eq("patient_id", user?.id)
+          .eq("patient_id", user.id)
           .order("scheduled_at", { ascending: true }),
         supabase
           .from("medical_records")
           .select("*")
-          .eq("patient_id", user?.id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("profiles")
-          .select("first_name, last_name")
-          .eq("id", user?.id)
-          .maybeSingle()
+          .eq("patient_id", user.id)
+          .order("created_at", { ascending: false })
       ]);
 
       if (appointmentsError) throw appointmentsError;
       if (medicalRecordsError) throw medicalRecordsError;
-      if (profileError) throw profileError;
-
-      console.log("Patient profile:", profile);
 
       return {
+        profile,
         appointments: appointments || [],
-        medicalRecords: medicalRecords || [],
-        profile
+        medicalRecords: medicalRecords || []
       };
     },
     enabled: !!user?.id,
