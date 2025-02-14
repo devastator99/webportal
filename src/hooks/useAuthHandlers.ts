@@ -45,15 +45,34 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      // First sign up the user
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: { user_type: userType }
-        }
       });
 
-      if (error) throw error;
+      if (signUpError) throw signUpError;
+      if (!authData.user) throw new Error("User creation failed");
+
+      // Then create their role
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert([
+          { 
+            user_id: authData.user.id, 
+            role: userType 
+          }
+        ]);
+
+      if (roleError) {
+        console.error('Role creation error:', roleError);
+        // If role creation fails, we should handle it but not block the signup
+        toast({
+          variant: "destructive",
+          title: "Warning",
+          description: "Account created but role assignment failed. Please contact support."
+        });
+      }
 
       navigate('/dashboard');
 
