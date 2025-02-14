@@ -450,6 +450,13 @@ export type Database = {
       }
     }
     Functions: {
+      check_user_role: {
+        Args: {
+          checking_user_id: string
+          required_role: Database["public"]["Enums"]["user_type"]
+        }
+        Returns: boolean
+      }
       get_user_role: {
         Args: {
           checking_user_id: string
