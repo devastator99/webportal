@@ -462,10 +462,7 @@ export type Database = {
           checking_user_id: string
         }
         Returns: {
-          created_at: string
-          id: string
           role: Database["public"]["Enums"]["user_type"]
-          user_id: string
         }[]
       }
       has_role: {
