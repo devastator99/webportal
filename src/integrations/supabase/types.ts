@@ -152,6 +152,35 @@ export type Database = {
           },
         ]
       }
+      document_summaries: {
+        Row: {
+          created_at: string | null
+          document_id: string
+          id: string
+          summary: string
+        }
+        Insert: {
+          created_at?: string | null
+          document_id: string
+          id?: string
+          summary: string
+        }
+        Update: {
+          created_at?: string | null
+          document_id?: string
+          id?: string
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_summaries_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: true
+            referencedRelation: "medical_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       educational_resources: {
         Row: {
           created_at: string

@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, Upload } from "lucide-react";
@@ -8,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { DocumentSummary } from "../doctor/DocumentSummary";
 
 type MedicalRecord = {
   id: string;
@@ -23,6 +25,21 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Query to fetch documents for all records
+  const { data: documents } = useQuery({
+    queryKey: ["medical_documents", records.map(r => r.id)],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('medical_documents')
+        .select('*')
+        .in('medical_record_id', records.map(r => r.id));
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: records.length > 0
+  });
 
   const handleFileUpload = async (recordId: string, file: File) => {
     try {
@@ -57,7 +74,7 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
       }
 
       // Create document record
-      const { error: dbError } = await supabase
+      const { data: document, error: dbError } = await supabase
         .from('medical_documents')
         .insert({
           medical_record_id: recordId,
@@ -65,7 +82,9 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
           file_path: filePath,
           file_type: file.type,
           file_size: file.size
-        });
+        })
+        .select()
+        .single();
 
       if (dbError) {
         if (dbError.message.includes('foreign key constraint')) {
@@ -121,39 +140,55 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
       <CardContent>
         <ScrollArea className="h-[300px] pr-4">
           <div className="space-y-4">
-            {records.map((record) => (
-              <div key={record.id} className="flex justify-between items-center p-4 border rounded-lg hover:bg-gray-50">
-                <div>
-                  <p className="font-medium">{record.diagnosis || 'General Check-up'}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {new Date(record.created_at).toLocaleDateString()}
-                  </p>
+            {records.map((record) => {
+              const recordDocuments = documents?.filter(
+                doc => doc.medical_record_id === record.id
+              ) || [];
+
+              return (
+                <div key={record.id} className="space-y-4">
+                  <div className="flex justify-between items-center p-4 border rounded-lg hover:bg-gray-50">
+                    <div>
+                      <p className="font-medium">{record.diagnosis || 'General Check-up'}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(record.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex items-center gap-2"
+                        onClick={() => {
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
+                          input.onchange = (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0];
+                            if (file) {
+                              handleFileUpload(record.id, file);
+                            }
+                          };
+                          input.click();
+                        }}
+                        disabled={isUploading}
+                      >
+                        <Upload className="h-4 w-4" />
+                        {isUploading ? 'Uploading...' : 'Upload Document'}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {recordDocuments.map(doc => (
+                    <DocumentSummary
+                      key={doc.id}
+                      documentId={doc.id}
+                      documentPath={doc.file_path}
+                    />
+                  ))}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-2"
-                    onClick={() => {
-                      const input = document.createElement('input');
-                      input.type = 'file';
-                      input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
-                      input.onchange = (e) => {
-                        const file = (e.target as HTMLInputElement).files?.[0];
-                        if (file) {
-                          handleFileUpload(record.id, file);
-                        }
-                      };
-                      input.click();
-                    }}
-                    disabled={isUploading}
-                  >
-                    <Upload className="h-4 w-4" />
-                    {isUploading ? 'Uploading...' : 'Upload Document'}
-                  </Button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </ScrollArea>
       </CardContent>
