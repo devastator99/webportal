@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -21,7 +22,7 @@ export const PatientDashboard = () => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
-      navigate("/auth");
+      navigate("/");
       toast({
         title: "Signed out successfully",
         description: "You have been signed out of your account.",
@@ -33,7 +34,7 @@ export const PatientDashboard = () => {
         description: error.message || "An error occurred while signing out. Please try again.",
         variant: "destructive",
       });
-      navigate("/auth");
+      navigate("/");
     }
   };
 
@@ -91,11 +92,13 @@ export const PatientDashboard = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <PatientHeader 
-        firstName={patientData?.profile?.first_name}
-        lastName={patientData?.profile?.last_name}
-        onSignOut={handleSignOut}
-      />
+      <div className="sticky top-0 bg-background z-10 pb-4">
+        <PatientHeader 
+          firstName={patientData?.profile?.first_name}
+          lastName={patientData?.profile?.last_name}
+          onSignOut={handleSignOut}
+        />
+      </div>
       
       <PatientStats 
         appointmentsCount={scheduledAppointments.length}
