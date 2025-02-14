@@ -10,7 +10,6 @@ import { PatientHeader } from "./patient/PatientHeader";
 import { PatientStats } from "./patient/PatientStats";
 import { AppointmentsList } from "./patient/AppointmentsList";
 import { MedicalRecordsList } from "./patient/MedicalRecordsList";
-import { PatientFlow } from "./patient/PatientFlow";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
@@ -63,7 +62,7 @@ export const PatientDashboard = () => {
           .order("created_at", { ascending: false }),
         supabase
           .from("profiles")
-          .select("*")
+          .select("first_name, last_name")
           .eq("id", user?.id)
           .maybeSingle()
       ]);
@@ -71,6 +70,8 @@ export const PatientDashboard = () => {
       if (appointmentsError) throw appointmentsError;
       if (medicalRecordsError) throw medicalRecordsError;
       if (profileError) throw profileError;
+
+      console.log("Patient profile:", profile); // Add this to debug
 
       return {
         appointments: appointments || [],
@@ -105,8 +106,6 @@ export const PatientDashboard = () => {
         medicalRecordsCount={patientData?.medicalRecords.length || 0}
         nextAppointmentDate={nextAppointmentDate}
       />
-
-      <PatientFlow />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="space-y-6">
