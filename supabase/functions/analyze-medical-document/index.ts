@@ -33,25 +33,24 @@ serve(async (req) => {
     );
 
     // Get the document content from storage
-    const { data: document } = await supabaseClient
+    const { data: document, error: downloadError } = await supabaseClient
       .storage
       .from('medical_files')
       .download(documentUrl);
 
-    if (!document) {
+    if (downloadError || !document) {
       throw new Error('Document not found');
     }
 
     // Convert the document to base64
-    const reader = new FileReader();
-    const base64String = await new Promise((resolve) => {
-      reader.onload = () => resolve(reader.result as string);
-      reader.readAsDataURL(document);
-    });
+    const bytes = await document.arrayBuffer();
+    const base64String = `data:${document.type};base64,${btoa(
+      String.fromCharCode(...new Uint8Array(bytes))
+    )}`;
 
     // Analyze the document with OpenAI Vision
     const response = await openai.chat.completions.create({
-      model: "gpt-4-vision-preview",
+      model: "gpt-4o", // Updated to use the correct model name
       messages: [
         {
           role: "system",
