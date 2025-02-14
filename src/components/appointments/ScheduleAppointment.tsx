@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -60,6 +61,8 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
   const { data: doctors, isLoading: isDoctorsLoading } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
+      console.log("Starting doctor fetch...");
+      
       const { data: doctorRoles, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id")
@@ -70,12 +73,15 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
         throw rolesError;
       }
 
+      console.log("Doctor roles fetched:", doctorRoles);
+
       if (!doctorRoles?.length) {
         console.log("No doctors found in user_roles");
         return [];
       }
 
       const doctorIds = doctorRoles.map(role => role.user_id);
+      console.log("Doctor IDs:", doctorIds);
 
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
@@ -87,7 +93,7 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
         throw profilesError;
       }
 
-      console.log("Fetched doctors:", profiles);
+      console.log("Doctor profiles fetched:", profiles);
       return (profiles || []) as Doctor[];
     },
   });
