@@ -36,6 +36,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) {
         console.error('Error fetching role:', error);
+        toast({
+          variant: "destructive",
+          title: "Error fetching role",
+          description: error.message
+        });
         return null;
       }
       
