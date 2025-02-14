@@ -450,6 +450,12 @@ export type Database = {
       }
     }
     Functions: {
+      can_insert_user_role: {
+        Args: {
+          checking_user_id: string
+        }
+        Returns: boolean
+      }
       check_user_role: {
         Args: {
           checking_user_id: string
