@@ -1,5 +1,5 @@
 
-import { ReactFlow, Background, Controls, Node, Edge } from '@xyflow/react';
+import { ReactFlow, Background, Controls, Node, Edge, MarkerType } from '@xyflow/react';
 import { useCallback } from 'react';
 import { ChevronRight } from "lucide-react";
 
@@ -40,7 +40,7 @@ const initialEdges: Edge[] = [
     animated: true,
     style: { stroke: '#8B5CF6' },
     markerEnd: {
-      type: 'arrow',
+      type: MarkerType.ArrowClosed,
       color: '#8B5CF6',
     }
   },
@@ -51,7 +51,7 @@ const initialEdges: Edge[] = [
     animated: true,
     style: { stroke: '#8B5CF6' },
     markerEnd: {
-      type: 'arrow',
+      type: MarkerType.ArrowClosed,
       color: '#8B5CF6',
     }
   },
@@ -62,7 +62,7 @@ const initialEdges: Edge[] = [
     animated: true,
     style: { stroke: '#8B5CF6' },
     markerEnd: {
-      type: 'arrow',
+      type: MarkerType.ArrowClosed,
       color: '#8B5CF6',
     }
   },
