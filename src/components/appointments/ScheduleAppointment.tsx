@@ -217,7 +217,7 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
               <SelectContent>
                 {isDoctorsLoading ? (
                   <SelectItem value="loading" disabled>Loading doctors...</SelectItem>
-                ) : doctors?.length === 0 ? (
+                ) : !doctors?.length ? (
                   <SelectItem value="none" disabled>No doctors available</SelectItem>
                 ) : (
                   doctors?.map((doctor) => (
