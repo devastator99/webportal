@@ -1,8 +1,9 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+
+type UserRole = "patient" | "doctor" | "nutritionist" | "administrator";
 
 export const useAuthHandlers = () => {
   const [loading, setLoading] = useState(false);
@@ -40,7 +41,7 @@ export const useAuthHandlers = () => {
     }
   };
 
-  const handleSignUp = async (email: string, password: string, userType: string) => {
+  const handleSignUp = async (email: string, password: string, userType: UserRole) => {
     setLoading(true);
     setError(null);
 
@@ -57,16 +58,13 @@ export const useAuthHandlers = () => {
       // Then create their role
       const { error: roleError } = await supabase
         .from('user_roles')
-        .insert([
-          { 
-            user_id: authData.user.id, 
-            role: userType 
-          }
-        ]);
+        .insert({
+          user_id: authData.user.id,
+          role: userType
+        });
 
       if (roleError) {
         console.error('Role creation error:', roleError);
-        // If role creation fails, we should handle it but not block the signup
         toast({
           variant: "destructive",
           title: "Warning",
