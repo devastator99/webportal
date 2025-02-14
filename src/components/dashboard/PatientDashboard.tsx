@@ -43,6 +43,8 @@ export const PatientDashboard = () => {
     queryFn: async () => {
       if (!user?.id) throw new Error("No user ID");
 
+      console.log("Fetching profile data for user:", user.id); // Debug log
+
       // First get the profile data
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
@@ -55,7 +57,7 @@ export const PatientDashboard = () => {
         throw profileError;
       }
 
-      console.log("Profile data:", profile); // Debug log
+      console.log("Profile data fetched:", profile); // Debug log
 
       // Then get appointments and medical records
       const [
