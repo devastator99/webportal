@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Upload, FileText } from "lucide-react";
@@ -8,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { DocumentSummary } from "../doctor/DocumentSummary";
+import { useQuery } from "@tanstack/react-query";
 
 type MedicalRecord = {
   id: string;
