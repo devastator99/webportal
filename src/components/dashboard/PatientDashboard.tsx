@@ -9,7 +9,6 @@ import { PatientHeader } from "./patient/PatientHeader";
 import { PatientStats } from "./patient/PatientStats";
 import { AppointmentsList } from "./patient/AppointmentsList";
 import { MedicalRecordsList } from "./patient/MedicalRecordsList";
-import { PatientReports } from "./patient/PatientReports";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
@@ -35,8 +34,7 @@ export const PatientDashboard = () => {
       // Then get appointments, medical records and reports count
       const [
         { data: appointments, error: appointmentsError },
-        { data: medicalRecords, error: medicalRecordsError },
-        { data: medicalReports, error: reportsError }
+        { data: medicalRecords, error: medicalRecordsError }
       ] = await Promise.all([
         supabase
           .from("appointments")
@@ -52,22 +50,16 @@ export const PatientDashboard = () => {
           .from("medical_records")
           .select("*")
           .eq("patient_id", user.id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("medical_documents")
-          .select("*")
           .order("created_at", { ascending: false })
       ]);
 
       if (appointmentsError) throw appointmentsError;
       if (medicalRecordsError) throw medicalRecordsError;
-      if (reportsError) throw reportsError;
 
       return {
         profile,
         appointments: appointments || [],
-        medicalRecords: medicalRecords || [],
-        medicalReports: medicalReports || []
+        medicalRecords: medicalRecords || []
       };
     },
     enabled: !!user?.id,
@@ -101,14 +93,13 @@ export const PatientDashboard = () => {
           appointmentsCount={upcomingAppointments.length}
           medicalRecordsCount={patientData?.medicalRecords.length || 0}
           nextAppointmentDate={nextAppointmentDate}
-          reportsCount={patientData?.medicalReports.length || 0}
+          reportsCount={0}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
             <AppointmentsList appointments={upcomingAppointments} />
             <MedicalRecordsList records={patientData?.medicalRecords || []} />
-            <PatientReports reports={patientData?.medicalReports || []} />
           </div>
           <ChatInterface />
         </div>
@@ -116,4 +107,3 @@ export const PatientDashboard = () => {
     </div>
   );
 };
-
