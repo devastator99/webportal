@@ -30,37 +30,38 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchUserRole = async (userId: string) => {
     try {
-      // Direct query to user_roles table instead of using RPC
+      console.log('Fetching role for user:', userId);
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .maybeSingle();
+        .single();
 
       if (error) {
-        console.error('Error fetching role:', error);
-        toast({
-          variant: "destructive",
-          title: "Error fetching role",
-          description: error.message
-        });
+        console.error('Error fetching user role:', error);
         return null;
       }
 
+      console.log('Role data received:', data);
       return data?.role as UserRole;
     } catch (error) {
-      console.error('Error in fetchUserRole:', error);
+      console.error('Exception in fetchUserRole:', error);
       return null;
     }
   };
 
   const handleAuthStateChange = async (session: any) => {
     try {
+      setIsLoading(true);
+      
       if (session?.user) {
+        console.log('Auth state change - user found:', session.user.id);
         setUser(session.user);
         const role = await fetchUserRole(session.user.id);
+        console.log('Role fetched:', role);
         setUserRole(role);
       } else {
+        console.log('Auth state change - no user');
         setUser(null);
         setUserRole(null);
       }
