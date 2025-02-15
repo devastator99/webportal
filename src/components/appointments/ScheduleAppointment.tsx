@@ -58,7 +58,7 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
   const [step, setStep] = useState<"selection" | "confirmation" | "payment">("selection");
   const [paymentStep, setPaymentStep] = useState<PaymentStep>({ status: "idle" });
 
-  const { data: doctors, isLoading: isDoctorsLoading } = useQuery({
+  const { data: doctors, isLoading: isDoctorsLoading, error: doctorsError } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
       console.log("Starting doctor fetch...");
@@ -71,6 +71,10 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       if (rolesError) {
         console.error("Error fetching doctor roles:", rolesError);
         throw rolesError;
+      }
+
+      if (!doctorRoles?.length) {
+        return [];
       }
 
       const doctorIds = doctorRoles.map(role => role.user_id);
@@ -215,15 +219,23 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
 
   const availableTimeSlots = getAvailableTimeSlots();
 
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent>
+  const renderContent = () => {
+    let title = "Schedule Appointment";
+    let description = "Select your preferred doctor, date, and time for the appointment.";
+
+    if (step === "confirmation") {
+      title = "Confirm Appointment";
+      description = "Please review your appointment details before proceeding to payment.";
+    } else if (step === "payment") {
+      title = "Processing Payment";
+      description = "Please wait while we process your payment.";
+    }
+
+    return (
+      <>
         <DialogHeader>
-          <DialogTitle>Schedule Appointment</DialogTitle>
-          <DialogDescription>
-            Select your preferred doctor, date, and time for the appointment.
-          </DialogDescription>
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
         {step === "selection" && (
@@ -241,12 +253,26 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
                   <SelectValue placeholder="Select a doctor" />
                 </SelectTrigger>
                 <SelectContent>
-                  {doctors?.map((doctor) => (
-                    <SelectItem key={doctor.id} value={doctor.id}>
-                      Dr. {doctor.first_name} {doctor.last_name} - ₹
-                      {doctor.consultation_fee}
+                  {doctorsError ? (
+                    <SelectItem value="error" disabled>
+                      Error loading doctors
                     </SelectItem>
-                  ))}
+                  ) : isDoctorsLoading ? (
+                    <SelectItem value="loading" disabled>
+                      Loading doctors...
+                    </SelectItem>
+                  ) : doctors?.length === 0 ? (
+                    <SelectItem value="none" disabled>
+                      No doctors available
+                    </SelectItem>
+                  ) : (
+                    doctors?.map((doctor) => (
+                      <SelectItem key={doctor.id} value={doctor.id}>
+                        Dr. {doctor.first_name} {doctor.last_name} - ₹
+                        {doctor.consultation_fee}
+                      </SelectItem>
+                    ))
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -357,6 +383,15 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
             )}
           </div>
         )}
+      </>
+    );
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent>
+        {renderContent()}
       </DialogContent>
     </Dialog>
   );
