@@ -63,283 +63,300 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
     queryFn: async () => {
       console.log("Starting doctor fetch...");
       
-      // Join profiles with user_roles to get only doctors
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          first_name,
-          last_name,
-          consultation_fee,
-          user_roles!inner (
-            role
-          )
-        `)
-        .eq('user_roles.role', 'doctor')
-        .order('first_name');
+      const { data: doctorRoles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "doctor");
 
-      if (error) {
-        console.error("Error fetching doctors:", error);
-        throw error;
+      if (rolesError) {
+        console.error("Error fetching doctor roles:", rolesError);
+        throw rolesError;
       }
 
-      // Transform the data to match the Doctor interface
-      const doctorsList = data.map(({ id, first_name, last_name, consultation_fee }) => ({
-        id,
-        first_name,
-        last_name,
-        consultation_fee
-      }));
+      const doctorIds = doctorRoles.map(role => role.user_id);
+      
+      const { data: doctorProfiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, consultation_fee")
+        .in("id", doctorIds)
+        .order("first_name");
 
-      console.log("Doctor profiles fetched:", doctorsList);
-      return doctorsList as Doctor[];
+      if (profilesError) {
+        console.error("Error fetching doctor profiles:", profilesError);
+        throw profilesError;
+      }
+
+      console.log("Doctor profiles fetched:", doctorProfiles);
+      return doctorProfiles as Doctor[];
     },
   });
 
-  const { data: doctorAvailability } = useQuery({
+  const { data: doctorAvailability, isLoading: isAvailabilityLoading } = useQuery({
     queryKey: ["doctor_availability", selectedDoctor],
+    enabled: !!selectedDoctor,
     queryFn: async () => {
-      if (!selectedDoctor) return null;
-      
       const { data, error } = await supabase
         .from("doctor_availability")
         .select("*")
-        .eq("doctor_id", selectedDoctor)
-        .eq("is_available", true);
+        .eq("doctor_id", selectedDoctor);
 
       if (error) throw error;
       return data as DoctorAvailability[];
     },
-    enabled: !!selectedDoctor,
   });
-
-  const selectedDoctorData = doctors?.find(d => d.id === selectedDoctor);
 
   const getAvailableTimeSlots = () => {
     if (!selectedDate || !doctorAvailability) return [];
 
     const dayOfWeek = selectedDate.getDay();
-    const dayAvailability = doctorAvailability.find(a => a.day_of_week === dayOfWeek);
-    
-    if (!dayAvailability) return [];
+    const todayAvailability = doctorAvailability.find(
+      (a) => a.day_of_week === dayOfWeek && a.is_available
+    );
 
-    const slots = [];
-    const [startHour, startMinute] = dayAvailability.start_time.split(':').map(Number);
-    const [endHour, endMinute] = dayAvailability.end_time.split(':').map(Number);
+    if (!todayAvailability) return [];
+
+    const slots: string[] = [];
+    const { start_time, end_time } = todayAvailability;
     
+    const [startHour, startMinute] = start_time.split(":").map(Number);
+    const [endHour, endMinute] = end_time.split(":").map(Number);
+
     let current = setHours(setMinutes(selectedDate, startMinute), startHour);
     const end = setHours(setMinutes(selectedDate, endMinute), endHour);
 
     while (current < end) {
-      slots.push(format(current, 'HH:mm'));
+      slots.push(format(current, "HH:mm"));
       current = new Date(current.getTime() + 30 * 60000); // Add 30 minutes
     }
 
     return slots;
   };
 
-  const handleSchedule = async () => {
-    if (!selectedDate || !selectedTime || !selectedDoctor || !user || !selectedDoctorData) {
+  const handleConfirmAppointment = async () => {
+    if (!user?.id || !selectedDoctor || !selectedDate || !selectedTime) {
       toast({
-        title: "Please fill in all fields",
         variant: "destructive",
+        title: "Missing information",
+        description: "Please select all required fields",
       });
       return;
     }
 
-    try {
-      setStep("confirmation");
-    } catch (error: any) {
+    const selectedDoctor1 = doctors?.find((d) => d.id === selectedDoctor);
+    if (!selectedDoctor1) {
       toast({
-        title: "Error scheduling appointment",
-        description: error.message,
         variant: "destructive",
+        title: "Error",
+        description: "Selected doctor not found",
       });
+      return;
     }
-  };
-
-  const handleConfirmAppointment = async () => {
-    if (!selectedDate || !selectedTime || !selectedDoctor || !user || !selectedDoctorData) return;
 
     setStep("payment");
     setPaymentStep({ status: "processing" });
 
     try {
-      const payment = await createMockPayment(selectedDoctorData.consultation_fee);
+      const [hours, minutes] = selectedTime.split(":").map(Number);
+      const appointmentDateTime = new Date(selectedDate);
+      appointmentDateTime.setHours(hours, minutes);
 
-      if (payment.status === "completed") {
-        const scheduledAt = new Date(selectedDate);
-        const [hours, minutes] = selectedTime.split(":");
-        scheduledAt.setHours(parseInt(hours), parseInt(minutes));
-
-        const { error: appointmentError } = await supabase
-          .from("appointments")
-          .insert({
+      // Create appointment
+      const { data: appointment, error: appointmentError } = await supabase
+        .from("appointments")
+        .insert([
+          {
             patient_id: user.id,
             doctor_id: selectedDoctor,
-            scheduled_at: scheduledAt.toISOString(),
+            scheduled_at: appointmentDateTime.toISOString(),
             status: "scheduled",
-            payment_confirmed: true,
-          });
+          },
+        ])
+        .select()
+        .single();
 
-        if (appointmentError) throw appointmentError;
+      if (appointmentError) throw appointmentError;
 
+      // Mock payment processing
+      const paymentResult = await createMockPayment({
+        amount: selectedDoctor1.consultation_fee,
+        appointmentId: appointment.id,
+      });
+
+      if (paymentResult.status === "success") {
         setPaymentStep({ status: "success" });
         toast({
           title: "Appointment scheduled successfully",
-          description: "Your appointment has been confirmed and payment processed.",
+          description: "Your appointment has been confirmed",
         });
-
         setTimeout(() => {
           setIsOpen(false);
           setStep("selection");
+          setPaymentStep({ status: "idle" });
           setSelectedDate(undefined);
           setSelectedTime(undefined);
           setSelectedDoctor(undefined);
-          setPaymentStep({ status: "idle" });
         }, 2000);
+      } else {
+        throw new Error("Payment failed");
       }
     } catch (error: any) {
-      setPaymentStep({ status: "error", error: error.message });
+      console.error("Error scheduling appointment:", error);
+      setPaymentStep({
+        status: "error",
+        error: "Failed to schedule appointment. Please try again.",
+      });
       toast({
-        title: "Error processing payment",
-        description: error.message,
         variant: "destructive",
+        title: "Error",
+        description: error.message,
       });
     }
   };
 
-  const renderStep = () => {
-    switch (step) {
-      case "selection":
-        return (
-          <div className="grid gap-3 py-3">
-            <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a doctor" />
-              </SelectTrigger>
-              <SelectContent>
-                {isDoctorsLoading ? (
-                  <SelectItem value="loading" disabled>Loading doctors...</SelectItem>
-                ) : !doctors?.length ? (
-                  <SelectItem value="none" disabled>No doctors available</SelectItem>
-                ) : (
-                  doctors?.map((doctor) => (
+  const availableTimeSlots = getAvailableTimeSlots();
+
+  return (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Schedule Appointment</DialogTitle>
+          <DialogDescription>
+            Select your preferred doctor, date, and time for the appointment.
+          </DialogDescription>
+        </DialogHeader>
+
+        {step === "selection" && (
+          <div className="space-y-4 pt-4">
+            <div className="space-y-2">
+              <label htmlFor="doctor" className="text-sm font-medium">
+                Select Doctor
+              </label>
+              <Select
+                value={selectedDoctor}
+                onValueChange={setSelectedDoctor}
+                disabled={isDoctorsLoading}
+              >
+                <SelectTrigger id="doctor">
+                  <SelectValue placeholder="Select a doctor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {doctors?.map((doctor) => (
                     <SelectItem key={doctor.id} value={doctor.id}>
-                      Dr. {doctor.first_name} {doctor.last_name} - ₹{doctor.consultation_fee}
+                      Dr. {doctor.first_name} {doctor.last_name} - ₹
+                      {doctor.consultation_fee}
                     </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={setSelectedDate}
-              disabled={(date) => 
-                date < new Date() || 
-                date.getDay() === 0 || 
-                date.getDay() === 6
-              }
-              className="rounded-md border p-2"
-            />
+            {selectedDoctor && (
+              <>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Select Date</label>
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={setSelectedDate}
+                    disabled={(date) => date < new Date()}
+                    className="rounded-md border"
+                  />
+                </div>
 
-            <Select value={selectedTime} onValueChange={setSelectedTime}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select time">
-                  <div className="flex items-center">
-                    <Clock className="mr-2 h-4 w-4" />
-                    <span>{selectedTime || "Select time"}</span>
+                {selectedDate && (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Select Time</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {availableTimeSlots.map((time) => (
+                        <Button
+                          key={time}
+                          variant={selectedTime === time ? "default" : "outline"}
+                          className="w-full"
+                          onClick={() => setSelectedTime(time)}
+                        >
+                          {time}
+                        </Button>
+                      ))}
+                    </div>
                   </div>
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {getAvailableTimeSlots().map((time) => (
-                  <SelectItem key={time} value={time}>
-                    {time}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+                )}
+              </>
+            )}
 
-            <Button onClick={handleSchedule} disabled={!selectedDate || !selectedTime || !selectedDoctor}>
-              Continue to Confirmation
+            <Button
+              className="w-full"
+              disabled={!selectedDoctor || !selectedDate || !selectedTime}
+              onClick={() => setStep("confirmation")}
+            >
+              Continue
             </Button>
           </div>
-        );
+        )}
 
-      case "confirmation":
-        return (
-          <div className="space-y-4 py-3">
+        {step === "confirmation" && (
+          <div className="space-y-4 pt-4">
             <div className="rounded-lg border p-4 space-y-2">
               <p className="font-medium">Appointment Details</p>
-              <p>Doctor: Dr. {selectedDoctorData?.first_name} {selectedDoctorData?.last_name}</p>
-              <p>Date: {selectedDate ? format(selectedDate, 'MMMM d, yyyy') : ''}</p>
+              <p>
+                Doctor: Dr.{" "}
+                {doctors?.find((d) => d.id === selectedDoctor)?.first_name}{" "}
+                {doctors?.find((d) => d.id === selectedDoctor)?.last_name}
+              </p>
+              <p>Date: {format(selectedDate!, "PP")}</p>
               <p>Time: {selectedTime}</p>
-              <p className="font-medium mt-2">Consultation Fee: ₹{selectedDoctorData?.consultation_fee}</p>
+              <p>
+                Fee: ₹
+                {doctors?.find((d) => d.id === selectedDoctor)?.consultation_fee}
+              </p>
             </div>
+
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setStep("selection")}>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setStep("selection")}
+              >
                 Back
               </Button>
-              <Button onClick={handleConfirmAppointment}>
-                Proceed to Payment
+              <Button className="w-full" onClick={handleConfirmAppointment}>
+                Confirm & Pay
               </Button>
             </div>
           </div>
-        );
+        )}
 
-      case "payment":
-        return (
-          <div className="space-y-4 py-3">
+        {step === "payment" && (
+          <div className="space-y-4 pt-4">
             {paymentStep.status === "processing" && (
-              <div className="text-center space-y-3">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto" />
+              <div className="text-center space-y-2">
+                <Clock className="w-8 h-8 animate-spin mx-auto" />
                 <p>Processing payment...</p>
               </div>
             )}
 
             {paymentStep.status === "success" && (
-              <div className="text-center space-y-3 text-green-600">
-                <p className="text-lg font-medium">Payment Successful!</p>
-                <p>Your appointment has been confirmed.</p>
+              <div className="text-center space-y-2 text-green-600">
+                <CalendarIcon className="w-8 h-8 mx-auto" />
+                <p>Appointment scheduled successfully!</p>
               </div>
             )}
 
             {paymentStep.status === "error" && (
-              <div className="text-center space-y-3">
-                <AlertCircle className="h-8 w-8 text-destructive mx-auto" />
-                <p className="text-destructive">{paymentStep.error}</p>
-                <Button variant="outline" onClick={() => setStep("confirmation")}>
+              <div className="text-center space-y-2 text-destructive">
+                <AlertCircle className="w-8 h-8 mx-auto" />
+                <p>{paymentStep.error}</p>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => setStep("selection")}
+                >
                   Try Again
                 </Button>
               </div>
             )}
           </div>
-        );
-    }
-  };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {children}
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[400px]">
-        <DialogHeader>
-          <DialogTitle>
-            {step === "selection" && "Schedule Appointment"}
-            {step === "confirmation" && "Confirm Appointment"}
-            {step === "payment" && "Payment"}
-          </DialogTitle>
-          <DialogDescription>
-            {step === "selection" && "Choose your preferred doctor and appointment time"}
-            {step === "confirmation" && "Review your appointment details"}
-            {step === "payment" && "Complete your payment to confirm the appointment"}
-          </DialogDescription>
-        </DialogHeader>
-        {renderStep()}
+        )}
       </DialogContent>
     </Dialog>
   );
