@@ -14,7 +14,8 @@ type PatientReport = {
   file_name: string;
   file_type: string | null;
   file_path: string;
-  uploaded_at: string;
+  file_size: number;
+  created_at: string;
 };
 
 export const PatientReports = () => {
@@ -31,8 +32,11 @@ export const PatientReports = () => {
         .eq('medical_record_id', user?.id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error fetching reports:', error);
+        throw error;
+      }
+      return data as PatientReport[];
     },
     enabled: !!user?.id
   });
@@ -41,16 +45,21 @@ export const PatientReports = () => {
     try {
       setIsUploading(true);
       
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
+
       // Upload file to storage
       const fileExt = file.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const filePath = `${user.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('medical_files')
         .upload(filePath, file);
 
       if (uploadError) {
+        console.error('Storage upload error:', uploadError);
         throw uploadError;
       }
 
@@ -58,7 +67,7 @@ export const PatientReports = () => {
       const { error: dbError } = await supabase
         .from('medical_documents')
         .insert({
-          medical_record_id: user?.id,
+          medical_record_id: user.id,
           file_name: file.name,
           file_path: filePath,
           file_type: file.type,
@@ -66,6 +75,7 @@ export const PatientReports = () => {
         });
 
       if (dbError) {
+        console.error('Database insert error:', dbError);
         throw dbError;
       }
 
@@ -84,6 +94,26 @@ export const PatientReports = () => {
       });
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleViewDocument = async (report: PatientReport) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('medical_files')
+        .createSignedUrl(report.file_path, 60);
+
+      if (error) throw error;
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+      }
+    } catch (error: any) {
+      console.error('Error viewing document:', error);
+      toast({
+        title: "Error viewing file",
+        description: error.message || "Failed to access the file.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -117,34 +147,24 @@ export const PatientReports = () => {
             {isUploading ? 'Uploading...' : 'Upload New Report'}
           </Button>
 
-          {reports && reports.length > 0 && (
+          {reports && reports.length > 0 ? (
             <ScrollArea className="h-[300px] w-full">
               <div className="space-y-2">
                 {reports.map((report) => (
                   <div
                     key={report.id}
-                    className="flex items-center justify-between p-2 border rounded"
+                    className="flex items-center justify-between p-2 border rounded hover:bg-accent"
                   >
-                    <span className="text-sm truncate">{report.file_name}</span>
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium truncate">{report.file_name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(report.created_at).toLocaleDateString()}
+                      </span>
+                    </div>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={async () => {
-                        try {
-                          const { data, error } = await supabase.storage
-                            .from('medical_files')
-                            .createSignedUrl(report.file_path, 60);
-
-                          if (error) throw error;
-                          if (data) window.open(data.signedUrl, '_blank');
-                        } catch (error: any) {
-                          toast({
-                            title: "Error viewing file",
-                            description: error.message,
-                            variant: "destructive",
-                          });
-                        }
-                      }}
+                      onClick={() => handleViewDocument(report)}
                     >
                       View
                     </Button>
@@ -152,6 +172,10 @@ export const PatientReports = () => {
                 ))}
               </div>
             </ScrollArea>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No reports uploaded yet. Upload your first medical report.
+            </p>
           )}
         </div>
       </CardContent>
