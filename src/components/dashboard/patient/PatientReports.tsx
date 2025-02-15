@@ -23,45 +23,13 @@ export const PatientReports = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // First, fetch the user's medical record
-  const { data: medicalRecord, refetch: refetchMedicalRecord } = useQuery({
-    queryKey: ["medical_record", user?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('medical_records')
-        .select('id')
-        .eq('patient_id', user?.id)
-        .single();
-
-      if (error && error.code === 'PGRST116') {
-        // No medical record found, create one
-        const { data: newRecord, error: createError } = await supabase
-          .from('medical_records')
-          .insert({
-            patient_id: user?.id,
-            diagnosis: 'Initial Record'
-          })
-          .select('id')
-          .single();
-
-        if (createError) throw createError;
-        return newRecord;
-      } else if (error) {
-        throw error;
-      }
-      return data;
-    },
-    enabled: !!user?.id
-  });
-
-  // Then fetch the documents associated with that medical record
+  // Fetch the documents for this user
   const { data: reports, refetch } = useQuery({
-    queryKey: ["patient_reports", medicalRecord?.id],
+    queryKey: ["patient_reports", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('medical_documents')
         .select('*')
-        .eq('medical_record_id', medicalRecord?.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -70,7 +38,7 @@ export const PatientReports = () => {
       }
       return data as PatientReport[];
     },
-    enabled: !!medicalRecord?.id
+    enabled: !!user?.id
   });
 
   const handleFileUpload = async (file: File) => {
@@ -79,14 +47,6 @@ export const PatientReports = () => {
       
       if (!user?.id) {
         throw new Error("User not authenticated");
-      }
-
-      // Ensure we have a medical record
-      if (!medicalRecord?.id) {
-        await refetchMedicalRecord();
-        if (!medicalRecord?.id) {
-          throw new Error("Could not create medical record");
-        }
       }
 
       // Upload file to storage
@@ -107,7 +67,6 @@ export const PatientReports = () => {
       const { error: dbError } = await supabase
         .from('medical_documents')
         .insert({
-          medical_record_id: medicalRecord.id,
           file_name: file.name,
           file_path: filePath,
           file_type: file.type,
