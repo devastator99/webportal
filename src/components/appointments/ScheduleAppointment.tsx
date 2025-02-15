@@ -1,9 +1,9 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { createMockPayment } from "@/utils/mockPayment";
@@ -14,18 +14,19 @@ interface ScheduleAppointmentProps {
   children: React.ReactNode;
 }
 
+type PaymentStepState =
+  | { status: "idle" }
+  | { status: "processing" }
+  | { status: "success" }
+  | { status: "error"; error: string };
+
 export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState<string>();
   const [selectedDate, setSelectedDate] = useState<Date>();
   const [selectedTime, setSelectedTime] = useState<string>();
   const [step, setStep] = useState<"selection" | "payment">("selection");
-  const [paymentStep, setPaymentStep] = useState<
-    | { status: "idle" }
-    | { status: "processing" }
-    | { status: "success" }
-    | { status: "error"; error: string }
-  >({ status: "idle" });
+  const [paymentStep, setPaymentStep] = useState<PaymentStepState>({ status: "idle" });
 
   const { user } = useAuth();
   const { toast } = useToast();
