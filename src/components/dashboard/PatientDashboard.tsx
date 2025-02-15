@@ -31,7 +31,7 @@ export const PatientDashboard = () => {
         throw profileError;
       }
 
-      // Then get appointments, medical records and reports count
+      // Then get appointments and medical records
       const [
         { data: appointments, error: appointmentsError },
         { data: medicalRecords, error: medicalRecordsError }
@@ -101,7 +101,9 @@ export const PatientDashboard = () => {
             <AppointmentsList appointments={upcomingAppointments} />
             <MedicalRecordsList records={patientData?.medicalRecords || []} />
           </div>
-          <ChatInterface />
+          <div>
+            <ChatInterface />
+          </div>
         </div>
       </div>
     </div>
