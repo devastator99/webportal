@@ -2,8 +2,8 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
 import { ChatInterface } from "../../chat/ChatInterface";
+import { useToast } from "@/hooks/use-toast";
 import { DashboardSkeleton } from "../DashboardSkeleton";
 import { PatientHeader } from "./PatientHeader";
 import { PatientStats } from "./PatientStats";
@@ -32,38 +32,35 @@ export const PatientDashboard = () => {
         throw profileError;
       }
 
-      // Then get appointments with doctor info
-      const { data: appointments, error: appointmentsError } = await supabase
-        .from("appointments")
-        .select(`
-          id,
-          scheduled_at,
-          status,
-          doctor:profiles!appointments_doctor_profile_fkey(
-            first_name, 
-            last_name
-          )
-        `)
-        .eq("patient_id", user.id)
-        .order("scheduled_at", { ascending: true });
+      // Then get appointments, medical records and reports count
+      const [
+        { data: appointments, error: appointmentsError },
+        { data: medicalRecords, error: medicalRecordsError },
+        { data: medicalReports, error: reportsError }
+      ] = await Promise.all([
+        supabase
+          .from("appointments")
+          .select(`
+            id,
+            scheduled_at,
+            status,
+            doctor:profiles!appointments_doctor_profile_fkey(first_name, last_name)
+          `)
+          .eq("patient_id", user.id)
+          .order("scheduled_at", { ascending: true }),
+        supabase
+          .from("medical_records")
+          .select("*")
+          .eq("patient_id", user.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("medical_documents")
+          .select("*")
+          .order("created_at", { ascending: false })
+      ]);
 
       if (appointmentsError) throw appointmentsError;
-
-      // Get medical records
-      const { data: medicalRecords, error: medicalRecordsError } = await supabase
-        .from("medical_records")
-        .select("*")
-        .eq("patient_id", user.id)
-        .order("created_at", { ascending: false });
-
       if (medicalRecordsError) throw medicalRecordsError;
-
-      // Get medical reports/documents
-      const { data: medicalReports, error: reportsError } = await supabase
-        .from("medical_documents")
-        .select("*")
-        .order("created_at", { ascending: false });
-
       if (reportsError) throw reportsError;
 
       return {
@@ -80,9 +77,11 @@ export const PatientDashboard = () => {
     return <DashboardSkeleton />;
   }
 
-  const scheduledAppointments = patientData?.appointments.filter(a => a.status === 'scheduled') || [];
-  const nextAppointmentDate = scheduledAppointments.length > 0 
-    ? new Date(scheduledAppointments[0].scheduled_at).toLocaleDateString()
+  const allAppointments = patientData?.appointments || [];
+  const scheduledAppointments = allAppointments.filter(a => a.status === 'scheduled');
+  const upcomingAppointments = scheduledAppointments.filter(a => new Date(a.scheduled_at) > new Date());
+  const nextAppointmentDate = upcomingAppointments.length > 0 
+    ? new Date(upcomingAppointments[0].scheduled_at).toLocaleDateString()
     : null;
 
   return (
@@ -98,7 +97,7 @@ export const PatientDashboard = () => {
 
       <div className="container mx-auto p-6 space-y-6">
         <PatientStats 
-          appointmentsCount={scheduledAppointments.length}
+          appointmentsCount={upcomingAppointments.length}
           medicalRecordsCount={patientData?.medicalRecords.length || 0}
           nextAppointmentDate={nextAppointmentDate}
           reportsCount={patientData?.medicalReports.length || 0}
@@ -106,9 +105,9 @@ export const PatientDashboard = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
-            <AppointmentsList appointments={scheduledAppointments} />
+            <AppointmentsList appointments={upcomingAppointments} />
             <MedicalRecordsList records={patientData?.medicalRecords || []} />
-            <PatientReports />
+            <PatientReports reports={patientData?.medicalReports || []} />
           </div>
           <ChatInterface />
         </div>
