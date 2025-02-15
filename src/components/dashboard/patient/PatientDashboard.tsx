@@ -1,15 +1,14 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { ChatInterface } from "../chat/ChatInterface";
 import { useToast } from "@/hooks/use-toast";
-import { DashboardSkeleton } from "./DashboardSkeleton";
-import { PatientHeader } from "./patient/PatientHeader";
-import { PatientStats } from "./patient/PatientStats";
-import { AppointmentsList } from "./patient/AppointmentsList";
-import { MedicalRecordsList } from "./patient/MedicalRecordsList";
-import { PatientReports } from "./patient/PatientReports";
+import { ChatInterface } from "../../chat/ChatInterface";
+import { DashboardSkeleton } from "../DashboardSkeleton";
+import { PatientHeader } from "./PatientHeader";
+import { PatientStats } from "./PatientStats";
+import { AppointmentsList } from "./AppointmentsList";
+import { MedicalRecordsList } from "./MedicalRecordsList";
+import { PatientReports } from "./PatientReports";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
