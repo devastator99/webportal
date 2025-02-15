@@ -9,6 +9,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { createMockPayment } from "@/utils/mockPayment";
 import { useToast } from "@/hooks/use-toast";
 import { PaymentStatus } from "./PaymentStatus";
+import { Loader2 } from "lucide-react";
 
 interface ScheduleAppointmentProps {
   children: React.ReactNode;
@@ -22,6 +23,7 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("selection");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentStep, setPaymentStep] = useState<{
     status: "idle" | "processing" | "success" | "error";
     error?: string;
@@ -71,6 +73,8 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
   }
 
   const handleConfirmAppointment = async () => {
+    if (isSubmitting) return; // Prevent double submission
+
     if (!user?.id || !selectedDoctor || !selectedDate || !selectedTime) {
       toast({
         variant: "destructive",
@@ -90,6 +94,7 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       return;
     }
 
+    setIsSubmitting(true);
     setStep("payment");
     setPaymentStep({ status: "processing" });
 
@@ -131,6 +136,7 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
           setSelectedDate(null);
           setSelectedTime(null);
           setSelectedDoctor(null);
+          setIsSubmitting(false);
         }, 2000);
       } else {
         throw new Error("Payment failed");
@@ -150,6 +156,7 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       setTimeout(() => {
         setStep("selection");
         setPaymentStep({ status: "idle" });
+        setIsSubmitting(false);
       }, 2000);
     }
   };
@@ -214,9 +221,16 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
               <Button 
                 onClick={handleConfirmAppointment} 
                 className="w-full"
-                disabled={!selectedDoctor || !selectedDate || !selectedTime}
+                disabled={!selectedDoctor || !selectedDate || !selectedTime || isSubmitting}
               >
-                Confirm Appointment
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  'Confirm Appointment'
+                )}
               </Button>
             </div>
           </div>
@@ -227,3 +241,4 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
     </Dialog>
   );
 };
+
