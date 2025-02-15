@@ -470,6 +470,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_user_role_access: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       get_user_role: {
         Args: {
           lookup_user_id: string
