@@ -6,6 +6,7 @@ import { PatientDashboard } from "@/components/dashboard/PatientDashboard";
 import { DoctorDashboard } from "@/components/dashboard/DoctorDashboard";
 import { NutritionistDashboard } from "@/components/dashboard/NutritionistDashboard";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
+import { ReceptionDashboard } from "@/components/dashboard/ReceptionDashboard";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -49,6 +50,8 @@ const Dashboard = () => {
       return <NutritionistDashboard />;
     case "administrator":
       return <AdminDashboard />;
+    case "reception":
+      return <ReceptionDashboard />;
     default:
       return <NoRoleWarning onSignOut={signOut} />;
   }

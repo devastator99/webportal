@@ -476,12 +476,23 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_reception: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       appointment_status: "scheduled" | "completed" | "cancelled"
       message_type: "text" | "file" | "video"
       payment_status: "pending" | "completed" | "failed"
-      user_type: "patient" | "doctor" | "nutritionist" | "administrator"
+      user_type:
+        | "patient"
+        | "doctor"
+        | "nutritionist"
+        | "administrator"
+        | "reception"
     }
     CompositeTypes: {
       [_ in never]: never
