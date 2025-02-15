@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { createMockPayment } from "@/utils/mockPayment";
@@ -143,9 +143,9 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <Dialog.Trigger asChild>
+      <DialogTrigger asChild>
         {children}
-      </Dialog.Trigger>
+      </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Schedule Appointment</DialogTitle>
