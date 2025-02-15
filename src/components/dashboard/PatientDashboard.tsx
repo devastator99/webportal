@@ -80,7 +80,7 @@ export const PatientDashboard = () => {
     null;
 
   return (
-    <div className="min-h-screen pt-20">
+    <div className="min-h-screen">
       {/* Fixed header */}
       <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-b">
         <div className="container mx-auto p-4">
@@ -91,29 +91,31 @@ export const PatientDashboard = () => {
         </div>
       </div>
 
-      <div className="container mx-auto p-6">
-        {/* Stats Cards Row */}
-        <div className="mb-6">
-          <PatientStats 
-            appointmentsCount={upcomingAppointments.length}
-            medicalRecordsCount={patientData?.medicalRecords.length || 0}
-            nextAppointmentDate={nextAppointmentDate}
-            reportsCount={0}
-          />
-        </div>
-
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Side - View/Data */}
-          <div className="lg:col-span-7 space-y-6">
-            <AppointmentsList appointments={upcomingAppointments} />
-            <MedicalRecordsList records={patientData?.medicalRecords || []} />
+      <div className="container mx-auto px-4">
+        <div className="pt-24">
+          {/* Stats Row */}
+          <div className="mb-8">
+            <PatientStats 
+              appointmentsCount={upcomingAppointments.length}
+              medicalRecordsCount={patientData?.medicalRecords.length || 0}
+              nextAppointmentDate={nextAppointmentDate}
+              reportsCount={0}
+            />
           </div>
 
-          {/* Right Side - Actions */}
-          <div className="lg:col-span-5 space-y-6">
-            <MedicalRecordsUpload records={patientData?.medicalRecords || []} />
-            <ChatInterface />
+          {/* Main Content */}
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Left Column - View/Data */}
+            <div className="flex-1 space-y-6">
+              <AppointmentsList appointments={upcomingAppointments} />
+              <MedicalRecordsList records={patientData?.medicalRecords || []} />
+            </div>
+
+            {/* Right Column - Actions */}
+            <div className="lg:w-[400px] space-y-6">
+              <MedicalRecordsUpload records={patientData?.medicalRecords || []} />
+              <ChatInterface />
+            </div>
           </div>
         </div>
       </div>
