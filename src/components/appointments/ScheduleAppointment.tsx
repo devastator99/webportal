@@ -170,7 +170,7 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Schedule Appointment</DialogTitle>
           <DialogDescription>
@@ -180,10 +180,10 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
         {step === "selection" ? (
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-1 gap-2">
-              <label htmlFor="doctor">Select Doctor</label>
+              <label htmlFor="doctor" className="font-medium">Select Doctor</label>
               <select
                 id="doctor"
-                className="px-4 py-2 rounded-md border"
+                className="w-full px-4 py-2 rounded-md border"
                 onChange={(e) => setSelectedDoctor(e.target.value)}
                 value={selectedDoctor || ""}
               >
@@ -196,20 +196,20 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
               </select>
             </div>
             <div className="grid grid-cols-1 gap-2">
-              <label htmlFor="date">Select Date</label>
+              <label htmlFor="date" className="font-medium">Select Date</label>
               <Calendar
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                className="rounded-md border"
+                className="rounded-md border mx-auto"
                 disabled={(date) => date < new Date()}
               />
             </div>
             <div className="grid grid-cols-1 gap-2">
-              <label htmlFor="time">Select Time</label>
+              <label htmlFor="time" className="font-medium">Select Time</label>
               <select
                 id="time"
-                className="px-4 py-2 rounded-md border"
+                className="w-full px-4 py-2 rounded-md border"
                 onChange={(e) => setSelectedTime(e.target.value)}
                 value={selectedTime || ""}
               >
@@ -221,7 +221,15 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
                 ))}
               </select>
             </div>
-            <Button onClick={handleConfirmAppointment}>Confirm Appointment</Button>
+            <div className="mt-4">
+              <Button 
+                onClick={handleConfirmAppointment} 
+                className="w-full"
+                disabled={!selectedDoctor || !selectedDate || !selectedTime}
+              >
+                Confirm Appointment
+              </Button>
+            </div>
           </div>
         ) : (
           <PaymentStatus paymentStep={paymentStep} />
