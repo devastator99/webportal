@@ -24,7 +24,7 @@ export const PatientReports = () => {
   const { user } = useAuth();
 
   // First, fetch the user's medical record
-  const { data: medicalRecord } = useQuery({
+  const { data: medicalRecord, refetch: refetchMedicalRecord } = useQuery({
     queryKey: ["medical_record", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -33,8 +33,20 @@ export const PatientReports = () => {
         .eq('patient_id', user?.id)
         .single();
 
-      if (error) {
-        console.error('Error fetching medical record:', error);
+      if (error && error.code === 'PGRST116') {
+        // No medical record found, create one
+        const { data: newRecord, error: createError } = await supabase
+          .from('medical_records')
+          .insert({
+            patient_id: user?.id,
+            diagnosis: 'Initial Record'
+          })
+          .select('id')
+          .single();
+
+        if (createError) throw createError;
+        return newRecord;
+      } else if (error) {
         throw error;
       }
       return data;
@@ -65,8 +77,16 @@ export const PatientReports = () => {
     try {
       setIsUploading(true);
       
-      if (!user?.id || !medicalRecord?.id) {
-        throw new Error("User not authenticated or no medical record found");
+      if (!user?.id) {
+        throw new Error("User not authenticated");
+      }
+
+      // Ensure we have a medical record
+      if (!medicalRecord?.id) {
+        await refetchMedicalRecord();
+        if (!medicalRecord?.id) {
+          throw new Error("Could not create medical record");
+        }
       }
 
       // Upload file to storage
@@ -162,16 +182,12 @@ export const PatientReports = () => {
               };
               input.click();
             }}
-            disabled={isUploading || !medicalRecord}
+            disabled={isUploading}
           >
             {isUploading ? 'Uploading...' : 'Upload New Report'}
           </Button>
 
-          {!medicalRecord ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              No medical record found. Please consult with a doctor first.
-            </p>
-          ) : reports && reports.length > 0 ? (
+          {reports && reports.length > 0 ? (
             <ScrollArea className="h-[300px] w-full">
               <div className="space-y-2">
                 {reports.map((report) => (
