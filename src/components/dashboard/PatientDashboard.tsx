@@ -20,8 +20,6 @@ export const PatientDashboard = () => {
     queryFn: async () => {
       if (!user?.id) throw new Error("No user ID");
 
-      console.log("Fetching profile data for user:", user.id); // Debug log
-
       // First get the profile data
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
@@ -34,12 +32,11 @@ export const PatientDashboard = () => {
         throw profileError;
       }
 
-      console.log("Profile data fetched:", profile); // Debug log
-
-      // Then get appointments and medical records
+      // Then get appointments, medical records and reports count
       const [
         { data: appointments, error: appointmentsError },
-        { data: medicalRecords, error: medicalRecordsError }
+        { data: medicalRecords, error: medicalRecordsError },
+        { data: medicalReports, error: reportsError }
       ] = await Promise.all([
         supabase
           .from("appointments")
@@ -55,16 +52,22 @@ export const PatientDashboard = () => {
           .from("medical_records")
           .select("*")
           .eq("patient_id", user.id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("medical_documents")
+          .select("*")
           .order("created_at", { ascending: false })
       ]);
 
       if (appointmentsError) throw appointmentsError;
       if (medicalRecordsError) throw medicalRecordsError;
+      if (reportsError) throw reportsError;
 
       return {
         profile,
         appointments: appointments || [],
-        medicalRecords: medicalRecords || []
+        medicalRecords: medicalRecords || [],
+        medicalReports: medicalReports || []
       };
     },
     enabled: !!user?.id,
@@ -95,6 +98,7 @@ export const PatientDashboard = () => {
           appointmentsCount={scheduledAppointments.length}
           medicalRecordsCount={patientData?.medicalRecords.length || 0}
           nextAppointmentDate={nextAppointmentDate}
+          reportsCount={patientData?.medicalReports.length || 0}
         />
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
