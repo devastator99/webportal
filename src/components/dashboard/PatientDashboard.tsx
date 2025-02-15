@@ -111,9 +111,11 @@ export const PatientDashboard = () => {
             </div>
 
             {/* Right Column - Actions */}
-            <div className="lg:w-[400px] space-y-6">
-              <MedicalRecordsUpload records={patientData?.medicalRecords || []} />
-              <ChatInterface />
+            <div className="lg:w-[400px]">
+              <MedicalRecordsUpload showUploadOnly />
+              <div className="mt-6">
+                <ChatInterface />
+              </div>
             </div>
           </div>
 
