@@ -505,20 +505,12 @@ export type Database = {
           user_id: string
         }[]
       }
-      has_role:
-        | {
-            Args: {
-              lookup_user_id: string
-              lookup_role: Database["public"]["Enums"]["user_type"]
-            }
-            Returns: boolean
-          }
-        | {
-            Args: {
-              role: Database["public"]["Enums"]["user_type"]
-            }
-            Returns: boolean
-          }
+      has_role: {
+        Args: {
+          role_to_check: Database["public"]["Enums"]["user_type"]
+        }
+        Returns: boolean
+      }
       is_admin: {
         Args: {
           user_id: string
