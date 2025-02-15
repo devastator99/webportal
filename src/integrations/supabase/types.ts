@@ -219,7 +219,7 @@ export type Database = {
           file_size: number | null
           file_type: string | null
           id: string
-          medical_record_id: string
+          medical_record_id: string | null
           updated_at: string
         }
         Insert: {
@@ -229,7 +229,7 @@ export type Database = {
           file_size?: number | null
           file_type?: string | null
           id?: string
-          medical_record_id: string
+          medical_record_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -239,7 +239,7 @@ export type Database = {
           file_size?: number | null
           file_type?: string | null
           id?: string
-          medical_record_id?: string
+          medical_record_id?: string | null
           updated_at?: string
         }
         Relationships: [

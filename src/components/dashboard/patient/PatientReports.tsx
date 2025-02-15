@@ -63,14 +63,15 @@ export const PatientReports = () => {
         throw uploadError;
       }
 
-      // Create document record
+      // Create document record with medical_record_id as null
       const { error: dbError } = await supabase
         .from('medical_documents')
         .insert({
           file_name: file.name,
           file_path: filePath,
           file_type: file.type,
-          file_size: file.size
+          file_size: file.size,
+          medical_record_id: null // Explicitly set to null since we're not using medical records
         });
 
       if (dbError) {
