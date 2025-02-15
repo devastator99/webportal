@@ -70,13 +70,14 @@ export const PatientDashboard = () => {
     return <DashboardSkeleton />;
   }
 
-  const allAppointments = patientData?.appointments || [];
-  const upcomingAppointments = allAppointments.filter(a => 
-    a.status === 'scheduled' && new Date(a.scheduled_at) > new Date()
-  );
-  const nextAppointmentDate = upcomingAppointments.length > 0 
-    ? new Date(upcomingAppointments[0].scheduled_at).toLocaleDateString()
-    : null;
+  // Filter upcoming appointments - only get future appointments with 'scheduled' status
+  const upcomingAppointments = patientData?.appointments.filter(a => 
+    new Date(a.scheduled_at) > new Date() && a.status === 'scheduled'
+  ) || [];
+
+  const nextAppointmentDate = upcomingAppointments[0]?.scheduled_at ? 
+    new Date(upcomingAppointments[0].scheduled_at).toLocaleDateString() : 
+    null;
 
   return (
     <div className="min-h-screen pt-20">
