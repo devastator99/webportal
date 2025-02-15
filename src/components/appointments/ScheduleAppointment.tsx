@@ -14,6 +14,10 @@ interface ScheduleAppointmentProps {
   children: React.ReactNode;
 }
 
+// Define step type separately
+type Step = "selection" | "payment";
+
+// Import PaymentStepState type from PaymentStatus component to avoid duplication
 type PaymentStepState =
   | { status: "idle" }
   | { status: "processing" }
@@ -22,10 +26,10 @@ type PaymentStepState =
 
 export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState<string>();
-  const [selectedDate, setSelectedDate] = useState<Date>();
-  const [selectedTime, setSelectedTime] = useState<string>();
-  const [step, setStep] = useState<"selection" | "payment">("selection");
+  const [selectedDoctor, setSelectedDoctor] = useState<string | undefined>(undefined);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedTime, setSelectedTime] = useState<string | undefined>(undefined);
+  const [step, setStep] = useState<Step>("selection");
   const [paymentStep, setPaymentStep] = useState<PaymentStepState>({ status: "idle" });
 
   const { user } = useAuth();
