@@ -81,6 +81,7 @@ export const PatientDashboard = () => {
 
   return (
     <div className="min-h-screen pt-20">
+      {/* Fixed header */}
       <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-b">
         <div className="container mx-auto p-4">
           <PatientHeader 
@@ -90,22 +91,33 @@ export const PatientDashboard = () => {
         </div>
       </div>
 
-      <div className="container mx-auto p-6 space-y-6">
-        <PatientStats 
-          appointmentsCount={upcomingAppointments.length}
-          medicalRecordsCount={patientData?.medicalRecords.length || 0}
-          nextAppointmentDate={nextAppointmentDate}
-          reportsCount={0}
-        />
+      <div className="container mx-auto p-6">
+        {/* Stats Cards Row */}
+        <div className="mb-6">
+          <PatientStats 
+            appointmentsCount={upcomingAppointments.length}
+            medicalRecordsCount={patientData?.medicalRecords.length || 0}
+            nextAppointmentDate={nextAppointmentDate}
+            reportsCount={0}
+          />
+        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="space-y-6">
-            <AppointmentsList appointments={upcomingAppointments} />
-            <MedicalRecordsList records={patientData?.medicalRecords || []} />
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Side - View/Data */}
+          <div className="lg:col-span-7 space-y-6">
+            <div className="grid gap-6">
+              <AppointmentsList appointments={upcomingAppointments} />
+              <MedicalRecordsList records={patientData?.medicalRecords || []} />
+            </div>
           </div>
-          <div className="space-y-6">
-            <ChatInterface />
-            <MedicalRecordsUpload records={patientData?.medicalRecords || []} />
+
+          {/* Right Side - Actions */}
+          <div className="lg:col-span-5 space-y-6">
+            <div className="grid gap-6">
+              <MedicalRecordsUpload records={patientData?.medicalRecords || []} />
+              <ChatInterface />
+            </div>
           </div>
         </div>
       </div>
