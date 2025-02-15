@@ -23,13 +23,33 @@ export const PatientReports = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
+  // First, fetch the user's medical record
+  const { data: medicalRecord } = useQuery({
+    queryKey: ["medical_record", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('medical_records')
+        .select('id')
+        .eq('patient_id', user?.id)
+        .single();
+
+      if (error) {
+        console.error('Error fetching medical record:', error);
+        throw error;
+      }
+      return data;
+    },
+    enabled: !!user?.id
+  });
+
+  // Then fetch the documents associated with that medical record
   const { data: reports, refetch } = useQuery({
-    queryKey: ["patient_reports", user?.id],
+    queryKey: ["patient_reports", medicalRecord?.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('medical_documents')
         .select('*')
-        .eq('medical_record_id', user?.id)
+        .eq('medical_record_id', medicalRecord?.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -38,15 +58,15 @@ export const PatientReports = () => {
       }
       return data as PatientReport[];
     },
-    enabled: !!user?.id
+    enabled: !!medicalRecord?.id
   });
 
   const handleFileUpload = async (file: File) => {
     try {
       setIsUploading(true);
       
-      if (!user?.id) {
-        throw new Error("User not authenticated");
+      if (!user?.id || !medicalRecord?.id) {
+        throw new Error("User not authenticated or no medical record found");
       }
 
       // Upload file to storage
@@ -67,7 +87,7 @@ export const PatientReports = () => {
       const { error: dbError } = await supabase
         .from('medical_documents')
         .insert({
-          medical_record_id: user.id,
+          medical_record_id: medicalRecord.id,
           file_name: file.name,
           file_path: filePath,
           file_type: file.type,
@@ -142,12 +162,16 @@ export const PatientReports = () => {
               };
               input.click();
             }}
-            disabled={isUploading}
+            disabled={isUploading || !medicalRecord}
           >
             {isUploading ? 'Uploading...' : 'Upload New Report'}
           </Button>
 
-          {reports && reports.length > 0 ? (
+          {!medicalRecord ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No medical record found. Please consult with a doctor first.
+            </p>
+          ) : reports && reports.length > 0 ? (
             <ScrollArea className="h-[300px] w-full">
               <div className="space-y-2">
                 {reports.map((report) => (
