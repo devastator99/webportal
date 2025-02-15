@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -31,6 +31,7 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
 
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const timeSlots = [
     "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
@@ -103,7 +104,6 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       const appointmentDateTime = new Date(selectedDate);
       appointmentDateTime.setHours(hours, minutes);
 
-      // Match the existing types where the function returns 'id' instead of 'appointment_id'
       const { data: appointment, error: appointmentError } = await supabase
         .rpc('create_appointment', {
           p_patient_id: user.id,
@@ -113,7 +113,6 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
         });
 
       if (appointmentError) {
-        // Check if it's a time slot conflict
         if (appointmentError.message.includes('Time slot is already booked')) {
           throw new Error("This time slot is already booked. Please select another time.");
         }
@@ -125,10 +124,15 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
 
       if (paymentResult.status === "completed") {
         setPaymentStep({ status: "success" });
+        
+        // Invalidate the patient dashboard query to trigger a refresh
+        queryClient.invalidateQueries({ queryKey: ["patient_dashboard"] });
+        
         toast({
           title: "Appointment scheduled successfully",
           description: "Your appointment has been confirmed",
         });
+        
         setTimeout(() => {
           setIsOpen(false);
           setStep("selection");
@@ -152,7 +156,6 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
         title: "Error",
         description: error.message || "Failed to schedule appointment. Please try again.",
       });
-      // Reset to selection step after error
       setTimeout(() => {
         setStep("selection");
         setPaymentStep({ status: "idle" });
