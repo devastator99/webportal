@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,37 +48,24 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
   const { data: doctors, error: doctorsError } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
-      console.log("Fetching doctors...");
       try {
-        // Get all doctors in one query by joining profiles with user_roles
-        const { data: profiles, error: profilesError } = await supabase
-          .from("user_roles")
+        const { data, error } = await supabase
+          .from("profiles")
           .select(`
-            user_id,
-            profiles:profiles!inner(
-              id,
-              first_name,
-              last_name,
-              consultation_fee
-            )
+            id,
+            first_name,
+            last_name,
+            consultation_fee,
+            user_roles!inner(role)
           `)
-          .eq("role", "doctor");
+          .eq('user_roles.role', 'doctor');
 
-        if (profilesError) {
-          console.error("Error fetching doctor profiles:", profilesError);
-          throw profilesError;
+        if (error) {
+          console.error("Error fetching doctors:", error);
+          throw error;
         }
 
-        // Transform the data to match the expected format
-        const doctorProfiles = profiles?.map(p => ({
-          id: p.profiles.id,
-          first_name: p.profiles.first_name,
-          last_name: p.profiles.last_name,
-          consultation_fee: p.profiles.consultation_fee
-        })) || [];
-
-        console.log("Doctors data:", doctorProfiles);
-        return doctorProfiles;
+        return data || [];
       } catch (error) {
         console.error("Error in doctors query:", error);
         throw error;
