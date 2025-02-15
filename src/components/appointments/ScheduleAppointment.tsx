@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { createMockPayment } from "@/utils/mockPayment";
@@ -143,10 +143,15 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      {children}
+      <Dialog.Trigger asChild>
+        {children}
+      </Dialog.Trigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Schedule Appointment</DialogTitle>
+          <DialogDescription>
+            Choose your preferred doctor, date, and time for your appointment.
+          </DialogDescription>
         </DialogHeader>
         {step === "selection" ? (
           <div className="grid gap-4 py-4">
@@ -156,11 +161,12 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
                 id="doctor"
                 className="px-4 py-2 rounded-md border"
                 onChange={(e) => setSelectedDoctor(e.target.value)}
+                value={selectedDoctor || ""}
               >
                 <option value="">Select a doctor</option>
                 {doctors?.map((doctor) => (
                   <option key={doctor.id} value={doctor.id}>
-                    {doctor.first_name} {doctor.last_name}
+                    Dr. {doctor.first_name} {doctor.last_name}
                   </option>
                 ))}
               </select>
@@ -172,6 +178,7 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
                 selected={selectedDate}
                 onSelect={setSelectedDate}
                 className="rounded-md border"
+                disabled={(date) => date < new Date()}
               />
             </div>
             <div className="grid grid-cols-1 gap-2">
@@ -180,6 +187,7 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
                 id="time"
                 className="px-4 py-2 rounded-md border"
                 onChange={(e) => setSelectedTime(e.target.value)}
+                value={selectedTime || ""}
               >
                 <option value="">Select a time</option>
                 {timeSlots.map((time) => (
