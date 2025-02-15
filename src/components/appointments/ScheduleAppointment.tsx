@@ -39,7 +39,6 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
     queryKey: ["doctors"],
     queryFn: async () => {
       try {
-        // Get doctor IDs using the RPC function
         const { data: doctorIds, error: rpcError } = await supabase
           .rpc('get_users_by_role', {
             role_name: 'doctor'
@@ -51,7 +50,6 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
           return [];
         }
 
-        // Get profiles for these doctors
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
           .select('*')
@@ -100,34 +98,22 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       const appointmentDateTime = new Date(selectedDate);
       appointmentDateTime.setHours(hours, minutes);
 
-      // Check for existing appointments at the same time
-      const { data: existingAppointments, error: checkError } = await supabase
-        .from("appointments")
-        .select("*")
-        .eq('doctor_id', selectedDoctor)
-        .eq('scheduled_at', appointmentDateTime.toISOString());
-
-      if (checkError) throw checkError;
-
-      if (existingAppointments && existingAppointments.length > 0) {
-        throw new Error("This time slot is already booked. Please select another time.");
-      }
-
-      // Create appointment
+      // Use the new create_appointment function
       const { data: appointment, error: appointmentError } = await supabase
-        .from("appointments")
-        .insert([
-          {
-            patient_id: user.id,
-            doctor_id: selectedDoctor,
-            scheduled_at: appointmentDateTime.toISOString(),
-            status: "scheduled",
-          },
-        ])
-        .select()
-        .single();
+        .rpc('create_appointment', {
+          p_patient_id: user.id,
+          p_doctor_id: selectedDoctor,
+          p_scheduled_at: appointmentDateTime.toISOString(),
+          p_status: 'scheduled'
+        });
 
-      if (appointmentError) throw appointmentError;
+      if (appointmentError) {
+        // Check if it's a time slot conflict
+        if (appointmentError.message.includes('Time slot is already booked')) {
+          throw new Error("This time slot is already booked. Please select another time.");
+        }
+        throw appointmentError;
+      }
 
       // Process payment
       const paymentResult = await createMockPayment(selectedDoctor1.consultation_fee || 100);

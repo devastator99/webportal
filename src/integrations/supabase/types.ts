@@ -474,6 +474,21 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      create_appointment: {
+        Args: {
+          p_patient_id: string
+          p_doctor_id: string
+          p_scheduled_at: string
+          p_status?: Database["public"]["Enums"]["appointment_status"]
+        }
+        Returns: {
+          id: string
+          patient_id: string
+          doctor_id: string
+          scheduled_at: string
+          status: Database["public"]["Enums"]["appointment_status"]
+        }[]
+      }
       get_user_role: {
         Args: {
           lookup_user_id: string
