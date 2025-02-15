@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,9 +29,12 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: doctors } = useQuery({
+  console.log("Current user ID:", user?.id); // Log current user ID
+
+  const { data: doctors, error: doctorsError } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
+      console.log("Fetching doctors...");
       const { data, error } = await supabase
         .from("profiles")
         .select(`
@@ -43,10 +45,21 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
         `)
         .eq('user_roles.role', 'doctor');
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching doctors:", error);
+        throw error;
+      }
+      
+      console.log("Doctors data:", data); // Log the retrieved data
       return data;
     },
+    enabled: !!user?.id, // Only run query if user is logged in
   });
+
+  // Log any errors from the query
+  if (doctorsError) {
+    console.error("Query error:", doctorsError);
+  }
 
   const timeSlots = [
     "09:00",
