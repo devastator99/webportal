@@ -464,6 +464,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_appointment_access: {
+        Args: {
+          checking_appointment_id: string
+        }
+        Returns: boolean
+      }
       get_user_role: {
         Args: {
           lookup_user_id: string
