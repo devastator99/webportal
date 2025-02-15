@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -31,40 +32,38 @@ export const PatientDashboard = () => {
         throw profileError;
       }
 
-      // Then get appointments, medical records and reports count
-      const [
-        { data: appointments, error: appointmentsError },
-        { data: medicalRecords, error: medicalRecordsError },
-        { data: medicalReports, error: reportsError }
-      ] = await Promise.all([
-        supabase
-          .from("appointments")
-          .select(`
-            id,
-            scheduled_at,
-            status,
-            doctor:profiles!appointments_doctor_profile_fkey(
-              first_name, 
-              last_name,
-              user_roles!inner (role)
-            )
-          `)
-          .eq("patient_id", user.id)
-          .eq("doctor.user_roles.role", "doctor")
-          .order("scheduled_at", { ascending: true }),
-        supabase
-          .from("medical_records")
-          .select("*")
-          .eq("patient_id", user.id)
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("medical_documents")
-          .select("*")
-          .order("created_at", { ascending: false })
-      ]);
+      // Then get appointments with doctor info
+      const { data: appointments, error: appointmentsError } = await supabase
+        .from("appointments")
+        .select(`
+          id,
+          scheduled_at,
+          status,
+          doctor:profiles!appointments_doctor_profile_fkey(
+            first_name, 
+            last_name
+          )
+        `)
+        .eq("patient_id", user.id)
+        .order("scheduled_at", { ascending: true });
 
       if (appointmentsError) throw appointmentsError;
+
+      // Get medical records
+      const { data: medicalRecords, error: medicalRecordsError } = await supabase
+        .from("medical_records")
+        .select("*")
+        .eq("patient_id", user.id)
+        .order("created_at", { ascending: false });
+
       if (medicalRecordsError) throw medicalRecordsError;
+
+      // Get medical reports/documents
+      const { data: medicalReports, error: reportsError } = await supabase
+        .from("medical_documents")
+        .select("*")
+        .order("created_at", { ascending: false });
+
       if (reportsError) throw reportsError;
 
       return {
