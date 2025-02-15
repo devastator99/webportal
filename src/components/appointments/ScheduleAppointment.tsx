@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,34 +30,44 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  console.log("Current user ID:", user?.id); // Log current user ID
+  console.log("Current user ID:", user?.id);
 
   const { data: doctors, error: doctorsError } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
       console.log("Fetching doctors...");
-      const { data, error } = await supabase
-        .from("profiles")
-        .select(`
-          *,
-          user_roles!inner (
-            role
-          )
-        `)
-        .eq('user_roles.role', 'doctor');
+      // First get the doctor user IDs
+      const { data: doctorRoles, error: rolesError } = await supabase
+        .rpc('get_users_by_role', { role_name: 'doctor' });
 
-      if (error) {
-        console.error("Error fetching doctors:", error);
-        throw error;
+      if (rolesError) {
+        console.error("Error fetching doctor roles:", rolesError);
+        throw rolesError;
+      }
+
+      if (!doctorRoles || doctorRoles.length === 0) {
+        console.log("No doctors found in roles");
+        return [];
+      }
+
+      // Then get the profiles for those doctors
+      const doctorIds = doctorRoles.map(d => d.user_id);
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("id", doctorIds);
+
+      if (profilesError) {
+        console.error("Error fetching doctor profiles:", profilesError);
+        throw profilesError;
       }
       
-      console.log("Doctors data:", data); // Log the retrieved data
-      return data;
+      console.log("Doctors data:", profiles);
+      return profiles;
     },
-    enabled: !!user?.id, // Only run query if user is logged in
+    enabled: !!user?.id,
   });
 
-  // Log any errors from the query
   if (doctorsError) {
     console.error("Query error:", doctorsError);
   }
