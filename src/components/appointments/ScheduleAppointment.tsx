@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -181,12 +180,9 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       if (appointmentError) throw appointmentError;
 
       // Mock payment processing
-      const paymentResult = await createMockPayment({
-        amount: selectedDoctor1.consultation_fee,
-        appointmentId: appointment.id,
-      });
+      const paymentResult = await createMockPayment(selectedDoctor1.consultation_fee);
 
-      if (paymentResult.status === "success") {
+      if (paymentResult.status === "completed") {
         setPaymentStep({ status: "success" });
         toast({
           title: "Appointment scheduled successfully",
