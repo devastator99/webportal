@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -66,12 +67,20 @@ export const ChatInterface = () => {
       ? selectedPatientId 
       : doctorAssignment?.doctor_id;
 
-    if (!user?.id || !receiverId) {
+    if (!user?.id) {
       toast({
         title: "Cannot send message",
-        description: userRole === "doctor" 
-          ? "Please select a patient first." 
-          : "You don't have an assigned doctor yet. Please contact support for assistance.",
+        description: "You must be logged in to send messages.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // For patients, allow sending messages even without an assigned doctor
+    if (userRole === "doctor" && !selectedPatientId) {
+      toast({
+        title: "Cannot send message",
+        description: "Please select a patient first.",
         variant: "destructive",
       });
       return;
@@ -80,7 +89,7 @@ export const ChatInterface = () => {
     try {
       const { error } = await supabase.from("chat_messages").insert({
         sender_id: user.id,
-        receiver_id: receiverId,
+        receiver_id: receiverId || null, // Allow null receiver_id
         message: newMessage,
         message_type: "text",
       });
@@ -89,7 +98,7 @@ export const ChatInterface = () => {
         console.error("Error sending message:", error);
         toast({
           title: "Error sending message",
-          description: "You may not have permission to send messages to this user. Please verify your access rights.",
+          description: "Failed to send message. Please try again.",
           variant: "destructive",
         });
         return;
@@ -121,9 +130,9 @@ export const ChatInterface = () => {
   const renderError = () => {
     if (doctorError) {
       return (
-        <Alert variant="destructive">
+        <Alert>
           <AlertDescription>
-            Unable to find your assigned doctor. Please contact support for assistance.
+            Unable to find your assigned doctor. You can still send messages that will be received by our medical team.
           </AlertDescription>
         </Alert>
       );
@@ -164,7 +173,7 @@ export const ChatInterface = () => {
           value={newMessage}
           onChange={setNewMessage}
           onSend={handleSendMessage}
-          disabled={userRole === "doctor" ? !selectedPatientId : !doctorAssignment?.doctor_id}
+          disabled={userRole === "doctor" ? !selectedPatientId : false}
         />
       </CardContent>
     </Card>
