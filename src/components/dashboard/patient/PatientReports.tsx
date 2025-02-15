@@ -14,7 +14,6 @@ type PatientReport = {
   file_name: string;
   file_type: string | null;
   file_path: string;
-  file_size: number;
   created_at: string;
 };
 
@@ -23,7 +22,6 @@ export const PatientReports = () => {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Fetch the documents for this user
   const { data: reports, refetch } = useQuery({
     queryKey: ["patient_reports", user?.id],
     queryFn: async () => {
@@ -32,10 +30,7 @@ export const PatientReports = () => {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching reports:', error);
-        throw error;
-      }
+      if (error) throw error;
       return data as PatientReport[];
     },
     enabled: !!user?.id
@@ -45,51 +40,27 @@ export const PatientReports = () => {
     try {
       setIsUploading(true);
       
-      if (!user?.id) {
-        throw new Error("User not authenticated");
-      }
-
-      // Upload file to storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `${user.id}/${fileName}`;
-
+      const fileName = `${crypto.randomUUID()}-${file.name}`;
+      
       const { error: uploadError } = await supabase.storage
         .from('medical_files')
-        .upload(filePath, file);
+        .upload(fileName, file);
 
-      if (uploadError) {
-        console.error('Storage upload error:', uploadError);
-        throw uploadError;
-      }
+      if (uploadError) throw uploadError;
 
-      // Create document record with medical_record_id as null
-      const { error: dbError } = await supabase
-        .from('medical_documents')
-        .insert({
-          file_name: file.name,
-          file_path: filePath,
-          file_type: file.type,
-          file_size: file.size,
-          medical_record_id: null // Explicitly set to null since we're not using medical records
-        });
-
-      if (dbError) {
-        console.error('Database insert error:', dbError);
-        throw dbError;
-      }
+      await supabase.from('medical_documents').insert({
+        file_name: file.name,
+        file_path: fileName,
+        file_type: file.type,
+        medical_record_id: null
+      });
 
       await refetch();
-
-      toast({
-        title: "Report uploaded successfully",
-        description: "Your medical report has been uploaded and saved.",
-      });
+      toast({ title: "Report uploaded successfully" });
     } catch (error: any) {
-      console.error('Upload error:', error);
       toast({
-        title: "Error uploading report",
-        description: error.message || "Failed to upload report. Please try again.",
+        title: "Upload failed",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
@@ -99,19 +70,15 @@ export const PatientReports = () => {
 
   const handleViewDocument = async (report: PatientReport) => {
     try {
-      const { data, error } = await supabase.storage
+      const { data } = await supabase.storage
         .from('medical_files')
         .createSignedUrl(report.file_path, 60);
 
-      if (error) throw error;
-      if (data?.signedUrl) {
-        window.open(data.signedUrl, '_blank');
-      }
+      if (data?.signedUrl) window.open(data.signedUrl, '_blank');
     } catch (error: any) {
-      console.error('Error viewing document:', error);
       toast({
         title: "Error viewing file",
-        description: error.message || "Failed to access the file.",
+        description: error.message,
         variant: "destructive",
       });
     }
@@ -122,7 +89,7 @@ export const PatientReports = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Upload className="h-5 w-5" />
-          Upload Medical Reports
+          Medical Reports
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -136,18 +103,16 @@ export const PatientReports = () => {
               input.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
               input.onchange = (e) => {
                 const file = (e.target as HTMLInputElement).files?.[0];
-                if (file) {
-                  handleFileUpload(file);
-                }
+                if (file) handleFileUpload(file);
               };
               input.click();
             }}
             disabled={isUploading}
           >
-            {isUploading ? 'Uploading...' : 'Upload New Report'}
+            {isUploading ? 'Uploading...' : 'Upload Report'}
           </Button>
 
-          {reports && reports.length > 0 ? (
+          {reports?.length ? (
             <ScrollArea className="h-[300px] w-full">
               <div className="space-y-2">
                 {reports.map((report) => (
@@ -155,12 +120,9 @@ export const PatientReports = () => {
                     key={report.id}
                     className="flex items-center justify-between p-2 border rounded hover:bg-accent"
                   >
-                    <div className="flex flex-col">
-                      <span className="text-sm font-medium truncate">{report.file_name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(report.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
+                    <span className="text-sm font-medium truncate">
+                      {report.file_name}
+                    </span>
                     <Button
                       variant="ghost"
                       size="sm"
@@ -174,7 +136,7 @@ export const PatientReports = () => {
             </ScrollArea>
           ) : (
             <p className="text-sm text-muted-foreground text-center py-4">
-              No reports uploaded yet. Upload your first medical report.
+              No reports uploaded yet
             </p>
           )}
         </div>
