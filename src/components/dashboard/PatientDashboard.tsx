@@ -14,29 +14,7 @@ import { PatientReports } from "./patient/PatientReports";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
-
-  const handleSignOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      navigate("/");
-      toast({
-        title: "Signed out successfully",
-        description: "You have been signed out of your account.",
-      });
-    } catch (error: any) {
-      console.error("Sign out error:", error);
-      toast({
-        title: "Error signing out",
-        description: error.message || "An error occurred while signing out. Please try again.",
-        variant: "destructive",
-      });
-      navigate("/");
-    }
-  };
 
   const { data: patientData, isLoading } = useQuery({
     queryKey: ["patient_dashboard", user?.id],
@@ -109,7 +87,6 @@ export const PatientDashboard = () => {
           <PatientHeader 
             firstName={patientData?.profile?.first_name}
             lastName={patientData?.profile?.last_name}
-            onSignOut={handleSignOut}
           />
         </div>
       </div>
