@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -71,15 +70,18 @@ export const PatientDashboard = () => {
       };
     },
     enabled: !!user?.id,
+    refetchInterval: 5000,
   });
 
   if (isLoading) {
     return <DashboardSkeleton />;
   }
 
-  const scheduledAppointments = patientData?.appointments.filter(a => a.status === 'scheduled') || [];
-  const nextAppointmentDate = scheduledAppointments.length > 0 
-    ? new Date(scheduledAppointments[0].scheduled_at).toLocaleDateString()
+  const allAppointments = patientData?.appointments || [];
+  const scheduledAppointments = allAppointments.filter(a => a.status === 'scheduled');
+  const upcomingAppointments = scheduledAppointments.filter(a => new Date(a.scheduled_at) > new Date());
+  const nextAppointmentDate = upcomingAppointments.length > 0 
+    ? new Date(upcomingAppointments[0].scheduled_at).toLocaleDateString()
     : null;
 
   return (
@@ -95,7 +97,7 @@ export const PatientDashboard = () => {
 
       <div className="container mx-auto p-6 space-y-6">
         <PatientStats 
-          appointmentsCount={scheduledAppointments.length}
+          appointmentsCount={upcomingAppointments.length}
           medicalRecordsCount={patientData?.medicalRecords.length || 0}
           nextAppointmentDate={nextAppointmentDate}
           reportsCount={patientData?.medicalReports.length || 0}
@@ -103,9 +105,9 @@ export const PatientDashboard = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="space-y-6">
-            <AppointmentsList appointments={scheduledAppointments} />
+            <AppointmentsList appointments={upcomingAppointments} />
             <MedicalRecordsList records={patientData?.medicalRecords || []} />
-            <PatientReports />
+            <PatientReports reports={patientData?.medicalReports || []} />
           </div>
           <ChatInterface />
         </div>
