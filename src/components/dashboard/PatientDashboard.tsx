@@ -3,7 +3,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ChatInterface } from "../chat/ChatInterface";
-import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import { PatientHeader } from "./patient/PatientHeader";

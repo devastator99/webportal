@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 import { LogOut, CalendarPlus } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
@@ -16,12 +16,11 @@ export const PatientHeader = ({ firstName, lastName }: PatientHeaderProps) => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { signOut } = useAuth();
 
   const handleSignOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
+      await signOut();
       navigate('/', { replace: true });
       toast({
         title: "Signed out successfully"
