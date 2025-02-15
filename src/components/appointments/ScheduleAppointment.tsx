@@ -52,17 +52,34 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
     queryFn: async () => {
       console.log("Fetching doctors...");
       try {
-        // Get all profiles that have the doctor role
+        // First get all users with the doctor role
+        const { data: doctorRoles, error: rolesError } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .eq("role", "doctor");
+
+        if (rolesError) {
+          console.error("Error fetching doctor roles:", rolesError);
+          throw rolesError;
+        }
+
+        if (!doctorRoles?.length) {
+          console.log("No doctors found");
+          return [];
+        }
+
+        // Then get the profiles for those doctors
+        const doctorIds = doctorRoles.map(d => d.user_id);
         const { data: profiles, error: profilesError } = await supabase
           .from("profiles")
           .select("*")
-          .eq('role', 'doctor');
+          .in("id", doctorIds);
 
         if (profilesError) {
           console.error("Error fetching doctor profiles:", profilesError);
           throw profilesError;
         }
-      
+
         console.log("Doctors data:", profiles);
         return profiles || [];
       } catch (error) {
