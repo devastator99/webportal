@@ -63,6 +63,18 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
     queryFn: async () => {
       console.log("Starting doctor fetch...");
       
+      // First, get profiles for all users
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("first_name");
+
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+        throw profilesError;
+      }
+
+      // Then, filter to only doctor roles
       const { data: doctorRoles, error: rolesError } = await supabase
         .from("user_roles")
         .select("user_id")
@@ -73,28 +85,14 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
         throw rolesError;
       }
 
-      console.log("Doctor roles fetched:", doctorRoles);
-
-      if (!doctorRoles?.length) {
-        console.log("No doctors found in user_roles");
-        return [];
-      }
-
+      // Match profiles with doctor roles
       const doctorIds = doctorRoles.map(role => role.user_id);
-      console.log("Doctor IDs:", doctorIds);
+      const doctorProfiles = profiles.filter(profile => 
+        doctorIds.includes(profile.id)
+      );
 
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name, consultation_fee")
-        .in("id", doctorIds);
-
-      if (profilesError) {
-        console.error("Error fetching doctor profiles:", profilesError);
-        throw profilesError;
-      }
-
-      console.log("Doctor profiles fetched:", profiles);
-      return (profiles || []) as Doctor[];
+      console.log("Doctor profiles fetched:", doctorProfiles);
+      return doctorProfiles as Doctor[];
     },
   });
 
