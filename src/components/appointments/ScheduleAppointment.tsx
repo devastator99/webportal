@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -103,8 +102,8 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       const appointmentDateTime = new Date(selectedDate);
       appointmentDateTime.setHours(hours, minutes);
 
-      // Use the new create_appointment function
-      const { data: appointment, error: appointmentError } = await supabase
+      // Use the updated create_appointment function with new return type
+      const { data: appointmentData, error: appointmentError } = await supabase
         .rpc('create_appointment', {
           p_patient_id: user.id,
           p_doctor_id: selectedDoctor,
@@ -241,4 +240,3 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
     </Dialog>
   );
 };
-

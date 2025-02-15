@@ -482,7 +482,7 @@ export type Database = {
           p_status?: Database["public"]["Enums"]["appointment_status"]
         }
         Returns: {
-          id: string
+          appointment_id: string
           patient_id: string
           doctor_id: string
           scheduled_at: string
