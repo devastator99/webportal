@@ -106,18 +106,14 @@ export const PatientDashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Side - View/Data */}
           <div className="lg:col-span-7 space-y-6">
-            <div className="grid gap-6">
-              <AppointmentsList appointments={upcomingAppointments} />
-              <MedicalRecordsList records={patientData?.medicalRecords || []} />
-            </div>
+            <AppointmentsList appointments={upcomingAppointments} />
+            <MedicalRecordsList records={patientData?.medicalRecords || []} />
           </div>
 
           {/* Right Side - Actions */}
           <div className="lg:col-span-5 space-y-6">
-            <div className="grid gap-6">
-              <MedicalRecordsUpload records={patientData?.medicalRecords || []} />
-              <ChatInterface />
-            </div>
+            <MedicalRecordsUpload records={patientData?.medicalRecords || []} />
+            <ChatInterface />
           </div>
         </div>
       </div>
