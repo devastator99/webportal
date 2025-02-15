@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -70,7 +71,6 @@ export const PatientDashboard = () => {
       };
     },
     enabled: !!user?.id,
-    refetchInterval: 5000,
   });
 
   if (isLoading) {
