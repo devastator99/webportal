@@ -475,14 +475,14 @@ export type Database = {
       has_role:
         | {
             Args: {
-              role: Database["public"]["Enums"]["user_type"]
+              lookup_user_id: string
+              lookup_role: Database["public"]["Enums"]["user_type"]
             }
             Returns: boolean
           }
         | {
             Args: {
-              user_id: string
-              role_name: Database["public"]["Enums"]["user_type"]
+              role: Database["public"]["Enums"]["user_type"]
             }
             Returns: boolean
           }
