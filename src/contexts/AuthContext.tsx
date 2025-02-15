@@ -31,14 +31,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchUserRole = async (userId: string) => {
     try {
       console.log('Fetching role for user:', userId);
+      // Using maybeSingle() instead of single() to avoid errors if no role is found
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching user role:', error);
+        toast({
+          variant: "destructive",
+          title: "Error fetching user role",
+          description: "Please try refreshing the page"
+        });
         return null;
       }
 
@@ -67,6 +73,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error) {
       console.error('Error in handleAuthStateChange:', error);
+      toast({
+        variant: "destructive",
+        title: "Authentication error",
+        description: "There was an error managing your session"
+      });
     } finally {
       setIsLoading(false);
     }
