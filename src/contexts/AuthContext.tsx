@@ -31,12 +31,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const fetchUserRole = async (userId: string) => {
     try {
       console.log('Fetching role for user:', userId);
-      // Using maybeSingle() instead of single() to avoid errors if no role is found
+      
+      // Use RPC call instead of direct table access
       const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
+        .rpc('get_user_role', {
+          lookup_user_id: userId
+        });
 
       if (error) {
         console.error('Error fetching user role:', error);
@@ -49,7 +49,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       console.log('Role data received:', data);
-      return data?.role as UserRole;
+      // The RPC returns an array with a single object containing the role
+      return data?.[0]?.role as UserRole;
     } catch (error) {
       console.error('Exception in fetchUserRole:', error);
       return null;
