@@ -7,16 +7,13 @@ import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
 export const Navbar = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const { loading, error, handleLogin, handleSignUp } = useAuthHandlers();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     if (user && !isLoading) {
@@ -25,27 +22,8 @@ export const Navbar = () => {
     }
   }, [user, isLoading, navigate]);
 
-  const handleSignOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      navigate('/', { replace: true });
-      toast({
-        title: "Signed out successfully"
-      });
-    } catch (error: any) {
-      console.error('Error signing out:', error);
-      toast({
-        variant: "destructive",
-        title: "Error signing out",
-        description: error.message
-      });
-    }
-  };
-
   if (isLoading) {
-    return null; // Don't render anything while checking auth state
+    return null;
   }
 
   return (
@@ -89,7 +67,7 @@ export const Navbar = () => {
         )}
         {user && (
           <Button 
-            onClick={handleSignOut}
+            onClick={signOut}
             variant="outline" 
             className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2"
           >

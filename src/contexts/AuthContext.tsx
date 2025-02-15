@@ -32,7 +32,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('Fetching role for user:', userId);
       
-      // Use RPC call instead of direct table access
       const { data, error } = await supabase
         .rpc('get_user_role', {
           lookup_user_id: userId
@@ -49,7 +48,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       console.log('Role data received:', data);
-      // The RPC returns an array with a single object containing the role
       return data?.[0]?.role as UserRole;
     } catch (error) {
       console.error('Exception in fetchUserRole:', error);
@@ -106,8 +104,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
+      // Clear auth state
       setUser(null);
       setUserRole(null);
+      
+      // Redirect first, then show toast
       navigate('/', { replace: true });
       
       toast({
