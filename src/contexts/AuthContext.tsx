@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
-type UserRole = "doctor" | "patient" | "administrator" | "nutritionist";
+type UserRole = "doctor" | "patient" | "administrator" | "nutritionist" | "reception";
 
 type AuthContextType = {
   user: User | null;
