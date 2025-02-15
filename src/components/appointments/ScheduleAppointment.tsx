@@ -32,6 +32,21 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
 
   console.log("Current user ID:", user?.id);
 
+  const timeSlots = [
+    "09:00",
+    "09:30",
+    "10:00",
+    "10:30",
+    "11:00",
+    "11:30",
+    "14:00",
+    "14:30",
+    "15:00",
+    "15:30",
+    "16:00",
+    "16:30",
+  ];
+
   const { data: doctors, error: doctorsError } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
@@ -45,7 +60,7 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
         throw rolesError;
       }
 
-      if (!doctorRoles || doctorRoles.length === 0) {
+      if (!doctorRoles || !Array.isArray(doctorRoles)) {
         console.log("No doctors found in roles");
         return [];
       }
@@ -63,7 +78,7 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       }
       
       console.log("Doctors data:", profiles);
-      return profiles;
+      return profiles || [];
     },
     enabled: !!user?.id,
   });
@@ -71,21 +86,6 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
   if (doctorsError) {
     console.error("Query error:", doctorsError);
   }
-
-  const timeSlots = [
-    "09:00",
-    "09:30",
-    "10:00",
-    "10:30",
-    "11:00",
-    "11:30",
-    "14:00",
-    "14:30",
-    "15:00",
-    "15:30",
-    "16:00",
-    "16:30",
-  ];
 
   const handleConfirmAppointment = async () => {
     if (!user?.id || !selectedDoctor || !selectedDate || !selectedTime) {
