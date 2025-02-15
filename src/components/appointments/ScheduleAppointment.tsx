@@ -14,7 +14,6 @@ interface ScheduleAppointmentProps {
   children: React.ReactNode;
 }
 
-// Define step type separately
 type Step = "selection" | "payment";
 
 export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
@@ -36,8 +35,13 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("profiles")
-        .select("*")
-        .eq("role", "doctor");
+        .select(`
+          *,
+          user_roles!inner (
+            role
+          )
+        `)
+        .eq('user_roles.role', 'doctor');
 
       if (error) throw error;
       return data;
