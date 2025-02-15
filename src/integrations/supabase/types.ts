@@ -456,16 +456,9 @@ export type Database = {
         }
         Returns: boolean
       }
-      check_user_role: {
-        Args: {
-          checking_user_id: string
-          required_role: Database["public"]["Enums"]["user_type"]
-        }
-        Returns: boolean
-      }
       get_user_role: {
         Args: {
-          checking_user_id: string
+          lookup_user_id: string
         }
         Returns: {
           role: Database["public"]["Enums"]["user_type"]
@@ -477,17 +470,12 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_admin:
-        | {
-            Args: Record<PropertyKey, never>
-            Returns: boolean
-          }
-        | {
-            Args: {
-              user_id: string
-            }
-            Returns: boolean
-          }
+      is_admin: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       appointment_status: "scheduled" | "completed" | "cancelled"
