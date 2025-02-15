@@ -17,20 +17,16 @@ interface ScheduleAppointmentProps {
 // Define step type separately
 type Step = "selection" | "payment";
 
-// Import PaymentStepState type from PaymentStatus component to avoid duplication
-type PaymentStepState =
-  | { status: "idle" }
-  | { status: "processing" }
-  | { status: "success" }
-  | { status: "error"; error: string };
-
 export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedDoctor, setSelectedDoctor] = useState<string | undefined>(undefined);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [selectedTime, setSelectedTime] = useState<string | undefined>(undefined);
+  const [selectedDoctor, setSelectedDoctor] = useState<string | null>(null);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("selection");
-  const [paymentStep, setPaymentStep] = useState<PaymentStepState>({ status: "idle" });
+  const [paymentStep, setPaymentStep] = useState<{
+    status: "idle" | "processing" | "success" | "error";
+    error?: string;
+  }>({ status: "idle" });
 
   const { user } = useAuth();
   const { toast } = useToast();
@@ -120,9 +116,9 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
           setIsOpen(false);
           setStep("selection");
           setPaymentStep({ status: "idle" });
-          setSelectedDate(undefined);
-          setSelectedTime(undefined);
-          setSelectedDoctor(undefined);
+          setSelectedDate(null);
+          setSelectedTime(null);
+          setSelectedDoctor(null);
         }, 2000);
       } else {
         throw new Error("Payment failed");

@@ -1,11 +1,10 @@
 
 import { Check, Loader2, XCircle } from "lucide-react";
 
-type PaymentStepState =
-  | { status: "idle" }
-  | { status: "processing" }
-  | { status: "success" }
-  | { status: "error"; error: string };
+interface PaymentStepState {
+  status: "idle" | "processing" | "success" | "error";
+  error?: string;
+}
 
 interface PaymentStatusProps {
   paymentStep: PaymentStepState;
