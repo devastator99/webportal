@@ -9,6 +9,7 @@ import { PatientHeader } from "./patient/PatientHeader";
 import { PatientStats } from "./patient/PatientStats";
 import { AppointmentsList } from "./patient/AppointmentsList";
 import { MedicalRecordsList } from "./patient/MedicalRecordsList";
+import { MedicalRecordsUpload } from "./patient/MedicalRecordsUpload";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
@@ -101,8 +102,9 @@ export const PatientDashboard = () => {
             <AppointmentsList appointments={upcomingAppointments} />
             <MedicalRecordsList records={patientData?.medicalRecords || []} />
           </div>
-          <div>
+          <div className="space-y-6">
             <ChatInterface />
+            <MedicalRecordsUpload records={patientData?.medicalRecords || []} />
           </div>
         </div>
       </div>
