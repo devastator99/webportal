@@ -49,23 +49,27 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
     queryKey: ["doctors"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select(`
-            id,
-            first_name,
-            last_name,
-            consultation_fee,
-            user_roles!inner(role)
-          `)
-          .eq('user_roles.role', 'doctor');
+        // Get doctor IDs using the RPC function
+        const { data: doctorIds, error: rpcError } = await supabase
+          .rpc('get_users_by_role', {
+            role_name: 'doctor'
+          });
 
-        if (error) {
-          console.error("Error fetching doctors:", error);
-          throw error;
+        if (rpcError) throw rpcError;
+
+        if (!doctorIds || doctorIds.length === 0) {
+          return [];
         }
 
-        return data || [];
+        // Get profiles for these doctors
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*')
+          .in('id', doctorIds.map(d => d.user_id));
+
+        if (profilesError) throw profilesError;
+
+        return profiles || [];
       } catch (error) {
         console.error("Error in doctors query:", error);
         throw error;
