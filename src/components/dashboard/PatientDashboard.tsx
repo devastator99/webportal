@@ -92,7 +92,7 @@ export const PatientDashboard = () => {
       </div>
 
       <div className="container mx-auto px-4">
-        <div className="pt-24">
+        <div className="pt-24 pb-6">
           {/* Stats Row */}
           <div className="mb-8">
             <PatientStats 
@@ -105,10 +105,9 @@ export const PatientDashboard = () => {
 
           {/* Main Content */}
           <div className="flex flex-col lg:flex-row gap-6">
-            {/* Left Column - View/Data */}
-            <div className="flex-1 space-y-6">
+            {/* Left Column - View Content */}
+            <div className="flex-1">
               <AppointmentsList appointments={upcomingAppointments} />
-              <MedicalRecordsList records={patientData?.medicalRecords || []} />
             </div>
 
             {/* Right Column - Actions */}
@@ -116,6 +115,11 @@ export const PatientDashboard = () => {
               <MedicalRecordsUpload records={patientData?.medicalRecords || []} />
               <ChatInterface />
             </div>
+          </div>
+
+          {/* Medical Records Section */}
+          <div className="mt-6">
+            <MedicalRecordsList records={patientData?.medicalRecords || []} />
           </div>
         </div>
       </div>
