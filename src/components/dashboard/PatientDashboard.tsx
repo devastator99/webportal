@@ -78,8 +78,9 @@ export const PatientDashboard = () => {
   }
 
   const allAppointments = patientData?.appointments || [];
-  const scheduledAppointments = allAppointments.filter(a => a.status === 'scheduled');
-  const upcomingAppointments = scheduledAppointments.filter(a => new Date(a.scheduled_at) > new Date());
+  const upcomingAppointments = allAppointments.filter(a => 
+    a.status === 'scheduled' && new Date(a.scheduled_at) > new Date()
+  );
   const nextAppointmentDate = upcomingAppointments.length > 0 
     ? new Date(upcomingAppointments[0].scheduled_at).toLocaleDateString()
     : null;
@@ -115,3 +116,4 @@ export const PatientDashboard = () => {
     </div>
   );
 };
+
