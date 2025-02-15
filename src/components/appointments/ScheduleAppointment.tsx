@@ -51,34 +51,24 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
     queryKey: ["doctors"],
     queryFn: async () => {
       console.log("Fetching doctors...");
-      // First get the doctor user IDs
-      const { data: doctorRoles, error: rolesError } = await supabase
-        .rpc('get_users_by_role', { role_name: 'doctor' });
+      try {
+        // Get all profiles that have the doctor role
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq('role', 'doctor');
 
-      if (rolesError) {
-        console.error("Error fetching doctor roles:", rolesError);
-        throw rolesError;
-      }
-
-      if (!doctorRoles || !Array.isArray(doctorRoles)) {
-        console.log("No doctors found in roles");
-        return [];
-      }
-
-      // Then get the profiles for those doctors
-      const doctorIds = doctorRoles.map(d => d.user_id);
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("*")
-        .in("id", doctorIds);
-
-      if (profilesError) {
-        console.error("Error fetching doctor profiles:", profilesError);
-        throw profilesError;
-      }
+        if (profilesError) {
+          console.error("Error fetching doctor profiles:", profilesError);
+          throw profilesError;
+        }
       
-      console.log("Doctors data:", profiles);
-      return profiles || [];
+        console.log("Doctors data:", profiles);
+        return profiles || [];
+      } catch (error) {
+        console.error("Error in doctors query:", error);
+        throw error;
+      }
     },
     enabled: !!user?.id,
   });
@@ -115,6 +105,19 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       const appointmentDateTime = new Date(selectedDate);
       appointmentDateTime.setHours(hours, minutes);
 
+      // Check for existing appointments at the same time
+      const { data: existingAppointments, error: checkError } = await supabase
+        .from("appointments")
+        .select("*")
+        .eq('doctor_id', selectedDoctor)
+        .eq('scheduled_at', appointmentDateTime.toISOString());
+
+      if (checkError) throw checkError;
+
+      if (existingAppointments && existingAppointments.length > 0) {
+        throw new Error("This time slot is already booked. Please select another time.");
+      }
+
       // Create appointment
       const { data: appointment, error: appointmentError } = await supabase
         .from("appointments")
@@ -132,7 +135,7 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       if (appointmentError) throw appointmentError;
 
       // Process payment
-      const paymentResult = await createMockPayment(selectedDoctor1.consultation_fee);
+      const paymentResult = await createMockPayment(selectedDoctor1.consultation_fee || 100);
 
       if (paymentResult.status === "completed") {
         setPaymentStep({ status: "success" });
@@ -155,13 +158,18 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       console.error("Error scheduling appointment:", error);
       setPaymentStep({
         status: "error",
-        error: "Failed to schedule appointment. Please try again.",
+        error: error.message || "Failed to schedule appointment. Please try again.",
       });
       toast({
         variant: "destructive",
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to schedule appointment. Please try again.",
       });
+      // Reset to selection step after error
+      setTimeout(() => {
+        setStep("selection");
+        setPaymentStep({ status: "idle" });
+      }, 2000);
     }
   };
 
