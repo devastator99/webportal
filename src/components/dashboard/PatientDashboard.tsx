@@ -31,7 +31,7 @@ export const PatientDashboard = () => {
         throw profileError;
       }
 
-      // Then get appointments and medical records
+      // Then get appointments
       const [
         { data: appointments, error: appointmentsError }
       ] = await Promise.all([
@@ -87,7 +87,7 @@ export const PatientDashboard = () => {
           {/* Stats Row */}
           <PatientStats 
             appointmentsCount={upcomingAppointments.length}
-            medicalRecordsCount={0} // Removed as we're using realtime counter in PatientStats
+            medicalRecordsCount={0} // This prop is no longer needed as PatientStats handles its own count
             nextAppointmentDate={nextAppointmentDate}
           />
 
