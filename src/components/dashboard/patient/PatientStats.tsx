@@ -1,60 +1,25 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, FileText, Heart, Clock, Upload } from "lucide-react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 
 type PatientStatsProps = {
   appointmentsCount: number;
-  medicalRecordsCount: number;
   nextAppointmentDate: string | null;
 };
 
 export const PatientStats = ({
   appointmentsCount,
-  medicalRecordsCount,
   nextAppointmentDate,
 }: PatientStatsProps) => {
   const { user } = useAuth();
-  const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Set up realtime subscription for medical reports count updates
-  useEffect(() => {
-    if (!user?.id) return;
-
-    console.log('Setting up realtime subscription for medical reports stats');
-
-    const channel = supabase
-      .channel('medical-reports-stats')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'patient_medical_reports',
-          filter: `patient_id=eq.${user.id}`
-        },
-        (payload) => {
-          console.log('New medical report detected in stats:', payload);
-          queryClient.invalidateQueries({ queryKey: ["medical_reports_count", user.id] });
-        }
-      )
-      .subscribe((status) => {
-        console.log('Stats subscription status:', status);
-      });
-
-    return () => {
-      console.log('Cleaning up stats realtime subscription');
-      supabase.removeChannel(channel);
-    };
-  }, [user?.id, queryClient]);
-
-  // Query for medical reports
+  // Query for medical reports - simplified direct query
   const { data: reports = [] } = useQuery({
     queryKey: ["medical_reports_count", user?.id],
     queryFn: async () => {
@@ -64,8 +29,7 @@ export const PatientStats = ({
       const { data, error } = await supabase
         .from('patient_medical_reports')
         .select('id, file_name, file_path, uploaded_at')
-        .eq('patient_id', user.id)
-        .order('uploaded_at', { ascending: false });
+        .eq('patient_id', user.id);
 
       if (error) {
         console.error('Error fetching reports:', error);
