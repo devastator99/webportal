@@ -87,7 +87,6 @@ export const PatientDashboard = () => {
           {/* Stats Row */}
           <PatientStats 
             appointmentsCount={upcomingAppointments.length}
-            medicalRecordsCount={0} // This prop is no longer needed as PatientStats handles its own count
             nextAppointmentDate={nextAppointmentDate}
           />
 
