@@ -24,23 +24,11 @@ export const MedicalRecordsUpload = ({ showUploadOnly = false }: MedicalRecordsU
     setIsUploading(true);
     
     try {
-      // First get the patient's assigned doctor
-      const { data: assignment, error: assignmentError } = await supabase
-        .from('patient_assignments')
-        .select('doctor_id')
-        .eq('patient_id', user.id)
-        .single();
-
-      if (assignmentError) {
-        throw new Error('No assigned doctor found. Please contact support.');
-      }
-
-      // Create medical record with the doctor_id
+      // First create a medical record
       const { data: medicalRecord, error: recordError } = await supabase
         .from('medical_records')
         .insert({
           patient_id: user.id,
-          doctor_id: assignment.doctor_id,
           diagnosis: 'Uploaded by patient'
         })
         .select()
@@ -83,7 +71,7 @@ export const MedicalRecordsUpload = ({ showUploadOnly = false }: MedicalRecordsU
       console.error('Upload error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to upload medical reports",
+        description: "Failed to upload medical reports",
         variant: "destructive",
       });
     } finally {

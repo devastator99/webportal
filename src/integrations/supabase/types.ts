@@ -256,7 +256,7 @@ export type Database = {
         Row: {
           created_at: string
           diagnosis: string | null
-          doctor_id: string
+          doctor_id: string | null
           id: string
           notes: string | null
           patient_id: string
@@ -266,7 +266,7 @@ export type Database = {
         Insert: {
           created_at?: string
           diagnosis?: string | null
-          doctor_id: string
+          doctor_id?: string | null
           id?: string
           notes?: string | null
           patient_id: string
@@ -276,7 +276,7 @@ export type Database = {
         Update: {
           created_at?: string
           diagnosis?: string | null
-          doctor_id?: string
+          doctor_id?: string | null
           id?: string
           notes?: string | null
           patient_id?: string
