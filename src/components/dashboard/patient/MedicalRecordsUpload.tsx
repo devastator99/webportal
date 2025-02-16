@@ -24,6 +24,18 @@ export const MedicalRecordsUpload = ({ showUploadOnly = false }: MedicalRecordsU
     setIsUploading(true);
     
     try {
+      // First create a medical record
+      const { data: medicalRecord, error: recordError } = await supabase
+        .from('medical_records')
+        .insert({
+          patient_id: user.id,
+          diagnosis: 'Uploaded by patient'
+        })
+        .select()
+        .single();
+
+      if (recordError) throw recordError;
+
       for (const file of files) {
         const filePath = `${user.id}/${crypto.randomUUID()}-${file.name}`;
         
@@ -36,7 +48,7 @@ export const MedicalRecordsUpload = ({ showUploadOnly = false }: MedicalRecordsU
         const { error: dbError } = await supabase
           .from('medical_documents')
           .insert({
-            patient_id: user.id,
+            medical_record_id: medicalRecord.id,
             file_name: file.name,
             file_path: filePath,
             file_type: file.type,
