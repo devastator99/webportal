@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, Eye } from "lucide-react";
@@ -61,13 +60,11 @@ export const MedicalRecordsList = () => {
 
   const handleView = async (filePath: string) => {
     try {
-      const { data: { publicUrl }, error } = await supabase.storage
+      const { data } = await supabase.storage
         .from('patient_medical_reports')
         .getPublicUrl(filePath);
 
-      if (error) throw error;
-
-      window.open(publicUrl, '_blank');
+      window.open(data.publicUrl, '_blank');
     } catch (error) {
       console.error('View error:', error);
     }

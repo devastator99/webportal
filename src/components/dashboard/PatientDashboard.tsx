@@ -97,7 +97,6 @@ export const PatientDashboard = () => {
             appointmentsCount={upcomingAppointments.length}
             medicalRecordsCount={patientData?.medicalRecords.length || 0}
             nextAppointmentDate={nextAppointmentDate}
-            reportsCount={0}
           />
 
           {/* Main Content */}
