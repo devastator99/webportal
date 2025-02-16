@@ -8,7 +8,7 @@ import { useEffect } from "react";
 
 type PatientStatsProps = {
   appointmentsCount: number;
-  medicalRecordsCount: number;
+  medicalRecordsCount: number; // This prop is not used anymore as we use realtime counter
   nextAppointmentDate: string | null;
 };
 
@@ -20,6 +20,7 @@ export const PatientStats = ({
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // Set up realtime subscription for medical reports count updates
   useEffect(() => {
     if (!user?.id) return;
 
@@ -37,7 +38,10 @@ export const PatientStats = ({
         },
         (payload) => {
           console.log('New medical report detected in stats:', payload);
-          queryClient.invalidateQueries({ queryKey: ["medical_reports_count", user.id] });
+          // Immediately update the cache with the new count
+          const previousData = queryClient.getQueryData<number>(["medical_reports_count", user.id]) || 0;
+          queryClient.setQueryData(["medical_reports_count", user.id], previousData + 1);
+          console.log('Updated medical reports count:', previousData + 1);
         }
       )
       .subscribe((status) => {
@@ -50,6 +54,7 @@ export const PatientStats = ({
     };
   }, [user?.id, queryClient]);
 
+  // Query for initial medical reports count
   const { data: reportsCount = 0 } = useQuery({
     queryKey: ["medical_reports_count", user?.id],
     queryFn: async () => {
@@ -65,10 +70,11 @@ export const PatientStats = ({
         console.error('Error fetching reports count:', error);
         throw error;
       }
-      console.log('Current reports count:', count);
+      console.log('Initial reports count:', count);
       return count || 0;
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
+    staleTime: 30000, // Consider data fresh for 30 seconds
   });
 
   return (
