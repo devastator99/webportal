@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, FileText, Heart, Clock, Upload } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -92,13 +91,9 @@ export const PatientStats = ({
         const latestReport = reports[0];
         console.log('Attempting to view report:', latestReport);
         
-        const { data, error } = await supabase.storage
+        const { data } = await supabase.storage
           .from('patient_medical_reports')
           .getPublicUrl(latestReport.file_path);
-
-        if (error) {
-          throw error;
-        }
 
         console.log('Generated public URL:', data.publicUrl);
         window.open(data.publicUrl, '_blank');
