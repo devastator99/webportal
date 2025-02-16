@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, Eye } from "lucide-react";
@@ -25,7 +24,6 @@ export const MedicalRecordsList = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
-  // Set up real-time subscription
   useEffect(() => {
     if (!user?.id) return;
 
@@ -41,7 +39,6 @@ export const MedicalRecordsList = () => {
         },
         (payload) => {
           console.log('New medical report uploaded:', payload);
-          // Invalidate and refetch the reports query
           queryClient.invalidateQueries({ queryKey: ["medical_reports", user.id] });
           toast({
             title: "New report uploaded",
@@ -81,7 +78,6 @@ export const MedicalRecordsList = () => {
 
       if (error) throw error;
 
-      // Create and trigger download
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
@@ -126,73 +122,66 @@ export const MedicalRecordsList = () => {
     return <div>Loading...</div>;
   }
 
-  if (!reports?.length) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
             Medical Reports
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </div>
+          <div className="text-sm font-normal text-muted-foreground">
+            Total Reports: {reports?.length || 0}
+          </div>
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {!reports?.length ? (
           <Alert>
             <AlertDescription>
               No medical reports found. You can upload your medical reports using the upload button.
             </AlertDescription>
           </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          Medical Reports History
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <ScrollArea className="h-[300px] pr-4">
-          <div className="space-y-4">
-            {reports.map((report) => (
-              <div key={report.id} className="p-4 border rounded-lg hover:bg-gray-50">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="font-medium">{report.file_name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      Uploaded on {new Date(report.uploaded_at).toLocaleDateString()}
-                    </p>
-                    {report.file_size && (
+        ) : (
+          <ScrollArea className="h-[300px] pr-4">
+            <div className="space-y-4">
+              {reports.map((report) => (
+                <div key={report.id} className="p-4 border rounded-lg hover:bg-gray-50">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="font-medium">{report.file_name}</p>
                       <p className="text-sm text-muted-foreground">
-                        Size: {(report.file_size / 1024 / 1024).toFixed(2)} MB
+                        Uploaded on {new Date(report.uploaded_at).toLocaleDateString()}
                       </p>
-                    )}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleView(report.file_path)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDownload(report.file_path, report.file_name)}
-                    >
-                      Download
-                    </Button>
+                      {report.file_size && (
+                        <p className="text-sm text-muted-foreground">
+                          Size: {(report.file_size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handleView(report.file_path)}
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownload(report.file_path, report.file_name)}
+                      >
+                        Download
+                      </Button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </ScrollArea>
+              ))}
+            </div>
+          </ScrollArea>
+        )}
       </CardContent>
     </Card>
   );
