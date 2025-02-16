@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText } from "lucide-react";
+import { FileText, Eye } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,6 +59,20 @@ export const MedicalRecordsList = () => {
     }
   };
 
+  const handleView = async (filePath: string) => {
+    try {
+      const { data: { publicUrl }, error } = await supabase.storage
+        .from('patient_medical_reports')
+        .getPublicUrl(filePath);
+
+      if (error) throw error;
+
+      window.open(publicUrl, '_blank');
+    } catch (error) {
+      console.error('View error:', error);
+    }
+  };
+
   if (isLoading) {
     return <div>Loading...</div>;
   }
@@ -108,13 +122,23 @@ export const MedicalRecordsList = () => {
                       </p>
                     )}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleDownload(report.file_path, report.file_name)}
-                  >
-                    Download
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleView(report.file_path)}
+                    >
+                      <Eye className="h-4 w-4 mr-1" />
+                      View
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleDownload(report.file_path, report.file_name)}
+                    >
+                      Download
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}

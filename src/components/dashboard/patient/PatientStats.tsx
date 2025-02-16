@@ -1,20 +1,39 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, FileText, Heart, Clock, Upload } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 type PatientStatsProps = {
   appointmentsCount: number;
   medicalRecordsCount: number;
   nextAppointmentDate: string | null;
-  reportsCount: number;
 };
 
 export const PatientStats = ({
   appointmentsCount,
   medicalRecordsCount,
   nextAppointmentDate,
-  reportsCount,
 }: PatientStatsProps) => {
+  const { user } = useAuth();
+
+  const { data: reportsCount = 0 } = useQuery({
+    queryKey: ["medical_reports_count", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return 0;
+
+      const { count, error } = await supabase
+        .from('patient_medical_reports')
+        .select('*', { count: 'exact', head: true })
+        .eq('patient_id', user.id);
+
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!user?.id
+  });
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       <Card>
