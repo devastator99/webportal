@@ -33,8 +33,7 @@ export const PatientDashboard = () => {
 
       // Then get appointments and medical records
       const [
-        { data: appointments, error: appointmentsError },
-        { data: medicalRecords, error: medicalRecordsError }
+        { data: appointments, error: appointmentsError }
       ] = await Promise.all([
         supabase
           .from("appointments")
@@ -45,21 +44,14 @@ export const PatientDashboard = () => {
             doctor:profiles!appointments_doctor_profile_fkey(first_name, last_name)
           `)
           .eq("patient_id", user.id)
-          .order("scheduled_at", { ascending: true }),
-        supabase
-          .from("medical_records")
-          .select("*")
-          .eq("patient_id", user.id)
-          .order("created_at", { ascending: false })
+          .order("scheduled_at", { ascending: true })
       ]);
 
       if (appointmentsError) throw appointmentsError;
-      if (medicalRecordsError) throw medicalRecordsError;
 
       return {
         profile,
-        appointments: appointments || [],
-        medicalRecords: medicalRecords || []
+        appointments: appointments || []
       };
     },
     enabled: !!user?.id,
@@ -95,7 +87,7 @@ export const PatientDashboard = () => {
           {/* Stats Row */}
           <PatientStats 
             appointmentsCount={upcomingAppointments.length}
-            medicalRecordsCount={patientData?.medicalRecords.length || 0}
+            medicalRecordsCount={0} // Removed as we're using realtime counter in PatientStats
             nextAppointmentDate={nextAppointmentDate}
           />
 
