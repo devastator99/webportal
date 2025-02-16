@@ -1,9 +1,10 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, FileText, Heart, Clock, Upload } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEffect } from "react";
 
 type PatientStatsProps = {
   appointmentsCount: number;
@@ -17,18 +18,54 @@ export const PatientStats = ({
   nextAppointmentDate,
 }: PatientStatsProps) => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('Setting up realtime subscription for medical reports stats');
+
+    const channel = supabase
+      .channel('medical-reports-stats')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'patient_medical_reports',
+          filter: `patient_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('New medical report detected in stats:', payload);
+          queryClient.invalidateQueries({ queryKey: ["medical_reports_count", user.id] });
+        }
+      )
+      .subscribe((status) => {
+        console.log('Stats subscription status:', status);
+      });
+
+    return () => {
+      console.log('Cleaning up stats realtime subscription');
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
 
   const { data: reportsCount = 0 } = useQuery({
     queryKey: ["medical_reports_count", user?.id],
     queryFn: async () => {
       if (!user?.id) return 0;
 
+      console.log('Fetching medical reports count for stats');
       const { count, error } = await supabase
         .from('patient_medical_reports')
         .select('*', { count: 'exact', head: true })
         .eq('patient_id', user.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching reports count:', error);
+        throw error;
+      }
+      console.log('Current reports count:', count);
       return count || 0;
     },
     enabled: !!user?.id
