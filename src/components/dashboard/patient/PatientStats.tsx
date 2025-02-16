@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, FileText, Heart, Clock, Upload } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -124,7 +123,7 @@ export const PatientStats = ({
           <FileText className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{medicalRecordsCount}</div>
+          <div className="text-2xl font-bold">{reports.length}</div>
         </CardContent>
       </Card>
 
