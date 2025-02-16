@@ -470,6 +470,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_medical_document_access: {
+        Args: {
+          document_id: string
+        }
+        Returns: boolean
+      }
       check_user_role_access: {
         Args: Record<PropertyKey, never>
         Returns: boolean
