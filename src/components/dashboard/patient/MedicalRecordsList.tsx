@@ -8,14 +8,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 
-type MedicalReport = {
+interface MedicalReport {
   id: string;
+  patient_id: string;
   file_name: string;
   file_path: string;
   file_type: string | null;
   file_size: number | null;
   uploaded_at: string;
-};
+}
 
 export const MedicalRecordsList = () => {
   const { user } = useAuth();
@@ -23,14 +24,16 @@ export const MedicalRecordsList = () => {
   const { data: reports, isLoading } = useQuery({
     queryKey: ["medical_reports", user?.id],
     queryFn: async () => {
+      if (!user?.id) throw new Error("No user ID");
+
       const { data, error } = await supabase
         .from('patient_medical_reports')
         .select('*')
-        .eq('patient_id', user?.id)
+        .eq('patient_id', user.id)
         .order('uploaded_at', { ascending: false });
 
       if (error) throw error;
-      return data as MedicalReport[];
+      return data;
     },
     enabled: !!user?.id
   });
@@ -43,7 +46,6 @@ export const MedicalRecordsList = () => {
 
       if (error) throw error;
 
-      // Create a download link
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
