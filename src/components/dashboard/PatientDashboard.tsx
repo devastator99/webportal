@@ -109,8 +109,8 @@ export const PatientDashboard = () => {
 
             {/* Right Column - Actions */}
             <div className="lg:w-[400px] space-y-6">
-              <ChatInterface />
               <MedicalRecordsUpload showUploadOnly />
+              <ChatInterface />
             </div>
           </div>
         </div>
