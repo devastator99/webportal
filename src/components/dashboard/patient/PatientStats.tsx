@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, FileText, Heart, Clock, Upload } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -53,7 +54,7 @@ export const PatientStats = ({
     };
   }, [user?.id, queryClient]);
 
-  // Query for medical reports
+  // Query for medical reports - simplified to avoid recursive policy issues
   const { data: reports = [] } = useQuery({
     queryKey: ["medical_reports_count", user?.id],
     queryFn: async () => {
@@ -62,13 +63,18 @@ export const PatientStats = ({
       console.log('Fetching medical reports for stats');
       const { data, error } = await supabase
         .from('patient_medical_reports')
-        .select('*')
+        .select('id, file_name, file_path, uploaded_at')
         .eq('patient_id', user.id)
         .order('uploaded_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching reports:', error);
-        throw error;
+        toast({
+          title: "Error fetching reports",
+          description: error.message,
+          variant: "destructive"
+        });
+        return [];
       }
 
       console.log('Fetched medical reports:', data);
@@ -84,10 +90,17 @@ export const PatientStats = ({
       // Open latest report if available
       if (reports.length > 0) {
         const latestReport = reports[0];
-        const { data } = await supabase.storage
+        console.log('Attempting to view report:', latestReport);
+        
+        const { data, error } = await supabase.storage
           .from('patient_medical_reports')
           .getPublicUrl(latestReport.file_path);
 
+        if (error) {
+          throw error;
+        }
+
+        console.log('Generated public URL:', data.publicUrl);
         window.open(data.publicUrl, '_blank');
       } else {
         toast({
