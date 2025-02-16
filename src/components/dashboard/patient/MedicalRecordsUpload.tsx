@@ -36,6 +36,7 @@ export const MedicalRecordsUpload = ({ showUploadOnly = false }: MedicalRecordsU
         const { error: dbError } = await supabase
           .from('medical_documents')
           .insert({
+            patient_id: user.id,
             file_name: file.name,
             file_path: filePath,
             file_type: file.type,
