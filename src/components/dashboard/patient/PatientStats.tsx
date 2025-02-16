@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, FileText, Heart, Clock, Upload } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -53,7 +54,7 @@ export const PatientStats = ({
     };
   }, [user?.id, queryClient]);
 
-  // Query for medical reports - simplified to avoid recursive policy issues
+  // Query for medical reports
   const { data: reports = [] } = useQuery({
     queryKey: ["medical_reports_count", user?.id],
     queryFn: async () => {
@@ -90,7 +91,8 @@ export const PatientStats = ({
       if (reports.length > 0) {
         const latestReport = reports[0];
         console.log('Attempting to view report:', latestReport);
-        
+
+        // Get a public URL for the file using the authenticated session
         const { data } = await supabase.storage
           .from('patient_medical_reports')
           .getPublicUrl(latestReport.file_path);
