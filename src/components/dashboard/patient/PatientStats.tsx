@@ -8,7 +8,7 @@ import { useEffect } from "react";
 
 type PatientStatsProps = {
   appointmentsCount: number;
-  medicalRecordsCount: number; // This prop is not used anymore as we use realtime counter
+  medicalRecordsCount: number;
   nextAppointmentDate: string | null;
 };
 
@@ -54,27 +54,28 @@ export const PatientStats = ({
     };
   }, [user?.id, queryClient]);
 
-  // Query for initial medical reports count
+  // Query for medical reports count
   const { data: reportsCount = 0 } = useQuery({
     queryKey: ["medical_reports_count", user?.id],
     queryFn: async () => {
       if (!user?.id) return 0;
 
       console.log('Fetching medical reports count for stats');
-      const { count, error } = await supabase
+      const { data, error } = await supabase
         .from('patient_medical_reports')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact' })
         .eq('patient_id', user.id);
 
       if (error) {
         console.error('Error fetching reports count:', error);
         throw error;
       }
-      console.log('Initial reports count:', count);
-      return count || 0;
+
+      const count = Array.isArray(data) ? data.length : 0;
+      console.log('Current medical reports count:', count);
+      return count;
     },
-    enabled: !!user?.id,
-    staleTime: 30000, // Consider data fresh for 30 seconds
+    enabled: !!user?.id
   });
 
   return (
