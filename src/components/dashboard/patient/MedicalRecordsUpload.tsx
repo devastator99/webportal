@@ -28,13 +28,13 @@ export const MedicalRecordsUpload = ({ showUploadOnly = false }: MedicalRecordsU
         const filePath = `${user.id}/${crypto.randomUUID()}-${file.name}`;
         
         const { error: uploadError } = await supabase.storage
-          .from('medical_reports')
+          .from('medical_records')
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
 
         const { error: dbError } = await supabase
-          .from('medical_reports')
+          .from('medical_records')
           .insert({
             patient_id: user.id,
             file_name: file.name,
