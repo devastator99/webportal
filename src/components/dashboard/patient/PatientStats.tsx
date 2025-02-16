@@ -19,56 +19,75 @@ export const PatientStats = ({
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Query for medical reports - simplified direct query
-  const { data: reports = [] } = useQuery({
+  // Simplified query that only counts reports
+  const { data: reportsCount = 0 } = useQuery({
     queryKey: ["medical_reports_count", user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) return 0;
 
-      console.log('Fetching medical reports for stats');
-      const { data, error } = await supabase
+      console.log('Fetching medical reports count');
+      const { count, error } = await supabase
         .from('patient_medical_reports')
-        .select('id, file_name, file_path, uploaded_at')
+        .select('*', { count: 'exact', head: true })
         .eq('patient_id', user.id);
 
       if (error) {
-        console.error('Error fetching reports:', error);
+        console.error('Error fetching reports count:', error);
         toast({
           title: "Error fetching reports",
           description: error.message,
           variant: "destructive"
         });
-        return [];
+        return 0;
       }
 
-      console.log('Fetched medical reports:', data);
-      return data || [];
+      console.log('Fetched reports count:', count);
+      return count || 0;
+    },
+    enabled: !!user?.id
+  });
+
+  // Separate query for latest report when needed for viewing
+  const { data: latestReport } = useQuery({
+    queryKey: ["latest_medical_report", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+
+      const { data, error } = await supabase
+        .from('patient_medical_reports')
+        .select('file_name, file_path')
+        .eq('patient_id', user.id)
+        .order('uploaded_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Error fetching latest report:', error);
+        return null;
+      }
+
+      return data;
     },
     enabled: !!user?.id
   });
 
   const handleViewReports = async () => {
     try {
-      if (!user?.id) return;
-
-      // Open latest report if available
-      if (reports.length > 0) {
-        const latestReport = reports[0];
-        console.log('Attempting to view report:', latestReport);
-
-        // Get a public URL for the file using the authenticated session
-        const { data } = await supabase.storage
-          .from('patient_medical_reports')
-          .getPublicUrl(latestReport.file_path);
-
-        console.log('Generated public URL:', data.publicUrl);
-        window.open(data.publicUrl, '_blank');
-      } else {
+      if (!latestReport) {
         toast({
           title: "No reports found",
           description: "You haven't uploaded any medical reports yet.",
         });
+        return;
       }
+
+      console.log('Attempting to view report:', latestReport);
+      const { data } = await supabase.storage
+        .from('patient_medical_reports')
+        .getPublicUrl(latestReport.file_path);
+
+      console.log('Generated public URL:', data.publicUrl);
+      window.open(data.publicUrl, '_blank');
     } catch (error) {
       console.error('Error viewing report:', error);
       toast({
@@ -97,7 +116,7 @@ export const PatientStats = ({
           <FileText className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{reports.length}</div>
+          <div className="text-2xl font-bold">{reportsCount}</div>
         </CardContent>
       </Card>
 
@@ -129,8 +148,8 @@ export const PatientStats = ({
           <Upload className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent className="space-y-2">
-          <div className="text-2xl font-bold">{reports.length}</div>
-          {reports.length > 0 && (
+          <div className="text-2xl font-bold">{reportsCount}</div>
+          {reportsCount > 0 && (
             <Button 
               variant="outline" 
               size="sm" 
