@@ -3,10 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, Eye } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
+import { useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 interface MedicalReport {
   id: string;
@@ -20,6 +22,39 @@ interface MedicalReport {
 
 export const MedicalRecordsList = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  // Set up real-time subscription
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('medical-reports')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'patient_medical_reports',
+          filter: `patient_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('New medical report uploaded:', payload);
+          // Invalidate and refetch the reports query
+          queryClient.invalidateQueries({ queryKey: ["medical_reports", user.id] });
+          toast({
+            title: "New report uploaded",
+            description: "Your medical reports list has been updated."
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient, toast]);
 
   const { data: reports, isLoading } = useQuery({
     queryKey: ["medical_reports", user?.id],
@@ -55,8 +90,18 @@ export const MedicalRecordsList = () => {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
+      toast({
+        title: "Download started",
+        description: `Downloading ${fileName}`
+      });
     } catch (error) {
       console.error('Download error:', error);
+      toast({
+        title: "Download failed",
+        description: "Unable to download the file. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -69,6 +114,11 @@ export const MedicalRecordsList = () => {
       window.open(data.publicUrl, '_blank');
     } catch (error) {
       console.error('View error:', error);
+      toast({
+        title: "Error",
+        description: "Unable to view the file. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
