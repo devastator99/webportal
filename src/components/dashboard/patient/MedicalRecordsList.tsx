@@ -5,47 +5,75 @@ import { FileText } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DocumentSummary } from "../doctor/DocumentSummary";
+import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 
-type MedicalRecord = {
+type MedicalReport = {
   id: string;
-  diagnosis: string | null;
-  created_at: string;
+  file_name: string;
+  file_path: string;
+  file_type: string | null;
+  file_size: number | null;
+  uploaded_at: string;
 };
 
-type MedicalRecordsListProps = {
-  records: MedicalRecord[];
-};
+export const MedicalRecordsList = () => {
+  const { user } = useAuth();
 
-export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
-  // Query to fetch documents for all records
-  const { data: documents } = useQuery({
-    queryKey: ["medical_documents", records.map(r => r.id)],
+  const { data: reports, isLoading } = useQuery({
+    queryKey: ["medical_reports", user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('medical_documents')
+        .from('patient_medical_reports')
         .select('*')
-        .in('medical_record_id', records.map(r => r.id));
+        .eq('patient_id', user?.id)
+        .order('uploaded_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data as MedicalReport[];
     },
-    enabled: records.length > 0
+    enabled: !!user?.id
   });
 
-  if (!records.length) {
+  const handleDownload = async (filePath: string, fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('patient_medical_reports')
+        .download(filePath);
+
+      if (error) throw error;
+
+      // Create a download link
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Download error:', error);
+    }
+  };
+
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!reports?.length) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
-            Medical Records
+            Medical Reports
           </CardTitle>
         </CardHeader>
         <CardContent>
           <Alert>
             <AlertDescription>
-              No medical records found. Records will appear here once they are created by your doctor.
+              No medical reports found. You can upload your medical reports using the upload button.
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -58,41 +86,36 @@ export const MedicalRecordsList = ({ records }: MedicalRecordsListProps) => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileText className="h-5 w-5" />
-          Medical Records History
+          Medical Reports History
         </CardTitle>
       </CardHeader>
       <CardContent>
         <ScrollArea className="h-[300px] pr-4">
           <div className="space-y-4">
-            {records.map((record) => {
-              const recordDocuments = documents?.filter(
-                doc => doc.medical_record_id === record.id
-              ) || [];
-
-              return (
-                <div key={record.id} className="space-y-4">
-                  <div className="p-4 border rounded-lg hover:bg-gray-50">
-                    <p className="font-medium">{record.diagnosis || 'General Check-up'}</p>
+            {reports.map((report) => (
+              <div key={report.id} className="p-4 border rounded-lg hover:bg-gray-50">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-medium">{report.file_name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(record.created_at).toLocaleDateString()}
+                      Uploaded on {new Date(report.uploaded_at).toLocaleDateString()}
                     </p>
-                    {recordDocuments.length > 0 && (
-                      <p className="text-sm text-muted-foreground mt-2">
-                        {recordDocuments.length} document{recordDocuments.length !== 1 ? 's' : ''} attached
+                    {report.file_size && (
+                      <p className="text-sm text-muted-foreground">
+                        Size: {(report.file_size / 1024 / 1024).toFixed(2)} MB
                       </p>
                     )}
                   </div>
-
-                  {recordDocuments.map(doc => (
-                    <DocumentSummary
-                      key={doc.id}
-                      documentId={doc.id}
-                      documentPath={doc.file_path}
-                    />
-                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleDownload(report.file_path, report.file_name)}
+                  >
+                    Download
+                  </Button>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         </ScrollArea>
       </CardContent>

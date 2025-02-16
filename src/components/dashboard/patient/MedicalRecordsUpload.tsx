@@ -24,25 +24,12 @@ export const MedicalRecordsUpload = ({ showUploadOnly = false }: MedicalRecordsU
     setIsUploading(true);
     
     try {
-      // First create a medical record
-      const { data: medicalRecord, error: recordError } = await supabase
-        .from('medical_records')
-        .insert({
-          patient_id: user.id,
-          diagnosis: 'Uploaded by patient'
-        })
-        .select()
-        .single();
-
-      if (recordError) throw recordError;
-      console.log('Created medical record:', medicalRecord);
-
       for (const file of files) {
         const filePath = `${user.id}/${crypto.randomUUID()}-${file.name}`;
         
         // Upload file to storage
         const { error: uploadError } = await supabase.storage
-          .from('medical_records')
+          .from('patient_medical_reports')
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
@@ -50,9 +37,9 @@ export const MedicalRecordsUpload = ({ showUploadOnly = false }: MedicalRecordsU
 
         // Create document record
         const { error: dbError } = await supabase
-          .from('medical_documents')
+          .from('patient_medical_reports')
           .insert({
-            medical_record_id: medicalRecord.id,
+            patient_id: user.id,
             file_name: file.name,
             file_path: filePath,
             file_type: file.type,
