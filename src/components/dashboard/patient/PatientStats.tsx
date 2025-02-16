@@ -5,6 +5,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 type PatientStatsProps = {
   appointmentsCount: number;
@@ -19,6 +21,7 @@ export const PatientStats = ({
 }: PatientStatsProps) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   // Set up realtime subscription for medical reports count updates
   useEffect(() => {
@@ -38,10 +41,7 @@ export const PatientStats = ({
         },
         (payload) => {
           console.log('New medical report detected in stats:', payload);
-          // Immediately update the cache with the new count
-          const previousData = queryClient.getQueryData<number>(["medical_reports_count", user.id]) || 0;
-          queryClient.setQueryData(["medical_reports_count", user.id], previousData + 1);
-          console.log('Updated medical reports count:', previousData + 1);
+          queryClient.invalidateQueries({ queryKey: ["medical_reports_count", user.id] });
         }
       )
       .subscribe((status) => {
@@ -54,29 +54,56 @@ export const PatientStats = ({
     };
   }, [user?.id, queryClient]);
 
-  // Query for medical reports count
-  const { data: reportsCount = 0 } = useQuery({
+  // Query for medical reports
+  const { data: reports = [] } = useQuery({
     queryKey: ["medical_reports_count", user?.id],
     queryFn: async () => {
-      if (!user?.id) return 0;
+      if (!user?.id) return [];
 
-      console.log('Fetching medical reports count for stats');
+      console.log('Fetching medical reports for stats');
       const { data, error } = await supabase
         .from('patient_medical_reports')
-        .select('id', { count: 'exact' })
+        .select('*')
         .eq('patient_id', user.id);
 
       if (error) {
-        console.error('Error fetching reports count:', error);
+        console.error('Error fetching reports:', error);
         throw error;
       }
 
-      const count = Array.isArray(data) ? data.length : 0;
-      console.log('Current medical reports count:', count);
-      return count;
+      console.log('Fetched medical reports:', data);
+      return data || [];
     },
     enabled: !!user?.id
   });
+
+  const handleViewReports = async () => {
+    try {
+      if (!user?.id) return;
+
+      // Open latest report if available
+      if (reports.length > 0) {
+        const latestReport = reports[0];
+        const { data } = await supabase.storage
+          .from('patient_medical_reports')
+          .getPublicUrl(latestReport.file_path);
+
+        window.open(data.publicUrl, '_blank');
+      } else {
+        toast({
+          title: "No reports found",
+          description: "You haven't uploaded any medical reports yet.",
+        });
+      }
+    } catch (error) {
+      console.error('Error viewing report:', error);
+      toast({
+        title: "Error",
+        description: "Unable to view the report. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
@@ -127,8 +154,18 @@ export const PatientStats = ({
           <CardTitle className="text-sm font-medium">Medical Reports</CardTitle>
           <Upload className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{reportsCount}</div>
+        <CardContent className="space-y-2">
+          <div className="text-2xl font-bold">{reports.length}</div>
+          {reports.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              onClick={handleViewReports}
+            >
+              View Latest
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>
