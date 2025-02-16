@@ -64,7 +64,8 @@ export const PatientStats = ({
       const { data, error } = await supabase
         .from('patient_medical_reports')
         .select('*')
-        .eq('patient_id', user.id);
+        .eq('patient_id', user.id)
+        .order('uploaded_at', { ascending: false });
 
       if (error) {
         console.error('Error fetching reports:', error);
