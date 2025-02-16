@@ -6,7 +6,7 @@ import { VideoUploader } from "./VideoUploader";
 import { useAuth } from "@/contexts/AuthContext";
 
 export const VideoList = () => {
-  const { isLoggedIn } = useAuth();
+  const { user } = useAuth();
   const { data: videos, isLoading } = useQuery({
     queryKey: ["knowledge_videos"],
     queryFn: async () => {
@@ -29,7 +29,7 @@ export const VideoList = () => {
   if (isLoading) {
     return (
       <div className="space-y-8">
-        {isLoggedIn && <VideoUploader />}
+        {user && <VideoUploader />}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(3)].map((_, i) => (
             <Card key={i} className="animate-pulse">
@@ -47,7 +47,7 @@ export const VideoList = () => {
 
   return (
     <div className="space-y-8">
-      {isLoggedIn && <VideoUploader />}
+      {user && <VideoUploader />}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {videos?.map((video) => (
           <Card key={video.id} className="overflow-hidden">
