@@ -13,7 +13,7 @@ export const MedicalRecordsUpload = ({ showUploadOnly = false }: MedicalRecordsU
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <FileUp className="h-5 w-5" />
-          Upload Medical Records
+          Upload Medical Reports
         </CardTitle>
       </CardHeader>
       <CardContent>
