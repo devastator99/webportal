@@ -19,35 +19,28 @@ export const PatientStats = ({
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Simplified query that only counts reports
+  // Direct query to count reports without any policy checks
   const { data: reportsCount = 0 } = useQuery({
     queryKey: ["medical_reports_count", user?.id],
     queryFn: async () => {
       if (!user?.id) return 0;
 
-      console.log('Fetching medical reports count');
       const { count, error } = await supabase
         .from('patient_medical_reports')
-        .select('*', { count: 'exact', head: true })
+        .select('*', { count: 'exact' })
         .eq('patient_id', user.id);
 
       if (error) {
         console.error('Error fetching reports count:', error);
-        toast({
-          title: "Error fetching reports",
-          description: error.message,
-          variant: "destructive"
-        });
         return 0;
       }
 
-      console.log('Fetched reports count:', count);
       return count || 0;
     },
     enabled: !!user?.id
   });
 
-  // Separate query for latest report when needed for viewing
+  // Simple query for latest report
   const { data: latestReport } = useQuery({
     queryKey: ["latest_medical_report", user?.id],
     queryFn: async () => {
@@ -59,7 +52,7 @@ export const PatientStats = ({
         .eq('patient_id', user.id)
         .order('uploaded_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching latest report:', error);
@@ -81,12 +74,10 @@ export const PatientStats = ({
         return;
       }
 
-      console.log('Attempting to view report:', latestReport);
       const { data } = await supabase.storage
         .from('patient_medical_reports')
         .getPublicUrl(latestReport.file_path);
 
-      console.log('Generated public URL:', data.publicUrl);
       window.open(data.publicUrl, '_blank');
     } catch (error) {
       console.error('Error viewing report:', error);
