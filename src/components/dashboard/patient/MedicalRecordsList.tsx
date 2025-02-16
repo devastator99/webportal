@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, Eye } from "lucide-react";
@@ -27,6 +28,8 @@ export const MedicalRecordsList = () => {
   useEffect(() => {
     if (!user?.id) return;
 
+    console.log('Setting up realtime subscription for medical reports');
+
     const channel = supabase
       .channel('medical-reports')
       .on(
@@ -49,6 +52,7 @@ export const MedicalRecordsList = () => {
       .subscribe();
 
     return () => {
+      console.log('Cleaning up realtime subscription');
       supabase.removeChannel(channel);
     };
   }, [user?.id, queryClient, toast]);
@@ -58,14 +62,19 @@ export const MedicalRecordsList = () => {
     queryFn: async () => {
       if (!user?.id) throw new Error("No user ID");
 
+      console.log('Fetching medical reports for user:', user.id);
       const { data, error } = await supabase
         .from('patient_medical_reports')
         .select('*')
         .eq('patient_id', user.id)
         .order('uploaded_at', { ascending: false });
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error('Error fetching medical reports:', error);
+        throw error;
+      }
+      console.log('Fetched medical reports:', data);
+      return data as MedicalReport[];
     },
     enabled: !!user?.id
   });
