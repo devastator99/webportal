@@ -23,7 +23,7 @@ export const LandingPage = () => {
       <Hero />
       <Features />
       <div className="container mx-auto px-4 py-16">
-        <h2 className="text-4xl font-bold text-center mb-8 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+        <h2 className="text-3xl md:text-4xl font-bold text-center text-[#7E69AB] mb-12">
           Knowledge Sharing
         </h2>
         <VideoList />
