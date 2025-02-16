@@ -5,6 +5,7 @@ import { Testimonials } from "@/components/Testimonials";
 import { Pricing } from "@/components/Pricing";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
+import { VideoList } from "@/components/videos/VideoList";
 
 export const LandingPage = () => {
   const { isLoading } = useAuth();
@@ -21,6 +22,10 @@ export const LandingPage = () => {
     <div className="min-h-screen bg-white">
       <Hero />
       <Features />
+      <div className="container mx-auto px-4 py-16">
+        <h2 className="text-3xl font-bold text-center mb-8">Knowledge Sharing Videos</h2>
+        <VideoList />
+      </div>
       <Testimonials />
       <Pricing />
       <Footer />

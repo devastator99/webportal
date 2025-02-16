@@ -211,6 +211,47 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_videos: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          title: string
+          updated_at: string
+          uploaded_by: string
+          uploader_role: Database["public"]["Enums"]["user_type"]
+          video_path: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+          uploaded_by: string
+          uploader_role: Database["public"]["Enums"]["user_type"]
+          video_path: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+          uploaded_by?: string
+          uploader_role?: Database["public"]["Enums"]["user_type"]
+          video_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_videos_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medical_documents: {
         Row: {
           created_at: string

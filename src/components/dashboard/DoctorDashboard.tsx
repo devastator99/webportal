@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -10,6 +11,8 @@ import { AiAssistant } from "./doctor/AiAssistant";
 import { DoctorAppointmentCalendar } from "./doctor/DoctorAppointmentCalendar";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import { VideoUploader } from "@/components/videos/VideoUploader";
+import { VideoList } from "@/components/videos/VideoList";
 
 export const DoctorDashboard = () => {
   const { user, signOut } = useAuth();
@@ -99,12 +102,17 @@ export const DoctorDashboard = () => {
         <div className="space-y-6 lg:col-span-1">
           <TodaySchedule appointments={getTodayAppointments()} />
           <RecentPatients patients={patients || []} />
+          <VideoUploader />
         </div>
         <div className="lg:col-span-2 space-y-6">
           <DoctorAppointmentCalendar doctorId={user?.id || ""} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ChatInterface />
             <AiAssistant />
+          </div>
+          <div>
+            <h2 className="text-2xl font-semibold mb-4">Your Knowledge Sharing Videos</h2>
+            <VideoList />
           </div>
         </div>
       </div>

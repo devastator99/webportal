@@ -1,7 +1,10 @@
+
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Stethoscope, Heart, Settings } from "lucide-react";
+import { VideoUploader } from "@/components/videos/VideoUploader";
+import { VideoList } from "@/components/videos/VideoList";
 
 export const AdminDashboard = () => {
   const { data: userStats } = useQuery({
@@ -76,6 +79,16 @@ export const AdminDashboard = () => {
             <div className="text-2xl font-bold text-green-500">Active</div>
           </CardContent>
         </Card>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1">
+          <VideoUploader />
+        </div>
+        <div className="lg:col-span-2">
+          <h2 className="text-2xl font-semibold mb-4">Uploaded Videos</h2>
+          <VideoList />
+        </div>
       </div>
     </div>
   );
