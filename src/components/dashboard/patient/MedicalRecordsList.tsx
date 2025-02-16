@@ -42,6 +42,7 @@ export const MedicalRecordsList = () => {
         },
         (payload) => {
           console.log('New medical report uploaded:', payload);
+          console.log('Invalidating query cache for medical reports');
           queryClient.invalidateQueries({ queryKey: ["medical_reports", user.id] });
           toast({
             title: "New report uploaded",
@@ -49,7 +50,9 @@ export const MedicalRecordsList = () => {
           });
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Subscription status:', status);
+      });
 
     return () => {
       console.log('Cleaning up realtime subscription');
@@ -74,6 +77,7 @@ export const MedicalRecordsList = () => {
         throw error;
       }
       console.log('Fetched medical reports:', data);
+      console.log('Total reports count:', data?.length || 0);
       return data as MedicalReport[];
     },
     enabled: !!user?.id
@@ -130,6 +134,8 @@ export const MedicalRecordsList = () => {
   if (isLoading) {
     return <div>Loading...</div>;
   }
+
+  console.log('Rendering MedicalRecordsList with reports count:', reports?.length || 0);
 
   return (
     <Card>
