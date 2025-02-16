@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, Eye } from "lucide-react";
@@ -45,6 +46,7 @@ export const MedicalRecordsList = () => {
 
       if (error) throw error;
 
+      // Create and trigger download
       const url = URL.createObjectURL(data);
       const a = document.createElement('a');
       a.href = url;
