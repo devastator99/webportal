@@ -8,7 +8,6 @@ import { DashboardSkeleton } from "./DashboardSkeleton";
 import { PatientHeader } from "./patient/PatientHeader";
 import { PatientStats } from "./patient/PatientStats";
 import { AppointmentsList } from "./patient/AppointmentsList";
-import { MedicalRecordsList } from "./patient/MedicalRecordsList";
 import { MedicalRecordsUpload } from "./patient/MedicalRecordsUpload";
 
 export const PatientDashboard = () => {
@@ -92,16 +91,14 @@ export const PatientDashboard = () => {
       </div>
 
       <div className="container mx-auto px-4">
-        <div className="pt-24 pb-6">
+        <div className="pt-24 pb-6 space-y-8">
           {/* Stats Row */}
-          <div className="mb-8">
-            <PatientStats 
-              appointmentsCount={upcomingAppointments.length}
-              medicalRecordsCount={patientData?.medicalRecords.length || 0}
-              nextAppointmentDate={nextAppointmentDate}
-              reportsCount={0}
-            />
-          </div>
+          <PatientStats 
+            appointmentsCount={upcomingAppointments.length}
+            medicalRecordsCount={patientData?.medicalRecords.length || 0}
+            nextAppointmentDate={nextAppointmentDate}
+            reportsCount={0}
+          />
 
           {/* Main Content */}
           <div className="flex flex-col lg:flex-row gap-6">
@@ -111,17 +108,10 @@ export const PatientDashboard = () => {
             </div>
 
             {/* Right Column - Actions */}
-            <div className="lg:w-[400px]">
+            <div className="lg:w-[400px] space-y-6">
+              <ChatInterface />
               <MedicalRecordsUpload showUploadOnly />
-              <div className="mt-6">
-                <ChatInterface />
-              </div>
             </div>
-          </div>
-
-          {/* Medical Records Section */}
-          <div className="mt-6">
-            <MedicalRecordsList records={patientData?.medicalRecords || []} />
           </div>
         </div>
       </div>
