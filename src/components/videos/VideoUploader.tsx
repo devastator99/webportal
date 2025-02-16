@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Upload } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const VideoUploader = () => {
   const [title, setTitle] = useState("");
@@ -15,6 +16,7 @@ export const VideoUploader = () => {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
   const { user, userRole } = useAuth();
+  const queryClient = useQueryClient();
 
   const handleUpload = async () => {
     if (!file || !title || !user?.id || !userRole) {
@@ -61,6 +63,9 @@ export const VideoUploader = () => {
       setTitle("");
       setDescription("");
       setFile(null);
+      
+      // Refresh the videos list
+      queryClient.invalidateQueries({ queryKey: ["knowledge_videos"] });
     } catch (error: any) {
       console.error('Upload error:', error);
       toast({
