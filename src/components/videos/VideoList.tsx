@@ -12,13 +12,7 @@ export const VideoList = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('knowledge_videos')
-        .select(`
-          *,
-          uploader:profiles!left(
-            first_name,
-            last_name
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -63,9 +57,7 @@ export const VideoList = () => {
             <CardHeader>
               <CardTitle>{video.title}</CardTitle>
               <CardDescription>
-                {video.uploader?.first_name && video.uploader?.last_name 
-                  ? `Uploaded by ${video.uploader.first_name} ${video.uploader.last_name}`
-                  : 'Uploaded by Anonymous'}
+                Educational Video
               </CardDescription>
             </CardHeader>
             {video.description && (
