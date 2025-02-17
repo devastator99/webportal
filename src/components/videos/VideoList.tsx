@@ -1,12 +1,15 @@
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { VideoUploader } from "./VideoUploader";
 import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
 
 export const VideoList = () => {
   const { user } = useAuth();
+  const [showAll, setShowAll] = useState(false);
   const { data: videos, isLoading } = useQuery({
     queryKey: ["knowledge_videos"],
     queryFn: async () => {
@@ -43,11 +46,14 @@ export const VideoList = () => {
     );
   }
 
+  const displayedVideos = showAll ? videos : videos?.slice(0, 4);
+  const hasMoreVideos = videos && videos.length > 4;
+
   return (
     <div className="space-y-8">
       {user && <VideoUploader />}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {videos?.map((video) => {
+        {displayedVideos?.map((video) => {
           const videoUrl = supabase.storage.from('videos').getPublicUrl(video.video_path).data.publicUrl;
           console.log('Video URL for', video.title, ':', videoUrl);
           console.log('Video path:', video.video_path);
@@ -75,6 +81,17 @@ export const VideoList = () => {
           );
         })}
       </div>
+      {hasMoreVideos && (
+        <div className="flex justify-center">
+          <Button 
+            variant="outline"
+            onClick={() => setShowAll(!showAll)}
+            className="mt-4"
+          >
+            {showAll ? "Show Less" : "Show More"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
