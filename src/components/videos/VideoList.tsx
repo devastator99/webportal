@@ -47,26 +47,33 @@ export const VideoList = () => {
     <div className="space-y-8">
       {user && <VideoUploader />}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {videos?.map((video) => (
-          <Card key={video.id} className="overflow-hidden">
-            <video
-              className="w-full aspect-video object-cover"
-              controls
-              src={supabase.storage.from('videos').getPublicUrl(video.video_path).data.publicUrl}
-            />
-            <CardHeader>
-              <CardTitle>{video.title}</CardTitle>
-              <CardDescription>
-                Educational Video
-              </CardDescription>
-            </CardHeader>
-            {video.description && (
-              <CardContent>
-                <p className="text-sm text-gray-500">{video.description}</p>
-              </CardContent>
-            )}
-          </Card>
-        ))}
+        {videos?.map((video) => {
+          const videoUrl = supabase.storage.from('videos').getPublicUrl(video.video_path).data.publicUrl;
+          console.log('Video URL for', video.title, ':', videoUrl);
+          console.log('Video path:', video.video_path);
+          
+          return (
+            <Card key={video.id} className="overflow-hidden">
+              <video
+                className="w-full aspect-video object-cover"
+                controls
+                src={videoUrl}
+                onError={(e) => console.error('Video loading error:', e)}
+              />
+              <CardHeader>
+                <CardTitle>{video.title}</CardTitle>
+                <CardDescription>
+                  Educational Video
+                </CardDescription>
+              </CardHeader>
+              {video.description && (
+                <CardContent>
+                  <p className="text-sm text-gray-500">{video.description}</p>
+                </CardContent>
+              )}
+            </Card>
+          );
+        })}
       </div>
     </div>
   );
