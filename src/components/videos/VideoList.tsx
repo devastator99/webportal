@@ -14,14 +14,18 @@ export const VideoList = () => {
         .from('knowledge_videos')
         .select(`
           *,
-          uploader:profiles!inner(
+          uploader:profiles!left(
             first_name,
             last_name
           )
         `)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching videos:', error);
+        throw error;
+      }
+      console.log('Fetched videos:', data);
       return data;
     },
   });
@@ -59,7 +63,9 @@ export const VideoList = () => {
             <CardHeader>
               <CardTitle>{video.title}</CardTitle>
               <CardDescription>
-                Uploaded by {video.uploader.first_name} {video.uploader.last_name}
+                {video.uploader?.first_name && video.uploader?.last_name 
+                  ? `Uploaded by ${video.uploader.first_name} ${video.uploader.last_name}`
+                  : 'Uploaded by Anonymous'}
               </CardDescription>
             </CardHeader>
             {video.description && (
