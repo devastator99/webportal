@@ -6,10 +6,25 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useState } from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 type PatientStatsProps = {
   appointmentsCount: number;
   nextAppointmentDate: string | null;
+};
+
+type MedicalReport = {
+  id: string;
+  file_name: string;
+  file_path: string;
+  uploaded_at: string;
 };
 
 export const PatientStats = ({
@@ -18,65 +33,41 @@ export const PatientStats = ({
 }: PatientStatsProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [isReportsOpen, setIsReportsOpen] = useState(false);
+  const [selectedReport, setSelectedReport] = useState<MedicalReport | null>(null);
 
-  // Direct query to count reports without any policy checks
-  const { data: reportsCount = 0 } = useQuery({
-    queryKey: ["medical_reports_count", user?.id],
+  // Query to fetch all medical reports
+  const { data: reports = [], isLoading: isLoadingReports } = useQuery({
+    queryKey: ["medical_reports", user?.id],
     queryFn: async () => {
-      if (!user?.id) return 0;
-
-      const { count, error } = await supabase
-        .from('patient_medical_reports')
-        .select('*', { count: 'exact' })
-        .eq('patient_id', user.id);
-
-      if (error) {
-        console.error('Error fetching reports count:', error);
-        return 0;
-      }
-
-      return count || 0;
-    },
-    enabled: !!user?.id
-  });
-
-  // Simple query for latest report
-  const { data: latestReport } = useQuery({
-    queryKey: ["latest_medical_report", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
+      if (!user?.id) return [];
 
       const { data, error } = await supabase
         .from('patient_medical_reports')
-        .select('file_name, file_path')
+        .select('*')
         .eq('patient_id', user.id)
-        .order('uploaded_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .order('uploaded_at', { ascending: false });
 
       if (error) {
-        console.error('Error fetching latest report:', error);
-        return null;
+        console.error('Error fetching reports:', error);
+        toast({
+          title: "Error",
+          description: "Could not fetch medical reports",
+          variant: "destructive"
+        });
+        return [];
       }
 
-      return data;
+      return data as MedicalReport[];
     },
     enabled: !!user?.id
   });
 
-  const handleViewReports = async () => {
+  const handleViewReport = async (report: MedicalReport) => {
     try {
-      if (!latestReport) {
-        toast({
-          title: "No reports found",
-          description: "You haven't uploaded any medical reports yet.",
-        });
-        return;
-      }
-
       const { data } = await supabase.storage
         .from('patient_medical_reports')
-        .getPublicUrl(latestReport.file_path);
+        .getPublicUrl(report.file_path);
 
       window.open(data.publicUrl, '_blank');
     } catch (error) {
@@ -90,68 +81,118 @@ export const PatientStats = ({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Upcoming Appointments</CardTitle>
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{appointmentsCount}</div>
-        </CardContent>
-      </Card>
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Upcoming Appointments</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{appointmentsCount}</div>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Medical Records</CardTitle>
-          <FileText className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{reportsCount}</div>
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Medical Records</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{reports.length}</div>
+            {reports.length > 0 && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full mt-2"
+                onClick={() => setIsReportsOpen(true)}
+              >
+                View All Reports
+              </Button>
+            )}
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Health Status</CardTitle>
-          <Heart className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-green-500">Good</div>
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Health Status</CardTitle>
+            <Heart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-500">Good</div>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Next Check-up</CardTitle>
-          <Clock className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">
-            {nextAppointmentDate || 'No appointments'}
-          </div>
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Next Check-up</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {nextAppointmentDate || 'No appointments'}
+            </div>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Medical Reports</CardTitle>
-          <Upload className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="text-2xl font-bold">{reportsCount}</div>
-          {reportsCount > 0 && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full"
-              onClick={handleViewReports}
-            >
-              View Latest
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Latest Report</CardTitle>
+            <Upload className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="text-2xl font-bold">{reports[0]?.file_name || "No reports"}</div>
+            {reports[0] && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full"
+                onClick={() => handleViewReport(reports[0])}
+              >
+                View Latest
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Dialog open={isReportsOpen} onOpenChange={setIsReportsOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle>Medical Reports</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="h-[60vh] w-full pr-4">
+            <div className="space-y-4">
+              {reports.map((report) => (
+                <Card key={report.id}>
+                  <CardHeader className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-semibold">{report.file_name}</h4>
+                        <p className="text-xs text-muted-foreground">
+                          Uploaded: {new Date(report.uploaded_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewReport(report)}
+                      >
+                        View Report
+                      </Button>
+                    </div>
+                  </CardHeader>
+                </Card>
+              ))}
+              {reports.length === 0 && (
+                <p className="text-center text-muted-foreground py-4">
+                  No medical reports available
+                </p>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
