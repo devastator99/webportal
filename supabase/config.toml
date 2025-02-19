@@ -12,6 +12,5 @@ port = 54322
 [studio]
 port = 54323
 
-[[functions]]
-name = "send-whatsapp-notification"
+[functions.send-whatsapp-notification]
 verify_jwt = true
