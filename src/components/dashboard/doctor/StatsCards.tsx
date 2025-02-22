@@ -9,14 +9,25 @@ import { format } from "date-fns";
 export const StatsCards = () => {
   const { user } = useAuth();
 
+  console.log("StatsCards render - Current user:", { 
+    userId: user?.id, 
+    userEmail: user?.email 
+  });
+
   const { data: patientsCount = 0 } = useQuery({
     queryKey: ["patients_count"],
     queryFn: async () => {
+      console.log("Fetching patients count");
       const { count, error } = await supabase
         .from("patient_assignments")
         .select("*", { count: 'exact', head: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching patients count:", error);
+        throw error;
+      }
+      
+      console.log("Patients count result:", { count });
       return count || 0;
     },
     enabled: !!user,
@@ -25,11 +36,17 @@ export const StatsCards = () => {
   const { data: medicalRecordsCount = 0 } = useQuery({
     queryKey: ["medical_records_count"],
     queryFn: async () => {
+      console.log("Fetching medical records count");
       const { count, error } = await supabase
         .from("medical_records")
         .select("*", { count: 'exact', head: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching medical records count:", error);
+        throw error;
+      }
+      
+      console.log("Medical records count result:", { count });
       return count || 0;
     },
     enabled: !!user,
@@ -38,12 +55,18 @@ export const StatsCards = () => {
   const { data: appointments = [] } = useQuery({
     queryKey: ["doctor_appointments"],
     queryFn: async () => {
+      console.log("Fetching appointments");
       const { data, error } = await supabase
         .from("appointments")
         .select("scheduled_at")
         .eq("status", 'scheduled');
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching appointments:", error);
+        throw error;
+      }
+      
+      console.log("Appointments result:", { count: data?.length, data });
       return data || [];
     },
     enabled: !!user,
@@ -59,6 +82,13 @@ export const StatsCards = () => {
   const upcomingAppointments = appointments.filter(apt => 
     new Date(apt.scheduled_at) > new Date()
   );
+
+  console.log("Stats summary:", {
+    patientsCount,
+    medicalRecordsCount,
+    todayAppointments: todayAppointments.length,
+    upcomingAppointments: upcomingAppointments.length
+  });
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
