@@ -1,72 +1,58 @@
 
 import { useState } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { FileText, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Loader2, RefreshCw } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 
-interface DocumentSummaryProps {
-  documentId: string;
-  documentPath: string;
-}
-
-export const DocumentSummary = ({ documentId, documentPath }: DocumentSummaryProps) => {
-  const { toast } = useToast();
+export const DocumentAnalyzer = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const { toast } = useToast();
 
-  const { data: summary, refetch } = useQuery({
-    queryKey: ["document-summary", documentId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("document_summaries")
-        .select("summary")
-        .eq("document_id", documentId)
-        .single();
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
 
-      if (error) throw error;
-      return data?.summary;
-    }
-  });
-
-  const analyzeMedicalDocument = async () => {
     try {
       setIsAnalyzing(true);
-      
-      const response = await fetch('/api/analyze-medical-document', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        },
-        body: JSON.stringify({
-          documentId,
-          documentUrl: documentPath
-        })
+      setAnalysis(null);
+
+      // Upload file to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      const { error: uploadError, data } = await supabase.storage
+        .from('medical_files')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get the public URL of the uploaded file
+      const { data: { publicUrl } } = supabase.storage
+        .from('medical_files')
+        .getPublicUrl(filePath);
+
+      // Analyze the document
+      const { data: analysisData, error } = await supabase.functions.invoke('analyze-medical-document', {
+        body: { fileUrl: publicUrl, fileType: file.type },
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to analyze document');
-      }
+      if (error) throw error;
 
-      const data = await response.json();
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      await refetch();
-      
+      setAnalysis(analysisData.analysis);
       toast({
-        title: "Document analyzed",
-        description: "The document summary has been generated successfully.",
+        title: "Analysis Complete",
+        description: "The document has been successfully analyzed.",
       });
-    } catch (error) {
+
+    } catch (error: any) {
       console.error('Error analyzing document:', error);
       toast({
-        title: "Error analyzing document",
-        description: error instanceof Error ? error.message : "An error occurred while analyzing the document.",
+        title: "Error",
+        description: "Failed to analyze the document. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -75,30 +61,45 @@ export const DocumentSummary = ({ documentId, documentPath }: DocumentSummaryPro
   };
 
   return (
-    <Card className="mt-4">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">Document Analysis</CardTitle>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={analyzeMedicalDocument}
-          disabled={isAnalyzing}
-        >
-          {isAnalyzing ? (
-            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analyzing...</>
-          ) : (
-            <><RefreshCw className="mr-2 h-4 w-4" /> Analyze</>
-          )}
-        </Button>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          Document Analysis
+        </CardTitle>
       </CardHeader>
-      <CardContent>
-        {summary ? (
-          <p className="text-sm text-muted-foreground whitespace-pre-wrap">{summary}</p>
-        ) : (
-          <p className="text-sm text-muted-foreground italic">
-            No analysis available. Click "Analyze" to generate a summary.
-          </p>
-        )}
+      <CardContent className="space-y-4">
+        <div className="flex flex-col gap-4">
+          <input
+            type="file"
+            accept=".pdf,image/*"
+            onChange={handleFileUpload}
+            className="hidden"
+            id="document-upload"
+            disabled={isAnalyzing}
+          />
+          <Button
+            variant="outline"
+            onClick={() => document.getElementById('document-upload')?.click()}
+            disabled={isAnalyzing}
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              'Upload Document or Image'
+            )}
+          </Button>
+
+          {analysis && (
+            <div className="mt-4 p-4 bg-muted rounded-lg">
+              <h3 className="font-semibold mb-2">Analysis Results:</h3>
+              <div className="whitespace-pre-wrap text-sm">{analysis}</div>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

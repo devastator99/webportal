@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import { VideoUploader } from "@/components/videos/VideoUploader";
 import { VideoList } from "@/components/videos/VideoList";
+import { DocumentAnalyzer } from "./doctor/DocumentSummary";
 
 export const DoctorDashboard = () => {
   const { user, signOut } = useAuth();
@@ -107,9 +108,10 @@ export const DoctorDashboard = () => {
         <div className="lg:col-span-2 space-y-6">
           <DoctorAppointmentCalendar doctorId={user?.id || ""} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <ChatInterface />
+            <DocumentAnalyzer />
             <AiAssistant />
           </div>
+          <ChatInterface />
           <div>
             <h2 className="text-2xl font-semibold mb-4">Your Knowledge Sharing Videos</h2>
             <VideoList />
