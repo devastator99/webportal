@@ -66,6 +66,40 @@ export const useAuthHandlers = () => {
     }
   };
 
+  const handleTestLogin = async (userType: "patient" | "doctor" | "nutritionist") => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      let email: string;
+      let password: string;
+
+      switch (userType) {
+        case "patient":
+          email = "ram.naresh@example.com";
+          password = "testpassword123";
+          break;
+        case "doctor":
+          email = "vinay.pulkit@example.com";
+          password = "testpassword123";
+          break;
+        default:
+          throw new Error("Invalid user type for test login");
+      }
+
+      await handleLogin(email, password);
+    } catch (error: any) {
+      setError(error.message);
+      toast({
+        variant: "destructive",
+        title: "Test Login Failed",
+        description: error.message
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSignUp = async (email: string, password: string, userType: UserRole) => {
     setLoading(true);
     setError(null);
@@ -124,6 +158,7 @@ export const useAuthHandlers = () => {
     error,
     handleLogin,
     handleSignUp,
+    handleTestLogin,
     setError,
   };
 };
