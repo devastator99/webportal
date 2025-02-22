@@ -19,6 +19,7 @@ export const PatientDashboard = () => {
     queryFn: async () => {
       if (!user?.id) throw new Error("No user ID");
 
+      console.log("Fetching patient profile for user:", user.id);
       // First get the profile data
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
@@ -31,21 +32,19 @@ export const PatientDashboard = () => {
         throw profileError;
       }
 
+      console.log("Retrieved profile data:", profile);
+
       // Then get appointments
-      const [
-        { data: appointments, error: appointmentsError }
-      ] = await Promise.all([
-        supabase
-          .from("appointments")
-          .select(`
-            id,
-            scheduled_at,
-            status,
-            doctor:profiles!appointments_doctor_profile_fkey(first_name, last_name)
-          `)
-          .eq("patient_id", user.id)
-          .order("scheduled_at", { ascending: true })
-      ]);
+      const { data: appointments, error: appointmentsError } = await supabase
+        .from("appointments")
+        .select(`
+          id,
+          scheduled_at,
+          status,
+          doctor:profiles!appointments_doctor_profile_fkey(first_name, last_name)
+        `)
+        .eq("patient_id", user.id)
+        .order("scheduled_at", { ascending: true });
 
       if (appointmentsError) throw appointmentsError;
 
@@ -69,6 +68,8 @@ export const PatientDashboard = () => {
   const nextAppointmentDate = upcomingAppointments[0]?.scheduled_at ? 
     new Date(upcomingAppointments[0].scheduled_at).toLocaleDateString() : 
     null;
+
+  console.log("Rendering PatientHeader with profile data:", patientData?.profile);
 
   return (
     <div className="min-h-screen">
