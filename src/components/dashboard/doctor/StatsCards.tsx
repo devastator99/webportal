@@ -14,10 +14,9 @@ export const StatsCards = () => {
     queryFn: async () => {
       if (!user?.id) return 0;
       
-      console.log("Fetching patients count for doctor:", user.id);
-      const { data, error } = await supabase
+      const { count, error } = await supabase
         .from("patient_assignments")
-        .select("id")
+        .select("*", { count: 'exact', head: true })
         .eq("doctor_id", user.id);
 
       if (error) {
@@ -25,7 +24,7 @@ export const StatsCards = () => {
         return 0;
       }
       
-      return data?.length || 0;
+      return count || 0;
     },
     enabled: !!user?.id,
   });
@@ -35,10 +34,9 @@ export const StatsCards = () => {
     queryFn: async () => {
       if (!user?.id) return 0;
       
-      console.log("Fetching medical records count for doctor:", user.id);
-      const { data, error } = await supabase
+      const { count, error } = await supabase
         .from("medical_records")
-        .select("id")
+        .select("*", { count: 'exact', head: true })
         .eq("doctor_id", user.id);
 
       if (error) {
@@ -46,7 +44,7 @@ export const StatsCards = () => {
         return 0;
       }
       
-      return data?.length || 0;
+      return count || 0;
     },
     enabled: !!user?.id,
   });
@@ -56,12 +54,11 @@ export const StatsCards = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       
-      console.log("Fetching appointments for doctor:", user.id);
       const { data, error } = await supabase
         .from("appointments")
         .select("scheduled_at")
         .eq("doctor_id", user.id)
-        .eq("status", "scheduled");
+        .eq("status", 'scheduled');
 
       if (error) {
         console.error("Error fetching appointments:", error);
