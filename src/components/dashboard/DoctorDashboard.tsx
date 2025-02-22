@@ -102,7 +102,6 @@ export const DoctorDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="space-y-6 lg:col-span-1">
           <TodaySchedule appointments={getTodayAppointments()} />
-          <VideoUploader />
         </div>
         <div className="lg:col-span-2 space-y-6">
           <DoctorAppointmentCalendar doctorId={user?.id || ""} />
@@ -114,6 +113,7 @@ export const DoctorDashboard = () => {
           <ChatInterface />
           <div>
             <h2 className="text-2xl font-semibold mb-4">Your Knowledge Sharing Videos</h2>
+            <VideoUploader />
             <VideoList />
           </div>
         </div>
