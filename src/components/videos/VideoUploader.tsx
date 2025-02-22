@@ -31,7 +31,6 @@ export const VideoUploader = () => {
     try {
       setUploading(true);
 
-      // Upload video to storage
       const fileExt = file.name.split('.').pop();
       const filePath = `${crypto.randomUUID()}.${fileExt}`;
 
@@ -41,7 +40,6 @@ export const VideoUploader = () => {
 
       if (uploadError) throw uploadError;
 
-      // Save video metadata to database
       const { error: dbError } = await supabase
         .from('knowledge_videos')
         .insert({
@@ -59,12 +57,10 @@ export const VideoUploader = () => {
         description: "Video uploaded successfully!",
       });
 
-      // Reset form
       setTitle("");
       setDescription("");
       setFile(null);
       
-      // Refresh the videos list
       queryClient.invalidateQueries({ queryKey: ["knowledge_videos"] });
     } catch (error: any) {
       console.error('Upload error:', error);
