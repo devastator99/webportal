@@ -40,30 +40,12 @@ export const PatientDashboard = () => {
 
       console.log("Retrieved profile data:", profile);
 
-      // Then get appointments
-      const { data: appointments, error: appointmentsError } = await supabase
-        .from("appointments")
-        .select(`
-          id,
-          scheduled_at,
-          status,
-          doctor:profiles!appointments_doctor_profile_fkey(first_name, last_name)
-        `)
-        .eq("patient_id", user.id)
-        .order("scheduled_at", { ascending: true });
-
-      if (appointmentsError) {
-        console.error("Appointments fetch error:", appointmentsError);
-        throw appointmentsError;
-      }
-
       // Return explicitly typed data
       return {
         profile: {
           first_name: profile.first_name,
           last_name: profile.last_name
-        },
-        appointments: appointments || []
+        }
       };
     },
     enabled: !!user?.id,
@@ -74,15 +56,6 @@ export const PatientDashboard = () => {
   if (isLoading) {
     return <DashboardSkeleton />;
   }
-
-  // Filter upcoming appointments - only get future appointments with 'scheduled' status
-  const upcomingAppointments = patientData?.appointments.filter(a => 
-    new Date(a.scheduled_at) > new Date() && a.status === 'scheduled'
-  ) || [];
-
-  const nextAppointmentDate = upcomingAppointments[0]?.scheduled_at ? 
-    new Date(upcomingAppointments[0].scheduled_at).toLocaleDateString() : 
-    null;
 
   console.log("Rendering PatientHeader with profile data:", patientData?.profile);
 
@@ -101,16 +74,13 @@ export const PatientDashboard = () => {
       <div className="container mx-auto px-4">
         <div className="pt-24 pb-6 space-y-8">
           {/* Stats Row */}
-          <PatientStats 
-            appointmentsCount={upcomingAppointments.length}
-            nextAppointmentDate={nextAppointmentDate}
-          />
+          <PatientStats />
 
           {/* Main Content */}
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Left Column - View Content */}
             <div className="flex-1">
-              <AppointmentsList appointments={upcomingAppointments} />
+              <AppointmentsList appointments={[]} />
             </div>
 
             {/* Right Column - Actions */}
