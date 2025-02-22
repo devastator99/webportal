@@ -32,6 +32,17 @@ serve(async (req) => {
 
     if (patientError) throw patientError;
 
+    // Create patient profile
+    const { error: patientProfileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: patientData.user.id,
+        first_name: 'Ram',
+        last_name: 'Naresh'
+      });
+
+    if (patientProfileError) throw patientProfileError;
+
     // Create test doctor
     const { data: doctorData, error: doctorError } = await supabase.auth.admin.createUser({
       email: 'vinay.pulkit@example.com',
@@ -45,6 +56,23 @@ serve(async (req) => {
     });
 
     if (doctorError) throw doctorError;
+
+    // Create doctor profile
+    const { error: doctorProfileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: doctorData.user.id,
+        first_name: 'Vinay',
+        last_name: 'Pulkit'
+      });
+
+    if (doctorProfileError) throw doctorProfileError;
+
+    // Create user roles
+    await supabase.from('user_roles').insert([
+      { user_id: patientData.user.id, role: 'patient' },
+      { user_id: doctorData.user.id, role: 'doctor' }
+    ]);
 
     // Create patient assignment
     const { error: assignmentError } = await supabase
@@ -67,11 +95,12 @@ serve(async (req) => {
 
     for (const appointmentTime of appointments) {
       const { error: appointmentError } = await supabase
-        .rpc('create_appointment', {
-          p_patient_id: patientData.user.id,
-          p_doctor_id: doctorData.user.id,
-          p_scheduled_at: appointmentTime.toISOString(),
-          p_status: 'scheduled'
+        .from('appointments')
+        .insert({
+          patient_id: patientData.user.id,
+          doctor_id: doctorData.user.id,
+          scheduled_at: appointmentTime.toISOString(),
+          status: 'scheduled'
         });
 
       if (appointmentError) throw appointmentError;
@@ -81,7 +110,17 @@ serve(async (req) => {
       JSON.stringify({
         message: 'Test data created successfully',
         patient: patientData.user,
-        doctor: doctorData.user
+        doctor: doctorData.user,
+        test_credentials: {
+          patient: {
+            email: 'ram.naresh@example.com',
+            password: 'testpassword123'
+          },
+          doctor: {
+            email: 'vinay.pulkit@example.com',
+            password: 'testpassword123'
+          }
+        }
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -90,6 +129,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
+    console.error('Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
