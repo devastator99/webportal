@@ -34,12 +34,7 @@ export const TodaySchedule = () => {
         // First, get all appointments for today
         const { data: appointmentsData, error: appointmentsError } = await supabase
           .from("appointments")
-          .select(`
-            id,
-            scheduled_at,
-            status,
-            patient_id
-          `)
+          .select("id, scheduled_at, status, patient_id")
           .eq("doctor_id", user.id)
           .gte("scheduled_at", `${today}T00:00:00`)
           .lt("scheduled_at", `${today}T23:59:59`)
@@ -56,36 +51,35 @@ export const TodaySchedule = () => {
           return [];
         }
 
-        // Then, get patient profiles for these appointments
-        const { data: patientProfiles, error: profilesError } = await supabase
+        // Get patient profiles in a separate query
+        const patientIds = appointmentsData.map(apt => apt.patient_id);
+        const { data: profiles, error: profilesError } = await supabase
           .from("profiles")
           .select("id, first_name, last_name")
-          .in("id", appointmentsData.map(apt => apt.patient_id));
+          .in("id", patientIds);
 
         if (profilesError) {
           console.error("Error fetching patient profiles:", profilesError);
           throw profilesError;
         }
 
-        console.log("Patient profiles:", patientProfiles);
+        // Create a map of patient profiles for faster lookup
+        const profileMap = new Map(
+          profiles?.map(profile => [profile.id, profile]) || []
+        );
 
-        // Combine the data
-        const appointmentsWithPatients = appointmentsData.map(appointment => {
-          const patientProfile = patientProfiles.find(profile => profile.id === appointment.patient_id);
-          return {
-            id: appointment.id,
-            scheduled_at: appointment.scheduled_at,
-            status: appointment.status,
-            patient: {
-              first_name: patientProfile?.first_name || "Unknown",
-              last_name: patientProfile?.last_name || "Patient"
-            }
-          };
-        });
+        // Combine appointments with patient data
+        const appointmentsWithPatients = appointmentsData.map(appointment => ({
+          id: appointment.id,
+          scheduled_at: appointment.scheduled_at,
+          status: appointment.status,
+          patient: {
+            first_name: profileMap.get(appointment.patient_id)?.first_name || "Unknown",
+            last_name: profileMap.get(appointment.patient_id)?.last_name || "Patient"
+          }
+        }));
 
-        console.log("Final appointments data:", appointmentsWithPatients);
         return appointmentsWithPatients;
-
       } catch (error) {
         console.error("Error in appointment fetch:", error);
         toast({
