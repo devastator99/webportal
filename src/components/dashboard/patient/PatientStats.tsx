@@ -15,11 +15,6 @@ import {
 import { useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-type PatientStatsProps = {
-  appointmentsCount: number;
-  nextAppointmentDate: string | null;
-};
-
 type MedicalReport = {
   id: string;
   file_name: string;
@@ -27,17 +22,41 @@ type MedicalReport = {
   uploaded_at: string;
 };
 
-export const PatientStats = ({
-  appointmentsCount,
-  nextAppointmentDate,
-}: PatientStatsProps) => {
+export const PatientStats = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isReportsOpen, setIsReportsOpen] = useState(false);
-  const [selectedReport, setSelectedReport] = useState<MedicalReport | null>(null);
+
+  // Query to fetch appointments
+  const { data: appointments = [] } = useQuery({
+    queryKey: ["patient_appointments", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('patient_id', user.id)
+        .eq('status', 'scheduled')
+        .order('scheduled_at', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching appointments:', error);
+        toast({
+          title: "Error",
+          description: "Could not fetch appointments",
+          variant: "destructive"
+        });
+        return [];
+      }
+
+      return data;
+    },
+    enabled: !!user?.id
+  });
 
   // Query to fetch all medical reports
-  const { data: reports = [], isLoading: isLoadingReports } = useQuery({
+  const { data: reports = [] } = useQuery({
     queryKey: ["medical_reports", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -80,6 +99,17 @@ export const PatientStats = ({
     }
   };
 
+  // Filter upcoming appointments
+  const upcomingAppointments = appointments.filter(apt => 
+    new Date(apt.scheduled_at) >= new Date()
+  );
+
+  // Get next appointment date
+  const nextAppointment = upcomingAppointments[0];
+  const nextAppointmentDate = nextAppointment 
+    ? new Date(nextAppointment.scheduled_at).toLocaleDateString() 
+    : null;
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
@@ -89,7 +119,7 @@ export const PatientStats = ({
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{appointmentsCount}</div>
+            <div className="text-2xl font-bold">{upcomingAppointments.length}</div>
           </CardContent>
         </Card>
 

@@ -17,6 +17,8 @@ export const StatsCards = () => {
   const { data: patientsCount = 0 } = useQuery({
     queryKey: ["patients_count", user?.id],
     queryFn: async () => {
+      if (!user?.id) return 0;
+      
       console.log("Fetching patients count for doctor:", user?.id);
       const { count, error } = await supabase
         .from("patient_assignments")
@@ -31,12 +33,14 @@ export const StatsCards = () => {
       console.log("Patients count result:", { count });
       return count || 0;
     },
-    enabled: !!user,
+    enabled: !!user?.id,
   });
 
   const { data: medicalRecordsCount = 0 } = useQuery({
     queryKey: ["medical_records_count", user?.id],
     queryFn: async () => {
+      if (!user?.id) return 0;
+      
       console.log("Fetching medical records count for doctor:", user?.id);
       const { count, error } = await supabase
         .from("medical_records")
@@ -51,12 +55,14 @@ export const StatsCards = () => {
       console.log("Medical records count result:", { count });
       return count || 0;
     },
-    enabled: !!user,
+    enabled: !!user?.id,
   });
 
   const { data: appointments = [] } = useQuery({
     queryKey: ["doctor_appointments", user?.id],
     queryFn: async () => {
+      if (!user?.id) return [];
+      
       console.log("Fetching appointments for doctor:", user?.id);
       const { data, error } = await supabase
         .from("appointments")
@@ -72,7 +78,7 @@ export const StatsCards = () => {
       console.log("Appointments result:", { count: data?.length, data });
       return data || [];
     },
-    enabled: !!user,
+    enabled: !!user?.id,
   });
 
   // Calculate today's appointments
