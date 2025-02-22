@@ -25,7 +25,7 @@ vi.mock('@/hooks/use-toast', () => ({
 }));
 
 describe('Patient Authentication', () => {
-  const mockHandleLogin = vi.fn();
+  const mockHandleLogin = vi.fn().mockImplementation(() => Promise.resolve());
   const mockToast = vi.fn();
 
   beforeEach(() => {
@@ -45,7 +45,12 @@ describe('Patient Authentication', () => {
   it('renders login form correctly', () => {
     render(
       <BrowserRouter>
-        <AuthForm type="login" onSubmit={() => {}} error={null} loading={false} />
+        <AuthForm 
+          type="login" 
+          onSubmit={async () => Promise.resolve()} 
+          error={null} 
+          loading={false} 
+        />
       </BrowserRouter>
     );
     
