@@ -1,20 +1,64 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Calendar, FileText, Clock } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 
-interface StatsCardsProps {
-  patientsCount: number;
-  todayAppointmentsCount: number;
-  medicalRecordsCount: number;
-  upcomingAppointmentsCount: number;
-}
+export const StatsCards = () => {
+  const { user } = useAuth();
 
-export const StatsCards = ({
-  patientsCount,
-  todayAppointmentsCount,
-  medicalRecordsCount,
-  upcomingAppointmentsCount,
-}: StatsCardsProps) => {
+  const { data: patientsCount = 0 } = useQuery({
+    queryKey: ["patients_count", user?.id],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("patient_assignments")
+        .select("*", { count: 'exact', head: true })
+        .eq("doctor_id", user?.id);
+
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
+  const { data: medicalRecordsCount = 0 } = useQuery({
+    queryKey: ["medical_records_count", user?.id],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("medical_records")
+        .select("*", { count: 'exact', head: true })
+        .eq("doctor_id", user?.id);
+
+      if (error) throw error;
+      return count || 0;
+    },
+  });
+
+  const { data: appointments = [] } = useQuery({
+    queryKey: ["doctor_appointments", user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("scheduled_at")
+        .eq("doctor_id", user?.id)
+        .eq("status", "scheduled");
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Calculate today's appointments
+  const todayAppointments = appointments.filter(apt => 
+    format(new Date(apt.scheduled_at), "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")
+  );
+
+  // Calculate upcoming appointments (future appointments)
+  const upcomingAppointments = appointments.filter(apt => 
+    new Date(apt.scheduled_at) > new Date()
+  );
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       <Card>
@@ -34,7 +78,7 @@ export const StatsCards = ({
           <Calendar className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{todayAppointmentsCount}</div>
+          <div className="text-2xl font-bold">{todayAppointments.length}</div>
           <p className="text-xs text-muted-foreground">Scheduled for today</p>
         </CardContent>
       </Card>
@@ -56,7 +100,7 @@ export const StatsCards = ({
           <Clock className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{upcomingAppointmentsCount}</div>
+          <div className="text-2xl font-bold">{upcomingAppointments.length}</div>
           <p className="text-xs text-muted-foreground">Pending appointments</p>
         </CardContent>
       </Card>

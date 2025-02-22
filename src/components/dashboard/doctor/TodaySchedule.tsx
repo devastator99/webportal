@@ -1,6 +1,10 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Appointment {
   id: string;
@@ -12,11 +16,37 @@ interface Appointment {
   };
 }
 
-interface TodayScheduleProps {
-  appointments: Appointment[];
-}
+export const TodaySchedule = () => {
+  const { user } = useAuth();
+  
+  const { data: appointments = [] } = useQuery({
+    queryKey: ["today_appointments", user?.id],
+    queryFn: async () => {
+      // Get today's date in the format YYYY-MM-DD
+      const today = format(new Date(), "yyyy-MM-dd");
+      
+      const { data, error } = await supabase
+        .from("appointments")
+        .select(`
+          id,
+          scheduled_at,
+          status,
+          patient:profiles!appointments_patient_profile_fkey(
+            first_name,
+            last_name
+          )
+        `)
+        .eq("doctor_id", user?.id)
+        .gte("scheduled_at", today)
+        .lt("scheduled_at", today + 'T23:59:59')
+        .order("scheduled_at");
 
-export const TodaySchedule = ({ appointments }: TodayScheduleProps) => {
+      if (error) throw error;
+      return data as Appointment[];
+    },
+    enabled: !!user?.id
+  });
+
   return (
     <Card>
       <CardHeader>
