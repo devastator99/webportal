@@ -100,7 +100,13 @@ export const useAuthHandlers = () => {
     }
   };
 
-  const handleSignUp = async (email: string, password: string, userType: UserRole) => {
+  const handleSignUp = async (
+    email: string, 
+    password: string, 
+    userType: UserRole,
+    firstName?: string,
+    lastName?: string
+  ) => {
     setLoading(true);
     setError(null);
 
@@ -111,7 +117,9 @@ export const useAuthHandlers = () => {
         password,
         options: {
           data: {
-            user_type: userType
+            user_type: userType,
+            first_name: firstName,
+            last_name: lastName
           }
         }
       });

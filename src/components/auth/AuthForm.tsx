@@ -10,7 +10,7 @@ import { LucideLoader2 } from "lucide-react";
 
 interface AuthFormProps {
   type: "login" | "register";
-  onSubmit: (email: string, password: string, userType?: string) => Promise<void>;
+  onSubmit: (email: string, password: string, userType?: string, firstName?: string, lastName?: string) => Promise<void>;
   error: string | null;
   loading: boolean;
 }
@@ -18,6 +18,8 @@ interface AuthFormProps {
 export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [userType, setUserType] = useState<"patient" | "doctor" | "nutritionist">("patient");
   const { toast } = useToast();
 
@@ -27,7 +29,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
 
     try {
       if (type === "register") {
-        await onSubmit(email, password, userType);
+        await onSubmit(email, password, userType, firstName, lastName);
       } else {
         await onSubmit(email, password);
       }
@@ -70,6 +72,34 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
         <Alert variant="destructive" className="animate-shake">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
+      )}
+
+      {type === "register" && (
+        <>
+          <motion.div variants={itemVariants}>
+            <Input
+              type="text"
+              placeholder="First Name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              required
+              disabled={loading}
+              className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
+            />
+          </motion.div>
+
+          <motion.div variants={itemVariants}>
+            <Input
+              type="text"
+              placeholder="Last Name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              disabled={loading}
+              className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
+            />
+          </motion.div>
+        </>
       )}
 
       <motion.div variants={itemVariants}>
