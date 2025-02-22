@@ -12,41 +12,59 @@ export const StatsCards = () => {
   const { data: patientsCount = 0 } = useQuery({
     queryKey: ["patients_count", user?.id],
     queryFn: async () => {
+      console.log("Fetching patients count for doctor:", user?.id);
       const { count, error } = await supabase
         .from("patient_assignments")
         .select("*", { count: 'exact', head: true })
         .eq("doctor_id", user?.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching patients count:", error);
+        throw error;
+      }
+      console.log("Retrieved patients count:", count);
       return count || 0;
     },
+    enabled: !!user?.id,
   });
 
   const { data: medicalRecordsCount = 0 } = useQuery({
     queryKey: ["medical_records_count", user?.id],
     queryFn: async () => {
+      console.log("Fetching medical records count for doctor:", user?.id);
       const { count, error } = await supabase
         .from("medical_records")
         .select("*", { count: 'exact', head: true })
         .eq("doctor_id", user?.id);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching medical records count:", error);
+        throw error;
+      }
+      console.log("Retrieved medical records count:", count);
       return count || 0;
     },
+    enabled: !!user?.id,
   });
 
   const { data: appointments = [] } = useQuery({
     queryKey: ["doctor_appointments", user?.id],
     queryFn: async () => {
+      console.log("Fetching appointments for doctor:", user?.id);
       const { data, error } = await supabase
         .from("appointments")
-        .select("scheduled_at")
+        .select("scheduled_at, status")
         .eq("doctor_id", user?.id)
         .eq("status", "scheduled");
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error fetching appointments:", error);
+        throw error;
+      }
+      console.log("Retrieved appointments:", data);
+      return data || [];
     },
+    enabled: !!user?.id,
   });
 
   // Calculate today's appointments

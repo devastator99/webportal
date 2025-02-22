@@ -19,11 +19,14 @@ interface Appointment {
 export const TodaySchedule = () => {
   const { user } = useAuth();
   
-  const { data: appointments = [] } = useQuery({
+  const { data: appointments = [], isLoading } = useQuery({
     queryKey: ["today_appointments", user?.id],
     queryFn: async () => {
+      if (!user?.id) throw new Error("No user ID");
+
       // Get today's date in the format YYYY-MM-DD
       const today = format(new Date(), "yyyy-MM-dd");
+      console.log("Fetching today's appointments for date:", today);
       
       const { data, error } = await supabase
         .from("appointments")
@@ -36,15 +39,20 @@ export const TodaySchedule = () => {
             last_name
           )
         `)
-        .eq("doctor_id", user?.id)
+        .eq("doctor_id", user.id)
         .gte("scheduled_at", today)
-        .lt("scheduled_at", today + 'T23:59:59')
+        .lt("scheduled_at", `${today}T23:59:59`)
         .order("scheduled_at");
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching today's appointments:", error);
+        throw error;
+      }
+
+      console.log("Retrieved today's appointments:", data);
       return data as Appointment[];
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
   });
 
   return (
@@ -54,7 +62,9 @@ export const TodaySchedule = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {appointments.length === 0 ? (
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading schedule...</p>
+          ) : appointments.length === 0 ? (
             <p className="text-sm text-muted-foreground">No appointments scheduled for today</p>
           ) : (
             appointments.map((appointment) => (
