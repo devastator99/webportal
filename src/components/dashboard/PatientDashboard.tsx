@@ -20,6 +20,7 @@ export const PatientDashboard = () => {
       if (!user?.id) throw new Error("No user ID");
 
       console.log("Fetching patient profile for user:", user.id);
+      
       // First get the profile data
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
@@ -30,6 +31,11 @@ export const PatientDashboard = () => {
       if (profileError) {
         console.error("Profile fetch error:", profileError);
         throw profileError;
+      }
+
+      if (!profile) {
+        console.error("No profile found for user");
+        throw new Error("No profile found");
       }
 
       console.log("Retrieved profile data:", profile);
@@ -46,14 +52,23 @@ export const PatientDashboard = () => {
         .eq("patient_id", user.id)
         .order("scheduled_at", { ascending: true });
 
-      if (appointmentsError) throw appointmentsError;
+      if (appointmentsError) {
+        console.error("Appointments fetch error:", appointmentsError);
+        throw appointmentsError;
+      }
 
+      // Return explicitly typed data
       return {
-        profile,
+        profile: {
+          first_name: profile.first_name,
+          last_name: profile.last_name
+        },
         appointments: appointments || []
       };
     },
     enabled: !!user?.id,
+    staleTime: 30000, // Cache data for 30 seconds
+    retry: 1 // Only retry once if query fails
   });
 
   if (isLoading) {
