@@ -17,7 +17,7 @@ export const PatientHeader = ({ firstName, lastName }: PatientHeaderProps) => {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
       <h1 className="text-2xl sm:text-3xl font-bold truncate">
-        Welcome, {firstName && lastName ? `${firstName} ${lastName}` : "Patient"}
+        Welcome {firstName}{lastName ? `, ${lastName}` : ""}
       </h1>
       <div className="flex gap-2 sm:gap-4 w-full sm:w-auto">
         <ScheduleAppointment>
