@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +10,7 @@ import { LucideLoader2 } from "lucide-react";
 
 interface AuthFormProps {
   type: "login" | "register";
-  onSubmit: (email: string, password: string, userType?: string, firstName?: string, lastName?: string) => Promise<void>;
+  onSubmit: (email: string, password: string, userType?: string) => Promise<void>;
   error: string | null;
   loading: boolean;
 }
@@ -17,23 +18,26 @@ interface AuthFormProps {
 export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [userType, setUserType] = useState<"patient" | "doctor" | "nutritionist">("patient");
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (loading) return;
-    
+
     try {
       if (type === "register") {
-        await onSubmit(email, password, userType, firstName, lastName);
+        await onSubmit(email, password, userType);
       } else {
         await onSubmit(email, password);
       }
     } catch (error) {
       console.error("Form submission error:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: error instanceof Error ? error.message : "An error occurred"
+      });
     }
   };
 
@@ -66,33 +70,6 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
         <Alert variant="destructive" className="animate-shake">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
-      )}
-
-      {type === "register" && (
-        <div className="grid gap-4 md:grid-cols-2">
-          <motion.div variants={itemVariants}>
-            <Input
-              type="text"
-              placeholder="First Name"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              required
-              disabled={loading}
-              className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
-            />
-          </motion.div>
-          <motion.div variants={itemVariants}>
-            <Input
-              type="text"
-              placeholder="Last Name"
-              value={lastName}
-              onChange={(e) => setLastName(e.target.value)}
-              required
-              disabled={loading}
-              className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
-            />
-          </motion.div>
-        </div>
       )}
 
       <motion.div variants={itemVariants}>

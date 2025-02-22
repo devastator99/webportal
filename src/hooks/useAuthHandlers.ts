@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -16,17 +17,41 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      console.log('Attempting login with:', email);
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Login error:', error);
+        throw error;
+      }
+
+      if (!data.user) {
+        throw new Error('No user returned from login');
+      }
+
+      console.log('Login successful:', data.user);
       
+      // Get user role
+      const { data: roleData, error: roleError } = await supabase
+        .rpc('get_user_role', {
+          lookup_user_id: data.user.id
+        });
+
+      if (roleError) {
+        console.error('Error fetching role:', roleError);
+        throw roleError;
+      }
+
+      console.log('User role:', roleData);
+
       navigate('/dashboard');
       
       toast({
         title: "Welcome back!",
+        description: `Logged in as ${email}`
       });
     } catch (error: any) {
       console.error('Login error:', error);
@@ -34,7 +59,7 @@ export const useAuthHandlers = () => {
       toast({
         variant: "destructive",
         title: "Login failed",
-        description: error.message
+        description: "Invalid email or password. Please try again."
       });
     } finally {
       setLoading(false);
@@ -46,16 +71,23 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      // First sign up the user
+      console.log('Creating new user:', email, userType);
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          data: {
+            user_type: userType
+          }
+        }
       });
 
       if (signUpError) throw signUpError;
       if (!authData.user) throw new Error("User creation failed");
 
-      // Then create their role
+      console.log('User created:', authData.user);
+
+      // Create user role
       const { error: roleError } = await supabase
         .from('user_roles')
         .insert({
@@ -65,11 +97,7 @@ export const useAuthHandlers = () => {
 
       if (roleError) {
         console.error('Role creation error:', roleError);
-        toast({
-          variant: "destructive",
-          title: "Warning",
-          description: "Account created but role assignment failed. Please contact support."
-        });
+        throw roleError;
       }
 
       navigate('/dashboard');
@@ -91,43 +119,11 @@ export const useAuthHandlers = () => {
     }
   };
 
-  const handleTestLogin = async (email: string, password: string) => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      navigate('/dashboard');
-
-      toast({
-        title: "Logged in successfully",
-        description: `Welcome, ${email}`
-      });
-    } catch (error: any) {
-      console.error('Test login error:', error);
-      setError(error.message);
-      toast({
-        variant: "destructive",
-        title: "Test login failed",
-        description: error.message
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return {
     loading,
     error,
     handleLogin,
     handleSignUp,
-    handleTestLogin,
     setError,
   };
 };
