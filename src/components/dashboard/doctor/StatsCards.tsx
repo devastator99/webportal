@@ -9,76 +9,44 @@ import { format } from "date-fns";
 export const StatsCards = () => {
   const { user } = useAuth();
 
-  console.log("StatsCards render - Current user:", { 
-    userId: user?.id, 
-    userEmail: user?.email 
-  });
-
   const { data: patientsCount = 0 } = useQuery({
-    queryKey: ["patients_count", user?.id],
+    queryKey: ["patients_count"],
     queryFn: async () => {
-      if (!user?.id) return 0;
-      
-      console.log("Fetching patients count for doctor:", user.id);
       const { count, error } = await supabase
         .from("patient_assignments")
-        .select("*", { count: 'exact', head: true })
-        .eq("doctor_id", user.id);
+        .select("*", { count: 'exact', head: true });
 
-      if (error) {
-        console.error("Error fetching patients count:", error);
-        return 0;
-      }
-      
-      console.log("Patients count result:", { count });
+      if (error) throw error;
       return count || 0;
     },
-    enabled: !!user?.id,
+    enabled: !!user,
   });
 
   const { data: medicalRecordsCount = 0 } = useQuery({
-    queryKey: ["medical_records_count", user?.id],
+    queryKey: ["medical_records_count"],
     queryFn: async () => {
-      if (!user?.id) return 0;
-      
-      console.log("Fetching medical records count for doctor:", user.id);
       const { count, error } = await supabase
         .from("medical_records")
-        .select("*", { count: 'exact', head: true })
-        .eq("doctor_id", user.id);
+        .select("*", { count: 'exact', head: true });
 
-      if (error) {
-        console.error("Error fetching medical records count:", error);
-        return 0;
-      }
-      
-      console.log("Medical records count result:", { count });
+      if (error) throw error;
       return count || 0;
     },
-    enabled: !!user?.id,
+    enabled: !!user,
   });
 
   const { data: appointments = [] } = useQuery({
-    queryKey: ["doctor_appointments", user?.id],
+    queryKey: ["doctor_appointments"],
     queryFn: async () => {
-      if (!user?.id) return [];
-      
-      console.log("Fetching appointments for doctor:", user.id);
       const { data, error } = await supabase
         .from("appointments")
         .select("scheduled_at")
-        .eq("doctor_id", user.id)
         .eq("status", 'scheduled');
 
-      if (error) {
-        console.error("Error fetching appointments:", error);
-        return [];
-      }
-      
-      console.log("Appointments result:", { count: data?.length, data });
+      if (error) throw error;
       return data || [];
     },
-    enabled: !!user?.id,
+    enabled: !!user,
   });
 
   // Calculate today's appointments
@@ -91,13 +59,6 @@ export const StatsCards = () => {
   const upcomingAppointments = appointments.filter(apt => 
     new Date(apt.scheduled_at) > new Date()
   );
-
-  console.log("Stats summary:", {
-    patientsCount,
-    medicalRecordsCount,
-    todayAppointments: todayAppointments.length,
-    upcomingAppointments: upcomingAppointments.length
-  });
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
