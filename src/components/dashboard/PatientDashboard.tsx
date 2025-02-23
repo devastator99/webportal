@@ -40,12 +40,30 @@ export const PatientDashboard = () => {
 
       console.log("Retrieved profile data:", profile);
 
+      // Get appointments data
+      const { data: appointments, error: appointmentsError } = await supabase
+        .from("appointments")
+        .select(`
+          id,
+          scheduled_at,
+          status,
+          doctor:profiles!appointments_doctor_id_fkey(first_name, last_name)
+        `)
+        .eq("patient_id", user.id)
+        .order("scheduled_at", { ascending: true });
+
+      if (appointmentsError) {
+        console.error("Appointments fetch error:", appointmentsError);
+        throw appointmentsError;
+      }
+
       // Return explicitly typed data
       return {
         profile: {
           first_name: profile.first_name,
           last_name: profile.last_name
-        }
+        },
+        appointments: appointments || []
       };
     },
     enabled: !!user?.id,
@@ -56,6 +74,11 @@ export const PatientDashboard = () => {
   if (isLoading) {
     return <DashboardSkeleton />;
   }
+
+  // Filter upcoming appointments
+  const upcomingAppointments = patientData?.appointments?.filter(a => 
+    new Date(a.scheduled_at) > new Date() && a.status === 'scheduled'
+  ) || [];
 
   console.log("Rendering PatientHeader with profile data:", patientData?.profile);
 
@@ -80,7 +103,7 @@ export const PatientDashboard = () => {
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Left Column - View Content */}
             <div className="flex-1">
-              <AppointmentsList appointments={[]} />
+              <AppointmentsList appointments={upcomingAppointments} />
             </div>
 
             {/* Right Column - Actions */}

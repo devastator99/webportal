@@ -27,15 +27,23 @@ export const PatientStats = () => {
   const { toast } = useToast();
   const [isReportsOpen, setIsReportsOpen] = useState(false);
 
+  console.log("PatientStats: Current user ID:", user?.id);
+
   // Query to fetch appointments
   const { data: appointments = [] } = useQuery({
     queryKey: ["patient_appointments", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
 
+      console.log("Fetching appointments for patient:", user.id);
       const { data, error } = await supabase
         .from('appointments')
-        .select('*')
+        .select(`
+          id,
+          scheduled_at,
+          status,
+          doctor:profiles!appointments_doctor_id_fkey(first_name, last_name)
+        `)
         .eq('patient_id', user.id)
         .eq('status', 'scheduled')
         .order('scheduled_at', { ascending: true });
@@ -50,6 +58,7 @@ export const PatientStats = () => {
         return [];
       }
 
+      console.log("Fetched appointments:", data);
       return data;
     },
     enabled: !!user?.id
@@ -61,6 +70,7 @@ export const PatientStats = () => {
     queryFn: async () => {
       if (!user?.id) return [];
 
+      console.log("Fetching medical reports for patient:", user.id);
       const { data, error } = await supabase
         .from('patient_medical_reports')
         .select('*')
@@ -77,6 +87,7 @@ export const PatientStats = () => {
         return [];
       }
 
+      console.log("Fetched medical reports:", data);
       return data as MedicalReport[];
     },
     enabled: !!user?.id
@@ -110,6 +121,12 @@ export const PatientStats = () => {
     ? new Date(nextAppointment.scheduled_at).toLocaleDateString() 
     : null;
 
+  console.log("Stats summary:", {
+    upcomingAppointments: upcomingAppointments.length,
+    totalReports: reports.length,
+    nextAppointment: nextAppointmentDate
+  });
+
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
@@ -125,7 +142,7 @@ export const PatientStats = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Medical Records</CardTitle>
+            <CardTitle className="text-sm font-medium">Medical Reports</CardTitle>
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
