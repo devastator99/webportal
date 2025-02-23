@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, FileText, Heart, Clock, Upload } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -37,7 +36,6 @@ export const PatientStats = () => {
   const { toast } = useToast();
   const [isReportsOpen, setIsReportsOpen] = useState(false);
 
-  // Query to fetch appointments
   const { data: appointments = [] } = useQuery<Appointment[], Error>({
     queryKey: ["patient_appointments", user?.id],
     queryFn: async () => {
@@ -71,7 +69,6 @@ export const PatientStats = () => {
     enabled: !!user?.id
   });
 
-  // Query to fetch medical reports using the RPC function
   const { data: reports = [] } = useQuery<MedicalReport[], Error>({
     queryKey: ["medical_reports", user?.id],
     queryFn: async () => {
@@ -101,12 +98,11 @@ export const PatientStats = () => {
     try {
       console.log('Attempting to view report:', report.id);
       
-      // Use the storage API directly with properly typed response
-      const { data: signedUrl, error } = await supabase.storage
-        .from('patient_medical_reports')
-        .createSignedUrl(report.file_path, 3600);
+      const { data, error } = await supabase.rpc<string>('get_signed_medical_report_url', {
+        p_report_id: report.id
+      });
 
-      if (error || !signedUrl?.signedUrl) {
+      if (error || !data) {
         console.error('Error getting signed URL:', error);
         toast({
           title: "Error",
@@ -116,8 +112,7 @@ export const PatientStats = () => {
         return;
       }
 
-      // signedUrl.signedUrl is guaranteed to be a string at this point
-      window.open(signedUrl.signedUrl, '_blank');
+      window.open(data, '_blank');
     } catch (error) {
       console.error('Error viewing report:', error);
       toast({
@@ -128,7 +123,6 @@ export const PatientStats = () => {
     }
   };
 
-  // Get next appointment date
   const nextAppointment = appointments[0];
   const nextAppointmentDate = nextAppointment 
     ? new Date(nextAppointment.scheduled_at).toLocaleDateString() 
