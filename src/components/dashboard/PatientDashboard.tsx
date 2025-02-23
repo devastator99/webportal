@@ -133,10 +133,7 @@ export const PatientDashboard = () => {
       {/* Fixed header */}
       <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-b">
         <div className="container mx-auto p-4">
-          <PatientHeader 
-            firstName={patientData?.profile?.first_name}
-            lastName={patientData?.profile?.last_name}
-          />
+          <PatientHeader />
         </div>
       </div>
 
