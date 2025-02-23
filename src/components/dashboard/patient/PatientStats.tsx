@@ -103,7 +103,7 @@ export const PatientStats = () => {
       
       // First get the secure file path using our RPC function
       const { data: filePath, error: rpcError } = await supabase
-        .rpc<string>('get_medical_report_url', {
+        .rpc<string, { p_report_id: string }>('get_medical_report_url', {
           p_report_id: report.id
         });
 
