@@ -61,7 +61,7 @@ export const PatientDashboard = () => {
           id,
           scheduled_at,
           status,
-          profiles!appointments_doctor_id_fkey (
+          doctor:doctor_id (
             first_name,
             last_name
           )
@@ -74,13 +74,14 @@ export const PatientDashboard = () => {
         throw appointmentsError;
       }
 
+      // Transform the appointments data
       const appointments = (appointmentsData || []).map(appt => ({
         id: appt.id,
         scheduled_at: appt.scheduled_at,
         status: appt.status,
         doctor: {
-          first_name: appt.profiles?.first_name ?? '',
-          last_name: appt.profiles?.last_name ?? ''
+          first_name: (appt.doctor as { first_name: string | null })?.first_name ?? '',
+          last_name: (appt.doctor as { last_name: string | null })?.last_name ?? ''
         }
       })) as Appointment[];
 
