@@ -9,14 +9,18 @@ import { PatientHeader } from "./patient/PatientHeader";
 import { PatientStats } from "./patient/PatientStats";
 import { AppointmentsList } from "./patient/AppointmentsList";
 import { MedicalRecordsUpload } from "./patient/MedicalRecordsUpload";
+import { Database } from "@/integrations/supabase/types";
+
+type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+type AppointmentRow = Database["public"]["Tables"]["appointments"]["Row"];
 
 type Appointment = {
   id: string;
   scheduled_at: string;
   status: string;
   doctor: {
-    first_name: string;
-    last_name: string;
+    first_name: string | null;
+    last_name: string | null;
   };
 };
 
@@ -50,14 +54,14 @@ export const PatientDashboard = () => {
 
       console.log("Retrieved profile data:", profile);
 
-      // Get appointments data with proper join syntax using profiles!doctor_id relationship
-      const { data: appointments, error: appointmentsError } = await supabase
+      // Get appointments with doctor profiles
+      const { data: appointmentsData, error: appointmentsError } = await supabase
         .from("appointments")
         .select(`
           id,
           scheduled_at,
           status,
-          doctor:profiles!appointments_doctor_id_fkey(
+          doctor:profiles (
             first_name,
             last_name
           )
@@ -70,18 +74,27 @@ export const PatientDashboard = () => {
         throw appointmentsError;
       }
 
-      // Return explicitly typed data
+      const appointments = (appointmentsData || []).map(appt => ({
+        id: appt.id,
+        scheduled_at: appt.scheduled_at,
+        status: appt.status,
+        doctor: {
+          first_name: (appt.doctor as Profile)?.first_name ?? '',
+          last_name: (appt.doctor as Profile)?.last_name ?? ''
+        }
+      })) as Appointment[];
+
       return {
         profile: {
           first_name: profile.first_name,
           last_name: profile.last_name
         },
-        appointments: (appointments || []) as Appointment[]
+        appointments
       };
     },
     enabled: !!user?.id,
-    staleTime: 30000, // Cache data for 30 seconds
-    retry: 1 // Only retry once if query fails
+    staleTime: 30000,
+    retry: 1
   });
 
   if (isLoading) {
@@ -92,8 +105,6 @@ export const PatientDashboard = () => {
   const upcomingAppointments = patientData?.appointments?.filter(a => 
     new Date(a.scheduled_at) > new Date() && a.status === 'scheduled'
   ) || [];
-
-  console.log("Rendering PatientHeader with profile data:", patientData?.profile);
 
   return (
     <div className="min-h-screen">

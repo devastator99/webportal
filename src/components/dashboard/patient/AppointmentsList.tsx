@@ -8,8 +8,8 @@ type Appointment = {
   scheduled_at: string;
   status: string;
   doctor: {
-    first_name: string;
-    last_name: string;
+    first_name: string | null;
+    last_name: string | null;
   };
 };
 
@@ -33,7 +33,7 @@ export const AppointmentsList = ({
                   <Calendar className="h-5 w-5 text-muted-foreground" />
                   <div>
                     <p className="font-medium">
-                      Dr. {appointment.doctor.first_name} {appointment.doctor.last_name}
+                      Dr. {appointment.doctor.first_name || ''} {appointment.doctor.last_name || ''}
                     </p>
                     <p className="text-sm text-muted-foreground">
                       {new Date(appointment.scheduled_at).toLocaleDateString()} at{' '}
