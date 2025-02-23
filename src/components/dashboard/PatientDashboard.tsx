@@ -19,10 +19,8 @@ type AppointmentWithDoctor = {
   scheduled_at: string;
   status: string;
   doctor_id: string;
-  doctor: {
-    first_name: string | null;
-    last_name: string | null;
-  } | null;
+  doctor_first_name: string | null;
+  doctor_last_name: string | null;
 }
 
 type Appointment = {
@@ -65,39 +63,39 @@ export const PatientDashboard = () => {
 
       console.log("Retrieved profile data:", profile);
 
-      // Get appointments with doctor profiles using proper join syntax
+      // Get appointments with doctor profiles using a simpler join approach
       const { data: appointmentsData, error: appointmentsError } = await supabase
-        .from("appointments")
+        .from('appointments')
         .select(`
           id,
           scheduled_at,
           status,
           doctor_id,
-          doctor:profiles!appointments_doctor_id_fkey(
-            first_name,
-            last_name
-          )
+          doctor_first_name:profiles(first_name),
+          doctor_last_name:profiles(last_name)
         `)
-        .eq("patient_id", user.id)
-        .order("scheduled_at", { ascending: true });
+        .eq('patient_id', user.id)
+        .order('scheduled_at', { ascending: true });
 
       if (appointmentsError) {
         console.error("Appointments fetch error:", appointmentsError);
         throw appointmentsError;
       }
 
-      console.log("Appointments data:", appointmentsData);
+      console.log("Raw appointments data:", appointmentsData);
 
-      // Transform the appointments data
-      const appointments = (appointmentsData as AppointmentWithDoctor[] || []).map(appt => ({
+      // Transform the appointments data with explicit typing
+      const appointments = appointmentsData.map(appt => ({
         id: appt.id,
         scheduled_at: appt.scheduled_at,
         status: appt.status,
         doctor: {
-          first_name: appt.doctor?.first_name ?? '',
-          last_name: appt.doctor?.last_name ?? ''
+          first_name: (appt.doctor_first_name as any)?.[0]?.first_name ?? '',
+          last_name: (appt.doctor_last_name as any)?.[0]?.last_name ?? ''
         }
       })) as Appointment[];
+
+      console.log("Transformed appointments:", appointments);
 
       return {
         profile: {
