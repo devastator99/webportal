@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, FileText, Heart, Clock, Upload } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -98,11 +99,14 @@ export const PatientStats = () => {
     try {
       console.log('Attempting to view report:', report.id);
       
-      const { data, error } = await supabase.rpc<string>('get_signed_medical_report_url', {
-        p_report_id: report.id
-      });
+      // Specify both input and output types for the RPC function
+      type RPCParams = { p_report_id: string };
+      const { data, error } = await supabase.rpc<string, RPCParams>(
+        'get_signed_medical_report_url',
+        { p_report_id: report.id }
+      );
 
-      if (error || !data) {
+      if (error) {
         console.error('Error getting signed URL:', error);
         toast({
           title: "Error",
@@ -112,7 +116,12 @@ export const PatientStats = () => {
         return;
       }
 
-      window.open(data, '_blank');
+      // Ensure we have a valid URL string before opening
+      if (typeof data === 'string' && data.startsWith('http')) {
+        window.open(data, '_blank');
+      } else {
+        throw new Error('Invalid URL received from server');
+      }
     } catch (error) {
       console.error('Error viewing report:', error);
       toast({
