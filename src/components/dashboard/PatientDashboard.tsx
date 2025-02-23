@@ -19,8 +19,10 @@ type AppointmentWithDoctor = {
   scheduled_at: string;
   status: string;
   doctor_id: string;
-  doctor_first_name: string | null;
-  doctor_last_name: string | null;
+  doctor: {
+    first_name: string | null;
+    last_name: string | null;
+  };
 }
 
 type Appointment = {
@@ -63,14 +65,14 @@ export const PatientDashboard = () => {
 
       console.log("Retrieved profile data:", profile);
 
-      // Get appointments with doctor profiles using explicit join
+      // Get appointments with doctor profiles
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
         .select(`
           id,
           scheduled_at,
           status,
-          profiles!appointments_doctor_id_fkey (
+          doctor:doctor_id (
             first_name,
             last_name
           )
@@ -91,8 +93,8 @@ export const PatientDashboard = () => {
         scheduled_at: appt.scheduled_at,
         status: appt.status,
         doctor: {
-          first_name: (appt.profiles as any)?.first_name ?? '',
-          last_name: (appt.profiles as any)?.last_name ?? ''
+          first_name: (appt.doctor as any)?.first_name ?? '',
+          last_name: (appt.doctor as any)?.last_name ?? ''
         }
       })) as Appointment[];
 
