@@ -39,7 +39,7 @@ export const PatientStats = () => {
 
   console.log("PatientStats: Current user ID:", user?.id);
 
-  // Query to fetch appointments using the new database function
+  // Query to fetch appointments using the RPC function
   const { data: appointments = [] } = useQuery({
     queryKey: ["patient_appointments", user?.id],
     queryFn: async () => {
@@ -90,7 +90,7 @@ export const PatientStats = () => {
     enabled: !!user?.id
   });
 
-  // Query to fetch all medical reports
+  // Query to fetch all medical reports using the new RPC function
   const { data: reports = [] } = useQuery({
     queryKey: ["medical_reports", user?.id],
     queryFn: async () => {
@@ -98,10 +98,9 @@ export const PatientStats = () => {
 
       console.log("Fetching medical reports for patient:", user.id);
       const { data, error } = await supabase
-        .from('patient_medical_reports')
-        .select('*')
-        .eq('patient_id', user.id)
-        .order('uploaded_at', { ascending: false });
+        .rpc('get_patient_medical_reports', {
+          p_patient_id: user.id
+        });
 
       if (error) {
         console.error('Error fetching reports:', error);
@@ -137,9 +136,7 @@ export const PatientStats = () => {
   };
 
   // Filter upcoming appointments
-  const upcomingAppointments = appointments.filter(apt => 
-    new Date(apt.scheduled_at) >= new Date()
-  );
+  const upcomingAppointments = appointments;
 
   // Get next appointment date
   const nextAppointment = upcomingAppointments[0];
