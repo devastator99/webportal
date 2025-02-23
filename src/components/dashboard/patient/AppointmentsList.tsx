@@ -2,6 +2,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Calendar } from "lucide-react";
+import { format } from "date-fns";
 
 type Appointment = {
   id: string;
@@ -29,16 +30,20 @@ export const AppointmentsList = ({
           {appointments.length > 0 ? (
             <div className="space-y-4">
               {appointments.map((appointment) => (
-                <div key={appointment.id} className="flex items-center space-x-4 p-4 border rounded-lg">
-                  <Calendar className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium">
+                <div key={appointment.id} className="flex items-start space-x-4 p-4 border rounded-lg">
+                  <Calendar className="h-5 w-5 text-muted-foreground mt-1" />
+                  <div className="space-y-1">
+                    <p className="font-medium text-base">
                       Dr. {appointment.doctor.first_name || ''} {appointment.doctor.last_name || ''}
                     </p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(appointment.scheduled_at).toLocaleDateString()} at{' '}
-                      {new Date(appointment.scheduled_at).toLocaleTimeString()}
-                    </p>
+                    <div className="text-sm text-muted-foreground space-y-0.5">
+                      <p>
+                        Date: {format(new Date(appointment.scheduled_at), 'PPPP')}
+                      </p>
+                      <p>
+                        Time: {format(new Date(appointment.scheduled_at), 'p')}
+                      </p>
+                    </div>
                   </div>
                 </div>
               ))}
