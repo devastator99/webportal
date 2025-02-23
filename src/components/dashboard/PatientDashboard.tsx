@@ -61,7 +61,7 @@ export const PatientDashboard = () => {
           id,
           scheduled_at,
           status,
-          doctor:doctor_id (
+          profiles!appointments_doctor_id_fkey(
             first_name,
             last_name
           )
@@ -80,15 +80,15 @@ export const PatientDashboard = () => {
         scheduled_at: appt.scheduled_at,
         status: appt.status,
         doctor: {
-          first_name: (appt.doctor as { first_name: string | null })?.first_name ?? '',
-          last_name: (appt.doctor as { last_name: string | null })?.last_name ?? ''
+          first_name: appt.profiles?.first_name ?? '',
+          last_name: appt.profiles?.last_name ?? ''
         }
       })) as Appointment[];
 
       return {
         profile: {
-          first_name: profile.first_name,
-          last_name: profile.last_name
+          first_name: profile.first_name ?? '',
+          last_name: profile.last_name ?? ''
         },
         appointments
       };
