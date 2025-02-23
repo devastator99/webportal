@@ -18,7 +18,8 @@ type AppointmentWithDoctor = {
   id: string;
   scheduled_at: string;
   status: string;
-  doctor_profile: {
+  doctor_id: string;
+  doctor: {
     first_name: string | null;
     last_name: string | null;
   } | null;
@@ -71,7 +72,11 @@ export const PatientDashboard = () => {
           id,
           scheduled_at,
           status,
-          doctor_profile:profiles(first_name, last_name)
+          doctor_id,
+          doctor:profiles!appointments_doctor_id_fkey(
+            first_name,
+            last_name
+          )
         `)
         .eq("patient_id", user.id)
         .order("scheduled_at", { ascending: true });
@@ -81,14 +86,16 @@ export const PatientDashboard = () => {
         throw appointmentsError;
       }
 
+      console.log("Appointments data:", appointmentsData);
+
       // Transform the appointments data
       const appointments = (appointmentsData as AppointmentWithDoctor[] || []).map(appt => ({
         id: appt.id,
         scheduled_at: appt.scheduled_at,
         status: appt.status,
         doctor: {
-          first_name: appt.doctor_profile?.first_name ?? '',
-          last_name: appt.doctor_profile?.last_name ?? ''
+          first_name: appt.doctor?.first_name ?? '',
+          last_name: appt.doctor?.last_name ?? ''
         }
       })) as Appointment[];
 
