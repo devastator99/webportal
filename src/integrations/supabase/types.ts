@@ -635,6 +635,12 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_medical_report_url: {
+        Args: {
+          p_report_id: string
+        }
+        Returns: string
+      }
       get_patient_appointments: {
         Args: {
           p_patient_id: string
