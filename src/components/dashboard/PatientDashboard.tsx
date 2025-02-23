@@ -63,16 +63,17 @@ export const PatientDashboard = () => {
 
       console.log("Retrieved profile data:", profile);
 
-      // Get appointments with doctor profiles using a simpler join approach
+      // Get appointments with doctor profiles using explicit join
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
         .select(`
           id,
           scheduled_at,
           status,
-          doctor_id,
-          doctor_first_name:profiles(first_name),
-          doctor_last_name:profiles(last_name)
+          profiles!appointments_doctor_id_fkey (
+            first_name,
+            last_name
+          )
         `)
         .eq('patient_id', user.id)
         .order('scheduled_at', { ascending: true });
@@ -90,8 +91,8 @@ export const PatientDashboard = () => {
         scheduled_at: appt.scheduled_at,
         status: appt.status,
         doctor: {
-          first_name: (appt.doctor_first_name as any)?.[0]?.first_name ?? '',
-          last_name: (appt.doctor_last_name as any)?.[0]?.last_name ?? ''
+          first_name: (appt.profiles as any)?.first_name ?? '',
+          last_name: (appt.profiles as any)?.last_name ?? ''
         }
       })) as Appointment[];
 
