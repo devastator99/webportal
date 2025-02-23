@@ -22,6 +22,16 @@ type MedicalReport = {
   uploaded_at: string;
 };
 
+type Appointment = {
+  id: string;
+  scheduled_at: string;
+  status: string;
+  doctor: {
+    first_name: string;
+    last_name: string;
+  };
+};
+
 export const PatientStats = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -36,20 +46,17 @@ export const PatientStats = () => {
       if (!user?.id) return [];
 
       console.log("Fetching appointments for patient:", user.id);
-      const { data, error } = await supabase
+      
+      // First get appointments
+      const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
-        .select(`
-          id,
-          scheduled_at,
-          status,
-          doctor:profiles!appointments_doctor_id_fkey(first_name, last_name)
-        `)
+        .select('id, scheduled_at, status, doctor_id')
         .eq('patient_id', user.id)
         .eq('status', 'scheduled')
         .order('scheduled_at', { ascending: true });
 
-      if (error) {
-        console.error('Error fetching appointments:', error);
+      if (appointmentsError) {
+        console.error('Error fetching appointments:', appointmentsError);
         toast({
           title: "Error",
           description: "Could not fetch appointments",
@@ -58,8 +65,33 @@ export const PatientStats = () => {
         return [];
       }
 
-      console.log("Fetched appointments:", data);
-      return data;
+      // Then fetch doctor profiles
+      const doctorIds = appointmentsData.map(apt => apt.doctor_id);
+      const { data: doctorProfiles, error: doctorError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', doctorIds);
+
+      if (doctorError) {
+        console.error('Error fetching doctor profiles:', doctorError);
+        return [];
+      }
+
+      // Create a map of doctor profiles
+      const doctorMap = new Map(
+        doctorProfiles.map(doc => [doc.id, doc])
+      );
+
+      // Transform appointments with doctor information
+      return appointmentsData.map(appt => ({
+        id: appt.id,
+        scheduled_at: appt.scheduled_at,
+        status: appt.status,
+        doctor: {
+          first_name: doctorMap.get(appt.doctor_id)?.first_name ?? '',
+          last_name: doctorMap.get(appt.doctor_id)?.last_name ?? ''
+        }
+      })) as Appointment[];
     },
     enabled: !!user?.id
   });
