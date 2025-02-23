@@ -14,13 +14,23 @@ import { Database } from "@/integrations/supabase/types";
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 type AppointmentRow = Database["public"]["Tables"]["appointments"]["Row"];
 
+type AppointmentWithDoctor = {
+  id: string;
+  scheduled_at: string;
+  status: string;
+  doctor_profile: {
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
+}
+
 type Appointment = {
   id: string;
   scheduled_at: string;
   status: string;
   doctor: {
-    first_name: string | null;
-    last_name: string | null;
+    first_name: string;
+    last_name: string;
   };
 };
 
@@ -61,10 +71,7 @@ export const PatientDashboard = () => {
           id,
           scheduled_at,
           status,
-          profiles!appointments_doctor_id_fkey(
-            first_name,
-            last_name
-          )
+          doctor_profile:profiles(first_name, last_name)
         `)
         .eq("patient_id", user.id)
         .order("scheduled_at", { ascending: true });
@@ -75,13 +82,13 @@ export const PatientDashboard = () => {
       }
 
       // Transform the appointments data
-      const appointments = (appointmentsData || []).map(appt => ({
+      const appointments = (appointmentsData as AppointmentWithDoctor[] || []).map(appt => ({
         id: appt.id,
         scheduled_at: appt.scheduled_at,
         status: appt.status,
         doctor: {
-          first_name: appt.profiles?.first_name ?? '',
-          last_name: appt.profiles?.last_name ?? ''
+          first_name: appt.doctor_profile?.first_name ?? '',
+          last_name: appt.doctor_profile?.last_name ?? ''
         }
       })) as Appointment[];
 
