@@ -64,11 +64,20 @@ export const PatientDashboard = () => {
 
       console.log("Retrieved profile data:", profile);
 
-      // First get appointments
+      // Get all appointments including today's
       const { data: appointments, error: appointmentsError } = await supabase
         .from('appointments')
-        .select('id, scheduled_at, status, doctor_id')
+        .select(`
+          id,
+          scheduled_at,
+          status,
+          doctor:doctor_id (
+            first_name,
+            last_name
+          )
+        `)
         .eq('patient_id', user.id)
+        .gte('scheduled_at', new Date().toISOString().split('T')[0])
         .order('scheduled_at', { ascending: true });
 
       if (appointmentsError) {
@@ -76,31 +85,15 @@ export const PatientDashboard = () => {
         throw appointmentsError;
       }
 
-      // Then fetch doctor profiles for these appointments
-      const doctorIds = appointments.map(apt => apt.doctor_id);
-      const { data: doctorProfiles, error: doctorError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .in('id', doctorIds);
+      console.log("Raw appointments data:", appointments);
 
-      if (doctorError) {
-        console.error("Doctor profiles fetch error:", doctorError);
-        throw doctorError;
-      }
-
-      // Create a map of doctor profiles for easier lookup
-      const doctorMap = new Map(
-        doctorProfiles.map(doc => [doc.id, doc])
-      );
-
-      // Transform the appointments data with doctor information
-      const transformedAppointments = appointments.map(appt => ({
-        id: appt.id,
-        scheduled_at: appt.scheduled_at,
-        status: appt.status,
+      const transformedAppointments = appointments.map(apt => ({
+        id: apt.id,
+        scheduled_at: apt.scheduled_at,
+        status: apt.status,
         doctor: {
-          first_name: doctorMap.get(appt.doctor_id)?.first_name ?? '',
-          last_name: doctorMap.get(appt.doctor_id)?.last_name ?? ''
+          first_name: apt.doctor?.first_name ?? '',
+          last_name: apt.doctor?.last_name ?? ''
         }
       })) as Appointment[];
 
@@ -125,8 +118,10 @@ export const PatientDashboard = () => {
 
   // Filter upcoming appointments
   const upcomingAppointments = patientData?.appointments?.filter(a => 
-    new Date(a.scheduled_at) > new Date() && a.status === 'scheduled'
+    new Date(a.scheduled_at) >= new Date() && a.status === 'scheduled'
   ) || [];
+
+  console.log("Final filtered upcoming appointments:", upcomingAppointments);
 
   return (
     <div className="min-h-screen">
