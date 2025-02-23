@@ -101,14 +101,17 @@ export const PatientStats = () => {
     try {
       console.log('Attempting to view report:', report.id);
       
-      // Get signed URL using our new RPC function
-      const { data: signedUrl, error: rpcError } = await supabase
-        .rpc('get_signed_medical_report_url', {
-          p_report_id: report.id
-        });
+      // Create a custom fetch to call our RPC function
+      const { data: response } = await supabase.from('rpc')
+        .select('*')
+        .eq('function_name', 'get_signed_medical_report_url')
+        .eq('args', { p_report_id: report.id })
+        .single();
 
-      if (rpcError || !signedUrl) {
-        console.error('Error getting signed URL:', rpcError);
+      const signedUrl = response?.result;
+
+      if (!signedUrl) {
+        console.error('Error getting signed URL - no URL returned');
         toast({
           title: "Error",
           description: "Unable to access the report. Please try again.",
@@ -117,7 +120,12 @@ export const PatientStats = () => {
         return;
       }
 
-      window.open(signedUrl, '_blank');
+      // Ensure the URL is a string before opening
+      if (typeof signedUrl === 'string') {
+        window.open(signedUrl, '_blank');
+      } else {
+        throw new Error('Invalid URL format received');
+      }
     } catch (error) {
       console.error('Error viewing report:', error);
       toast({

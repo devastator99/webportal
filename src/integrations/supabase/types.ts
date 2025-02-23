@@ -664,6 +664,12 @@ export type Database = {
           uploaded_at: string
         }[]
       }
+      get_signed_medical_report_url: {
+        Args: {
+          p_report_id: string
+        }
+        Returns: string
+      }
       get_user_role: {
         Args: {
           lookup_user_id: string
