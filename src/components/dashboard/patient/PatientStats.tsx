@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, FileText, Heart, Clock, Upload } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -65,8 +64,17 @@ export const PatientStats = () => {
         return [];
       }
 
+      console.log("Raw appointments data:", appointmentsData);
+
+      if (!appointmentsData?.length) {
+        console.log("No appointments found for user");
+        return [];
+      }
+
       // Then fetch doctor profiles
       const doctorIds = appointmentsData.map(apt => apt.doctor_id);
+      console.log("Fetching profiles for doctors:", doctorIds);
+
       const { data: doctorProfiles, error: doctorError } = await supabase
         .from('profiles')
         .select('id, first_name, last_name')
@@ -77,13 +85,15 @@ export const PatientStats = () => {
         return [];
       }
 
+      console.log("Doctor profiles retrieved:", doctorProfiles);
+
       // Create a map of doctor profiles
       const doctorMap = new Map(
         doctorProfiles.map(doc => [doc.id, doc])
       );
 
       // Transform appointments with doctor information
-      return appointmentsData.map(appt => ({
+      const transformedAppointments = appointmentsData.map(appt => ({
         id: appt.id,
         scheduled_at: appt.scheduled_at,
         status: appt.status,
@@ -92,6 +102,9 @@ export const PatientStats = () => {
           last_name: doctorMap.get(appt.doctor_id)?.last_name ?? ''
         }
       })) as Appointment[];
+
+      console.log("Final transformed appointments:", transformedAppointments);
+      return transformedAppointments;
     },
     enabled: !!user?.id
   });
