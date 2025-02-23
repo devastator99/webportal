@@ -647,6 +647,17 @@ export type Database = {
           doctor_last_name: string
         }[]
       }
+      get_patient_medical_reports: {
+        Args: {
+          p_patient_id: string
+        }
+        Returns: {
+          id: string
+          file_name: string
+          file_path: string
+          uploaded_at: string
+        }[]
+      }
       get_user_role: {
         Args: {
           lookup_user_id: string

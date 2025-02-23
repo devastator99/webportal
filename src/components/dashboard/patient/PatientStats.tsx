@@ -37,70 +37,49 @@ export const PatientStats = () => {
   const { toast } = useToast();
   const [isReportsOpen, setIsReportsOpen] = useState(false);
 
-  console.log("PatientStats: Current user ID:", user?.id);
-
-  // Query to fetch appointments using the RPC function
+  // Query to fetch appointments
   const { data: appointments = [] } = useQuery({
     queryKey: ["patient_appointments", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-
-      console.log("Fetching appointments for patient:", user.id);
       
-      try {
-        const { data, error } = await supabase
-          .rpc('get_patient_appointments', {
-            p_patient_id: user.id
-          });
+      const { data, error } = await supabase
+        .rpc('get_patient_appointments', {
+          p_patient_id: user.id
+        });
 
-        if (error) {
-          console.error('Error fetching appointments:', error);
-          toast({
-            title: "Error",
-            description: "Could not fetch appointments",
-            variant: "destructive"
-          });
-          return [];
-        }
-
-        console.log("Appointments data from function:", data);
-
-        // Transform the data to match our Appointment type
-        const transformedAppointments = data.map(apt => ({
-          id: apt.id,
-          scheduled_at: apt.scheduled_at,
-          status: apt.status,
-          doctor: {
-            first_name: apt.doctor_first_name || '',
-            last_name: apt.doctor_last_name || ''
-          }
-        })) as Appointment[];
-
-        return transformedAppointments;
-      } catch (error) {
-        console.error('Unexpected error in appointments fetch:', error);
+      if (error) {
+        console.error('Error fetching appointments:', error);
         toast({
           title: "Error",
-          description: "An unexpected error occurred",
+          description: "Could not fetch appointments",
           variant: "destructive"
         });
         return [];
       }
+
+      return data.map(apt => ({
+        id: apt.id,
+        scheduled_at: apt.scheduled_at,
+        status: apt.status,
+        doctor: {
+          first_name: apt.doctor_first_name || '',
+          last_name: apt.doctor_last_name || ''
+        }
+      })) as Appointment[];
     },
     enabled: !!user?.id
   });
 
-  // Query to fetch all medical reports using the new RPC function
+  // Query to fetch medical reports using the RPC function
   const { data: reports = [] } = useQuery({
     queryKey: ["medical_reports", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
 
-      console.log("Fetching medical reports for patient:", user.id);
-      const { data, error } = await supabase
-        .rpc('get_patient_medical_reports', {
-          p_patient_id: user.id
-        });
+      const { data, error } = await supabase.rpc<MedicalReport>('get_patient_medical_reports', {
+        p_patient_id: user.id
+      });
 
       if (error) {
         console.error('Error fetching reports:', error);
@@ -112,8 +91,7 @@ export const PatientStats = () => {
         return [];
       }
 
-      console.log("Fetched medical reports:", data);
-      return data as MedicalReport[];
+      return data || [];
     },
     enabled: !!user?.id
   });
@@ -135,20 +113,11 @@ export const PatientStats = () => {
     }
   };
 
-  // Filter upcoming appointments
-  const upcomingAppointments = appointments;
-
   // Get next appointment date
-  const nextAppointment = upcomingAppointments[0];
+  const nextAppointment = appointments[0];
   const nextAppointmentDate = nextAppointment 
     ? new Date(nextAppointment.scheduled_at).toLocaleDateString() 
     : null;
-
-  console.log("Stats summary:", {
-    upcomingAppointments: upcomingAppointments.length,
-    totalReports: reports?.length ?? 0,
-    nextAppointment: nextAppointmentDate
-  });
 
   return (
     <>
@@ -159,7 +128,7 @@ export const PatientStats = () => {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{upcomingAppointments.length}</div>
+            <div className="text-2xl font-bold">{appointments.length}</div>
           </CardContent>
         </Card>
 
