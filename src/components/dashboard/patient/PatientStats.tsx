@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, FileText, Heart, Clock, Upload } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -100,22 +101,23 @@ export const PatientStats = () => {
     try {
       console.log('Attempting to view report:', report.id);
       
-      // First try to directly create a signed URL with the file path
-      const { data: urlData, error: urlError } = await supabase.storage
-        .from('patient_medical_reports')
-        .createSignedUrl(report.file_path, 3600); // URL valid for 1 hour
+      // Get signed URL using our new RPC function
+      const { data: signedUrl, error: rpcError } = await supabase
+        .rpc('get_signed_medical_report_url', {
+          p_report_id: report.id
+        });
 
-      if (urlError || !urlData?.signedUrl) {
-        console.error('Error creating signed URL:', urlError);
+      if (rpcError || !signedUrl) {
+        console.error('Error getting signed URL:', rpcError);
         toast({
           title: "Error",
-          description: "Unable to generate report URL. Please try again.",
+          description: "Unable to access the report. Please try again.",
           variant: "destructive"
         });
         return;
       }
 
-      window.open(urlData.signedUrl, '_blank');
+      window.open(signedUrl, '_blank');
     } catch (error) {
       console.error('Error viewing report:', error);
       toast({
