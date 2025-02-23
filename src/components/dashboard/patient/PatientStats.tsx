@@ -38,7 +38,7 @@ export const PatientStats = () => {
   const [isReportsOpen, setIsReportsOpen] = useState(false);
 
   // Query to fetch appointments
-  const { data: appointments = [] } = useQuery({
+  const { data: appointments = [] } = useQuery<Appointment[], Error>({
     queryKey: ["patient_appointments", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -66,20 +66,21 @@ export const PatientStats = () => {
           first_name: apt.doctor_first_name || '',
           last_name: apt.doctor_last_name || ''
         }
-      })) as Appointment[];
+      }));
     },
     enabled: !!user?.id
   });
 
   // Query to fetch medical reports using the RPC function
-  const { data: reports = [] } = useQuery({
+  const { data: reports = [] } = useQuery<MedicalReport[], Error>({
     queryKey: ["medical_reports", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
 
-      const { data, error } = await supabase.rpc<MedicalReport>('get_patient_medical_reports', {
-        p_patient_id: user.id
-      });
+      const { data, error } = await supabase
+        .rpc('get_patient_medical_reports', {
+          p_patient_id: user.id
+        });
 
       if (error) {
         console.error('Error fetching reports:', error);
@@ -98,11 +99,31 @@ export const PatientStats = () => {
 
   const handleViewReport = async (report: MedicalReport) => {
     try {
-      const { data } = await supabase.storage
+      console.log('Attempting to view report:', report);
+      
+      const { data, error } = await supabase.storage
         .from('patient_medical_reports')
-        .getPublicUrl(report.file_path);
+        .createSignedUrl(report.file_path, 3600); // URL valid for 1 hour
 
-      window.open(data.publicUrl, '_blank');
+      if (error) {
+        console.error('Error creating signed URL:', error);
+        toast({
+          title: "Error",
+          description: "Unable to access the report. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data?.signedUrl) {
+        window.open(data.signedUrl, '_blank');
+      } else {
+        toast({
+          title: "Error",
+          description: "Could not generate report URL",
+          variant: "destructive"
+        });
+      }
     } catch (error) {
       console.error('Error viewing report:', error);
       toast({
