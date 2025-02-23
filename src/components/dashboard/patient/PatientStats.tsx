@@ -46,65 +46,80 @@ export const PatientStats = () => {
 
       console.log("Fetching appointments for patient:", user.id);
       
-      // First get appointments
-      const { data: appointmentsData, error: appointmentsError } = await supabase
-        .from('appointments')
-        .select('id, scheduled_at, status, doctor_id')
-        .eq('patient_id', user.id)
-        .eq('status', 'scheduled')
-        .order('scheduled_at', { ascending: true });
+      try {
+        // First get appointments
+        const { data: appointmentsData, error: appointmentsError } = await supabase
+          .from('appointments')
+          .select('id, scheduled_at, status, doctor_id')
+          .eq('patient_id', user.id)
+          .eq('status', 'scheduled')
+          .order('scheduled_at', { ascending: true });
 
-      if (appointmentsError) {
-        console.error('Error fetching appointments:', appointmentsError);
+        if (appointmentsError) {
+          console.error('Error fetching appointments:', appointmentsError);
+          toast({
+            title: "Error",
+            description: "Could not fetch appointments",
+            variant: "destructive"
+          });
+          return [];
+        }
+
+        console.log("Raw appointments data:", appointmentsData);
+
+        if (!appointmentsData?.length) {
+          console.log("No appointments found for user");
+          return [];
+        }
+
+        // Then fetch doctor profiles
+        const doctorIds = appointmentsData.map(apt => apt.doctor_id);
+        console.log("Fetching profiles for doctors:", doctorIds);
+
+        const { data: doctorProfiles, error: doctorError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', doctorIds);
+
+        if (doctorError) {
+          console.error('Error fetching doctor profiles:', doctorError);
+          toast({
+            title: "Error",
+            description: "Could not fetch doctor information",
+            variant: "destructive"
+          });
+          return [];
+        }
+
+        console.log("Doctor profiles retrieved:", doctorProfiles);
+
+        // Create a map of doctor profiles
+        const doctorMap = new Map(
+          doctorProfiles.map(doc => [doc.id, doc])
+        );
+
+        // Transform appointments with doctor information
+        const transformedAppointments = appointmentsData.map(appt => ({
+          id: appt.id,
+          scheduled_at: appt.scheduled_at,
+          status: appt.status,
+          doctor: {
+            first_name: doctorMap.get(appt.doctor_id)?.first_name ?? '',
+            last_name: doctorMap.get(appt.doctor_id)?.last_name ?? ''
+          }
+        })) as Appointment[];
+
+        console.log("Final transformed appointments:", transformedAppointments);
+        return transformedAppointments;
+      } catch (error) {
+        console.error('Unexpected error in appointments fetch:', error);
         toast({
           title: "Error",
-          description: "Could not fetch appointments",
+          description: "An unexpected error occurred",
           variant: "destructive"
         });
         return [];
       }
-
-      console.log("Raw appointments data:", appointmentsData);
-
-      if (!appointmentsData?.length) {
-        console.log("No appointments found for user");
-        return [];
-      }
-
-      // Then fetch doctor profiles
-      const doctorIds = appointmentsData.map(apt => apt.doctor_id);
-      console.log("Fetching profiles for doctors:", doctorIds);
-
-      const { data: doctorProfiles, error: doctorError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name')
-        .in('id', doctorIds);
-
-      if (doctorError) {
-        console.error('Error fetching doctor profiles:', doctorError);
-        return [];
-      }
-
-      console.log("Doctor profiles retrieved:", doctorProfiles);
-
-      // Create a map of doctor profiles
-      const doctorMap = new Map(
-        doctorProfiles.map(doc => [doc.id, doc])
-      );
-
-      // Transform appointments with doctor information
-      const transformedAppointments = appointmentsData.map(appt => ({
-        id: appt.id,
-        scheduled_at: appt.scheduled_at,
-        status: appt.status,
-        doctor: {
-          first_name: doctorMap.get(appt.doctor_id)?.first_name ?? '',
-          last_name: doctorMap.get(appt.doctor_id)?.last_name ?? ''
-        }
-      })) as Appointment[];
-
-      console.log("Final transformed appointments:", transformedAppointments);
-      return transformedAppointments;
     },
     enabled: !!user?.id
   });
@@ -168,7 +183,7 @@ export const PatientStats = () => {
 
   console.log("Stats summary:", {
     upcomingAppointments: upcomingAppointments.length,
-    totalReports: reports.length,
+    totalReports: reports?.length ?? 0,
     nextAppointment: nextAppointmentDate
   });
 
