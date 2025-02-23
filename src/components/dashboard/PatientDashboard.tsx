@@ -10,7 +10,7 @@ import { PatientStats } from "./patient/PatientStats";
 import { AppointmentsList } from "./patient/AppointmentsList";
 import { MedicalRecordsUpload } from "./patient/MedicalRecordsUpload";
 
-type AppointmentWithDoctor = {
+type Appointment = {
   id: string;
   scheduled_at: string;
   status: string;
@@ -76,7 +76,7 @@ export const PatientDashboard = () => {
           first_name: profile.first_name,
           last_name: profile.last_name
         },
-        appointments: appointments || []
+        appointments: (appointments || []) as Appointment[]
       };
     },
     enabled: !!user?.id,
