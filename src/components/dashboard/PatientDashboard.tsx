@@ -18,7 +18,6 @@ type AppointmentWithDoctor = {
   id: string;
   scheduled_at: string;
   status: string;
-  doctor_id: string;
   doctor: {
     first_name: string | null;
     last_name: string | null;
@@ -65,18 +64,10 @@ export const PatientDashboard = () => {
 
       console.log("Retrieved profile data:", profile);
 
-      // Get appointments with doctor profiles
-      const { data: appointmentsData, error: appointmentsError } = await supabase
+      // First get appointments
+      const { data: appointments, error: appointmentsError } = await supabase
         .from('appointments')
-        .select(`
-          id,
-          scheduled_at,
-          status,
-          doctor:doctor_id (
-            first_name,
-            last_name
-          )
-        `)
+        .select('id, scheduled_at, status, doctor_id')
         .eq('patient_id', user.id)
         .order('scheduled_at', { ascending: true });
 
@@ -85,27 +76,42 @@ export const PatientDashboard = () => {
         throw appointmentsError;
       }
 
-      console.log("Raw appointments data:", appointmentsData);
+      // Then fetch doctor profiles for these appointments
+      const doctorIds = appointments.map(apt => apt.doctor_id);
+      const { data: doctorProfiles, error: doctorError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', doctorIds);
 
-      // Transform the appointments data with explicit typing
-      const appointments = appointmentsData.map(appt => ({
+      if (doctorError) {
+        console.error("Doctor profiles fetch error:", doctorError);
+        throw doctorError;
+      }
+
+      // Create a map of doctor profiles for easier lookup
+      const doctorMap = new Map(
+        doctorProfiles.map(doc => [doc.id, doc])
+      );
+
+      // Transform the appointments data with doctor information
+      const transformedAppointments = appointments.map(appt => ({
         id: appt.id,
         scheduled_at: appt.scheduled_at,
         status: appt.status,
         doctor: {
-          first_name: (appt.doctor as any)?.first_name ?? '',
-          last_name: (appt.doctor as any)?.last_name ?? ''
+          first_name: doctorMap.get(appt.doctor_id)?.first_name ?? '',
+          last_name: doctorMap.get(appt.doctor_id)?.last_name ?? ''
         }
       })) as Appointment[];
 
-      console.log("Transformed appointments:", appointments);
+      console.log("Transformed appointments:", transformedAppointments);
 
       return {
         profile: {
           first_name: profile.first_name ?? '',
           last_name: profile.last_name ?? ''
         },
-        appointments
+        appointments: transformedAppointments
       };
     },
     enabled: !!user?.id,
