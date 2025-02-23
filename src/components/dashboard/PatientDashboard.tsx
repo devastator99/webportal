@@ -50,14 +50,14 @@ export const PatientDashboard = () => {
 
       console.log("Retrieved profile data:", profile);
 
-      // Get appointments data with proper join syntax
+      // Get appointments data with proper join syntax using profiles!doctor_id relationship
       const { data: appointments, error: appointmentsError } = await supabase
         .from("appointments")
         .select(`
           id,
           scheduled_at,
           status,
-          doctor:doctor_id (
+          doctor:profiles!appointments_doctor_id_fkey(
             first_name,
             last_name
           )
@@ -76,7 +76,7 @@ export const PatientDashboard = () => {
           first_name: profile.first_name,
           last_name: profile.last_name
         },
-        appointments: (appointments || []) as AppointmentWithDoctor[]
+        appointments: appointments || []
       };
     },
     enabled: !!user?.id,
