@@ -99,14 +99,16 @@ export const PatientStats = () => {
 
   const handleViewReport = async (report: MedicalReport) => {
     try {
-      console.log('Attempting to view report:', report);
+      console.log('Attempting to view report:', report.id);
       
-      const { data, error } = await supabase.storage
-        .from('patient_medical_reports')
-        .createSignedUrl(report.file_path, 3600); // URL valid for 1 hour
+      // First get the secure file path using our RPC function
+      const { data: filePath, error: rpcError } = await supabase
+        .rpc('get_medical_report_url', {
+          p_report_id: report.id
+        });
 
-      if (error) {
-        console.error('Error creating signed URL:', error);
+      if (rpcError || !filePath) {
+        console.error('Error getting secure file path:', rpcError);
         toast({
           title: "Error",
           description: "Unable to access the report. Please try again.",
@@ -115,15 +117,22 @@ export const PatientStats = () => {
         return;
       }
 
-      if (data?.signedUrl) {
-        window.open(data.signedUrl, '_blank');
-      } else {
+      // Now create a signed URL using the secure file path
+      const { data: urlData, error: urlError } = await supabase.storage
+        .from('patient_medical_reports')
+        .createSignedUrl(filePath, 3600); // URL valid for 1 hour
+
+      if (urlError || !urlData?.signedUrl) {
+        console.error('Error creating signed URL:', urlError);
         toast({
           title: "Error",
-          description: "Could not generate report URL",
+          description: "Unable to generate report URL. Please try again.",
           variant: "destructive"
         });
+        return;
       }
+
+      window.open(urlData.signedUrl, '_blank');
     } catch (error) {
       console.error('Error viewing report:', error);
       toast({
