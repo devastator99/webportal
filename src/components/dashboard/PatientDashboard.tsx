@@ -12,17 +12,6 @@ import { MedicalRecordsUpload } from "./patient/MedicalRecordsUpload";
 import { Database } from "@/integrations/supabase/types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
-type AppointmentRow = Database["public"]["Tables"]["appointments"]["Row"];
-
-type AppointmentWithDoctor = {
-  id: string;
-  scheduled_at: string;
-  status: string;
-  doctor: {
-    first_name: string | null;
-    last_name: string | null;
-  };
-}
 
 type Appointment = {
   id: string;
@@ -64,21 +53,11 @@ export const PatientDashboard = () => {
 
       console.log("Retrieved profile data:", profile);
 
-      // Get all appointments including today's
+      // Use the get_patient_appointments function to fetch appointments
       const { data: appointments, error: appointmentsError } = await supabase
-        .from('appointments')
-        .select(`
-          id,
-          scheduled_at,
-          status,
-          doctor:doctor_id (
-            first_name,
-            last_name
-          )
-        `)
-        .eq('patient_id', user.id)
-        .gte('scheduled_at', new Date().toISOString().split('T')[0])
-        .order('scheduled_at', { ascending: true });
+        .rpc('get_patient_appointments', {
+          p_patient_id: user.id
+        });
 
       if (appointmentsError) {
         console.error("Appointments fetch error:", appointmentsError);
@@ -87,13 +66,14 @@ export const PatientDashboard = () => {
 
       console.log("Raw appointments data:", appointments);
 
+      // Transform the appointments to match our expected format
       const transformedAppointments = appointments.map(apt => ({
         id: apt.id,
         scheduled_at: apt.scheduled_at,
-        status: apt.status,
+        status: 'scheduled', // Status is already filtered in the function
         doctor: {
-          first_name: apt.doctor?.first_name ?? '',
-          last_name: apt.doctor?.last_name ?? ''
+          first_name: apt.doctor_first_name || '',
+          last_name: apt.doctor_last_name || ''
         }
       })) as Appointment[];
 
@@ -116,12 +96,10 @@ export const PatientDashboard = () => {
     return <DashboardSkeleton />;
   }
 
-  // Filter upcoming appointments
-  const upcomingAppointments = patientData?.appointments?.filter(a => 
-    new Date(a.scheduled_at) >= new Date() && a.status === 'scheduled'
-  ) || [];
+  // Filter upcoming appointments - note that our RPC function already filters for scheduled status
+  const upcomingAppointments = patientData?.appointments || [];
 
-  console.log("Final filtered upcoming appointments:", upcomingAppointments);
+  console.log("Final appointments:", upcomingAppointments);
 
   return (
     <div className="min-h-screen">
