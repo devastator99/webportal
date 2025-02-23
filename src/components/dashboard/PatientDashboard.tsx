@@ -10,6 +10,16 @@ import { PatientStats } from "./patient/PatientStats";
 import { AppointmentsList } from "./patient/AppointmentsList";
 import { MedicalRecordsUpload } from "./patient/MedicalRecordsUpload";
 
+type AppointmentWithDoctor = {
+  id: string;
+  scheduled_at: string;
+  status: string;
+  doctor: {
+    first_name: string;
+    last_name: string;
+  };
+};
+
 export const PatientDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -40,14 +50,17 @@ export const PatientDashboard = () => {
 
       console.log("Retrieved profile data:", profile);
 
-      // Get appointments data
+      // Get appointments data with proper join syntax
       const { data: appointments, error: appointmentsError } = await supabase
         .from("appointments")
         .select(`
           id,
           scheduled_at,
           status,
-          doctor:profiles!appointments_doctor_id_fkey(first_name, last_name)
+          doctor:doctor_id (
+            first_name,
+            last_name
+          )
         `)
         .eq("patient_id", user.id)
         .order("scheduled_at", { ascending: true });
@@ -63,7 +76,7 @@ export const PatientDashboard = () => {
           first_name: profile.first_name,
           last_name: profile.last_name
         },
-        appointments: appointments || []
+        appointments: (appointments || []) as AppointmentWithDoctor[]
       };
     },
     enabled: !!user?.id,
