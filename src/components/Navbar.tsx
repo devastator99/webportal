@@ -58,8 +58,16 @@ export const Navbar = () => {
 
   const handleScheduleAppointment = () => {
     console.log("Navigating to appointments/schedule with role:", userRole);
-    // Navigate to the schedule appointment page
-    navigate("/appointments/schedule");
+    // Make sure we have a user before navigating
+    if (user) {
+      navigate("/appointments/schedule");
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Authentication required",
+        description: "Please sign in to schedule an appointment.",
+      });
+    }
   };
 
   if (isLoading && !isSigningOut) {

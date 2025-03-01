@@ -15,7 +15,13 @@ import { ScheduleAppointment } from "./components/appointments/ScheduleAppointme
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
   
-  if (isLoading || !user) {
+  if (isLoading) {
+    // While loading, show some loading state or return null
+    return null;
+  }
+  
+  if (!user) {
+    console.log("Protected route: No user found, redirecting to /");
     return <Navigate to="/" replace />;
   }
 
@@ -23,6 +29,9 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppRoutes = () => {
+  const { user } = useAuth();
+  console.log("AppRoutes render - user:", user?.id);
+  
   return (
     <>
       <Navbar />
