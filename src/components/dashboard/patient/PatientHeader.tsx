@@ -27,7 +27,7 @@ export const PatientHeader = ({ actionButton }: PatientHeaderProps) => {
 
   // Combine the schedule button with any additional action buttons
   const combinedButtons = actionButton ? (
-    <div className="flex items-center space-x-3">
+    <div className="flex items-center gap-3">
       {scheduleButton}
       {actionButton}
     </div>

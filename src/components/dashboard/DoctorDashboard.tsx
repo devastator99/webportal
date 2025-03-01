@@ -44,7 +44,7 @@ export const DoctorDashboard = () => {
   
   // Add an actionButton for schedule appointments
   const actionButtons = (
-    <div className="flex items-center space-x-3 justify-end">
+    <div className="flex items-center gap-3 justify-end">
       <Button 
         onClick={() => navigate("/appointments/schedule")}
         className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
