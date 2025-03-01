@@ -22,6 +22,7 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
     queryFn: async () => {
       if (!user?.id) return null;
       
+      console.log("Fetching profile for user:", user.id);
       const { data, error } = await supabase
         .from("profiles")
         .select("first_name, last_name")

@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { LogOut, LogIn } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
@@ -11,9 +11,13 @@ import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 export const Navbar = () => {
   const { user, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const { loading, error, handleLogin, handleSignUp } = useAuthHandlers();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  
+  // Check if we're on the dashboard page
+  const isDashboardPage = location.pathname === '/dashboard';
 
   useEffect(() => {
     if (user && !isLoading) {
@@ -65,7 +69,7 @@ export const Navbar = () => {
             </DialogContent>
           </Dialog>
         )}
-        {user && (
+        {user && !isDashboardPage && (
           <Button 
             onClick={signOut}
             variant="outline" 
