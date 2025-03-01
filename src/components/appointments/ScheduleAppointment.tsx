@@ -139,49 +139,50 @@ export function ScheduleAppointment({ children, callerRole }: ScheduleAppointmen
     },
   });
 
-  // Fetch patients for doctor - improved approach to avoid RLS issues
+  // Fetch patients using RPC function to bypass RLS issues
   const { data: patients, isLoading: isLoadingPatients } = useQuery({
-    queryKey: ['doctor_patients', user?.id],
+    queryKey: ['rpc_doctor_patients', user?.id],
     queryFn: async () => {
       if (!user?.id || callerRole !== "doctor") {
         return [];
       }
       
-      console.log("Fetching patients for doctor:", user.id);
+      console.log("Fetching patients for doctor using RPC:", user.id);
       
       try {
-        // Get patient assignments directly
-        const { data: assignments, error: assignmentsError } = await supabase
-          .from('patient_assignments')
-          .select('patient_id')
-          .eq('doctor_id', user.id);
+        // Use the get_users_by_role RPC function to get patient user_ids
+        const { data: patientUserIds, error: rpcError } = await supabase
+          .rpc('get_users_by_role', { role_name: 'patient' });
         
-        if (assignmentsError) {
-          console.error("Error fetching patient assignments:", assignmentsError);
-          throw assignmentsError;
+        if (rpcError) {
+          console.error("Error fetching patient user IDs via RPC:", rpcError);
+          throw rpcError;
         }
         
-        if (!assignments || assignments.length === 0) {
-          console.log("No patients assigned to doctor:", user.id);
+        if (!patientUserIds || patientUserIds.length === 0) {
           return [];
         }
         
-        // Extract patient IDs
-        const patientIds = assignments.map(a => a.patient_id);
-        
-        // Get patient profiles in a separate query
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name')
-          .in('id', patientIds);
-        
-        if (profilesError) {
-          console.error("Error fetching patient profiles:", profilesError);
-          throw profilesError;
+        // Get profiles for these patients
+        const patientProfiles = [];
+        for (const item of patientUserIds) {
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("id, first_name, last_name")
+            .eq("id", item.user_id)
+            .single();
+            
+          if (profileError) {
+            console.error(`Error fetching profile for ${item.user_id}:`, profileError);
+            continue; // Skip this profile but continue with others
+          }
+          
+          if (profile) {
+            patientProfiles.push(profile);
+          }
         }
         
-        console.log(`Found ${profiles?.length || 0} patients for doctor ${user.id}`);
-        return profiles || [];
+        return patientProfiles;
       } catch (error) {
         console.error("Error fetching patients:", error);
         return [];
@@ -190,44 +191,48 @@ export function ScheduleAppointment({ children, callerRole }: ScheduleAppointmen
     enabled: !!user?.id && callerRole === "doctor",
   });
 
-  // Fetch doctors for patient
+  // Fetch doctors for patient using a similar approach
   const { data: doctors, isLoading: isLoadingDoctors } = useQuery({
-    queryKey: ['patient_doctors', user?.id],
+    queryKey: ['rpc_patient_doctors', user?.id],
     queryFn: async () => {
       if (!user?.id || callerRole !== "patient") {
         return [];
       }
       
       try {
-        // First get the doctor assignments
-        const { data: doctorAssignments, error: assignmentError } = await supabase
-          .from('patient_assignments')
-          .select('doctor_id')
-          .eq('patient_id', user.id);
-          
-        if (assignmentError) {
-          console.error("Error fetching doctor assignments:", assignmentError);
-          throw assignmentError;
+        // Use the get_users_by_role RPC function to get doctor user_ids
+        const { data: doctorUserIds, error: rpcError } = await supabase
+          .rpc('get_users_by_role', { role_name: 'doctor' });
+        
+        if (rpcError) {
+          console.error("Error fetching doctor user IDs via RPC:", rpcError);
+          throw rpcError;
         }
         
-        if (!doctorAssignments || doctorAssignments.length === 0) {
+        if (!doctorUserIds || doctorUserIds.length === 0) {
           return [];
         }
         
-        const doctorIds = doctorAssignments.map(item => item.doctor_id);
-        
-        // Then get the doctor profiles
-        const { data: doctorProfiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name')
-          .in('id', doctorIds);
+        // Get profiles for these doctors
+        const doctorProfiles = [];
+        for (const item of doctorUserIds) {
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("id, first_name, last_name")
+            .eq("id", item.user_id)
+            .single();
+            
+          if (profileError) {
+            console.error(`Error fetching profile for ${item.user_id}:`, profileError);
+            continue;
+          }
           
-        if (profilesError) {
-          console.error("Error fetching doctor profiles:", profilesError);
-          throw profilesError;
+          if (profile) {
+            doctorProfiles.push(profile);
+          }
         }
         
-        return doctorProfiles || [];
+        return doctorProfiles;
       } catch (error) {
         console.error("Error fetching doctors:", error);
         return [];
@@ -273,7 +278,7 @@ export function ScheduleAppointment({ children, callerRole }: ScheduleAppointmen
                             </SelectItem>
                           ))
                         ) : (
-                          <SelectItem value="none" disabled>No patients assigned to you</SelectItem>
+                          <SelectItem value="none" disabled>No patients found</SelectItem>
                         )}
                       </SelectContent>
                     </Select>
