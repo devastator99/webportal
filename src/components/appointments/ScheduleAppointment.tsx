@@ -156,6 +156,7 @@ export const ScheduleAppointment = ({
       return;
     }
 
+    // Fix TypeScript comparison issues by comparing with string literals
     // Validate doctor/patient selection based on role
     if (effectiveCallerRole === "patient" && !selectedDoctor) {
       toast({
@@ -237,9 +238,8 @@ export const ScheduleAppointment = ({
       
       // Invalidate relevant queries
       queryClient.invalidateQueries({ queryKey: ["patient_dashboard"] });
-      if (effectiveCallerRole === "doctor") {
-        queryClient.invalidateQueries({ queryKey: ["doctor_appointments"] });
-      }
+      queryClient.invalidateQueries({ queryKey: ["today_appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["doctor_appointments"] });
       
       toast({
         title: "Appointment scheduled successfully",

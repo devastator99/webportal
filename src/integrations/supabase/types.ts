@@ -645,6 +645,18 @@ export type Database = {
           status: Database["public"]["Enums"]["appointment_status"]
         }[]
       }
+      get_doctor_appointments_with_patients: {
+        Args: {
+          doctor_id: string
+          date_filter: string
+        }
+        Returns: {
+          id: string
+          scheduled_at: string
+          status: Database["public"]["Enums"]["appointment_status"]
+          patient: Json
+        }[]
+      }
       get_doctor_medical_records_count: {
         Args: {
           doctor_id: string

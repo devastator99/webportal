@@ -8,7 +8,8 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface Appointment {
+// Define the correct type for the appointment data returned from our RPC function
+interface AppointmentWithPatient {
   id: string;
   scheduled_at: string;
   status: string;
@@ -25,25 +26,25 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
   const { data: appointments = [], isLoading, error } = useQuery({
     queryKey: ["doctor_appointments", doctorId, format(selectedDate, "yyyy-MM-dd")],
     queryFn: async () => {
-      if (!doctorId) return [] as Appointment[];
+      if (!doctorId) return [] as AppointmentWithPatient[];
       
       const formattedDate = format(selectedDate, "yyyy-MM-dd");
       console.log("Fetching appointments for date:", formattedDate, "doctor:", doctorId);
       
       try {
-        // Use the security definer RPC function
-        const { data: appointmentsData, error: appointmentsError } = await supabase.rpc(
+        // Use the security definer RPC function to safely fetch appointments with patient data
+        const { data, error: rpcError } = await supabase.rpc<AppointmentWithPatient>(
           'get_doctor_appointments_with_patients',
           { doctor_id: doctorId, date_filter: formattedDate }
         );
 
-        if (appointmentsError) {
-          console.error("Error fetching appointments:", appointmentsError);
-          throw appointmentsError;
+        if (rpcError) {
+          console.error("Error fetching appointments:", rpcError);
+          throw rpcError;
         }
 
-        console.log("Appointments with patients data:", appointmentsData);
-        return appointmentsData || [];
+        console.log("Appointments with patients data:", data);
+        return data || [];
       } catch (error) {
         console.error("Error in calendar appointment fetch:", error);
         toast({
@@ -81,10 +82,10 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
           </h3>
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading appointments...</p>
-          ) : appointments?.length === 0 ? (
+          ) : appointments.length === 0 ? (
             <p className="text-sm text-muted-foreground">No appointments scheduled for this day</p>
           ) : (
-            appointments?.map((appointment) => (
+            appointments.map((appointment) => (
               <div
                 key={appointment.id}
                 className="flex justify-between items-center p-3 border rounded-lg"

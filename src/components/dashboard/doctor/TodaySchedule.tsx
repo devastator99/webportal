@@ -7,7 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
-interface Appointment {
+// Define the correct type for the appointment data returned from our RPC function
+interface AppointmentWithPatient {
   id: string;
   scheduled_at: string;
   status: string;
@@ -31,25 +32,24 @@ export const TodaySchedule = () => {
       console.log("Fetching today's appointments for date:", today, "doctor:", user.id);
       
       try {
-        // Use the get_doctor_appointments_with_patients RPC function to fetch appointments with patient info
-        // This avoids the recursion issues by using a security definer function
-        const { data: appointmentsData, error: appointmentsError } = await supabase.rpc(
+        // Use the security definer RPC function to safely fetch appointments with patient data
+        const { data, error: rpcError } = await supabase.rpc<AppointmentWithPatient>(
           'get_doctor_appointments_with_patients',
           { doctor_id: user.id, date_filter: today }
         );
 
-        if (appointmentsError) {
-          console.error("Error fetching appointments:", appointmentsError);
-          throw appointmentsError;
+        if (rpcError) {
+          console.error("Error fetching appointments:", rpcError);
+          throw rpcError;
         }
 
-        console.log("Appointments with patients data:", appointmentsData);
+        console.log("Appointments with patients data:", data);
         
-        if (!appointmentsData || appointmentsData.length === 0) {
+        if (!data || data.length === 0) {
           return [];
         }
 
-        return appointmentsData;
+        return data;
       } catch (error) {
         console.error("Error in appointment fetch:", error);
         toast({
