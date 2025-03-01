@@ -10,28 +10,55 @@ interface PatientSelectorProps {
   onPatientSelect: (patientId: string) => void;
 }
 
+interface PatientProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+}
+
 export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientSelectorProps) => {
   const { user } = useAuth();
 
   const { data: assignedPatients, isLoading } = useQuery({
     queryKey: ["assigned_patients", user?.id],
     queryFn: async () => {
-      if (!user?.id) return null;
+      if (!user?.id) return [];
       
-      const { data, error } = await supabase
-        .from("patient_assignments")
-        .select(`
-          patient_id,
-          patient:profiles!patient_assignments_patient_profile_fkey(
-            id,
-            first_name,
-            last_name
-          )
-        `)
-        .eq("doctor_id", user.id);
-
-      if (error) throw error;
-      return data;
+      try {
+        // First, get all patient IDs assigned to this doctor
+        const { data: patientAssignments, error: assignmentError } = await supabase
+          .from("patient_assignments")
+          .select("patient_id")
+          .eq("doctor_id", user.id);
+          
+        if (assignmentError) {
+          console.error("Error fetching patient assignments:", assignmentError);
+          throw assignmentError;
+        }
+        
+        // If no patients assigned, return empty array
+        if (!patientAssignments || patientAssignments.length === 0) {
+          return [];
+        }
+        
+        const patientIds = patientAssignments.map(assignment => assignment.patient_id);
+        
+        // Then fetch patient profiles data
+        const { data: patientProfiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name")
+          .in("id", patientIds);
+          
+        if (profilesError) {
+          console.error("Error fetching patient profiles:", profilesError);
+          throw profilesError;
+        }
+        
+        return patientProfiles || [];
+      } catch (error) {
+        console.error("Error in PatientSelector:", error);
+        return [];
+      }
     },
     enabled: !!user?.id,
   });
@@ -55,12 +82,12 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
           <SelectValue placeholder="Select a patient" />
         </SelectTrigger>
         <SelectContent>
-          {assignedPatients.map((assignment) => (
+          {assignedPatients.map((patient: PatientProfile) => (
             <SelectItem 
-              key={assignment.patient_id} 
-              value={assignment.patient_id}
+              key={patient.id} 
+              value={patient.id}
             >
-              {assignment.patient.first_name} {assignment.patient.last_name}
+              {patient.first_name} {patient.last_name}
             </SelectItem>
           ))}
         </SelectContent>

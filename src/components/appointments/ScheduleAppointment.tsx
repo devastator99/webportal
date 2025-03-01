@@ -74,6 +74,17 @@ export function ScheduleAppointment({ children, callerRole }: ScheduleAppointmen
     },
   });
 
+  // Pre-fill the form with current user's ID based on role
+  React.useEffect(() => {
+    if (user?.id) {
+      if (callerRole === "doctor") {
+        form.setValue("doctorId", user.id);
+      } else if (callerRole === "patient") {
+        form.setValue("patientId", user.id);
+      }
+    }
+  }, [user, callerRole, form]);
+
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
     createAppointmentMutation.mutate(values);
@@ -128,90 +139,99 @@ export function ScheduleAppointment({ children, callerRole }: ScheduleAppointmen
     },
   });
 
-  // Type for patient data
-  type PatientProfile = Database['public']['Tables']['profiles']['Row'];
-  
-  const { data: patients, isLoading: isLoadingPatients } = useQuery<PatientProfile[]>({
-    queryKey: ['patients'],
+  // Fetch patients for doctor
+  const { data: patients, isLoading: isLoadingPatients } = useQuery({
+    queryKey: ['doctor_patients', user?.id],
     queryFn: async () => {
-      // Only run this query if not in doctor role
-      if (callerRole === "doctor") {
+      if (!user?.id || callerRole !== "doctor") {
         return [];
       }
       
-      let patientIds: string[] = [];
-      
-      // If doctor, get assigned patients
-      if (user?.id) {
-        const { data: assignedPatients, error: assignmentError } = await supabase
+      try {
+        // First get the patient assignments
+        const { data: patientAssignments, error: assignmentError } = await supabase
           .from('patient_assignments')
           .select('patient_id')
           .eq('doctor_id', user.id);
           
         if (assignmentError) {
           console.error("Error fetching patient assignments:", assignmentError);
-          throw new Error(assignmentError.message);
+          throw assignmentError;
         }
         
-        patientIds = (assignedPatients || []).map(item => item.patient_id);
-      }
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('id', patientIds.length > 0 ? patientIds : ['00000000-0000-0000-0000-000000000000']);
+        if (!patientAssignments || patientAssignments.length === 0) {
+          console.log("No patient assignments found for doctor:", user.id);
+          return [];
+        }
         
-      if (error) {
+        const patientIds = patientAssignments.map(item => item.patient_id);
+        console.log("Patient IDs to fetch:", patientIds);
+        
+        // Then get the patient profiles
+        const { data: patientProfiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', patientIds);
+          
+        if (profilesError) {
+          console.error("Error fetching patient profiles:", profilesError);
+          throw profilesError;
+        }
+        
+        console.log("Fetched patient profiles:", patientProfiles);
+        return patientProfiles || [];
+      } catch (error) {
         console.error("Error fetching patients:", error);
-        throw new Error(error.message);
+        return [];
       }
-      
-      return data || [];
     },
-    enabled: callerRole !== "doctor",
+    enabled: !!user?.id && callerRole === "doctor",
   });
 
-  // Type for doctor data
-  type DoctorProfile = Database['public']['Tables']['profiles']['Row'];
-  
-  const { data: doctors, isLoading: isLoadingDoctors } = useQuery<DoctorProfile[]>({
-    queryKey: ['doctors'],
+  // Fetch doctors for patient
+  const { data: doctors, isLoading: isLoadingDoctors } = useQuery({
+    queryKey: ['patient_doctors', user?.id],
     queryFn: async () => {
-      // Only run this query if not in patient role
-      if (callerRole === "patient") {
+      if (!user?.id || callerRole !== "patient") {
         return [];
       }
       
-      let doctorIds: string[] = [];
-      
-      // If patient, get assigned doctors
-      if (user?.id) {
-        const { data: assignedDoctors, error: assignmentError } = await supabase
+      try {
+        // First get the doctor assignments
+        const { data: doctorAssignments, error: assignmentError } = await supabase
           .from('patient_assignments')
           .select('doctor_id')
           .eq('patient_id', user.id);
           
         if (assignmentError) {
           console.error("Error fetching doctor assignments:", assignmentError);
-          throw new Error(assignmentError.message);
+          throw assignmentError;
         }
         
-        doctorIds = (assignedDoctors || []).map(item => item.doctor_id);
-      }
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .in('id', doctorIds.length > 0 ? doctorIds : ['00000000-0000-0000-0000-000000000000']);
+        if (!doctorAssignments || doctorAssignments.length === 0) {
+          return [];
+        }
         
-      if (error) {
+        const doctorIds = doctorAssignments.map(item => item.doctor_id);
+        
+        // Then get the doctor profiles
+        const { data: doctorProfiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .in('id', doctorIds);
+          
+        if (profilesError) {
+          console.error("Error fetching doctor profiles:", profilesError);
+          throw profilesError;
+        }
+        
+        return doctorProfiles || [];
+      } catch (error) {
         console.error("Error fetching doctors:", error);
-        throw new Error(error.message);
+        return [];
       }
-      
-      return data || [];
     },
-    enabled: callerRole !== "patient",
+    enabled: !!user?.id && callerRole === "patient",
   });
 
   return (
@@ -228,7 +248,7 @@ export function ScheduleAppointment({ children, callerRole }: ScheduleAppointmen
         </AlertDialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {callerRole !== "patient" && (
+            {callerRole === "doctor" && (
               <FormField
                 control={form.control}
                 name="patientId"
@@ -242,9 +262,17 @@ export function ScheduleAppointment({ children, callerRole }: ScheduleAppointmen
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {patients && patients.map((patient) => (
-                          <SelectItem key={patient.id} value={patient.id}>{patient.first_name} {patient.last_name}</SelectItem>
-                        ))}
+                        {isLoadingPatients ? (
+                          <SelectItem value="loading" disabled>Loading patients...</SelectItem>
+                        ) : patients && patients.length > 0 ? (
+                          patients.map((patient) => (
+                            <SelectItem key={patient.id} value={patient.id}>
+                              {patient.first_name} {patient.last_name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="none" disabled>No patients assigned to you</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -253,7 +281,7 @@ export function ScheduleAppointment({ children, callerRole }: ScheduleAppointmen
               />
             )}
 
-            {callerRole !== "doctor" && (
+            {callerRole === "patient" && (
               <FormField
                 control={form.control}
                 name="doctorId"
@@ -267,9 +295,17 @@ export function ScheduleAppointment({ children, callerRole }: ScheduleAppointmen
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {doctors && doctors.map((doctor) => (
-                          <SelectItem key={doctor.id} value={doctor.id}>{doctor.first_name} {doctor.last_name}</SelectItem>
-                        ))}
+                        {isLoadingDoctors ? (
+                          <SelectItem value="loading" disabled>Loading doctors...</SelectItem>
+                        ) : doctors && doctors.length > 0 ? (
+                          doctors.map((doctor) => (
+                            <SelectItem key={doctor.id} value={doctor.id}>
+                              {doctor.first_name} {doctor.last_name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="none" disabled>No doctors assigned to you</SelectItem>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
