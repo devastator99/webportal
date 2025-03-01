@@ -100,7 +100,7 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
-      <h1 className="text-2xl sm:text-3xl font-bold truncate">
+      <h1 className="text-2xl sm:text-3xl font-bold truncate text-black dark:text-white">
         {welcomeMessage}
       </h1>
       <div className="flex gap-2 sm:gap-4 w-full sm:w-auto">

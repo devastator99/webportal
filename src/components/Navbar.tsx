@@ -31,10 +31,10 @@ export const Navbar = () => {
   }
 
   return (
-    <nav className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-[#D6BCFA]">
+    <nav className="fixed top-0 w-full bg-white/90 dark:bg-black/90 backdrop-blur-md z-50 border-b border-[#D6BCFA] shadow-sm">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <div 
-          className="text-2xl font-bold text-[#9b87f5] cursor-pointer" 
+          className="text-xl sm:text-2xl font-bold text-[#9b87f5] cursor-pointer" 
           onClick={() => navigate("/")}
         >
           Anubhuti
@@ -43,13 +43,15 @@ export const Navbar = () => {
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button 
-                className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2"
+                className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
+                size="sm"
               >
                 <LogIn className="h-4 w-4" />
-                Sign In
+                <span className="hidden sm:inline">Sign In</span>
+                <span className="sm:hidden">Login</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px] bg-white dark:bg-gray-800">
               <div className="grid gap-4 py-4">
                 <AuthForm
                   type={isLoginMode ? "login" : "register"}
@@ -73,10 +75,12 @@ export const Navbar = () => {
           <Button 
             onClick={signOut}
             variant="outline" 
-            className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2"
+            className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2 font-medium shadow-sm"
+            size="sm"
           >
             <LogOut className="h-4 w-4" />
-            Sign Out
+            <span className="hidden sm:inline">Sign Out</span>
+            <span className="sm:hidden">Logout</span>
           </Button>
         )}
       </div>
