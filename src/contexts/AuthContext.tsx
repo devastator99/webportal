@@ -47,8 +47,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return null;
       }
 
+      if (!data || data.length === 0) {
+        console.error('[Auth Debug] No role data received for user:', userId);
+        return null;
+      }
+
       console.log('[Auth Debug] Role data received:', data);
-      return data?.[0]?.role as UserRole;
+      
+      // Ensure we're processing the role data correctly
+      const roleValue = data[0]?.role;
+      console.log('[Auth Debug] Extracted role value:', roleValue);
+      
+      return roleValue as UserRole;
     } catch (error) {
       console.error('[Auth Debug] Exception in fetchUserRole:', error);
       return null;
@@ -64,7 +74,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session.user);
         const role = await fetchUserRole(session.user.id);
         console.log('[Auth Debug] Role fetched:', role);
-        setUserRole(role);
+        
+        if (role) {
+          setUserRole(role);
+          console.log('[Auth Debug] User role set to:', role);
+        } else {
+          console.warn('[Auth Debug] No role found for user, setting userRole to null');
+          setUserRole(null);
+        }
       } else {
         console.log('[Auth Debug] Auth state change - no user');
         setUser(null);

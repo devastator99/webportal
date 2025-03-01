@@ -16,7 +16,12 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  console.log("Dashboard render:", { user: user?.id, userRole, isLoading });
+  console.log("Dashboard render:", { 
+    user: user?.id, 
+    userEmail: user?.email,
+    userRole, 
+    isLoading 
+  });
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -27,32 +32,43 @@ const Dashboard = () => {
 
   // Show loading state
   if (isLoading) {
+    console.log("Dashboard is loading...");
     return <DashboardSkeleton />;
   }
 
   // After loading, if no user is found, useEffect will handle redirect
   if (!user) {
+    console.log("Dashboard rendering null - no user");
     return null;
   }
 
   // Handle no role case
   if (!userRole) {
+    console.log("Dashboard rendering NoRoleWarning - no role assigned");
     return <NoRoleWarning onSignOut={signOut} />;
   }
 
+  console.log(`Dashboard attempting to render ${userRole} dashboard`);
+  
   // Render appropriate dashboard based on role
   switch (userRole) {
     case "doctor":
+      console.log("Rendering doctor dashboard");
       return <DoctorDashboard />;
     case "patient":
+      console.log("Rendering patient dashboard");
       return <PatientDashboard />;
     case "nutritionist":
+      console.log("Rendering nutritionist dashboard");
       return <NutritionistDashboard />;
     case "administrator":
+      console.log("Rendering admin dashboard");
       return <AdminDashboard />;
     case "reception":
+      console.log("Rendering reception dashboard");
       return <ReceptionDashboard />;
     default:
+      console.log(`Invalid role: ${userRole}, rendering NoRoleWarning`);
       return <NoRoleWarning onSignOut={signOut} />;
   }
 };
