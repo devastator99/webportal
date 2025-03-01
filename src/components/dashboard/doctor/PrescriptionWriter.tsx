@@ -24,22 +24,43 @@ export const PrescriptionWriter = () => {
   const [notes, setNotes] = useState("");
   const [activeTab, setActiveTab] = useState("write");
 
-  // Fetch all patients (not just assigned ones)
+  // Fetch all patients with improved error handling and debugging
   const { data: patients, isLoading } = useQuery({
     queryKey: ["all_patients"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      console.log("Fetching patients");
+      
+      // First get all users with 'patient' role
+      const { data: patientRoles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "patient");
+      
+      if (rolesError) {
+        console.error("Error fetching patient roles:", rolesError);
+        throw rolesError;
+      }
+      
+      console.log("Patient roles found:", patientRoles?.length || 0);
+      
+      if (!patientRoles?.length) {
+        return [];
+      }
+      
+      // Get the patient profiles
+      const patientIds = patientRoles.map(ur => ur.user_id);
+      const { data: patientProfiles, error: profilesError } = await supabase
         .from("profiles")
         .select("id, first_name, last_name")
-        .filter('id', 'in', (
-          await supabase
-            .from("user_roles")
-            .select("user_id")
-            .eq("role", "patient")
-        ).data?.map(ur => ur.user_id) || []);
-
-      if (error) throw error;
-      return data;
+        .in("id", patientIds);
+      
+      if (profilesError) {
+        console.error("Error fetching patient profiles:", profilesError);
+        throw profilesError;
+      }
+      
+      console.log("Patient profiles found:", patientProfiles?.length || 0);
+      return patientProfiles || [];
     },
   });
 
