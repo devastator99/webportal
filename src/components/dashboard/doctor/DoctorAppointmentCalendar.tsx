@@ -12,7 +12,7 @@ interface Appointment {
   id: string;
   scheduled_at: string;
   status: string;
-  patient?: {
+  patient: {
     first_name: string;
     last_name: string;
   };
@@ -31,10 +31,10 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
       console.log("Fetching appointments for date:", formattedDate, "doctor:", doctorId);
       
       try {
-        // Use the RPC function to get all appointments for this doctor
+        // Use the security definer RPC function
         const { data: appointmentsData, error: appointmentsError } = await supabase.rpc(
-          'get_doctor_appointments',
-          { doctor_id: doctorId }
+          'get_doctor_appointments_with_patients',
+          { doctor_id: doctorId, date_filter: formattedDate }
         );
 
         if (appointmentsError) {
@@ -42,76 +42,8 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
           throw appointmentsError;
         }
 
-        console.log("Raw appointments data:", appointmentsData);
-        
-        if (!appointmentsData || appointmentsData.length === 0) {
-          return [];
-        }
-
-        // Filter for selected date
-        const selectedDateStr = format(selectedDate, 'yyyy-MM-dd');
-        const filteredAppointments = appointmentsData.filter(apt => {
-          const aptDate = format(new Date(apt.scheduled_at), 'yyyy-MM-dd');
-          return aptDate === selectedDateStr;
-        });
-        
-        if (filteredAppointments.length === 0) {
-          return [];
-        }
-
-        // Get appointment details including patient_id directly from the appointments table
-        const appointmentIds = filteredAppointments.map(apt => apt.id);
-        const { data: fullAppointments, error: fullAptsError } = await supabase
-          .from("appointments")
-          .select("id, scheduled_at, status, patient_id")
-          .in("id", appointmentIds);
-          
-        if (fullAptsError) {
-          console.error("Error fetching full appointments:", fullAptsError);
-          throw fullAptsError;
-        }
-        
-        if (!fullAppointments || fullAppointments.length === 0) {
-          return filteredAppointments;
-        }
-        
-        // Fetch patient profiles directly
-        const patientIds = fullAppointments.map(apt => apt.patient_id);
-        const { data: patientProfiles, error: profilesError } = await supabase
-          .from("profiles")
-          .select("id, first_name, last_name")
-          .in("id", patientIds);
-
-        if (profilesError) {
-          console.error("Error fetching patient profiles:", profilesError);
-          throw profilesError;
-        }
-
-        // Create a map of patient profiles for faster lookup
-        const profileMap = new Map(
-          patientProfiles?.map(profile => [profile.id, profile]) || []
-        );
-
-        // Map appointments to include patient data
-        const appointmentsWithPatients = fullAppointments.map(appointment => {
-          const patientProfile = profileMap.get(appointment.patient_id);
-          
-          return {
-            id: appointment.id,
-            scheduled_at: appointment.scheduled_at,
-            status: appointment.status,
-            patient: patientProfile ? {
-              first_name: patientProfile.first_name || "Unknown",
-              last_name: patientProfile.last_name || "Unknown"
-            } : {
-              first_name: "Unknown",
-              last_name: "Patient"
-            }
-          };
-        });
-
-        console.log("Appointments with patient data:", appointmentsWithPatients);
-        return appointmentsWithPatients;
+        console.log("Appointments with patients data:", appointmentsData);
+        return appointmentsData || [];
       } catch (error) {
         console.error("Error in calendar appointment fetch:", error);
         toast({

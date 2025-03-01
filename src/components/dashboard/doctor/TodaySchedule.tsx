@@ -31,10 +31,11 @@ export const TodaySchedule = () => {
       console.log("Fetching today's appointments for date:", today, "doctor:", user.id);
       
       try {
-        // Use the get_doctor_appointments RPC function to fetch all appointments for this doctor
+        // Use the get_doctor_appointments_with_patients RPC function to fetch appointments with patient info
+        // This avoids the recursion issues by using a security definer function
         const { data: appointmentsData, error: appointmentsError } = await supabase.rpc(
-          'get_doctor_appointments',
-          { doctor_id: user.id }
+          'get_doctor_appointments_with_patients',
+          { doctor_id: user.id, date_filter: today }
         );
 
         if (appointmentsError) {
@@ -42,72 +43,13 @@ export const TodaySchedule = () => {
           throw appointmentsError;
         }
 
-        console.log("Raw appointments data:", appointmentsData);
-
+        console.log("Appointments with patients data:", appointmentsData);
+        
         if (!appointmentsData || appointmentsData.length === 0) {
           return [];
         }
 
-        // Filter for today's appointments only
-        const todayStart = new Date(today);
-        const todayEnd = new Date(today);
-        todayEnd.setHours(23, 59, 59, 999);
-
-        const todayAppointments = appointmentsData.filter(apt => {
-          const aptDate = new Date(apt.scheduled_at);
-          return aptDate >= todayStart && aptDate <= todayEnd;
-        });
-
-        if (todayAppointments.length === 0) {
-          return [];
-        }
-
-        // Instead of doing complex joins, we'll fetch patient information separately
-        // Get the unique patient IDs from today's appointments
-        const { data: fullAppointments, error: fullAptsError } = await supabase
-          .from("appointments")
-          .select("id, patient_id, scheduled_at, status")
-          .in("id", todayAppointments.map(apt => apt.id));
-          
-        if (fullAptsError) {
-          console.error("Error fetching full appointments:", fullAptsError);
-          throw fullAptsError;
-        }
-        
-        if (!fullAppointments || fullAppointments.length === 0) {
-          return [];
-        }
-        
-        // Now get patient information directly
-        const patientIds = fullAppointments.map(apt => apt.patient_id);
-        const { data: patientProfiles, error: profilesError } = await supabase
-          .from("profiles")
-          .select("id, first_name, last_name")
-          .in("id", patientIds);
-
-        if (profilesError) {
-          console.error("Error fetching patient profiles:", profilesError);
-          throw profilesError;
-        }
-
-        // Create a map of patient profiles for faster lookup
-        const profileMap = new Map(
-          patientProfiles?.map(profile => [profile.id, profile]) || []
-        );
-
-        // Combine appointments with patient data
-        const appointmentsWithPatients = fullAppointments.map(appointment => ({
-          id: appointment.id,
-          scheduled_at: appointment.scheduled_at,
-          status: appointment.status,
-          patient: {
-            first_name: profileMap.get(appointment.patient_id)?.first_name || "Unknown",
-            last_name: profileMap.get(appointment.patient_id)?.last_name || "Unknown"
-          }
-        }));
-
-        console.log("Processed appointments with patients:", appointmentsWithPatients);
-        return appointmentsWithPatients;
+        return appointmentsData;
       } catch (error) {
         console.error("Error in appointment fetch:", error);
         toast({
