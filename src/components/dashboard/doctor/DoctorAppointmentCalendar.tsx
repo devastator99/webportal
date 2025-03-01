@@ -32,7 +32,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
       console.log("Fetching appointments for date:", formattedDate, "doctor:", doctorId);
       
       try {
-        // Fetch appointments for selected date
+        // Step 1: Fetch appointments for selected date
         const { data: appointmentsData, error: appointmentsError } = await supabase
           .from('appointments')
           .select('id, scheduled_at, status, patient_id')
@@ -50,18 +50,38 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
           return [];
         }
 
-        // Then fetch patient details for each appointment
-        const appointmentsWithPatients: AppointmentWithPatient[] = await Promise.all(
+        // Step 2: Then fetch patient details for each appointment
+        const appointmentsWithPatients = await Promise.all(
           appointmentsData.map(async (appointment) => {
-            const { data: patientData, error: patientError } = await supabase
-              .from('profiles')
-              .select('first_name, last_name')
-              .eq('id', appointment.patient_id)
-              .single();
+            try {
+              const { data: patientData, error: patientError } = await supabase
+                .from('profiles')
+                .select('first_name, last_name')
+                .eq('id', appointment.patient_id)
+                .single();
 
-            if (patientError) {
-              console.error(`Error fetching patient for appointment ${appointment.id}:`, patientError);
-              // Return appointment with default patient info if patient fetch fails
+              if (patientError) {
+                console.error(`Error fetching patient for appointment ${appointment.id}:`, patientError);
+                // Return appointment with default patient info if patient fetch fails
+                return {
+                  id: appointment.id,
+                  scheduled_at: appointment.scheduled_at,
+                  status: appointment.status,
+                  patient: { first_name: "Unknown", last_name: "Patient" }
+                };
+              }
+
+              return {
+                id: appointment.id,
+                scheduled_at: appointment.scheduled_at,
+                status: appointment.status,
+                patient: {
+                  first_name: patientData.first_name || "Unknown",
+                  last_name: patientData.last_name || "Patient"
+                }
+              };
+            } catch (err) {
+              console.error(`Error processing patient data for appointment ${appointment.id}:`, err);
               return {
                 id: appointment.id,
                 scheduled_at: appointment.scheduled_at,
@@ -69,16 +89,6 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
                 patient: { first_name: "Unknown", last_name: "Patient" }
               };
             }
-
-            return {
-              id: appointment.id,
-              scheduled_at: appointment.scheduled_at,
-              status: appointment.status,
-              patient: {
-                first_name: patientData.first_name || "Unknown",
-                last_name: patientData.last_name || "Patient"
-              }
-            };
           })
         );
 
