@@ -44,7 +44,8 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
         }
 
         console.log("Appointments with patients data:", data);
-        return data || [];
+        // Explicitly cast and handle null case
+        return (data || []) as AppointmentWithPatient[];
       } catch (error) {
         console.error("Error in calendar appointment fetch:", error);
         toast({
@@ -52,7 +53,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
           description: "There was a problem loading your appointments.",
           variant: "destructive",
         });
-        return [];
+        return [] as AppointmentWithPatient[];
       }
     },
     enabled: !!doctorId,

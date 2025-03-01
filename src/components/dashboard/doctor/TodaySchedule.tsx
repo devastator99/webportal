@@ -26,7 +26,7 @@ export const TodaySchedule = () => {
   const { data: appointments = [], isLoading, error } = useQuery<AppointmentWithPatient[], Error>({
     queryKey: ["today_appointments", user?.id],
     queryFn: async () => {
-      if (!user?.id) throw new Error("No user ID");
+      if (!user?.id) return [] as AppointmentWithPatient[];
 
       // Get today's date in the format YYYY-MM-DD
       const today = new Date().toISOString().split('T')[0];
@@ -46,8 +46,8 @@ export const TodaySchedule = () => {
 
         console.log("Appointments with patients data:", data);
         
-        // Explicitly ensure we're returning an array
-        return data || [];
+        // Explicitly cast to the correct type and handle null case
+        return (data || []) as AppointmentWithPatient[];
       } catch (error) {
         console.error("Error in appointment fetch:", error);
         toast({
@@ -55,7 +55,7 @@ export const TodaySchedule = () => {
           description: "There was a problem loading your appointments.",
           variant: "destructive",
         });
-        return [];
+        return [] as AppointmentWithPatient[];
       }
     },
     enabled: !!user?.id,
