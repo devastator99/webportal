@@ -26,10 +26,8 @@ type Appointment = {
   id: string;
   scheduled_at: string;
   status: string;
-  doctor: {
-    first_name: string;
-    last_name: string;
-  };
+  doctor_first_name: string;
+  doctor_last_name: string;
 };
 
 export const PatientStats = () => {
@@ -43,19 +41,7 @@ export const PatientStats = () => {
       if (!user?.id) return [];
       
       const { data, error } = await supabase
-        .from('appointments')
-        .select(`
-          id,
-          scheduled_at,
-          status,
-          doctor:doctor_id(
-            first_name:profiles(first_name),
-            last_name:profiles(last_name)
-          )
-        `)
-        .eq('patient_id', user.id)
-        .eq('status', 'scheduled')
-        .order('scheduled_at', { ascending: true });
+        .rpc('get_patient_appointments', { p_patient_id: user.id });
 
       if (error) {
         console.error('Error fetching appointments:', error);
@@ -67,16 +53,7 @@ export const PatientStats = () => {
         return [];
       }
 
-      // Format the data to match our Appointment type
-      return data.map(apt => ({
-        id: apt.id,
-        scheduled_at: apt.scheduled_at,
-        status: apt.status,
-        doctor: {
-          first_name: apt.doctor?.first_name?.first_name || '',
-          last_name: apt.doctor?.last_name?.last_name || ''
-        }
-      }));
+      return data || [];
     },
     enabled: !!user?.id
   });
@@ -87,10 +64,7 @@ export const PatientStats = () => {
       if (!user?.id) return [];
 
       const { data, error } = await supabase
-        .from('patient_medical_reports')
-        .select('*')
-        .eq('patient_id', user.id)
-        .order('uploaded_at', { ascending: false });
+        .rpc('get_patient_medical_reports', { p_patient_id: user.id });
 
       if (error) {
         console.error('Error fetching reports:', error);
@@ -111,13 +85,13 @@ export const PatientStats = () => {
     try {
       console.log('Attempting to view report:', report.id);
       
-      // Using the function call directly without .rest accessor
+      // Using the Edge Function to get the report URL
       const { data, error } = await supabase.functions.invoke<string>('get-medical-report-url', {
         body: { reportId: report.id }
       });
 
       if (error) {
-        console.error('Error getting signed URL:', error);
+        console.error('Error getting report URL:', error);
         toast({
           title: "Error",
           description: "Unable to access the report. Please try again.",

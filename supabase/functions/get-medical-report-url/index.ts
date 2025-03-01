@@ -1,125 +1,129 @@
 
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.7.1";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
+// Define CORS headers
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
 
-serve(async (req) => {
-  // Handle CORS preflight request
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+// Handle CORS preflight requests
+Deno.serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    const { reportId } = await req.json();
-    
+    // Get the report ID from the request
+    const { reportId } = await req.json()
     if (!reportId) {
       return new Response(
-        JSON.stringify({ error: "Report ID is required" }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
+        JSON.stringify({ error: 'Report ID is required' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
     }
 
-    // Create a Supabase client with the service role key
+    console.log('Processing request for report ID:', reportId)
+
+    // Initialize Supabase client with auth from the request
     const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-      { auth: { persistSession: false } }
-    );
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: {
+            Authorization: req.headers.get('Authorization') ?? '',
+          },
+        },
+      }
+    )
+
+    // Get the authenticated user
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseClient.auth.getUser()
+
+    if (userError || !user) {
+      console.error('Authentication error:', userError)
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized - User not authenticated' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      )
+    }
+
+    console.log('Authenticated as user:', user.id)
 
     // Get the report details
-    const { data: report, error: reportError } = await supabaseClient
-      .from("patient_medical_reports")
-      .select("file_path, patient_id")
-      .eq("id", reportId)
-      .single();
+    const { data: reportData, error: reportError } = await supabaseClient
+      .from('patient_medical_reports')
+      .select('file_path, patient_id')
+      .eq('id', reportId)
+      .single()
 
-    if (reportError || !report) {
+    if (reportError || !reportData) {
+      console.error('Error fetching report:', reportError)
       return new Response(
-        JSON.stringify({ error: "Report not found" }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
+        JSON.stringify({ error: 'Report not found' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
+      )
     }
 
-    // Get the JWT token from the request headers
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: "No authorization header" }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
-    }
+    console.log('Report data found:', reportData)
 
-    // Extract the JWT token
-    const token = authHeader.replace("Bearer ", "");
-    
-    // Verify the token and get the user
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
-    
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: "Invalid token" }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
-    }
+    // Check authorization - is this the patient's record or an authorized role?
+    const { data: userRoles } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single()
 
-    // Check if the user has access to this report
-    const isPatient = user.id === report.patient_id;
-    
-    // If not the patient, check if they are a doctor or admin
-    const { data: roles, error: rolesError } = await supabaseClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .single();
-    
-    const isAuthorized = isPatient || (roles && ["doctor", "administrator"].includes(roles.role));
-    
+    const isAuthorized = 
+      user.id === reportData.patient_id || 
+      (userRoles && ['administrator', 'doctor'].includes(userRoles.role))
+
     if (!isAuthorized) {
+      console.error('User not authorized to access this report')
       return new Response(
-        JSON.stringify({ error: "Unauthorized access" }),
-        { 
-          status: 403, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" }
-        }
-      );
+        JSON.stringify({ error: 'Not authorized to access this report' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
+      )
     }
 
-    // Generate a signed URL that expires in 1 hour (3600 seconds)
-    const { data: signedUrl } = await supabaseClient
-      .storage
-      .from("patient_medical_reports")
-      .createSignedUrl(report.file_path, 3600);
+    console.log('User is authorized to access the report')
 
+    // Using service role to get a signed URL
+    const serviceRoleClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    // Generate signed URL
+    const { data: signedUrl, error: signedUrlError } = await serviceRoleClient
+      .storage
+      .from('patient_medical_reports')
+      .createSignedUrl(reportData.file_path, 60 * 10) // 10 minutes expiry
+
+    if (signedUrlError) {
+      console.error('Error generating signed URL:', signedUrlError)
+      return new Response(
+        JSON.stringify({ error: 'Could not generate access URL' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      )
+    }
+
+    console.log('Signed URL generated successfully')
+
+    // Return the signed URL
     return new Response(
-      JSON.stringify(signedUrl?.signedUrl || ""),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
-    );
+      JSON.stringify(signedUrl),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+    )
   } catch (error) {
+    console.error('Unexpected error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      }
-    );
+      JSON.stringify({ error: 'Internal server error' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+    )
   }
-});
+})
