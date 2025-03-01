@@ -22,7 +22,7 @@ export const TodaySchedule = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const { data: appointments = [], isLoading, error } = useQuery({
+  const { data: appointments = [], isLoading, error } = useQuery<AppointmentWithPatient[], Error>({
     queryKey: ["today_appointments", user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error("No user ID");
@@ -45,11 +45,7 @@ export const TodaySchedule = () => {
 
         console.log("Appointments with patients data:", data);
         
-        if (!data || data.length === 0) {
-          return [];
-        }
-
-        return data;
+        return data || [];
       } catch (error) {
         console.error("Error in appointment fetch:", error);
         toast({

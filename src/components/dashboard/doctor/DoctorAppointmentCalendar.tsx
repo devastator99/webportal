@@ -23,7 +23,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { toast } = useToast();
 
-  const { data: appointments = [], isLoading, error } = useQuery({
+  const { data: appointments = [], isLoading, error } = useQuery<AppointmentWithPatient[], Error>({
     queryKey: ["doctor_appointments", doctorId, format(selectedDate, "yyyy-MM-dd")],
     queryFn: async () => {
       if (!doctorId) return [] as AppointmentWithPatient[];
