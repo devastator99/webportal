@@ -21,7 +21,7 @@ export const TodaySchedule = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const { data: appointments = [], isLoading } = useQuery({
+  const { data: appointments = [], isLoading, error } = useQuery({
     queryKey: ["today_appointments", user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error("No user ID");
@@ -31,14 +31,11 @@ export const TodaySchedule = () => {
       console.log("Fetching today's appointments for date:", today, "doctor:", user.id);
       
       try {
-        // First, get all appointments for today
-        const { data: appointmentsData, error: appointmentsError } = await supabase
-          .from("appointments")
-          .select("id, scheduled_at, status, patient_id")
-          .eq("doctor_id", user.id)
-          .gte("scheduled_at", `${today}T00:00:00`)
-          .lt("scheduled_at", `${today}T23:59:59`)
-          .order("scheduled_at");
+        // Use the get_doctor_appointments RPC function which works properly
+        const { data: appointmentsData, error: appointmentsError } = await supabase.rpc(
+          'get_doctor_appointments',
+          { doctor_id: user.id }
+        );
 
         if (appointmentsError) {
           console.error("Error fetching appointments:", appointmentsError);
@@ -51,8 +48,40 @@ export const TodaySchedule = () => {
           return [];
         }
 
+        // Filter for today's appointments only
+        const todayStart = new Date(today);
+        const todayEnd = new Date(today);
+        todayEnd.setHours(23, 59, 59, 999);
+
+        const todayAppointments = appointmentsData.filter(apt => {
+          const aptDate = new Date(apt.scheduled_at);
+          return aptDate >= todayStart && aptDate <= todayEnd;
+        });
+
         // Get patient profiles in a separate query
-        const patientIds = appointmentsData.map(apt => apt.patient_id);
+        const appointmentIds = todayAppointments.map(apt => apt.id);
+        
+        if (appointmentIds.length === 0) {
+          return [];
+        }
+        
+        // Get the full appointment data including patient info
+        const { data: fullAppointments, error: fullAptsError } = await supabase
+          .from("appointments")
+          .select("id, scheduled_at, status, patient_id")
+          .in("id", appointmentIds);
+          
+        if (fullAptsError) {
+          console.error("Error fetching full appointments:", fullAptsError);
+          throw fullAptsError;
+        }
+        
+        if (!fullAppointments || fullAppointments.length === 0) {
+          return [];
+        }
+        
+        // Get patient profiles
+        const patientIds = fullAppointments.map(apt => apt.patient_id);
         const { data: profiles, error: profilesError } = await supabase
           .from("profiles")
           .select("id, first_name, last_name")
@@ -69,7 +98,7 @@ export const TodaySchedule = () => {
         );
 
         // Combine appointments with patient data
-        const appointmentsWithPatients = appointmentsData.map(appointment => ({
+        const appointmentsWithPatients = fullAppointments.map(appointment => ({
           id: appointment.id,
           scheduled_at: appointment.scheduled_at,
           status: appointment.status,
@@ -79,6 +108,7 @@ export const TodaySchedule = () => {
           }
         }));
 
+        console.log("Processed appointments with patients:", appointmentsWithPatients);
         return appointmentsWithPatients;
       } catch (error) {
         console.error("Error in appointment fetch:", error);
@@ -92,6 +122,10 @@ export const TodaySchedule = () => {
     },
     enabled: !!user?.id,
   });
+
+  if (error) {
+    console.error("Query error in TodaySchedule:", error);
+  }
 
   return (
     <Card>
