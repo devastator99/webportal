@@ -12,13 +12,14 @@ import { PaymentStatus } from "./PaymentStatus";
 import { Loader2 } from "lucide-react";
 
 interface ScheduleAppointmentProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
+  standalone?: boolean;
 }
 
 type Step = "selection" | "payment";
 
-export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+export const ScheduleAppointment = ({ children, standalone = false }: ScheduleAppointmentProps) => {
+  const [isOpen, setIsOpen] = useState(standalone);
   const [selectedDoctor, setSelectedDoctor] = useState<string | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
@@ -164,6 +165,87 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
     }
   };
 
+  // For standalone mode (route-based), render the appointment form directly
+  if (standalone) {
+    return (
+      <div className="container mx-auto max-w-md p-4 mt-20">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+          <h2 className="text-xl font-semibold mb-2">Schedule Appointment</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            Choose your preferred doctor, date, and time.
+          </p>
+          
+          {step === "selection" ? (
+            <div className="grid gap-3 py-3">
+              <div className="grid grid-cols-1 gap-2">
+                <label htmlFor="doctor" className="font-medium text-sm">Select Doctor</label>
+                <select
+                  id="doctor"
+                  className="w-full px-3 py-1.5 rounded-md border text-sm"
+                  onChange={(e) => setSelectedDoctor(e.target.value)}
+                  value={selectedDoctor || ""}
+                >
+                  <option value="">Select a doctor</option>
+                  {doctors?.map((doctor) => (
+                    <option key={doctor.id} value={doctor.id}>
+                      Dr. {doctor.first_name} {doctor.last_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                <label htmlFor="date" className="font-medium text-sm">Select Date</label>
+                <Calendar
+                  mode="single"
+                  selected={selectedDate}
+                  onSelect={setSelectedDate}
+                  className="rounded-md border mx-auto scale-90 transform origin-top"
+                  disabled={(date) => date < new Date()}
+                />
+              </div>
+              <div className="grid grid-cols-1 gap-2">
+                <label htmlFor="time" className="font-medium text-sm">Select Time</label>
+                <select
+                  id="time"
+                  className="w-full px-3 py-1.5 rounded-md border text-sm"
+                  onChange={(e) => setSelectedTime(e.target.value)}
+                  value={selectedTime || ""}
+                >
+                  <option value="">Select a time</option>
+                  {timeSlots.map((time) => (
+                    <option key={time} value={time}>
+                      {time}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="mt-3">
+                <Button 
+                  onClick={handleConfirmAppointment} 
+                  className="w-full"
+                  size="sm"
+                  disabled={!selectedDoctor || !selectedDate || !selectedTime || isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    'Confirm Appointment'
+                  )}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <PaymentStatus paymentStep={paymentStep} />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // For dialog mode (embedded in other components)
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>

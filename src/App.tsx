@@ -48,7 +48,7 @@ const AppRoutes = () => {
           path="/appointments/schedule"
           element={
             <ProtectedRoute>
-              <ScheduleAppointment />
+              <ScheduleAppointment standalone={true} />
             </ProtectedRoute>
           }
         />
