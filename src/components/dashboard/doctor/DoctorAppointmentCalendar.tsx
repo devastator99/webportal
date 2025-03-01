@@ -32,36 +32,79 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
       console.log("Fetching appointments for date:", formattedDate, "doctor:", doctorId);
       
       try {
-        // Simplify the query to avoid RLS recursion issues
+        // Use RPC call to avoid recursion issues
         const { data: appointmentsData, error: appointmentsError } = await supabase
-          .from('appointments')
-          .select('id, scheduled_at, status, patient_id')
-          .eq('doctor_id', doctorId)
-          .gte('scheduled_at', `${formattedDate}T00:00:00`)
-          .lte('scheduled_at', `${formattedDate}T23:59:59`);
+          .rpc('get_doctor_appointments_with_patients', { 
+            doctor_id: doctorId,
+            date_filter: formattedDate
+          });
 
         if (appointmentsError) {
-          console.error("Error fetching appointments:", appointmentsError);
+          console.error("Error fetching appointments via RPC:", appointmentsError);
           throw appointmentsError;
         }
 
-        if (!appointmentsData || appointmentsData.length === 0) {
-          return [];
-        }
+        return appointmentsData || [];
+      } catch (error) {
+        console.error("Error in calendar appointment fetch:", error);
+        
+        // Fallback approach if RPC fails
+        try {
+          console.log("Attempting fallback approach for calendar appointments");
+          // Simplify the query to avoid RLS recursion issues
+          const { data: appointmentsData, error: appointmentsError } = await supabase
+            .from('appointments')
+            .select('id, scheduled_at, status, patient_id')
+            .eq('doctor_id', doctorId)
+            .gte('scheduled_at', `${formattedDate}T00:00:00`)
+            .lte('scheduled_at', `${formattedDate}T23:59:59`);
 
-        // Separately fetch patient details to avoid join issues
-        const appointmentsWithPatients = await Promise.all(
-          appointmentsData.map(async (appointment) => {
-            try {
-              const { data: patientData, error: patientError } = await supabase
-                .from('profiles')
-                .select('first_name, last_name')
-                .eq('id', appointment.patient_id)
-                .single();
+          if (appointmentsError) {
+            console.error("Error in fallback appointments fetch:", appointmentsError);
+            toast({
+              title: "Error loading appointments",
+              description: "There was a problem loading your appointments.",
+              variant: "destructive",
+            });
+            return [];
+          }
 
-              if (patientError) {
-                console.error(`Error fetching patient for appointment ${appointment.id}:`, patientError);
-                // Return appointment with default patient info if patient fetch fails
+          if (!appointmentsData || appointmentsData.length === 0) {
+            return [];
+          }
+
+          // Separately fetch patient details to avoid join issues
+          const appointmentsWithPatients = await Promise.all(
+            appointmentsData.map(async (appointment) => {
+              try {
+                const { data: patientData, error: patientError } = await supabase
+                  .from('profiles')
+                  .select('first_name, last_name')
+                  .eq('id', appointment.patient_id)
+                  .single();
+
+                if (patientError) {
+                  console.error(`Error fetching patient for appointment ${appointment.id}:`, patientError);
+                  // Return appointment with default patient info if patient fetch fails
+                  return {
+                    id: appointment.id,
+                    scheduled_at: appointment.scheduled_at,
+                    status: appointment.status,
+                    patient: { first_name: "Unknown", last_name: "Patient" }
+                  };
+                }
+
+                return {
+                  id: appointment.id,
+                  scheduled_at: appointment.scheduled_at,
+                  status: appointment.status,
+                  patient: {
+                    first_name: patientData.first_name || "Unknown",
+                    last_name: patientData.last_name || "Patient"
+                  }
+                };
+              } catch (err) {
+                console.error(`Error processing patient data for appointment ${appointment.id}:`, err);
                 return {
                   id: appointment.id,
                   scheduled_at: appointment.scheduled_at,
@@ -69,37 +112,19 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
                   patient: { first_name: "Unknown", last_name: "Patient" }
                 };
               }
+            })
+          );
 
-              return {
-                id: appointment.id,
-                scheduled_at: appointment.scheduled_at,
-                status: appointment.status,
-                patient: {
-                  first_name: patientData.first_name || "Unknown",
-                  last_name: patientData.last_name || "Patient"
-                }
-              };
-            } catch (err) {
-              console.error(`Error processing patient data for appointment ${appointment.id}:`, err);
-              return {
-                id: appointment.id,
-                scheduled_at: appointment.scheduled_at,
-                status: appointment.status,
-                patient: { first_name: "Unknown", last_name: "Patient" }
-              };
-            }
-          })
-        );
-
-        return appointmentsWithPatients;
-      } catch (error) {
-        console.error("Error in calendar appointment fetch:", error);
-        toast({
-          title: "Error loading appointments",
-          description: "There was a problem loading your appointments.",
-          variant: "destructive",
-        });
-        return [];
+          return appointmentsWithPatients;
+        } catch (fallbackError) {
+          console.error("Fallback approach also failed:", fallbackError);
+          toast({
+            title: "Error loading appointments",
+            description: "There was a problem loading your appointments.",
+            variant: "destructive",
+          });
+          return [];
+        }
       }
     },
     enabled: !!doctorId,
