@@ -126,7 +126,7 @@ export const StatsCards = () => {
           <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{isPatientsError ? "Error" : patientsCount}</div>
+          <div className="text-2xl font-bold">{isPatientsError ? "0" : patientsCount}</div>
           <p className="text-xs text-muted-foreground">Active patients under care</p>
         </CardContent>
       </Card>
@@ -137,7 +137,7 @@ export const StatsCards = () => {
           <Calendar className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{isAppointmentsError ? "Error" : todayAppointments.length}</div>
+          <div className="text-2xl font-bold">{isAppointmentsError ? "0" : todayAppointments.length}</div>
           <p className="text-xs text-muted-foreground">Scheduled for today</p>
         </CardContent>
       </Card>
@@ -148,7 +148,7 @@ export const StatsCards = () => {
           <FileText className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{isMedicalRecordsError ? "Error" : medicalRecordsCount}</div>
+          <div className="text-2xl font-bold">{isMedicalRecordsError ? "0" : medicalRecordsCount}</div>
           <p className="text-xs text-muted-foreground">Total records created</p>
         </CardContent>
       </Card>
@@ -159,7 +159,7 @@ export const StatsCards = () => {
           <Clock className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{isAppointmentsError ? "Error" : upcomingAppointments.length}</div>
+          <div className="text-2xl font-bold">{isAppointmentsError ? "0" : upcomingAppointments.length}</div>
           <p className="text-xs text-muted-foreground">Pending appointments</p>
         </CardContent>
       </Card>
