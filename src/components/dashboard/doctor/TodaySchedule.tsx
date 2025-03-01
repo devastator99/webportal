@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -34,8 +33,7 @@ export const TodaySchedule = () => {
       
       try {
         // Use the security definer RPC function to safely fetch appointments with patient data
-        const { data, error: rpcError } = await supabase.rpc<AppointmentWithPatient[]>(
-          'get_doctor_appointments_with_patients',
+        const { data, error: rpcError } = await supabase.rpc('get_doctor_appointments_with_patients', 
           { doctor_id: user.id, date_filter: today }
         );
 

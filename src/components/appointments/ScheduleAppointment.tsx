@@ -158,7 +158,7 @@ export const ScheduleAppointment = ({
 
     // Fix TypeScript comparison issues by using strict equality with string literals
     // Validate doctor/patient selection based on role
-    if (effectiveCallerRole === "patient" && !selectedDoctor) {
+    if ((effectiveCallerRole === "patient" || effectiveCallerRole === "reception") && !selectedDoctor) {
       toast({
         variant: "destructive",
         title: "Missing information",
@@ -167,7 +167,7 @@ export const ScheduleAppointment = ({
       return;
     }
 
-    if (effectiveCallerRole === "doctor" && !selectedPatient) {
+    if ((effectiveCallerRole === "doctor" || effectiveCallerRole === "reception") && !selectedPatient) {
       toast({
         variant: "destructive",
         title: "Missing information",
