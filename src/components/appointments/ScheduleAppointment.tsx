@@ -33,7 +33,7 @@ import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -75,7 +75,7 @@ export function ScheduleAppointment({ children, callerRole }: ScheduleAppointmen
   });
 
   // Pre-fill the form with current user's ID based on role
-  React.useEffect(() => {
+  useEffect(() => {
     if (user?.id) {
       if (callerRole === "doctor") {
         form.setValue("doctorId", user.id);
