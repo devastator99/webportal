@@ -10,6 +10,7 @@ import { LandingPage } from "@/pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import { useAuth } from "./contexts/AuthContext";
+import { ScheduleAppointment } from "./components/appointments/ScheduleAppointment";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
@@ -40,6 +41,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <Admin />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/appointments/schedule"
+          element={
+            <ProtectedRoute>
+              <ScheduleAppointment />
             </ProtectedRoute>
           }
         />
@@ -75,4 +84,3 @@ const App = () => {
 };
 
 export default App;
-

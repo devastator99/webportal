@@ -58,6 +58,7 @@ export const Navbar = () => {
 
   const handleScheduleAppointment = () => {
     console.log("Navigating to appointments/schedule with role:", userRole);
+    // Navigate to the schedule appointment page
     navigate("/appointments/schedule");
   };
 
