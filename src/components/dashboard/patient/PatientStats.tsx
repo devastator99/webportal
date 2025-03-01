@@ -40,9 +40,9 @@ export const PatientStats = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       
-      // Using the rest.rpc method to bypass TypeScript constraints
+      // Using the rpc method to call the stored procedure
       const { data, error } = await supabase
-        .rest.rpc('get_patient_appointments', { p_patient_id: user.id });
+        .rpc('get_patient_appointments', { p_patient_id: user.id });
 
       if (error) {
         console.error('Error fetching appointments:', error);
@@ -64,9 +64,9 @@ export const PatientStats = () => {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // Using the rest.rpc method to bypass TypeScript constraints
+      // Using the rpc method to call the stored procedure
       const { data, error } = await supabase
-        .rest.rpc('get_patient_medical_reports', { p_patient_id: user.id });
+        .rpc('get_patient_medical_reports', { p_patient_id: user.id });
 
       if (error) {
         console.error('Error fetching reports:', error);
@@ -89,7 +89,7 @@ export const PatientStats = () => {
       
       // First call our RPC function to check access and get the file path
       const { data: filePath, error: pathError } = await supabase
-        .rest.rpc('get_medical_report_url', { p_report_id: report.id });
+        .rpc('get_medical_report_url', { p_report_id: report.id });
         
       if (pathError || !filePath) {
         console.error('Error getting report path:', pathError);
