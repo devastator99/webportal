@@ -10,13 +10,19 @@ type DashboardHeaderProps = {
   actionButton?: React.ReactNode;
 };
 
+// Define a proper interface for the profile data
+interface ProfileData {
+  first_name?: string;
+  last_name?: string;
+}
+
 export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
   const isMobile = useIsMobile();
   const { user, userRole } = useAuth();
   const { toast } = useToast();
 
   // Fetch profile data with improved error handling
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading } = useQuery<ProfileData | null>({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
       if (!user?.id) {
@@ -79,13 +85,12 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
       return "Welcome";
     }
     
-    if (!profile || (!profile.first_name)) {
+    if (!profile || !profile.first_name) {
       return user?.email ? `Welcome, ${user.email.split('@')[0]}` : "Welcome";
     }
     
     const prefix = userRole === 'doctor' ? 'Dr. ' : '';
     const name = profile.first_name || '';
-    // Check if last_name exists before using it
     const lastName = profile.last_name ? ` ${profile.last_name}` : '';
     
     return `Welcome, ${prefix}${name}${lastName}`;
