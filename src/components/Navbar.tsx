@@ -69,7 +69,7 @@ export const Navbar = () => {
             </DialogContent>
           </Dialog>
         )}
-        {user && !isDashboardPage && (
+        {user && (
           <Button 
             onClick={signOut}
             variant="outline" 
