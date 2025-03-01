@@ -1,6 +1,5 @@
 
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +12,7 @@ type DashboardHeaderProps = {
 
 export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
   const isMobile = useIsMobile();
-  const { user, userRole, signOut } = useAuth();
+  const { user, userRole } = useAuth();
   const { toast } = useToast();
 
   // Fetch profile data with improved error handling and debugging
@@ -84,16 +83,8 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
       </h1>
       <div className="flex gap-2 sm:gap-4 w-full sm:w-auto">
         {actionButton}
-        <Button 
-          variant="outline" 
-          onClick={signOut}
-          className="gap-2 flex-1 sm:flex-initial"
-          size={isMobile ? "lg" : "default"}
-        >
-          <LogOut className="h-4 w-4" />
-          Sign Out
-        </Button>
       </div>
     </div>
   );
 };
+
