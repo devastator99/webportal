@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Save, Plus } from "lucide-react";
+import { FileText, Save } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -20,21 +20,19 @@ export const PrescriptionWriter = () => {
   const [prescription, setPrescription] = useState("");
   const [notes, setNotes] = useState("");
 
-  // Fetch assigned patients
-  const { data: patients } = useQuery({
-    queryKey: ["assigned_patients", user?.id],
+  // Fetch all patients (not just assigned ones)
+  const { data: patients, isLoading } = useQuery({
+    queryKey: ["all_patients"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("patient_assignments")
-        .select(`
-          patient_id,
-          patient:profiles!patient_assignments_patient_profile_fkey(
-            id,
-            first_name,
-            last_name
-          )
-        `)
-        .eq("doctor_id", user?.id);
+        .from("profiles")
+        .select("id, first_name, last_name")
+        .filter('id', 'in', (
+          await supabase
+            .from("user_roles")
+            .select("user_id")
+            .eq("role", "patient")
+        ).data?.map(ur => ur.user_id) || []);
 
       if (error) throw error;
       return data;
@@ -106,12 +104,18 @@ export const PrescriptionWriter = () => {
               <SelectTrigger>
                 <SelectValue placeholder="Select patient" />
               </SelectTrigger>
-              <SelectContent>
-                {patients?.map((p) => (
-                  <SelectItem key={p.patient.id} value={p.patient.id}>
-                    {p.patient.first_name} {p.patient.last_name}
-                  </SelectItem>
-                ))}
+              <SelectContent className="bg-white">
+                {isLoading ? (
+                  <SelectItem value="loading" disabled>Loading patients...</SelectItem>
+                ) : patients?.length ? (
+                  patients.map((patient) => (
+                    <SelectItem key={patient.id} value={patient.id}>
+                      {patient.first_name} {patient.last_name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="none" disabled>No patients found</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </div>
