@@ -2,14 +2,13 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { LogOut, LogIn, Calendar } from "lucide-react";
+import { LogOut, LogIn } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { ScheduleAppointment } from "./appointments/ScheduleAppointment";
 
 export const Navbar = () => {
   const { user, isLoading, signOut, userRole } = useAuth();
@@ -57,20 +56,6 @@ export const Navbar = () => {
     }
   };
 
-  const handleScheduleAppointment = () => {
-    console.log("Navigating to appointments/schedule with role:", userRole);
-    // Make sure we have a user before navigating
-    if (user) {
-      navigate("/appointments/schedule");
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Authentication required",
-        description: "Please sign in to schedule an appointment.",
-      });
-    }
-  };
-
   if (isLoading && !isSigningOut) {
     return null;
   }
@@ -86,17 +71,6 @@ export const Navbar = () => {
         </div>
         
         <div className="flex items-center gap-3">
-          {user && (
-            <Button 
-              onClick={handleScheduleAppointment}
-              className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
-              size={isMobile ? "sm" : "default"}
-            >
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Schedule</span>
-            </Button>
-          )}
-          
           {!user && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
