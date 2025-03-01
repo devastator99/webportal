@@ -48,14 +48,16 @@ export const NutritionistDashboard = () => {
   };
 
   const actionButtons = (
-    <Button 
-      onClick={handleSignOut}
-      variant="outline" 
-      className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
-    >
-      <LogOut className="mr-2 h-4 w-4" />
-      Sign Out
-    </Button>
+    <div className="flex items-center justify-end">
+      <Button 
+        onClick={handleSignOut}
+        variant="outline" 
+        className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
+      >
+        <LogOut className="mr-2 h-4 w-4" />
+        Sign Out
+      </Button>
+    </div>
   );
 
   return (

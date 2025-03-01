@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -117,22 +118,23 @@ export const PatientDashboard = () => {
   // Filter upcoming appointments - note that our RPC function already filters for scheduled status
   const upcomingAppointments = patientData?.appointments || [];
 
-  console.log("Final appointments:", upcomingAppointments);
+  const actionButtons = (
+    <Button 
+      onClick={handleSignOut}
+      variant="outline" 
+      className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
+    >
+      <LogOut className="mr-2 h-4 w-4" />
+      Sign Out
+    </Button>
+  );
 
   return (
     <div className="min-h-screen">
       {/* Fixed header */}
       <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-b">
-        <div className="container mx-auto p-4 flex justify-between items-center">
-          <PatientHeader />
-          <Button 
-            onClick={handleSignOut}
-            variant="outline" 
-            className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Sign Out
-          </Button>
+        <div className="container mx-auto p-4">
+          <PatientHeader actionButton={actionButtons} />
         </div>
       </div>
 

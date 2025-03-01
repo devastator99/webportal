@@ -5,7 +5,11 @@ import { CalendarPlus } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 
-export const PatientHeader = () => {
+type PatientHeaderProps = {
+  actionButton?: React.ReactNode;
+};
+
+export const PatientHeader = ({ actionButton }: PatientHeaderProps) => {
   const isMobile = useIsMobile();
   
   const scheduleButton = (
@@ -21,5 +25,13 @@ export const PatientHeader = () => {
     </ScheduleAppointment>
   );
 
-  return <DashboardHeader actionButton={scheduleButton} />;
+  // Combine the schedule button with any additional action buttons
+  const combinedButtons = actionButton ? (
+    <div className="flex items-center space-x-3">
+      {scheduleButton}
+      {actionButton}
+    </div>
+  ) : scheduleButton;
+
+  return <DashboardHeader actionButton={combinedButtons} />;
 };
