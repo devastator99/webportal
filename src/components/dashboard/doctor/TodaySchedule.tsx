@@ -22,38 +22,64 @@ export const TodaySchedule = () => {
   const today = new Date();
   const formattedDate = format(today, "yyyy-MM-dd");
 
-  const { data: appointments = [], isLoading } = useQuery<AppointmentWithPatient[]>({
+  // Properly type the query function and handle transformation
+  const { data, isLoading } = useQuery<AppointmentWithPatient[]>({
     queryKey: ["today_appointments", user?.id, formattedDate],
     queryFn: async () => {
       if (!user?.id) return [];
 
       try {
-        // Use direct query instead of RPC to avoid ambiguous column error
-        const { data, error } = await supabase
+        // Fetch appointments first
+        const { data: appointmentsData, error: appointmentsError } = await supabase
           .from('appointments')
-          .select(`
-            id,
-            scheduled_at,
-            status,
-            patient:profiles(first_name, last_name)
-          `)
-          .eq('appointments.doctor_id', user.id)
+          .select('id, scheduled_at, status, patient_id')
+          .eq('doctor_id', user.id)
           .gte('scheduled_at', `${formattedDate}T00:00:00`)
           .lte('scheduled_at', `${formattedDate}T23:59:59`)
           .order('scheduled_at');
 
-        if (error) {
-          console.error("Error fetching today's appointments:", error);
-          throw error;
+        if (appointmentsError) {
+          console.error("Error fetching today's appointments:", appointmentsError);
+          throw appointmentsError;
         }
 
-        // Transform data to match expected format
-        return data?.map(item => ({
-          id: item.id,
-          scheduled_at: item.scheduled_at,
-          status: item.status,
-          patient: item.patient || { first_name: "Unknown", last_name: "Patient" }
-        })) || [];
+        if (!appointmentsData || appointmentsData.length === 0) {
+          return [];
+        }
+
+        // Then fetch patient details for each appointment
+        const appointmentsWithPatients: AppointmentWithPatient[] = await Promise.all(
+          appointmentsData.map(async (appointment) => {
+            const { data: patientData, error: patientError } = await supabase
+              .from('profiles')
+              .select('first_name, last_name')
+              .eq('id', appointment.patient_id)
+              .single();
+
+            if (patientError) {
+              console.error(`Error fetching patient for appointment ${appointment.id}:`, patientError);
+              // Return appointment with default patient info if patient fetch fails
+              return {
+                id: appointment.id,
+                scheduled_at: appointment.scheduled_at,
+                status: appointment.status,
+                patient: { first_name: "Unknown", last_name: "Patient" }
+              };
+            }
+
+            return {
+              id: appointment.id,
+              scheduled_at: appointment.scheduled_at,
+              status: appointment.status,
+              patient: {
+                first_name: patientData.first_name || "Unknown",
+                last_name: patientData.last_name || "Patient"
+              }
+            };
+          })
+        );
+
+        return appointmentsWithPatients;
       } catch (error) {
         console.error("Error in today's schedule fetch:", error);
         return [];
@@ -64,9 +90,9 @@ export const TodaySchedule = () => {
   });
 
   // Filter for upcoming appointments today (exclude past appointments)
-  const upcomingAppointments = appointments.filter(
+  const upcomingAppointments = data ? data.filter(
     (appointment) => isFuture(new Date(appointment.scheduled_at))
-  );
+  ) : [];
 
   return (
     <Card className="col-span-1">
