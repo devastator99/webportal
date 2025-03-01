@@ -358,9 +358,10 @@ export const ScheduleAppointment = ({
             className="w-full"
             size="sm"
             disabled={
-              (effectiveCallerRole === "patient" && (!selectedDoctor || !selectedDate || !selectedTime)) ||
-              (effectiveCallerRole === "doctor" && (!selectedPatient || !selectedDate || !selectedTime)) ||
-              (effectiveCallerRole === "reception" && (!selectedDoctor || !selectedPatient || !selectedDate || !selectedTime)) ||
+              !selectedDate || !selectedTime || 
+              (effectiveCallerRole === "patient" && !selectedDoctor) ||
+              (effectiveCallerRole === "doctor" && !selectedPatient) ||
+              (effectiveCallerRole === "reception" && (!selectedDoctor || !selectedPatient)) ||
               isSubmitting
             }
           >
