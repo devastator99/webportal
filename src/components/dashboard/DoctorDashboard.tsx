@@ -14,17 +14,29 @@ import { PrescriptionWriter } from "./doctor/PrescriptionWriter";
 import { DashboardHeader } from "./DashboardHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { CalendarIcon } from "lucide-react";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   
-  // Removed the actionButton so no calendar appears at the top
+  // Add an actionButton for schedule appointments
+  const actionButton = (
+    <Button 
+      onClick={() => navigate("/appointments/schedule")}
+      className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
+      size={isMobile ? "sm" : "default"}
+    >
+      <CalendarIcon className="mr-2 h-4 w-4" />
+      Schedule Appointment
+    </Button>
+  );
   
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <DashboardHeader />
+      <DashboardHeader actionButton={actionButton} />
       
       <StatsCards />
 
