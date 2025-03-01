@@ -15,17 +15,20 @@ import { DashboardHeader } from "./DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { CalendarPlus } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useNavigate } from "react-router-dom";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   
-  // Create an action button for doctors (optional)
+  // Create an action button for doctors
   const scheduleButton = (
     <Button 
       className="flex-1 sm:flex-initial gap-2" 
       size={isMobile ? "lg" : "default"}
       variant="outline"
+      onClick={() => console.log("Calendar view clicked")}
     >
       <CalendarPlus className="h-4 w-4" />
       View Calendar
