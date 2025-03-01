@@ -11,7 +11,10 @@ import { AppointmentsList } from "./patient/AppointmentsList";
 import { MedicalRecordsUpload } from "./patient/MedicalRecordsUpload";
 import { Database } from "@/integrations/supabase/types";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { CalendarIcon, LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { DashboardHeader } from "./DashboardHeader";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -28,6 +31,8 @@ type Appointment = {
 export const PatientDashboard = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   const handleSignOut = async () => {
     try {
@@ -118,44 +123,46 @@ export const PatientDashboard = () => {
   // Filter upcoming appointments - note that our RPC function already filters for scheduled status
   const upcomingAppointments = patientData?.appointments || [];
 
+  // Add action buttons like in DoctorDashboard
   const actionButtons = (
-    <Button 
-      onClick={handleSignOut}
-      variant="outline" 
-      className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
-    >
-      <LogOut className="mr-2 h-4 w-4" />
-      Sign Out
-    </Button>
+    <div className="flex items-center gap-3 justify-end">
+      <Button 
+        onClick={() => navigate("/appointments/schedule")}
+        className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
+        size={isMobile ? "sm" : "default"}
+      >
+        <CalendarIcon className="mr-2 h-4 w-4" />
+        Schedule Appointment
+      </Button>
+      
+      <Button 
+        onClick={handleSignOut}
+        variant="outline" 
+        className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
+        size={isMobile ? "sm" : "default"}
+      >
+        <LogOut className="mr-2 h-4 w-4" />
+        Sign Out
+      </Button>
+    </div>
   );
 
   return (
-    <div className="min-h-screen">
-      {/* Fixed header */}
-      <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-b">
-        <div className="container mx-auto p-4">
-          <PatientHeader actionButton={actionButtons} />
+    <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
+      <DashboardHeader actionButton={actionButtons} />
+      
+      {/* Stats Row */}
+      <PatientStats />
+
+      {/* Main Content - Use similar grid layout to DoctorDashboard */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="space-y-6 lg:col-span-1">
+          <AppointmentsList appointments={upcomingAppointments} />
         </div>
-      </div>
-
-      <div className="container mx-auto px-4">
-        <div className="pt-24 pb-6 space-y-8">
-          {/* Stats Row */}
-          <PatientStats />
-
-          {/* Main Content */}
-          <div className="flex flex-col lg:flex-row gap-6">
-            {/* Left Column - View Content */}
-            <div className="flex-1">
-              <AppointmentsList appointments={upcomingAppointments} />
-            </div>
-
-            {/* Right Column - Actions */}
-            <div className="lg:w-[400px] space-y-6">
-              <MedicalRecordsUpload showUploadOnly />
-              <ChatInterface />
-            </div>
-          </div>
+        
+        <div className="lg:col-span-2 space-y-6">
+          <MedicalRecordsUpload showUploadOnly />
+          <ChatInterface />
         </div>
       </div>
     </div>
