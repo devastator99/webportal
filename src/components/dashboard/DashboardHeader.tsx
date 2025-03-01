@@ -79,12 +79,13 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
       return "Welcome";
     }
     
-    if (!profile || (!profile.first_name && !profile.last_name)) {
+    if (!profile || (!profile.first_name)) {
       return user?.email ? `Welcome, ${user.email.split('@')[0]}` : "Welcome";
     }
     
     const prefix = userRole === 'doctor' ? 'Dr. ' : '';
     const name = profile.first_name || '';
+    // Check if last_name exists before using it
     const lastName = profile.last_name ? ` ${profile.last_name}` : '';
     
     return `Welcome, ${prefix}${name}${lastName}`;
