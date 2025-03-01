@@ -15,28 +15,60 @@ import { DashboardHeader } from "./DashboardHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, LogOut } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export const DoctorDashboard = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  // Handler for signing out
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Successfully signed out",
+        description: "You have been signed out of your account",
+      });
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        variant: "destructive",
+        title: "Error signing out",
+        description: "There was a problem signing you out. Please try again.",
+      });
+    }
+  };
   
   // Add an actionButton for schedule appointments
-  const actionButton = (
-    <Button 
-      onClick={() => navigate("/appointments/schedule")}
-      className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
-      size={isMobile ? "sm" : "default"}
-    >
-      <CalendarIcon className="mr-2 h-4 w-4" />
-      Schedule Appointment
-    </Button>
+  const actionButtons = (
+    <div className="flex items-center space-x-3">
+      <Button 
+        onClick={() => navigate("/appointments/schedule")}
+        className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
+        size={isMobile ? "sm" : "default"}
+      >
+        <CalendarIcon className="mr-2 h-4 w-4" />
+        Schedule Appointment
+      </Button>
+      
+      <Button 
+        onClick={handleSignOut}
+        variant="outline" 
+        className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
+        size={isMobile ? "sm" : "default"}
+      >
+        <LogOut className="mr-2 h-4 w-4" />
+        Sign Out
+      </Button>
+    </div>
   );
   
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <DashboardHeader actionButton={actionButton} />
+      <DashboardHeader actionButton={actionButtons} />
       
       <StatsCards />
 

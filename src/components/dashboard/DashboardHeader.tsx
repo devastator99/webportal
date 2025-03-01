@@ -177,7 +177,7 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
         {welcomeMessage}
       </h1>
       {actionButton && (
-        <div className="flex gap-2 sm:gap-4 w-full sm:w-auto">
+        <div className="flex gap-2 sm:gap-4 justify-end w-full sm:w-auto">
           {actionButton}
         </div>
       )}
