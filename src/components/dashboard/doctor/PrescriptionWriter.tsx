@@ -13,7 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
-import { PatientSelector } from "@/components/chat/PatientSelector";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const PrescriptionWriter = () => {
   const { user } = useAuth();
@@ -23,6 +23,46 @@ export const PrescriptionWriter = () => {
   const [prescription, setPrescription] = useState("");
   const [notes, setNotes] = useState("");
   const [activeTab, setActiveTab] = useState("write");
+
+  // Fetch all patients from the system
+  const { data: patients, isLoading: isLoadingPatients } = useQuery({
+    queryKey: ["all_patients"],
+    queryFn: async () => {
+      console.log("Fetching all patients from the system");
+      
+      // First get all users with 'patient' role
+      const { data: patientRoles, error: rolesError } = await supabase
+        .from("user_roles")
+        .select("user_id")
+        .eq("role", "patient");
+      
+      if (rolesError) {
+        console.error("Error fetching patient roles:", rolesError);
+        throw rolesError;
+      }
+      
+      console.log("Patient roles found:", patientRoles?.length || 0);
+      
+      if (!patientRoles?.length) {
+        return [];
+      }
+      
+      // Get the patient profiles
+      const patientIds = patientRoles.map(ur => ur.user_id);
+      const { data: patientProfiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name")
+        .in("id", patientIds);
+      
+      if (profilesError) {
+        console.error("Error fetching patient profiles:", profilesError);
+        throw profilesError;
+      }
+      
+      console.log("Patient profiles found:", patientProfiles?.length || 0);
+      return patientProfiles || [];
+    },
+  });
 
   // Fetch patient's past prescriptions when a patient is selected
   const { data: pastPrescriptions, refetch: refetchPrescriptions } = useQuery({
@@ -129,16 +169,6 @@ export const PrescriptionWriter = () => {
     }
   };
 
-  const handlePatientSelect = (patientId: string) => {
-    setSelectedPatient(patientId);
-    // Reset the form when changing patients if in write mode
-    if (activeTab === "write") {
-      setDiagnosis("");
-      setPrescription("");
-      setNotes("");
-    }
-  };
-
   return (
     <Card className="w-full">
       <CardHeader>
@@ -148,11 +178,38 @@ export const PrescriptionWriter = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Replace the old patient selection with PatientSelector */}
-        <PatientSelector 
-          selectedPatientId={selectedPatient} 
-          onPatientSelect={handlePatientSelect} 
-        />
+        <div className="space-y-2">
+          <Label htmlFor="patient">Select Patient</Label>
+          <Select
+            value={selectedPatient}
+            onValueChange={(value) => {
+              setSelectedPatient(value);
+              // Reset the form when changing patients
+              if (activeTab === "write") {
+                setDiagnosis("");
+                setPrescription("");
+                setNotes("");
+              }
+            }}
+          >
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select patient" />
+            </SelectTrigger>
+            <SelectContent>
+              {isLoadingPatients ? (
+                <SelectItem value="loading" disabled>Loading patients...</SelectItem>
+              ) : patients && patients.length > 0 ? (
+                patients.map((patient) => (
+                  <SelectItem key={patient.id} value={patient.id}>
+                    {patient.first_name || "Unknown"} {patient.last_name || ""}
+                  </SelectItem>
+                ))
+              ) : (
+                <SelectItem value="none" disabled>No patients found</SelectItem>
+              )}
+            </SelectContent>
+          </Select>
+        </div>
 
         {selectedPatient && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
