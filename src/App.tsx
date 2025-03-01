@@ -29,8 +29,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const AppRoutes = () => {
-  const { user } = useAuth();
-  console.log("AppRoutes render - user:", user?.id);
+  const { user, userRole } = useAuth();
+  console.log("AppRoutes render - user:", user?.id, "role:", userRole);
   
   return (
     <>
@@ -57,7 +57,7 @@ const AppRoutes = () => {
           path="/appointments/schedule"
           element={
             <ProtectedRoute>
-              <ScheduleAppointment standalone={true} />
+              <ScheduleAppointment standalone={true} callerRole={userRole as "patient" | "doctor" | "reception"} />
             </ProtectedRoute>
           }
         />

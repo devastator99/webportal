@@ -9,6 +9,7 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ScheduleAppointment } from "./appointments/ScheduleAppointment";
 
 export const Navbar = () => {
   const { user, isLoading, signOut, userRole } = useAuth();

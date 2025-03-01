@@ -8,6 +8,8 @@ import { Calendar, MessageCircle, Users } from "lucide-react";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { AppointmentsList } from "./patient/AppointmentsList";
 import { DashboardHeader } from "./DashboardHeader";
+import { Button } from "@/components/ui/button";
+import { ScheduleAppointment } from "../appointments/ScheduleAppointment";
 
 export const ReceptionDashboard = () => {
   const { user } = useAuth();
@@ -100,6 +102,18 @@ export const ReceptionDashboard = () => {
             <div className="text-2xl font-bold">{dashboardData?.totalDoctors || 0}</div>
           </CardContent>
         </Card>
+      </div>
+
+      {/* Schedule appointment button */}
+      <div className="flex justify-end">
+        <ScheduleAppointment callerRole="reception">
+          <Button 
+            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
+          >
+            <Calendar className="h-4 w-4" />
+            <span>Schedule New Appointment</span>
+          </Button>
+        </ScheduleAppointment>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
