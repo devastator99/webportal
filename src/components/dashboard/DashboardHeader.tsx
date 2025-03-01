@@ -21,7 +21,7 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
 
-  // Fetch profile data with improved error handling
+  // Fetch profile data with improved error handling and logging
   const { data: profile, isLoading } = useQuery<ProfileData | null>({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
@@ -41,27 +41,33 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
 
         if (error) {
           console.error("Error fetching profile:", error);
-          // Don't show error toast here, just log it
-          console.log("Will use fallback name from email");
-          return { first_name: user.email?.split('@')[0] || "User" };
-        }
-
-        if (!data) {
-          console.log("No profile data found for user:", user.id);
-          // Try to create a profile if none exists
-          const { data: newProfile, error: createError } = await supabase
-            .from("profiles")
-            .insert([{ id: user.id, first_name: user.email?.split('@')[0] || "User" }])
-            .select()
-            .single();
+          
+          // Check if it's a "no rows returned" error, which means profile doesn't exist
+          if (error.code === 'PGRST116') {
+            console.log("Profile doesn't exist, creating a new one");
             
-          if (createError) {
-            console.error("Error creating profile:", createError);
-            return { first_name: user.email?.split('@')[0] || "User" };
+            // Create a profile for this user
+            const { data: newProfile, error: createError } = await supabase
+              .from("profiles")
+              .insert([{ 
+                id: user.id, 
+                first_name: user.email?.split('@')[0] || "User" 
+              }])
+              .select()
+              .single();
+              
+            if (createError) {
+              console.error("Error creating profile:", createError);
+              return { first_name: user.email?.split('@')[0] || "User" };
+            }
+            
+            console.log("Created new profile:", newProfile);
+            return newProfile;
           }
           
-          console.log("Created new profile:", newProfile);
-          return newProfile;
+          // For other errors, return fallback name from email
+          console.log("Using fallback name from email due to error");
+          return { first_name: user.email?.split('@')[0] || "User" };
         }
 
         console.log("Successfully fetched profile data:", data);
@@ -72,7 +78,7 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
       }
     },
     enabled: !!user?.id,
-    retry: 2,
+    retry: 1,
     staleTime: 60000, // Cache for 1 minute
   });
 
