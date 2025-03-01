@@ -7,6 +7,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
+// Define TypeScript types for the RPC function returns
+type DoctorAppointment = {
+  id: string;
+  scheduled_at: string;
+  status: "scheduled" | "completed" | "cancelled";
+};
+
 export const StatsCards = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -24,7 +31,7 @@ export const StatsCards = () => {
       console.log("Fetching patients count for doctor:", user?.id);
       try {
         // Use RPC call to a stored procedure on the server side
-        const { data, error } = await supabase.rpc(
+        const { data, error } = await supabase.rpc<number>(
           'get_doctor_patients_count', 
           { doctor_id: user.id }
         );
@@ -53,7 +60,7 @@ export const StatsCards = () => {
       console.log("Fetching medical records count for doctor:", user?.id);
       try {
         // Use RPC call to a stored procedure on the server side
-        const { data, error } = await supabase.rpc(
+        const { data, error } = await supabase.rpc<number>(
           'get_doctor_medical_records_count', 
           { doctor_id: user.id }
         );
@@ -77,12 +84,12 @@ export const StatsCards = () => {
   const { data: appointments = [], isError: isAppointmentsError } = useQuery({
     queryKey: ["doctor_appointments_stats", user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) return [] as DoctorAppointment[];
       
       console.log("Fetching appointments for doctor:", user?.id);
       try {
         // Use RPC call to a stored procedure on the server side
-        const { data, error } = await supabase.rpc(
+        const { data, error } = await supabase.rpc<DoctorAppointment[]>(
           'get_doctor_appointments', 
           { doctor_id: user.id }
         );
@@ -97,7 +104,7 @@ export const StatsCards = () => {
       } catch (error) {
         console.error("Error in appointments query:", error);
         // Don't show toast here, just return an empty array
-        return [];
+        return [] as DoctorAppointment[];
       }
     },
     enabled: !!user?.id,
