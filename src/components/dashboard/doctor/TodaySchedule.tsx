@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { Database } from "@/integrations/supabase/types";
 
 // Define the correct type for the appointment data returned from our RPC function
 interface AppointmentWithPatient {
@@ -22,7 +23,7 @@ export const TodaySchedule = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const { data: appointments = [], isLoading, error } = useQuery<AppointmentWithPatient[], Error>({
+  const { data: appointments = [], isLoading, error } = useQuery<AppointmentWithPatient[]>({
     queryKey: ["today_appointments", user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error("No user ID");
