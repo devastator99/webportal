@@ -32,14 +32,13 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
       console.log("Fetching appointments for date:", formattedDate, "doctor:", doctorId);
       
       try {
-        // Step 1: Fetch appointments for selected date
+        // Simplify the query to avoid RLS recursion issues
         const { data: appointmentsData, error: appointmentsError } = await supabase
           .from('appointments')
           .select('id, scheduled_at, status, patient_id')
           .eq('doctor_id', doctorId)
           .gte('scheduled_at', `${formattedDate}T00:00:00`)
-          .lte('scheduled_at', `${formattedDate}T23:59:59`)
-          .order('scheduled_at');
+          .lte('scheduled_at', `${formattedDate}T23:59:59`);
 
         if (appointmentsError) {
           console.error("Error fetching appointments:", appointmentsError);
@@ -50,7 +49,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
           return [];
         }
 
-        // Step 2: Then fetch patient details for each appointment
+        // Separately fetch patient details to avoid join issues
         const appointmentsWithPatients = await Promise.all(
           appointmentsData.map(async (appointment) => {
             try {

@@ -139,7 +139,7 @@ export function ScheduleAppointment({ children, callerRole }: ScheduleAppointmen
     },
   });
 
-  // Fetch patients for doctor
+  // Fetch patients for doctor - improved approach to avoid RLS issues
   const { data: patients, isLoading: isLoadingPatients } = useQuery({
     queryKey: ['doctor_patients', user?.id],
     queryFn: async () => {
@@ -147,39 +147,41 @@ export function ScheduleAppointment({ children, callerRole }: ScheduleAppointmen
         return [];
       }
       
+      console.log("Fetching patients for doctor:", user.id);
+      
       try {
-        // First get the patient assignments
-        const { data: patientAssignments, error: assignmentError } = await supabase
+        // Get patient assignments directly
+        const { data: assignments, error: assignmentsError } = await supabase
           .from('patient_assignments')
           .select('patient_id')
           .eq('doctor_id', user.id);
-          
-        if (assignmentError) {
-          console.error("Error fetching patient assignments:", assignmentError);
-          throw assignmentError;
+        
+        if (assignmentsError) {
+          console.error("Error fetching patient assignments:", assignmentsError);
+          throw assignmentsError;
         }
         
-        if (!patientAssignments || patientAssignments.length === 0) {
-          console.log("No patient assignments found for doctor:", user.id);
+        if (!assignments || assignments.length === 0) {
+          console.log("No patients assigned to doctor:", user.id);
           return [];
         }
         
-        const patientIds = patientAssignments.map(item => item.patient_id);
-        console.log("Patient IDs to fetch:", patientIds);
+        // Extract patient IDs
+        const patientIds = assignments.map(a => a.patient_id);
         
-        // Then get the patient profiles
-        const { data: patientProfiles, error: profilesError } = await supabase
+        // Get patient profiles in a separate query
+        const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
           .select('id, first_name, last_name')
           .in('id', patientIds);
-          
+        
         if (profilesError) {
           console.error("Error fetching patient profiles:", profilesError);
           throw profilesError;
         }
         
-        console.log("Fetched patient profiles:", patientProfiles);
-        return patientProfiles || [];
+        console.log(`Found ${profiles?.length || 0} patients for doctor ${user.id}`);
+        return profiles || [];
       } catch (error) {
         console.error("Error fetching patients:", error);
         return [];

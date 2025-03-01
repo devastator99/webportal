@@ -30,87 +30,37 @@ export const TodaySchedule = () => {
       try {
         console.log("Fetching today's appointments for doctor:", user.id);
         
-        // Use the Supabase function we created to fetch appointments with patients
-        const { data: appointmentsData, error } = await supabase
-          .rpc('get_doctor_appointments_with_patients', {
-            doctor_id: user.id,
-            date_filter: formattedDate
-          });
+        // Simplify the query to avoid RLS recursion issues
+        const { data: appointmentsData, error: appointmentsError } = await supabase
+          .from('appointments')
+          .select('id, scheduled_at, status, patient_id')
+          .eq('doctor_id', user.id)
+          .gte('scheduled_at', `${formattedDate}T00:00:00`)
+          .lte('scheduled_at', `${formattedDate}T23:59:59`)
+          .order('scheduled_at');
 
-        if (error) {
-          console.error("Error fetching today's appointments:", error);
-          throw error;
+        if (appointmentsError) {
+          console.error("Error fetching today's appointments:", appointmentsError);
+          throw appointmentsError;
         }
 
-        console.log("Appointments fetched:", appointmentsData);
-        
-        // Convert the data to the expected format
-        const formattedAppointments: AppointmentWithPatient[] = appointmentsData?.map((appointment: any) => ({
-          id: appointment.id,
-          scheduled_at: appointment.scheduled_at,
-          status: appointment.status,
-          patient: {
-            first_name: appointment.patient.first_name || "Unknown",
-            last_name: appointment.patient.last_name || "Patient"
-          }
-        })) || [];
+        if (!appointmentsData || appointmentsData.length === 0) {
+          return [];
+        }
 
-        return formattedAppointments;
-      } catch (error) {
-        console.error("Error in today's schedule fetch:", error);
-        
-        // Fallback to the two-step approach if the RPC fails
-        try {
-          // Step 1: Fetch appointments for today
-          const { data: appointmentsData, error: appointmentsError } = await supabase
-            .from('appointments')
-            .select('id, scheduled_at, status, patient_id')
-            .eq('doctor_id', user.id)
-            .gte('scheduled_at', `${formattedDate}T00:00:00`)
-            .lte('scheduled_at', `${formattedDate}T23:59:59`)
-            .order('scheduled_at');
+        // Separately fetch patient details to avoid join issues
+        const appointmentsWithPatients = await Promise.all(
+          appointmentsData.map(async (appointment) => {
+            try {
+              const { data: patientData, error: patientError } = await supabase
+                .from('profiles')
+                .select('first_name, last_name')
+                .eq('id', appointment.patient_id)
+                .single();
 
-          if (appointmentsError) {
-            console.error("Error in fallback appointments fetch:", appointmentsError);
-            return [];
-          }
-
-          if (!appointmentsData || appointmentsData.length === 0) {
-            return [];
-          }
-
-          // Step 2: Then fetch patient details for each appointment
-          const appointmentsWithPatients = await Promise.all(
-            appointmentsData.map(async (appointment) => {
-              try {
-                const { data: patientData, error: patientError } = await supabase
-                  .from('profiles')
-                  .select('first_name, last_name')
-                  .eq('id', appointment.patient_id)
-                  .single();
-
-                if (patientError) {
-                  console.error(`Error fetching patient for appointment ${appointment.id}:`, patientError);
-                  // Return appointment with default patient info if patient fetch fails
-                  return {
-                    id: appointment.id,
-                    scheduled_at: appointment.scheduled_at,
-                    status: appointment.status,
-                    patient: { first_name: "Unknown", last_name: "Patient" }
-                  };
-                }
-
-                return {
-                  id: appointment.id,
-                  scheduled_at: appointment.scheduled_at,
-                  status: appointment.status,
-                  patient: {
-                    first_name: patientData.first_name || "Unknown",
-                    last_name: patientData.last_name || "Patient"
-                  }
-                };
-              } catch (err) {
-                console.error(`Error processing patient data for appointment ${appointment.id}:`, err);
+              if (patientError) {
+                console.error(`Error fetching patient for appointment ${appointment.id}:`, patientError);
+                // Return appointment with default patient info if patient fetch fails
                 return {
                   id: appointment.id,
                   scheduled_at: appointment.scheduled_at,
@@ -118,14 +68,32 @@ export const TodaySchedule = () => {
                   patient: { first_name: "Unknown", last_name: "Patient" }
                 };
               }
-            })
-          );
 
-          return appointmentsWithPatients;
-        } catch (fallbackError) {
-          console.error("Error in fallback approach:", fallbackError);
-          return [];
-        }
+              return {
+                id: appointment.id,
+                scheduled_at: appointment.scheduled_at,
+                status: appointment.status,
+                patient: {
+                  first_name: patientData.first_name || "Unknown",
+                  last_name: patientData.last_name || "Patient"
+                }
+              };
+            } catch (err) {
+              console.error(`Error processing patient data for appointment ${appointment.id}:`, err);
+              return {
+                id: appointment.id,
+                scheduled_at: appointment.scheduled_at,
+                status: appointment.status,
+                patient: { first_name: "Unknown", last_name: "Patient" }
+              };
+            }
+          })
+        );
+
+        return appointmentsWithPatients;
+      } catch (error) {
+        console.error("Error in today's schedule fetch:", error);
+        return [];
       }
     },
     enabled: !!user?.id,
