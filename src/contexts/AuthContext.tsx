@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchUserRole = async (userId: string) => {
     try {
-      console.log('Fetching role for user ID:', userId);
+      console.log('[Auth Debug] Fetching role for user ID:', userId);
       
       const { data, error } = await supabase
         .rpc('get_user_role', {
@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
 
       if (error) {
-        console.error('Error fetching user role:', error);
+        console.error('[Auth Debug] Error fetching user role:', error);
         toast({
           variant: "destructive",
           title: "Error fetching user role",
@@ -47,10 +47,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return null;
       }
 
-      console.log('Role data received:', data);
+      console.log('[Auth Debug] Role data received:', data);
       return data?.[0]?.role as UserRole;
     } catch (error) {
-      console.error('Exception in fetchUserRole:', error);
+      console.error('[Auth Debug] Exception in fetchUserRole:', error);
       return null;
     }
   };
@@ -60,18 +60,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(true);
       
       if (session?.user) {
-        console.log('Auth state change - user found:', session.user.id, 'email:', session.user.email);
+        console.log('[Auth Debug] Auth state change - user found:', session.user.id, 'email:', session.user.email);
         setUser(session.user);
         const role = await fetchUserRole(session.user.id);
-        console.log('Role fetched:', role);
+        console.log('[Auth Debug] Role fetched:', role);
         setUserRole(role);
       } else {
-        console.log('Auth state change - no user');
+        console.log('[Auth Debug] Auth state change - no user');
         setUser(null);
         setUserRole(null);
       }
     } catch (error) {
-      console.error('Error in handleAuthStateChange:', error);
+      console.error('[Auth Debug] Error in handleAuthStateChange:', error);
       toast({
         variant: "destructive",
         title: "Authentication error",
@@ -86,7 +86,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Initial session check
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      console.log('Initial session check:', session ? 'Session found' : 'No session');
+      console.log('[Auth Debug] Initial session check:', session ? 'Session found' : 'No session');
+      if (session) {
+        console.log('[Auth Debug] Session user:', session.user.email);
+      }
       await handleAuthStateChange(session);
     };
     
@@ -94,7 +97,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('Auth state change event:', _event);
+      console.log('[Auth Debug] Auth state change event:', _event);
       handleAuthStateChange(session);
     });
 
@@ -105,8 +108,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Log auth state on render for debugging
   useEffect(() => {
-    console.log('Dashboard render:', {
+    console.log('[Auth Debug] Auth context updated:', {
       user: user?.id,
+      email: user?.email,
       userRole,
       isLoading
     });

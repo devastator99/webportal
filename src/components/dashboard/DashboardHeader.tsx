@@ -21,8 +21,8 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
 
-  // Fetch profile data with improved error handling and logging
-  const { data: profile, isLoading } = useQuery<ProfileData | null>({
+  // Fetch profile data with improved error handling and detailed logging
+  const { data: profile, isLoading, error: queryError } = useQuery<ProfileData | null>({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
       if (!user?.id) {
@@ -30,9 +30,15 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
         return null;
       }
       
-      console.log(`Fetching profile for user ID: ${user.id}, email: ${user.email}`);
+      console.log(`[Profile Debug] Starting profile fetch for user:`, {
+        id: user.id,
+        email: user.email,
+        queryKey: ["profile", user.id]
+      });
       
       try {
+        console.log(`[Profile Debug] Making Supabase query for user ID: ${user.id}`);
+        
         const { data, error } = await supabase
           .from("profiles")
           .select("first_name, last_name")
@@ -40,11 +46,11 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
           .single();
 
         if (error) {
-          console.error("Error fetching profile:", error);
+          console.error("[Profile Debug] Error fetching profile:", error);
           
           // Check if it's a "no rows returned" error, which means profile doesn't exist
           if (error.code === 'PGRST116') {
-            console.log("Profile doesn't exist, creating a new one");
+            console.log("[Profile Debug] Profile doesn't exist, creating a new one");
             
             // Create a profile for this user
             const { data: newProfile, error: createError } = await supabase
@@ -57,29 +63,36 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
               .single();
               
             if (createError) {
-              console.error("Error creating profile:", createError);
+              console.error("[Profile Debug] Error creating profile:", createError);
               return { first_name: user.email?.split('@')[0] || "User" };
             }
             
-            console.log("Created new profile:", newProfile);
+            console.log("[Profile Debug] Created new profile:", newProfile);
             return newProfile;
           }
           
           // For other errors, return fallback name from email
-          console.log("Using fallback name from email due to error");
+          console.log("[Profile Debug] Using fallback name from email due to error");
           return { first_name: user.email?.split('@')[0] || "User" };
         }
 
-        console.log("Successfully fetched profile data:", data);
+        console.log("[Profile Debug] Successfully fetched profile data:", data);
         return data;
       } catch (err) {
-        console.error("Exception in profile fetch:", err);
+        console.error("[Profile Debug] Exception in profile fetch:", err);
         return { first_name: user.email?.split('@')[0] || "User" };
       }
     },
     enabled: !!user?.id,
     retry: 1,
     staleTime: 60000, // Cache for 1 minute
+  });
+
+  console.log("[Profile Debug] Query result:", { 
+    profile, 
+    isLoading, 
+    hasError: !!queryError,
+    userInfo: user ? { id: user.id, email: user.email } : 'No user'
   });
 
   // Create welcome message based on user role and profile data
