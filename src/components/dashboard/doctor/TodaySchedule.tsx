@@ -31,7 +31,7 @@ export const TodaySchedule = () => {
       console.log("Fetching today's appointments for date:", today, "doctor:", user.id);
       
       try {
-        // Use the get_doctor_appointments RPC function which works properly
+        // Use the get_doctor_appointments RPC function to fetch all appointments for this doctor
         const { data: appointmentsData, error: appointmentsError } = await supabase.rpc(
           'get_doctor_appointments',
           { doctor_id: user.id }
@@ -58,18 +58,16 @@ export const TodaySchedule = () => {
           return aptDate >= todayStart && aptDate <= todayEnd;
         });
 
-        // Get patient profiles in a separate query
-        const appointmentIds = todayAppointments.map(apt => apt.id);
-        
-        if (appointmentIds.length === 0) {
+        if (todayAppointments.length === 0) {
           return [];
         }
-        
-        // Get the full appointment data including patient info
+
+        // Instead of doing complex joins, we'll fetch patient information separately
+        // Get the unique patient IDs from today's appointments
         const { data: fullAppointments, error: fullAptsError } = await supabase
           .from("appointments")
-          .select("id, scheduled_at, status, patient_id")
-          .in("id", appointmentIds);
+          .select("id, patient_id, scheduled_at, status")
+          .in("id", todayAppointments.map(apt => apt.id));
           
         if (fullAptsError) {
           console.error("Error fetching full appointments:", fullAptsError);
@@ -80,9 +78,9 @@ export const TodaySchedule = () => {
           return [];
         }
         
-        // Get patient profiles
+        // Now get patient information directly
         const patientIds = fullAppointments.map(apt => apt.patient_id);
-        const { data: profiles, error: profilesError } = await supabase
+        const { data: patientProfiles, error: profilesError } = await supabase
           .from("profiles")
           .select("id, first_name, last_name")
           .in("id", patientIds);
@@ -94,7 +92,7 @@ export const TodaySchedule = () => {
 
         // Create a map of patient profiles for faster lookup
         const profileMap = new Map(
-          profiles?.map(profile => [profile.id, profile]) || []
+          patientProfiles?.map(profile => [profile.id, profile]) || []
         );
 
         // Combine appointments with patient data
@@ -104,7 +102,7 @@ export const TodaySchedule = () => {
           status: appointment.status,
           patient: {
             first_name: profileMap.get(appointment.patient_id)?.first_name || "Unknown",
-            last_name: profileMap.get(appointment.patient_id)?.last_name || "Patient"
+            last_name: profileMap.get(appointment.patient_id)?.last_name || "Unknown"
           }
         }));
 

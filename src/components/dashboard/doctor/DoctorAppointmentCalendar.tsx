@@ -27,10 +27,11 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
     queryFn: async () => {
       if (!doctorId) return [] as Appointment[];
       
-      console.log("Fetching appointments for date:", format(selectedDate, "yyyy-MM-dd"), "doctor:", doctorId);
+      const formattedDate = format(selectedDate, "yyyy-MM-dd");
+      console.log("Fetching appointments for date:", formattedDate, "doctor:", doctorId);
       
       try {
-        // Use the RPC function
+        // Use the RPC function to get all appointments for this doctor
         const { data: appointmentsData, error: appointmentsError } = await supabase.rpc(
           'get_doctor_appointments',
           { doctor_id: doctorId }
@@ -58,7 +59,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
           return [];
         }
 
-        // Get appointment details including patient_id
+        // Get appointment details including patient_id directly from the appointments table
         const appointmentIds = filteredAppointments.map(apt => apt.id);
         const { data: fullAppointments, error: fullAptsError } = await supabase
           .from("appointments")
@@ -74,9 +75,9 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
           return filteredAppointments;
         }
         
-        // Get patient profiles
+        // Fetch patient profiles directly
         const patientIds = fullAppointments.map(apt => apt.patient_id);
-        const { data: profiles, error: profilesError } = await supabase
+        const { data: patientProfiles, error: profilesError } = await supabase
           .from("profiles")
           .select("id, first_name, last_name")
           .in("id", patientIds);
@@ -88,7 +89,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
 
         // Create a map of patient profiles for faster lookup
         const profileMap = new Map(
-          profiles?.map(profile => [profile.id, profile]) || []
+          patientProfiles?.map(profile => [profile.id, profile]) || []
         );
 
         // Map appointments to include patient data
@@ -101,7 +102,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
             status: appointment.status,
             patient: patientProfile ? {
               first_name: patientProfile.first_name || "Unknown",
-              last_name: patientProfile.last_name || "Patient"
+              last_name: patientProfile.last_name || "Unknown"
             } : {
               first_name: "Unknown",
               last_name: "Patient"
