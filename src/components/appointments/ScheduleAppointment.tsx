@@ -1,3 +1,4 @@
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -12,14 +13,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Form,
   FormControl,
   FormField,
@@ -27,17 +20,12 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Slider } from "@/components/ui/slider";
-import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -87,17 +75,28 @@ export function ScheduleAppointment({ children, callerRole }: ScheduleAppointmen
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values)
+    console.log(values);
     createAppointmentMutation.mutate(values);
   }
 
-  const createAppointmentMutation = useMutation(
-    async (newAppointment: z.infer<typeof formSchema>) => {
+  // Define the appointment type for mutation
+  type AppointmentInput = z.infer<typeof formSchema>;
+  type AppointmentResponse = unknown;
+
+  const createAppointmentMutation = useMutation<
+    AppointmentResponse, 
+    Error, 
+    AppointmentInput
+  >({
+    mutationFn: async (newAppointment: AppointmentInput) => {
       const { data, error } = await supabase
         .from('appointments')
         .insert([
           {
-            ...newAppointment,
+            patient_id: newAppointment.patientId,
+            doctor_id: newAppointment.doctorId,
+            scheduled_at: newAppointment.scheduledAt,
+            notes: newAppointment.notes,
             status: 'scheduled',
             email_notification_sent: false,
             whatsapp_notification_sent: false,
@@ -111,73 +110,109 @@ export function ScheduleAppointment({ children, callerRole }: ScheduleAppointmen
 
       return data;
     },
-    {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ['appointments'] });
-        toast({
-          title: "Success",
-          description: "Appointment created successfully!",
-        });
-        setOpen(false);
-        form.reset();
-      },
-      onError: (error: any) => {
-        toast({
-          title: "Error",
-          description: `Failed to create appointment: ${error.message}`,
-          variant: "destructive",
-        });
-      },
-    }
-  );
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      toast({
+        title: "Success",
+        description: "Appointment created successfully!",
+      });
+      setOpen(false);
+      form.reset();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: `Failed to create appointment: ${error.message}`,
+        variant: "destructive",
+      });
+    },
+  });
 
-  const { data: patients, isLoading: isLoadingPatients, error: patientsError } = useQuery<Database['public']['Tables']['profiles']['Row'][], Error>(
-    ['patients'],
-    async () => {
+  // Type for patient data
+  type PatientProfile = Database['public']['Tables']['profiles']['Row'];
+  
+  const { data: patients, isLoading: isLoadingPatients } = useQuery<PatientProfile[]>({
+    queryKey: ['patients'],
+    queryFn: async () => {
+      // Only run this query if not in doctor role
+      if (callerRole === "doctor") {
+        return [];
+      }
+      
+      let patientIds: string[] = [];
+      
+      // If doctor, get assigned patients
+      if (user?.id) {
+        const { data: assignedPatients, error: assignmentError } = await supabase
+          .from('patient_assignments')
+          .select('patient_id')
+          .eq('doctor_id', user.id);
+          
+        if (assignmentError) {
+          console.error("Error fetching patient assignments:", assignmentError);
+          throw new Error(assignmentError.message);
+        }
+        
+        patientIds = (assignedPatients || []).map(item => item.patient_id);
+      }
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .in('id',
-          (callerRole === "doctor" as const) ? [] : await supabase
-            .from('patient_assignments')
-            .select('patient_id')
-            .eq('doctor_id', user?.id || '')
-            .then(res => res.data?.map(item => item.patient_id) || [])
-        )
+        .in('id', patientIds.length > 0 ? patientIds : ['00000000-0000-0000-0000-000000000000']);
+        
       if (error) {
         console.error("Error fetching patients:", error);
         throw new Error(error.message);
       }
+      
       return data || [];
     },
-    {
-      enabled: callerRole !== "doctor",
-    }
-  );
+    enabled: callerRole !== "doctor",
+  });
 
-  const { data: doctors, isLoading: isLoadingDoctors, error: doctorsError } = useQuery<Database['public']['Tables']['profiles']['Row'][], Error>(
-    ['doctors'],
-    async () => {
+  // Type for doctor data
+  type DoctorProfile = Database['public']['Tables']['profiles']['Row'];
+  
+  const { data: doctors, isLoading: isLoadingDoctors } = useQuery<DoctorProfile[]>({
+    queryKey: ['doctors'],
+    queryFn: async () => {
+      // Only run this query if not in patient role
+      if (callerRole === "patient") {
+        return [];
+      }
+      
+      let doctorIds: string[] = [];
+      
+      // If patient, get assigned doctors
+      if (user?.id) {
+        const { data: assignedDoctors, error: assignmentError } = await supabase
+          .from('patient_assignments')
+          .select('doctor_id')
+          .eq('patient_id', user.id);
+          
+        if (assignmentError) {
+          console.error("Error fetching doctor assignments:", assignmentError);
+          throw new Error(assignmentError.message);
+        }
+        
+        doctorIds = (assignedDoctors || []).map(item => item.doctor_id);
+      }
+      
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .in('id',
-          (callerRole === "patient" as const) ? [] : await supabase
-            .from('patient_assignments')
-            .select('doctor_id')
-            .eq('patient_id', user?.id || '')
-            .then(res => res.data?.map(item => item.doctor_id) || [])
-        )
+        .in('id', doctorIds.length > 0 ? doctorIds : ['00000000-0000-0000-0000-000000000000']);
+        
       if (error) {
         console.error("Error fetching doctors:", error);
         throw new Error(error.message);
       }
+      
       return data || [];
     },
-    {
-      enabled: callerRole !== "patient",
-    }
-  );
+    enabled: callerRole !== "patient",
+  });
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>
@@ -207,7 +242,7 @@ export function ScheduleAppointment({ children, callerRole }: ScheduleAppointmen
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {patients?.map((patient) => (
+                        {patients && patients.map((patient) => (
                           <SelectItem key={patient.id} value={patient.id}>{patient.first_name} {patient.last_name}</SelectItem>
                         ))}
                       </SelectContent>
@@ -232,7 +267,7 @@ export function ScheduleAppointment({ children, callerRole }: ScheduleAppointmen
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {doctors?.map((doctor) => (
+                        {doctors && doctors.map((doctor) => (
                           <SelectItem key={doctor.id} value={doctor.id}>{doctor.first_name} {doctor.last_name}</SelectItem>
                         ))}
                       </SelectContent>
@@ -303,8 +338,8 @@ export function ScheduleAppointment({ children, callerRole }: ScheduleAppointmen
             />
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction type="submit">
-                {createAppointmentMutation.isLoading ? "Submitting..." : "Submit"}
+              <AlertDialogAction type="submit" disabled={createAppointmentMutation.isPending}>
+                {createAppointmentMutation.isPending ? "Submitting..." : "Submit"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </form>

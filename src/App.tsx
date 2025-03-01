@@ -57,7 +57,14 @@ const AppRoutes = () => {
           path="/appointments/schedule"
           element={
             <ProtectedRoute>
-              <ScheduleAppointment standalone={true} callerRole={userRole as "patient" | "doctor" | "reception"} />
+              <div className="container mx-auto py-8">
+                <h1 className="text-2xl font-bold mb-4">Schedule New Appointment</h1>
+                <Button onClick={() => {}}>
+                  <ScheduleAppointment callerRole={userRole as "patient" | "doctor" | "reception"}>
+                    <Button>Schedule Appointment</Button>
+                  </ScheduleAppointment>
+                </Button>
+              </div>
             </ProtectedRoute>
           }
         />
