@@ -23,7 +23,7 @@ export const TodaySchedule = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const { data: appointments = [], isLoading, error } = useQuery<AppointmentWithPatient[]>({
+  const { data: appointments = [], isLoading, error } = useQuery<AppointmentWithPatient[], Error>({
     queryKey: ["today_appointments", user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error("No user ID");
@@ -46,6 +46,7 @@ export const TodaySchedule = () => {
 
         console.log("Appointments with patients data:", data);
         
+        // Explicitly ensure we're returning an array
         return data || [];
       } catch (error) {
         console.error("Error in appointment fetch:", error);
@@ -64,6 +65,9 @@ export const TodaySchedule = () => {
     console.error("Query error in TodaySchedule:", error);
   }
 
+  // Ensure appointments is always treated as an array
+  const appointmentsArray = Array.isArray(appointments) ? appointments : [];
+
   return (
     <Card>
       <CardHeader>
@@ -73,10 +77,10 @@ export const TodaySchedule = () => {
         <div className="space-y-4">
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading schedule...</p>
-          ) : appointments.length === 0 ? (
+          ) : appointmentsArray.length === 0 ? (
             <p className="text-sm text-muted-foreground">No appointments scheduled for today</p>
           ) : (
-            appointments.map((appointment) => (
+            appointmentsArray.map((appointment) => (
               <div key={appointment.id} className="flex justify-between items-center p-3 bg-background rounded-lg border">
                 <div>
                   <p className="font-medium">

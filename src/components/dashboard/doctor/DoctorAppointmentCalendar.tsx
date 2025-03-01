@@ -23,7 +23,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { toast } = useToast();
 
-  const { data: appointments = [], isLoading, error } = useQuery<AppointmentWithPatient[]>({
+  const { data: appointments = [], isLoading, error } = useQuery<AppointmentWithPatient[], Error>({
     queryKey: ["doctor_appointments", doctorId, format(selectedDate, "yyyy-MM-dd")],
     queryFn: async () => {
       if (!doctorId) return [] as AppointmentWithPatient[];
@@ -62,6 +62,9 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
     console.error("Query error in DoctorAppointmentCalendar:", error);
   }
 
+  // Ensure appointments is always treated as an array
+  const appointmentsArray = Array.isArray(appointments) ? appointments : [];
+
   return (
     <Card>
       <CardHeader>
@@ -82,10 +85,10 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
           </h3>
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading appointments...</p>
-          ) : appointments.length === 0 ? (
+          ) : appointmentsArray.length === 0 ? (
             <p className="text-sm text-muted-foreground">No appointments scheduled for this day</p>
           ) : (
-            appointments.map((appointment) => (
+            appointmentsArray.map((appointment) => (
               <div
                 key={appointment.id}
                 className="flex justify-between items-center p-3 border rounded-lg"

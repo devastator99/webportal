@@ -156,7 +156,7 @@ export const ScheduleAppointment = ({
       return;
     }
 
-    // Fix TypeScript comparison issues by comparing with string literals
+    // Fix TypeScript comparison issues by using strict equality with string literals
     // Validate doctor/patient selection based on role
     if (effectiveCallerRole === "patient" && !selectedDoctor) {
       toast({
