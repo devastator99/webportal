@@ -49,14 +49,53 @@ export const PrescriptionWriter = () => {
     queryFn: async () => {
       if (!selectedPatient) return [];
       
+      // Fix: Update the query to properly join the doctors' profiles
       const { data, error } = await supabase
         .from("medical_records")
-        .select("*, doctor:profiles(first_name, last_name)")
+        .select(`
+          id, 
+          created_at, 
+          diagnosis, 
+          prescription, 
+          doctor_id
+        `)
         .eq("patient_id", selectedPatient)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
+
+      // Now get the doctor information for each record
+      const enhancedData = await Promise.all(
+        data.map(async (record) => {
+          if (record.doctor_id) {
+            const { data: doctorData, error: doctorError } = await supabase
+              .from("profiles")
+              .select("first_name, last_name")
+              .eq("id", record.doctor_id)
+              .single();
+            
+            if (!doctorError && doctorData) {
+              return {
+                ...record,
+                doctor: {
+                  first_name: doctorData.first_name,
+                  last_name: doctorData.last_name
+                }
+              };
+            }
+          }
+          
+          return {
+            ...record,
+            doctor: {
+              first_name: "Unknown",
+              last_name: ""
+            }
+          };
+        })
+      );
+
+      return enhancedData;
     },
     enabled: !!selectedPatient,
   });
@@ -243,3 +282,4 @@ export const PrescriptionWriter = () => {
     </Card>
   );
 };
+
