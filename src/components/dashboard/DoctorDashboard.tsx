@@ -7,29 +7,18 @@ import { TodaySchedule } from "./doctor/TodaySchedule";
 import { ChatInterface } from "../chat/ChatInterface";
 import { AiAssistant } from "./doctor/AiAssistant";
 import { DoctorAppointmentCalendar } from "./doctor/DoctorAppointmentCalendar";
-import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
 import { VideoUploader } from "@/components/videos/VideoUploader";
 import { VideoList } from "@/components/videos/VideoList";
 import { DocumentAnalyzer } from "./doctor/DocumentSummary";
 import { PrescriptionWriter } from "./doctor/PrescriptionWriter";
+import { DashboardHeader } from "./DashboardHeader";
 
 export const DoctorDashboard = () => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-saas-purple">Doctor Dashboard</h1>
-        <Button 
-          variant="outline" 
-          onClick={signOut}
-          className="gap-2"
-        >
-          <LogOut className="h-4 w-4" />
-          Sign Out
-        </Button>
-      </div>
+      <DashboardHeader />
       
       <StatsCards />
 

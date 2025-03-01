@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, MessageCircle, Users } from "lucide-react";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { AppointmentsList } from "./patient/AppointmentsList";
+import { DashboardHeader } from "./DashboardHeader";
 
 export const ReceptionDashboard = () => {
   const { user } = useAuth();
@@ -67,6 +68,8 @@ export const ReceptionDashboard = () => {
 
   return (
     <div className="container mx-auto py-6 space-y-6">
+      <DashboardHeader />
+      
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

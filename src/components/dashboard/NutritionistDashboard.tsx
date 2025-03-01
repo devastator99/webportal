@@ -1,8 +1,10 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, MessageSquare, FileText } from "lucide-react";
+import { DashboardHeader } from "./DashboardHeader";
 
 export const NutritionistDashboard = () => {
   const { user } = useAuth();
@@ -27,7 +29,7 @@ export const NutritionistDashboard = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-saas-primary">Nutritionist Dashboard</h1>
+      <DashboardHeader />
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
