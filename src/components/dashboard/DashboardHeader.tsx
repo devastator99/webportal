@@ -43,7 +43,7 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
           .from("profiles")
           .select("first_name, last_name")
           .eq("id", user.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error("[Profile Debug] Error fetching profile:", error);
@@ -76,6 +76,28 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
           return { first_name: user.email?.split('@')[0] || "User" };
         }
 
+        if (!data) {
+          console.log("[Profile Debug] No profile data returned, creating a new profile");
+          
+          // Create a profile for this user
+          const { data: newProfile, error: createError } = await supabase
+            .from("profiles")
+            .insert([{ 
+              id: user.id, 
+              first_name: user.email?.split('@')[0] || "User" 
+            }])
+            .select()
+            .single();
+            
+          if (createError) {
+            console.error("[Profile Debug] Error creating profile:", createError);
+            return { first_name: user.email?.split('@')[0] || "User" };
+          }
+          
+          console.log("[Profile Debug] Created new profile:", newProfile);
+          return newProfile;
+        }
+
         console.log("[Profile Debug] Successfully fetched profile data:", data);
         return data;
       } catch (err) {
@@ -98,7 +120,7 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
   // Create welcome message based on user role and profile data
   const getWelcomeMessage = () => {
     if (isLoading) {
-      return `Welcome to your dashboard`;
+      return "Welcome to your dashboard";
     }
     
     // Always have a fallback name from email
