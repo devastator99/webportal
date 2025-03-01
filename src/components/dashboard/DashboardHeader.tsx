@@ -119,12 +119,16 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
 
   // Create welcome message based on user role and profile data
   const getWelcomeMessage = () => {
-    if (isLoading) {
+    if (!user) {
       return "Welcome to your dashboard";
     }
     
+    if (isLoading) {
+      return `Welcome back!`;
+    }
+    
     // Always have a fallback name from email
-    const emailName = user?.email ? user.email.split('@')[0] : "User";
+    const emailName = user.email ? user.email.split('@')[0] : "User";
     
     // Use the profile name if available, otherwise use email name
     const firstName = profile?.first_name || emailName;
