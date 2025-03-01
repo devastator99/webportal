@@ -1,14 +1,12 @@
 
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import { Database } from "@/integrations/supabase/types";
+import { format, isFuture } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-// Define the correct type for the appointment data returned from our RPC function
 interface AppointmentWithPatient {
   id: string;
   scheduled_at: string;
@@ -21,97 +19,87 @@ interface AppointmentWithPatient {
 
 export const TodaySchedule = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
-  
-  const { data: appointments = [], isLoading, error } = useQuery<AppointmentWithPatient[], Error>({
-    queryKey: ["today_appointments", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [] as AppointmentWithPatient[];
+  const today = new Date();
+  const formattedDate = format(today, "yyyy-MM-dd");
 
-      // Get today's date in the format YYYY-MM-DD
-      const today = new Date().toISOString().split('T')[0];
-      console.log("Fetching today's appointments for date:", today, "doctor:", user.id);
-      
+  const { data: appointments = [], isLoading } = useQuery<AppointmentWithPatient[]>({
+    queryKey: ["today_appointments", user?.id, formattedDate],
+    queryFn: async () => {
+      if (!user?.id) return [];
+
       try {
-        // Use direct SQL query instead of RPC to avoid ambiguous column error
-        const { data, error: queryError } = await supabase
+        // Use direct query instead of RPC to avoid ambiguous column error
+        const { data, error } = await supabase
           .from('appointments')
           .select(`
             id,
             scheduled_at,
             status,
-            patient:patient_id(first_name, last_name)
+            patient:profiles(first_name, last_name)
           `)
-          .eq('doctor_id', user.id)
-          .eq('status', 'scheduled')
-          .gte('scheduled_at', `${today}T00:00:00`)
-          .lte('scheduled_at', `${today}T23:59:59`)
+          .eq('appointments.doctor_id', user.id)
+          .gte('scheduled_at', `${formattedDate}T00:00:00`)
+          .lte('scheduled_at', `${formattedDate}T23:59:59`)
           .order('scheduled_at');
 
-        if (queryError) {
-          console.error("Error fetching appointments:", queryError);
-          throw queryError;
+        if (error) {
+          console.error("Error fetching today's appointments:", error);
+          throw error;
         }
 
-        // Transform the data to match the expected format
-        const formattedData = data?.map(item => ({
+        // Transform data to match expected format
+        return data?.map(item => ({
           id: item.id,
           scheduled_at: item.scheduled_at,
           status: item.status,
           patient: item.patient || { first_name: "Unknown", last_name: "Patient" }
         })) || [];
-
-        console.log("Appointments with patients data:", formattedData);
-        return formattedData as AppointmentWithPatient[];
       } catch (error) {
-        console.error("Error in appointment fetch:", error);
-        toast({
-          title: "Error loading appointments",
-          description: "There was a problem loading your appointments.",
-          variant: "destructive",
-        });
-        return [] as AppointmentWithPatient[];
+        console.error("Error in today's schedule fetch:", error);
+        return [];
       }
     },
     enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  if (error) {
-    console.error("Query error in TodaySchedule:", error);
-  }
-
-  // Ensure appointments is always treated as an array
-  const appointmentsArray = Array.isArray(appointments) ? appointments : [];
+  // Filter for upcoming appointments today (exclude past appointments)
+  const upcomingAppointments = appointments.filter(
+    (appointment) => isFuture(new Date(appointment.scheduled_at))
+  );
 
   return (
-    <Card>
-      <CardHeader>
+    <Card className="col-span-1">
+      <CardHeader className="pb-3">
         <CardTitle>Today's Schedule</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
+        <ScrollArea className="h-[300px] w-full pr-4">
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading schedule...</p>
-          ) : appointmentsArray.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No appointments scheduled for today</p>
+            <p className="text-sm text-muted-foreground">Loading today's appointments...</p>
+          ) : upcomingAppointments.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No more appointments scheduled for today</p>
           ) : (
-            appointmentsArray.map((appointment) => (
-              <div key={appointment.id} className="flex justify-between items-center p-3 bg-background rounded-lg border">
-                <div>
-                  <p className="font-medium">
-                    {appointment.patient.first_name} {appointment.patient.last_name}
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {format(new Date(appointment.scheduled_at), "h:mm a")}
-                  </p>
+            <div className="space-y-4">
+              {upcomingAppointments.map((appointment) => (
+                <div
+                  key={appointment.id}
+                  className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0"
+                >
+                  <div>
+                    <p className="font-medium">
+                      {appointment.patient?.first_name || "Unknown"} {appointment.patient?.last_name || "Patient"}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(appointment.scheduled_at), "h:mm a")}
+                    </p>
+                  </div>
+                  <Badge variant="outline">{appointment.status}</Badge>
                 </div>
-                <Badge variant={appointment.status === "scheduled" ? "default" : "secondary"}>
-                  {appointment.status}
-                </Badge>
-              </div>
-            ))
+              ))}
+            </div>
           )}
-        </div>
+        </ScrollArea>
       </CardContent>
     </Card>
   );

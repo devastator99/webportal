@@ -32,16 +32,16 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
       console.log("Fetching appointments for date:", formattedDate, "doctor:", doctorId);
       
       try {
-        // Use direct SQL query instead of RPC to avoid ambiguous column error
+        // Fix the ambiguous column error by using table aliases and fully qualified names
         const { data, error: queryError } = await supabase
           .from('appointments')
           .select(`
             id,
             scheduled_at,
             status,
-            patient:patient_id(first_name, last_name)
+            patient:profiles(first_name, last_name)
           `)
-          .eq('doctor_id', doctorId)
+          .eq('appointments.doctor_id', doctorId)
           .gte('scheduled_at', `${formattedDate}T00:00:00`)
           .lte('scheduled_at', `${formattedDate}T23:59:59`)
           .order('scheduled_at');
@@ -50,6 +50,8 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
           console.error("Error fetching appointments:", queryError);
           throw queryError;
         }
+
+        console.log("Raw appointment data:", data);
 
         // Transform the data to match the expected format
         const formattedData = data?.map(item => ({
@@ -72,6 +74,9 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
       }
     },
     enabled: !!doctorId,
+    // Add retry configuration to avoid infinite retries
+    retry: 1,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   if (error) {
@@ -101,6 +106,11 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
           </h3>
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading appointments...</p>
+          ) : error ? (
+            <div className="p-3 border border-red-300 bg-red-50 text-red-700 rounded-lg">
+              <p className="font-medium">Error loading appointments</p>
+              <p className="text-sm">There was a problem loading your appointments.</p>
+            </div>
           ) : appointmentsArray.length === 0 ? (
             <p className="text-sm text-muted-foreground">No appointments scheduled for this day</p>
           ) : (
