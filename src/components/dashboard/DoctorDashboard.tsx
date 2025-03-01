@@ -67,7 +67,7 @@ export const DoctorDashboard = () => {
   );
   
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
       <DashboardHeader actionButton={actionButtons} />
       
       <StatsCards />

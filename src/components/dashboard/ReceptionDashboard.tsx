@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -9,10 +10,12 @@ import { AppointmentsList } from "./patient/AppointmentsList";
 import { DashboardHeader } from "./DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const ReceptionDashboard = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const handleSignOut = async () => {
     try {
@@ -100,7 +103,7 @@ export const ReceptionDashboard = () => {
   });
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
       <DashboardHeader actionButton={actionButtons} />
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

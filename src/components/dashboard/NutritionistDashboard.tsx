@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -7,10 +6,12 @@ import { Users, MessageSquare, FileText, LogOut } from "lucide-react";
 import { DashboardHeader } from "./DashboardHeader";
 import { Button } from "@/components/ui/button"; 
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const NutritionistDashboard = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   const { data: patients } = useQuery({
     queryKey: ["nutritionist_patients", user?.id],
@@ -53,6 +54,7 @@ export const NutritionistDashboard = () => {
         onClick={handleSignOut}
         variant="outline" 
         className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
+        size={isMobile ? "sm" : "default"}
       >
         <LogOut className="mr-2 h-4 w-4" />
         Sign Out
@@ -61,7 +63,7 @@ export const NutritionistDashboard = () => {
   );
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
       <DashboardHeader actionButton={actionButtons} />
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
