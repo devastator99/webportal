@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
@@ -11,10 +12,7 @@ type AppointmentWithPatientRaw = {
   id: string;
   scheduled_at: string;
   status: Database["public"]["Enums"]["appointment_status"];
-  patient: {
-    first_name: string;
-    last_name: string;
-  };
+  patient: Record<string, any>;
 };
 
 interface AppointmentWithPatient {
@@ -53,19 +51,23 @@ export const TodaySchedule = () => {
 
         console.log("Appointments with patients from RPC:", appointmentsData);
         
-        return (appointmentsData || []).map((item: AppointmentWithPatientRaw) => ({
-          id: item.id,
-          scheduled_at: item.scheduled_at,
-          status: item.status,
-          patient: {
-            first_name: typeof item.patient === 'object' && item.patient !== null 
-              ? (item.patient as any).first_name || "Unknown" 
-              : "Unknown",
-            last_name: typeof item.patient === 'object' && item.patient !== null 
-              ? (item.patient as any).last_name || "Patient" 
-              : "Patient"
-          }
-        }));
+        // Safely process and transform the data
+        return (appointmentsData || []).map((item: AppointmentWithPatientRaw) => {
+          // Ensure patient is treated as an object and extract properties safely
+          const patientObj = typeof item.patient === 'object' && item.patient !== null 
+            ? item.patient 
+            : {};
+          
+          return {
+            id: item.id,
+            scheduled_at: item.scheduled_at,
+            status: item.status,
+            patient: {
+              first_name: patientObj.first_name || "Unknown",
+              last_name: patientObj.last_name || "Patient"
+            }
+          };
+        });
       } catch (error) {
         console.error("Error in today's schedule fetch:", error);
         

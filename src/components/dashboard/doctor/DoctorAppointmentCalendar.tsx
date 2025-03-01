@@ -14,10 +14,7 @@ type AppointmentWithPatientRaw = {
   id: string;
   scheduled_at: string;
   status: Database["public"]["Enums"]["appointment_status"];
-  patient: {
-    first_name: string;
-    last_name: string;
-  };
+  patient: Record<string, any>;
 };
 
 // Define the interface for the processed appointment data
@@ -57,19 +54,22 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
         }
 
         // Transform the data to ensure it matches the AppointmentWithPatient interface
-        return (appointmentsData || []).map((item: AppointmentWithPatientRaw) => ({
-          id: item.id,
-          scheduled_at: item.scheduled_at,
-          status: item.status,
-          patient: {
-            first_name: typeof item.patient === 'object' && item.patient !== null 
-              ? (item.patient as any).first_name || "Unknown" 
-              : "Unknown",
-            last_name: typeof item.patient === 'object' && item.patient !== null 
-              ? (item.patient as any).last_name || "Patient" 
-              : "Patient"
-          }
-        }));
+        return (appointmentsData || []).map((item: AppointmentWithPatientRaw) => {
+          // Ensure patient is treated as an object and extract properties safely
+          const patientObj = typeof item.patient === 'object' && item.patient !== null 
+            ? item.patient 
+            : {};
+            
+          return {
+            id: item.id,
+            scheduled_at: item.scheduled_at,
+            status: item.status,
+            patient: {
+              first_name: patientObj.first_name || "Unknown",
+              last_name: patientObj.last_name || "Patient"
+            }
+          };
+        });
       } catch (error) {
         console.error("Error in calendar appointment fetch:", error);
         
