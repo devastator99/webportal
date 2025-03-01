@@ -98,7 +98,7 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
   // Create welcome message based on user role and profile data
   const getWelcomeMessage = () => {
     if (isLoading) {
-      return "Welcome to your dashboard";
+      return `Welcome to your dashboard`;
     }
     
     // Always have a fallback name from email

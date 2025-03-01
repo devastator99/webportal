@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -83,7 +82,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    // Initial session check
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       console.log('[Auth Debug] Initial session check:', session ? 'Session found' : 'No session');
@@ -95,7 +93,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     checkSession();
 
-    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       console.log('[Auth Debug] Auth state change event:', _event);
       handleAuthStateChange(session);
@@ -106,7 +103,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
-  // Log auth state on render for debugging
   useEffect(() => {
     console.log('[Auth Debug] Auth context updated:', {
       user: user?.id,
@@ -121,14 +117,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(true);
       console.log('Signing out...');
       
-      // First, clear auth state before API call
       setUser(null);
       setUserRole(null);
       
-      // Then perform the signOut API call
       const { error } = await supabase.auth.signOut();
       
-      // Redirect first, then show toast
       navigate('/', { replace: true });
       
       if (error) {
@@ -151,7 +144,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         description: error.message || "An unexpected error occurred"
       });
       
-      // Force navigation even if there was an error
       navigate('/', { replace: true });
     } finally {
       setIsLoading(false);
