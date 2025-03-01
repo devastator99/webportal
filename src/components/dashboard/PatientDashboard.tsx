@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -10,6 +9,8 @@ import { PatientStats } from "./patient/PatientStats";
 import { AppointmentsList } from "./patient/AppointmentsList";
 import { MedicalRecordsUpload } from "./patient/MedicalRecordsUpload";
 import { Database } from "@/integrations/supabase/types";
+import { Button } from "@/components/ui/button";
+import { LogOut } from "lucide-react";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -24,8 +25,25 @@ type Appointment = {
 };
 
 export const PatientDashboard = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Successfully signed out",
+        description: "You have been signed out of your account",
+      });
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        variant: "destructive",
+        title: "Error signing out",
+        description: "There was a problem signing you out. Please try again.",
+      });
+    }
+  };
 
   const { data: patientData, isLoading } = useQuery({
     queryKey: ["patient_dashboard", user?.id],
@@ -105,8 +123,16 @@ export const PatientDashboard = () => {
     <div className="min-h-screen">
       {/* Fixed header */}
       <div className="fixed top-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 border-b">
-        <div className="container mx-auto p-4">
+        <div className="container mx-auto p-4 flex justify-between items-center">
           <PatientHeader />
+          <Button 
+            onClick={handleSignOut}
+            variant="outline" 
+            className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
+          >
+            <LogOut className="mr-2 h-4 w-4" />
+            Sign Out
+          </Button>
         </div>
       </div>
 

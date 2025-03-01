@@ -3,11 +3,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, MessageSquare, FileText } from "lucide-react";
+import { Users, MessageSquare, FileText, LogOut } from "lucide-react";
 import { DashboardHeader } from "./DashboardHeader";
+import { Button } from "@/components/ui/button"; 
+import { useToast } from "@/hooks/use-toast";
 
 export const NutritionistDashboard = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
 
   const { data: patients } = useQuery({
     queryKey: ["nutritionist_patients", user?.id],
@@ -27,9 +30,37 @@ export const NutritionistDashboard = () => {
     },
   });
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Successfully signed out",
+        description: "You have been signed out of your account",
+      });
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        variant: "destructive",
+        title: "Error signing out",
+        description: "There was a problem signing you out. Please try again.",
+      });
+    }
+  };
+
+  const actionButtons = (
+    <Button 
+      onClick={handleSignOut}
+      variant="outline" 
+      className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
+    >
+      <LogOut className="mr-2 h-4 w-4" />
+      Sign Out
+    </Button>
+  );
+
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <DashboardHeader />
+      <DashboardHeader actionButton={actionButtons} />
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
