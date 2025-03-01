@@ -23,18 +23,19 @@ export const StatsCards = () => {
       
       console.log("Fetching patients count for doctor:", user?.id);
       try {
-        const { count, error } = await supabase
-          .from("patient_assignments")
-          .select("*", { count: 'exact', head: true })
-          .eq('doctor_id', user?.id);
+        // Use RPC call to a stored procedure on the server side
+        const { data, error } = await supabase.rpc(
+          'get_doctor_patients_count', 
+          { doctor_id: user.id }
+        );
 
         if (error) {
           console.error("Error fetching patients count:", error);
           throw error;
         }
         
-        console.log("Patients count result:", { count });
-        return count || 0;
+        console.log("Patients count result:", { count: data });
+        return data || 0;
       } catch (error) {
         console.error("Error in patients count query:", error);
         // Don't show toast here, just return 0
@@ -51,18 +52,19 @@ export const StatsCards = () => {
       
       console.log("Fetching medical records count for doctor:", user?.id);
       try {
-        const { count, error } = await supabase
-          .from("medical_records")
-          .select("*", { count: 'exact', head: true })
-          .eq('doctor_id', user?.id);
+        // Use RPC call to a stored procedure on the server side
+        const { data, error } = await supabase.rpc(
+          'get_doctor_medical_records_count', 
+          { doctor_id: user.id }
+        );
 
         if (error) {
           console.error("Error fetching medical records count:", error);
           throw error;
         }
         
-        console.log("Medical records count result:", { count });
-        return count || 0;
+        console.log("Medical records count result:", { count: data });
+        return data || 0;
       } catch (error) {
         console.error("Error in medical records count query:", error);
         // Don't show toast here, just return 0
@@ -79,10 +81,11 @@ export const StatsCards = () => {
       
       console.log("Fetching appointments for doctor:", user?.id);
       try {
-        const { data, error } = await supabase
-          .from("appointments")
-          .select("scheduled_at, status")
-          .eq('doctor_id', user?.id);
+        // Use RPC call to a stored procedure on the server side
+        const { data, error } = await supabase.rpc(
+          'get_doctor_appointments', 
+          { doctor_id: user.id }
+        );
 
         if (error) {
           console.error("Error fetching appointments:", error);
