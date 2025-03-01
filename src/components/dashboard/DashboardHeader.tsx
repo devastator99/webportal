@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
+import { ReactNode } from "react";
 
 // Define a proper interface for the profile data
 interface ProfileData {
@@ -11,7 +12,11 @@ interface ProfileData {
   last_name?: string;
 }
 
-export const DashboardHeader = () => {
+interface DashboardHeaderProps {
+  actionButton?: ReactNode;
+}
+
+export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
   const isMobile = useIsMobile();
   const { user, userRole } = useAuth();
   const { toast } = useToast();
@@ -171,6 +176,11 @@ export const DashboardHeader = () => {
       <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-black dark:text-white py-2 px-1">
         {welcomeMessage}
       </h1>
+      {actionButton && (
+        <div className="flex items-center gap-3 justify-end">
+          {actionButton}
+        </div>
+      )}
     </div>
   );
 };
