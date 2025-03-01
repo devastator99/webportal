@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const fetchUserRole = async (userId: string) => {
     try {
-      console.log('Fetching role for user:', userId);
+      console.log('Fetching role for user ID:', userId);
       
       const { data, error } = await supabase
         .rpc('get_user_role', {
@@ -60,7 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(true);
       
       if (session?.user) {
-        console.log('Auth state change - user found:', session.user.id);
+        console.log('Auth state change - user found:', session.user.id, 'email:', session.user.email);
         setUser(session.user);
         const role = await fetchUserRole(session.user.id);
         console.log('Role fetched:', role);
@@ -84,12 +84,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     // Initial session check
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      handleAuthStateChange(session);
-    });
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      console.log('Initial session check:', session ? 'Session found' : 'No session');
+      await handleAuthStateChange(session);
+    };
+    
+    checkSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      console.log('Auth state change event:', _event);
       handleAuthStateChange(session);
     });
 
@@ -98,9 +103,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, []);
 
+  // Log auth state on render for debugging
+  useEffect(() => {
+    console.log('Dashboard render:', {
+      user: user?.id,
+      userRole,
+      isLoading
+    });
+  }, [user, userRole, isLoading]);
+
   const signOut = async () => {
     try {
       setIsLoading(true);
+      console.log('Signing out...');
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       

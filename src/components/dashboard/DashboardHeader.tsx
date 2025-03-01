@@ -15,13 +15,16 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
 
-  // Fetch profile data with improved error handling and debugging
-  const { data: profile, isLoading, error } = useQuery({
+  // Fetch profile data with improved error handling
+  const { data: profile, isLoading } = useQuery({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
-      if (!user?.id) return null;
+      if (!user?.id) {
+        console.log("No user ID available for profile fetch");
+        return null;
+      }
       
-      console.log("Fetching profile for user:", user.id, "with email:", user?.email);
+      console.log(`Fetching profile for user ID: ${user.id}, email: ${user.email}`);
       
       try {
         const { data, error } = await supabase
@@ -34,47 +37,60 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
           console.error("Error fetching profile:", error);
           toast({
             variant: "destructive",
-            title: "Error fetching profile",
-            description: "Please refresh the page"
+            title: "Error fetching user profile",
+            description: "Please try refreshing the page"
           });
           return null;
         }
 
-        console.log("Profile data loaded:", data);
+        if (!data) {
+          console.log("No profile data found for user:", user.id);
+          // Try to create a profile if none exists
+          const { data: newProfile, error: createError } = await supabase
+            .from("profiles")
+            .insert([{ id: user.id, first_name: user.email?.split('@')[0] || "User" }])
+            .select()
+            .single();
+            
+          if (createError) {
+            console.error("Error creating profile:", createError);
+            return { first_name: user.email?.split('@')[0] || "User" };
+          }
+          
+          console.log("Created new profile:", newProfile);
+          return newProfile;
+        }
+
+        console.log("Successfully fetched profile data:", data);
         return data;
       } catch (err) {
         console.error("Exception in profile fetch:", err);
-        return null;
+        return { first_name: user.email?.split('@')[0] || "User" };
       }
     },
     enabled: !!user?.id,
-    retry: 2, // Add retries for transient issues
+    retry: 2,
+    staleTime: 60000, // Cache for 1 minute
   });
-
-  if (error) {
-    console.error("React Query error fetching profile:", error);
-  }
 
   // Create welcome message based on user role and profile data
   const getWelcomeMessage = () => {
     if (isLoading) {
-      console.log("Profile data is still loading...");
       return "Welcome";
     }
     
-    if (!profile || !profile.first_name) {
-      console.log("No profile data available for welcome message", { profile, userId: user?.id });
-      return "Welcome";
+    if (!profile || (!profile.first_name && !profile.last_name)) {
+      return user?.email ? `Welcome, ${user.email.split('@')[0]}` : "Welcome";
     }
     
     const prefix = userRole === 'doctor' ? 'Dr. ' : '';
-    const fullName = `${profile.first_name}${profile.last_name ? ` ${profile.last_name}` : ""}`;
-    console.log("Creating welcome message:", { prefix, fullName, userRole });
-    return `Welcome, ${prefix}${fullName}`;
+    const name = profile.first_name || '';
+    const lastName = profile.last_name ? ` ${profile.last_name}` : '';
+    
+    return `Welcome, ${prefix}${name}${lastName}`;
   };
 
   const welcomeMessage = getWelcomeMessage();
-  console.log("Final welcome message:", welcomeMessage);
 
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
@@ -87,4 +103,3 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
     </div>
   );
 };
-
