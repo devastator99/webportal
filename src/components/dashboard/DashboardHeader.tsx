@@ -1,14 +1,9 @@
 
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
-
-type DashboardHeaderProps = {
-  actionButton?: React.ReactNode;
-};
 
 // Define a proper interface for the profile data
 interface ProfileData {
@@ -16,7 +11,7 @@ interface ProfileData {
   last_name?: string;
 }
 
-export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
+export const DashboardHeader = () => {
   const isMobile = useIsMobile();
   const { user, userRole } = useAuth();
   const { toast } = useToast();
@@ -176,11 +171,6 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
       <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-black dark:text-white py-2 px-1">
         {welcomeMessage}
       </h1>
-      {actionButton && (
-        <div className="flex gap-2 sm:gap-4 justify-end w-full sm:w-auto">
-          {actionButton}
-        </div>
-      )}
     </div>
   );
 };

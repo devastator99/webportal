@@ -2,20 +2,24 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { LogOut, LogIn } from "lucide-react";
+import { LogOut, LogIn, CalendarPlus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
+import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const Navbar = () => {
-  const { user, isLoading, signOut } = useAuth();
+  const { user, isLoading, signOut, userRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const { loading, error, handleLogin, handleSignUp } = useAuthHandlers();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const { toast } = useToast();
+  const isMobile = useIsMobile();
   
   // Check if we're on the dashboard page
   const isDashboardPage = location.pathname === '/dashboard';
@@ -36,11 +40,24 @@ export const Navbar = () => {
     try {
       setIsSigningOut(true);
       await signOut();
+      toast({
+        title: "Successfully signed out",
+        description: "You have been signed out of your account",
+      });
     } catch (error) {
       console.error("Sign out error in Navbar:", error);
+      toast({
+        variant: "destructive",
+        title: "Error signing out",
+        description: "There was a problem signing you out. Please try again.",
+      });
     } finally {
       setIsSigningOut(false);
     }
+  };
+
+  const handleScheduleAppointment = () => {
+    navigate("/appointments/schedule");
   };
 
   if (isLoading && !isSigningOut) {
@@ -56,51 +73,66 @@ export const Navbar = () => {
         >
           Anubhuti
         </div>
-        {!user && (
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button 
-                className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
-                size="sm"
-              >
-                <LogIn className="h-4 w-4" />
-                <span className="hidden sm:inline">Sign In</span>
-                <span className="sm:hidden">Login</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] bg-white dark:bg-gray-800">
-              <div className="grid gap-4 py-4">
-                <AuthForm
-                  type={isLoginMode ? "login" : "register"}
-                  onSubmit={isLoginMode ? handleLogin : handleSignUp}
-                  error={error}
-                  loading={loading}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setIsLoginMode(!isLoginMode)}
-                  disabled={loading}
+        
+        <div className="flex items-center gap-3">
+          {user && userRole === "patient" && (
+            <Button 
+              onClick={handleScheduleAppointment}
+              className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
+              size={isMobile ? "sm" : "default"}
+            >
+              <CalendarPlus className="h-4 w-4" />
+              <span className="hidden sm:inline">Schedule</span>
+            </Button>
+          )}
+          
+          {!user && (
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
+                  size="sm"
                 >
-                  {isLoginMode ? "Need an account? Sign up" : "Already have an account? Sign in"}
+                  <LogIn className="h-4 w-4" />
+                  <span className="hidden sm:inline">Sign In</span>
+                  <span className="sm:hidden">Login</span>
                 </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
-        {user && (
-          <Button 
-            onClick={handleSignOut}
-            variant="outline" 
-            className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2 font-medium shadow-sm"
-            size="sm"
-            disabled={isSigningOut}
-          >
-            <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">{isSigningOut ? "Signing Out..." : "Sign Out"}</span>
-            <span className="sm:hidden">{isSigningOut ? "..." : "Logout"}</span>
-          </Button>
-        )}
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px] bg-white dark:bg-gray-800">
+                <div className="grid gap-4 py-4">
+                  <AuthForm
+                    type={isLoginMode ? "login" : "register"}
+                    onSubmit={isLoginMode ? handleLogin : handleSignUp}
+                    error={error}
+                    loading={loading}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setIsLoginMode(!isLoginMode)}
+                    disabled={loading}
+                  >
+                    {isLoginMode ? "Need an account? Sign up" : "Already have an account? Sign in"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+          
+          {user && (
+            <Button 
+              onClick={handleSignOut}
+              variant="outline" 
+              className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2 font-medium shadow-sm"
+              size="sm"
+              disabled={isSigningOut}
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">{isSigningOut ? "Signing Out..." : "Sign Out"}</span>
+              <span className="sm:hidden">{isSigningOut ? "..." : "Logout"}</span>
+            </Button>
+          )}
+        </div>
       </div>
     </nav>
   );

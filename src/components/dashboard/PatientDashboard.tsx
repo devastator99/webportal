@@ -5,15 +5,10 @@ import { useQuery } from "@tanstack/react-query";
 import { ChatInterface } from "../chat/ChatInterface";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardSkeleton } from "./DashboardSkeleton";
-import { PatientHeader } from "./patient/PatientHeader";
 import { PatientStats } from "./patient/PatientStats";
 import { AppointmentsList } from "./patient/AppointmentsList";
 import { MedicalRecordsUpload } from "./patient/MedicalRecordsUpload";
 import { Database } from "@/integrations/supabase/types";
-import { Button } from "@/components/ui/button";
-import { CalendarIcon, LogOut } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { DashboardHeader } from "./DashboardHeader";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -29,27 +24,8 @@ type Appointment = {
 };
 
 export const PatientDashboard = () => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const isMobile = useIsMobile();
-
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      toast({
-        title: "Successfully signed out",
-        description: "You have been signed out of your account",
-      });
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast({
-        variant: "destructive",
-        title: "Error signing out",
-        description: "There was a problem signing you out. Please try again.",
-      });
-    }
-  };
 
   const { data: patientData, isLoading } = useQuery({
     queryKey: ["patient_dashboard", user?.id],
@@ -123,33 +99,9 @@ export const PatientDashboard = () => {
   // Filter upcoming appointments - note that our RPC function already filters for scheduled status
   const upcomingAppointments = patientData?.appointments || [];
 
-  // Add action buttons like in DoctorDashboard
-  const actionButtons = (
-    <div className="flex items-center gap-3 justify-end">
-      <Button 
-        onClick={() => navigate("/appointments/schedule")}
-        className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
-        size={isMobile ? "sm" : "default"}
-      >
-        <CalendarIcon className="mr-2 h-4 w-4" />
-        Schedule Appointment
-      </Button>
-      
-      <Button 
-        onClick={handleSignOut}
-        variant="outline" 
-        className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
-        size={isMobile ? "sm" : "default"}
-      >
-        <LogOut className="mr-2 h-4 w-4" />
-        Sign Out
-      </Button>
-    </div>
-  );
-
   return (
     <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
-      <DashboardHeader actionButton={actionButtons} />
+      <DashboardHeader />
       
       {/* Stats Row */}
       <PatientStats />
