@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,19 +32,35 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
       console.log("Fetching appointments for date:", formattedDate, "doctor:", doctorId);
       
       try {
-        // Use the security definer RPC function to safely fetch appointments with patient data
-        const { data, error: rpcError } = await supabase.rpc('get_doctor_appointments_with_patients', 
-          { doctor_id: doctorId, date_filter: formattedDate }
-        );
+        // Use direct SQL query instead of RPC to avoid ambiguous column error
+        const { data, error: queryError } = await supabase
+          .from('appointments')
+          .select(`
+            id,
+            scheduled_at,
+            status,
+            patient:patient_id(first_name, last_name)
+          `)
+          .eq('doctor_id', doctorId)
+          .gte('scheduled_at', `${formattedDate}T00:00:00`)
+          .lte('scheduled_at', `${formattedDate}T23:59:59`)
+          .order('scheduled_at');
 
-        if (rpcError) {
-          console.error("Error fetching appointments:", rpcError);
-          throw rpcError;
+        if (queryError) {
+          console.error("Error fetching appointments:", queryError);
+          throw queryError;
         }
 
-        console.log("Appointments with patients data:", data);
-        // Explicitly cast and handle null case
-        return (data || []) as AppointmentWithPatient[];
+        // Transform the data to match the expected format
+        const formattedData = data?.map(item => ({
+          id: item.id,
+          scheduled_at: item.scheduled_at,
+          status: item.status,
+          patient: item.patient || { first_name: "Unknown", last_name: "Patient" }
+        })) || [];
+
+        console.log("Appointments with patients data:", formattedData);
+        return formattedData as AppointmentWithPatient[];
       } catch (error) {
         console.error("Error in calendar appointment fetch:", error);
         toast({

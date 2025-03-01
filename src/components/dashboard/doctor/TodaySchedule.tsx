@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -32,20 +33,36 @@ export const TodaySchedule = () => {
       console.log("Fetching today's appointments for date:", today, "doctor:", user.id);
       
       try {
-        // Use the security definer RPC function to safely fetch appointments with patient data
-        const { data, error: rpcError } = await supabase.rpc('get_doctor_appointments_with_patients', 
-          { doctor_id: user.id, date_filter: today }
-        );
+        // Use direct SQL query instead of RPC to avoid ambiguous column error
+        const { data, error: queryError } = await supabase
+          .from('appointments')
+          .select(`
+            id,
+            scheduled_at,
+            status,
+            patient:patient_id(first_name, last_name)
+          `)
+          .eq('doctor_id', user.id)
+          .eq('status', 'scheduled')
+          .gte('scheduled_at', `${today}T00:00:00`)
+          .lte('scheduled_at', `${today}T23:59:59`)
+          .order('scheduled_at');
 
-        if (rpcError) {
-          console.error("Error fetching appointments:", rpcError);
-          throw rpcError;
+        if (queryError) {
+          console.error("Error fetching appointments:", queryError);
+          throw queryError;
         }
 
-        console.log("Appointments with patients data:", data);
-        
-        // Explicitly cast to the correct type and handle null case
-        return (data || []) as AppointmentWithPatient[];
+        // Transform the data to match the expected format
+        const formattedData = data?.map(item => ({
+          id: item.id,
+          scheduled_at: item.scheduled_at,
+          status: item.status,
+          patient: item.patient || { first_name: "Unknown", last_name: "Patient" }
+        })) || [];
+
+        console.log("Appointments with patients data:", formattedData);
+        return formattedData as AppointmentWithPatient[];
       } catch (error) {
         console.error("Error in appointment fetch:", error);
         toast({
