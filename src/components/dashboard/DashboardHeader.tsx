@@ -41,12 +41,9 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
 
         if (error) {
           console.error("Error fetching profile:", error);
-          toast({
-            variant: "destructive",
-            title: "Error fetching user profile",
-            description: "Please try refreshing the page"
-          });
-          return null;
+          // Don't show error toast here, just log it
+          console.log("Will use fallback name from email");
+          return { first_name: user.email?.split('@')[0] || "User" };
         }
 
         if (!data) {
@@ -82,18 +79,19 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
   // Create welcome message based on user role and profile data
   const getWelcomeMessage = () => {
     if (isLoading) {
-      return "Welcome";
+      return "Welcome to your dashboard";
     }
     
-    if (!profile || !profile.first_name) {
-      return user?.email ? `Welcome, ${user.email.split('@')[0]}` : "Welcome";
-    }
+    // Always have a fallback name from email
+    const emailName = user?.email ? user.email.split('@')[0] : "User";
+    
+    // Use the profile name if available, otherwise use email name
+    const firstName = profile?.first_name || emailName;
+    const lastName = profile?.last_name ? ` ${profile.last_name}` : '';
     
     const prefix = userRole === 'doctor' ? 'Dr. ' : '';
-    const name = profile.first_name || '';
-    const lastName = profile.last_name ? ` ${profile.last_name}` : '';
     
-    return `Welcome, ${prefix}${name}${lastName}`;
+    return `Welcome, ${prefix}${firstName}${lastName}`;
   };
 
   const welcomeMessage = getWelcomeMessage();
