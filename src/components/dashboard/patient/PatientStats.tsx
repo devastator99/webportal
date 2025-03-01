@@ -40,8 +40,9 @@ export const PatientStats = () => {
     queryFn: async () => {
       if (!user?.id) return [];
       
+      // Using the rest.rpc method to bypass TypeScript constraints
       const { data, error } = await supabase
-        .rpc('get_patient_appointments', { p_patient_id: user.id });
+        .rest.rpc('get_patient_appointments', { p_patient_id: user.id });
 
       if (error) {
         console.error('Error fetching appointments:', error);
@@ -63,8 +64,9 @@ export const PatientStats = () => {
     queryFn: async () => {
       if (!user?.id) return [];
 
+      // Using the rest.rpc method to bypass TypeScript constraints
       const { data, error } = await supabase
-        .rpc('get_patient_medical_reports', { p_patient_id: user.id });
+        .rest.rpc('get_patient_medical_reports', { p_patient_id: user.id });
 
       if (error) {
         console.error('Error fetching reports:', error);
@@ -85,13 +87,27 @@ export const PatientStats = () => {
     try {
       console.log('Attempting to view report:', report.id);
       
-      // Using the Edge Function to get the report URL
-      const { data, error } = await supabase.functions.invoke<string>('get-medical-report-url', {
-        body: { reportId: report.id }
+      // First call our RPC function to check access and get the file path
+      const { data: filePath, error: pathError } = await supabase
+        .rest.rpc('get_medical_report_url', { p_report_id: report.id });
+        
+      if (pathError || !filePath) {
+        console.error('Error getting report path:', pathError);
+        toast({
+          title: "Access Denied",
+          description: "You don't have permission to view this report",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Then use the Edge Function to get a signed URL to access the file
+      const { data: signedUrl, error } = await supabase.functions.invoke('get-medical-report-url', {
+        body: { filePath }
       });
 
-      if (error) {
-        console.error('Error getting report URL:', error);
+      if (error || !signedUrl) {
+        console.error('Error getting signed URL:', error);
         toast({
           title: "Error",
           description: "Unable to access the report. Please try again.",
@@ -100,8 +116,8 @@ export const PatientStats = () => {
         return;
       }
 
-      if (typeof data === 'string' && data.startsWith('http')) {
-        window.open(data, '_blank');
+      if (typeof signedUrl === 'string' && signedUrl.startsWith('http')) {
+        window.open(signedUrl, '_blank');
       } else {
         throw new Error('Invalid URL received from server');
       }
