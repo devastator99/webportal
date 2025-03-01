@@ -31,7 +31,7 @@ export const StatsCards = () => {
       console.log("Fetching patients count for doctor:", user?.id);
       try {
         // Use RPC call to a stored procedure on the server side
-        const { data, error } = await supabase.rpc<number, { doctor_id: string }>(
+        const { data, error } = await supabase.rpc(
           'get_doctor_patients_count', 
           { doctor_id: user.id }
         );
@@ -42,7 +42,7 @@ export const StatsCards = () => {
         }
         
         console.log("Patients count result:", { count: data });
-        return data || 0;
+        return data as number || 0;
       } catch (error) {
         console.error("Error in patients count query:", error);
         // Don't show toast here, just return 0
@@ -60,7 +60,7 @@ export const StatsCards = () => {
       console.log("Fetching medical records count for doctor:", user?.id);
       try {
         // Use RPC call to a stored procedure on the server side
-        const { data, error } = await supabase.rpc<number, { doctor_id: string }>(
+        const { data, error } = await supabase.rpc(
           'get_doctor_medical_records_count', 
           { doctor_id: user.id }
         );
@@ -71,7 +71,7 @@ export const StatsCards = () => {
         }
         
         console.log("Medical records count result:", { count: data });
-        return data || 0;
+        return data as number || 0;
       } catch (error) {
         console.error("Error in medical records count query:", error);
         // Don't show toast here, just return 0
@@ -89,7 +89,7 @@ export const StatsCards = () => {
       console.log("Fetching appointments for doctor:", user?.id);
       try {
         // Use RPC call to a stored procedure on the server side
-        const { data, error } = await supabase.rpc<DoctorAppointment[], { doctor_id: string }>(
+        const { data, error } = await supabase.rpc(
           'get_doctor_appointments', 
           { doctor_id: user.id }
         );
@@ -99,8 +99,9 @@ export const StatsCards = () => {
           throw error;
         }
         
-        console.log("Appointments result:", { count: data?.length || 0, data });
-        return data || [];
+        const typedData = data as DoctorAppointment[];
+        console.log("Appointments result:", { count: typedData?.length || 0, data: typedData });
+        return typedData || [];
       } catch (error) {
         console.error("Error in appointments query:", error);
         // Don't show toast here, just return an empty array
@@ -112,17 +113,21 @@ export const StatsCards = () => {
 
   // Calculate today's appointments
   const today = format(new Date(), 'yyyy-MM-dd');
-  const todayAppointments = appointments.filter(apt => 
-    format(new Date(apt.scheduled_at), 'yyyy-MM-dd') === today && 
-    apt.status === 'scheduled'
-  );
+  const todayAppointments = Array.isArray(appointments) 
+    ? appointments.filter(apt => 
+        format(new Date(apt.scheduled_at), 'yyyy-MM-dd') === today && 
+        apt.status === 'scheduled'
+      )
+    : [];
 
   // Calculate upcoming appointments (future appointments)
   const now = new Date();
-  const upcomingAppointments = appointments.filter(apt => 
-    new Date(apt.scheduled_at) > now && 
-    apt.status === 'scheduled'
-  );
+  const upcomingAppointments = Array.isArray(appointments)
+    ? appointments.filter(apt => 
+        new Date(apt.scheduled_at) > now && 
+        apt.status === 'scheduled'
+      )
+    : [];
 
   console.log("Doctor Stats summary:", {
     patientsCount,
