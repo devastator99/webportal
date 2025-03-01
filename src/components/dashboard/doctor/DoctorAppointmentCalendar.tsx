@@ -33,7 +33,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
       
       try {
         // Use the security definer RPC function to safely fetch appointments with patient data
-        const { data, error: rpcError } = await supabase.rpc<AppointmentWithPatient>(
+        const { data, error: rpcError } = await supabase.rpc<AppointmentWithPatient[]>(
           'get_doctor_appointments_with_patients',
           { doctor_id: doctorId, date_filter: formattedDate }
         );
