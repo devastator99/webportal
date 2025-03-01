@@ -64,6 +64,11 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
               
             if (createError) {
               console.error("[Profile Debug] Error creating profile:", createError);
+              toast({
+                variant: "destructive",
+                title: "Profile Error",
+                description: "Could not create user profile"
+              });
               return { first_name: "User" };
             }
             
@@ -73,6 +78,11 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
           
           // For other errors, return fallback name
           console.log("[Profile Debug] Using fallback name due to error");
+          toast({
+            variant: "destructive",
+            title: "Profile Error",
+            description: "Could not load profile data"
+          });
           return { first_name: "User" };
         }
 
@@ -91,6 +101,11 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
             
           if (createError) {
             console.error("[Profile Debug] Error creating profile:", createError);
+            toast({
+              variant: "destructive",
+              title: "Profile Error",
+              description: "Could not create user profile"
+            });
             return { first_name: "User" };
           }
           
@@ -102,6 +117,11 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
         return data;
       } catch (err) {
         console.error("[Profile Debug] Exception in profile fetch:", err);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "An unexpected error occurred"
+        });
         return { first_name: "User" };
       }
     },
@@ -123,23 +143,36 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
       return "Welcome to your dashboard";
     }
     
+    const fallbackName = "User";
+    
+    // While loading, show a simple welcome
     if (isLoading) {
       return `Welcome back!`;
     }
     
-    // Use a generic name if no profile name is available
-    const firstName = profile?.first_name || "User";
+    if (queryError) {
+      console.error("[Profile Debug] Error in profile query:", queryError);
+      return `Welcome, ${fallbackName}`;
+    }
+    
+    // Use a generic name if no profile or profile name is available
+    const firstName = profile?.first_name || fallbackName;
     const lastName = profile?.last_name ? ` ${profile.last_name}` : '';
     
     const prefix = userRole === 'doctor' ? 'Dr. ' : '';
+    
+    console.log("[Profile Debug] Building welcome message with:", { 
+      firstName, lastName, prefix, userRole 
+    });
     
     return `Welcome, ${prefix}${firstName}${lastName}`;
   };
 
   const welcomeMessage = getWelcomeMessage();
+  console.log("[Profile Debug] Final welcome message:", welcomeMessage);
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full mb-4">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full mb-8">
       <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-black dark:text-white py-2 px-1">
         {welcomeMessage}
       </h1>

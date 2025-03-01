@@ -84,12 +84,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      console.log('[Auth Debug] Initial session check:', session ? 'Session found' : 'No session');
-      if (session) {
-        console.log('[Auth Debug] Session user:', session.user.email);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log('[Auth Debug] Initial session check:', session ? 'Session found' : 'No session');
+        if (session) {
+          console.log('[Auth Debug] Session user:', session.user.email);
+        }
+        await handleAuthStateChange(session);
+      } catch (error) {
+        console.error('[Auth Debug] Error checking session:', error);
+        setIsLoading(false);
       }
-      await handleAuthStateChange(session);
     };
     
     checkSession();
