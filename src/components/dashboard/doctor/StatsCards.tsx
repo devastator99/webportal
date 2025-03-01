@@ -31,7 +31,7 @@ export const StatsCards = () => {
       console.log("Fetching patients count for doctor:", user?.id);
       try {
         // Use RPC call to a stored procedure on the server side
-        const { data, error } = await supabase.rpc<number>(
+        const { data, error } = await supabase.rpc<number, { doctor_id: string }>(
           'get_doctor_patients_count', 
           { doctor_id: user.id }
         );
@@ -60,7 +60,7 @@ export const StatsCards = () => {
       console.log("Fetching medical records count for doctor:", user?.id);
       try {
         // Use RPC call to a stored procedure on the server side
-        const { data, error } = await supabase.rpc<number>(
+        const { data, error } = await supabase.rpc<number, { doctor_id: string }>(
           'get_doctor_medical_records_count', 
           { doctor_id: user.id }
         );
@@ -89,7 +89,7 @@ export const StatsCards = () => {
       console.log("Fetching appointments for doctor:", user?.id);
       try {
         // Use RPC call to a stored procedure on the server side
-        const { data, error } = await supabase.rpc<DoctorAppointment[]>(
+        const { data, error } = await supabase.rpc<DoctorAppointment[], { doctor_id: string }>(
           'get_doctor_appointments', 
           { doctor_id: user.id }
         );
@@ -99,7 +99,7 @@ export const StatsCards = () => {
           throw error;
         }
         
-        console.log("Appointments result:", { count: data?.length, data });
+        console.log("Appointments result:", { count: data?.length || 0, data });
         return data || [];
       } catch (error) {
         console.error("Error in appointments query:", error);
