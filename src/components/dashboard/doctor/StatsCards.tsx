@@ -22,23 +22,24 @@ export const StatsCards = () => {
       if (!user?.id) return 0;
       
       console.log("Fetching patients count for doctor:", user?.id);
-      const { count, error } = await supabase
-        .from("patient_assignments")
-        .select("*", { count: 'exact', head: true })
-        .eq('doctor_id', user?.id);
+      try {
+        const { count, error } = await supabase
+          .from("patient_assignments")
+          .select("*", { count: 'exact', head: true })
+          .eq('doctor_id', user?.id);
 
-      if (error) {
-        console.error("Error fetching patients count:", error);
-        toast({
-          title: "Error",
-          description: "Could not fetch patients data",
-          variant: "destructive"
-        });
-        throw error;
+        if (error) {
+          console.error("Error fetching patients count:", error);
+          throw error;
+        }
+        
+        console.log("Patients count result:", { count });
+        return count || 0;
+      } catch (error) {
+        console.error("Error in patients count query:", error);
+        // Don't show toast here, just return 0
+        return 0;
       }
-      
-      console.log("Patients count result:", { count });
-      return count || 0;
     },
     enabled: !!user?.id,
   });
@@ -49,23 +50,24 @@ export const StatsCards = () => {
       if (!user?.id) return 0;
       
       console.log("Fetching medical records count for doctor:", user?.id);
-      const { count, error } = await supabase
-        .from("medical_records")
-        .select("*", { count: 'exact', head: true })
-        .eq('doctor_id', user?.id);
+      try {
+        const { count, error } = await supabase
+          .from("medical_records")
+          .select("*", { count: 'exact', head: true })
+          .eq('doctor_id', user?.id);
 
-      if (error) {
-        console.error("Error fetching medical records count:", error);
-        toast({
-          title: "Error",
-          description: "Could not fetch medical records data",
-          variant: "destructive"
-        });
-        throw error;
+        if (error) {
+          console.error("Error fetching medical records count:", error);
+          throw error;
+        }
+        
+        console.log("Medical records count result:", { count });
+        return count || 0;
+      } catch (error) {
+        console.error("Error in medical records count query:", error);
+        // Don't show toast here, just return 0
+        return 0;
       }
-      
-      console.log("Medical records count result:", { count });
-      return count || 0;
     },
     enabled: !!user?.id,
   });
@@ -76,23 +78,24 @@ export const StatsCards = () => {
       if (!user?.id) return [];
       
       console.log("Fetching appointments for doctor:", user?.id);
-      const { data, error } = await supabase
-        .from("appointments")
-        .select("scheduled_at, status")
-        .eq('doctor_id', user?.id);
+      try {
+        const { data, error } = await supabase
+          .from("appointments")
+          .select("scheduled_at, status")
+          .eq('doctor_id', user?.id);
 
-      if (error) {
-        console.error("Error fetching appointments:", error);
-        toast({
-          title: "Error",
-          description: "Could not fetch appointments data",
-          variant: "destructive"
-        });
-        throw error;
+        if (error) {
+          console.error("Error fetching appointments:", error);
+          throw error;
+        }
+        
+        console.log("Appointments result:", { count: data?.length, data });
+        return data || [];
+      } catch (error) {
+        console.error("Error in appointments query:", error);
+        // Don't show toast here, just return an empty array
+        return [];
       }
-      
-      console.log("Appointments result:", { count: data?.length, data });
-      return data || [];
     },
     enabled: !!user?.id,
   });
