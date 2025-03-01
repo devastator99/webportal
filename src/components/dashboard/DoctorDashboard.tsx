@@ -12,13 +12,29 @@ import { VideoList } from "@/components/videos/VideoList";
 import { DocumentAnalyzer } from "./doctor/DocumentSummary";
 import { PrescriptionWriter } from "./doctor/PrescriptionWriter";
 import { DashboardHeader } from "./DashboardHeader";
+import { Button } from "@/components/ui/button";
+import { CalendarPlus } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
+  
+  // Create an action button for doctors (optional)
+  const scheduleButton = (
+    <Button 
+      className="flex-1 sm:flex-initial gap-2" 
+      size={isMobile ? "lg" : "default"}
+      variant="outline"
+    >
+      <CalendarPlus className="h-4 w-4" />
+      View Calendar
+    </Button>
+  );
   
   return (
     <div className="container mx-auto p-6 space-y-6">
-      <DashboardHeader />
+      <DashboardHeader actionButton={scheduleButton} />
       
       <StatsCards />
 

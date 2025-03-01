@@ -39,7 +39,9 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
       <h1 className="text-2xl sm:text-3xl font-bold truncate">
-        Welcome {profile?.first_name}{profile?.last_name ? `, ${profile.last_name}` : ""}
+        {profile?.first_name 
+          ? `Welcome, Dr. ${profile.first_name}${profile.last_name ? ` ${profile.last_name}` : ""}`
+          : "Welcome"}
       </h1>
       <div className="flex gap-2 sm:gap-4 w-full sm:w-auto">
         {actionButton}
