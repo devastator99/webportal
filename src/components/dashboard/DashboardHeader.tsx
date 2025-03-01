@@ -57,23 +57,23 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
               .from("profiles")
               .insert([{ 
                 id: user.id, 
-                first_name: user.email?.split('@')[0] || "User" 
+                first_name: "User" 
               }])
               .select()
               .single();
               
             if (createError) {
               console.error("[Profile Debug] Error creating profile:", createError);
-              return { first_name: user.email?.split('@')[0] || "User" };
+              return { first_name: "User" };
             }
             
             console.log("[Profile Debug] Created new profile:", newProfile);
             return newProfile;
           }
           
-          // For other errors, return fallback name from email
-          console.log("[Profile Debug] Using fallback name from email due to error");
-          return { first_name: user.email?.split('@')[0] || "User" };
+          // For other errors, return fallback name
+          console.log("[Profile Debug] Using fallback name due to error");
+          return { first_name: "User" };
         }
 
         if (!data) {
@@ -84,14 +84,14 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
             .from("profiles")
             .insert([{ 
               id: user.id, 
-              first_name: user.email?.split('@')[0] || "User" 
+              first_name: "User" 
             }])
             .select()
             .single();
             
           if (createError) {
             console.error("[Profile Debug] Error creating profile:", createError);
-            return { first_name: user.email?.split('@')[0] || "User" };
+            return { first_name: "User" };
           }
           
           console.log("[Profile Debug] Created new profile:", newProfile);
@@ -102,7 +102,7 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
         return data;
       } catch (err) {
         console.error("[Profile Debug] Exception in profile fetch:", err);
-        return { first_name: user.email?.split('@')[0] || "User" };
+        return { first_name: "User" };
       }
     },
     enabled: !!user?.id,
@@ -127,11 +127,8 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
       return `Welcome back!`;
     }
     
-    // Always have a fallback name from email
-    const emailName = user.email ? user.email.split('@')[0] : "User";
-    
-    // Use the profile name if available, otherwise use email name
-    const firstName = profile?.first_name || emailName;
+    // Use a generic name if no profile name is available
+    const firstName = profile?.first_name || "User";
     const lastName = profile?.last_name ? ` ${profile.last_name}` : '';
     
     const prefix = userRole === 'doctor' ? 'Dr. ' : '';

@@ -44,7 +44,7 @@ export const Navbar = () => {
 
   return (
     <nav className="fixed top-0 w-full bg-white/90 dark:bg-black/90 backdrop-blur-md z-50 border-b border-[#D6BCFA] shadow-sm">
-      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+      <div className="container mx-auto px-4 py-2.5 flex justify-between items-center">
         <div 
           className="text-xl sm:text-2xl font-bold text-[#9b87f5] cursor-pointer" 
           onClick={() => navigate("/")}

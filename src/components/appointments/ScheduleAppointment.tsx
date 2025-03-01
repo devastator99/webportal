@@ -169,20 +169,20 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-h-[85vh] w-[95%] max-w-md overflow-y-auto mx-auto">
         <DialogHeader>
           <DialogTitle>Schedule Appointment</DialogTitle>
           <DialogDescription>
-            Choose your preferred doctor, date, and time for your appointment.
+            Choose your preferred doctor, date, and time.
           </DialogDescription>
         </DialogHeader>
         {step === "selection" ? (
-          <div className="grid gap-4 py-4">
+          <div className="grid gap-3 py-3">
             <div className="grid grid-cols-1 gap-2">
-              <label htmlFor="doctor" className="font-medium">Select Doctor</label>
+              <label htmlFor="doctor" className="font-medium text-sm">Select Doctor</label>
               <select
                 id="doctor"
-                className="w-full px-4 py-2 rounded-md border"
+                className="w-full px-3 py-1.5 rounded-md border text-sm"
                 onChange={(e) => setSelectedDoctor(e.target.value)}
                 value={selectedDoctor || ""}
               >
@@ -195,20 +195,20 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
               </select>
             </div>
             <div className="grid grid-cols-1 gap-2">
-              <label htmlFor="date" className="font-medium">Select Date</label>
+              <label htmlFor="date" className="font-medium text-sm">Select Date</label>
               <Calendar
                 mode="single"
                 selected={selectedDate}
                 onSelect={setSelectedDate}
-                className="rounded-md border mx-auto"
+                className="rounded-md border mx-auto scale-90 transform origin-top"
                 disabled={(date) => date < new Date()}
               />
             </div>
             <div className="grid grid-cols-1 gap-2">
-              <label htmlFor="time" className="font-medium">Select Time</label>
+              <label htmlFor="time" className="font-medium text-sm">Select Time</label>
               <select
                 id="time"
-                className="w-full px-4 py-2 rounded-md border"
+                className="w-full px-3 py-1.5 rounded-md border text-sm"
                 onChange={(e) => setSelectedTime(e.target.value)}
                 value={selectedTime || ""}
               >
@@ -220,15 +220,16 @@ export const ScheduleAppointment = ({ children }: ScheduleAppointmentProps) => {
                 ))}
               </select>
             </div>
-            <div className="mt-4">
+            <div className="mt-3">
               <Button 
                 onClick={handleConfirmAppointment} 
                 className="w-full"
+                size="sm"
                 disabled={!selectedDoctor || !selectedDate || !selectedTime || isSubmitting}
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
                     Processing...
                   </>
                 ) : (
