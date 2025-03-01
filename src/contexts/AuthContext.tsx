@@ -120,26 +120,39 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setIsLoading(true);
       console.log('Signing out...');
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
       
-      // Clear auth state
+      // First, clear auth state before API call
       setUser(null);
       setUserRole(null);
+      
+      // Then perform the signOut API call
+      const { error } = await supabase.auth.signOut();
       
       // Redirect first, then show toast
       navigate('/', { replace: true });
       
-      toast({
-        title: "Signed out successfully"
-      });
+      if (error) {
+        console.error('Error in supabase.auth.signOut:', error);
+        toast({
+          variant: "destructive",
+          title: "Warning",
+          description: "Sign out completed, but there was an API error."
+        });
+      } else {
+        toast({
+          title: "Signed out successfully"
+        });
+      }
     } catch (error: any) {
-      console.error('Error signing out:', error);
+      console.error('Exception in signOut function:', error);
       toast({
         variant: "destructive",
-        title: "Error signing out",
-        description: error.message
+        title: "Error during sign out",
+        description: error.message || "An unexpected error occurred"
       });
+      
+      // Force navigation even if there was an error
+      navigate('/', { replace: true });
     } finally {
       setIsLoading(false);
     }

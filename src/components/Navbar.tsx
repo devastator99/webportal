@@ -15,6 +15,7 @@ export const Navbar = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
   const { loading, error, handleLogin, handleSignUp } = useAuthHandlers();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   
   // Check if we're on the dashboard page
   const isDashboardPage = location.pathname === '/dashboard';
@@ -26,7 +27,18 @@ export const Navbar = () => {
     }
   }, [user, isLoading, navigate]);
 
-  if (isLoading) {
+  const handleSignOut = async () => {
+    try {
+      setIsSigningOut(true);
+      await signOut();
+    } catch (error) {
+      console.error("Sign out error in Navbar:", error);
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+
+  if (isLoading && !isSigningOut) {
     return null;
   }
 
@@ -73,14 +85,15 @@ export const Navbar = () => {
         )}
         {user && (
           <Button 
-            onClick={signOut}
+            onClick={handleSignOut}
             variant="outline" 
             className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2 font-medium shadow-sm"
             size="sm"
+            disabled={isSigningOut}
           >
             <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Sign Out</span>
-            <span className="sm:hidden">Logout</span>
+            <span className="hidden sm:inline">{isSigningOut ? "Signing Out..." : "Sign Out"}</span>
+            <span className="sm:hidden">{isSigningOut ? "..." : "Logout"}</span>
           </Button>
         )}
       </div>
