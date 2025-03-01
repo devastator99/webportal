@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { LogOut, LogIn, CalendarPlus } from "lucide-react";
+import { LogOut, LogIn, Calendar } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { AuthForm } from "@/components/auth/AuthForm";
@@ -57,6 +57,7 @@ export const Navbar = () => {
   };
 
   const handleScheduleAppointment = () => {
+    console.log("Navigating to appointments/schedule");
     navigate("/appointments/schedule");
   };
 
@@ -75,13 +76,13 @@ export const Navbar = () => {
         </div>
         
         <div className="flex items-center gap-3">
-          {user && userRole === "patient" && (
+          {user && (
             <Button 
               onClick={handleScheduleAppointment}
               className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
               size={isMobile ? "sm" : "default"}
             >
-              <CalendarPlus className="h-4 w-4" />
+              <Calendar className="h-4 w-4" />
               <span className="hidden sm:inline">Schedule</span>
             </Button>
           )}

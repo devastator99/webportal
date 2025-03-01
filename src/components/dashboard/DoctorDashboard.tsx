@@ -13,30 +13,14 @@ import { DocumentAnalyzer } from "./doctor/DocumentSummary";
 import { PrescriptionWriter } from "./doctor/PrescriptionWriter";
 import { DashboardHeader } from "./DashboardHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { CalendarIcon } from "lucide-react";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
-  const navigate = useNavigate();
-  
-  // Add an actionButton for schedule appointments only
-  const actionButton = (
-    <Button 
-      onClick={() => navigate("/appointments/schedule")}
-      className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
-      size={isMobile ? "sm" : "default"}
-    >
-      <CalendarIcon className="mr-2 h-4 w-4" />
-      Schedule Appointment
-    </Button>
-  );
   
   return (
     <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
-      <DashboardHeader actionButton={actionButton} />
+      <DashboardHeader />
       
       <StatsCards />
 
