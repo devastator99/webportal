@@ -22,14 +22,13 @@ export const TodaySchedule = () => {
   const today = new Date();
   const formattedDate = format(today, "yyyy-MM-dd");
 
-  // Properly type the query function and handle transformation
   const { data, isLoading } = useQuery<AppointmentWithPatient[]>({
     queryKey: ["today_appointments", user?.id, formattedDate],
     queryFn: async () => {
       if (!user?.id) return [];
 
       try {
-        // Fetch appointments first
+        // Fetch appointments for today
         const { data: appointmentsData, error: appointmentsError } = await supabase
           .from('appointments')
           .select('id, scheduled_at, status, patient_id')

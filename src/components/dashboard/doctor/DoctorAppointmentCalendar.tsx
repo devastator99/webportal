@@ -8,7 +8,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-// Define the correct type for the appointment data returned from our RPC function
+// Define the correct type for the appointment data
 interface AppointmentWithPatient {
   id: string;
   scheduled_at: string;
@@ -26,43 +26,63 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
   const { data: appointments = [], isLoading, error } = useQuery<AppointmentWithPatient[], Error>({
     queryKey: ["doctor_appointments", doctorId, format(selectedDate, "yyyy-MM-dd")],
     queryFn: async () => {
-      if (!doctorId) return [] as AppointmentWithPatient[];
+      if (!doctorId) return [];
       
       const formattedDate = format(selectedDate, "yyyy-MM-dd");
       console.log("Fetching appointments for date:", formattedDate, "doctor:", doctorId);
       
       try {
-        // Fix the ambiguous column error by using table aliases and fully qualified names
-        const { data, error: queryError } = await supabase
+        // Fetch appointments for selected date
+        const { data: appointmentsData, error: appointmentsError } = await supabase
           .from('appointments')
-          .select(`
-            id,
-            scheduled_at,
-            status,
-            patient:profiles(first_name, last_name)
-          `)
-          .eq('appointments.doctor_id', doctorId)
+          .select('id, scheduled_at, status, patient_id')
+          .eq('doctor_id', doctorId)
           .gte('scheduled_at', `${formattedDate}T00:00:00`)
           .lte('scheduled_at', `${formattedDate}T23:59:59`)
           .order('scheduled_at');
 
-        if (queryError) {
-          console.error("Error fetching appointments:", queryError);
-          throw queryError;
+        if (appointmentsError) {
+          console.error("Error fetching appointments:", appointmentsError);
+          throw appointmentsError;
         }
 
-        console.log("Raw appointment data:", data);
+        if (!appointmentsData || appointmentsData.length === 0) {
+          return [];
+        }
 
-        // Transform the data to match the expected format
-        const formattedData = data?.map(item => ({
-          id: item.id,
-          scheduled_at: item.scheduled_at,
-          status: item.status,
-          patient: item.patient || { first_name: "Unknown", last_name: "Patient" }
-        })) || [];
+        // Then fetch patient details for each appointment
+        const appointmentsWithPatients: AppointmentWithPatient[] = await Promise.all(
+          appointmentsData.map(async (appointment) => {
+            const { data: patientData, error: patientError } = await supabase
+              .from('profiles')
+              .select('first_name, last_name')
+              .eq('id', appointment.patient_id)
+              .single();
 
-        console.log("Appointments with patients data:", formattedData);
-        return formattedData as AppointmentWithPatient[];
+            if (patientError) {
+              console.error(`Error fetching patient for appointment ${appointment.id}:`, patientError);
+              // Return appointment with default patient info if patient fetch fails
+              return {
+                id: appointment.id,
+                scheduled_at: appointment.scheduled_at,
+                status: appointment.status,
+                patient: { first_name: "Unknown", last_name: "Patient" }
+              };
+            }
+
+            return {
+              id: appointment.id,
+              scheduled_at: appointment.scheduled_at,
+              status: appointment.status,
+              patient: {
+                first_name: patientData.first_name || "Unknown",
+                last_name: patientData.last_name || "Patient"
+              }
+            };
+          })
+        );
+
+        return appointmentsWithPatients;
       } catch (error) {
         console.error("Error in calendar appointment fetch:", error);
         toast({
@@ -70,11 +90,10 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
           description: "There was a problem loading your appointments.",
           variant: "destructive",
         });
-        return [] as AppointmentWithPatient[];
+        return [];
       }
     },
     enabled: !!doctorId,
-    // Add retry configuration to avoid infinite retries
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
@@ -82,9 +101,6 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
   if (error) {
     console.error("Query error in DoctorAppointmentCalendar:", error);
   }
-
-  // Ensure appointments is always treated as an array
-  const appointmentsArray = Array.isArray(appointments) ? appointments : [];
 
   return (
     <Card>
@@ -111,10 +127,10 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
               <p className="font-medium">Error loading appointments</p>
               <p className="text-sm">There was a problem loading your appointments.</p>
             </div>
-          ) : appointmentsArray.length === 0 ? (
+          ) : appointments.length === 0 ? (
             <p className="text-sm text-muted-foreground">No appointments scheduled for this day</p>
           ) : (
-            appointmentsArray.map((appointment) => (
+            appointments.map((appointment) => (
               <div
                 key={appointment.id}
                 className="flex justify-between items-center p-3 border rounded-lg"
