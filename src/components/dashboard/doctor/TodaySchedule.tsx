@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
@@ -6,6 +5,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, isFuture } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Database } from "@/integrations/supabase/types";
+
+type AppointmentWithPatientRaw = {
+  id: string;
+  scheduled_at: string;
+  status: Database["public"]["Enums"]["appointment_status"];
+  patient: {
+    first_name: string;
+    last_name: string;
+  };
+};
 
 interface AppointmentWithPatient {
   id: string;
@@ -30,7 +40,6 @@ export const TodaySchedule = () => {
       try {
         console.log("Fetching today's appointments for doctor:", user.id);
         
-        // Use the RPC function to avoid recursion issues
         const { data: appointmentsData, error: appointmentsError } = await supabase
           .rpc('get_doctor_appointments_with_patients', { 
             doctor_id: user.id,
@@ -43,14 +52,25 @@ export const TodaySchedule = () => {
         }
 
         console.log("Appointments with patients from RPC:", appointmentsData);
-        return appointmentsData || [];
+        
+        return (appointmentsData || []).map((item: AppointmentWithPatientRaw) => ({
+          id: item.id,
+          scheduled_at: item.scheduled_at,
+          status: item.status,
+          patient: {
+            first_name: typeof item.patient === 'object' && item.patient !== null 
+              ? (item.patient as any).first_name || "Unknown" 
+              : "Unknown",
+            last_name: typeof item.patient === 'object' && item.patient !== null 
+              ? (item.patient as any).last_name || "Patient" 
+              : "Patient"
+          }
+        }));
       } catch (error) {
         console.error("Error in today's schedule fetch:", error);
         
-        // Fallback approach in case RPC fails
         console.log("Attempting fallback approach for appointments");
         try {
-          // Simplify the query to avoid RLS recursion issues
           const { data: appointmentsData, error: appointmentsError } = await supabase
             .from('appointments')
             .select('id, scheduled_at, status, patient_id')
@@ -68,7 +88,6 @@ export const TodaySchedule = () => {
             return [];
           }
 
-          // Separately fetch patient details to avoid join issues
           const appointmentsWithPatients = await Promise.all(
             appointmentsData.map(async (appointment) => {
               try {
@@ -80,7 +99,6 @@ export const TodaySchedule = () => {
 
                 if (patientError) {
                   console.error(`Error fetching patient for appointment ${appointment.id}:`, patientError);
-                  // Return appointment with default patient info if patient fetch fails
                   return {
                     id: appointment.id,
                     scheduled_at: appointment.scheduled_at,
@@ -121,7 +139,6 @@ export const TodaySchedule = () => {
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  // Filter for upcoming appointments today (exclude past appointments)
   const upcomingAppointments = data && Array.isArray(data) 
     ? data.filter(appointment => isFuture(new Date(appointment.scheduled_at)))
     : [];

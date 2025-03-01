@@ -7,8 +7,20 @@ import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Database } from "@/integrations/supabase/types";
 
-// Define the correct type for the appointment data
+// Define a type for the raw data returned from the RPC
+type AppointmentWithPatientRaw = {
+  id: string;
+  scheduled_at: string;
+  status: Database["public"]["Enums"]["appointment_status"];
+  patient: {
+    first_name: string;
+    last_name: string;
+  };
+};
+
+// Define the interface for the processed appointment data
 interface AppointmentWithPatient {
   id: string;
   scheduled_at: string;
@@ -23,7 +35,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { toast } = useToast();
 
-  const { data: appointments = [], isLoading, error } = useQuery<AppointmentWithPatient[], Error>({
+  const { data: appointments = [], isLoading, error } = useQuery<AppointmentWithPatient[]>({
     queryKey: ["doctor_appointments", doctorId, format(selectedDate, "yyyy-MM-dd")],
     queryFn: async () => {
       if (!doctorId) return [];
@@ -44,7 +56,20 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
           throw appointmentsError;
         }
 
-        return appointmentsData || [];
+        // Transform the data to ensure it matches the AppointmentWithPatient interface
+        return (appointmentsData || []).map((item: AppointmentWithPatientRaw) => ({
+          id: item.id,
+          scheduled_at: item.scheduled_at,
+          status: item.status,
+          patient: {
+            first_name: typeof item.patient === 'object' && item.patient !== null 
+              ? (item.patient as any).first_name || "Unknown" 
+              : "Unknown",
+            last_name: typeof item.patient === 'object' && item.patient !== null 
+              ? (item.patient as any).last_name || "Patient" 
+              : "Patient"
+          }
+        }));
       } catch (error) {
         console.error("Error in calendar appointment fetch:", error);
         
