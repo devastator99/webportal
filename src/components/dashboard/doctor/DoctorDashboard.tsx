@@ -2,20 +2,20 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { StatsCards } from "./doctor/StatsCards";
-import { TodaySchedule } from "./doctor/TodaySchedule";
-import { ChatInterface } from "../chat/ChatInterface";
-import { AiAssistant } from "./doctor/AiAssistant";
-import { DoctorAppointmentCalendar } from "./doctor/DoctorAppointmentCalendar";
+import { StatsCards } from "@/components/dashboard/doctor/StatsCards";
+import { TodaySchedule } from "@/components/dashboard/doctor/TodaySchedule";
+import { ChatInterface } from "@/components/chat/ChatInterface";
+import { AiAssistant } from "@/components/dashboard/doctor/AiAssistant";
+import { DoctorAppointmentCalendar } from "@/components/dashboard/doctor/DoctorAppointmentCalendar";
 import { VideoUploader } from "@/components/videos/VideoUploader";
 import { VideoList } from "@/components/videos/VideoList";
-import { DocumentAnalyzer } from "./doctor/DocumentSummary";
-import { PrescriptionWriter } from "./doctor/PrescriptionWriter";
-import { DashboardHeader } from "./DashboardHeader";
+import { DocumentAnalyzer } from "@/components/dashboard/doctor/DocumentSummary";
+import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWriter";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Calendar, Users } from "lucide-react";
-import { ScheduleAppointment } from "../appointments/ScheduleAppointment";
+import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 import { Link } from "react-router-dom";
 
 export const DoctorDashboard = () => {
