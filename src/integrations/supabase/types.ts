@@ -635,6 +635,18 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_appointments_by_date: {
+        Args: {
+          p_doctor_id: string
+          p_date: string
+        }
+        Returns: {
+          id: string
+          scheduled_at: string
+          status: Database["public"]["Enums"]["appointment_status"]
+          patient_json: Json
+        }[]
+      }
       get_doctor_appointments: {
         Args: {
           doctor_id: string
@@ -735,6 +747,13 @@ export type Database = {
       is_reception: {
         Args: {
           user_id: string
+        }
+        Returns: boolean
+      }
+      validate_appointment_date: {
+        Args: {
+          p_doctor_id: string
+          p_scheduled_date: string
         }
         Returns: boolean
       }

@@ -25,7 +25,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { toast } = useToast();
 
-  const { data: appointments = [], isLoading, error } = useQuery<AppointmentWithPatient[]>({
+  const { data: appointments = [], isLoading, error } = useQuery({
     queryKey: ["doctor_appointments", doctorId, format(selectedDate, "yyyy-MM-dd")],
     queryFn: async () => {
       if (!doctorId) return [];
@@ -41,7 +41,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
             p_doctor_id: doctorId,
             p_date: formattedDate
           }
-        );
+        ) as { data: AppointmentWithPatient[] | null, error: any };
 
         if (error) {
           console.error("Error fetching appointments via RPC:", error);

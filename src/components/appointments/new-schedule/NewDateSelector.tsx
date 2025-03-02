@@ -48,7 +48,7 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
             p_doctor_id: doctorId,
             p_scheduled_date: isoString
           }
-        );
+        ) as { data: boolean | null, error: any };
         
         if (error) {
           console.error("Error validating date:", error);
