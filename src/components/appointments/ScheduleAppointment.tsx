@@ -155,10 +155,31 @@ export const ScheduleAppointment = ({
       // Format the date in ISO format for database storage
       const formattedDate = appointmentDate.toISOString();
 
+      // Get the actual patient ID based on the caller role
+      let patientId = selectedPatient;
+      if (callerRole === "patient" && user) {
+        patientId = user.id;
+      }
+
+      // Get the actual doctor ID based on the caller role
+      let doctorId = selectedDoctor;
+      if (callerRole === "doctor" && user) {
+        doctorId = user.id;
+      }
+
+      // Make sure we have valid UUIDs before proceeding
+      if (!patientId || patientId === "") {
+        throw new Error("Invalid patient ID");
+      }
+
+      if (!doctorId || doctorId === "") {
+        throw new Error("Invalid doctor ID");
+      }
+
       // Call the create_appointment RPC function
       const { data, error } = await supabase.rpc("create_appointment", {
-        p_patient_id: selectedPatient,
-        p_doctor_id: selectedDoctor,
+        p_patient_id: patientId,
+        p_doctor_id: doctorId,
         p_scheduled_at: formattedDate,
         p_status: "scheduled"
       });
