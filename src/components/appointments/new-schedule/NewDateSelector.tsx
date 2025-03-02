@@ -1,9 +1,21 @@
 
+import { useState } from "react";
 import { UseFormReturn } from "react-hook-form";
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { 
+  FormControl, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from "@/components/ui/form";
 import { AppointmentFormData } from "../schedule/schema";
 import { useToast } from "@/hooks/use-toast";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { format } from "date-fns";
+import { Calendar as CalendarIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface NewDateSelectorProps {
   form: UseFormReturn<AppointmentFormData>;
@@ -11,21 +23,21 @@ interface NewDateSelectorProps {
 
 export function NewDateSelector({ form }: NewDateSelectorProps) {
   const { toast } = useToast();
-  
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>, onChange: (value: string) => void) => {
-    const inputValue = e.target.value;
+  const [date, setDate] = useState<Date | undefined>(undefined);
+
+  // This function handles date selection from the calendar
+  const handleDateSelect = (selectedDate: Date | undefined, onChange: (value: string) => void) => {
+    setDate(selectedDate);
     
-    // Update the form
-    onChange(inputValue);
-    
-    // Creating ISO string from input
-    if (inputValue && isValidDateFormat(inputValue)) {
+    if (selectedDate) {
       try {
         // Convert to ISO string for database
-        const date = new Date(inputValue);
-        const isoString = date.toISOString();
+        const isoString = selectedDate.toISOString();
         
-        // Update form with ISO string
+        // Update form with ISO string using field.onChange
+        onChange(isoString);
+        
+        // Also update the form value directly to ensure it's set correctly
         form.setValue("scheduledAt", isoString, {
           shouldValidate: true,
           shouldDirty: true,
@@ -33,19 +45,13 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
         });
         
         toast({
-          title: "Date formatted",
-          description: `Date set to: ${isoString}`,
+          title: "Date selected",
+          description: `Appointment scheduled for: ${format(selectedDate, "PPP")}`,
         });
       } catch (error) {
         console.error("Error formatting date:", error);
       }
     }
-  };
-
-  // Simple validation for YYYY-MM-DD format
-  const isValidDateFormat = (dateString: string): boolean => {
-    const regex = /^\d{4}-\d{2}-\d{2}$/;
-    return regex.test(dateString);
   };
 
   return (
@@ -55,17 +61,30 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
       render={({ field }) => (
         <FormItem className="flex flex-col">
           <FormLabel>Scheduled Date</FormLabel>
-          <FormControl>
-            <Input
-              type="text"
-              placeholder="YYYY-MM-DD"
-              {...field}
-              onChange={(e) => handleDateChange(e, field.onChange)}
-            />
-          </FormControl>
-          <p className="text-xs text-muted-foreground mt-1">
-            Enter date in YYYY-MM-DD format (e.g., 2024-05-15)
-          </p>
+          <Popover>
+            <PopoverTrigger asChild>
+              <FormControl>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full pl-3 text-left font-normal",
+                    !date && "text-muted-foreground"
+                  )}
+                >
+                  {date ? format(date, "PPP") : "Select a date"}
+                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                </Button>
+              </FormControl>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={(selectedDate) => handleDateSelect(selectedDate, field.onChange)}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
           <FormMessage />
         </FormItem>
       )}
