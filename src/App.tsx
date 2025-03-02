@@ -35,7 +35,6 @@ function App() {
               <Auth
                 supabaseClient={supabase}
                 appearance={{ theme: ThemeSupa }}
-                session={session}
                 providers={['google', 'github']}
                 redirectTo="http://localhost:5173/dashboard"
               />
