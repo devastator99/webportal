@@ -58,16 +58,13 @@ export function DateSelector({ form }: DateSelectorProps) {
                 mode="single"
                 selected={field.value ? new Date(field.value) : undefined}
                 onSelect={(date) => {
-                  if (date) {
-                    // Set the form value directly with the ISO string
-                    form.setValue("scheduledAt", date.toISOString(), {
-                      shouldValidate: true,
-                      shouldDirty: true,
-                      shouldTouch: true,
-                    });
-                    // Close the popover after selecting
-                    setCalendarOpen(false);
-                  }
+                  if (!date) return;
+                  
+                  // Ensure we're working with the field's onChange directly
+                  field.onChange(date.toISOString());
+                  
+                  // Close the calendar after selection
+                  setCalendarOpen(false);
                 }}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 initialFocus
