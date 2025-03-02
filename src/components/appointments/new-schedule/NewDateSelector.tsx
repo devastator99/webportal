@@ -41,12 +41,7 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
     console.log("Quick selecting date:", selectedDate);
     
     // Format the date properly for form submission
-    const formattedDate = new Date(
-      selectedDate.getFullYear(),
-      selectedDate.getMonth(),
-      selectedDate.getDate(),
-      12, 0, 0
-    ).toISOString();
+    const formattedDate = selectedDate.toISOString();
 
     console.log("Setting form value to:", formattedDate);
 
@@ -108,23 +103,15 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
                       return;
                     }
                     
-                    // Format the date properly for form submission
-                    const formattedDate = new Date(
-                      date.getFullYear(),
-                      date.getMonth(),
-                      date.getDate(),
-                      12, 0, 0
-                    ).toISOString();
+                    // Format the date properly for form submission - simplified approach
+                    const formattedDate = date.toISOString();
                     
                     console.log("Setting form value to:", formattedDate);
                     
-                    // Update the form directly
-                    form.setValue("scheduledAt", formattedDate, {
-                      shouldValidate: true,
-                      shouldDirty: true,
-                      shouldTouch: true,
-                    });
+                    // Use the field.onChange method directly from react-hook-form
+                    field.onChange(formattedDate);
                     
+                    console.log("Field value after onChange:", field.value);
                     console.log("Form value after update:", form.getValues("scheduledAt"));
                     
                     // Show success toast
@@ -133,7 +120,7 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
                       description: `Selected: ${format(date, "PPP")}`,
                     });
                     
-                    // Only close after successful update
+                    // Close popover after successful update
                     setIsOpen(false);
                   }}
                   disabled={(date) => date < today}
