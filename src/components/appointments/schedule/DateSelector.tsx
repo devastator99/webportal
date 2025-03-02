@@ -60,9 +60,15 @@ export function DateSelector({ form }: DateSelectorProps) {
                 onSelect={(date) => {
                   if (date) {
                     console.log("Date selected:", date);
+                    // Format the date properly and ensure it's stored as ISO string
                     const isoDate = date.toISOString();
+                    // Explicitly set the value in the form
                     field.onChange(isoDate);
-                    setCalendarOpen(false); // Only close the calendar popover, not the main dialog
+                    // We need a small delay to ensure React updates the field value
+                    // before closing the popover
+                    setTimeout(() => {
+                      setCalendarOpen(false);
+                    }, 100);
                   }
                 }}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
