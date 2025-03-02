@@ -12,7 +12,7 @@ import { Database } from "@/integrations/supabase/types";
 import { DashboardHeader } from "./DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
-import { ScheduleAppointment } from "../appointments/ScheduleAppointment";
+import { ScheduleAppointment } from "../appointments/schedule";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 

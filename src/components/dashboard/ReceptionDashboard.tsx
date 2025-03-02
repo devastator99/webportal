@@ -9,7 +9,7 @@ import { ChatInterface } from "@/components/chat/ChatInterface";
 import { AppointmentsList } from "./patient/AppointmentsList";
 import { DashboardHeader } from "./DashboardHeader";
 import { Button } from "@/components/ui/button";
-import { ScheduleAppointment } from "../appointments/ScheduleAppointment";
+import { ScheduleAppointment } from "../appointments/schedule";
 
 export const ReceptionDashboard = () => {
   const { user } = useAuth();
