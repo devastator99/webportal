@@ -27,27 +27,6 @@ interface DateSelectorProps {
 export function DateSelector({ form }: DateSelectorProps) {
   const [calendarOpen, setCalendarOpen] = useState(false);
 
-  // Handle date selection more directly
-  const handleDateSelect = (date: Date | undefined) => {
-    if (!date) return;
-    
-    // Log the selection for debugging
-    console.log("Date selected:", date);
-    
-    // Format the date to ISO string
-    const isoDate = date.toISOString();
-    
-    // Update the form value using setValue with validation flags
-    form.setValue("scheduledAt", isoDate, {
-      shouldValidate: true,
-      shouldDirty: true,
-      shouldTouch: true,
-    });
-    
-    // Close the popover after a short delay to ensure the UI updates
-    setTimeout(() => setCalendarOpen(false), 300);
-  };
-
   return (
     <FormField
       control={form.control}
@@ -74,11 +53,22 @@ export function DateSelector({ form }: DateSelectorProps) {
                 </Button>
               </FormControl>
             </PopoverTrigger>
-            <PopoverContent className="w-auto p-0 bg-background" align="start">
+            <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
                 selected={field.value ? new Date(field.value) : undefined}
-                onSelect={handleDateSelect}
+                onSelect={(date) => {
+                  if (date) {
+                    // Set the form value directly with the ISO string
+                    form.setValue("scheduledAt", date.toISOString(), {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                      shouldTouch: true,
+                    });
+                    // Close the popover after selecting
+                    setCalendarOpen(false);
+                  }
+                }}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 initialFocus
               />
