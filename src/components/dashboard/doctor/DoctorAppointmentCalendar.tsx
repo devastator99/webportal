@@ -17,8 +17,8 @@ interface AppointmentWithPatient {
   status: Database["public"]["Enums"]["appointment_status"];
   patient_json: {
     id: string;
-    first_name: string;
-    last_name: string;
+    first_name: string | null;
+    last_name: string | null;
   };
 }
 
@@ -61,7 +61,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
           throw error;
         }
 
-        return data || [];
+        return (data as AppointmentWithPatient[]) || [];
       } catch (error) {
         console.error("Error in calendar appointment fetch:", error);
         toast({
