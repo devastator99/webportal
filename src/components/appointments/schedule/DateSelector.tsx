@@ -30,23 +30,11 @@ export function DateSelector({ form }: DateSelectorProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
   const { toast } = useToast();
   
-  // For debugging
-  console.log("DateSelector render state:", { 
-    date, 
-    popoverOpen, 
-    formValue: form.getValues("scheduledAt"),
-    formState: {
-      isDirty: form.formState.isDirty,
-      isValid: form.formState.isValid,
-      errors: form.formState.errors
-    }
-  });
-  
   // Get today's date with time set to noon to avoid timezone issues
   const today = new Date();
   today.setHours(12, 0, 0, 0);
   
-  // Set up a function to handle date changes
+  // Handle date selection from calendar
   const handleDateChange = (newDate: Date | undefined) => {
     if (!newDate) {
       console.log("Date selection canceled or undefined");
@@ -56,7 +44,10 @@ export function DateSelector({ form }: DateSelectorProps) {
     console.log("Date selected:", newDate);
     
     try {
-      // Format date consistently with time set to noon to avoid timezone issues
+      // First update the local state
+      setDate(newDate);
+      
+      // Format date to ISO string with time set to noon to avoid timezone issues
       const formattedDate = new Date(
         newDate.getFullYear(),
         newDate.getMonth(),
@@ -64,40 +55,25 @@ export function DateSelector({ form }: DateSelectorProps) {
         12, 0, 0
       ).toISOString();
       
-      console.log("Formatted date:", formattedDate);
+      console.log("Setting form value to:", formattedDate);
       
-      // Update local state
-      setDate(newDate);
-      console.log("Local state updated");
-      
-      // Update form value with validation
-      console.log("Updating form value...");
+      // Update form value BEFORE closing popover
       form.setValue("scheduledAt", formattedDate, {
         shouldValidate: true,
         shouldDirty: true,
         shouldTouch: true,
       });
       
-      console.log("Form value updated:", form.getValues("scheduledAt"));
-      console.log("Form state after update:", {
-        isDirty: form.formState.isDirty,
-        isValid: form.formState.isValid,
-        errors: form.formState.errors
-      });
+      console.log("Form value updated, now closing popover");
       
-      // Close the popover after a brief delay to ensure the form state is updated
-      console.log("Scheduling popover close...");
-      setTimeout(() => {
-        console.log("Attempting to close popover");
-        setPopoverOpen(false);
-        console.log("Popover state set to false");
-        
-        // Show a toast for debugging
-        toast({
-          title: "Date selected",
-          description: `Selected: ${format(newDate, "PPP")}`,
-        });
-      }, 300);
+      // Close popover AFTER form value is set
+      setPopoverOpen(false);
+      
+      // Show toast notification
+      toast({
+        title: "Date selected",
+        description: `Selected: ${format(newDate, "PPP")}`,
+      });
     } catch (error) {
       console.error("Error handling date change:", error);
       toast({
@@ -111,110 +87,93 @@ export function DateSelector({ form }: DateSelectorProps) {
   // Sync component state with form state when form value changes externally
   useEffect(() => {
     const scheduledAt = form.getValues("scheduledAt");
-    console.log("useEffect triggered, form value:", scheduledAt);
     
     if (scheduledAt && (!date || date.toISOString() !== scheduledAt)) {
-      console.log("Syncing local state with form value");
       try {
         const parsedDate = new Date(scheduledAt);
-        console.log("Parsed date:", parsedDate);
         setDate(parsedDate);
       } catch (error) {
         console.error("Error parsing date from form:", error);
       }
     }
   }, [form, date]);
-  
-  // Debug the popover state changes
-  useEffect(() => {
-    console.log("Popover state changed:", popoverOpen);
-  }, [popoverOpen]);
 
   return (
     <FormField
       control={form.control}
       name="scheduledAt"
-      render={({ field }) => {
-        console.log("FormField render, field value:", field.value);
-        return (
-          <FormItem className="flex flex-col">
-            <FormLabel>Scheduled Date</FormLabel>
-            <Popover open={popoverOpen} onOpenChange={(open) => {
-              console.log("Popover onOpenChange:", open);
-              setPopoverOpen(open);
-            }}>
-              <PopoverTrigger asChild>
-                <FormControl>
-                  <Button
-                    variant="outline"
-                    className={cn(
-                      "w-full pl-3 text-left font-normal",
-                      !field.value && "text-muted-foreground"
-                    )}
-                    onClick={() => {
-                      console.log("Trigger button clicked");
-                    }}
-                  >
-                    {field.value ? (
-                      format(new Date(field.value), "PPP")
-                    ) : (
-                      <span>Pick a date</span>
-                    )}
-                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                  </Button>
-                </FormControl>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={date}
-                  onSelect={(date) => {
-                    console.log("Calendar onSelect called with:", date);
-                    handleDateChange(date);
+      render={({ field }) => (
+        <FormItem className="flex flex-col">
+          <FormLabel>Scheduled Date</FormLabel>
+          <Popover 
+            open={popoverOpen} 
+            onOpenChange={(open) => {
+              // Only handle opening the popover or explicit closing
+              if (open) {
+                setPopoverOpen(open);
+              }
+            }}
+          >
+            <PopoverTrigger asChild>
+              <FormControl>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full pl-3 text-left font-normal",
+                    !field.value && "text-muted-foreground"
+                  )}
+                  onClick={() => setPopoverOpen(true)}
+                >
+                  {field.value ? (
+                    format(new Date(field.value), "PPP")
+                  ) : (
+                    <span>Pick a date</span>
+                  )}
+                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                </Button>
+              </FormControl>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={(date) => {
+                  handleDateChange(date);
+                }}
+                disabled={(date) => date < today}
+                initialFocus
+              />
+              <div className="p-3 border-t grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    handleDateChange(tomorrow);
                   }}
-                  disabled={(date) => {
-                    const isDisabled = date < today;
-                    if (isDisabled) {
-                      console.log("Date disabled:", date);
-                    }
-                    return isDisabled;
+                >
+                  Tomorrow
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const nextWeek = new Date(today);
+                    nextWeek.setDate(nextWeek.getDate() + 7);
+                    handleDateChange(nextWeek);
                   }}
-                  initialFocus
-                />
-                <div className="p-3 border-t grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      console.log("Tomorrow button clicked");
-                      const tomorrow = new Date(today);
-                      tomorrow.setDate(tomorrow.getDate() + 1);
-                      handleDateChange(tomorrow);
-                    }}
-                  >
-                    Tomorrow
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      console.log("Next Week button clicked");
-                      const nextWeek = new Date(today);
-                      nextWeek.setDate(nextWeek.getDate() + 7);
-                      handleDateChange(nextWeek);
-                    }}
-                  >
-                    Next Week
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
-            <FormMessage />
-          </FormItem>
-        );
-      }}
+                >
+                  Next Week
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+          <FormMessage />
+        </FormItem>
+      )}
     />
   );
 }
