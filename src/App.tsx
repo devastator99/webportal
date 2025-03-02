@@ -1,94 +1,62 @@
+import { useEffect, useState } from 'react'
+import { Auth } from '@supabase/auth-ui-react'
+import { ThemeSupa } from '@supabase/auth-ui-shared'
+import { supabase } from './integrations/supabase/client'
+import { Session } from '@supabase/supabase-js'
+import { AuthContextProvider } from './contexts/AuthContext'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Dashboard } from './pages/Dashboard'
+import { LandingPage } from './pages/LandingPage'
+import { DashboardSkeleton } from './components/dashboard/DashboardSkeleton'
+import PatientsView from "@/pages/PatientsView";
 
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { Navbar } from "@/components/Navbar";
-import { LandingPage } from "@/pages/LandingPage";
-import Dashboard from "./pages/Dashboard";
-import Admin from "./pages/Admin";
-import PatientsView from "./pages/PatientsView";
-import { useAuth } from "./contexts/AuthContext";
+function App() {
+  const [session, setSession] = useState<Session | null>(null)
 
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, isLoading } = useAuth();
-  
-  if (isLoading) {
-    return null;
-  }
-  
-  if (!user) {
-    console.log("Protected route: No user found, redirecting to /");
-    return <Navigate to="/" replace />;
-  }
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+    })
 
-  return <>{children}</>;
-};
+    supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+  }, [])
 
-const AppRoutes = () => {
-  const { user, userRole } = useAuth();
-  console.log("AppRoutes render - user:", user?.id, "role:", userRole);
-  
   return (
-    <>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<LandingPage />} />
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <ProtectedRoute>
-              <Admin />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/patients"
-          element={
-            <ProtectedRoute>
-              <PatientsView />
-            </ProtectedRoute>
-          }
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </>
-  );
-};
+    <BrowserRouter>
+      <AuthContextProvider>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route
+            path="/auth"
+            element={
+              <div className="flex justify-center items-center h-screen">
+                <Auth
+                  supabaseClient={supabase}
+                  appearance={{ theme: ThemeSupa }}
+                  session={session}
+                  providers={['google', 'github']}
+                  redirectTo="http://localhost:5173/dashboard"
+                />
+              </div>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              session ? (
+                <Dashboard />
+              ) : (
+                <Navigate to="/auth" replace />
+              )
+            }
+          />
+          <Route path="/patients" element={<PatientsView />} />
+        </Routes>
+      </AuthContextProvider>
+    </BrowserRouter>
+  )
+}
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
-});
-
-const App = () => {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <TooltipProvider>
-            <AppRoutes />
-            <Toaster />
-            <Sonner />
-          </TooltipProvider>
-        </AuthProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
-  );
-};
-
-export default App;
+export default App

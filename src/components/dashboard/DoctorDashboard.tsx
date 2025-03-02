@@ -16,7 +16,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Calendar, Users } from "lucide-react";
 import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
