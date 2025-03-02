@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -22,8 +22,16 @@ interface AppointmentWithPatient {
 }
 
 export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) => {
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
   const { toast } = useToast();
+
+  // Handle date selection from the calendar
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      // Use startOfDay to normalize the time part to avoid timezone issues
+      setSelectedDate(startOfDay(date));
+    }
+  };
 
   const { data: appointments = [], isLoading, error } = useQuery({
     queryKey: ["doctor_appointments", doctorId, format(selectedDate, "yyyy-MM-dd")],
@@ -78,7 +86,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
           <Calendar
             mode="single"
             selected={selectedDate}
-            onSelect={(date) => date && setSelectedDate(date)}
+            onSelect={handleDateSelect}
             className="rounded-md border"
           />
         </div>

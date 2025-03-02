@@ -13,7 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,17 +26,23 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
   const { toast } = useToast();
   const [date, setDate] = useState<Date | undefined>(undefined);
   const [isValidating, setIsValidating] = useState(false);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+
+  // Get today's date with time set to start of day to avoid timezone issues
+  const today = startOfDay(new Date());
 
   // This function handles date selection from the calendar
-  const handleDateSelect = async (selectedDate: Date | undefined, onChange: (value: string) => void) => {
+  const handleDateSelect = async (selectedDate: Date | undefined) => {
     if (!selectedDate) return;
     
-    setDate(selectedDate);
+    // Normalize the selected date to avoid timezone issues
+    const normalizedDate = startOfDay(selectedDate);
+    setDate(normalizedDate);
     setIsValidating(true);
     
     try {
       // Convert to ISO string for database
-      const isoString = selectedDate.toISOString();
+      const isoString = normalizedDate.toISOString();
       const doctorId = form.getValues().doctorId;
       
       // Only validate if doctor is selected
@@ -58,6 +64,7 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
             variant: "destructive",
           });
           setIsValidating(false);
+          setPopoverOpen(false);
           return;
         }
         
@@ -73,9 +80,6 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
       }
       
       // Update form with ISO string
-      onChange(isoString);
-      
-      // Also update the form value directly to ensure it's set correctly
       form.setValue("scheduledAt", isoString, {
         shouldValidate: true,
         shouldDirty: true,
@@ -84,10 +88,13 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
       
       toast({
         title: "Date selected",
-        description: `Appointment scheduled for: ${format(selectedDate, "PPP")}`,
+        description: `Appointment scheduled for: ${format(normalizedDate, "PPP")}`,
       });
+      
+      // Close the popover after successful selection
+      setPopoverOpen(false);
     } catch (error) {
-      console.error("Error formatting date:", error);
+      console.error("Error processing date:", error);
       toast({
         title: "Error",
         description: "Could not process the selected date",
@@ -105,7 +112,10 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
       render={({ field }) => (
         <FormItem className="flex flex-col">
           <FormLabel>Scheduled Date</FormLabel>
-          <Popover>
+          <Popover 
+            open={popoverOpen} 
+            onOpenChange={setPopoverOpen}
+          >
             <PopoverTrigger asChild>
               <FormControl>
                 <Button
@@ -125,9 +135,36 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
               <Calendar
                 mode="single"
                 selected={date}
-                onSelect={(selectedDate) => handleDateSelect(selectedDate, field.onChange)}
+                onSelect={handleDateSelect}
+                disabled={(date) => date < today}
                 initialFocus
               />
+              <div className="p-3 border-t grid grid-cols-2 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const tomorrow = new Date(today);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    handleDateSelect(tomorrow);
+                  }}
+                >
+                  Tomorrow
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    const nextWeek = new Date(today);
+                    nextWeek.setDate(nextWeek.getDate() + 7);
+                    handleDateSelect(nextWeek);
+                  }}
+                >
+                  Next Week
+                </Button>
+              </div>
             </PopoverContent>
           </Popover>
           <FormMessage />
