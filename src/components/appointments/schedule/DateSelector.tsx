@@ -25,7 +25,7 @@ interface DateSelectorProps {
 }
 
 export function DateSelector({ form }: DateSelectorProps) {
-  const [open, setOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
 
   return (
     <FormField
@@ -34,7 +34,7 @@ export function DateSelector({ form }: DateSelectorProps) {
       render={({ field }) => (
         <FormItem className="flex flex-col">
           <FormLabel>Scheduled Date</FormLabel>
-          <Popover open={open} onOpenChange={setOpen}>
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
             <PopoverTrigger asChild>
               <FormControl>
                 <Button
@@ -59,9 +59,10 @@ export function DateSelector({ form }: DateSelectorProps) {
                 selected={field.value ? new Date(field.value) : undefined}
                 onSelect={(date) => {
                   if (date) {
+                    console.log("Date selected:", date);
                     const isoDate = date.toISOString();
                     field.onChange(isoDate);
-                    setOpen(false); // Close the calendar after selection
+                    setCalendarOpen(false); // Only close the calendar popover, not the main dialog
                   }
                 }}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}

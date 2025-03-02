@@ -11,9 +11,14 @@ import { NotesField } from "./NotesField";
 interface AppointmentFormFieldsProps {
   form: UseFormReturn<AppointmentFormData>;
   callerRole: "patient" | "doctor" | "reception";
+  onFieldChange?: () => void;
 }
 
-export function AppointmentFormFields({ form, callerRole }: AppointmentFormFieldsProps) {
+export function AppointmentFormFields({ 
+  form, 
+  callerRole, 
+  onFieldChange 
+}: AppointmentFormFieldsProps) {
   const { user } = useAuth();
 
   // Pre-fill the form with current user's ID based on role
@@ -26,6 +31,15 @@ export function AppointmentFormFields({ form, callerRole }: AppointmentFormField
       }
     }
   }, [user, callerRole, form]);
+
+  // Let's add field change listeners
+  useEffect(() => {
+    const subscription = form.watch(() => {
+      if (onFieldChange) onFieldChange();
+    });
+    
+    return () => subscription.unsubscribe();
+  }, [form, onFieldChange]);
 
   return (
     <>

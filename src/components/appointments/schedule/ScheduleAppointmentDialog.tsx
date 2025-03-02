@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import {
   AlertDialog,
@@ -42,8 +41,12 @@ export function ScheduleAppointmentDialog({
     },
   });
 
+  function handleFieldChange() {
+    console.log("Field changed, dialog remains open");
+  }
+
   function onSubmit(values: AppointmentFormData) {
-    console.log(values);
+    console.log("Submitting appointment data:", values);
     createAppointmentMutation.mutate(values);
   }
 
@@ -105,6 +108,7 @@ export function ScheduleAppointmentDialog({
             <AppointmentFormFields 
               form={form}
               callerRole={callerRole}
+              onFieldChange={handleFieldChange}
             />
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
