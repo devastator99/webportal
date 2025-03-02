@@ -173,7 +173,7 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full">
-      <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-black dark:text-white py-2 px-1">
+      <h1 className={`text-lg sm:text-xl md:text-2xl font-bold text-black dark:text-white py-2 px-1 ${userRole === 'doctor' ? 'text-base sm:text-lg md:text-xl' : ''}`}>
         {welcomeMessage}
       </h1>
       {actionButton && (
