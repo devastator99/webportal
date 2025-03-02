@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -26,6 +27,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Textarea } from "@/components/ui/textarea";
 import { format, parse, addHours, addMinutes, isAfter, isBefore, startOfDay } from "date-fns";
 import { Loader2, Calendar as CalendarIcon } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type DoctorProfile = {
   id: string;
@@ -61,6 +63,7 @@ export const ScheduleAppointment = ({
   const [selectedDoctor, setSelectedDoctor] = useState(preSelectedDoctorId || "");
   const [selectedPatient, setSelectedPatient] = useState(preSelectedPatientId || "");
   const [notes, setNotes] = useState("");
+  const isMobile = useIsMobile();
 
   // Fetch doctors list using the get_doctors RPC function
   const { data: doctors = [], isLoading: isDoctorsLoading } = useQuery({
@@ -171,22 +174,22 @@ export const ScheduleAppointment = ({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className={`${isMobile ? 'w-[95vw] p-4' : 'sm:max-w-[500px]'} max-h-[90vh] overflow-y-auto`}>
         <DialogHeader>
-          <DialogTitle>Schedule an Appointment</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-center sm:text-left">Schedule an Appointment</DialogTitle>
+          <DialogDescription className="text-center sm:text-left">
             Fill out the form below to schedule a new appointment.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
+        <div className="grid gap-4 py-2 sm:py-4">
           {/* Doctor selection */}
           {(callerRole === "patient" || callerRole === "reception") && (
-            <div className="grid grid-cols-4 items-center gap-2">
-              <Label htmlFor="doctor" className="text-right">
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-4 items-center gap-2'}`}>
+              <Label htmlFor="doctor" className={isMobile ? "mb-1" : "text-right"}>
                 Doctor
               </Label>
-              <div className="col-span-3">
+              <div className={isMobile ? "w-full" : "col-span-3"}>
                 <Select
                   value={selectedDoctor}
                   onValueChange={setSelectedDoctor}
@@ -209,11 +212,11 @@ export const ScheduleAppointment = ({
 
           {/* Patient selection */}
           {(callerRole === "doctor" || callerRole === "reception") && (
-            <div className="grid grid-cols-4 items-center gap-2">
-              <Label htmlFor="patient" className="text-right">
+            <div className={`grid ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-4 items-center gap-2'}`}>
+              <Label htmlFor="patient" className={isMobile ? "mb-1" : "text-right"}>
                 Patient
               </Label>
-              <div className="col-span-3">
+              <div className={isMobile ? "w-full" : "col-span-3"}>
                 <Select
                   value={selectedPatient}
                   onValueChange={setSelectedPatient}
@@ -235,13 +238,13 @@ export const ScheduleAppointment = ({
           )}
 
           {/* Date picker */}
-          <div className="grid grid-cols-4 items-center gap-2">
-            <Label htmlFor="date" className="text-right">
+          <div className={`grid ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-4 items-center gap-2'}`}>
+            <Label htmlFor="date" className={isMobile ? "mb-1" : "text-right"}>
               Date
             </Label>
-            <div className="col-span-3">
+            <div className={isMobile ? "w-full" : "col-span-3"}>
               <div className="flex flex-col space-y-2">
-                <div className="flex w-full max-w-sm items-center space-x-2">
+                <div className="flex w-full items-center">
                   <Button
                     type="button"
                     variant="outline"
@@ -257,23 +260,23 @@ export const ScheduleAppointment = ({
                   selected={selectedDate}
                   onSelect={setSelectedDate}
                   disabled={(date) => date < startOfDay(new Date())}
-                  className="border rounded-md p-3"
+                  className="border rounded-md p-2 sm:p-3 mx-auto w-full"
                 />
               </div>
             </div>
           </div>
 
           {/* Time picker */}
-          <div className="grid grid-cols-4 items-center gap-2">
-            <Label htmlFor="time" className="text-right">
+          <div className={`grid ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-4 items-center gap-2'}`}>
+            <Label htmlFor="time" className={isMobile ? "mb-1" : "text-right"}>
               Time
             </Label>
-            <div className="col-span-3">
+            <div className={isMobile ? "w-full" : "col-span-3"}>
               <Select value={selectedTime} onValueChange={setSelectedTime}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select a time" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[40vh]">
                   {timeSlots.map((time) => (
                     <SelectItem key={time} value={time}>
                       {format(parse(time, "HH:mm", new Date()), "h:mm a")}
@@ -285,13 +288,13 @@ export const ScheduleAppointment = ({
           </div>
 
           {/* Notes */}
-          <div className="grid grid-cols-4 items-center gap-2">
-            <Label htmlFor="notes" className="text-right">
+          <div className={`grid ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-4 items-center gap-2'}`}>
+            <Label htmlFor="notes" className={isMobile ? "mb-1" : "text-right"}>
               Notes
             </Label>
             <Textarea
               id="notes"
-              className="col-span-3"
+              className={isMobile ? "w-full" : "col-span-3"}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Add any notes or special instructions"
@@ -299,11 +302,11 @@ export const ScheduleAppointment = ({
           </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className={isMobile ? "flex-col space-y-2 mt-2" : ""}>
           <Button 
             onClick={handleScheduleAppointment} 
             disabled={isSubmitting}
-            className="bg-primary text-white"
+            className={`bg-primary text-white ${isMobile ? 'w-full' : ''}`}
           >
             {isSubmitting ? (
               <>
