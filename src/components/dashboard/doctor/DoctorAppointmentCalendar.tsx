@@ -9,20 +9,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Database } from "@/integrations/supabase/types";
 
-// Define a type for the raw data returned from the RPC
-type AppointmentWithPatientRaw = {
-  id: string;
-  scheduled_at: string;
-  status: Database["public"]["Enums"]["appointment_status"];
-  patient: Record<string, any>;
-};
-
-// Define the interface for the processed appointment data
+// Define the interface for the appointment data returned by the RPC function
 interface AppointmentWithPatient {
   id: string;
   scheduled_at: string;
-  status: string;
-  patient: {
+  status: Database["public"]["Enums"]["appointment_status"];
+  patient_json: {
+    id: string;
     first_name: string;
     last_name: string;
   };
@@ -41,115 +34,29 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
       console.log("Fetching appointments for date:", formattedDate, "doctor:", doctorId);
       
       try {
-        // Use RPC call to avoid recursion issues
-        const { data: appointmentsData, error: appointmentsError } = await supabase
-          .rpc('get_doctor_appointments_with_patients', { 
-            doctor_id: doctorId,
-            date_filter: formattedDate
-          });
+        // Use our security definer RPC function
+        const { data, error } = await supabase.rpc(
+          'get_appointments_by_date',
+          { 
+            p_doctor_id: doctorId,
+            p_date: formattedDate
+          }
+        );
 
-        if (appointmentsError) {
-          console.error("Error fetching appointments via RPC:", appointmentsError);
-          throw appointmentsError;
+        if (error) {
+          console.error("Error fetching appointments via RPC:", error);
+          throw error;
         }
 
-        // Transform the data to ensure it matches the AppointmentWithPatient interface
-        return (appointmentsData || []).map((item: AppointmentWithPatientRaw) => {
-          // Ensure patient is treated as an object and extract properties safely
-          const patientObj = typeof item.patient === 'object' && item.patient !== null 
-            ? item.patient 
-            : {};
-            
-          return {
-            id: item.id,
-            scheduled_at: item.scheduled_at,
-            status: item.status,
-            patient: {
-              first_name: patientObj.first_name || "Unknown",
-              last_name: patientObj.last_name || "Patient"
-            }
-          };
-        });
+        return data || [];
       } catch (error) {
         console.error("Error in calendar appointment fetch:", error);
-        
-        // Fallback approach if RPC fails
-        try {
-          console.log("Attempting fallback approach for calendar appointments");
-          // Simplify the query to avoid RLS recursion issues
-          const { data: appointmentsData, error: appointmentsError } = await supabase
-            .from('appointments')
-            .select('id, scheduled_at, status, patient_id')
-            .eq('doctor_id', doctorId)
-            .gte('scheduled_at', `${formattedDate}T00:00:00`)
-            .lte('scheduled_at', `${formattedDate}T23:59:59`);
-
-          if (appointmentsError) {
-            console.error("Error in fallback appointments fetch:", appointmentsError);
-            toast({
-              title: "Error loading appointments",
-              description: "There was a problem loading your appointments.",
-              variant: "destructive",
-            });
-            return [];
-          }
-
-          if (!appointmentsData || appointmentsData.length === 0) {
-            return [];
-          }
-
-          // Separately fetch patient details to avoid join issues
-          const appointmentsWithPatients = await Promise.all(
-            appointmentsData.map(async (appointment) => {
-              try {
-                const { data: patientData, error: patientError } = await supabase
-                  .from('profiles')
-                  .select('first_name, last_name')
-                  .eq('id', appointment.patient_id)
-                  .single();
-
-                if (patientError) {
-                  console.error(`Error fetching patient for appointment ${appointment.id}:`, patientError);
-                  // Return appointment with default patient info if patient fetch fails
-                  return {
-                    id: appointment.id,
-                    scheduled_at: appointment.scheduled_at,
-                    status: appointment.status,
-                    patient: { first_name: "Unknown", last_name: "Patient" }
-                  };
-                }
-
-                return {
-                  id: appointment.id,
-                  scheduled_at: appointment.scheduled_at,
-                  status: appointment.status,
-                  patient: {
-                    first_name: patientData.first_name || "Unknown",
-                    last_name: patientData.last_name || "Patient"
-                  }
-                };
-              } catch (err) {
-                console.error(`Error processing patient data for appointment ${appointment.id}:`, err);
-                return {
-                  id: appointment.id,
-                  scheduled_at: appointment.scheduled_at,
-                  status: appointment.status,
-                  patient: { first_name: "Unknown", last_name: "Patient" }
-                };
-              }
-            })
-          );
-
-          return appointmentsWithPatients;
-        } catch (fallbackError) {
-          console.error("Fallback approach also failed:", fallbackError);
-          toast({
-            title: "Error loading appointments",
-            description: "There was a problem loading your appointments.",
-            variant: "destructive",
-          });
-          return [];
-        }
+        toast({
+          title: "Error loading appointments",
+          description: "There was a problem loading your appointments.",
+          variant: "destructive",
+        });
+        return [];
       }
     },
     enabled: !!doctorId,
@@ -196,7 +103,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
               >
                 <div>
                   <p className="font-medium">
-                    {appointment.patient?.first_name || "Unknown"} {appointment.patient?.last_name || "Patient"}
+                    {appointment.patient_json?.first_name || "Unknown"} {appointment.patient_json?.last_name || "Patient"}
                   </p>
                   <p className="text-sm text-muted-foreground">
                     {format(new Date(appointment.scheduled_at), "h:mm a")}
