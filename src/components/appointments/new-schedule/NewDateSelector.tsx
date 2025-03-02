@@ -29,11 +29,35 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
   // Get today's date with time set to start of day to avoid timezone issues
   const today = startOfDay(new Date());
 
+  // Update the parent form about validation status
+  const setFormValidating = (validating: boolean) => {
+    // If we're validating, mark the field as validating in the form
+    // This will prevent submission
+    if (validating) {
+      form.setError("scheduledAt", { 
+        type: "validating", 
+        message: "Validating date availability..."
+      });
+    } else {
+      // Clear the validation error when done
+      if (form.formState.errors.scheduledAt?.type === "validating") {
+        form.clearErrors("scheduledAt");
+      }
+    }
+  };
+
   // This function handles date selection from the calendar
   const handleDateSelect = async (selectedDate: Date | undefined) => {
-    if (!selectedDate) return;
+    if (!selectedDate) {
+      form.setError("scheduledAt", { 
+        type: "required", 
+        message: "Date is required" 
+      });
+      return;
+    }
     
     setIsValidating(true);
+    setFormValidating(true);
     
     try {
       // Format date for database with proper timezone handling
@@ -72,7 +96,12 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
             description: "Could not validate appointment date",
             variant: "destructive",
           });
+          form.setError("scheduledAt", { 
+            type: "validate", 
+            message: "Could not validate date" 
+          });
           setIsValidating(false);
+          setFormValidating(false);
           return;
         }
         
@@ -84,7 +113,12 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
             description: "This time slot is already booked, please select another time",
             variant: "destructive",
           });
+          form.setError("scheduledAt", { 
+            type: "validate", 
+            message: "Time slot is already booked" 
+          });
           setIsValidating(false);
+          setFormValidating(false);
           return;
         }
       }
@@ -109,8 +143,13 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
         description: "Could not process the selected date",
         variant: "destructive",
       });
+      form.setError("scheduledAt", { 
+        type: "validate", 
+        message: "Error processing date" 
+      });
     } finally {
       setIsValidating(false);
+      setFormValidating(false);
     }
   };
 
@@ -124,16 +163,22 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
         
         return (
           <FormItem className="flex flex-col">
-            <FormLabel>Scheduled Date</FormLabel>
+            <FormLabel>Scheduled Date<span className="text-destructive ml-1">*</span></FormLabel>
             <FormControl>
               <DateSelector
                 date={dateValue}
                 onDateChange={handleDateSelect}
                 placeholder="Select a date"
                 disabledDates={(date) => date < today}
+                disabled={isValidating}
               />
             </FormControl>
             <FormMessage />
+            {isValidating && (
+              <p className="text-sm text-muted-foreground mt-1">
+                Validating availability...
+              </p>
+            )}
           </FormItem>
         );
       }}

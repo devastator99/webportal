@@ -17,6 +17,7 @@ interface DateSelectorProps {
   placeholder?: string;
   className?: string;
   disabledDates?: (date: Date) => boolean;
+  disabled?: boolean;
 }
 
 export function DateSelector({
@@ -25,6 +26,7 @@ export function DateSelector({
   placeholder = "Select date",
   className,
   disabledDates,
+  disabled = false,
 }: DateSelectorProps) {
   const [open, setOpen] = useState(false);
 
@@ -44,6 +46,8 @@ export function DateSelector({
 
   // For quick access buttons
   const handleQuickSelect = (daysToAdd: number) => {
+    if (disabled) return;
+    
     const today = new Date();
     const newDate = new Date(today);
     newDate.setDate(today.getDate() + daysToAdd);
@@ -53,15 +57,17 @@ export function DateSelector({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={disabled ? false : open} onOpenChange={disabled ? () => {} : setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
           className={cn(
             "w-full justify-start text-left font-normal",
             !date && "text-muted-foreground",
+            disabled && "opacity-50 cursor-not-allowed",
             className
           )}
+          disabled={disabled}
         >
           <CalendarIcon className="mr-2 h-4 w-4" />
           {date ? format(date, "PPP") : placeholder}
