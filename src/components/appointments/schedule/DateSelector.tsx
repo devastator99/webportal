@@ -60,13 +60,15 @@ export function DateSelector({ form }: DateSelectorProps) {
                 onSelect={(date) => {
                   if (!date) return;
                   
-                  // First update the field value via the onChange handler
-                  field.onChange(date.toISOString());
+                  // Set the ISO string date directly to the form
+                  form.setValue("scheduledAt", date.toISOString(), { 
+                    shouldValidate: true,
+                    shouldDirty: true,
+                    shouldTouch: true
+                  });
                   
-                  // Add a small delay before closing the calendar to ensure the value is set
-                  setTimeout(() => {
-                    setCalendarOpen(false);
-                  }, 100);
+                  // Close the calendar after ensuring the value is set
+                  setCalendarOpen(false);
                 }}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 initialFocus
