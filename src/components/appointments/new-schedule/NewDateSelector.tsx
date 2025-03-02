@@ -10,14 +10,10 @@ import {
 } from "@/components/ui/form";
 import { AppointmentFormData } from "../schedule/schema";
 import { useToast } from "@/hooks/use-toast";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { format, startOfDay } from "date-fns";
 import { formatInTimeZone } from 'date-fns-tz';
-import { Calendar as CalendarIcon } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { DateSelector } from "@/components/ui/date-selector";
 
 // Define India timezone
 const INDIA_TIMEZONE = 'Asia/Kolkata';
@@ -28,9 +24,7 @@ interface NewDateSelectorProps {
 
 export function NewDateSelector({ form }: NewDateSelectorProps) {
   const { toast } = useToast();
-  const [date, setDate] = useState<Date | undefined>(undefined);
   const [isValidating, setIsValidating] = useState(false);
-  const [popoverOpen, setPopoverOpen] = useState(false);
 
   // Get today's date with time set to start of day to avoid timezone issues
   const today = startOfDay(new Date());
@@ -39,21 +33,21 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
   const handleDateSelect = async (selectedDate: Date | undefined) => {
     if (!selectedDate) return;
     
-    // Normalize the selected date to avoid timezone issues
-    const normalizedDate = startOfDay(selectedDate);
-    setDate(normalizedDate);
     setIsValidating(true);
     
     try {
       // Format date for database with proper timezone handling
-      const formattedDate = format(normalizedDate, "yyyy-MM-dd");
+      const formattedDate = format(selectedDate, "yyyy-MM-dd");
       console.log("Selected date formatted:", formattedDate);
       
       // Create ISO string with noon time to avoid timezone issues
-      const year = normalizedDate.getFullYear();
-      const month = normalizedDate.getMonth();
-      const day = normalizedDate.getDate();
-      const isoDate = new Date(year, month, day, 12, 0, 0, 0).toISOString();
+      const isoDate = new Date(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate(),
+        12, 0, 0, 0
+      ).toISOString();
+      
       console.log("ISO date string:", isoDate);
       
       const doctorId = form.getValues().doctorId;
@@ -106,11 +100,8 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
       
       toast({
         title: "Date selected",
-        description: `Appointment scheduled for: ${formatInTimeZone(normalizedDate, INDIA_TIMEZONE, "PPP")}`,
+        description: `Appointment scheduled for: ${format(selectedDate, "PPP")}`,
       });
-      
-      // Close the popover after successful selection
-      setPopoverOpen(false);
     } catch (error) {
       console.error("Error processing date:", error);
       toast({
@@ -127,69 +118,25 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
     <FormField
       control={form.control}
       name="scheduledAt"
-      render={({ field }) => (
-        <FormItem className="flex flex-col">
-          <FormLabel>Scheduled Date</FormLabel>
-          <Popover 
-            open={popoverOpen} 
-            onOpenChange={(open) => {
-              setPopoverOpen(open);
-            }}
-          >
-            <PopoverTrigger asChild>
-              <FormControl>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full pl-3 text-left font-normal",
-                    !date && "text-muted-foreground"
-                  )}
-                  disabled={isValidating}
-                >
-                  {date ? formatInTimeZone(date, INDIA_TIMEZONE, "PPP") : "Select a date"}
-                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                </Button>
-              </FormControl>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={date}
-                onSelect={handleDateSelect}
-                disabled={(date) => date < today}
-                initialFocus
+      render={({ field }) => {
+        // Convert string date from form to Date object for the DateSelector
+        const dateValue = field.value ? new Date(field.value) : undefined;
+        
+        return (
+          <FormItem className="flex flex-col">
+            <FormLabel>Scheduled Date</FormLabel>
+            <FormControl>
+              <DateSelector
+                date={dateValue}
+                onDateChange={handleDateSelect}
+                placeholder="Select a date"
+                disabledDates={(date) => date < today}
               />
-              <div className="p-3 border-t grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    const tomorrow = new Date(today);
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    handleDateSelect(tomorrow);
-                  }}
-                >
-                  Tomorrow
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    const nextWeek = new Date(today);
-                    nextWeek.setDate(nextWeek.getDate() + 7);
-                    handleDateSelect(nextWeek);
-                  }}
-                >
-                  Next Week
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <FormMessage />
-        </FormItem>
-      )}
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        );
+      }}
     />
   );
 }

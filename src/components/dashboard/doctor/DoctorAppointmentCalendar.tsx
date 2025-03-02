@@ -32,8 +32,11 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
   // Handle date selection from the calendar
   const handleDateSelect = (date: Date | undefined) => {
     if (date) {
+      console.log("Calendar date selected:", date);
       // Use startOfDay to normalize the time part to avoid timezone issues
-      setSelectedDate(startOfDay(date));
+      const normalizedDate = startOfDay(date);
+      console.log("Normalized date:", normalizedDate);
+      setSelectedDate(normalizedDate);
     }
   };
 
@@ -61,6 +64,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
           throw error;
         }
 
+        console.log("Appointments data received:", data);
         return (data as AppointmentWithPatient[]) || [];
       } catch (error) {
         console.error("Error in calendar appointment fetch:", error);
@@ -81,6 +85,24 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
     console.error("Query error in DoctorAppointmentCalendar:", error);
   }
 
+  const formatAppointmentTime = (dateString: string) => {
+    try {
+      return formatInTimeZone(new Date(dateString), INDIA_TIMEZONE, "h:mm a");
+    } catch (err) {
+      console.error("Error formatting appointment time:", err, dateString);
+      return "Invalid time";
+    }
+  };
+
+  const formatDisplayDate = (date: Date) => {
+    try {
+      return formatInTimeZone(date, INDIA_TIMEZONE, "MMMM d, yyyy");
+    } catch (err) {
+      console.error("Error formatting display date:", err, date);
+      return format(date, "MMMM d, yyyy");
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -97,7 +119,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
         </div>
         <div className="space-y-4">
           <h3 className="font-medium">
-            Appointments for {formatInTimeZone(selectedDate, INDIA_TIMEZONE, "MMMM d, yyyy")}
+            Appointments for {formatDisplayDate(selectedDate)}
           </h3>
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading appointments...</p>
@@ -119,7 +141,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
                     {appointment.patient_json?.first_name || "Unknown"} {appointment.patient_json?.last_name || "Patient"}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {formatInTimeZone(new Date(appointment.scheduled_at), INDIA_TIMEZONE, "h:mm a")}
+                    {formatAppointmentTime(appointment.scheduled_at)}
                   </p>
                 </div>
                 <Badge variant={appointment.status === "scheduled" ? "default" : "secondary"}>
