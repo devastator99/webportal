@@ -10,6 +10,9 @@ import { AppointmentsList } from "./patient/AppointmentsList";
 import { MedicalRecordsUpload } from "./patient/MedicalRecordsUpload";
 import { Database } from "@/integrations/supabase/types";
 import { DashboardHeader } from "./DashboardHeader";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "lucide-react";
+import { ScheduleAppointment } from "../appointments/ScheduleAppointment";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 
@@ -105,6 +108,18 @@ export const PatientDashboard = () => {
       
       {/* Stats Row */}
       <PatientStats />
+
+      {/* Schedule appointment button */}
+      <div className="flex justify-end">
+        <ScheduleAppointment callerRole="patient">
+          <Button 
+            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
+          >
+            <Calendar className="h-4 w-4" />
+            <span>Schedule New Appointment</span>
+          </Button>
+        </ScheduleAppointment>
+      </div>
 
       {/* Main Content - Use similar grid layout to DoctorDashboard */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -1,25 +1,20 @@
 
-import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { User, Clock } from "lucide-react";
+import { format, parseISO, isToday } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, isFuture } from "date-fns";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Database } from "@/integrations/supabase/types";
-
-type AppointmentWithPatientRaw = {
-  id: string;
-  scheduled_at: string;
-  status: Database["public"]["Enums"]["appointment_status"];
-  patient: Record<string, any>;
-};
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AppointmentWithPatient {
   id: string;
   scheduled_at: string;
-  status: string;
-  patient: {
+  status: "scheduled" | "completed" | "cancelled";
+  patient_json: {
+    id: string;
     first_name: string;
     last_name: string;
   };
@@ -27,156 +22,95 @@ interface AppointmentWithPatient {
 
 export const TodaySchedule = () => {
   const { user } = useAuth();
-  const today = new Date();
-  const formattedDate = format(today, "yyyy-MM-dd");
+  const today = format(new Date(), "yyyy-MM-dd");
 
-  const { data, isLoading } = useQuery<AppointmentWithPatient[]>({
-    queryKey: ["today_appointments", user?.id, formattedDate],
+  const {
+    data: appointments = [],
+    isLoading,
+    isError,
+    error,
+  } = useQuery({
+    queryKey: ["today-schedule", user?.id, today],
     queryFn: async () => {
       if (!user?.id) return [];
 
-      try {
-        console.log("Fetching today's appointments for doctor:", user.id);
-        
-        const { data: appointmentsData, error: appointmentsError } = await supabase
-          .rpc('get_doctor_appointments_with_patients', { 
-            doctor_id: user.id,
-            date_filter: formattedDate
-          });
+      // Call RPC function to get today's appointments
+      const { data, error } = await supabase.rpc("get_appointments_by_date", {
+        p_doctor_id: user.id,
+        p_date: today,
+      });
 
-        if (appointmentsError) {
-          console.error("Error fetching today's appointments:", appointmentsError);
-          throw appointmentsError;
-        }
-
-        console.log("Appointments with patients from RPC:", appointmentsData);
-        
-        // Safely process and transform the data
-        return (appointmentsData || []).map((item: AppointmentWithPatientRaw) => {
-          // Ensure patient is treated as an object and extract properties safely
-          const patientObj = typeof item.patient === 'object' && item.patient !== null 
-            ? item.patient 
-            : {};
-          
-          return {
-            id: item.id,
-            scheduled_at: item.scheduled_at,
-            status: item.status,
-            patient: {
-              first_name: patientObj.first_name || "Unknown",
-              last_name: patientObj.last_name || "Patient"
-            }
-          };
-        });
-      } catch (error) {
-        console.error("Error in today's schedule fetch:", error);
-        
-        console.log("Attempting fallback approach for appointments");
-        try {
-          const { data: appointmentsData, error: appointmentsError } = await supabase
-            .from('appointments')
-            .select('id, scheduled_at, status, patient_id')
-            .eq('doctor_id', user.id)
-            .gte('scheduled_at', `${formattedDate}T00:00:00`)
-            .lte('scheduled_at', `${formattedDate}T23:59:59`)
-            .order('scheduled_at');
-
-          if (appointmentsError) {
-            console.error("Error in fallback appointments fetch:", appointmentsError);
-            return [];
-          }
-
-          if (!appointmentsData || appointmentsData.length === 0) {
-            return [];
-          }
-
-          const appointmentsWithPatients = await Promise.all(
-            appointmentsData.map(async (appointment) => {
-              try {
-                const { data: patientData, error: patientError } = await supabase
-                  .from('profiles')
-                  .select('first_name, last_name')
-                  .eq('id', appointment.patient_id)
-                  .single();
-
-                if (patientError) {
-                  console.error(`Error fetching patient for appointment ${appointment.id}:`, patientError);
-                  return {
-                    id: appointment.id,
-                    scheduled_at: appointment.scheduled_at,
-                    status: appointment.status,
-                    patient: { first_name: "Unknown", last_name: "Patient" }
-                  };
-                }
-
-                return {
-                  id: appointment.id,
-                  scheduled_at: appointment.scheduled_at,
-                  status: appointment.status,
-                  patient: {
-                    first_name: patientData.first_name || "Unknown",
-                    last_name: patientData.last_name || "Patient"
-                  }
-                };
-              } catch (err) {
-                console.error(`Error processing patient data for appointment ${appointment.id}:`, err);
-                return {
-                  id: appointment.id,
-                  scheduled_at: appointment.scheduled_at,
-                  status: appointment.status,
-                  patient: { first_name: "Unknown", last_name: "Patient" }
-                };
-              }
-            })
-          );
-
-          return appointmentsWithPatients;
-        } catch (fallbackError) {
-          console.error("Fallback approach also failed:", fallbackError);
-          return [];
-        }
+      if (error) {
+        console.error("Error fetching today's appointments:", error);
+        throw error;
       }
+
+      return data as AppointmentWithPatient[];
     },
     enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
-  const upcomingAppointments = data && Array.isArray(data) 
-    ? data.filter(appointment => isFuture(new Date(appointment.scheduled_at)))
-    : [];
-
   return (
-    <Card className="col-span-1">
+    <Card className="shadow-md">
       <CardHeader className="pb-3">
-        <CardTitle>Today's Schedule</CardTitle>
+        <CardTitle className="text-xl font-bold">Today's Schedule</CardTitle>
+        <CardDescription>
+          Your appointments for {format(new Date(), "MMMM d, yyyy")}
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[300px] w-full pr-4">
-          {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading today's appointments...</p>
-          ) : upcomingAppointments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No more appointments scheduled for today</p>
-          ) : (
-            <div className="space-y-4">
-              {upcomingAppointments.map((appointment) => (
+        {isLoading ? (
+          <div className="space-y-3">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        ) : isError ? (
+          <div className="text-red-500">
+            Error loading schedule: {(error as Error).message}
+          </div>
+        ) : appointments.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            No appointments scheduled for today
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {appointments
+              .sort((a, b) => {
+                return new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime();
+              })
+              .map((appointment) => (
                 <div
                   key={appointment.id}
-                  className="flex items-center justify-between border-b pb-3 last:border-0 last:pb-0"
+                  className="flex flex-col p-3 border rounded-lg hover:bg-slate-50 transition-colors"
                 >
-                  <div>
-                    <p className="font-medium">
-                      {appointment.patient?.first_name || "Unknown"} {appointment.patient?.last_name || "Patient"}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {format(new Date(appointment.scheduled_at), "h:mm a")}
-                    </p>
+                  <div className="flex justify-between">
+                    <div className="flex items-center">
+                      <User className="mr-2 h-4 w-4 text-slate-500" />
+                      <span className="font-medium">
+                        {appointment.patient_json.first_name} {appointment.patient_json.last_name}
+                      </span>
+                    </div>
+                    <Badge
+                      className={`
+                        ${appointment.status === "scheduled" ? "bg-blue-500" : ""}
+                        ${appointment.status === "completed" ? "bg-green-500" : ""}
+                        ${appointment.status === "cancelled" ? "bg-red-500" : ""}
+                      `}
+                    >
+                      {appointment.status}
+                    </Badge>
                   </div>
-                  <Badge variant="outline">{appointment.status}</Badge>
+                  <div className="flex items-center mt-2 text-slate-500">
+                    <Clock className="mr-2 h-4 w-4" />
+                    <time dateTime={appointment.scheduled_at}>
+                      {format(parseISO(appointment.scheduled_at), "h:mm a")}
+                    </time>
+                  </div>
                 </div>
               ))}
-            </div>
-          )}
-        </ScrollArea>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
