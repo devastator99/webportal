@@ -102,24 +102,25 @@ export const PatientDashboard = () => {
   // Filter upcoming appointments - note that our RPC function already filters for scheduled status
   const upcomingAppointments = patientData?.appointments || [];
 
+  // Create action button for the header
+  const actionButton = (
+    <ScheduleAppointment callerRole="patient">
+      <Button 
+        className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+        size="sm"
+      >
+        <Calendar className="h-4 w-4" />
+        <span>New Appointment</span>
+      </Button>
+    </ScheduleAppointment>
+  );
+
   return (
     <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
-      <DashboardHeader />
+      <DashboardHeader actionButton={actionButton} />
       
       {/* Stats Row */}
       <PatientStats />
-
-      {/* Schedule appointment button */}
-      <div className="flex justify-end">
-        <ScheduleAppointment callerRole="patient">
-          <Button 
-            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
-          >
-            <Calendar className="h-4 w-4" />
-            <span>Schedule New Appointment</span>
-          </Button>
-        </ScheduleAppointment>
-      </div>
 
       {/* Main Content - Use similar grid layout to DoctorDashboard */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

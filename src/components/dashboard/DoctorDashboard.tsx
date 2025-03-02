@@ -22,32 +22,36 @@ export const DoctorDashboard = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   
+  // Create the action buttons to pass to the header
+  const actionButtons = (
+    <>
+      <Link to="/patients">
+        <Button 
+          className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+          size="sm"
+        >
+          <Users className="h-4 w-4" />
+          <span>Patients</span>
+        </Button>
+      </Link>
+      
+      <ScheduleAppointment callerRole="doctor">
+        <Button 
+          className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+          size="sm"
+        >
+          <Calendar className="h-4 w-4" />
+          <span>Schedule</span>
+        </Button>
+      </ScheduleAppointment>
+    </>
+  );
+  
   return (
     <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
-      <DashboardHeader />
+      <DashboardHeader actionButton={actionButtons} />
       
       <StatsCards />
-
-      {/* Action buttons */}
-      <div className="flex flex-wrap justify-end gap-3">
-        <Link to="/patients">
-          <Button 
-            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
-          >
-            <Users className="h-4 w-4" />
-            <span>View All Patients</span>
-          </Button>
-        </Link>
-        
-        <ScheduleAppointment callerRole="doctor">
-          <Button 
-            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
-          >
-            <Calendar className="h-4 w-4" />
-            <span>Schedule Patient Appointment</span>
-          </Button>
-        </ScheduleAppointment>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="space-y-6 lg:col-span-1">

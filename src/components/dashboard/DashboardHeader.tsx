@@ -172,12 +172,12 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
   console.log("[Profile Debug] Final welcome message:", welcomeMessage);
 
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between w-full">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full">
       <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-black dark:text-white py-2 px-1">
         {welcomeMessage}
       </h1>
       {actionButton && (
-        <div className="flex items-center gap-3 justify-end">
+        <div className="flex items-center gap-3 mt-2 sm:mt-0">
           {actionButton}
         </div>
       )}
