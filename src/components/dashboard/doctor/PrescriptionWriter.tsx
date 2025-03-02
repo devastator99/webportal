@@ -72,8 +72,8 @@ export const PrescriptionWriter = () => {
       
       console.log("Fetching prescriptions for patient:", selectedPatient);
       
-      // Improved query to fetch records with doctor information in a single query
-      const { data, error } = await supabase
+      // First fetch the medical records
+      const { data: medicalRecords, error: medicalRecordsError } = await supabase
         .from("medical_records")
         .select(`
           id, 
@@ -81,31 +81,53 @@ export const PrescriptionWriter = () => {
           diagnosis, 
           prescription, 
           notes,
-          doctor_id,
-          profiles(first_name, last_name)
+          doctor_id
         `)
         .eq("patient_id", selectedPatient)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching prescriptions:", error);
-        throw error;
+      if (medicalRecordsError) {
+        console.error("Error fetching medical records:", medicalRecordsError);
+        throw medicalRecordsError;
       }
-
-      console.log("Prescriptions fetched:", data?.length || 0);
       
-      // Transform the data to include doctor name
-      return data.map(record => ({
+      // If no records found, return empty array
+      if (!medicalRecords?.length) {
+        return [];
+      }
+      
+      // Get all unique doctor IDs from the records
+      const doctorIds = [...new Set(medicalRecords.map(record => record.doctor_id))];
+      
+      // Fetch doctor profiles in a separate query
+      const { data: doctorProfiles, error: doctorProfilesError } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name")
+        .in("id", doctorIds);
+        
+      if (doctorProfilesError) {
+        console.error("Error fetching doctor profiles:", doctorProfilesError);
+        throw doctorProfilesError;
+      }
+      
+      // Create a map of doctor IDs to doctor names for quick lookup
+      const doctorsMap = doctorProfiles?.reduce((acc, doctor) => {
+        acc[doctor.id] = {
+          first_name: doctor.first_name || "Unknown",
+          last_name: doctor.last_name || ""
+        };
+        return acc;
+      }, {}) || {};
+      
+      // Combine the data
+      return medicalRecords.map(record => ({
         id: record.id,
         created_at: record.created_at,
         diagnosis: record.diagnosis,
         prescription: record.prescription,
         notes: record.notes,
         doctor_id: record.doctor_id,
-        doctor: {
-          first_name: record.profiles?.first_name || "Unknown",
-          last_name: record.profiles?.last_name || ""
-        }
+        doctor: doctorsMap[record.doctor_id] || { first_name: "Unknown", last_name: "" }
       }));
     },
     enabled: !!selectedPatient,
