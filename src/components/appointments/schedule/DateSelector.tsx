@@ -25,6 +25,8 @@ interface DateSelectorProps {
 }
 
 export function DateSelector({ form }: DateSelectorProps) {
+  const [open, setOpen] = useState(false);
+
   return (
     <FormField
       control={form.control}
@@ -32,7 +34,7 @@ export function DateSelector({ form }: DateSelectorProps) {
       render={({ field }) => (
         <FormItem className="flex flex-col">
           <FormLabel>Scheduled Date</FormLabel>
-          <Popover>
+          <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
               <FormControl>
                 <Button
@@ -59,6 +61,7 @@ export function DateSelector({ form }: DateSelectorProps) {
                   if (date) {
                     const isoDate = date.toISOString();
                     field.onChange(isoDate);
+                    setOpen(false); // Close the calendar after selection
                   }
                 }}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
