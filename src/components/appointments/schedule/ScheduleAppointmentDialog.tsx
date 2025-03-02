@@ -42,23 +42,31 @@ export function ScheduleAppointmentDialog({
     },
   });
 
-  // This function is called when fields change but should not close the dialog
-  function handleFieldChange() {
-    // Just log the change, but don't close the dialog
-    console.log("Field changed, dialog remains open");
+  // This function handles explicit dialog close via Cancel button
+  function handleCancel() {
+    form.reset();
+    setOpen(false);
   }
 
+  // This function handles form submission
   function onSubmit(values: AppointmentFormData) {
     console.log("Submitting appointment data:", values);
     createAppointmentMutation.mutate(values);
-    // Dialog will be closed in the onSuccess callback after successful submission
+    // Dialog will be closed in the onSuccess callback
   }
 
-  function handleCancel() {
-    // Only close the dialog when cancel is explicitly clicked
-    setOpen(false);
-    form.reset();
-  }
+  // This prevents accidental closure from outside clicks
+  const handleDialogChange = (newOpenState: boolean) => {
+    // Only allow closing through explicit actions (Cancel/Submit buttons)
+    if (open && !newOpenState) {
+      // If dialog is open and something is trying to close it unexpectedly
+      console.log("Dialog close attempt intercepted");
+      // Don't close it - we'll handle this in explicit handlers
+    } else {
+      // Allow opening or explicit closing
+      setOpen(newOpenState);
+    }
+  };
 
   const createAppointmentMutation = useMutation({
     mutationFn: async (newAppointment: AppointmentFormData) => {
@@ -89,8 +97,8 @@ export function ScheduleAppointmentDialog({
         title: "Success",
         description: "Appointment created successfully!",
       });
-      setOpen(false);
       form.reset();
+      setOpen(false);
     },
     onError: (error) => {
       toast({
@@ -102,26 +110,12 @@ export function ScheduleAppointmentDialog({
     },
   });
 
-  // Create a wrapper component to handle outside clicks
-  const handleDialogChange = (newOpen: boolean) => {
-    // Only allow closing from the "X" button, prevent closing from clicking outside
-    if (!newOpen) {
-      // If dialog is being closed, we check if it's an explicit action
-      // The explicit actions are handled by submit and handleCancel
-      // This just prevents accidental closures
-      console.log("Dialog close attempt intercepted");
-    } else {
-      // Always allow opening
-      setOpen(true);
-    }
-  };
-
   return (
     <AlertDialog open={open} onOpenChange={handleDialogChange}>
       <AlertDialogTrigger asChild onClick={() => setOpen(true)}>
         {children}
       </AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent className="sm:max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle>Schedule Appointment</AlertDialogTitle>
           <AlertDialogDescription>
@@ -133,7 +127,7 @@ export function ScheduleAppointmentDialog({
             <AppointmentFormFields 
               form={form}
               callerRole={callerRole}
-              onFieldChange={handleFieldChange}
+              onFieldChange={() => console.log("Field changed, dialog remains open")}
             />
             <AlertDialogFooter>
               <AlertDialogCancel type="button" onClick={handleCancel}>Cancel</AlertDialogCancel>
