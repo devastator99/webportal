@@ -102,26 +102,26 @@ export function ScheduleAppointmentDialog({
     },
   });
 
+  // Create a wrapper component to handle outside clicks
+  const handleDialogChange = (newOpen: boolean) => {
+    // Only allow closing from the "X" button, prevent closing from clicking outside
+    if (!newOpen) {
+      // If dialog is being closed, we check if it's an explicit action
+      // The explicit actions are handled by submit and handleCancel
+      // This just prevents accidental closures
+      console.log("Dialog close attempt intercepted");
+    } else {
+      // Always allow opening
+      setOpen(true);
+    }
+  };
+
   return (
-    <AlertDialog open={open} onOpenChange={(newOpen) => {
-      // Only allow closing from the "X" button, prevent closing from clicking outside
-      if (!newOpen) {
-        // If dialog is being closed, we check if it's an explicit action
-        // The explicit actions are handled by submit and handleCancel
-        // This just prevents accidental closures
-        console.log("Dialog close attempt intercepted");
-      } else {
-        // Always allow opening
-        setOpen(true);
-      }
-    }}>
+    <AlertDialog open={open} onOpenChange={handleDialogChange}>
       <AlertDialogTrigger asChild onClick={() => setOpen(true)}>
         {children}
       </AlertDialogTrigger>
-      <AlertDialogContent onPointerDownOutside={(e) => {
-        // Prevent closing when clicking outside the dialog
-        e.preventDefault();
-      }}>
+      <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>Schedule Appointment</AlertDialogTitle>
           <AlertDialogDescription>
