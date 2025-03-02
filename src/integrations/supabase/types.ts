@@ -681,6 +681,14 @@ export type Database = {
         }
         Returns: number
       }
+      get_doctors: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          first_name: string
+          last_name: string
+        }[]
+      }
       get_medical_report_url: {
         Args: {
           p_report_id: string
@@ -708,6 +716,14 @@ export type Database = {
           file_name: string
           file_path: string
           uploaded_at: string
+        }[]
+      }
+      get_patients: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          first_name: string
+          last_name: string
         }[]
       }
       get_signed_medical_report_url: {

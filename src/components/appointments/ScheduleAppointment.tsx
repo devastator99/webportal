@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -63,16 +62,11 @@ export const ScheduleAppointment = ({
   const [selectedPatient, setSelectedPatient] = useState(preSelectedPatientId || "");
   const [notes, setNotes] = useState("");
 
-  // Fetch doctors list
+  // Fetch doctors list using the get_doctors RPC function
   const { data: doctors = [], isLoading: isDoctorsLoading } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name")
-        .eq("user_id", "user_roles.user_id")
-        .eq("user_roles.role", "doctor")
-        .order("first_name", { ascending: true });
+      const { data, error } = await supabase.rpc("get_doctors");
 
       if (error) {
         console.error("Error fetching doctors:", error);
@@ -84,16 +78,11 @@ export const ScheduleAppointment = ({
     enabled: callerRole === "patient" || callerRole === "reception",
   });
 
-  // Fetch patients list
+  // Fetch patients list using the get_patients RPC function
   const { data: patients = [], isLoading: isPatientsLoading } = useQuery({
     queryKey: ["patients"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name")
-        .eq("user_id", "user_roles.user_id")
-        .eq("user_roles.role", "patient")
-        .order("first_name", { ascending: true });
+      const { data, error } = await supabase.rpc("get_patients");
 
       if (error) {
         console.error("Error fetching patients:", error);
