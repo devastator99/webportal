@@ -15,7 +15,7 @@ import { DashboardHeader } from "./DashboardHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
-import { ScheduleAppointment } from "../appointments/ScheduleAppointment";
+import { ScheduleAppointment } from "../appointments/schedule";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();

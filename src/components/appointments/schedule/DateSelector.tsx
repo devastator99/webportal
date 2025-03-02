@@ -25,8 +25,6 @@ interface DateSelectorProps {
 }
 
 export function DateSelector({ form }: DateSelectorProps) {
-  const [date, setDate] = useState<Date>();
-
   return (
     <FormField
       control={form.control}
@@ -36,30 +34,34 @@ export function DateSelector({ form }: DateSelectorProps) {
           <FormLabel>Scheduled Date</FormLabel>
           <Popover>
             <PopoverTrigger asChild>
-              <Button
-                variant={"outline"}
-                className={cn(
-                  "w-[240px] pl-3 text-left font-normal",
-                  !date && "text-muted-foreground"
-                )}
-              >
-                {date ? format(date, "PPP") : (
-                  <span>Pick a date</span>
-                )}
-                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-              </Button>
+              <FormControl>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full pl-3 text-left font-normal",
+                    !field.value && "text-muted-foreground"
+                  )}
+                >
+                  {field.value ? (
+                    format(new Date(field.value), "PPP")
+                  ) : (
+                    <span>Pick a date</span>
+                  )}
+                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                </Button>
+              </FormControl>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={date}
+                selected={field.value ? new Date(field.value) : undefined}
                 onSelect={(date) => {
-                  setDate(date);
-                  field.onChange(date ? format(date, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx") : "");
+                  if (date) {
+                    const isoDate = date.toISOString();
+                    field.onChange(isoDate);
+                  }
                 }}
-                disabled={(date) =>
-                  date < new Date()
-                }
+                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 initialFocus
               />
             </PopoverContent>

@@ -9,7 +9,7 @@ import { LandingPage } from "@/pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import { useAuth } from "./contexts/AuthContext";
-import { ScheduleAppointment } from "./components/appointments/ScheduleAppointment";
+import { ScheduleAppointment } from "./components/appointments/schedule";
 import { Button } from "./components/ui/button";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
