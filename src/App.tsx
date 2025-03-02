@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,8 +10,6 @@ import { LandingPage } from "@/pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
 import { useAuth } from "./contexts/AuthContext";
-import { ScheduleAppointment } from "./components/appointments/schedule";
-import { Button } from "./components/ui/button";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, isLoading } = useAuth();
@@ -49,21 +48,6 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <Admin />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/appointments/schedule"
-          element={
-            <ProtectedRoute>
-              <div className="container mx-auto py-8">
-                <h1 className="text-2xl font-bold mb-4">Schedule New Appointment</h1>
-                <Button onClick={() => {}}>
-                  <ScheduleAppointment callerRole={userRole as "patient" | "doctor" | "reception"}>
-                    <Button>Schedule Appointment</Button>
-                  </ScheduleAppointment>
-                </Button>
-              </div>
             </ProtectedRoute>
           }
         />
