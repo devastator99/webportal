@@ -42,8 +42,8 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
     queryFn: async () => {
       if (!doctorId) return [];
       
-      // Format date in IST timezone for database query
-      const formattedDate = formatInTimeZone(selectedDate, INDIA_TIMEZONE, "yyyy-MM-dd");
+      // Format date for database query
+      const formattedDate = format(selectedDate, "yyyy-MM-dd");
       console.log("Fetching appointments for date:", formattedDate, "doctor:", doctorId);
       
       try {
@@ -54,7 +54,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
             p_doctor_id: doctorId,
             p_date: formattedDate
           }
-        ) as { data: AppointmentWithPatient[] | null, error: any };
+        );
 
         if (error) {
           console.error("Error fetching appointments via RPC:", error);

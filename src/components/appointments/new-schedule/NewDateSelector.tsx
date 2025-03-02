@@ -45,8 +45,9 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
     setIsValidating(true);
     
     try {
-      // Format date for IST timezone
-      const isoString = formatInTimeZone(normalizedDate, INDIA_TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx");
+      // Format date for database with proper timezone handling
+      const formattedDate = format(normalizedDate, "yyyy-MM-dd");
+      const isoString = new Date(formattedDate + "T12:00:00.000Z").toISOString();
       const doctorId = form.getValues().doctorId;
       
       // Only validate if doctor is selected
@@ -58,7 +59,7 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
             p_doctor_id: doctorId,
             p_scheduled_date: isoString
           }
-        ) as { data: boolean | null, error: any };
+        );
         
         if (error) {
           console.error("Error validating date:", error);
@@ -83,7 +84,7 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
         }
       }
       
-      // Update form with ISO string
+      // Update form with ISO string, ensuring we set it properly
       form.setValue("scheduledAt", isoString, {
         shouldValidate: true,
         shouldDirty: true,
@@ -118,7 +119,9 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
           <FormLabel>Scheduled Date</FormLabel>
           <Popover 
             open={popoverOpen} 
-            onOpenChange={setPopoverOpen}
+            onOpenChange={(open) => {
+              setPopoverOpen(open);
+            }}
           >
             <PopoverTrigger asChild>
               <FormControl>
