@@ -26,7 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Textarea } from "@/components/ui/textarea";
 import { format, parse, addHours, addMinutes, isAfter, isBefore, startOfDay } from "date-fns";
-import { Loader2, Calendar as CalendarIcon } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon, AlertCircle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 type DoctorProfile = {
@@ -63,6 +63,7 @@ export const ScheduleAppointment = ({
   const [selectedDoctor, setSelectedDoctor] = useState(preSelectedDoctorId || "");
   const [selectedPatient, setSelectedPatient] = useState(preSelectedPatientId || "");
   const [notes, setNotes] = useState("");
+  const [showValidation, setShowValidation] = useState(false);
   const isMobile = useIsMobile();
 
   // Fetch doctors list using the get_doctors RPC function
@@ -106,11 +107,27 @@ export const ScheduleAppointment = ({
     }
   }
 
+  // Check if field is missing
+  const isDoctorMissing = (callerRole === "patient" || callerRole === "reception") && !selectedDoctor;
+  const isPatientMissing = (callerRole === "doctor" || callerRole === "reception") && !selectedPatient;
+  const isDateMissing = !selectedDate;
+  const isTimeMissing = !selectedTime;
+  
+  const hasError = isDoctorMissing || isPatientMissing || isDateMissing || isTimeMissing;
+
   const handleScheduleAppointment = async () => {
-    if (!selectedDate || !selectedTime || !selectedDoctor || !selectedPatient) {
+    setShowValidation(true);
+    
+    if (hasError) {
+      let missingFields = [];
+      if (isDoctorMissing) missingFields.push("Doctor");
+      if (isPatientMissing) missingFields.push("Patient");
+      if (isDateMissing) missingFields.push("Date");
+      if (isTimeMissing) missingFields.push("Time");
+      
       toast({
         title: "Missing information",
-        description: "Please fill in all required fields",
+        description: `Please fill in all required fields: ${missingFields.join(", ")}`,
         variant: "destructive",
       });
       return;
@@ -118,7 +135,7 @@ export const ScheduleAppointment = ({
 
     // Combine date and time
     const timeComponents = selectedTime.split(":");
-    const appointmentDate = new Date(selectedDate);
+    const appointmentDate = new Date(selectedDate as Date);
     appointmentDate.setHours(parseInt(timeComponents[0], 10));
     appointmentDate.setMinutes(parseInt(timeComponents[1], 10));
 
@@ -159,6 +176,7 @@ export const ScheduleAppointment = ({
       setSelectedDate(undefined);
       setSelectedTime("");
       setNotes("");
+      setShowValidation(false);
       setIsOpen(false);
     } catch (error: any) {
       toast({
@@ -171,14 +189,27 @@ export const ScheduleAppointment = ({
     }
   };
 
+  // Required field indicator
+  const RequiredFieldIndicator = () => (
+    <span className="text-red-500 ml-1">*</span>
+  );
+
+  // Reset validation when dialog opens/closes
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (!open) {
+      setShowValidation(false);
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className={`${isMobile ? 'w-[95vw] p-4' : 'sm:max-w-[500px]'} max-h-[90vh] overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle className="text-center sm:text-left">Schedule an Appointment</DialogTitle>
           <DialogDescription className="text-center sm:text-left">
-            Fill out the form below to schedule a new appointment.
+            Fill out the form below to schedule a new appointment. Fields marked with <span className="text-red-500">*</span> are required.
           </DialogDescription>
         </DialogHeader>
 
@@ -186,8 +217,8 @@ export const ScheduleAppointment = ({
           {/* Doctor selection */}
           {(callerRole === "patient" || callerRole === "reception") && (
             <div className={`grid ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-4 items-center gap-2'}`}>
-              <Label htmlFor="doctor" className={isMobile ? "mb-1" : "text-right"}>
-                Doctor
+              <Label htmlFor="doctor" className={`${isMobile ? "mb-1" : "text-right"} ${showValidation && isDoctorMissing ? "text-red-500" : ""}`}>
+                Doctor<RequiredFieldIndicator />
               </Label>
               <div className={isMobile ? "w-full" : "col-span-3"}>
                 <Select
@@ -195,7 +226,7 @@ export const ScheduleAppointment = ({
                   onValueChange={setSelectedDoctor}
                   disabled={isDoctorsLoading || !!preSelectedDoctorId}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={showValidation && isDoctorMissing ? "border-red-500" : ""}>
                     <SelectValue placeholder="Select a doctor" />
                   </SelectTrigger>
                   <SelectContent>
@@ -206,6 +237,11 @@ export const ScheduleAppointment = ({
                     ))}
                   </SelectContent>
                 </Select>
+                {showValidation && isDoctorMissing && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle className="h-3 w-3 mr-1" /> Required field
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -213,8 +249,8 @@ export const ScheduleAppointment = ({
           {/* Patient selection */}
           {(callerRole === "doctor" || callerRole === "reception") && (
             <div className={`grid ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-4 items-center gap-2'}`}>
-              <Label htmlFor="patient" className={isMobile ? "mb-1" : "text-right"}>
-                Patient
+              <Label htmlFor="patient" className={`${isMobile ? "mb-1" : "text-right"} ${showValidation && isPatientMissing ? "text-red-500" : ""}`}>
+                Patient<RequiredFieldIndicator />
               </Label>
               <div className={isMobile ? "w-full" : "col-span-3"}>
                 <Select
@@ -222,7 +258,7 @@ export const ScheduleAppointment = ({
                   onValueChange={setSelectedPatient}
                   disabled={isPatientsLoading || !!preSelectedPatientId}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className={showValidation && isPatientMissing ? "border-red-500" : ""}>
                     <SelectValue placeholder="Select a patient" />
                   </SelectTrigger>
                   <SelectContent>
@@ -233,14 +269,19 @@ export const ScheduleAppointment = ({
                     ))}
                   </SelectContent>
                 </Select>
+                {showValidation && isPatientMissing && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle className="h-3 w-3 mr-1" /> Required field
+                  </p>
+                )}
               </div>
             </div>
           )}
 
           {/* Date picker */}
           <div className={`grid ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-4 items-center gap-2'}`}>
-            <Label htmlFor="date" className={isMobile ? "mb-1" : "text-right"}>
-              Date
+            <Label htmlFor="date" className={`${isMobile ? "mb-1" : "text-right"} ${showValidation && isDateMissing ? "text-red-500" : ""}`}>
+              Date<RequiredFieldIndicator />
             </Label>
             <div className={isMobile ? "w-full" : "col-span-3"}>
               <div className="flex flex-col space-y-2">
@@ -248,7 +289,9 @@ export const ScheduleAppointment = ({
                   <Button
                     type="button"
                     variant="outline"
-                    className="w-full justify-start text-left font-normal"
+                    className={`w-full justify-start text-left font-normal ${
+                      showValidation && isDateMissing ? "border-red-500" : ""
+                    }`}
                     onClick={(e) => e.preventDefault()}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
@@ -260,20 +303,30 @@ export const ScheduleAppointment = ({
                   selected={selectedDate}
                   onSelect={setSelectedDate}
                   disabled={(date) => date < startOfDay(new Date())}
-                  className="border rounded-md p-2 sm:p-3 mx-auto w-full"
+                  className={`border rounded-md p-2 sm:p-3 mx-auto w-full ${
+                    showValidation && isDateMissing ? "border-red-500" : ""
+                  }`}
                 />
+                {showValidation && isDateMissing && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center">
+                    <AlertCircle className="h-3 w-3 mr-1" /> Required field
+                  </p>
+                )}
               </div>
             </div>
           </div>
 
           {/* Time picker */}
           <div className={`grid ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-4 items-center gap-2'}`}>
-            <Label htmlFor="time" className={isMobile ? "mb-1" : "text-right"}>
-              Time
+            <Label htmlFor="time" className={`${isMobile ? "mb-1" : "text-right"} ${showValidation && isTimeMissing ? "text-red-500" : ""}`}>
+              Time<RequiredFieldIndicator />
             </Label>
             <div className={isMobile ? "w-full" : "col-span-3"}>
-              <Select value={selectedTime} onValueChange={setSelectedTime}>
-                <SelectTrigger>
+              <Select 
+                value={selectedTime} 
+                onValueChange={setSelectedTime}
+              >
+                <SelectTrigger className={showValidation && isTimeMissing ? "border-red-500" : ""}>
                   <SelectValue placeholder="Select a time" />
                 </SelectTrigger>
                 <SelectContent className="max-h-[40vh]">
@@ -284,6 +337,11 @@ export const ScheduleAppointment = ({
                   ))}
                 </SelectContent>
               </Select>
+              {showValidation && isTimeMissing && (
+                <p className="text-red-500 text-xs mt-1 flex items-center">
+                  <AlertCircle className="h-3 w-3 mr-1" /> Required field
+                </p>
+              )}
             </div>
           </div>
 
