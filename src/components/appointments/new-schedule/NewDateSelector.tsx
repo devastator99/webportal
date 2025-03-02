@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
@@ -27,6 +27,7 @@ interface NewDateSelectorProps {
 
 export function NewDateSelector({ form }: NewDateSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [internalDate, setInternalDate] = useState<Date | undefined>(undefined);
   const { toast } = useToast();
   
   // Get today's date with time set to noon to avoid timezone issues
@@ -40,29 +41,48 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
     
     console.log("Quick selecting date:", selectedDate);
     
+    // Update internal state
+    setInternalDate(selectedDate);
+    
     // Format the date properly for form submission
     const formattedDate = selectedDate.toISOString();
-
+    
     console.log("Setting form value to:", formattedDate);
-
+    
     // Update the form directly
     form.setValue("scheduledAt", formattedDate, {
       shouldValidate: true,
       shouldDirty: true,
       shouldTouch: true,
     });
-
+    
     console.log("Form value after update:", form.getValues("scheduledAt"));
-
+    
     // Show success toast
     toast({
       title: "Date selected",
       description: `Selected: ${format(selectedDate, "PPP")}`,
     });
-
+    
     // Close popover after successful update
     setIsOpen(false);
   };
+  
+  // This useEffect syncs the form value with our internal state
+  useEffect(() => {
+    const currentValue = form.getValues("scheduledAt");
+    console.log("useEffect checking form value:", currentValue);
+    
+    if (currentValue && (!internalDate || internalDate.toISOString() !== currentValue)) {
+      try {
+        const parsedDate = new Date(currentValue);
+        console.log("Setting internal date state from form value:", parsedDate);
+        setInternalDate(parsedDate);
+      } catch (error) {
+        console.error("Error parsing date from form:", error);
+      }
+    }
+  }, [form, internalDate]);
 
   return (
     <FormField
@@ -70,6 +90,9 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
       name="scheduledAt"
       render={({ field }) => {
         console.log("Rendering date selector with field value:", field.value);
+        // Ensure we have a valid date object for the calendar
+        const dateValue = field.value ? new Date(field.value) : undefined;
+        
         return (
           <FormItem className="flex flex-col">
             <FormLabel>Scheduled Date</FormLabel>
@@ -95,7 +118,7 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
-                  selected={field.value ? new Date(field.value) : undefined}
+                  selected={dateValue}
                   onSelect={(date) => {
                     console.log("Calendar onSelect called with date:", date);
                     if (!date) {
@@ -103,13 +126,23 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
                       return;
                     }
                     
-                    // Format the date properly for form submission - simplified approach
+                    // Update internal state first
+                    setInternalDate(date);
+                    
+                    // Format the date properly for form submission
                     const formattedDate = date.toISOString();
                     
                     console.log("Setting form value to:", formattedDate);
                     
-                    // Use the field.onChange method directly from react-hook-form
+                    // Update via field.onChange which is needed for proper form state update
                     field.onChange(formattedDate);
+                    
+                    // Also update via direct setValue to ensure the update happens
+                    form.setValue("scheduledAt", formattedDate, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                      shouldTouch: true,
+                    });
                     
                     console.log("Field value after onChange:", field.value);
                     console.log("Form value after update:", form.getValues("scheduledAt"));
