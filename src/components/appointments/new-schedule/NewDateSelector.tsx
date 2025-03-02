@@ -14,9 +14,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { format, startOfDay } from "date-fns";
+import { formatInTimeZone } from 'date-fns-tz';
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+
+// Define India timezone
+const INDIA_TIMEZONE = 'Asia/Kolkata';
 
 interface NewDateSelectorProps {
   form: UseFormReturn<AppointmentFormData>;
@@ -41,8 +45,8 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
     setIsValidating(true);
     
     try {
-      // Convert to ISO string for database
-      const isoString = normalizedDate.toISOString();
+      // Format date for IST timezone
+      const isoString = formatInTimeZone(normalizedDate, INDIA_TIMEZONE, "yyyy-MM-dd'T'HH:mm:ss.SSSxxx");
       const doctorId = form.getValues().doctorId;
       
       // Only validate if doctor is selected
@@ -88,7 +92,7 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
       
       toast({
         title: "Date selected",
-        description: `Appointment scheduled for: ${format(normalizedDate, "PPP")}`,
+        description: `Appointment scheduled for: ${formatInTimeZone(normalizedDate, INDIA_TIMEZONE, "PPP")}`,
       });
       
       // Close the popover after successful selection
@@ -126,7 +130,7 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
                   )}
                   disabled={isValidating}
                 >
-                  {date ? format(date, "PPP") : "Select a date"}
+                  {date ? formatInTimeZone(date, INDIA_TIMEZONE, "PPP") : "Select a date"}
                   <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                 </Button>
               </FormControl>

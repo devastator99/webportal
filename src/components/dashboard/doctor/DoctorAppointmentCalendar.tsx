@@ -4,6 +4,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { format, startOfDay } from "date-fns";
+import { formatInTimeZone } from 'date-fns-tz';
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -20,6 +21,9 @@ interface AppointmentWithPatient {
     last_name: string;
   };
 }
+
+// Define India timezone
+const INDIA_TIMEZONE = 'Asia/Kolkata';
 
 export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) => {
   const [selectedDate, setSelectedDate] = useState<Date>(startOfDay(new Date()));
@@ -38,7 +42,8 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
     queryFn: async () => {
       if (!doctorId) return [];
       
-      const formattedDate = format(selectedDate, "yyyy-MM-dd");
+      // Format date in IST timezone for database query
+      const formattedDate = formatInTimeZone(selectedDate, INDIA_TIMEZONE, "yyyy-MM-dd");
       console.log("Fetching appointments for date:", formattedDate, "doctor:", doctorId);
       
       try {
@@ -92,7 +97,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
         </div>
         <div className="space-y-4">
           <h3 className="font-medium">
-            Appointments for {format(selectedDate, "MMMM d, yyyy")}
+            Appointments for {formatInTimeZone(selectedDate, INDIA_TIMEZONE, "MMMM d, yyyy")}
           </h3>
           {isLoading ? (
             <p className="text-sm text-muted-foreground">Loading appointments...</p>
@@ -114,7 +119,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: { doctorId: string }) =>
                     {appointment.patient_json?.first_name || "Unknown"} {appointment.patient_json?.last_name || "Patient"}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(appointment.scheduled_at), "h:mm a")}
+                    {formatInTimeZone(new Date(appointment.scheduled_at), INDIA_TIMEZONE, "h:mm a")}
                   </p>
                 </div>
                 <Badge variant={appointment.status === "scheduled" ? "default" : "secondary"}>
