@@ -16,24 +16,24 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Calendar, Users } from "lucide-react";
 import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   
   // Create the action buttons to pass to the header
   const actionButtons = (
     <>
-      <Link to="/patients">
-        <Button 
-          className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
-          size="sm"
-        >
-          <Users className="h-4 w-4" />
-          <span>Patients</span>
-        </Button>
-      </Link>
+      <Button 
+        className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+        size="sm"
+        onClick={() => navigate("/patients")}
+      >
+        <Users className="h-4 w-4" />
+        <span>Patients</span>
+      </Button>
       
       <ScheduleAppointment callerRole="doctor">
         <Button 
