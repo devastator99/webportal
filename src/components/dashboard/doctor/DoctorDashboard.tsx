@@ -4,14 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { StatsCards } from "./StatsCards";
 import { TodaySchedule } from "./TodaySchedule";
-import { ChatInterface } from "../chat/ChatInterface";
+import { ChatInterface } from "../../chat/ChatInterface";
 import { AiAssistant } from "./AiAssistant";
 import { DoctorAppointmentCalendar } from "./DoctorAppointmentCalendar";
 import { VideoUploader } from "@/components/videos/VideoUploader";
 import { VideoList } from "@/components/videos/VideoList";
 import { DocumentAnalyzer } from "./DocumentSummary";
 import { PrescriptionWriter } from "./PrescriptionWriter";
-import { DashboardHeader } from "./DashboardHeader";
+import { DashboardHeader } from "../DashboardHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export const DoctorDashboard = () => {
