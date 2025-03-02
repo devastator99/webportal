@@ -47,11 +47,13 @@ export function DateSelector({ form }: DateSelectorProps) {
       
       // Normalize the date to start of day to avoid timezone issues
       const normalizedDate = startOfDay(newDate);
+      
+      // Format as ISO string for the form value
       const formattedDate = normalizedDate.toISOString();
       
       console.log("Setting form value to:", formattedDate);
       
-      // Update form value
+      // Update form value with validation
       form.setValue("scheduledAt", formattedDate, {
         shouldValidate: true,
         shouldDirty: true,
@@ -95,6 +97,7 @@ export function DateSelector({ form }: DateSelectorProps) {
     
     if (scheduledAt && (!date || date.toISOString() !== scheduledAt)) {
       try {
+        console.log("Syncing date from form value:", scheduledAt);
         const parsedDate = new Date(scheduledAt);
         setDate(parsedDate);
       } catch (error) {

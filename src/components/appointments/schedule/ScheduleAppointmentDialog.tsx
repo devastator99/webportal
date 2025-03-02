@@ -65,7 +65,6 @@ export function ScheduleAppointmentDialog({
     }
     
     createAppointmentMutation.mutate(values);
-    // Dialog will be closed in the onSuccess callback
   }
 
   // This prevents accidental closure from outside clicks
@@ -79,7 +78,6 @@ export function ScheduleAppointmentDialog({
     // If trying to close with unsaved changes, show a confirmation
     if (form.formState.isDirty) {
       // For simplicity, we'll just allow closing to avoid complexity
-      // In a real app, you might want to add a confirmation dialog here
       form.reset();
     }
     
@@ -88,6 +86,8 @@ export function ScheduleAppointmentDialog({
 
   const createAppointmentMutation = useMutation({
     mutationFn: async (newAppointment: AppointmentFormData) => {
+      console.log("Creating appointment with data:", newAppointment);
+      
       const { data, error } = await supabase
         .from('appointments')
         .insert([
@@ -131,6 +131,8 @@ export function ScheduleAppointmentDialog({
 
   // Check if form has any validation errors
   const hasErrors = Object.keys(form.formState.errors).length > 0;
+  const isSubmitting = createAppointmentMutation.isPending;
+  const isFormValid = form.formState.isValid;
 
   return (
     <AlertDialog open={open} onOpenChange={handleDialogChange}>
@@ -154,9 +156,9 @@ export function ScheduleAppointmentDialog({
               <AlertDialogCancel type="button" onClick={handleCancel}>Cancel</AlertDialogCancel>
               <AlertDialogAction 
                 type="submit" 
-                disabled={createAppointmentMutation.isPending || hasErrors}
+                disabled={isSubmitting || hasErrors || !isFormValid}
               >
-                {createAppointmentMutation.isPending ? "Submitting..." : "Submit"}
+                {isSubmitting ? "Scheduling..." : "Schedule Appointment"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </form>
