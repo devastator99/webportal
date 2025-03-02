@@ -38,6 +38,8 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
     const selectedDate = new Date(today);
     selectedDate.setDate(selectedDate.getDate() + daysToAdd);
     
+    console.log("Quick selecting date:", selectedDate);
+    
     // Format the date properly for form submission
     const formattedDate = new Date(
       selectedDate.getFullYear(),
@@ -46,12 +48,16 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
       12, 0, 0
     ).toISOString();
 
+    console.log("Setting form value to:", formattedDate);
+
     // Update the form directly
     form.setValue("scheduledAt", formattedDate, {
       shouldValidate: true,
       shouldDirty: true,
       shouldTouch: true,
     });
+
+    console.log("Form value after update:", form.getValues("scheduledAt"));
 
     // Show success toast
     toast({
@@ -67,89 +73,100 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
     <FormField
       control={form.control}
       name="scheduledAt"
-      render={({ field }) => (
-        <FormItem className="flex flex-col">
-          <FormLabel>Scheduled Date</FormLabel>
-          <Popover open={isOpen} onOpenChange={setIsOpen}>
-            <PopoverTrigger asChild>
-              <FormControl>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full pl-3 text-left font-normal",
-                    !field.value && "text-muted-foreground"
-                  )}
-                >
-                  {field.value ? (
-                    format(new Date(field.value), "PPP")
-                  ) : (
-                    <span>Pick a date</span>
-                  )}
-                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                </Button>
-              </FormControl>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={field.value ? new Date(field.value) : undefined}
-                onSelect={(date) => {
-                  if (!date) return;
-                  
-                  // Format the date properly for form submission
-                  const formattedDate = new Date(
-                    date.getFullYear(),
-                    date.getMonth(),
-                    date.getDate(),
-                    12, 0, 0
-                  ).toISOString();
-                  
-                  // Update the form directly
-                  form.setValue("scheduledAt", formattedDate, {
-                    shouldValidate: true,
-                    shouldDirty: true,
-                    shouldTouch: true,
-                  });
-                  
-                  // Show success toast
-                  toast({
-                    title: "Date selected",
-                    description: `Selected: ${format(date, "PPP")}`,
-                  });
-                  
-                  // Only close after successful update
-                  setIsOpen(false);
-                }}
-                disabled={(date) => date < today}
-                initialFocus
-              />
-              <div className="p-3 border-t grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleQuickSelect(1); // Tomorrow
+      render={({ field }) => {
+        console.log("Rendering date selector with field value:", field.value);
+        return (
+          <FormItem className="flex flex-col">
+            <FormLabel>Scheduled Date</FormLabel>
+            <Popover open={isOpen} onOpenChange={setIsOpen}>
+              <PopoverTrigger asChild>
+                <FormControl>
+                  <Button
+                    variant="outline"
+                    className={cn(
+                      "w-full pl-3 text-left font-normal",
+                      !field.value && "text-muted-foreground"
+                    )}
+                  >
+                    {field.value ? (
+                      format(new Date(field.value), "PPP")
+                    ) : (
+                      <span>Pick a date</span>
+                    )}
+                    <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                  </Button>
+                </FormControl>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={field.value ? new Date(field.value) : undefined}
+                  onSelect={(date) => {
+                    console.log("Calendar onSelect called with date:", date);
+                    if (!date) {
+                      console.log("No date selected, returning");
+                      return;
+                    }
+                    
+                    // Format the date properly for form submission
+                    const formattedDate = new Date(
+                      date.getFullYear(),
+                      date.getMonth(),
+                      date.getDate(),
+                      12, 0, 0
+                    ).toISOString();
+                    
+                    console.log("Setting form value to:", formattedDate);
+                    
+                    // Update the form directly
+                    form.setValue("scheduledAt", formattedDate, {
+                      shouldValidate: true,
+                      shouldDirty: true,
+                      shouldTouch: true,
+                    });
+                    
+                    console.log("Form value after update:", form.getValues("scheduledAt"));
+                    
+                    // Show success toast
+                    toast({
+                      title: "Date selected",
+                      description: `Selected: ${format(date, "PPP")}`,
+                    });
+                    
+                    // Only close after successful update
+                    setIsOpen(false);
                   }}
-                >
-                  Tomorrow
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleQuickSelect(7); // Next Week
-                  }}
-                >
-                  Next Week
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <FormMessage />
-        </FormItem>
-      )}
+                  disabled={(date) => date < today}
+                  initialFocus
+                />
+                <div className="p-3 border-t grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleQuickSelect(1); // Tomorrow
+                    }}
+                  >
+                    Tomorrow
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      handleQuickSelect(7); // Next Week
+                    }}
+                  >
+                    Next Week
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <FormMessage />
+          </FormItem>
+        );
+      }}
     />
   );
 }
