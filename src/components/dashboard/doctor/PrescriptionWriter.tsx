@@ -28,6 +28,11 @@ export const PrescriptionWriter = () => {
   const { data: patients, isLoading: isLoadingPatients } = useQuery({
     queryKey: ["all_patients_rpc"],
     queryFn: async () => {
+      if (!user?.id) {
+        console.error("No authenticated doctor user found");
+        return [];
+      }
+
       console.log("Fetching all patients using RPC function");
       
       // Use the get_users_by_role RPC function to get patient user_ids
@@ -66,13 +71,20 @@ export const PrescriptionWriter = () => {
 
   // Fetch patient's past prescriptions when a patient is selected
   const { data: pastPrescriptions, refetch: refetchPrescriptions } = useQuery({
-    queryKey: ["patient_prescriptions", selectedPatient],
+    queryKey: ["patient_prescriptions", selectedPatient, user?.id],
     queryFn: async () => {
-      if (!selectedPatient) return [];
+      if (!selectedPatient || !user?.id) {
+        console.log("Missing required IDs for prescription fetch:", { 
+          selectedPatient, 
+          doctorId: user?.id 
+        });
+        return [];
+      }
       
-      console.log("Fetching prescriptions for patient:", selectedPatient);
+      console.log("Fetching prescriptions for patient:", selectedPatient, "by doctor:", user.id);
       
-      // First fetch the medical records
+      // First fetch the medical records - here we fetch records where the authenticated doctor is the creator
+      // This ensures doctors only see prescriptions they created
       const { data: medicalRecords, error: medicalRecordsError } = await supabase
         .from("medical_records")
         .select(`
@@ -84,12 +96,15 @@ export const PrescriptionWriter = () => {
           doctor_id
         `)
         .eq("patient_id", selectedPatient)
+        .eq("doctor_id", user.id)
         .order("created_at", { ascending: false });
 
       if (medicalRecordsError) {
         console.error("Error fetching medical records:", medicalRecordsError);
         throw medicalRecordsError;
       }
+      
+      console.log("Medical records found for this doctor-patient pair:", medicalRecords?.length || 0);
       
       // If no records found, return empty array
       if (!medicalRecords?.length) {
@@ -130,7 +145,7 @@ export const PrescriptionWriter = () => {
         doctor: doctorsMap[record.doctor_id] || { first_name: "Unknown", last_name: "" }
       }));
     },
-    enabled: !!selectedPatient,
+    enabled: !!selectedPatient && !!user?.id,
   });
 
   const handleSavePrescription = async () => {
@@ -162,7 +177,11 @@ export const PrescriptionWriter = () => {
     }
 
     try {
-      console.log("Saving prescription for patient:", selectedPatient);
+      if (!user?.id) {
+        throw new Error("Doctor ID not available. Please try again later.");
+      }
+      
+      console.log("Saving prescription for patient:", selectedPatient, "by doctor:", user.id);
       
       const { data, error } = await supabase
         .from("medical_records")
@@ -332,7 +351,7 @@ export const PrescriptionWriter = () => {
                 </div>
               ) : (
                 <div className="text-center py-8 text-muted-foreground">
-                  No prescriptions found for this patient
+                  No prescriptions found for this patient by you
                 </div>
               )}
             </TabsContent>
