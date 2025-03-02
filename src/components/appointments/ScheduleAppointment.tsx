@@ -26,7 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Textarea } from "@/components/ui/textarea";
 import { format, parse, addHours, addMinutes, isAfter, isBefore, startOfDay } from "date-fns";
-import { CalendarIcon, Loader2 } from "lucide-react";
+import { Loader2, Calendar as CalendarIcon } from "lucide-react";
 
 type DoctorProfile = {
   id: string;
