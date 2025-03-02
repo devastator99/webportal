@@ -26,7 +26,6 @@ interface NewDateSelectorProps {
 }
 
 export function NewDateSelector({ form }: NewDateSelectorProps) {
-  const [date, setDate] = useState<Date | undefined>(undefined);
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
   
@@ -34,51 +33,34 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
   const today = new Date();
   today.setHours(12, 0, 0, 0);
 
-  const handleSelect = (selectedDate: Date | undefined) => {
-    if (!selectedDate) return;
-    
-    try {
-      // First format the date properly
-      const formattedDate = new Date(
-        selectedDate.getFullYear(),
-        selectedDate.getMonth(),
-        selectedDate.getDate(),
-        12, 0, 0
-      ).toISOString();
-      
-      // Update the form value
-      form.setValue("scheduledAt", formattedDate, {
-        shouldValidate: true,
-        shouldDirty: true,
-        shouldTouch: true,
-      });
-      
-      // Update our local state
-      setDate(selectedDate);
-      
-      // Show success toast
-      toast({
-        title: "Date selected",
-        description: `Selected: ${format(selectedDate, "PPP")}`,
-      });
-      
-      // Close the popover AFTER everything is done
-      setIsOpen(false);
-    } catch (error) {
-      console.error("Error handling date selection:", error);
-      toast({
-        title: "Error",
-        description: `Failed to process date: ${error instanceof Error ? error.message : String(error)}`,
-        variant: "destructive",
-      });
-    }
-  };
-
   // Helper for quick date selections
   const handleQuickSelect = (daysToAdd: number) => {
     const selectedDate = new Date(today);
     selectedDate.setDate(selectedDate.getDate() + daysToAdd);
-    handleSelect(selectedDate);
+    
+    // Format the date properly for form submission
+    const formattedDate = new Date(
+      selectedDate.getFullYear(),
+      selectedDate.getMonth(),
+      selectedDate.getDate(),
+      12, 0, 0
+    ).toISOString();
+
+    // Update the form directly
+    form.setValue("scheduledAt", formattedDate, {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true,
+    });
+
+    // Show success toast
+    toast({
+      title: "Date selected",
+      description: `Selected: ${format(selectedDate, "PPP")}`,
+    });
+
+    // Close popover after successful update
+    setIsOpen(false);
   };
 
   return (
@@ -110,8 +92,34 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={date}
-                onSelect={handleSelect}
+                selected={field.value ? new Date(field.value) : undefined}
+                onSelect={(date) => {
+                  if (!date) return;
+                  
+                  // Format the date properly for form submission
+                  const formattedDate = new Date(
+                    date.getFullYear(),
+                    date.getMonth(),
+                    date.getDate(),
+                    12, 0, 0
+                  ).toISOString();
+                  
+                  // Update the form directly
+                  form.setValue("scheduledAt", formattedDate, {
+                    shouldValidate: true,
+                    shouldDirty: true,
+                    shouldTouch: true,
+                  });
+                  
+                  // Show success toast
+                  toast({
+                    title: "Date selected",
+                    description: `Selected: ${format(date, "PPP")}`,
+                  });
+                  
+                  // Only close after successful update
+                  setIsOpen(false);
+                }}
                 disabled={(date) => date < today}
                 initialFocus
               />
