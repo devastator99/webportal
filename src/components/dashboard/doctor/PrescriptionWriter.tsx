@@ -24,7 +24,7 @@ export const PrescriptionWriter = () => {
   const [notes, setNotes] = useState("");
   const [activeTab, setActiveTab] = useState("write");
 
-  // Fetch all patients using a different approach that bypasses the RLS policies
+  // Fetch all patients using the RPC function
   const { data: patients, isLoading: isLoadingPatients } = useQuery({
     queryKey: ["all_patients_rpc"],
     queryFn: async () => {
@@ -45,27 +45,22 @@ export const PrescriptionWriter = () => {
         return [];
       }
       
-      // Get the patient profiles one by one to avoid IN clause with large arrays
-      const patientProfiles = [];
-      for (const item of patientUserIds) {
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("id, first_name, last_name")
-          .eq("id", item.user_id)
-          .single();
-          
-        if (profileError) {
-          console.error(`Error fetching profile for ${item.user_id}:`, profileError);
-          continue; // Skip this profile but continue with others
-        }
+      // Get all patient profiles in a single query with an IN clause
+      // This is more efficient than fetching them one by one
+      const patientIds = patientUserIds.map(item => item.user_id);
+      
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name")
+        .in("id", patientIds);
         
-        if (profile) {
-          patientProfiles.push(profile);
-        }
+      if (profilesError) {
+        console.error("Error fetching patient profiles:", profilesError);
+        throw profilesError;
       }
       
-      console.log("Patient profiles found:", patientProfiles.length);
-      return patientProfiles;
+      console.log("Patient profiles found:", profiles?.length || 0);
+      return profiles || [];
     },
   });
 
@@ -75,7 +70,9 @@ export const PrescriptionWriter = () => {
     queryFn: async () => {
       if (!selectedPatient) return [];
       
-      // Fix: Update the query to properly join the doctors' profiles
+      console.log("Fetching prescriptions for patient:", selectedPatient);
+      
+      // Improved query to fetch records with doctor information in a single query
       const { data, error } = await supabase
         .from("medical_records")
         .select(`
@@ -83,45 +80,33 @@ export const PrescriptionWriter = () => {
           created_at, 
           diagnosis, 
           prescription, 
-          doctor_id
+          notes,
+          doctor_id,
+          profiles(first_name, last_name)
         `)
         .eq("patient_id", selectedPatient)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching prescriptions:", error);
+        throw error;
+      }
 
-      // Now get the doctor information for each record
-      const enhancedData = await Promise.all(
-        data.map(async (record) => {
-          if (record.doctor_id) {
-            const { data: doctorData, error: doctorError } = await supabase
-              .from("profiles")
-              .select("first_name, last_name")
-              .eq("id", record.doctor_id)
-              .single();
-            
-            if (!doctorError && doctorData) {
-              return {
-                ...record,
-                doctor: {
-                  first_name: doctorData.first_name,
-                  last_name: doctorData.last_name
-                }
-              };
-            }
-          }
-          
-          return {
-            ...record,
-            doctor: {
-              first_name: "Unknown",
-              last_name: ""
-            }
-          };
-        })
-      );
-
-      return enhancedData;
+      console.log("Prescriptions fetched:", data?.length || 0);
+      
+      // Transform the data to include doctor name
+      return data.map(record => ({
+        id: record.id,
+        created_at: record.created_at,
+        diagnosis: record.diagnosis,
+        prescription: record.prescription,
+        notes: record.notes,
+        doctor_id: record.doctor_id,
+        doctor: {
+          first_name: record.profiles?.first_name || "Unknown",
+          last_name: record.profiles?.last_name || ""
+        }
+      }));
     },
     enabled: !!selectedPatient,
   });
@@ -136,7 +121,27 @@ export const PrescriptionWriter = () => {
       return;
     }
 
+    if (!diagnosis.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a diagnosis",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!prescription.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter prescription details",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
+      console.log("Saving prescription for patient:", selectedPatient);
+      
       const { data, error } = await supabase
         .from("medical_records")
         .insert({
@@ -149,7 +154,12 @@ export const PrescriptionWriter = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error saving prescription:', error);
+        throw error;
+      }
+
+      console.log("Prescription saved successfully:", data);
 
       toast({
         title: "Success",
@@ -168,7 +178,7 @@ export const PrescriptionWriter = () => {
       console.error('Error saving prescription:', error);
       toast({
         title: "Error",
-        description: "Failed to save prescription",
+        description: `Failed to save prescription: ${error.message || "Unknown error"}`,
         variant: "destructive",
       });
     }
@@ -184,7 +194,7 @@ export const PrescriptionWriter = () => {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="patient">Select Patient</Label>
+          <Label htmlFor="patient">Select Patient <span className="text-red-500">*</span></Label>
           <Select
             value={selectedPatient}
             onValueChange={(value) => {
@@ -229,7 +239,7 @@ export const PrescriptionWriter = () => {
             
             <TabsContent value="write" className="space-y-4 pt-4">
               <div className="space-y-2">
-                <Label htmlFor="diagnosis">Diagnosis</Label>
+                <Label htmlFor="diagnosis">Diagnosis <span className="text-red-500">*</span></Label>
                 <Input
                   id="diagnosis"
                   value={diagnosis}
@@ -239,7 +249,7 @@ export const PrescriptionWriter = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="prescription">Prescription</Label>
+                <Label htmlFor="prescription">Prescription <span className="text-red-500">*</span></Label>
                 <Textarea
                   id="prescription"
                   value={prescription}
@@ -270,13 +280,14 @@ export const PrescriptionWriter = () => {
             
             <TabsContent value="view" className="pt-4">
               {pastPrescriptions && pastPrescriptions.length > 0 ? (
-                <div className="rounded-md border">
+                <div className="rounded-md border overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Date</TableHead>
                         <TableHead>Diagnosis</TableHead>
                         <TableHead>Prescription</TableHead>
+                        <TableHead>Notes</TableHead>
                         <TableHead>Doctor</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -285,7 +296,8 @@ export const PrescriptionWriter = () => {
                         <TableRow key={record.id}>
                           <TableCell>{format(new Date(record.created_at), 'MMM dd, yyyy')}</TableCell>
                           <TableCell>{record.diagnosis}</TableCell>
-                          <TableCell className="max-w-md truncate">{record.prescription}</TableCell>
+                          <TableCell className="max-w-md whitespace-pre-wrap break-words">{record.prescription}</TableCell>
+                          <TableCell className="max-w-xs whitespace-pre-wrap break-words">{record.notes || "-"}</TableCell>
                           <TableCell>
                             {record.doctor ? 
                               `${record.doctor.first_name} ${record.doctor.last_name}` : 
