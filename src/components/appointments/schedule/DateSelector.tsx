@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
@@ -26,6 +26,17 @@ interface DateSelectorProps {
 
 export function DateSelector({ form }: DateSelectorProps) {
   const [calendarOpen, setCalendarOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(
+    form.getValues("scheduledAt") ? new Date(form.getValues("scheduledAt")) : undefined
+  );
+
+  // When form value changes externally, update our local state
+  useEffect(() => {
+    const scheduledAt = form.getValues("scheduledAt");
+    if (scheduledAt) {
+      setSelectedDate(new Date(scheduledAt));
+    }
+  }, [form.getValues("scheduledAt")]);
 
   return (
     <FormField
@@ -56,19 +67,30 @@ export function DateSelector({ form }: DateSelectorProps) {
             <PopoverContent className="w-auto p-0" align="start">
               <Calendar
                 mode="single"
-                selected={field.value ? new Date(field.value) : undefined}
+                selected={selectedDate}
                 onSelect={(date) => {
                   if (!date) return;
                   
-                  // Set the ISO string date directly to the form
+                  // Update our local state
+                  setSelectedDate(date);
+                  
+                  // Using both methods to ensure the form state is updated
+                  field.onChange(date.toISOString());
+                  
+                  // Also use setValue with validation options
                   form.setValue("scheduledAt", date.toISOString(), { 
                     shouldValidate: true,
                     shouldDirty: true,
                     shouldTouch: true
                   });
                   
-                  // Close the calendar after ensuring the value is set
-                  setCalendarOpen(false);
+                  // Log to help with debugging
+                  console.log("Date selected:", date, "Form value after:", form.getValues("scheduledAt"));
+                  
+                  // Close the calendar after a small delay to ensure value is set
+                  setTimeout(() => {
+                    setCalendarOpen(false);
+                  }, 50);
                 }}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 initialFocus
