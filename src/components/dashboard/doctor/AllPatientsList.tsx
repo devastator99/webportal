@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,45 +37,25 @@ export const AllPatientsList = () => {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [activeTab, setActiveTab] = useState<"prescriptions" | "reports">("prescriptions");
 
-  // Fetch all patients assigned to this doctor
+  // Fetch all patients (using get_patients RPC function instead of direct patient_assignments query)
   const { data: patients, isLoading: isLoadingPatients } = useQuery({
-    queryKey: ["doctor_assigned_patients", user?.id],
+    queryKey: ["patients_for_doctor", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       
       try {
-        console.log("Fetching patients assigned to doctor:", user.id);
+        console.log("Fetching patients for doctor:", user.id);
         
-        // Get all patient IDs assigned to this doctor
-        const { data: patientAssignments, error: assignmentError } = await supabase
-          .from("patient_assignments")
-          .select("patient_id")
-          .eq("doctor_id", user.id);
+        // Get all patients using the get_patients RPC function
+        const { data, error } = await supabase
+          .rpc('get_patients');
           
-        if (assignmentError) {
-          console.error("Error fetching patient assignments:", assignmentError);
-          throw assignmentError;
+        if (error) {
+          console.error("Error fetching patients:", error);
+          throw error;
         }
         
-        // If no patients assigned, return empty array
-        if (!patientAssignments || patientAssignments.length === 0) {
-          return [];
-        }
-        
-        const patientIds = patientAssignments.map(assignment => assignment.patient_id);
-        
-        // Fetch patient profiles data
-        const { data: patientProfiles, error: profilesError } = await supabase
-          .from("profiles")
-          .select("id, first_name, last_name")
-          .in("id", patientIds);
-          
-        if (profilesError) {
-          console.error("Error fetching patient profiles:", profilesError);
-          throw profilesError;
-        }
-        
-        return patientProfiles || [];
+        return data || [];
       } catch (error) {
         console.error("Error fetching patients:", error);
         toast({
