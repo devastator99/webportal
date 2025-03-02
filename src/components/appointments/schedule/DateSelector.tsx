@@ -62,13 +62,18 @@ export function DateSelector({ form }: DateSelectorProps) {
                     console.log("Date selected:", date);
                     // Format the date properly and ensure it's stored as ISO string
                     const isoDate = date.toISOString();
-                    // Explicitly set the value in the form
+                    // Update the form value
                     field.onChange(isoDate);
-                    // We need a small delay to ensure React updates the field value
-                    // before closing the popover
+                    // Set the form value directly to ensure it's updated
+                    form.setValue("scheduledAt", isoDate, { 
+                      shouldValidate: true,
+                      shouldDirty: true,
+                      shouldTouch: true 
+                    });
+                    // Close the popover AFTER the form value has been set
                     setTimeout(() => {
                       setCalendarOpen(false);
-                    }, 100);
+                    }, 200);
                   }
                 }}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
