@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
@@ -47,13 +46,12 @@ export function DateSelector({ form }: DateSelectorProps) {
       // First update the local state
       setDate(newDate);
       
-      // Format date to ISO string with time set to noon to avoid timezone issues
-      const formattedDate = new Date(
-        newDate.getFullYear(),
-        newDate.getMonth(),
-        newDate.getDate(),
-        12, 0, 0
-      ).toISOString();
+      // Create a new date object with time set to noon to avoid timezone issues
+      const year = newDate.getFullYear();
+      const month = newDate.getMonth();
+      const day = newDate.getDate();
+      const normalizedDate = new Date(year, month, day, 12, 0, 0, 0);
+      const formattedDate = normalizedDate.toISOString();
       
       console.log("Setting form value to:", formattedDate);
       

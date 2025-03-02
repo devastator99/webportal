@@ -19,7 +19,7 @@ interface AppointmentWithPatient {
     id: string;
     first_name: string | null;
     last_name: string | null;
-  };
+  } | null;
 }
 
 // Define India timezone

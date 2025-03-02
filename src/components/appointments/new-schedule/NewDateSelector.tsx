@@ -47,17 +47,27 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
     try {
       // Format date for database with proper timezone handling
       const formattedDate = format(normalizedDate, "yyyy-MM-dd");
-      const isoString = new Date(formattedDate + "T12:00:00.000Z").toISOString();
+      console.log("Selected date formatted:", formattedDate);
+      
+      // Create ISO string with noon time to avoid timezone issues
+      const year = normalizedDate.getFullYear();
+      const month = normalizedDate.getMonth();
+      const day = normalizedDate.getDate();
+      const isoDate = new Date(year, month, day, 12, 0, 0, 0).toISOString();
+      console.log("ISO date string:", isoDate);
+      
       const doctorId = form.getValues().doctorId;
       
       // Only validate if doctor is selected
       if (doctorId) {
+        console.log("Validating appointment for doctor:", doctorId, "date:", isoDate);
+        
         // Use RPC call to validate appointment date
         const { data: isValid, error } = await supabase.rpc(
           'validate_appointment_date',
           { 
             p_doctor_id: doctorId,
-            p_scheduled_date: isoString
+            p_scheduled_date: isoDate
           }
         );
         
@@ -69,9 +79,10 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
             variant: "destructive",
           });
           setIsValidating(false);
-          setPopoverOpen(false);
           return;
         }
+        
+        console.log("Validation result:", isValid);
         
         if (!isValid) {
           toast({
@@ -84,8 +95,10 @@ export function NewDateSelector({ form }: NewDateSelectorProps) {
         }
       }
       
+      console.log("Setting form value:", isoDate);
+      
       // Update form with ISO string, ensuring we set it properly
-      form.setValue("scheduledAt", isoString, {
+      form.setValue("scheduledAt", isoDate, {
         shouldValidate: true,
         shouldDirty: true,
         shouldTouch: true
