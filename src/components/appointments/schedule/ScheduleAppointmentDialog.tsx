@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import {
   AlertDialog,
@@ -41,13 +42,22 @@ export function ScheduleAppointmentDialog({
     },
   });
 
+  // This function is called when fields change but should not close the dialog
   function handleFieldChange() {
+    // Just log the change, but don't close the dialog
     console.log("Field changed, dialog remains open");
   }
 
   function onSubmit(values: AppointmentFormData) {
     console.log("Submitting appointment data:", values);
     createAppointmentMutation.mutate(values);
+    // Dialog will be closed in the onSuccess callback after successful submission
+  }
+
+  function handleCancel() {
+    // Only close the dialog when cancel is explicitly clicked
+    setOpen(false);
+    form.reset();
   }
 
   const createAppointmentMutation = useMutation({
@@ -88,15 +98,30 @@ export function ScheduleAppointmentDialog({
         description: `Failed to create appointment: ${error.message}`,
         variant: "destructive",
       });
+      // Don't close the dialog on error so the user can try again
     },
   });
 
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>
+    <AlertDialog open={open} onOpenChange={(newOpen) => {
+      // Only allow closing from the "X" button, prevent closing from clicking outside
+      if (!newOpen) {
+        // If dialog is being closed, we check if it's an explicit action
+        // The explicit actions are handled by submit and handleCancel
+        // This just prevents accidental closures
+        console.log("Dialog close attempt intercepted");
+      } else {
+        // Always allow opening
+        setOpen(true);
+      }
+    }}>
+      <AlertDialogTrigger asChild onClick={() => setOpen(true)}>
         {children}
       </AlertDialogTrigger>
-      <AlertDialogContent>
+      <AlertDialogContent onPointerDownOutside={(e) => {
+        // Prevent closing when clicking outside the dialog
+        e.preventDefault();
+      }}>
         <AlertDialogHeader>
           <AlertDialogTitle>Schedule Appointment</AlertDialogTitle>
           <AlertDialogDescription>
@@ -111,7 +136,7 @@ export function ScheduleAppointmentDialog({
               onFieldChange={handleFieldChange}
             />
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel type="button" onClick={handleCancel}>Cancel</AlertDialogCancel>
               <AlertDialogAction type="submit" disabled={createAppointmentMutation.isPending}>
                 {createAppointmentMutation.isPending ? "Submitting..." : "Submit"}
               </AlertDialogAction>
