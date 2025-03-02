@@ -60,11 +60,13 @@ export function DateSelector({ form }: DateSelectorProps) {
                 onSelect={(date) => {
                   if (!date) return;
                   
-                  // Ensure we're working with the field's onChange directly
+                  // First update the field value via the onChange handler
                   field.onChange(date.toISOString());
                   
-                  // Close the calendar after selection
-                  setCalendarOpen(false);
+                  // Add a small delay before closing the calendar to ensure the value is set
+                  setTimeout(() => {
+                    setCalendarOpen(false);
+                  }, 100);
                 }}
                 disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
                 initialFocus
