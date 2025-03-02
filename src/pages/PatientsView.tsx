@@ -36,6 +36,8 @@ const PatientsView = () => {
     </ScheduleAppointment>
   );
 
+  console.log("Rendering PatientsView component");
+
   return (
     <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
       <DashboardHeader actionButton={actionButton} />

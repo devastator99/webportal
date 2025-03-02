@@ -29,7 +29,10 @@ export const DoctorDashboard = () => {
       <Button 
         className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
         size="sm"
-        onClick={() => navigate("/patients")}
+        onClick={() => {
+          console.log("Navigating to patients view");
+          navigate("/patients");
+        }}
       >
         <Users className="h-4 w-4" />
         <span>Patients</span>
