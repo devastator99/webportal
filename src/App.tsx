@@ -9,6 +9,7 @@ import { Navbar } from "@/components/Navbar";
 import { LandingPage } from "@/pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import Admin from "./pages/Admin";
+import PatientsView from "./pages/PatientsView";
 import { useAuth } from "./contexts/AuthContext";
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -48,6 +49,14 @@ const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <Admin />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/patients"
+          element={
+            <ProtectedRoute>
+              <PatientsView />
             </ProtectedRoute>
           }
         />

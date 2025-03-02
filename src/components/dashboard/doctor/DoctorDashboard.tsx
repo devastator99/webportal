@@ -2,17 +2,21 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { StatsCards } from "./StatsCards";
-import { TodaySchedule } from "./TodaySchedule";
-import { ChatInterface } from "../../chat/ChatInterface";
-import { AiAssistant } from "./AiAssistant";
-import { DoctorAppointmentCalendar } from "./DoctorAppointmentCalendar";
+import { StatsCards } from "./doctor/StatsCards";
+import { TodaySchedule } from "./doctor/TodaySchedule";
+import { ChatInterface } from "../chat/ChatInterface";
+import { AiAssistant } from "./doctor/AiAssistant";
+import { DoctorAppointmentCalendar } from "./doctor/DoctorAppointmentCalendar";
 import { VideoUploader } from "@/components/videos/VideoUploader";
 import { VideoList } from "@/components/videos/VideoList";
-import { DocumentAnalyzer } from "./DocumentSummary";
-import { PrescriptionWriter } from "./PrescriptionWriter";
-import { DashboardHeader } from "../DashboardHeader";
+import { DocumentAnalyzer } from "./doctor/DocumentSummary";
+import { PrescriptionWriter } from "./doctor/PrescriptionWriter";
+import { DashboardHeader } from "./DashboardHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import { Calendar, Users } from "lucide-react";
+import { ScheduleAppointment } from "../appointments/ScheduleAppointment";
+import { Link } from "react-router-dom";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
@@ -23,6 +27,27 @@ export const DoctorDashboard = () => {
       <DashboardHeader />
       
       <StatsCards />
+
+      {/* Action buttons */}
+      <div className="flex flex-wrap justify-end gap-3">
+        <Link to="/patients">
+          <Button 
+            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
+          >
+            <Users className="h-4 w-4" />
+            <span>View All Patients</span>
+          </Button>
+        </Link>
+        
+        <ScheduleAppointment callerRole="doctor">
+          <Button 
+            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
+          >
+            <Calendar className="h-4 w-4" />
+            <span>Schedule Patient Appointment</span>
+          </Button>
+        </ScheduleAppointment>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="space-y-6 lg:col-span-1">
