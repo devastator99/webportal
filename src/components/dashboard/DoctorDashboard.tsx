@@ -15,7 +15,7 @@ import { DashboardHeader } from "./DashboardHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
-import { ScheduleAppointment } from "../appointments/schedule";
+import { NewScheduleAppointment } from "../appointments/new-schedule";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
@@ -27,7 +27,19 @@ export const DoctorDashboard = () => {
       
       <StatsCards />
 
-      {/* Schedule appointment button */}
+      {/* New Schedule appointment button */}
+      <div className="flex justify-end">
+        <NewScheduleAppointment callerRole="doctor">
+          <Button 
+            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
+          >
+            <Calendar className="h-4 w-4" />
+            <span>Schedule Patient Appointment</span>
+          </Button>
+        </NewScheduleAppointment>
+      </div>
+
+      {/* Original Schedule appointment button - commented out
       <div className="flex justify-end">
         <ScheduleAppointment callerRole="doctor">
           <Button 
@@ -38,6 +50,7 @@ export const DoctorDashboard = () => {
           </Button>
         </ScheduleAppointment>
       </div>
+      */}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="space-y-6 lg:col-span-1">
