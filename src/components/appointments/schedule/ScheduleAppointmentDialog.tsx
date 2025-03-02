@@ -12,7 +12,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Form } from "@/components/ui/form";
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -31,6 +31,7 @@ export function ScheduleAppointmentDialog({
 }: ScheduleAppointmentDialogProps) {
   const [open, setOpen] = useState(false);
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentFormSchema),
@@ -40,6 +41,7 @@ export function ScheduleAppointmentDialog({
       scheduledAt: '',
       notes: '',
     },
+    mode: "onChange",
   });
 
   // This function handles explicit dialog close via Cancel button
@@ -51,21 +53,37 @@ export function ScheduleAppointmentDialog({
   // This function handles form submission
   function onSubmit(values: AppointmentFormData) {
     console.log("Submitting appointment data:", values);
+    
+    // Additional check to ensure all required fields are filled
+    if (!values.patientId || !values.doctorId || !values.scheduledAt) {
+      toast({
+        title: "Missing fields",
+        description: "Please fill all required fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     createAppointmentMutation.mutate(values);
     // Dialog will be closed in the onSuccess callback
   }
 
   // This prevents accidental closure from outside clicks
   const handleDialogChange = (newOpenState: boolean) => {
-    // Only allow closing through explicit actions (Cancel/Submit buttons)
-    if (open && !newOpenState) {
-      // If dialog is open and something is trying to close it unexpectedly
-      console.log("Dialog close attempt intercepted");
-      // Don't close it - we'll handle this in explicit handlers
-    } else {
-      // Allow opening or explicit closing
-      setOpen(newOpenState);
+    // If trying to open the dialog, always allow it
+    if (newOpenState) {
+      setOpen(true);
+      return;
     }
+    
+    // If trying to close with unsaved changes, show a confirmation
+    if (form.formState.isDirty) {
+      // For simplicity, we'll just allow closing to avoid complexity
+      // In a real app, you might want to add a confirmation dialog here
+      form.reset();
+    }
+    
+    setOpen(false);
   };
 
   const createAppointmentMutation = useMutation({
@@ -93,6 +111,7 @@ export function ScheduleAppointmentDialog({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['patient_dashboard'] });
       toast({
         title: "Success",
         description: "Appointment created successfully!",
@@ -109,6 +128,9 @@ export function ScheduleAppointmentDialog({
       // Don't close the dialog on error so the user can try again
     },
   });
+
+  // Check if form has any validation errors
+  const hasErrors = Object.keys(form.formState.errors).length > 0;
 
   return (
     <AlertDialog open={open} onOpenChange={handleDialogChange}>
@@ -127,11 +149,13 @@ export function ScheduleAppointmentDialog({
             <AppointmentFormFields 
               form={form}
               callerRole={callerRole}
-              onFieldChange={() => console.log("Field changed, dialog remains open")}
             />
             <AlertDialogFooter>
               <AlertDialogCancel type="button" onClick={handleCancel}>Cancel</AlertDialogCancel>
-              <AlertDialogAction type="submit" disabled={createAppointmentMutation.isPending}>
+              <AlertDialogAction 
+                type="submit" 
+                disabled={createAppointmentMutation.isPending || hasErrors}
+              >
                 {createAppointmentMutation.isPending ? "Submitting..." : "Submit"}
               </AlertDialogAction>
             </AlertDialogFooter>

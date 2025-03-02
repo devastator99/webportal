@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { UseFormReturn } from "react-hook-form";
 import { Button } from "@/components/ui/button";
@@ -26,17 +27,15 @@ interface DateSelectorProps {
 
 export function DateSelector({ form }: DateSelectorProps) {
   const [date, setDate] = useState<Date | undefined>(undefined);
-  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [open, setOpen] = useState(false);
   const { toast } = useToast();
   
-  // Get today's date with time set to noon to avoid timezone issues
-  const today = new Date();
-  today.setHours(12, 0, 0, 0);
+  // Get today's date with time set to start of day to avoid timezone issues
+  const today = startOfDay(new Date());
   
   // Handle date selection from calendar
   const handleDateChange = (newDate: Date | undefined) => {
     if (!newDate) {
-      console.log("Date selection canceled or undefined");
       return;
     }
     
@@ -46,26 +45,21 @@ export function DateSelector({ form }: DateSelectorProps) {
       // First update the local state
       setDate(newDate);
       
-      // Create a new date object with time set to noon to avoid timezone issues
-      const year = newDate.getFullYear();
-      const month = newDate.getMonth();
-      const day = newDate.getDate();
-      const normalizedDate = new Date(year, month, day, 12, 0, 0, 0);
+      // Normalize the date to start of day to avoid timezone issues
+      const normalizedDate = startOfDay(newDate);
       const formattedDate = normalizedDate.toISOString();
       
       console.log("Setting form value to:", formattedDate);
       
-      // Update form value BEFORE closing popover
+      // Update form value
       form.setValue("scheduledAt", formattedDate, {
         shouldValidate: true,
         shouldDirty: true,
         shouldTouch: true,
       });
       
-      console.log("Form value updated, now closing popover");
-      
-      // Close popover AFTER form value is set
-      setPopoverOpen(false);
+      // Close the popover
+      setOpen(false);
       
       // Show toast notification
       toast({
@@ -76,10 +70,23 @@ export function DateSelector({ form }: DateSelectorProps) {
       console.error("Error handling date change:", error);
       toast({
         title: "Error",
-        description: `Failed to process date: ${error instanceof Error ? error.message : String(error)}`,
+        description: "Failed to process the selected date",
         variant: "destructive",
       });
+      
+      // Set error in form
+      form.setError("scheduledAt", {
+        type: "validate",
+        message: "Error processing date"
+      });
     }
+  };
+  
+  // Quick selection buttons
+  const handleQuickSelect = (daysToAdd: number) => {
+    const newDate = new Date();
+    newDate.setDate(newDate.getDate() + daysToAdd);
+    handleDateChange(newDate);
   };
   
   // Sync component state with form state when form value changes externally
@@ -102,16 +109,8 @@ export function DateSelector({ form }: DateSelectorProps) {
       name="scheduledAt"
       render={({ field }) => (
         <FormItem className="flex flex-col">
-          <FormLabel>Scheduled Date</FormLabel>
-          <Popover 
-            open={popoverOpen} 
-            onOpenChange={(open) => {
-              // Only handle opening the popover or explicit closing
-              if (open) {
-                setPopoverOpen(open);
-              }
-            }}
-          >
+          <FormLabel>Scheduled Date<span className="text-destructive ml-1">*</span></FormLabel>
+          <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
               <FormControl>
                 <Button
@@ -120,7 +119,6 @@ export function DateSelector({ form }: DateSelectorProps) {
                     "w-full pl-3 text-left font-normal",
                     !field.value && "text-muted-foreground"
                   )}
-                  onClick={() => setPopoverOpen(true)}
                 >
                   {field.value ? (
                     format(new Date(field.value), "PPP")
@@ -135,9 +133,7 @@ export function DateSelector({ form }: DateSelectorProps) {
               <Calendar
                 mode="single"
                 selected={date}
-                onSelect={(date) => {
-                  handleDateChange(date);
-                }}
+                onSelect={handleDateChange}
                 disabled={(date) => date < today}
                 initialFocus
               />
@@ -147,9 +143,7 @@ export function DateSelector({ form }: DateSelectorProps) {
                   size="sm"
                   onClick={(e) => {
                     e.preventDefault();
-                    const tomorrow = new Date(today);
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    handleDateChange(tomorrow);
+                    handleQuickSelect(1);
                   }}
                 >
                   Tomorrow
@@ -159,9 +153,7 @@ export function DateSelector({ form }: DateSelectorProps) {
                   size="sm"
                   onClick={(e) => {
                     e.preventDefault();
-                    const nextWeek = new Date(today);
-                    nextWeek.setDate(nextWeek.getDate() + 7);
-                    handleDateChange(nextWeek);
+                    handleQuickSelect(7);
                   }}
                 >
                   Next Week
