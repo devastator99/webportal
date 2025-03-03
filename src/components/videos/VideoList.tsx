@@ -1,13 +1,55 @@
 
-import { useState } from "react";
+import { useState, memo, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 
+const VideoCard = memo(({ video }) => {
+  const videoUrl = supabase.storage.from('videos').getPublicUrl(video.video_path).data.publicUrl;
+  
+  return (
+    <Card key={video.id} className="overflow-hidden">
+      <video
+        className="w-full aspect-video object-cover"
+        controls
+        src={videoUrl}
+        loading="lazy"
+        preload="none"
+        onError={(e) => console.error('Video loading error:', e)}
+      />
+      <CardHeader>
+        <CardTitle>{video.title}</CardTitle>
+        <CardDescription>
+          Educational Video
+        </CardDescription>
+      </CardHeader>
+      {video.description && (
+        <CardContent>
+          <p className="text-sm text-gray-500">{video.description}</p>
+        </CardContent>
+      )}
+    </Card>
+  );
+});
+
+VideoCard.displayName = "VideoCard";
+
+const LoadingSkeleton = () => (
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    {[...Array(3)].map((_, i) => (
+      <Card key={i} className="animate-pulse">
+        <div className="h-48 bg-gray-200 rounded-t-lg" />
+        <CardHeader>
+          <div className="h-6 bg-gray-200 rounded w-3/4" />
+          <div className="h-4 bg-gray-200 rounded w-1/2 mt-2" />
+        </CardHeader>
+      </Card>
+    ))}
+  </div>
+);
+
 export const VideoList = () => {
-  const { user } = useAuth();
   const [showAll, setShowAll] = useState(false);
   const { data: videos, isLoading } = useQuery({
     queryKey: ["knowledge_videos"],
@@ -21,25 +63,16 @@ export const VideoList = () => {
         console.error('Error fetching videos:', error);
         throw error;
       }
-      console.log('Fetched videos:', data);
       return data;
     },
   });
 
+  const toggleShowAll = useCallback(() => {
+    setShowAll(prev => !prev);
+  }, []);
+
   if (isLoading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {[...Array(3)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <div className="h-48 bg-gray-200 rounded-t-lg" />
-            <CardHeader>
-              <div className="h-6 bg-gray-200 rounded w-3/4" />
-              <div className="h-4 bg-gray-200 rounded w-1/2 mt-2" />
-            </CardHeader>
-          </Card>
-        ))}
-      </div>
-    );
+    return <LoadingSkeleton />;
   }
 
   const displayedVideos = showAll ? videos : videos?.slice(0, 4);
@@ -48,39 +81,15 @@ export const VideoList = () => {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {displayedVideos?.map((video) => {
-          const videoUrl = supabase.storage.from('videos').getPublicUrl(video.video_path).data.publicUrl;
-          console.log('Video URL for', video.title, ':', videoUrl);
-          console.log('Video path:', video.video_path);
-          
-          return (
-            <Card key={video.id} className="overflow-hidden">
-              <video
-                className="w-full aspect-video object-cover"
-                controls
-                src={videoUrl}
-                onError={(e) => console.error('Video loading error:', e)}
-              />
-              <CardHeader>
-                <CardTitle>{video.title}</CardTitle>
-                <CardDescription>
-                  Educational Video
-                </CardDescription>
-              </CardHeader>
-              {video.description && (
-                <CardContent>
-                  <p className="text-sm text-gray-500">{video.description}</p>
-                </CardContent>
-              )}
-            </Card>
-          );
-        })}
+        {displayedVideos?.map((video) => (
+          <VideoCard key={video.id} video={video} />
+        ))}
       </div>
       {hasMoreVideos && (
         <div className="flex justify-center">
           <Button 
             variant="outline"
-            onClick={() => setShowAll(!showAll)}
+            onClick={toggleShowAll}
             className="mt-4"
           >
             {showAll ? "Show Less" : "Show More"}
@@ -90,3 +99,5 @@ export const VideoList = () => {
     </div>
   );
 };
+
+export default memo(VideoList);
