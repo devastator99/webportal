@@ -5,7 +5,22 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
-const VideoCard = memo(({ video }) => {
+interface Video {
+  id: string;
+  title: string;
+  description: string;
+  video_path: string;
+  created_at: string;
+  updated_at: string;
+  uploaded_by: string;
+  uploader_role: "patient" | "doctor" | "nutritionist" | "administrator" | "reception";
+}
+
+interface VideoCardProps {
+  video: Video;
+}
+
+const VideoCard = memo(({ video }: VideoCardProps) => {
   const videoUrl = supabase.storage.from('videos').getPublicUrl(video.video_path).data.publicUrl;
   
   return (
@@ -14,7 +29,6 @@ const VideoCard = memo(({ video }) => {
         className="w-full aspect-video object-cover"
         controls
         src={videoUrl}
-        loading="lazy"
         preload="none"
         onError={(e) => console.error('Video loading error:', e)}
       />
@@ -63,7 +77,7 @@ export const VideoList = () => {
         console.error('Error fetching videos:', error);
         throw error;
       }
-      return data;
+      return data as Video[];
     },
   });
 
