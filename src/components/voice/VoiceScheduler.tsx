@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import {
   VoiceAgent,
   schedulingCommands,
@@ -15,6 +14,7 @@ import {
 import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 import { useAuth } from "@/contexts/AuthContext";
 import { Mic, MicOff, Calendar, User, Clock } from "lucide-react";
+import { parseTime } from "@/utils/dateUtils";
 
 interface VoiceSchedulerProps {
   onClose: () => void;
@@ -33,7 +33,6 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
   const voiceAgentRef = useRef<VoiceAgent | null>(null);
   const schedulerDialogRef = useRef<HTMLButtonElement | null>(null);
   
-  // Fetch patients using the get_patients RPC function
   const { data: patients = [] } = useQuery({
     queryKey: ["patients"],
     queryFn: async () => {
@@ -48,7 +47,6 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
     },
   });
 
-  // Initialize voice agent
   useEffect(() => {
     voiceAgentRef.current = new VoiceAgent(handleCommand, setVoiceStatus);
     
@@ -79,7 +77,6 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         break;
         
       case "SELECT_PATIENT":
-        // Find patient based on spoken name
         const patientName = params.trim().toLowerCase();
         const foundPatient = patients.find(
           (p) => `${p.first_name} ${p.last_name}`.toLowerCase().includes(patientName)
@@ -118,16 +115,13 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         
       case "CONFIRM":
         if (selectedPatient && selectedDate && selectedTime) {
-          // Trigger the appointment scheduler
           setOpenScheduler(true);
           speak("Opening the appointment scheduler with your selections.");
           
-          // Give time for the dialog to open, then stop listening
           setTimeout(() => {
             voiceAgentRef.current?.stop();
             setListening(false);
             
-            // Click the dialog element if it's available
             if (schedulerDialogRef.current) {
               schedulerDialogRef.current.click();
             }
@@ -155,7 +149,6 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
     setOpenScheduler(false);
   };
 
-  // Simple text-to-speech implementation
   const speak = (text: string) => {
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text);
