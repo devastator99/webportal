@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
   Dialog, 
@@ -46,6 +45,8 @@ type ScheduleAppointmentProps = {
   callerRole: "doctor" | "patient" | "reception";
   preSelectedDoctorId?: string;
   preSelectedPatientId?: string;
+  preSelectedDate?: Date;
+  preSelectedTime?: string;
 };
 
 export const ScheduleAppointment = ({
@@ -53,20 +54,28 @@ export const ScheduleAppointment = ({
   callerRole,
   preSelectedDoctorId,
   preSelectedPatientId,
+  preSelectedDate,
+  preSelectedTime,
 }: ScheduleAppointmentProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
-  const [selectedTime, setSelectedTime] = useState("");
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(preSelectedDate);
+  const [selectedTime, setSelectedTime] = useState(preSelectedTime || "");
   const [selectedDoctor, setSelectedDoctor] = useState(preSelectedDoctorId || "");
   const [selectedPatient, setSelectedPatient] = useState(preSelectedPatientId || "");
   const [notes, setNotes] = useState("");
   const [showValidation, setShowValidation] = useState(false);
   const isMobile = useIsMobile();
 
-  // Fetch doctors list using the get_doctors RPC function
+  useEffect(() => {
+    if (preSelectedDate) setSelectedDate(preSelectedDate);
+    if (preSelectedTime) setSelectedTime(preSelectedTime);
+    if (preSelectedDoctorId) setSelectedDoctor(preSelectedDoctorId);
+    if (preSelectedPatientId) setSelectedPatient(preSelectedPatientId);
+  }, [preSelectedDate, preSelectedTime, preSelectedDoctorId, preSelectedPatientId]);
+
   const { data: doctors = [], isLoading: isDoctorsLoading } = useQuery({
     queryKey: ["doctors"],
     queryFn: async () => {
@@ -82,7 +91,6 @@ export const ScheduleAppointment = ({
     enabled: callerRole === "patient" || callerRole === "reception",
   });
 
-  // Fetch patients list using the get_patients RPC function
   const { data: patients = [], isLoading: isPatientsLoading } = useQuery({
     queryKey: ["patients"],
     queryFn: async () => {
@@ -98,7 +106,6 @@ export const ScheduleAppointment = ({
     enabled: callerRole === "doctor" || callerRole === "reception",
   });
 
-  // Generate time slots (9 AM to 5 PM with 30-minute intervals)
   const timeSlots = [];
   for (let hour = 9; hour < 17; hour++) {
     for (let minute = 0; minute < 60; minute += 30) {
@@ -107,7 +114,6 @@ export const ScheduleAppointment = ({
     }
   }
 
-  // Check if field is missing
   const isDoctorMissing = (callerRole === "patient" || callerRole === "reception") && !selectedDoctor;
   const isPatientMissing = (callerRole === "doctor" || callerRole === "reception") && !selectedPatient;
   const isDateMissing = !selectedDate;
@@ -133,13 +139,11 @@ export const ScheduleAppointment = ({
       return;
     }
 
-    // Combine date and time
     const timeComponents = selectedTime.split(":");
     const appointmentDate = new Date(selectedDate as Date);
     appointmentDate.setHours(parseInt(timeComponents[0], 10));
     appointmentDate.setMinutes(parseInt(timeComponents[1], 10));
 
-    // Check if the selected date/time is in the past
     if (isBefore(appointmentDate, new Date())) {
       toast({
         title: "Invalid appointment time",
@@ -152,22 +156,18 @@ export const ScheduleAppointment = ({
     try {
       setIsSubmitting(true);
 
-      // Format the date in ISO format for database storage
       const formattedDate = appointmentDate.toISOString();
 
-      // Get the actual patient ID based on the caller role
       let patientId = selectedPatient;
       if (callerRole === "patient" && user) {
         patientId = user.id;
       }
 
-      // Get the actual doctor ID based on the caller role
       let doctorId = selectedDoctor;
       if (callerRole === "doctor" && user) {
         doctorId = user.id;
       }
 
-      // Make sure we have valid UUIDs before proceeding
       if (!patientId || patientId === "") {
         throw new Error("Invalid patient ID");
       }
@@ -176,7 +176,6 @@ export const ScheduleAppointment = ({
         throw new Error("Invalid doctor ID");
       }
 
-      // Call the create_appointment RPC function
       const { data, error } = await supabase.rpc("create_appointment", {
         p_patient_id: patientId,
         p_doctor_id: doctorId,
@@ -193,7 +192,6 @@ export const ScheduleAppointment = ({
         description: `Appointment scheduled for ${format(appointmentDate, "PPP 'at' h:mm a")}`,
       });
 
-      // Reset form and close dialog
       setSelectedDate(undefined);
       setSelectedTime("");
       setNotes("");
@@ -210,12 +208,10 @@ export const ScheduleAppointment = ({
     }
   };
 
-  // Required field indicator
   const RequiredFieldIndicator = () => (
     <span className="text-red-500 ml-1">*</span>
   );
 
-  // Reset validation when dialog opens/closes
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
     if (!open) {
@@ -235,7 +231,6 @@ export const ScheduleAppointment = ({
         </DialogHeader>
 
         <div className="grid gap-4 py-2 sm:py-4">
-          {/* Doctor selection */}
           {(callerRole === "patient" || callerRole === "reception") && (
             <div className={`grid ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-4 items-center gap-2'}`}>
               <Label htmlFor="doctor" className={`${isMobile ? "mb-1" : "text-right"} ${showValidation && isDoctorMissing ? "text-red-500" : ""}`}>
@@ -267,7 +262,6 @@ export const ScheduleAppointment = ({
             </div>
           )}
 
-          {/* Patient selection */}
           {(callerRole === "doctor" || callerRole === "reception") && (
             <div className={`grid ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-4 items-center gap-2'}`}>
               <Label htmlFor="patient" className={`${isMobile ? "mb-1" : "text-right"} ${showValidation && isPatientMissing ? "text-red-500" : ""}`}>
@@ -299,7 +293,6 @@ export const ScheduleAppointment = ({
             </div>
           )}
 
-          {/* Date picker */}
           <div className={`grid ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-4 items-center gap-2'}`}>
             <Label htmlFor="date" className={`${isMobile ? "mb-1" : "text-right"} ${showValidation && isDateMissing ? "text-red-500" : ""}`}>
               Date<RequiredFieldIndicator />
@@ -337,7 +330,6 @@ export const ScheduleAppointment = ({
             </div>
           </div>
 
-          {/* Time picker */}
           <div className={`grid ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-4 items-center gap-2'}`}>
             <Label htmlFor="time" className={`${isMobile ? "mb-1" : "text-right"} ${showValidation && isTimeMissing ? "text-red-500" : ""}`}>
               Time<RequiredFieldIndicator />
@@ -366,7 +358,6 @@ export const ScheduleAppointment = ({
             </div>
           </div>
 
-          {/* Notes */}
           <div className={`grid ${isMobile ? 'grid-cols-1 gap-1' : 'grid-cols-4 items-center gap-2'}`}>
             <Label htmlFor="notes" className={isMobile ? "mb-1" : "text-right"}>
               Notes
