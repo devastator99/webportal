@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
-import { LogOut, LogIn } from "lucide-react";
+import { LogOut, LogIn, LayoutDashboard } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { AuthForm } from "@/components/auth/AuthForm";
@@ -85,6 +85,19 @@ export const Navbar = () => {
         </div>
         
         <div className="flex items-center gap-3">
+          {/* Dashboard button - only show when user is logged in AND not on dashboard page */}
+          {user && !isDashboardPage && (
+            <Button 
+              onClick={() => navigate("/dashboard")}
+              variant="outline" 
+              className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2 font-medium shadow-sm"
+              size="sm"
+            >
+              <LayoutDashboard className="h-4 w-4" />
+              <span className="hidden sm:inline">Dashboard</span>
+            </Button>
+          )}
+          
           {!user && (
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
               <DialogTrigger asChild>
