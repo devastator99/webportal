@@ -23,14 +23,17 @@ export const LandingPage = () => {
   useEffect(() => {
     // Mark that we're rendering on the client side
     setIsClientSide(true);
+    console.log('LandingPage mounted on client side');
   }, []);
 
   // Don't render anything during SSR or until client-side hydration is complete
   if (!isClientSide) {
+    console.log('LandingPage waiting for client-side hydration');
     return <LoadingSpinner />;
   }
 
   if (isLoading) {
+    console.log('LandingPage is in loading state from auth context');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#9b87f5]"></div>
@@ -38,6 +41,7 @@ export const LandingPage = () => {
     );
   }
 
+  console.log('LandingPage rendering full content');
   return (
     <div className="min-h-screen bg-white">
       <Hero />

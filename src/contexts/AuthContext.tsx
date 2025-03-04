@@ -25,6 +25,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authInitialized, setAuthInitialized] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -39,22 +40,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (error) {
         console.error('[Auth Debug] Error fetching user role:', error);
-        toast({
-          variant: "destructive",
-          title: "Error fetching user role",
-          description: "Please try refreshing the page"
-        });
         return null;
       }
 
       if (!data || data.length === 0) {
-        console.error('[Auth Debug] No role data received for user:', userId);
+        console.log('[Auth Debug] No role data received for user:', userId);
         return null;
       }
 
       console.log('[Auth Debug] Role data received:', data);
-      
-      // Ensure we're processing the role data correctly
       const roleValue = data[0]?.role;
       console.log('[Auth Debug] Extracted role value:', roleValue);
       
@@ -70,16 +64,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(true);
       
       if (session?.user) {
-        console.log('[Auth Debug] Auth state change - user found:', session.user.id, 'email:', session.user.email);
+        console.log('[Auth Debug] Auth state change - user found');
         setUser(session.user);
         const role = await fetchUserRole(session.user.id);
-        console.log('[Auth Debug] Role fetched:', role);
         
         if (role) {
           setUserRole(role);
           console.log('[Auth Debug] User role set to:', role);
         } else {
-          console.warn('[Auth Debug] No role found for user, setting userRole to null');
+          console.log('[Auth Debug] No role found for user, setting userRole to null');
           setUserRole(null);
         }
       } else {
@@ -89,11 +82,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error) {
       console.error('[Auth Debug] Error in handleAuthStateChange:', error);
-      toast({
-        variant: "destructive",
-        title: "Authentication error",
-        description: "There was an error managing your session"
-      });
     } finally {
       setIsLoading(false);
     }
@@ -102,14 +90,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const checkSession = async () => {
       try {
+        console.log('[Auth Debug] Checking session...');
         const { data: { session } } = await supabase.auth.getSession();
+        
         console.log('[Auth Debug] Initial session check:', session ? 'Session found' : 'No session');
-        if (session) {
-          console.log('[Auth Debug] Session user:', session.user.email);
-        }
         await handleAuthStateChange(session);
       } catch (error) {
         console.error('[Auth Debug] Error checking session:', error);
+      } finally {
+        setAuthInitialized(true);
         setIsLoading(false);
       }
     };
@@ -125,15 +114,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       subscription.unsubscribe();
     };
   }, []);
-
-  useEffect(() => {
-    console.log('[Auth Debug] Auth context updated:', {
-      user: user?.id,
-      email: user?.email,
-      userRole,
-      isLoading
-    });
-  }, [user, userRole, isLoading]);
 
   const signOut = async () => {
     try {
@@ -161,17 +141,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error: any) {
       console.error('Exception in signOut function:', error);
-      toast({
-        variant: "destructive",
-        title: "Error during sign out",
-        description: error.message || "An unexpected error occurred"
-      });
-      
       navigate('/', { replace: true });
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Provide a simplified context while auth is initializing
+  if (!authInitialized) {
+    return (
+      <AuthContext.Provider value={{ user: null, userRole: null, isLoading: true, signOut: async () => {} }}>
+        {children}
+      </AuthContext.Provider>
+    );
+  }
 
   return (
     <AuthContext.Provider value={{ user, userRole, isLoading, signOut }}>

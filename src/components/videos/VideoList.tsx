@@ -65,19 +65,32 @@ const LoadingSkeleton = () => (
 
 export const VideoList = () => {
   const [showAll, setShowAll] = useState(false);
-  const { data: videos, isLoading } = useQuery({
+  
+  // Add error handling for video fetching
+  const { data: videos, isLoading, error } = useQuery({
     queryKey: ["knowledge_videos"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('knowledge_videos')
-        .select('*')
-        .order('created_at', { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from('knowledge_videos')
+          .select('*')
+          .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching videos:', error);
-        throw error;
+        if (error) {
+          console.error('Error fetching videos:', error);
+          throw error;
+        }
+        
+        if (!data || data.length === 0) {
+          console.log('No videos found');
+          return [];
+        }
+        
+        return data as Video[];
+      } catch (err) {
+        console.error('Exception in video fetch:', err);
+        return [];
       }
-      return data as Video[];
     },
   });
 
@@ -85,17 +98,37 @@ export const VideoList = () => {
     setShowAll(prev => !prev);
   }, []);
 
+  // Handle loading state
   if (isLoading) {
     return <LoadingSkeleton />;
   }
+  
+  // Handle error state
+  if (error) {
+    console.error('Error in video list:', error);
+    return (
+      <div className="p-4 text-center">
+        <p className="text-red-500">Unable to load videos. Please try again later.</p>
+      </div>
+    );
+  }
 
-  const displayedVideos = showAll ? videos : videos?.slice(0, 4);
+  // Handle no videos case
+  if (!videos || videos.length === 0) {
+    return (
+      <div className="p-4 text-center">
+        <p className="text-gray-500">No videos available at this time.</p>
+      </div>
+    );
+  }
+
+  const displayedVideos = showAll ? videos : videos.slice(0, 4);
   const hasMoreVideos = videos && videos.length > 4;
 
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {displayedVideos?.map((video) => (
+        {displayedVideos.map((video) => (
           <VideoCard key={video.id} video={video} />
         ))}
       </div>
