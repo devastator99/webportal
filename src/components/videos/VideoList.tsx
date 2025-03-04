@@ -21,30 +21,48 @@ interface VideoCardProps {
 }
 
 const VideoCard = memo(({ video }: VideoCardProps) => {
-  const videoUrl = supabase.storage.from('videos').getPublicUrl(video.video_path).data.publicUrl;
-  
-  return (
-    <Card key={video.id} className="overflow-hidden">
-      <video
-        className="w-full aspect-video object-cover"
-        controls
-        src={videoUrl}
-        preload="none"
-        onError={(e) => console.error('Video loading error:', e)}
-      />
-      <CardHeader>
-        <CardTitle>{video.title}</CardTitle>
-        <CardDescription>
-          Educational Video
-        </CardDescription>
-      </CardHeader>
-      {video.description && (
-        <CardContent>
-          <p className="text-sm text-gray-500">{video.description}</p>
-        </CardContent>
-      )}
-    </Card>
-  );
+  // Add error handling for video URL retrieval
+  try {
+    const videoUrl = supabase.storage.from('videos').getPublicUrl(video.video_path).data.publicUrl;
+    
+    return (
+      <Card key={video.id} className="overflow-hidden">
+        <video
+          className="w-full aspect-video object-cover"
+          controls
+          src={videoUrl}
+          preload="none"
+          onError={(e) => console.error('Video loading error:', e)}
+        />
+        <CardHeader>
+          <CardTitle>{video.title}</CardTitle>
+          <CardDescription>
+            Educational Video
+          </CardDescription>
+        </CardHeader>
+        {video.description && (
+          <CardContent>
+            <p className="text-sm text-gray-500">{video.description}</p>
+          </CardContent>
+        )}
+      </Card>
+    );
+  } catch (error) {
+    console.error('Error creating video card:', error);
+    return (
+      <Card className="overflow-hidden">
+        <div className="w-full aspect-video bg-gray-200 flex items-center justify-center">
+          <p className="text-gray-500">Video unavailable</p>
+        </div>
+        <CardHeader>
+          <CardTitle>{video.title || 'Untitled'}</CardTitle>
+          <CardDescription>
+            Educational Video
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    );
+  }
 });
 
 VideoCard.displayName = "VideoCard";
@@ -71,6 +89,7 @@ export const VideoList = () => {
     queryKey: ["knowledge_videos"],
     queryFn: async () => {
       try {
+        console.log('Fetching knowledge videos...');
         const { data, error } = await supabase
           .from('knowledge_videos')
           .select('*')
@@ -86,12 +105,17 @@ export const VideoList = () => {
           return [];
         }
         
+        console.log('Videos fetched successfully:', data.length);
         return data as Video[];
       } catch (err) {
         console.error('Exception in video fetch:', err);
         return [];
       }
     },
+    // Add retry and stale time to prevent blocking rendering
+    retry: 1,
+    staleTime: 60000,
+    gcTime: 300000,
   });
 
   const toggleShowAll = useCallback(() => {

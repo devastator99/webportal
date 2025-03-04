@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,18 +60,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const handleAuthStateChange = async (session: any) => {
     try {
-      setIsLoading(true);
-      
       if (session?.user) {
         console.log('[Auth Debug] Auth state change - user found');
         setUser(session.user);
-        const role = await fetchUserRole(session.user.id);
         
-        if (role) {
-          setUserRole(role);
-          console.log('[Auth Debug] User role set to:', role);
-        } else {
-          console.log('[Auth Debug] No role found for user, setting userRole to null');
+        try {
+          const role = await fetchUserRole(session.user.id);
+          
+          if (role) {
+            setUserRole(role);
+            console.log('[Auth Debug] User role set to:', role);
+          } else {
+            console.log('[Auth Debug] No role found for user, setting userRole to null');
+            setUserRole(null);
+          }
+        } catch (roleError) {
+          console.error('[Auth Debug] Error fetching role, continuing without role:', roleError);
           setUserRole(null);
         }
       } else {
@@ -91,12 +94,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const checkSession = async () => {
       try {
         console.log('[Auth Debug] Checking session...');
-        const { data: { session } } = await supabase.auth.getSession();
+        
+        const timeoutPromise = new Promise<{data: {session: null}}>((resolve) => {
+          setTimeout(() => {
+            console.log('[Auth Debug] Session check timed out, continuing without session');
+            resolve({data: {session: null}});
+          }, 3000);
+        });
+        
+        const { data: { session } } = await Promise.race([
+          supabase.auth.getSession(),
+          timeoutPromise
+        ]);
         
         console.log('[Auth Debug] Initial session check:', session ? 'Session found' : 'No session');
         await handleAuthStateChange(session);
       } catch (error) {
         console.error('[Auth Debug] Error checking session:', error);
+        setIsLoading(false);
       } finally {
         setAuthInitialized(true);
         setIsLoading(false);
@@ -105,14 +120,21 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     checkSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      console.log('[Auth Debug] Auth state change event:', _event);
-      handleAuthStateChange(session);
-    });
+    try {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        console.log('[Auth Debug] Auth state change event:', _event);
+        handleAuthStateChange(session);
+      });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+      return () => {
+        subscription.unsubscribe();
+      };
+    } catch (error) {
+      console.error('[Auth Debug] Error setting up auth listener:', error);
+      setIsLoading(false);
+      setAuthInitialized(true);
+      return () => {};
+    }
   }, []);
 
   const signOut = async () => {
@@ -147,7 +169,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Provide a simplified context while auth is initializing
   if (!authInitialized) {
     return (
       <AuthContext.Provider value={{ user: null, userRole: null, isLoading: true, signOut: async () => {} }}>

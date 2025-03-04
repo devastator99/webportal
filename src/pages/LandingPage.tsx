@@ -19,6 +19,17 @@ const LoadingSpinner = () => (
 export const LandingPage = () => {
   const { isLoading } = useAuth();
   const [isClientSide, setIsClientSide] = useState(false);
+  const [authTimeoutExpired, setAuthTimeoutExpired] = useState(false);
+  
+  // Set a timeout to prevent being stuck in auth loading state forever
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      console.log('Auth loading timeout expired, forcing content display');
+      setAuthTimeoutExpired(true);
+    }, 3000); // 3 seconds timeout
+    
+    return () => clearTimeout(timeoutId);
+  }, []);
   
   useEffect(() => {
     // Mark that we're rendering on the client side
@@ -32,7 +43,8 @@ export const LandingPage = () => {
     return <LoadingSpinner />;
   }
 
-  if (isLoading) {
+  // Show loading spinner only if auth is loading AND the timeout hasn't expired
+  if (isLoading && !authTimeoutExpired) {
     console.log('LandingPage is in loading state from auth context');
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -41,6 +53,7 @@ export const LandingPage = () => {
     );
   }
 
+  // Render the content regardless of auth state after timeout
   console.log('LandingPage rendering full content');
   return (
     <div className="min-h-screen bg-white">
