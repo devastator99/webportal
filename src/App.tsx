@@ -1,11 +1,11 @@
 
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { Auth } from '@supabase/auth-ui-react'
 import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { supabase } from './integrations/supabase/client'
 import { Session } from '@supabase/supabase-js'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { DashboardSkeleton } from './components/dashboard/DashboardSkeleton'
+import { AuthProvider } from './contexts/AuthContext'
 
 // Lazy load components that aren't needed for initial render
 const Dashboard = lazy(() => import('./pages/Dashboard'))
@@ -92,44 +92,27 @@ function App() {
   console.log('App rendering routes');
   return (
     <BrowserRouter>
-      <Suspense fallback={<DashboardSkeleton />}>
-        <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route
-            path="/auth"
-            element={
-              <div className="flex justify-center items-center h-screen">
-                <Auth
-                  supabaseClient={supabase}
-                  appearance={{ theme: ThemeSupa }}
-                  providers={['google', 'github']}
-                  redirectTo="http://localhost:5173/dashboard"
-                />
-              </div>
-            }
-          />
-          <Route
-            path="/dashboard"
-            element={
-              session ? (
-                <Dashboard />
-              ) : (
-                <Navigate to="/auth" replace />
-              )
-            }
-          />
-          <Route 
-            path="/patients" 
-            element={
-              session ? (
-                <PatientsView />
-              ) : (
-                <Navigate to="/auth" replace />
-              )
-            }
-          /> 
-        </Routes>
-      </Suspense>
+      <AuthProvider>
+        <Suspense fallback={<DashboardSkeleton />}>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            <Route
+              path="/dashboard"
+              element={<Dashboard />}
+            />
+            <Route 
+              path="/patients" 
+              element={
+                session ? (
+                  <PatientsView />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              }
+            /> 
+          </Routes>
+        </Suspense>
+      </AuthProvider>
     </BrowserRouter>
   )
 }
