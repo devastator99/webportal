@@ -1,6 +1,7 @@
 
 import { lazy, Suspense } from "react";
 import { Hero } from "@/components/Hero";
+import { Navbar } from "@/components/Navbar";
 
 // Lazy load non-critical components
 const Features = lazy(() => import("@/components/Features").then(module => ({ default: module.Features })));
@@ -21,6 +22,7 @@ export const LandingPage = () => {
   
   return (
     <div className="min-h-screen bg-white">
+      <Navbar />
       <Hero />
       
       <Suspense fallback={<LoadingSpinner />}>

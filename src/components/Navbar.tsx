@@ -30,11 +30,13 @@ export const Navbar = () => {
     : "fixed top-0 w-full bg-white/90 dark:bg-black/90 backdrop-blur-md z-50 border-b border-[#D6BCFA] shadow-sm";
 
   useEffect(() => {
-    if (user && !isLoading) {
-      navigate('/dashboard');
+    if (user && !isLoading && isDialogOpen) {
       setIsDialogOpen(false);
+      if (location.pathname === '/') {
+        navigate('/dashboard');
+      }
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, navigate, location.pathname, isDialogOpen]);
 
   const handleSignOut = async () => {
     try {
@@ -56,8 +58,20 @@ export const Navbar = () => {
     }
   };
 
-  if (isLoading && !isSigningOut) {
-    return null;
+  // Prevent rendering during initial loading, but show a simplified version for public pages
+  if (isLoading && !isSigningOut && location.pathname !== '/') {
+    return (
+      <nav className={navbarClass}>
+        <div className="container mx-auto px-4 py-2.5 flex justify-between items-center">
+          <div 
+            className="text-xl sm:text-2xl font-bold text-[#9b87f5] cursor-pointer" 
+            onClick={() => navigate("/")}
+          >
+            Anubhuti
+          </div>
+        </div>
+      </nav>
+    );
   }
 
   return (
