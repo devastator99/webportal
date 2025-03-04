@@ -75,7 +75,7 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
 
   const handleCommand = (command: string, params: string) => {
     console.log(`Command detected: ${command}, params: ${params}`);
-    console.log(`Current state - Patient: ${selectedPatient}, Date: ${selectedDate}, Time: ${selectedTime}`);
+    console.log(`Current state - Patient: ${selectedPatient}, Date: ${selectedDate ? selectedDate.toISOString() : null}, Time: ${selectedTime}`);
     
     switch (command) {
       case "START_SCHEDULING":
@@ -114,13 +114,24 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         if (time) {
           setSelectedTime(time);
           setSchedulingStep("CONFIRM");
-          speak("Ready to schedule. Please say confirm to book the appointment.");
+          
+          // Find the patient name for better feedback
+          const patient = patients.find(p => p.id === selectedPatient);
+          const patientName = patient ? `${patient.first_name} ${patient.last_name}` : "the selected patient";
+          
+          speak(`Ready to schedule appointment for ${patientName} on ${selectedDate ? format(selectedDate, "MMMM do, yyyy") : "the selected date"} at ${time}. Please say confirm to book the appointment.`);
         } else {
           speak("I couldn't understand the time. Please say a time like 2 PM or 14:30.");
         }
         break;
         
       case "CONFIRM":
+        console.log("Confirmation command received with current state:", {
+          patient: selectedPatient,
+          date: selectedDate ? selectedDate.toISOString() : null,
+          time: selectedTime
+        });
+        
         if (selectedPatient && selectedDate && selectedTime) {
           console.log("All information present, scheduling appointment");
           scheduleAppointment();
@@ -130,7 +141,13 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
             date: selectedDate,
             time: selectedTime
           });
-          speak("Missing some information. Please provide patient, date, and time.");
+          
+          const missingItems = [];
+          if (!selectedPatient) missingItems.push("patient");
+          if (!selectedDate) missingItems.push("date");
+          if (!selectedTime) missingItems.push("time");
+          
+          speak(`Missing information: ${missingItems.join(", ")}. Please provide all required information before confirming.`);
         }
         break;
         
@@ -151,7 +168,7 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
       
       console.log("Starting appointment scheduling with:", {
         patient: selectedPatient,
-        date: selectedDate,
+        date: selectedDate ? selectedDate.toISOString() : null,
         time: selectedTime
       });
       

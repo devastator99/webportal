@@ -230,12 +230,12 @@ export const extractDate = (params: string): Date | null => {
 export const extractTime = (params: string): string | null => {
   // Common time patterns in speech
   // Handle formats like "2:00 p.m.", "2 PM", "14:30"
-  const timeRegex = /(\d{1,2})(:\d{2})?\s*(am|pm|a\.m\.|p\.m\.)?/i;
+  const timeRegex = /(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?/i;
   const match = params.match(timeRegex);
   
   if (match) {
-    let hour = parseInt(match[1]);
-    const minutes = match[2] ? match[2].substring(1) : "00";
+    let hour = parseInt(match[1], 10);
+    const minutes = match[2] ? match[2] : "00";
     const periodMatch = match[3] ? match[3].toLowerCase() : null;
     
     // Normalize period (am/pm)
