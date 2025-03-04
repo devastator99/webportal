@@ -103,6 +103,7 @@ export class VoiceAgent {
 export const extractDate = (params: string): Date | null => {
   // Check for common date formats in speech
   const today = new Date();
+  const currentYear = today.getFullYear();
   
   if (params.includes("today")) {
     return today;
@@ -119,11 +120,83 @@ export const extractDate = (params: string): Date | null => {
     nextWeek.setDate(today.getDate() + 7);
     return nextWeek;
   }
+
+  // Day of week handling
+  const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  for (let i = 0; i < daysOfWeek.length; i++) {
+    if (params.includes(daysOfWeek[i])) {
+      const targetDay = i;
+      const currentDay = today.getDay();
+      const daysToAdd = (targetDay + 7 - currentDay) % 7 || 7; // If today, go to next week
+      
+      const dateForDay = new Date(today);
+      dateForDay.setDate(today.getDate() + daysToAdd);
+      return dateForDay;
+    }
+  }
+  
+  // Month and day pattern (e.g., "January 15" or "15th of January")
+  const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+  for (let i = 0; i < monthNames.length; i++) {
+    if (params.includes(monthNames[i])) {
+      const month = i;
+      
+      // Try to extract the day number
+      const dayMatch = params.match(/\b(\d{1,2})(st|nd|rd|th)?\b/);
+      if (dayMatch) {
+        const day = parseInt(dayMatch[1], 10);
+        if (day >= 1 && day <= 31) {
+          const date = new Date(currentYear, month, day);
+          
+          // If this date is in the past, assume next year
+          if (date < today) {
+            date.setFullYear(currentYear + 1);
+          }
+          
+          return date;
+        }
+      }
+    }
+  }
+  
+  // Try for MM/DD format
+  const datePattern = /(\d{1,2})[\/\-](\d{1,2})/;
+  const match = params.match(datePattern);
+  if (match) {
+    // Check if first number is month or day based on US convention (MM/DD)
+    const firstNum = parseInt(match[1], 10);
+    const secondNum = parseInt(match[2], 10);
+    
+    let month, day;
+    
+    // Assume MM/DD format if first number could be a month
+    if (firstNum >= 1 && firstNum <= 12) {
+      month = firstNum - 1; // JavaScript months are 0-based
+      day = secondNum;
+    } else {
+      return null; // Invalid date format
+    }
+    
+    if (day >= 1 && day <= 31) {
+      const date = new Date(currentYear, month, day);
+      
+      // If this date is in the past, assume next year
+      if (date < today) {
+        date.setFullYear(currentYear + 1);
+      }
+      
+      return date;
+    }
+  }
   
   // Try to parse more complex date formats
   try {
     const dateResult = new Date(params);
     if (!isNaN(dateResult.getTime())) {
+      // If the date is valid but in the past, set it to next year
+      if (dateResult < today && !params.includes(currentYear.toString())) {
+        dateResult.setFullYear(currentYear + 1);
+      }
       return dateResult;
     }
   } catch (e) {

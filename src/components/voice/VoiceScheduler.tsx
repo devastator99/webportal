@@ -1,8 +1,9 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parse } from "date-fns";
 import {
@@ -13,8 +14,9 @@ import {
 } from "@/utils/VoiceAgent";
 import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 import { useAuth } from "@/contexts/AuthContext";
-import { Mic, MicOff, Calendar, User, Clock } from "lucide-react";
+import { Mic, MicOff, Calendar, User, Clock, Check, AlertCircle } from "lucide-react";
 import { parseTime } from "@/utils/dateUtils";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface VoiceSchedulerProps {
   onClose: () => void;
@@ -23,6 +25,7 @@ interface VoiceSchedulerProps {
 export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [listening, setListening] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState("Click the microphone to start voice scheduling");
   const [schedulingStep, setSchedulingStep] = useState<string | null>(null);
@@ -30,6 +33,8 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [openScheduler, setOpenScheduler] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
+  const [appointmentDetails, setAppointmentDetails] = useState<string>("");
   const voiceAgentRef = useRef<VoiceAgent | null>(null);
   const schedulerDialogRef = useRef<HTMLButtonElement | null>(null);
   
@@ -96,7 +101,7 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         if (date) {
           setSelectedDate(date);
           setSchedulingStep("SELECT_TIME");
-          speak(`Date set to ${format(date, "MMMM do")}. What time would you like to schedule?`);
+          speak(`Date set to ${format(date, "MMMM do, yyyy")}. What time would you like to schedule?`);
         } else {
           speak("I couldn't understand the date. Please say a date like tomorrow or next Monday.");
         }
@@ -115,17 +120,7 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         
       case "CONFIRM":
         if (selectedPatient && selectedDate && selectedTime) {
-          setOpenScheduler(true);
-          speak("Opening the appointment scheduler with your selections.");
-          
-          setTimeout(() => {
-            voiceAgentRef.current?.stop();
-            setListening(false);
-            
-            if (schedulerDialogRef.current) {
-              schedulerDialogRef.current.click();
-            }
-          }, 1000);
+          scheduleAppointment();
         } else {
           speak("Missing some information. Please provide patient, date, and time.");
         }
@@ -141,12 +136,79 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
     }
   };
 
+  const scheduleAppointment = async () => {
+    try {
+      if (!selectedPatient || !selectedDate || !selectedTime) {
+        speak("Missing some information. Cannot schedule appointment.");
+        return;
+      }
+
+      const selectedPatientInfo = patients.find(p => p.id === selectedPatient);
+      if (!selectedPatientInfo) {
+        speak("Patient information not found.");
+        return;
+      }
+
+      const timeComponents = selectedTime.split(":");
+      const appointmentDate = new Date(selectedDate);
+      appointmentDate.setHours(parseInt(timeComponents[0], 10));
+      appointmentDate.setMinutes(parseInt(timeComponents[1], 10));
+
+      const formattedDate = appointmentDate.toISOString();
+      
+      const { data, error } = await supabase.rpc("create_appointment", {
+        p_patient_id: selectedPatient,
+        p_doctor_id: user?.id,
+        p_scheduled_at: formattedDate,
+        p_status: "scheduled"
+      });
+
+      if (error) {
+        speak(`Error scheduling appointment: ${error.message}`);
+        throw error;
+      }
+
+      // Set confirmation details
+      const confirmationText = `Appointment scheduled for ${selectedPatientInfo.first_name} ${selectedPatientInfo.last_name} on ${format(appointmentDate, "EEEE, MMMM do, yyyy")} at ${format(parse(selectedTime, "HH:mm", new Date()), "h:mm a")}`;
+      setAppointmentDetails(confirmationText);
+      setShowConfirmation(true);
+      
+      // Show confirmation toast
+      toast({
+        title: "Appointment Scheduled Successfully",
+        description: confirmationText,
+      });
+
+      // Speak confirmation
+      speak("Appointment scheduled successfully. " + confirmationText);
+      
+      // Refresh appointment data
+      queryClient.invalidateQueries({ queryKey: ["doctor-appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["today-schedule"] });
+      
+      // Reset voice agent
+      voiceAgentRef.current?.stop();
+      setListening(false);
+      
+    } catch (error: any) {
+      console.error("Error scheduling appointment:", error);
+      speak("There was an error scheduling the appointment. Please try again.");
+      toast({
+        title: "Error Scheduling Appointment",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const resetScheduling = () => {
     setSchedulingStep(null);
     setSelectedPatient(null);
     setSelectedDate(null);
     setSelectedTime(null);
     setOpenScheduler(false);
+    setShowConfirmation(false);
+    setAppointmentDetails("");
   };
 
   const speak = (text: string) => {
@@ -173,77 +235,93 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
-        <div className="space-y-6">
-          <div className="flex justify-center">
-            <Button
-              size="lg"
-              className={`rounded-full p-6 ${
-                listening ? "bg-red-500 hover:bg-red-600" : "bg-[#9b87f5] hover:bg-[#8a75e7]"
-              }`}
-              onClick={toggleListening}
-            >
-              {listening ? (
-                <MicOff className="h-8 w-8" />
-              ) : (
-                <Mic className="h-8 w-8" />
-              )}
-            </Button>
-          </div>
-          
-          <div className="text-center text-muted-foreground">
-            {voiceStatus}
-          </div>
-          
-          <div className="border rounded-md p-4 space-y-4">
-            <h3 className="font-medium text-center">Current Selections</h3>
+        {showConfirmation ? (
+          <div className="space-y-6">
+            <Alert className="border-green-500 bg-green-50">
+              <Check className="h-5 w-5 text-green-600" />
+              <AlertTitle className="text-green-800">Appointment Scheduled</AlertTitle>
+              <AlertDescription className="text-green-700">
+                {appointmentDetails}
+              </AlertDescription>
+            </Alert>
             
-            <div className="grid grid-cols-1 gap-3">
-              <div className="flex items-center gap-2">
-                <User className="h-5 w-5 text-[#9b87f5]" />
-                <span className="font-medium">Patient:</span>
-                <span>{selectedPatient 
-                  ? patients.find(p => p.id === selectedPatient)?.first_name + ' ' + 
-                    patients.find(p => p.id === selectedPatient)?.last_name 
-                  : "Not selected"}</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-[#9b87f5]" />
-                <span className="font-medium">Date:</span>
-                <span>{selectedDate ? format(selectedDate, "PPP") : "Not selected"}</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Clock className="h-5 w-5 text-[#9b87f5]" />
-                <span className="font-medium">Time:</span>
-                <span>{selectedTime 
-                  ? format(parse(selectedTime, "HH:mm", new Date()), "h:mm a") 
-                  : "Not selected"}</span>
-              </div>
+            <div className="flex justify-between">
+              <Button
+                variant="outline"
+                onClick={resetScheduling}
+              >
+                Schedule Another
+              </Button>
+              <Button
+                onClick={onClose}
+                className="bg-[#9b87f5] hover:bg-[#8a75e7] text-white"
+              >
+                Close
+              </Button>
             </div>
           </div>
-          
-          <div className="text-sm border-t pt-2 space-y-1">
-            <h4 className="font-medium">Voice Commands:</h4>
-            <p>"Schedule appointment" - Start scheduling</p>
-            <p>"Select patient [name]" - Choose a patient</p>
-            <p>"Select date [date]" - Choose a date</p>
-            <p>"Select time [time]" - Choose a time</p>
-            <p>"Confirm" - Book the appointment</p>
-            <p>"Cancel" - Cancel scheduling</p>
+        ) : (
+          <div className="space-y-6">
+            <div className="flex justify-center">
+              <Button
+                size="lg"
+                className={`rounded-full p-6 ${
+                  listening ? "bg-red-500 hover:bg-red-600" : "bg-[#9b87f5] hover:bg-[#8a75e7]"
+                }`}
+                onClick={toggleListening}
+              >
+                {listening ? (
+                  <MicOff className="h-8 w-8" />
+                ) : (
+                  <Mic className="h-8 w-8" />
+                )}
+              </Button>
+            </div>
+            
+            <div className="text-center text-muted-foreground">
+              {voiceStatus}
+            </div>
+            
+            <div className="border rounded-md p-4 space-y-4">
+              <h3 className="font-medium text-center">Current Selections</h3>
+              
+              <div className="grid grid-cols-1 gap-3">
+                <div className="flex items-center gap-2">
+                  <User className="h-5 w-5 text-[#9b87f5]" />
+                  <span className="font-medium">Patient:</span>
+                  <span>{selectedPatient 
+                    ? patients.find(p => p.id === selectedPatient)?.first_name + ' ' + 
+                      patients.find(p => p.id === selectedPatient)?.last_name 
+                    : "Not selected"}</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-[#9b87f5]" />
+                  <span className="font-medium">Date:</span>
+                  <span>{selectedDate ? format(selectedDate, "EEEE, MMMM do, yyyy") : "Not selected"}</span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-[#9b87f5]" />
+                  <span className="font-medium">Time:</span>
+                  <span>{selectedTime 
+                    ? format(parse(selectedTime, "HH:mm", new Date()), "h:mm a") 
+                    : "Not selected"}</span>
+                </div>
+              </div>
+            </div>
+            
+            <div className="text-sm border-t pt-2 space-y-1">
+              <h4 className="font-medium">Voice Commands:</h4>
+              <p>"Schedule appointment" - Start scheduling</p>
+              <p>"Select patient [name]" - Choose a patient</p>
+              <p>"Select date [date]" - Choose a date (today, tomorrow, January 15, next Monday)</p>
+              <p>"Select time [time]" - Choose a time (2 PM, 14:30)</p>
+              <p>"Confirm" - Book the appointment</p>
+              <p>"Cancel" - Cancel scheduling</p>
+            </div>
           </div>
-          
-          <div className="hidden">
-            <ScheduleAppointment
-              callerRole="doctor"
-              preSelectedPatientId={selectedPatient || undefined}
-              preSelectedDate={selectedDate || undefined}
-              preSelectedTime={selectedTime || undefined}
-            >
-              <button ref={schedulerDialogRef}>Open Scheduler</button>
-            </ScheduleAppointment>
-          </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );
