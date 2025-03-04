@@ -1,6 +1,6 @@
 
 import { useState, memo, useCallback } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -115,81 +115,130 @@ const sampleVideos: Video[] = [
   }
 ];
 
+// Standalone VideoList component that doesn't require external QueryClientProvider
 export const VideoList = () => {
   const [showAll, setShowAll] = useState(false);
   
-  // Add error handling for video fetching with fallback to sample data
-  const { data: videos, isLoading, error } = useQuery({
-    queryKey: ["knowledge_videos"],
-    queryFn: async () => {
-      try {
-        console.log('Fetching knowledge videos...');
-        const { data, error } = await supabase
-          .from('knowledge_videos')
-          .select('*')
-          .order('created_at', { ascending: false });
+  try {
+    // Try to use the existing QueryClient from context
+    const { data: videos, isLoading, error } = useQuery({
+      queryKey: ["knowledge_videos"],
+      queryFn: async () => {
+        try {
+          console.log('Fetching knowledge videos...');
+          const { data, error } = await supabase
+            .from('knowledge_videos')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-        if (error) {
-          console.error('Error fetching videos:', error);
-          // Return sample videos instead of throwing error
-          console.log('Falling back to sample videos');
+          if (error) {
+            console.error('Error fetching videos:', error);
+            // Return sample videos instead of throwing error
+            console.log('Falling back to sample videos');
+            return sampleVideos;
+          }
+          
+          if (!data || data.length === 0) {
+            console.log('No videos found, using sample videos');
+            return sampleVideos;
+          }
+          
+          console.log('Videos fetched successfully:', data.length);
+          return data as Video[];
+        } catch (err) {
+          console.error('Exception in video fetch:', err);
+          // Return sample videos on any error
+          console.log('Falling back to sample videos due to exception');
           return sampleVideos;
         }
-        
-        if (!data || data.length === 0) {
-          console.log('No videos found, using sample videos');
-          return sampleVideos;
-        }
-        
-        console.log('Videos fetched successfully:', data.length);
-        return data as Video[];
-      } catch (err) {
-        console.error('Exception in video fetch:', err);
-        // Return sample videos on any error
-        console.log('Falling back to sample videos due to exception');
-        return sampleVideos;
-      }
-    },
-    // Minimize retry attempts and prevent showing loading state for too long
-    retry: 1,
-    staleTime: 60000,
-    gcTime: 300000,
-  });
+      },
+      // Minimize retry attempts and prevent showing loading state for too long
+      retry: 1,
+      staleTime: 60000,
+      gcTime: 300000,
+    });
 
-  const toggleShowAll = useCallback(() => {
-    setShowAll(prev => !prev);
-  }, []);
+    const toggleShowAll = useCallback(() => {
+      setShowAll(prev => !prev);
+    }, []);
 
-  // Handle loading state
-  if (isLoading) {
-    return <LoadingSkeleton />;
-  }
-  
-  // Always use sample videos if there's an error or no videos
-  const displayVideos = videos || sampleVideos;
-  const displayedVideos = showAll ? displayVideos : displayVideos.slice(0, 4);
-  const hasMoreVideos = displayVideos.length > 4;
+    // Handle loading state
+    if (isLoading) {
+      return <LoadingSkeleton />;
+    }
+    
+    // Always use sample videos if there's an error or no videos
+    const displayVideos = videos || sampleVideos;
+    const displayedVideos = showAll ? displayVideos : displayVideos.slice(0, 4);
+    const hasMoreVideos = displayVideos.length > 4;
 
-  return (
-    <div className="space-y-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {displayedVideos.map((video) => (
-          <VideoCard key={video.id} video={video} />
-        ))}
-      </div>
-      {hasMoreVideos && (
-        <div className="flex justify-center">
-          <Button 
-            variant="outline"
-            onClick={toggleShowAll}
-            className="mt-4"
-          >
-            {showAll ? "Show Less" : "Show More"}
-          </Button>
+    return (
+      <div className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {displayedVideos.map((video) => (
+            <VideoCard key={video.id} video={video} />
+          ))}
         </div>
-      )}
-    </div>
+        {hasMoreVideos && (
+          <div className="flex justify-center">
+            <Button 
+              variant="outline"
+              onClick={toggleShowAll}
+              className="mt-4"
+            >
+              {showAll ? "Show Less" : "Show More"}
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  } catch (error) {
+    // If there's an error with the query context, use a fallback with sample videos
+    console.error('React Query context error:', error);
+    console.log('Falling back to sample videos without React Query');
+    
+    // Create a simple display with sample videos
+    const displayedVideos = showAll ? sampleVideos : sampleVideos.slice(0, 4);
+    const hasMoreVideos = sampleVideos.length > 4;
+    
+    const toggleShowAll = useCallback(() => {
+      setShowAll(prev => !prev);
+    }, []);
+
+    return (
+      <div className="space-y-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {displayedVideos.map((video) => (
+            <VideoCard key={video.id} video={video} />
+          ))}
+        </div>
+        {hasMoreVideos && (
+          <div className="flex justify-center">
+            <Button 
+              variant="outline"
+              onClick={toggleShowAll}
+              className="mt-4"
+            >
+              {showAll ? "Show Less" : "Show More"}
+            </Button>
+          </div>
+        )}
+      </div>
+    );
+  }
+};
+
+// Self-contained version of VideoList that brings its own QueryClient
+// This ensures it works even when used in a component tree without QueryClientProvider
+export const StandaloneVideoList = () => {
+  // Create a new QueryClient just for this component
+  const queryClient = new QueryClient();
+  
+  return (
+    <QueryClientProvider client={queryClient}>
+      <VideoList />
+    </QueryClientProvider>
   );
 };
 
-export default memo(VideoList);
+export default memo(StandaloneVideoList);

@@ -7,7 +7,7 @@ const Features = lazy(() => import("@/components/Features").then(module => ({ de
 const Testimonials = lazy(() => import("@/components/Testimonials").then(module => ({ default: module.Testimonials })));
 const Pricing = lazy(() => import("@/components/Pricing").then(module => ({ default: module.Pricing })));
 const Footer = lazy(() => import("@/components/Footer").then(module => ({ default: module.Footer })));
-const VideoList = lazy(() => import("@/components/videos/VideoList").then(module => ({ default: module.VideoList })));
+const VideoList = lazy(() => import("@/components/videos/VideoList").then(module => ({ default: module.StandaloneVideoList })));
 
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center p-12">

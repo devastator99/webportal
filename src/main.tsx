@@ -1,7 +1,11 @@
 
 import { createRoot } from 'react-dom/client'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App.tsx'
 import './index.css'
+
+// Create a client
+const queryClient = new QueryClient()
 
 // Wait for DOM content to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,7 +19,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Render with error boundary
     try {
-      root.render(<App />)
+      root.render(
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      )
       console.log('App successfully rendered')
     } catch (error) {
       console.error('Failed to render app:', error)
