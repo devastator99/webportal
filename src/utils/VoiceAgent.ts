@@ -189,6 +189,26 @@ export const extractDate = (params: string): Date | null => {
     }
   }
   
+  // Try to match dates with ordinals like "7th March"
+  const ordinalDatePattern = /(\d{1,2})(st|nd|rd|th)?\s+(of\s+)?(january|february|march|april|may|june|july|august|september|october|november|december)/i;
+  const ordinalMatch = params.match(ordinalDatePattern);
+  if (ordinalMatch) {
+    const day = parseInt(ordinalMatch[1], 10);
+    const monthName = ordinalMatch[4].toLowerCase();
+    const month = monthNames.indexOf(monthName);
+    
+    if (month !== -1 && day >= 1 && day <= 31) {
+      const date = new Date(currentYear, month, day);
+      
+      // If this date is in the past, assume next year
+      if (date < today) {
+        date.setFullYear(currentYear + 1);
+      }
+      
+      return date;
+    }
+  }
+  
   // Try to parse more complex date formats
   try {
     const dateResult = new Date(params);
@@ -209,13 +229,24 @@ export const extractDate = (params: string): Date | null => {
 // Helper function to extract time from voice command
 export const extractTime = (params: string): string | null => {
   // Common time patterns in speech
-  const timeRegex = /(\d{1,2})(:\d{2})?\s*(am|pm)?/i;
+  // Handle formats like "2:00 p.m.", "2 PM", "14:30"
+  const timeRegex = /(\d{1,2})(:\d{2})?\s*(am|pm|a\.m\.|p\.m\.)?/i;
   const match = params.match(timeRegex);
   
   if (match) {
     let hour = parseInt(match[1]);
     const minutes = match[2] ? match[2].substring(1) : "00";
-    const period = match[3] ? match[3].toLowerCase() : null;
+    const periodMatch = match[3] ? match[3].toLowerCase() : null;
+    
+    // Normalize period (am/pm)
+    let period = null;
+    if (periodMatch) {
+      if (periodMatch.includes("p")) {
+        period = "pm";
+      } else if (periodMatch.includes("a")) {
+        period = "am";
+      }
+    }
     
     // Convert to 24-hour format
     if (period === "pm" && hour < 12) {

@@ -35,6 +35,7 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
   const [openScheduler, setOpenScheduler] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [appointmentDetails, setAppointmentDetails] = useState<string>("");
+  const [isScheduling, setIsScheduling] = useState(false);
   const voiceAgentRef = useRef<VoiceAgent | null>(null);
   const schedulerDialogRef = useRef<HTMLButtonElement | null>(null);
   
@@ -74,6 +75,7 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
 
   const handleCommand = (command: string, params: string) => {
     console.log(`Command detected: ${command}, params: ${params}`);
+    console.log(`Current state - Patient: ${selectedPatient}, Date: ${selectedDate}, Time: ${selectedTime}`);
     
     switch (command) {
       case "START_SCHEDULING":
@@ -120,8 +122,14 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         
       case "CONFIRM":
         if (selectedPatient && selectedDate && selectedTime) {
+          console.log("All information present, scheduling appointment");
           scheduleAppointment();
         } else {
+          console.log("Missing information:", {
+            patient: selectedPatient,
+            date: selectedDate,
+            time: selectedTime
+          });
           speak("Missing some information. Please provide patient, date, and time.");
         }
         break;
@@ -138,14 +146,27 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
 
   const scheduleAppointment = async () => {
     try {
+      if (isScheduling) return; // Prevent multiple submissions
+      setIsScheduling(true);
+      
+      console.log("Starting appointment scheduling with:", {
+        patient: selectedPatient,
+        date: selectedDate,
+        time: selectedTime
+      });
+      
       if (!selectedPatient || !selectedDate || !selectedTime) {
+        console.error("Missing required information for scheduling");
         speak("Missing some information. Cannot schedule appointment.");
+        setIsScheduling(false);
         return;
       }
 
       const selectedPatientInfo = patients.find(p => p.id === selectedPatient);
       if (!selectedPatientInfo) {
+        console.error("Patient information not found");
         speak("Patient information not found.");
+        setIsScheduling(false);
         return;
       }
 
@@ -156,6 +177,12 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
 
       const formattedDate = appointmentDate.toISOString();
       
+      console.log("Creating appointment with data:", {
+        patientId: selectedPatient,
+        doctorId: user?.id,
+        scheduledAt: formattedDate
+      });
+      
       const { data, error } = await supabase.rpc("create_appointment", {
         p_patient_id: selectedPatient,
         p_doctor_id: user?.id,
@@ -164,9 +191,13 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
       });
 
       if (error) {
+        console.error("Error scheduling appointment:", error);
         speak(`Error scheduling appointment: ${error.message}`);
+        setIsScheduling(false);
         throw error;
       }
+
+      console.log("Appointment created successfully:", data);
 
       // Set confirmation details
       const confirmationText = `Appointment scheduled for ${selectedPatientInfo.first_name} ${selectedPatientInfo.last_name} on ${format(appointmentDate, "EEEE, MMMM do, yyyy")} at ${format(parse(selectedTime, "HH:mm", new Date()), "h:mm a")}`;
@@ -198,6 +229,8 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsScheduling(false);
     }
   };
 
@@ -209,6 +242,7 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
     setOpenScheduler(false);
     setShowConfirmation(false);
     setAppointmentDetails("");
+    setIsScheduling(false);
   };
 
   const speak = (text: string) => {
@@ -269,6 +303,7 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
                   listening ? "bg-red-500 hover:bg-red-600" : "bg-[#9b87f5] hover:bg-[#8a75e7]"
                 }`}
                 onClick={toggleListening}
+                disabled={isScheduling}
               >
                 {listening ? (
                   <MicOff className="h-8 w-8" />
@@ -279,7 +314,7 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
             </div>
             
             <div className="text-center text-muted-foreground">
-              {voiceStatus}
+              {isScheduling ? "Scheduling appointment..." : voiceStatus}
             </div>
             
             <div className="border rounded-md p-4 space-y-4">
