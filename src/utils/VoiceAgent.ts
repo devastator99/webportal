@@ -101,21 +101,24 @@ export class VoiceAgent {
 
 // Helper function to extract date from voice command
 export const extractDate = (params: string): Date | null => {
+  const paramsLower = params.toLowerCase().trim();
+  console.log("Extracting date from:", paramsLower);
+  
   // Check for common date formats in speech
   const today = new Date();
   const currentYear = today.getFullYear();
   
-  if (params.includes("today")) {
+  if (paramsLower.includes("today")) {
     return today;
   }
   
-  if (params.includes("tomorrow")) {
+  if (paramsLower.includes("tomorrow")) {
     const tomorrow = new Date(today);
     tomorrow.setDate(today.getDate() + 1);
     return tomorrow;
   }
   
-  if (params.includes("next week")) {
+  if (paramsLower.includes("next week")) {
     const nextWeek = new Date(today);
     nextWeek.setDate(today.getDate() + 7);
     return nextWeek;
@@ -124,7 +127,7 @@ export const extractDate = (params: string): Date | null => {
   // Day of week handling
   const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
   for (let i = 0; i < daysOfWeek.length; i++) {
-    if (params.includes(daysOfWeek[i])) {
+    if (paramsLower.includes(daysOfWeek[i])) {
       const targetDay = i;
       const currentDay = today.getDay();
       const daysToAdd = (targetDay + 7 - currentDay) % 7 || 7; // If today, go to next week
@@ -137,12 +140,14 @@ export const extractDate = (params: string): Date | null => {
   
   // Month and day pattern (e.g., "January 15" or "15th of January")
   const monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+  
+  // First, check for "Month Day" format (e.g., "March 7th")
   for (let i = 0; i < monthNames.length; i++) {
-    if (params.includes(monthNames[i])) {
+    if (paramsLower.includes(monthNames[i])) {
       const month = i;
       
-      // Try to extract the day number
-      const dayMatch = params.match(/\b(\d{1,2})(st|nd|rd|th)?\b/);
+      // Try to extract the day number with ordinal
+      const dayMatch = paramsLower.match(/\b(\d{1,2})(st|nd|rd|th)?\b/);
       if (dayMatch) {
         const day = parseInt(dayMatch[1], 10);
         if (day >= 1 && day <= 31) {
@@ -153,15 +158,37 @@ export const extractDate = (params: string): Date | null => {
             date.setFullYear(currentYear + 1);
           }
           
+          console.log(`Matched "Month Day" format: ${monthNames[i]} ${day} -> ${date.toISOString()}`);
           return date;
         }
       }
     }
   }
   
+  // Then, check for "Day Month" format (e.g., "7th March")
+  const ordinalDatePattern = /\b(\d{1,2})(st|nd|rd|th)?\s+(of\s+)?(january|february|march|april|may|june|july|august|september|october|november|december)\b/i;
+  const ordinalMatch = paramsLower.match(ordinalDatePattern);
+  if (ordinalMatch) {
+    const day = parseInt(ordinalMatch[1], 10);
+    const monthName = ordinalMatch[4].toLowerCase();
+    const month = monthNames.indexOf(monthName);
+    
+    if (month !== -1 && day >= 1 && day <= 31) {
+      const date = new Date(currentYear, month, day);
+      
+      // If this date is in the past, assume next year
+      if (date < today) {
+        date.setFullYear(currentYear + 1);
+      }
+      
+      console.log(`Matched "Day Month" format: ${day} ${monthNames[month]} -> ${date.toISOString()}`);
+      return date;
+    }
+  }
+  
   // Try for MM/DD format
   const datePattern = /(\d{1,2})[\/\-](\d{1,2})/;
-  const match = params.match(datePattern);
+  const match = paramsLower.match(datePattern);
   if (match) {
     // Check if first number is month or day based on US convention (MM/DD)
     const firstNum = parseInt(match[1], 10);
@@ -185,53 +212,40 @@ export const extractDate = (params: string): Date | null => {
         date.setFullYear(currentYear + 1);
       }
       
-      return date;
-    }
-  }
-  
-  // Try to match dates with ordinals like "7th March"
-  const ordinalDatePattern = /(\d{1,2})(st|nd|rd|th)?\s+(of\s+)?(january|february|march|april|may|june|july|august|september|october|november|december)/i;
-  const ordinalMatch = params.match(ordinalDatePattern);
-  if (ordinalMatch) {
-    const day = parseInt(ordinalMatch[1], 10);
-    const monthName = ordinalMatch[4].toLowerCase();
-    const month = monthNames.indexOf(monthName);
-    
-    if (month !== -1 && day >= 1 && day <= 31) {
-      const date = new Date(currentYear, month, day);
-      
-      // If this date is in the past, assume next year
-      if (date < today) {
-        date.setFullYear(currentYear + 1);
-      }
-      
+      console.log(`Matched MM/DD format: ${month+1}/${day} -> ${date.toISOString()}`);
       return date;
     }
   }
   
   // Try to parse more complex date formats
   try {
-    const dateResult = new Date(params);
+    const dateResult = new Date(paramsLower);
     if (!isNaN(dateResult.getTime())) {
       // If the date is valid but in the past, set it to next year
-      if (dateResult < today && !params.includes(currentYear.toString())) {
+      if (dateResult < today && !paramsLower.includes(currentYear.toString())) {
         dateResult.setFullYear(currentYear + 1);
       }
+      console.log(`Parsed with Date constructor: ${paramsLower} -> ${dateResult.toISOString()}`);
       return dateResult;
     }
   } catch (e) {
     // Parsing failed
+    console.log("Date parsing failed with Date constructor:", e);
   }
   
+  console.log("No date pattern matched for:", paramsLower);
   return null;
 };
 
 // Helper function to extract time from voice command
 export const extractTime = (params: string): string | null => {
+  const paramsLower = params.toLowerCase().trim();
+  console.log("Extracting time from:", paramsLower);
+  
   // Common time patterns in speech
   // Handle formats like "2:00 p.m.", "2 PM", "14:30"
   const timeRegex = /(\d{1,2})(?::(\d{2}))?\s*(am|pm|a\.m\.|p\.m\.)?/i;
-  const match = params.match(timeRegex);
+  const match = paramsLower.match(timeRegex);
   
   if (match) {
     let hour = parseInt(match[1], 10);
@@ -246,6 +260,13 @@ export const extractTime = (params: string): string | null => {
       } else if (periodMatch.includes("a")) {
         period = "am";
       }
+    } else {
+      // If no AM/PM specified and hour is small, assume standard business hours (9am-5pm)
+      if (hour >= 1 && hour <= 7) {
+        period = "pm"; // Assume afternoon for small numbers without am/pm
+      } else if (hour >= 8 && hour <= 12) {
+        period = "am"; // Assume morning for hours 8-12 without am/pm
+      }
     }
     
     // Convert to 24-hour format
@@ -255,8 +276,11 @@ export const extractTime = (params: string): string | null => {
       hour = 0;
     }
     
-    return `${hour.toString().padStart(2, "0")}:${minutes}`;
+    const result = `${hour.toString().padStart(2, "0")}:${minutes}`;
+    console.log(`Extracted time: ${paramsLower} -> ${result}`);
+    return result;
   }
   
+  console.log("No time pattern matched for:", paramsLower);
   return null;
 };

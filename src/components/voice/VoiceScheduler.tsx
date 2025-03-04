@@ -63,6 +63,13 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
     };
   }, []);
 
+  // Critical: Add useEffect to log state changes for debugging
+  useEffect(() => {
+    console.log("State updated - Patient:", selectedPatient, 
+      "Date:", selectedDate ? selectedDate.toISOString() : null, 
+      "Time:", selectedTime);
+  }, [selectedPatient, selectedDate, selectedTime]);
+
   const toggleListening = () => {
     if (listening) {
       voiceAgentRef.current?.stop();
@@ -75,7 +82,6 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
 
   const handleCommand = (command: string, params: string) => {
     console.log(`Command detected: ${command}, params: ${params}`);
-    console.log(`Current state - Patient: ${selectedPatient}, Date: ${selectedDate ? selectedDate.toISOString() : null}, Time: ${selectedTime}`);
     
     switch (command) {
       case "START_SCHEDULING":
@@ -119,33 +125,51 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
           const patient = patients.find(p => p.id === selectedPatient);
           const patientName = patient ? `${patient.first_name} ${patient.last_name}` : "the selected patient";
           
-          speak(`Ready to schedule appointment for ${patientName} on ${selectedDate ? format(selectedDate, "MMMM do, yyyy") : "the selected date"} at ${time}. Please say confirm to book the appointment.`);
+          // Get current states for feedback
+          const patientSnapshot = selectedPatient;
+          const dateSnapshot = selectedDate;
+          
+          setTimeout(() => {
+            // Use setTimeout to ensure we have the latest state values when speaking
+            console.log("Speaking confirmation with:", {
+              patient: patientSnapshot,
+              date: dateSnapshot ? dateSnapshot.toISOString() : null,
+              time
+            });
+            
+            speak(`Ready to schedule appointment for ${patientName} on ${dateSnapshot ? format(dateSnapshot, "MMMM do, yyyy") : "the selected date"} at ${time}. Please say confirm to book the appointment.`);
+          }, 100);
         } else {
           speak("I couldn't understand the time. Please say a time like 2 PM or 14:30.");
         }
         break;
         
       case "CONFIRM":
+        // Capture current state immediately to avoid race conditions
+        const currentPatient = selectedPatient;
+        const currentDate = selectedDate;
+        const currentTime = selectedTime;
+        
         console.log("Confirmation command received with current state:", {
-          patient: selectedPatient,
-          date: selectedDate ? selectedDate.toISOString() : null,
-          time: selectedTime
+          patient: currentPatient,
+          date: currentDate ? currentDate.toISOString() : null,
+          time: currentTime
         });
         
-        if (selectedPatient && selectedDate && selectedTime) {
+        if (currentPatient && currentDate && currentTime) {
           console.log("All information present, scheduling appointment");
-          scheduleAppointment();
+          scheduleAppointment(currentPatient, currentDate, currentTime);
         } else {
           console.log("Missing information:", {
-            patient: selectedPatient,
-            date: selectedDate,
-            time: selectedTime
+            patient: currentPatient,
+            date: currentDate,
+            time: currentTime
           });
           
           const missingItems = [];
-          if (!selectedPatient) missingItems.push("patient");
-          if (!selectedDate) missingItems.push("date");
-          if (!selectedTime) missingItems.push("time");
+          if (!currentPatient) missingItems.push("patient");
+          if (!currentDate) missingItems.push("date");
+          if (!currentTime) missingItems.push("time");
           
           speak(`Missing information: ${missingItems.join(", ")}. Please provide all required information before confirming.`);
         }
@@ -161,25 +185,29 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
     }
   };
 
-  const scheduleAppointment = async () => {
+  const scheduleAppointment = async (
+    patientId: string,
+    appointmentDate: Date,
+    appointmentTime: string
+  ) => {
     try {
       if (isScheduling) return; // Prevent multiple submissions
       setIsScheduling(true);
       
       console.log("Starting appointment scheduling with:", {
-        patient: selectedPatient,
-        date: selectedDate ? selectedDate.toISOString() : null,
-        time: selectedTime
+        patient: patientId,
+        date: appointmentDate ? appointmentDate.toISOString() : null,
+        time: appointmentTime
       });
       
-      if (!selectedPatient || !selectedDate || !selectedTime) {
+      if (!patientId || !appointmentDate || !appointmentTime) {
         console.error("Missing required information for scheduling");
         speak("Missing some information. Cannot schedule appointment.");
         setIsScheduling(false);
         return;
       }
 
-      const selectedPatientInfo = patients.find(p => p.id === selectedPatient);
+      const selectedPatientInfo = patients.find(p => p.id === patientId);
       if (!selectedPatientInfo) {
         console.error("Patient information not found");
         speak("Patient information not found.");
@@ -187,21 +215,21 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         return;
       }
 
-      const timeComponents = selectedTime.split(":");
-      const appointmentDate = new Date(selectedDate);
-      appointmentDate.setHours(parseInt(timeComponents[0], 10));
-      appointmentDate.setMinutes(parseInt(timeComponents[1], 10));
+      const timeComponents = appointmentTime.split(":");
+      const scheduledDate = new Date(appointmentDate);
+      scheduledDate.setHours(parseInt(timeComponents[0], 10));
+      scheduledDate.setMinutes(parseInt(timeComponents[1], 10));
 
-      const formattedDate = appointmentDate.toISOString();
+      const formattedDate = scheduledDate.toISOString();
       
       console.log("Creating appointment with data:", {
-        patientId: selectedPatient,
+        patientId: patientId,
         doctorId: user?.id,
         scheduledAt: formattedDate
       });
       
       const { data, error } = await supabase.rpc("create_appointment", {
-        p_patient_id: selectedPatient,
+        p_patient_id: patientId,
         p_doctor_id: user?.id,
         p_scheduled_at: formattedDate,
         p_status: "scheduled"
@@ -217,7 +245,7 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
       console.log("Appointment created successfully:", data);
 
       // Set confirmation details
-      const confirmationText = `Appointment scheduled for ${selectedPatientInfo.first_name} ${selectedPatientInfo.last_name} on ${format(appointmentDate, "EEEE, MMMM do, yyyy")} at ${format(parse(selectedTime, "HH:mm", new Date()), "h:mm a")}`;
+      const confirmationText = `Appointment scheduled for ${selectedPatientInfo.first_name} ${selectedPatientInfo.last_name} on ${format(scheduledDate, "EEEE, MMMM do, yyyy")} at ${format(parse(appointmentTime, "HH:mm", new Date()), "h:mm a")}`;
       setAppointmentDetails(confirmationText);
       setShowConfirmation(true);
       
