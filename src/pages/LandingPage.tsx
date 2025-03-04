@@ -1,5 +1,5 @@
 
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { Hero } from "@/components/Hero";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -18,6 +18,17 @@ const LoadingSpinner = () => (
 
 export const LandingPage = () => {
   const { isLoading } = useAuth();
+  const [isClientSide, setIsClientSide] = useState(false);
+  
+  useEffect(() => {
+    // Mark that we're rendering on the client side
+    setIsClientSide(true);
+  }, []);
+
+  // Don't render anything during SSR or until client-side hydration is complete
+  if (!isClientSide) {
+    return <LoadingSpinner />;
+  }
 
   if (isLoading) {
     return (

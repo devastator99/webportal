@@ -15,12 +15,20 @@ const PatientsView = lazy(() => import('@/pages/PatientsView'))
 function App() {
   const [session, setSession] = useState<Session | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [isMounted, setIsMounted] = useState(false)
 
   useEffect(() => {
+    setIsMounted(true)
+    
     const getSession = async () => {
-      const { data } = await supabase.auth.getSession()
-      setSession(data.session)
-      setIsLoading(false)
+      try {
+        const { data } = await supabase.auth.getSession()
+        setSession(data.session)
+      } catch (error) {
+        console.error("Failed to get session:", error)
+      } finally {
+        setIsLoading(false)
+      }
 
       const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
         setSession(session)
@@ -33,6 +41,11 @@ function App() {
 
     getSession()
   }, [])
+
+  // Don't render anything until the component is mounted
+  if (!isMounted) {
+    return null
+  }
 
   if (isLoading) {
     return <DashboardSkeleton />
