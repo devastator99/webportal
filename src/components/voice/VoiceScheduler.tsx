@@ -39,6 +39,24 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
   const voiceAgentRef = useRef<VoiceAgent | null>(null);
   const schedulerDialogRef = useRef<HTMLButtonElement | null>(null);
   
+  // Store state values in refs to ensure we always have the latest values
+  const stateRef = useRef({
+    selectedPatient: null as string | null,
+    selectedDate: null as Date | null,
+    selectedTime: null as string | null
+  });
+  
+  // Update refs whenever state changes
+  useEffect(() => {
+    stateRef.current.selectedPatient = selectedPatient;
+    stateRef.current.selectedDate = selectedDate;
+    stateRef.current.selectedTime = selectedTime;
+    
+    console.log("State updated - Patient:", selectedPatient, 
+      "Date:", selectedDate ? selectedDate.toISOString() : null, 
+      "Time:", selectedTime);
+  }, [selectedPatient, selectedDate, selectedTime]);
+  
   const { data: patients = [] } = useQuery({
     queryKey: ["patients"],
     queryFn: async () => {
@@ -62,13 +80,6 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
       }
     };
   }, []);
-
-  // Critical: Add useEffect to log state changes for debugging
-  useEffect(() => {
-    console.log("State updated - Patient:", selectedPatient, 
-      "Date:", selectedDate ? selectedDate.toISOString() : null, 
-      "Time:", selectedTime);
-  }, [selectedPatient, selectedDate, selectedTime]);
 
   const toggleListening = () => {
     if (listening) {
@@ -122,22 +133,15 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
           setSchedulingStep("CONFIRM");
           
           // Find the patient name for better feedback
-          const patient = patients.find(p => p.id === selectedPatient);
+          const patient = patients.find(p => p.id === stateRef.current.selectedPatient);
           const patientName = patient ? `${patient.first_name} ${patient.last_name}` : "the selected patient";
           
           // Get current states for feedback
-          const patientSnapshot = selectedPatient;
-          const dateSnapshot = selectedDate;
+          const currentDate = stateRef.current.selectedDate;
           
           setTimeout(() => {
             // Use setTimeout to ensure we have the latest state values when speaking
-            console.log("Speaking confirmation with:", {
-              patient: patientSnapshot,
-              date: dateSnapshot ? dateSnapshot.toISOString() : null,
-              time
-            });
-            
-            speak(`Ready to schedule appointment for ${patientName} on ${dateSnapshot ? format(dateSnapshot, "MMMM do, yyyy") : "the selected date"} at ${time}. Please say confirm to book the appointment.`);
+            speak(`Ready to schedule appointment for ${patientName} on ${currentDate ? format(currentDate, "MMMM do, yyyy") : "the selected date"} at ${time}. Please say confirm to book the appointment.`);
           }, 100);
         } else {
           speak("I couldn't understand the time. Please say a time like 2 PM or 14:30.");
@@ -145,10 +149,10 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         break;
         
       case "CONFIRM":
-        // Capture current state immediately to avoid race conditions
-        const currentPatient = selectedPatient;
-        const currentDate = selectedDate;
-        const currentTime = selectedTime;
+        // Use the current state from refs to avoid race conditions
+        const currentPatient = stateRef.current.selectedPatient;
+        const currentDate = stateRef.current.selectedDate;
+        const currentTime = stateRef.current.selectedTime;
         
         console.log("Confirmation command received with current state:", {
           patient: currentPatient,
