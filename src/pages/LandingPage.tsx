@@ -29,6 +29,14 @@ export const LandingPage = () => {
         <Features />
       </Suspense>
       
+      <Suspense fallback={<LoadingSpinner />}>
+        <Testimonials />
+      </Suspense>
+      
+      <Suspense fallback={<LoadingSpinner />}>
+        <Pricing />
+      </Suspense>
+      
       <div className="container mx-auto px-4 py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center text-[#7E69AB] mb-12">
           Knowledge Sharing
@@ -37,14 +45,6 @@ export const LandingPage = () => {
           <VideoList />
         </Suspense>
       </div>
-      
-      <Suspense fallback={<LoadingSpinner />}>
-        <Testimonials />
-      </Suspense>
-      
-      <Suspense fallback={<LoadingSpinner />}>
-        <Pricing />
-      </Suspense>
       
       <Suspense fallback={<LoadingSpinner />}>
         <Footer />
