@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { format, parse } from "date-fns";
+import { format, parse, isEqual } from "date-fns";
 import {
   VoiceAgent,
   schedulingCommands,
@@ -71,6 +70,28 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
     },
   });
 
+  // New query to fetch doctor appointments for conflict checking
+  const { data: existingAppointments = [] } = useQuery({
+    queryKey: ["doctor-appointments-all", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('scheduled_at')
+        .eq('doctor_id', user.id)
+        .eq('status', 'scheduled');
+
+      if (error) {
+        console.error("Error fetching doctor appointments:", error);
+        throw new Error(error.message);
+      }
+
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
   useEffect(() => {
     voiceAgentRef.current = new VoiceAgent(handleCommand, setVoiceStatus);
     
@@ -89,6 +110,29 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
       voiceAgentRef.current?.start();
       setListening(true);
     }
+  };
+
+  // Function to check if a time slot is already booked
+  const isTimeSlotBooked = (date: Date, time: string): boolean => {
+    if (!date || !time || !existingAppointments.length) return false;
+    
+    // Create a date object with the selected date and time
+    const timeComponents = time.split(":");
+    const appointmentDateTime = new Date(date);
+    appointmentDateTime.setHours(parseInt(timeComponents[0], 10));
+    appointmentDateTime.setMinutes(parseInt(timeComponents[1], 10));
+    
+    // Check if there's any existing appointment at this date and time
+    return existingAppointments.some(appointment => {
+      const existingDate = new Date(appointment.scheduled_at);
+      return (
+        existingDate.getFullYear() === appointmentDateTime.getFullYear() &&
+        existingDate.getMonth() === appointmentDateTime.getMonth() &&
+        existingDate.getDate() === appointmentDateTime.getDate() &&
+        existingDate.getHours() === appointmentDateTime.getHours() &&
+        existingDate.getMinutes() === appointmentDateTime.getMinutes()
+      );
+    });
   };
 
   const handleCommand = (command: string, params: string) => {
@@ -129,6 +173,13 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
       case "SELECT_TIME":
         const time = extractTime(params);
         if (time) {
+          // Check if this time slot is already booked
+          if (stateRef.current.selectedDate && isTimeSlotBooked(stateRef.current.selectedDate, time)) {
+            speak(`This time slot is already booked. Please select a different time.`);
+            // Keep in the same step to allow selecting a different time
+            return;
+          }
+          
           setSelectedTime(time);
           setSchedulingStep("CONFIRM");
           
@@ -161,6 +212,13 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         });
         
         if (currentPatient && currentDate && currentTime) {
+          // Perform another check right before confirming
+          if (isTimeSlotBooked(currentDate, currentTime)) {
+            speak(`Sorry, this time slot has just been booked by someone else. Please select a different time.`);
+            setSchedulingStep("SELECT_TIME");
+            return;
+          }
+          
           console.log("All information present, scheduling appointment");
           scheduleAppointment(currentPatient, currentDate, currentTime);
         } else {
@@ -241,6 +299,13 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
 
       if (error) {
         console.error("Error scheduling appointment:", error);
+        // If we get a time slot conflict error from the database
+        if (error.message.includes("Time slot is already booked")) {
+          speak(`This time slot is already booked. Please select a different time.`);
+          setSchedulingStep("SELECT_TIME");
+          setIsScheduling(false);
+          return;
+        }
         speak(`Error scheduling appointment: ${error.message}`);
         setIsScheduling(false);
         throw error;
@@ -264,6 +329,7 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
       
       // Refresh appointment data
       queryClient.invalidateQueries({ queryKey: ["doctor-appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["doctor-appointments-all"] });
       queryClient.invalidateQueries({ queryKey: ["today-schedule"] });
       
       // Reset voice agent
