@@ -13,13 +13,41 @@ import {
 } from "@/utils/VoiceAgent";
 import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 import { useAuth } from "@/contexts/AuthContext";
-import { Mic, MicOff, Calendar, User, Clock, Check, AlertCircle } from "lucide-react";
+import { Mic, MicOff, Calendar, User, Clock, Check, AlertCircle, Languages } from "lucide-react";
 import { parseTime } from "@/utils/dateUtils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface VoiceSchedulerProps {
   onClose: () => void;
 }
+
+interface Language {
+  code: string;
+  name: string;
+}
+
+const INDIAN_LANGUAGES: Language[] = [
+  { code: "en", name: "English" },
+  { code: "hi", name: "Hindi" },
+  { code: "bn", name: "Bengali" },
+  { code: "ta", name: "Tamil" },
+  { code: "te", name: "Telugu" },
+  { code: "mr", name: "Marathi" },
+  { code: "gu", name: "Gujarati" },
+  { code: "kn", name: "Kannada" },
+  { code: "ml", name: "Malayalam" },
+  { code: "pa", name: "Punjabi" },
+  { code: "or", name: "Odia" },
+  { code: "as", name: "Assamese" },
+  { code: "ur", name: "Urdu" },
+];
 
 export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
   const { user } = useAuth();
@@ -35,6 +63,8 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
   const [appointmentDetails, setAppointmentDetails] = useState<string>("");
   const [isScheduling, setIsScheduling] = useState(false);
+  const [sourceLanguage, setSourceLanguage] = useState<string>("en");
+  const [isTranslating, setIsTranslating] = useState(false);
   const voiceAgentRef = useRef<VoiceAgent | null>(null);
   const schedulerDialogRef = useRef<HTMLButtonElement | null>(null);
   
@@ -93,14 +123,14 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
   });
 
   useEffect(() => {
-    voiceAgentRef.current = new VoiceAgent(handleCommand, setVoiceStatus);
+    voiceAgentRef.current = new VoiceAgent(handleCommand, setVoiceStatus, sourceLanguage);
     
     return () => {
       if (voiceAgentRef.current) {
         voiceAgentRef.current.stop();
       }
     };
-  }, []);
+  }, [sourceLanguage]);
 
   const toggleListening = () => {
     if (listening) {
@@ -109,6 +139,62 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
     } else {
       voiceAgentRef.current?.start();
       setListening(true);
+    }
+  };
+
+  // Function to translate text using Bhashini API
+  const translateText = async (text: string, fromLanguage: string, toLanguage: string = "en"): Promise<string> => {
+    try {
+      setIsTranslating(true);
+      
+      // Skip translation if source and target languages are the same
+      if (fromLanguage === toLanguage) {
+        return text;
+      }
+      
+      console.log(`Translating from ${fromLanguage} to ${toLanguage}: "${text}"`);
+      
+      const { data, error } = await supabase.functions.invoke("bhashini-translate", {
+        body: {
+          sourceLanguage: fromLanguage,
+          targetLanguage: toLanguage,
+          text: text
+        }
+      });
+      
+      if (error) {
+        console.error("Translation error:", error);
+        throw error;
+      }
+      
+      console.log("Translation response:", data);
+      
+      let translatedText = "";
+      
+      // Handle the response based on Bhashini API structure
+      if (data.translation && data.translation.targetText) {
+        translatedText = Array.isArray(data.translation.targetText) 
+          ? data.translation.targetText.join(" ") 
+          : data.translation.targetText;
+      } else if (typeof data.translation === 'string') {
+        translatedText = data.translation;
+      } else {
+        translatedText = JSON.stringify(data.translation);
+      }
+      
+      console.log("Translated text:", translatedText);
+      return translatedText;
+      
+    } catch (error) {
+      console.error("Error in translateText:", error);
+      toast({
+        title: "Translation Error",
+        description: "Failed to translate text. Using original input.",
+        variant: "destructive"
+      });
+      return text;
+    } finally {
+      setIsTranslating(false);
     }
   };
 
@@ -135,17 +221,30 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
     });
   };
 
-  const handleCommand = (command: string, params: string) => {
+  const handleCommand = async (command: string, params: string) => {
     console.log(`Command detected: ${command}, params: ${params}`);
+    
+    // If not in English, translate the command parameters first
+    let translatedParams = params;
+    if (sourceLanguage !== "en") {
+      try {
+        translatedParams = await translateText(params, sourceLanguage, "en");
+        console.log(`Translated params: "${translatedParams}"`);
+      } catch (err) {
+        console.error("Failed to translate params:", err);
+        // Continue with original params if translation fails
+      }
+    }
     
     switch (command) {
       case "START_SCHEDULING":
         setSchedulingStep("SELECT_PATIENT");
-        speak("Which patient would you like to schedule for?");
+        const startMessage = "Which patient would you like to schedule for?";
+        speak(sourceLanguage === "en" ? startMessage : await translateText(startMessage, "en", sourceLanguage));
         break;
         
       case "SELECT_PATIENT":
-        const patientName = params.trim().toLowerCase();
+        const patientName = translatedParams.trim().toLowerCase();
         const foundPatient = patients.find(
           (p) => `${p.first_name} ${p.last_name}`.toLowerCase().includes(patientName)
         );
@@ -153,29 +252,34 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         if (foundPatient) {
           setSelectedPatient(foundPatient.id);
           setSchedulingStep("SELECT_DATE");
-          speak(`Patient ${foundPatient.first_name} ${foundPatient.last_name} selected. What date would you like to schedule?`);
+          const patientMessage = `Patient ${foundPatient.first_name} ${foundPatient.last_name} selected. What date would you like to schedule?`;
+          speak(sourceLanguage === "en" ? patientMessage : await translateText(patientMessage, "en", sourceLanguage));
         } else {
-          speak("Patient not found. Please try again or say the full name.");
+          const notFoundMessage = "Patient not found. Please try again or say the full name.";
+          speak(sourceLanguage === "en" ? notFoundMessage : await translateText(notFoundMessage, "en", sourceLanguage));
         }
         break;
         
       case "SELECT_DATE":
-        const date = extractDate(params);
+        const date = extractDate(translatedParams);
         if (date) {
           setSelectedDate(date);
           setSchedulingStep("SELECT_TIME");
-          speak(`Date set to ${format(date, "MMMM do, yyyy")}. What time would you like to schedule?`);
+          const dateMessage = `Date set to ${format(date, "MMMM do, yyyy")}. What time would you like to schedule?`;
+          speak(sourceLanguage === "en" ? dateMessage : await translateText(dateMessage, "en", sourceLanguage));
         } else {
-          speak("I couldn't understand the date. Please say a date like tomorrow or next Monday.");
+          const dateErrorMessage = "I couldn't understand the date. Please say a date like tomorrow or next Monday.";
+          speak(sourceLanguage === "en" ? dateErrorMessage : await translateText(dateErrorMessage, "en", sourceLanguage));
         }
         break;
         
       case "SELECT_TIME":
-        const time = extractTime(params);
+        const time = extractTime(translatedParams);
         if (time) {
           // Check if this time slot is already booked
           if (stateRef.current.selectedDate && isTimeSlotBooked(stateRef.current.selectedDate, time)) {
-            speak(`This time slot is already booked. Please select a different time.`);
+            const timeBookedMessage = "This time slot is already booked. Please select a different time.";
+            speak(sourceLanguage === "en" ? timeBookedMessage : await translateText(timeBookedMessage, "en", sourceLanguage));
             // Keep in the same step to allow selecting a different time
             return;
           }
@@ -190,12 +294,14 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
           // Get current states for feedback
           const currentDate = stateRef.current.selectedDate;
           
-          setTimeout(() => {
+          setTimeout(async () => {
             // Use setTimeout to ensure we have the latest state values when speaking
-            speak(`Ready to schedule appointment for ${patientName} on ${currentDate ? format(currentDate, "MMMM do, yyyy") : "the selected date"} at ${time}. Please say confirm to book the appointment.`);
+            const confirmMessage = `Ready to schedule appointment for ${patientName} on ${currentDate ? format(currentDate, "MMMM do, yyyy") : "the selected date"} at ${time}. Please say confirm to book the appointment.`;
+            speak(sourceLanguage === "en" ? confirmMessage : await translateText(confirmMessage, "en", sourceLanguage));
           }, 100);
         } else {
-          speak("I couldn't understand the time. Please say a time like 2 PM or 14:30.");
+          const timeErrorMessage = "I couldn't understand the time. Please say a time like 2 PM or 14:30.";
+          speak(sourceLanguage === "en" ? timeErrorMessage : await translateText(timeErrorMessage, "en", sourceLanguage));
         }
         break;
         
@@ -214,7 +320,8 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         if (currentPatient && currentDate && currentTime) {
           // Perform another check right before confirming
           if (isTimeSlotBooked(currentDate, currentTime)) {
-            speak(`Sorry, this time slot has just been booked by someone else. Please select a different time.`);
+            const slotBookedMessage = "Sorry, this time slot has just been booked by someone else. Please select a different time.";
+            speak(sourceLanguage === "en" ? slotBookedMessage : await translateText(slotBookedMessage, "en", sourceLanguage));
             setSchedulingStep("SELECT_TIME");
             return;
           }
@@ -233,17 +340,20 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
           if (!currentDate) missingItems.push("date");
           if (!currentTime) missingItems.push("time");
           
-          speak(`Missing information: ${missingItems.join(", ")}. Please provide all required information before confirming.`);
+          const missingMessage = `Missing information: ${missingItems.join(", ")}. Please provide all required information before confirming.`;
+          speak(sourceLanguage === "en" ? missingMessage : await translateText(missingMessage, "en", sourceLanguage));
         }
         break;
         
       case "CANCEL":
         resetScheduling();
-        speak("Appointment scheduling cancelled.");
+        const cancelMessage = "Appointment scheduling cancelled.";
+        speak(sourceLanguage === "en" ? cancelMessage : await translateText(cancelMessage, "en", sourceLanguage));
         break;
         
       default:
-        speak("I didn't understand that command. Please try again.");
+        const unknownMessage = "I didn't understand that command. Please try again.";
+        speak(sourceLanguage === "en" ? unknownMessage : await translateText(unknownMessage, "en", sourceLanguage));
     }
   };
 
@@ -264,7 +374,8 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
       
       if (!patientId || !appointmentDate || !appointmentTime) {
         console.error("Missing required information for scheduling");
-        speak("Missing some information. Cannot schedule appointment.");
+        const missingInfoMessage = "Missing some information. Cannot schedule appointment.";
+        speak(sourceLanguage === "en" ? missingInfoMessage : await translateText(missingInfoMessage, "en", sourceLanguage));
         setIsScheduling(false);
         return;
       }
@@ -272,7 +383,8 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
       const selectedPatientInfo = patients.find(p => p.id === patientId);
       if (!selectedPatientInfo) {
         console.error("Patient information not found");
-        speak("Patient information not found.");
+        const noPatientMessage = "Patient information not found.";
+        speak(sourceLanguage === "en" ? noPatientMessage : await translateText(noPatientMessage, "en", sourceLanguage));
         setIsScheduling(false);
         return;
       }
@@ -301,12 +413,14 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         console.error("Error scheduling appointment:", error);
         // If we get a time slot conflict error from the database
         if (error.message.includes("Time slot is already booked")) {
-          speak(`This time slot is already booked. Please select a different time.`);
+          const slotBookedMessage = "This time slot is already booked. Please select a different time.";
+          speak(sourceLanguage === "en" ? slotBookedMessage : await translateText(slotBookedMessage, "en", sourceLanguage));
           setSchedulingStep("SELECT_TIME");
           setIsScheduling(false);
           return;
         }
-        speak(`Error scheduling appointment: ${error.message}`);
+        const errorMessage = `Error scheduling appointment: ${error.message}`;
+        speak(sourceLanguage === "en" ? errorMessage : await translateText(errorMessage, "en", sourceLanguage));
         setIsScheduling(false);
         throw error;
       }
@@ -325,7 +439,8 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
       });
 
       // Speak confirmation
-      speak("Appointment scheduled successfully. " + confirmationText);
+      const successMessage = "Appointment scheduled successfully. " + confirmationText;
+      speak(sourceLanguage === "en" ? successMessage : await translateText(successMessage, "en", sourceLanguage));
       
       // Refresh appointment data
       queryClient.invalidateQueries({ queryKey: ["doctor-appointments"] });
@@ -338,7 +453,8 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
       
     } catch (error: any) {
       console.error("Error scheduling appointment:", error);
-      speak("There was an error scheduling the appointment. Please try again.");
+      const errorMessage = "There was an error scheduling the appointment. Please try again.";
+      speak(sourceLanguage === "en" ? errorMessage : await translateText(errorMessage, "en", sourceLanguage));
       toast({
         title: "Error Scheduling Appointment",
         description: error.message,
@@ -363,7 +479,7 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
   const speak = (text: string) => {
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'en-US';
+      utterance.lang = sourceLanguage === 'en' ? 'en-US' : sourceLanguage;
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -411,6 +527,36 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
           </div>
         ) : (
           <div className="space-y-6">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center space-x-2">
+                <Languages className="h-5 w-5 text-[#9b87f5]" />
+                <span className="font-medium">Language:</span>
+              </div>
+              <Select 
+                value={sourceLanguage} 
+                onValueChange={(value) => {
+                  setSourceLanguage(value);
+                  // Stop listening when changing language
+                  if (listening) {
+                    voiceAgentRef.current?.stop();
+                    setListening(false);
+                  }
+                }}
+                disabled={listening || isTranslating || isScheduling}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select Language" />
+                </SelectTrigger>
+                <SelectContent>
+                  {INDIAN_LANGUAGES.map((lang) => (
+                    <SelectItem key={lang.code} value={lang.code}>
+                      {lang.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
             <div className="flex justify-center">
               <Button
                 size="lg"
@@ -418,7 +564,7 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
                   listening ? "bg-red-500 hover:bg-red-600" : "bg-[#9b87f5] hover:bg-[#8a75e7]"
                 }`}
                 onClick={toggleListening}
-                disabled={isScheduling}
+                disabled={isTranslating || isScheduling}
               >
                 {listening ? (
                   <MicOff className="h-8 w-8" />
@@ -429,7 +575,8 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
             </div>
             
             <div className="text-center text-muted-foreground">
-              {isScheduling ? "Scheduling appointment..." : voiceStatus}
+              {isTranslating ? "Translating..." : 
+                isScheduling ? "Scheduling appointment..." : voiceStatus}
             </div>
             
             <div className="border rounded-md p-4 space-y-4">
@@ -476,3 +623,4 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
     </Card>
   );
 };
+

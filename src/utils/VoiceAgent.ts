@@ -17,18 +17,71 @@ export const schedulingCommands = {
   CANCEL: ["cancel", "stop", "cancel scheduling"],
 };
 
+// Hindi commands
+const hindiCommands = {
+  START_SCHEDULING: ["अपॉइंटमेंट शेड्यूल करें", "नया अपॉइंटमेंट", "अपॉइंटमेंट बनाएं"],
+  SELECT_PATIENT: ["मरीज़ चुनें", "रोगी चुनें", "पेशेंट"],
+  SELECT_DATE: ["तारीख चुनें", "दिनांक", "तारीख"],
+  SELECT_TIME: ["समय चुनें", "टाइम सेट करें", "समय"],
+  CONFIRM: ["पुष्टि करें", "कन्फर्म", "सुनिश्चित करें"],
+  CANCEL: ["रद्द करें", "रोकें", "कैंसिल"],
+};
+
+// Bengali commands
+const bengaliCommands = {
+  START_SCHEDULING: ["অ্যাপয়েন্টমেন্ট শিডিউল", "নতুন অ্যাপয়েন্টমেন্ট"],
+  SELECT_PATIENT: ["রোগী নির্বাচন করুন", "রোগী বেছে নিন"],
+  SELECT_DATE: ["তারিখ নির্বাচন করুন", "তারিখ বেছে নিন"],
+  SELECT_TIME: ["সময় নির্বাচন করুন", "সময় বেছে নিন"],
+  CONFIRM: ["নিশ্চিত করুন", "বুক করুন"],
+  CANCEL: ["বাতিল করুন", "থামুন"],
+};
+
+// Tamil commands
+const tamilCommands = {
+  START_SCHEDULING: ["அப்பாய்ண்ட்மென்ட் திட்டமிடு", "புதிய அப்பாய்ண்ட்மென்ட்"],
+  SELECT_PATIENT: ["நோயாளியைத் தேர்ந்தெடு", "நோயாளி"],
+  SELECT_DATE: ["தேதியைத் தேர்ந்தெடு", "தேதி"],
+  SELECT_TIME: ["நேரத்தைத் தேர்ந்தெடு", "நேரம்"],
+  CONFIRM: ["உறுதிப்படுத்து", "உறுதி செய்"],
+  CANCEL: ["ரத்து செய்", "நிறுத்து"],
+};
+
+// Telugu commands
+const teluguCommands = {
+  START_SCHEDULING: ["అపాయింట్మెంట్ షెడ్యూల్", "కొత్త అపాయింట్మెంట్"],
+  SELECT_PATIENT: ["పేషెంట్ ఎంచుకోండి", "రోగి ఎంచుకోండి"],
+  SELECT_DATE: ["తేదీ ఎంచుకోండి", "తేదీ"],
+  SELECT_TIME: ["సమయం ఎంచుకోండి", "సమయం"],
+  CONFIRM: ["నిర్ధారించండి", "బుక్ చేయండి"],
+  CANCEL: ["రద్దు చేయండి", "ఆపండి"],
+};
+
+// Map language codes to command sets
+const languageCommandsMap: Record<string, typeof schedulingCommands> = {
+  en: schedulingCommands,
+  hi: hindiCommands,
+  bn: bengaliCommands,
+  ta: tamilCommands,
+  te: teluguCommands,
+  // Add more languages as needed
+};
+
 export class VoiceAgent {
   private recognition: any;
   private isListening: boolean = false;
   private commandCallback: (command: string, params: string) => void;
   private statusCallback: (status: string) => void;
+  private language: string;
   
   constructor(
     commandCallback: (command: string, params: string) => void,
-    statusCallback: (status: string) => void
+    statusCallback: (status: string) => void,
+    language: string = "en"
   ) {
     this.commandCallback = commandCallback;
     this.statusCallback = statusCallback;
+    this.language = language;
     
     // Initialize speech recognition
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -40,7 +93,9 @@ export class VoiceAgent {
     this.recognition = new SpeechRecognition();
     this.recognition.continuous = false;
     this.recognition.interimResults = false;
-    this.recognition.lang = "en-US";
+    
+    // Set language for speech recognition
+    this.setRecognitionLanguage(language);
     
     this.recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript.toLowerCase();
@@ -61,14 +116,54 @@ export class VoiceAgent {
     };
   }
   
+  private setRecognitionLanguage(language: string): void {
+    // Map language codes to speech recognition language codes
+    const langMap: Record<string, string> = {
+      en: "en-US",
+      hi: "hi-IN",
+      bn: "bn-IN",
+      ta: "ta-IN",
+      te: "te-IN",
+      mr: "mr-IN",
+      gu: "gu-IN",
+      kn: "kn-IN",
+      ml: "ml-IN",
+      pa: "pa-IN",
+      or: "or-IN",
+      as: "as-IN",
+      ur: "ur-IN"
+    };
+    
+    // Set the language for recognition
+    this.recognition.lang = langMap[language] || "en-US";
+    console.log(`Speech recognition language set to: ${this.recognition.lang}`);
+  }
+  
   private processCommand(transcript: string): void {
+    // Get the command set for the current language
+    const commands = languageCommandsMap[this.language] || schedulingCommands;
+    
     // Check for command matches
-    for (const [commandType, phrases] of Object.entries(schedulingCommands)) {
+    for (const [commandType, phrases] of Object.entries(commands)) {
       for (const phrase of phrases) {
         if (transcript.includes(phrase)) {
           const params = transcript.replace(phrase, "").trim();
           this.commandCallback(commandType, params);
           return;
+        }
+      }
+    }
+    
+    // If no specific command was matched in the current language, 
+    // try with English commands as a fallback
+    if (this.language !== "en") {
+      for (const [commandType, phrases] of Object.entries(schedulingCommands)) {
+        for (const phrase of phrases) {
+          if (transcript.includes(phrase)) {
+            const params = transcript.replace(phrase, "").trim();
+            this.commandCallback(commandType, params);
+            return;
+          }
         }
       }
     }
