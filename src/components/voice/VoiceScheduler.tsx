@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Mic, MicOff, Calendar, User, Clock, Check, AlertCircle, Languages } from "lucide-react";
 import { parseTime } from "@/utils/dateUtils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -68,14 +69,12 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
   const voiceAgentRef = useRef<VoiceAgent | null>(null);
   const schedulerDialogRef = useRef<HTMLButtonElement | null>(null);
   
-  // Store state values in refs to ensure we always have the latest values
   const stateRef = useRef({
     selectedPatient: null as string | null,
     selectedDate: null as Date | null,
     selectedTime: null as string | null
   });
   
-  // Update refs whenever state changes
   useEffect(() => {
     stateRef.current.selectedPatient = selectedPatient;
     stateRef.current.selectedDate = selectedDate;
@@ -100,7 +99,6 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
     },
   });
 
-  // New query to fetch doctor appointments for conflict checking
   const { data: existingAppointments = [] } = useQuery({
     queryKey: ["doctor-appointments-all", user?.id],
     queryFn: async () => {
@@ -142,12 +140,10 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
     }
   };
 
-  // Function to translate text using Bhashini API
   const translateText = async (text: string, fromLanguage: string, toLanguage: string = "en"): Promise<string> => {
     try {
       setIsTranslating(true);
       
-      // Skip translation if source and target languages are the same
       if (fromLanguage === toLanguage) {
         return text;
       }
@@ -171,7 +167,6 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
       
       let translatedText = "";
       
-      // Handle the response based on Bhashini API structure
       if (data.translation && data.translation.targetText) {
         translatedText = Array.isArray(data.translation.targetText) 
           ? data.translation.targetText.join(" ") 
@@ -198,17 +193,14 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
     }
   };
 
-  // Function to check if a time slot is already booked
   const isTimeSlotBooked = (date: Date, time: string): boolean => {
     if (!date || !time || !existingAppointments.length) return false;
     
-    // Create a date object with the selected date and time
     const timeComponents = time.split(":");
     const appointmentDateTime = new Date(date);
     appointmentDateTime.setHours(parseInt(timeComponents[0], 10));
     appointmentDateTime.setMinutes(parseInt(timeComponents[1], 10));
     
-    // Check if there's any existing appointment at this date and time
     return existingAppointments.some(appointment => {
       const existingDate = new Date(appointment.scheduled_at);
       return (
@@ -224,15 +216,12 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
   const handleCommand = async (command: string, params: string) => {
     console.log(`Command detected: ${command}, params: ${params}`);
     
-    // If not in English, translate the command parameters first
-    let translatedParams = params;
     if (sourceLanguage !== "en") {
       try {
-        translatedParams = await translateText(params, sourceLanguage, "en");
-        console.log(`Translated params: "${translatedParams}"`);
+        params = await translateText(params, sourceLanguage, "en");
+        console.log(`Translated params: "${params}"`);
       } catch (err) {
         console.error("Failed to translate params:", err);
-        // Continue with original params if translation fails
       }
     }
     
@@ -244,7 +233,7 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         break;
         
       case "SELECT_PATIENT":
-        const patientName = translatedParams.trim().toLowerCase();
+        const patientName = params.trim().toLowerCase();
         const foundPatient = patients.find(
           (p) => `${p.first_name} ${p.last_name}`.toLowerCase().includes(patientName)
         );
@@ -261,7 +250,7 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         break;
         
       case "SELECT_DATE":
-        const date = extractDate(translatedParams);
+        const date = extractDate(params);
         if (date) {
           setSelectedDate(date);
           setSchedulingStep("SELECT_TIME");
@@ -274,29 +263,22 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         break;
         
       case "SELECT_TIME":
-        const time = extractTime(translatedParams);
+        const time = extractTime(params);
         if (time) {
-          // Check if this time slot is already booked
           if (stateRef.current.selectedDate && isTimeSlotBooked(stateRef.current.selectedDate, time)) {
             const timeBookedMessage = "This time slot is already booked. Please select a different time.";
             speak(sourceLanguage === "en" ? timeBookedMessage : await translateText(timeBookedMessage, "en", sourceLanguage));
-            // Keep in the same step to allow selecting a different time
             return;
           }
           
           setSelectedTime(time);
           setSchedulingStep("CONFIRM");
           
-          // Find the patient name for better feedback
           const patient = patients.find(p => p.id === stateRef.current.selectedPatient);
           const patientName = patient ? `${patient.first_name} ${patient.last_name}` : "the selected patient";
           
-          // Get current states for feedback
-          const currentDate = stateRef.current.selectedDate;
-          
           setTimeout(async () => {
-            // Use setTimeout to ensure we have the latest state values when speaking
-            const confirmMessage = `Ready to schedule appointment for ${patientName} on ${currentDate ? format(currentDate, "MMMM do, yyyy") : "the selected date"} at ${time}. Please say confirm to book the appointment.`;
+            const confirmMessage = `Ready to schedule appointment for ${patientName} on ${stateRef.current.selectedDate ? format(stateRef.current.selectedDate, "MMMM do, yyyy") : "the selected date"} at ${time}. Please say confirm to book the appointment.`;
             speak(sourceLanguage === "en" ? confirmMessage : await translateText(confirmMessage, "en", sourceLanguage));
           }, 100);
         } else {
@@ -306,7 +288,6 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         break;
         
       case "CONFIRM":
-        // Use the current state from refs to avoid race conditions
         const currentPatient = stateRef.current.selectedPatient;
         const currentDate = stateRef.current.selectedDate;
         const currentTime = stateRef.current.selectedTime;
@@ -318,7 +299,6 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
         });
         
         if (currentPatient && currentDate && currentTime) {
-          // Perform another check right before confirming
           if (isTimeSlotBooked(currentDate, currentTime)) {
             const slotBookedMessage = "Sorry, this time slot has just been booked by someone else. Please select a different time.";
             speak(sourceLanguage === "en" ? slotBookedMessage : await translateText(slotBookedMessage, "en", sourceLanguage));
@@ -363,7 +343,7 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
     appointmentTime: string
   ) => {
     try {
-      if (isScheduling) return; // Prevent multiple submissions
+      if (isScheduling) return;
       setIsScheduling(true);
       
       console.log("Starting appointment scheduling with:", {
@@ -411,7 +391,6 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
 
       if (error) {
         console.error("Error scheduling appointment:", error);
-        // If we get a time slot conflict error from the database
         if (error.message.includes("Time slot is already booked")) {
           const slotBookedMessage = "This time slot is already booked. Please select a different time.";
           speak(sourceLanguage === "en" ? slotBookedMessage : await translateText(slotBookedMessage, "en", sourceLanguage));
@@ -427,27 +406,22 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
 
       console.log("Appointment created successfully:", data);
 
-      // Set confirmation details
       const confirmationText = `Appointment scheduled for ${selectedPatientInfo.first_name} ${selectedPatientInfo.last_name} on ${format(scheduledDate, "EEEE, MMMM do, yyyy")} at ${format(parse(appointmentTime, "HH:mm", new Date()), "h:mm a")}`;
       setAppointmentDetails(confirmationText);
       setShowConfirmation(true);
       
-      // Show confirmation toast
       toast({
         title: "Appointment Scheduled Successfully",
         description: confirmationText,
       });
 
-      // Speak confirmation
       const successMessage = "Appointment scheduled successfully. " + confirmationText;
       speak(sourceLanguage === "en" ? successMessage : await translateText(successMessage, "en", sourceLanguage));
       
-      // Refresh appointment data
       queryClient.invalidateQueries({ queryKey: ["doctor-appointments"] });
       queryClient.invalidateQueries({ queryKey: ["doctor-appointments-all"] });
       queryClient.invalidateQueries({ queryKey: ["today-schedule"] });
       
-      // Reset voice agent
       voiceAgentRef.current?.stop();
       setListening(false);
       
@@ -485,142 +459,145 @@ export const VoiceScheduler: React.FC<VoiceSchedulerProps> = ({ onClose }) => {
   };
 
   return (
-    <Card className="shadow-lg">
-      <CardHeader className="bg-[#9b87f5] text-white">
-        <CardTitle className="flex items-center justify-between">
+    <Card className="shadow-lg max-w-md w-full">
+      <CardHeader className="bg-[#9b87f5] text-white py-3 px-4">
+        <CardTitle className="flex items-center justify-between text-base">
           <span>Voice Appointment Scheduler</span>
           <Button 
             variant="ghost" 
             size="sm" 
             onClick={onClose}
-            className="hover:bg-[#8a75e7] text-white"
+            className="hover:bg-[#8a75e7] text-white h-7 px-2"
           >
             Close
           </Button>
         </CardTitle>
       </CardHeader>
-      <CardContent className="p-6">
-        {showConfirmation ? (
-          <div className="space-y-6">
-            <Alert className="border-green-500 bg-green-50">
-              <Check className="h-5 w-5 text-green-600" />
-              <AlertTitle className="text-green-800">Appointment Scheduled</AlertTitle>
-              <AlertDescription className="text-green-700">
-                {appointmentDetails}
-              </AlertDescription>
-            </Alert>
-            
-            <div className="flex justify-between">
-              <Button
-                variant="outline"
-                onClick={resetScheduling}
-              >
-                Schedule Another
-              </Button>
-              <Button
-                onClick={onClose}
-                className="bg-[#9b87f5] hover:bg-[#8a75e7] text-white"
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="flex justify-between items-center mb-4">
-              <div className="flex items-center space-x-2">
-                <Languages className="h-5 w-5 text-[#9b87f5]" />
-                <span className="font-medium">Language:</span>
-              </div>
-              <Select 
-                value={sourceLanguage} 
-                onValueChange={(value) => {
-                  setSourceLanguage(value);
-                  // Stop listening when changing language
-                  if (listening) {
-                    voiceAgentRef.current?.stop();
-                    setListening(false);
-                  }
-                }}
-                disabled={listening || isTranslating || isScheduling}
-              >
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select Language" />
-                </SelectTrigger>
-                <SelectContent>
-                  {INDIAN_LANGUAGES.map((lang) => (
-                    <SelectItem key={lang.code} value={lang.code}>
-                      {lang.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="flex justify-center">
-              <Button
-                size="lg"
-                className={`rounded-full p-6 ${
-                  listening ? "bg-red-500 hover:bg-red-600" : "bg-[#9b87f5] hover:bg-[#8a75e7]"
-                }`}
-                onClick={toggleListening}
-                disabled={isTranslating || isScheduling}
-              >
-                {listening ? (
-                  <MicOff className="h-8 w-8" />
-                ) : (
-                  <Mic className="h-8 w-8" />
-                )}
-              </Button>
-            </div>
-            
-            <div className="text-center text-muted-foreground">
-              {isTranslating ? "Translating..." : 
-                isScheduling ? "Scheduling appointment..." : voiceStatus}
-            </div>
-            
-            <div className="border rounded-md p-4 space-y-4">
-              <h3 className="font-medium text-center">Current Selections</h3>
+      <CardContent className="p-4">
+        <ScrollArea className="h-[400px] pr-2">
+          {showConfirmation ? (
+            <div className="space-y-4">
+              <Alert className="border-green-500 bg-green-50">
+                <Check className="h-4 w-4 text-green-600" />
+                <AlertTitle className="text-green-800 text-sm">Appointment Scheduled</AlertTitle>
+                <AlertDescription className="text-green-700 text-xs">
+                  {appointmentDetails}
+                </AlertDescription>
+              </Alert>
               
-              <div className="grid grid-cols-1 gap-3">
-                <div className="flex items-center gap-2">
-                  <User className="h-5 w-5 text-[#9b87f5]" />
-                  <span className="font-medium">Patient:</span>
-                  <span>{selectedPatient 
-                    ? patients.find(p => p.id === selectedPatient)?.first_name + ' ' + 
-                      patients.find(p => p.id === selectedPatient)?.last_name 
-                    : "Not selected"}</span>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-[#9b87f5]" />
-                  <span className="font-medium">Date:</span>
-                  <span>{selectedDate ? format(selectedDate, "EEEE, MMMM do, yyyy") : "Not selected"}</span>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-[#9b87f5]" />
-                  <span className="font-medium">Time:</span>
-                  <span>{selectedTime 
-                    ? format(parse(selectedTime, "HH:mm", new Date()), "h:mm a") 
-                    : "Not selected"}</span>
-                </div>
+              <div className="flex justify-between">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={resetScheduling}
+                  className="text-xs"
+                >
+                  Schedule Another
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={onClose}
+                  className="bg-[#9b87f5] hover:bg-[#8a75e7] text-white text-xs"
+                >
+                  Close
+                </Button>
               </div>
             </div>
-            
-            <div className="text-sm border-t pt-2 space-y-1">
-              <h4 className="font-medium">Voice Commands:</h4>
-              <p>"Schedule appointment" - Start scheduling</p>
-              <p>"Select patient [name]" - Choose a patient</p>
-              <p>"Select date [date]" - Choose a date (today, tomorrow, January 15, next Monday)</p>
-              <p>"Select time [time]" - Choose a time (2 PM, 14:30)</p>
-              <p>"Confirm" - Book the appointment</p>
-              <p>"Cancel" - Cancel scheduling</p>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center mb-3">
+                <div className="flex items-center space-x-1 text-sm">
+                  <Languages className="h-4 w-4 text-[#9b87f5]" />
+                  <span className="font-medium">Language:</span>
+                </div>
+                <Select 
+                  value={sourceLanguage} 
+                  onValueChange={(value) => {
+                    setSourceLanguage(value);
+                    if (listening) {
+                      voiceAgentRef.current?.stop();
+                      setListening(false);
+                    }
+                  }}
+                  disabled={listening || isTranslating || isScheduling}
+                >
+                  <SelectTrigger className="w-[150px] h-8 text-xs">
+                    <SelectValue placeholder="Select Language" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {INDIAN_LANGUAGES.map((lang) => (
+                      <SelectItem key={lang.code} value={lang.code} className="text-xs">
+                        {lang.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex justify-center">
+                <Button
+                  size="sm"
+                  className={`rounded-full p-4 ${
+                    listening ? "bg-red-500 hover:bg-red-600" : "bg-[#9b87f5] hover:bg-[#8a75e7]"
+                  }`}
+                  onClick={toggleListening}
+                  disabled={isTranslating || isScheduling}
+                >
+                  {listening ? (
+                    <MicOff className="h-6 w-6" />
+                  ) : (
+                    <Mic className="h-6 w-6" />
+                  )}
+                </Button>
+              </div>
+              
+              <div className="text-center text-muted-foreground text-xs">
+                {isTranslating ? "Translating..." : 
+                  isScheduling ? "Scheduling appointment..." : voiceStatus}
+              </div>
+              
+              <div className="border rounded-md p-3 space-y-3">
+                <h3 className="font-medium text-center text-sm">Current Selections</h3>
+                
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-[#9b87f5]" />
+                    <span className="font-medium text-xs">Patient:</span>
+                    <span className="text-xs">{selectedPatient 
+                      ? patients.find(p => p.id === selectedPatient)?.first_name + ' ' + 
+                        patients.find(p => p.id === selectedPatient)?.last_name 
+                      : "Not selected"}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-[#9b87f5]" />
+                    <span className="font-medium text-xs">Date:</span>
+                    <span className="text-xs">{selectedDate ? format(selectedDate, "EEE, MMM d, yyyy") : "Not selected"}</span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-[#9b87f5]" />
+                    <span className="font-medium text-xs">Time:</span>
+                    <span className="text-xs">{selectedTime 
+                      ? format(parse(selectedTime, "HH:mm", new Date()), "h:mm a") 
+                      : "Not selected"}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="text-xs border-t pt-2 space-y-1">
+                <h4 className="font-medium">Voice Commands:</h4>
+                <p>"Schedule appointment" - Start scheduling</p>
+                <p>"Select patient [name]" - Choose a patient</p>
+                <p>"Select date [date]" - Choose a date</p>
+                <p>"Select time [time]" - Choose a time</p>
+                <p>"Confirm" - Book the appointment</p>
+                <p>"Cancel" - Cancel scheduling</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </ScrollArea>
       </CardContent>
     </Card>
   );
 };
-
