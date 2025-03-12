@@ -4,8 +4,18 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App.tsx'
 import './index.css'
 
-// Create a client
-const queryClient = new QueryClient()
+// Create a client with more robust error handling
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+      onError: (error) => {
+        console.error('Query error:', error);
+      }
+    }
+  }
+})
 
 // Wait for DOM content to be fully loaded
 document.addEventListener('DOMContentLoaded', () => {

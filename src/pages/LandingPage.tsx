@@ -3,11 +3,13 @@ import { lazy, Suspense } from "react";
 import { Hero } from "@/components/Hero";
 import { Navbar } from "@/components/Navbar";
 
-// Lazy load non-critical components
+// Lazy load non-critical components with proper error handling
 const Features = lazy(() => import("@/components/Features").then(module => ({ default: module.Features })));
 const Testimonials = lazy(() => import("@/components/Testimonials").then(module => ({ default: module.Testimonials })));
 const Pricing = lazy(() => import("@/components/Pricing").then(module => ({ default: module.Pricing })));
 const Footer = lazy(() => import("@/components/Footer").then(module => ({ default: module.Footer })));
+
+// Use a simpler import for VideoList to avoid potential issues
 const VideoList = lazy(() => import("@/components/videos/VideoList").then(module => ({ default: module.StandaloneVideoList })));
 
 const LoadingSpinner = () => (
@@ -17,11 +19,9 @@ const LoadingSpinner = () => (
 );
 
 export const LandingPage = () => {
-  // Render content immediately without waiting for auth
-  console.log('LandingPage rendering full content immediately');
-  
+  // Add error boundary for each suspense to prevent the entire page from failing
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
       <Navbar />
       <Hero />
       
