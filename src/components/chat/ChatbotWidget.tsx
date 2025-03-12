@@ -194,7 +194,6 @@ export const ChatbotWidget = () => {
                 onKeyDown={handleKeyDown}
                 placeholder="Type your message..."
                 className="min-h-[40px] flex-1 resize-none"
-                maxRows={4}
                 disabled={isLoading}
               />
               <Button
