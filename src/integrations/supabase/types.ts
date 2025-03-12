@@ -155,6 +155,30 @@ export type Database = {
           },
         ]
       }
+      chatbot_knowledge: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          topic: string
+          updated_at: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          id?: string
+          topic: string
+          updated_at?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          topic?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       doctor_availability: {
         Row: {
           created_at: string
@@ -647,6 +671,18 @@ export type Database = {
           patient_json: Json
         }[]
       }
+      get_chatbot_knowledge: {
+        Args: {
+          topic_filter?: string
+        }
+        Returns: {
+          id: string
+          topic: string
+          content: Json
+          created_at: string
+          updated_at: string
+        }[]
+      }
       get_doctor_appointments: {
         Args: {
           doctor_id: string
@@ -765,6 +801,18 @@ export type Database = {
           user_id: string
         }
         Returns: boolean
+      }
+      search_chatbot_knowledge: {
+        Args: {
+          search_term: string
+        }
+        Returns: {
+          id: string
+          topic: string
+          content: Json
+          created_at: string
+          updated_at: string
+        }[]
       }
       validate_appointment_date: {
         Args: {

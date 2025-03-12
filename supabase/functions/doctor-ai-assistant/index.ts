@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
@@ -15,11 +16,112 @@ serve(async (req) => {
   try {
     const { messages, imageUrl } = await req.json();
 
+    // Create a Supabase client with the Admin key to query the database
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    );
+
+    // Prepare system message
+    let systemMessage = "You are a helpful medical assistant for a endocrinology clinic. Your name is EndoCare Assistant. ";
+    systemMessage += "You provide information about our clinic, services, doctors, and answer general questions about endocrinology. ";
+    systemMessage += "You are not a doctor and cannot provide medical advice, only general information. ";
+    systemMessage += "Always encourage users to book an appointment for medical concerns. ";
+    systemMessage += "Be concise and friendly in your responses.";
+
+    // Preprocess the user's last message to identify if they're asking about specific topics
+    const lastUserMessage = messages[messages.length - 1].content;
+    
+    // Determine if we should fetch knowledge for specific topics
+    let isPackageQuery = lastUserMessage.toLowerCase().includes('package') || lastUserMessage.toLowerCase().includes('cost') || lastUserMessage.toLowerCase().includes('price');
+    let isDoctorQuery = lastUserMessage.toLowerCase().includes('doctor') || lastUserMessage.toLowerCase().includes('physician') || lastUserMessage.toLowerCase().includes('specialist');
+    let isClinicQuery = lastUserMessage.toLowerCase().includes('clinic') || lastUserMessage.toLowerCase().includes('location') || lastUserMessage.toLowerCase().includes('timing') || lastUserMessage.toLowerCase().includes('contact');
+    let isFaqQuery = lastUserMessage.toLowerCase().includes('faq') || lastUserMessage.toLowerCase().includes('question');
+    
+    // Prepare knowledge context from database based on query
+    let knowledgeContext = "";
+    
+    if (isPackageQuery) {
+      const { data: packagesData } = await supabaseAdmin.rpc('get_chatbot_knowledge', { topic_filter: 'packages' });
+      if (packagesData && packagesData.length > 0) {
+        const packages = packagesData[0].content;
+        knowledgeContext += "Here is information about our packages:\n";
+        packages.forEach((pkg: any) => {
+          knowledgeContext += `- ${pkg.name}: ${pkg.price} - ${pkg.description}\n`;
+        });
+      }
+    }
+    
+    if (isDoctorQuery) {
+      const { data: doctorsData } = await supabaseAdmin.rpc('get_chatbot_knowledge', { topic_filter: 'doctors' });
+      if (doctorsData && doctorsData.length > 0) {
+        const doctors = doctorsData[0].content;
+        knowledgeContext += "Here is information about our doctors:\n";
+        doctors.forEach((doc: any) => {
+          knowledgeContext += `- ${doc.name}, ${doc.specialty}, ${doc.experience} experience, ${doc.qualifications}\n`;
+        });
+      }
+    }
+    
+    if (isClinicQuery) {
+      const { data: clinicData } = await supabaseAdmin.rpc('get_chatbot_knowledge', { topic_filter: 'clinic' });
+      if (clinicData && clinicData.length > 0) {
+        const clinic = clinicData[0].content;
+        knowledgeContext += `Our clinic ${clinic.name} is located at ${clinic.address}. `;
+        knowledgeContext += `We are open weekdays ${clinic.hours.weekdays}, Saturday ${clinic.hours.saturday}, and ${clinic.hours.sunday} on Sunday. `;
+        knowledgeContext += `Contact: Phone ${clinic.phone}, Email ${clinic.email}\n`;
+      }
+    }
+    
+    if (isFaqQuery) {
+      const { data: faqsData } = await supabaseAdmin.rpc('get_chatbot_knowledge', { topic_filter: 'faqs' });
+      if (faqsData && faqsData.length > 0) {
+        const faqs = faqsData[0].content;
+        knowledgeContext += "Here are frequently asked questions:\n";
+        faqs.forEach((faq: any) => {
+          knowledgeContext += `Q: ${faq.question}\nA: ${faq.answer}\n\n`;
+        });
+      }
+    }
+    
+    // If no specific topic was detected, search for keywords
+    if (!knowledgeContext) {
+      const searchTerm = lastUserMessage.split(' ').slice(0, 3).join(' '); // Use first few words as search term
+      const { data: searchResults } = await supabaseAdmin.rpc('search_chatbot_knowledge', { search_term: searchTerm });
+      
+      if (searchResults && searchResults.length > 0) {
+        searchResults.forEach((result: any) => {
+          if (typeof result.content === 'object') {
+            if (Array.isArray(result.content)) {
+              // For array content (packages, doctors, FAQs)
+              result.content.forEach((item: any) => {
+                if (item.name) knowledgeContext += `${item.name}: ${item.description || item.specialty}\n`;
+                if (item.question) knowledgeContext += `Q: ${item.question}\nA: ${item.answer}\n`;
+              });
+            } else {
+              // For object content (clinic)
+              const clinic = result.content;
+              if (clinic.name) {
+                knowledgeContext += `${clinic.name} at ${clinic.address}\n`;
+                knowledgeContext += `Hours: Weekdays ${clinic.hours?.weekdays}, Saturday ${clinic.hours?.saturday}\n`;
+              }
+            }
+          }
+        });
+      }
+    }
+
     // Prepare the messages array
     const formattedMessages = [
       {
         role: "system",
-        content: "You are a medical AI assistant helping doctors. Provide concise, professional medical insights while acknowledging any limitations. Always encourage consulting medical literature and guidelines for verification."
+        content: systemMessage + (knowledgeContext ? "\n\nUse this information to respond: " + knowledgeContext : "")
       },
       ...messages
     ];
