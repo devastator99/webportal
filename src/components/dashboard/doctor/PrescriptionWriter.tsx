@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -19,7 +20,7 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
@@ -220,12 +221,16 @@ export const PrescriptionWriter = () => {
     }
   };
 
-  const filteredPatients = patients?.filter((patient) => {
-    if (!searchTerm) return true;
+  const filteredPatients = React.useMemo(() => {
+    if (!patients) return [];
     
-    const fullName = `${patient.first_name || ''} ${patient.last_name || ''}`.toLowerCase();
-    return fullName.includes(searchTerm.toLowerCase());
-  });
+    if (!searchTerm) return patients;
+    
+    return patients.filter((patient) => {
+      const fullName = `${patient.first_name || ''} ${patient.last_name || ''}`.toLowerCase();
+      return fullName.includes(searchTerm.toLowerCase());
+    });
+  }, [patients, searchTerm]);
 
   const selectedPatientName = React.useMemo(() => {
     if (!selectedPatient || !patients) return "Select patient";
@@ -264,35 +269,36 @@ export const PrescriptionWriter = () => {
               <Command>
                 <CommandInput 
                   placeholder="Search patients..." 
-                  value={searchTerm}
                   onValueChange={setSearchTerm}
                   className="h-9"
                 />
-                <CommandEmpty>No patient found.</CommandEmpty>
-                <CommandGroup className="max-h-[200px] overflow-y-auto">
-                  {isLoadingPatients ? (
-                    <CommandItem disabled>Loading patients...</CommandItem>
-                  ) : filteredPatients && filteredPatients.length > 0 ? (
-                    filteredPatients.map((patient) => (
-                      <CommandItem
-                        key={patient.id}
-                        onSelect={() => {
-                          setSelectedPatient(patient.id);
-                          setPatientSearchOpen(false);
-                          if (activeTab === "write") {
-                            setDiagnosis("");
-                            setPrescription("");
-                            setNotes("");
-                          }
-                        }}
-                      >
-                        {patient.first_name || "Unknown"} {patient.last_name || ""}
-                      </CommandItem>
-                    ))
-                  ) : (
-                    <CommandItem disabled>No patients found</CommandItem>
-                  )}
-                </CommandGroup>
+                <CommandList>
+                  <CommandEmpty>No patient found.</CommandEmpty>
+                  <CommandGroup className="max-h-[200px] overflow-y-auto">
+                    {isLoadingPatients ? (
+                      <CommandItem disabled>Loading patients...</CommandItem>
+                    ) : filteredPatients && filteredPatients.length > 0 ? (
+                      filteredPatients.map((patient) => (
+                        <CommandItem
+                          key={patient.id}
+                          onSelect={() => {
+                            setSelectedPatient(patient.id);
+                            setPatientSearchOpen(false);
+                            if (activeTab === "write") {
+                              setDiagnosis("");
+                              setPrescription("");
+                              setNotes("");
+                            }
+                          }}
+                        >
+                          {patient.first_name || "Unknown"} {patient.last_name || ""}
+                        </CommandItem>
+                      ))
+                    ) : (
+                      <CommandItem disabled>No patients found</CommandItem>
+                    )}
+                  </CommandGroup>
+                </CommandList>
               </Command>
             </PopoverContent>
           </Popover>
