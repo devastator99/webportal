@@ -10,11 +10,12 @@ const queryClient = new QueryClient({
     queries: {
       retry: 1,
       refetchOnWindowFocus: false,
-      onError: (error) => {
-        console.error('Query error:', error);
-      }
+    },
+    mutations: {
+      retry: 1,
     }
-  }
+  },
+  // Global error handling can be done here
 })
 
 // Wait for DOM content to be fully loaded
