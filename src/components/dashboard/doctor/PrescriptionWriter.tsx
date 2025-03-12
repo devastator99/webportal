@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -42,6 +43,7 @@ export const PrescriptionWriter = () => {
   const [patientSearchOpen, setPatientSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const handleSavePrescriptionRequest = () => {
     if (!selectedPatient) {
@@ -172,24 +174,26 @@ export const PrescriptionWriter = () => {
   });
 
   const handleSavePrescription = async () => {
+    if (isSaving) return; // Prevent multiple submissions
+    
     try {
+      setIsSaving(true);
+      
       if (!user?.id) {
         throw new Error("Doctor ID not available. Please try again later.");
       }
       
       console.log("Saving prescription for patient:", selectedPatient, "by doctor:", user.id);
       
+      // Use the RPC function instead of direct table insert
       const { data, error } = await supabase
-        .from("medical_records")
-        .insert({
-          patient_id: selectedPatient,
-          doctor_id: user.id,
-          diagnosis,
-          prescription,
-          notes,
-        })
-        .select()
-        .single();
+        .rpc('save_prescription', {
+          p_patient_id: selectedPatient,
+          p_doctor_id: user.id,
+          p_diagnosis: diagnosis,
+          p_prescription: prescription,
+          p_notes: notes
+        });
 
       if (error) {
         console.error('Error saving prescription:', error);
@@ -205,11 +209,17 @@ export const PrescriptionWriter = () => {
 
       setConfirmDialogOpen(false);
       
-      await refetchPrescriptions();
-
+      // Clear the form fields
       setDiagnosis("");
       setPrescription("");
       setNotes("");
+      
+      // Refresh the prescriptions list
+      await refetchPrescriptions();
+      
+      // Switch to the view tab
+      setActiveTab("view");
+      
     } catch (error: any) {
       console.error('Error saving prescription:', error);
       toast({
@@ -218,6 +228,8 @@ export const PrescriptionWriter = () => {
         variant: "destructive",
       });
       
+    } finally {
+      setIsSaving(false);
       setConfirmDialogOpen(false);
     }
   };
@@ -351,9 +363,10 @@ export const PrescriptionWriter = () => {
               <Button
                 className="w-full gap-2"
                 onClick={handleSavePrescriptionRequest}
+                disabled={isSaving}
               >
                 <Save className="h-4 w-4" />
-                Save Prescription
+                {isSaving ? "Saving..." : "Save Prescription"}
               </Button>
             </TabsContent>
             
@@ -424,8 +437,11 @@ export const PrescriptionWriter = () => {
               <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleSavePrescription}>
-                Confirm & Save
+              <Button 
+                onClick={handleSavePrescription}
+                disabled={isSaving}
+              >
+                {isSaving ? "Saving..." : "Confirm & Save"}
               </Button>
             </DialogFooter>
           </DialogContent>
