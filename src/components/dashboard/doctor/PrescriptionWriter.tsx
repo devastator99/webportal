@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Save, Eye, Plus } from "lucide-react";
+import { FileText, Save, Eye, Plus, Search } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,16 @@ import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 export const PrescriptionWriter = () => {
   const { user } = useAuth();
@@ -23,6 +32,8 @@ export const PrescriptionWriter = () => {
   const [prescription, setPrescription] = useState("");
   const [notes, setNotes] = useState("");
   const [activeTab, setActiveTab] = useState("write");
+  const [patientSearchOpen, setPatientSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch all patients using the RPC function
   const { data: patients, isLoading: isLoadingPatients } = useQuery({
@@ -225,6 +236,23 @@ export const PrescriptionWriter = () => {
     }
   };
 
+  // Filter patients based on search term
+  const filteredPatients = patients?.filter((patient) => {
+    if (!searchTerm) return true;
+    
+    const fullName = `${patient.first_name || ''} ${patient.last_name || ''}`.toLowerCase();
+    return fullName.includes(searchTerm.toLowerCase());
+  });
+
+  const selectedPatientName = React.useMemo(() => {
+    if (!selectedPatient || !patients) return "Select patient";
+    
+    const patient = patients.find(p => p.id === selectedPatient);
+    if (!patient) return "Select patient";
+    
+    return `${patient.first_name || ""} ${patient.last_name || ""}`;
+  }, [selectedPatient, patients]);
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -236,35 +264,61 @@ export const PrescriptionWriter = () => {
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="patient">Select Patient <span className="text-red-500">*</span></Label>
-          <Select
-            value={selectedPatient}
-            onValueChange={(value) => {
-              setSelectedPatient(value);
-              // Reset the form when changing patients
-              if (activeTab === "write") {
-                setDiagnosis("");
-                setPrescription("");
-                setNotes("");
-              }
-            }}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select patient" />
-            </SelectTrigger>
-            <SelectContent>
-              {isLoadingPatients ? (
-                <SelectItem value="loading" disabled>Loading patients...</SelectItem>
-              ) : patients && patients.length > 0 ? (
-                patients.map((patient) => (
-                  <SelectItem key={patient.id} value={patient.id}>
-                    {patient.first_name || "Unknown"} {patient.last_name || ""}
-                  </SelectItem>
-                ))
-              ) : (
-                <SelectItem value="none" disabled>No patients found</SelectItem>
-              )}
-            </SelectContent>
-          </Select>
+          
+          {/* Searchable Patient Dropdown */}
+          <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                role="combobox"
+                aria-expanded={patientSearchOpen}
+                className="w-full justify-between"
+              >
+                {selectedPatientName}
+                <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-full p-0" align="start">
+              <Command>
+                <CommandInput 
+                  placeholder="Search patients..." 
+                  value={searchTerm}
+                  onValueChange={setSearchTerm}
+                />
+                <CommandEmpty>No patient found.</CommandEmpty>
+                <CommandGroup className="max-h-[300px] overflow-auto">
+                  {isLoadingPatients ? (
+                    <CommandItem disabled>Loading patients...</CommandItem>
+                  ) : filteredPatients && filteredPatients.length > 0 ? (
+                    filteredPatients.map((patient) => (
+                      <CommandItem
+                        key={patient.id}
+                        value={patient.id}
+                        onSelect={(value) => {
+                          setSelectedPatient(value);
+                          setPatientSearchOpen(false);
+                          // Reset the form when changing patients in write mode
+                          if (activeTab === "write") {
+                            setDiagnosis("");
+                            setPrescription("");
+                            setNotes("");
+                          }
+                        }}
+                        className={cn(
+                          "flex items-center gap-2 w-full",
+                          selectedPatient === patient.id ? "bg-accent" : ""
+                        )}
+                      >
+                        {patient.first_name || "Unknown"} {patient.last_name || ""}
+                      </CommandItem>
+                    ))
+                  ) : (
+                    <CommandItem disabled>No patients found</CommandItem>
+                  )}
+                </CommandGroup>
+              </Command>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {selectedPatient && (
