@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -174,7 +173,7 @@ export const PrescriptionWriter = () => {
   });
 
   const handleSavePrescription = async () => {
-    if (isSaving) return;
+    if (isSaving) return; 
     
     try {
       setIsSaving(true);
@@ -254,6 +253,20 @@ export const PrescriptionWriter = () => {
     
     return `${patient.first_name || ""} ${patient.last_name || ""}`;
   }, [selectedPatient, patients]);
+
+  React.useEffect(() => {
+    if (patients && patients.length > 0 && !selectedPatient) {
+      const janePatient = patients.find(p => 
+        (p.first_name?.toLowerCase() === 'jane' && p.last_name?.toLowerCase() === 'doe') ||
+        ((p.first_name?.toLowerCase()?.includes('jane') || p.last_name?.toLowerCase()?.includes('doe')))
+      );
+      
+      if (janePatient) {
+        setSelectedPatient(janePatient.id);
+        console.log("Found Jane Doe:", janePatient);
+      }
+    }
+  }, [patients, selectedPatient]);
 
   return (
     <Card className="w-full">
