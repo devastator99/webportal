@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { StatsCards } from "@/components/dashboard/doctor/StatsCards";
-import { TodaySchedule } from "@/components/dashboard/doctor/TodaySchedule";
+// import { TodaySchedule } from "@/components/dashboard/doctor/TodaySchedule";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { AiAssistant } from "@/components/dashboard/doctor/AiAssistant";
 import { DoctorAppointmentCalendar } from "@/components/dashboard/doctor/DoctorAppointmentCalendar";
@@ -77,10 +77,12 @@ export const DoctorDashboard = () => {
       <StatsCards />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Commented out Today's Schedule as requested
         <div className="space-y-6 lg:col-span-1">
           <TodaySchedule />
         </div>
-        <div className="lg:col-span-2 space-y-6">
+        */}
+        <div className="lg:col-span-3 space-y-6">
           <DoctorAppointmentCalendar doctorId={user?.id || ""} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <DocumentAnalyzer />
