@@ -9,6 +9,7 @@ import { format, parseISO } from "date-fns";
 import { CalendarIcon, Clock, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface DoctorAppointmentCalendarProps {
   doctorId: string;
@@ -29,6 +30,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: DoctorAppointmentCalenda
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   // Format the selected date to be used in the query
   const formattedDate = format(selectedDate, "yyyy-MM-dd");
@@ -76,69 +78,76 @@ export const DoctorAppointmentCalendar = ({ doctorId }: DoctorAppointmentCalenda
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-1">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={handleDateChange}
-              className="border rounded-md"
-            />
+        <div className={`grid ${isMobile ? 'grid-cols-1 gap-6' : 'md:grid-cols-7 gap-8'}`}>
+          {/* Calendar takes up 3 columns on desktop */}
+          <div className={isMobile ? 'w-full' : 'md:col-span-3'}>
+            <div className="flex justify-center md:justify-start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={handleDateChange}
+                className="border rounded-md bg-white shadow-sm"
+              />
+            </div>
           </div>
-          <div className="md:col-span-2">
-            <h3 className="text-lg font-semibold mb-3 flex items-center">
-              <CalendarIcon className="mr-2 h-5 w-5" />
-              Appointments for {format(selectedDate, "MMMM d, yyyy")}
-            </h3>
 
-            {isLoading ? (
-              <div className="space-y-3">
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-16 w-full" />
-              </div>
-            ) : isError ? (
-              <div className="text-red-500">
-                Error loading appointments: {(error as Error).message}
-              </div>
-            ) : appointments.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                No appointments scheduled for this day
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {appointments.map((appointment) => (
-                  <div
-                    key={appointment.id}
-                    className="flex flex-col p-3 border rounded-lg hover:bg-slate-50 transition-colors"
-                  >
-                    <div className="flex justify-between">
-                      <div className="flex items-center">
-                        <User className="mr-2 h-4 w-4 text-slate-500" />
-                        <span className="font-medium">
-                          {appointment.patient_json.first_name} {appointment.patient_json.last_name}
-                        </span>
+          {/* Appointments take up 4 columns on desktop */}
+          <div className={isMobile ? 'w-full mt-6 md:mt-0' : 'md:col-span-4'}>
+            <div className="bg-slate-50 p-4 rounded-lg h-full">
+              <h3 className="text-lg font-semibold mb-4 flex items-center">
+                <CalendarIcon className="mr-2 h-5 w-5 text-[#9b87f5]" />
+                Appointments for {format(selectedDate, "MMMM d, yyyy")}
+              </h3>
+
+              {isLoading ? (
+                <div className="space-y-3">
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                  <Skeleton className="h-16 w-full" />
+                </div>
+              ) : isError ? (
+                <div className="text-red-500 p-4 bg-red-50 rounded-md">
+                  Error loading appointments: {(error as Error).message}
+                </div>
+              ) : appointments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500 bg-white rounded-md border border-dashed border-gray-300">
+                  No appointments scheduled for this day
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2">
+                  {appointments.map((appointment) => (
+                    <div
+                      key={appointment.id}
+                      className="flex flex-col p-4 border rounded-lg bg-white hover:bg-slate-50 transition-colors shadow-sm"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center">
+                          <User className="mr-2 h-5 w-5 text-slate-500" />
+                          <span className="font-medium">
+                            {appointment.patient_json.first_name} {appointment.patient_json.last_name}
+                          </span>
+                        </div>
+                        <Badge
+                          className={`
+                            ${appointment.status === "scheduled" ? "bg-blue-500" : ""}
+                            ${appointment.status === "completed" ? "bg-green-500" : ""}
+                            ${appointment.status === "cancelled" ? "bg-red-500" : ""}
+                          `}
+                        >
+                          {appointment.status}
+                        </Badge>
                       </div>
-                      <Badge
-                        className={`
-                          ${appointment.status === "scheduled" ? "bg-blue-500" : ""}
-                          ${appointment.status === "completed" ? "bg-green-500" : ""}
-                          ${appointment.status === "cancelled" ? "bg-red-500" : ""}
-                        `}
-                      >
-                        {appointment.status}
-                      </Badge>
+                      <div className="flex items-center mt-2 text-slate-500">
+                        <Clock className="mr-2 h-4 w-4" />
+                        <time dateTime={appointment.scheduled_at}>
+                          {format(parseISO(appointment.scheduled_at), "h:mm a")}
+                        </time>
+                      </div>
                     </div>
-                    <div className="flex items-center mt-2 text-slate-500">
-                      <Clock className="mr-2 h-4 w-4" />
-                      <time dateTime={appointment.scheduled_at}>
-                        {format(parseISO(appointment.scheduled_at), "h:mm a")}
-                      </time>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </CardContent>
