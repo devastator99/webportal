@@ -10,6 +10,7 @@ import { ReceptionDashboard } from "@/components/dashboard/ReceptionDashboard";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { Navbar } from "@/components/Navbar";
 
 const Dashboard = () => {
   const { user, userRole, isLoading, signOut } = useAuth();
@@ -33,7 +34,12 @@ const Dashboard = () => {
   // Show loading state
   if (isLoading) {
     console.log("Dashboard is loading...");
-    return <DashboardSkeleton />;
+    return (
+      <>
+        <Navbar />
+        <DashboardSkeleton />
+      </>
+    );
   }
 
   // After loading, if no user is found, useEffect will handle redirect
@@ -45,32 +51,44 @@ const Dashboard = () => {
   // Handle no role case
   if (!userRole) {
     console.log("Dashboard rendering NoRoleWarning - no role assigned");
-    return <NoRoleWarning onSignOut={signOut} />;
+    return (
+      <>
+        <Navbar />
+        <NoRoleWarning onSignOut={signOut} />
+      </>
+    );
   }
 
   console.log(`Dashboard attempting to render ${userRole} dashboard`);
   
-  // Render appropriate dashboard based on role
-  switch (userRole) {
-    case "doctor":
-      console.log("Rendering doctor dashboard");
-      return <DoctorDashboard />;
-    case "patient":
-      console.log("Rendering patient dashboard");
-      return <PatientDashboard />;
-    case "nutritionist":
-      console.log("Rendering nutritionist dashboard");
-      return <NutritionistDashboard />;
-    case "administrator":
-      console.log("Rendering admin dashboard");
-      return <AdminDashboard />;
-    case "reception":
-      console.log("Rendering reception dashboard");
-      return <ReceptionDashboard />;
-    default:
-      console.log(`Invalid role: ${userRole}, rendering NoRoleWarning`);
-      return <NoRoleWarning onSignOut={signOut} />;
-  }
+  // Render appropriate dashboard based on role with Navbar
+  return (
+    <>
+      <Navbar />
+      {(() => {
+        switch (userRole) {
+          case "doctor":
+            console.log("Rendering doctor dashboard");
+            return <DoctorDashboard />;
+          case "patient":
+            console.log("Rendering patient dashboard");
+            return <PatientDashboard />;
+          case "nutritionist":
+            console.log("Rendering nutritionist dashboard");
+            return <NutritionistDashboard />;
+          case "administrator":
+            console.log("Rendering admin dashboard");
+            return <AdminDashboard />;
+          case "reception":
+            console.log("Rendering reception dashboard");
+            return <ReceptionDashboard />;
+          default:
+            console.log(`Invalid role: ${userRole}, rendering NoRoleWarning`);
+            return <NoRoleWarning onSignOut={signOut} />;
+        }
+      })()}
+    </>
+  );
 };
 
 export default Dashboard;

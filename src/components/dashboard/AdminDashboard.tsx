@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Stethoscope, Heart, Settings } from "lucide-react";
 import { VideoUploader } from "@/components/videos/VideoUploader";
 import { VideoList } from "@/components/videos/VideoList";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 
 export const AdminDashboard = () => {
   const { data: userStats } = useQuery({
@@ -36,8 +37,8 @@ export const AdminDashboard = () => {
   });
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <h1 className="text-3xl font-bold text-saas-primary">Admin Dashboard</h1>
+    <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
+      <DashboardHeader />
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>

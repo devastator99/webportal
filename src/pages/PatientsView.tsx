@@ -7,12 +7,18 @@ import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
 import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
+import { Navbar } from "@/components/Navbar";
 
 const PatientsView = () => {
   const { user, userRole, isLoading } = useAuth();
 
   if (isLoading) {
-    return <DashboardSkeleton />;
+    return (
+      <>
+        <Navbar />
+        <DashboardSkeleton />
+      </>
+    );
   }
 
   if (!user) {
@@ -39,10 +45,13 @@ const PatientsView = () => {
   console.log("Rendering PatientsView component");
 
   return (
-    <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
-      <DashboardHeader actionButton={actionButton} />
-      <AllPatientsList />
-    </div>
+    <>
+      <Navbar />
+      <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
+        <DashboardHeader actionButton={actionButton} />
+        <AllPatientsList />
+      </div>
+    </>
   );
 };
 
