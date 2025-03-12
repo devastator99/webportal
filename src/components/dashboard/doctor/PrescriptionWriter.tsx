@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -95,52 +96,39 @@ export const PrescriptionWriter = () => {
         return [];
       }
       
-      console.log("Fetching prescriptions for patient:", selectedPatient, "by doctor:", user.id);
+      console.log("Fetching prescriptions using RPC for patient:", selectedPatient, "by doctor:", user.id);
       
+      // Use the new RPC function to get prescriptions
       const { data: medicalRecords, error: medicalRecordsError } = await supabase
-        .from("medical_records")
-        .select(`
-          id, 
-          created_at, 
-          diagnosis, 
-          prescription, 
-          notes,
-          doctor_id
-        `)
-        .eq("patient_id", selectedPatient)
-        .eq("doctor_id", user.id)
-        .order("created_at", { ascending: false });
+        .rpc('get_doctor_patient_records', {
+          p_doctor_id: user.id,
+          p_patient_id: selectedPatient
+        });
 
       if (medicalRecordsError) {
-        console.error("Error fetching medical records:", medicalRecordsError);
+        console.error("Error fetching medical records via RPC:", medicalRecordsError);
         throw medicalRecordsError;
       }
       
-      console.log("Medical records found for this doctor-patient pair:", medicalRecords?.length || 0);
+      console.log("Medical records found via RPC:", medicalRecords?.length || 0);
       
       if (!medicalRecords?.length) {
         return [];
       }
       
-      const doctorIds = [...new Set(medicalRecords.map(record => record.doctor_id))];
-      
-      const { data: doctorProfiles, error: doctorProfilesError } = await supabase
+      // Get the doctor profile information
+      const { data: doctorProfile, error: doctorProfileError } = await supabase
         .from("profiles")
         .select("id, first_name, last_name")
-        .in("id", doctorIds);
+        .eq("id", user.id)
+        .single();
         
-      if (doctorProfilesError) {
-        console.error("Error fetching doctor profiles:", doctorProfilesError);
-        throw doctorProfilesError;
+      if (doctorProfileError) {
+        console.error("Error fetching doctor profile:", doctorProfileError);
+        // Continue without doctor info rather than failing completely
       }
       
-      const doctorsMap = doctorProfiles?.reduce((acc, doctor) => {
-        acc[doctor.id] = {
-          first_name: doctor.first_name || "Unknown",
-          last_name: doctor.last_name || ""
-        };
-        return acc;
-      }, {}) || {};
+      const doctorInfo = doctorProfile || { first_name: "Unknown", last_name: "" };
       
       return medicalRecords.map(record => ({
         id: record.id,
@@ -149,7 +137,7 @@ export const PrescriptionWriter = () => {
         prescription: record.prescription,
         notes: record.notes,
         doctor_id: record.doctor_id,
-        doctor: doctorsMap[record.doctor_id] || { first_name: "Unknown", last_name: "" }
+        doctor: { first_name: doctorInfo.first_name, last_name: doctorInfo.last_name }
       }));
     },
     enabled: !!selectedPatient && !!user?.id,

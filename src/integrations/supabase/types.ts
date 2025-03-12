@@ -711,6 +711,20 @@ export type Database = {
         }
         Returns: number
       }
+      get_doctor_patient_records: {
+        Args: {
+          p_doctor_id: string
+          p_patient_id: string
+        }
+        Returns: {
+          id: string
+          created_at: string
+          diagnosis: string
+          prescription: string
+          notes: string
+          doctor_id: string
+        }[]
+      }
       get_doctor_patients_count: {
         Args: {
           doctor_id: string
@@ -791,6 +805,12 @@ export type Database = {
         Returns: boolean
       }
       is_admin: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
+      is_doctor: {
         Args: {
           user_id: string
         }
