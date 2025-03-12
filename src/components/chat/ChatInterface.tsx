@@ -1,6 +1,6 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, safelyUnwrapValue, asArray } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
@@ -10,6 +10,17 @@ import { ChatInput } from "./ChatInput";
 import { PatientSelector } from "./PatientSelector";
 import { ChatMessagesList } from "./ChatMessagesList";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+
+type Doctor = {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+};
+
+type DoctorAssignment = {
+  doctor_id: string;
+  doctor: Doctor;
+};
 
 export const ChatInterface = () => {
   const { user, userRole } = useAuth();
@@ -37,7 +48,7 @@ export const ChatInterface = () => {
         .maybeSingle();
 
       if (error) throw error;
-      return data;
+      return data as DoctorAssignment;
     },
     enabled: !!user?.id && userRole === "patient",
   });
@@ -87,12 +98,14 @@ export const ChatInterface = () => {
     }
 
     try {
-      const { error } = await supabase.from("chat_messages").insert({
-        sender_id: user.id,
-        receiver_id: receiverId || null, // Allow null receiver_id
-        message: newMessage,
-        message_type: "text",
-      });
+      const { error } = await supabase
+        .from("chat_messages")
+        .insert({
+          sender_id: user.id,
+          receiver_id: receiverId || null, // Allow null receiver_id
+          message: newMessage,
+          message_type: "text",
+        });
 
       if (error) {
         console.error("Error sending message:", error);
@@ -119,10 +132,18 @@ export const ChatInterface = () => {
   };
 
   const getHeaderTitle = () => {
-    if (userRole === "doctor" && selectedPatient) {
-      return `Chat with ${selectedPatient.first_name} ${selectedPatient.last_name}`;
-    } else if (userRole === "patient" && doctorAssignment?.doctor) {
-      return `Chat with Dr. ${doctorAssignment.doctor.first_name} ${doctorAssignment.doctor.last_name}`;
+    const patientName = selectedPatient 
+      ? `${safelyUnwrapValue(selectedPatient.first_name, "")} ${safelyUnwrapValue(selectedPatient.last_name, "")}`
+      : "";
+      
+    const doctorName = doctorAssignment && doctorAssignment.doctor 
+      ? `Dr. ${safelyUnwrapValue(doctorAssignment.doctor.first_name, "")} ${safelyUnwrapValue(doctorAssignment.doctor.last_name, "")}`
+      : "";
+
+    if (userRole === "doctor" && patientName) {
+      return `Chat with ${patientName}`;
+    } else if (userRole === "patient" && doctorName) {
+      return `Chat with ${doctorName}`;
     }
     return "Messages";
   };

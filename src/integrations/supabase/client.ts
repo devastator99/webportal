@@ -28,5 +28,33 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       eventsPerSecond: 10,
     },
   },
-  debug: process.env.NODE_ENV === 'development',
 });
+
+// Helper function to safely access properties from query results
+export const safelyUnwrapValue = <T>(value: any, defaultValue?: T): T => {
+  if (!value) return defaultValue as T;
+  if (value.error === true) return defaultValue as T;
+  return value as T;
+};
+
+// Helper function to cast array results from database functions
+export const asArray = <T>(data: any): T[] => {
+  if (!data) return [];
+  if (Array.isArray(data)) return data as T[];
+  return [] as T[];
+};
+
+// Helper function to safely cast database function return values
+export function castRPCResult<T>(result: any): T[] {
+  if (!result) return [] as T[];
+  if (Array.isArray(result)) return result as T[];
+  if (typeof result === 'object' && 'error' in result) return [] as T[];
+  return [] as T[];
+}
+
+// Helper to safely extract a single value
+export function safeExtractData<T>(result: any, defaultValue: T): T {
+  if (!result) return defaultValue;
+  if (typeof result === 'object' && 'error' in result) return defaultValue;
+  return result as T;
+}

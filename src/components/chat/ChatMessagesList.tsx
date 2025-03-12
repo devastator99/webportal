@@ -1,6 +1,6 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, asArray } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useEffect, useRef } from "react";
@@ -9,6 +9,21 @@ import { ChatMessage } from "./ChatMessage";
 interface ChatMessagesListProps {
   selectedPatientId: string | null;
   doctorAssignment: any;
+}
+
+interface ProfileInfo {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+}
+
+interface MessageData {
+  id: string;
+  message: string | null;
+  message_type: string | null;
+  created_at: string;
+  sender: ProfileInfo;
+  receiver: ProfileInfo;
 }
 
 export const ChatMessagesList = ({ selectedPatientId, doctorAssignment }: ChatMessagesListProps) => {
@@ -40,7 +55,7 @@ export const ChatMessagesList = ({ selectedPatientId, doctorAssignment }: ChatMe
       const { data, error } = await query.order("created_at", { ascending: true });
 
       if (error) throw error;
-      return data;
+      return data as MessageData[] || [];
     },
     enabled: !!user?.id && (
       (userRole === "doctor" && !!selectedPatientId) || 
@@ -91,13 +106,26 @@ export const ChatMessagesList = ({ selectedPatientId, doctorAssignment }: ChatMe
   return (
     <ScrollArea className="flex-1 pr-4" ref={scrollAreaRef}>
       <div className="space-y-4">
-        {messages?.map((msg) => (
-          <ChatMessage 
-            key={msg.id}
-            message={msg}
-            isCurrentUser={msg.sender.id === user?.id}
-          />
-        ))}
+        {messages?.map((msg) => {
+          if (!msg || !msg.sender) return null;
+          
+          return (
+            <ChatMessage 
+              key={msg.id}
+              message={{
+                id: msg.id,
+                message: msg.message || '',
+                created_at: msg.created_at,
+                sender: {
+                  id: msg.sender.id,
+                  first_name: msg.sender.first_name || '',
+                  last_name: msg.sender.last_name || ''
+                }
+              }}
+              isCurrentUser={msg.sender.id === user?.id}
+            />
+          );
+        })}
       </div>
     </ScrollArea>
   );

@@ -1,6 +1,6 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, asArray } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -54,7 +54,7 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
           throw profilesError;
         }
         
-        return patientProfiles || [];
+        return (patientProfiles || []) as PatientProfile[];
       } catch (error) {
         console.error("Error in PatientSelector:", error);
         return [];
@@ -67,7 +67,9 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
     return <div>Loading patients...</div>;
   }
 
-  if (!assignedPatients?.length) {
+  const patients = assignedPatients || [];
+
+  if (!patients.length) {
     return <div className="text-sm text-muted-foreground">No patients assigned yet.</div>;
   }
 
@@ -82,12 +84,12 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
           <SelectValue placeholder="Select a patient" />
         </SelectTrigger>
         <SelectContent>
-          {assignedPatients.map((patient: PatientProfile) => (
+          {patients.map((patient) => (
             <SelectItem 
               key={patient.id} 
               value={patient.id}
             >
-              {patient.first_name} {patient.last_name}
+              {patient.first_name || ''} {patient.last_name || ''}
             </SelectItem>
           ))}
         </SelectContent>
