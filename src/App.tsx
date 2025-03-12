@@ -14,8 +14,8 @@ import { ChatbotWidget } from './components/chat/ChatbotWidget';
 function App() {
   return (
     <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
-      <AuthProvider>
-        <Router>
+      <Router>
+        <AuthProvider>
           <Routes>
             <Route path="/" element={<LandingPage />} />
             <Route path="/auth" element={<Auth />} />
@@ -24,9 +24,9 @@ function App() {
             <Route path="/patients" element={<PatientsView />} />
           </Routes>
           <ChatbotWidget />
-        </Router>
-        <Toaster position="top-right" />
-      </AuthProvider>
+          <Toaster position="top-right" />
+        </AuthProvider>
+      </Router>
     </ThemeProvider>
   );
 }
