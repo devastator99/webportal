@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -35,7 +34,6 @@ export const PrescriptionWriter = () => {
   const [patientSearchOpen, setPatientSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Fetch all patients using the RPC function
   const { data: patients, isLoading: isLoadingPatients } = useQuery({
     queryKey: ["all_patients_rpc"],
     queryFn: async () => {
@@ -46,7 +44,6 @@ export const PrescriptionWriter = () => {
 
       console.log("Fetching all patients using RPC function");
       
-      // Use the get_users_by_role RPC function to get patient user_ids
       const { data: patientUserIds, error: rpcError } = await supabase
         .rpc('get_users_by_role', { role_name: 'patient' });
       
@@ -61,8 +58,6 @@ export const PrescriptionWriter = () => {
         return [];
       }
       
-      // Get all patient profiles in a single query with an IN clause
-      // This is more efficient than fetching them one by one
       const patientIds = patientUserIds.map(item => item.user_id);
       
       const { data: profiles, error: profilesError } = await supabase
@@ -80,7 +75,6 @@ export const PrescriptionWriter = () => {
     },
   });
 
-  // Fetch patient's past prescriptions when a patient is selected
   const { data: pastPrescriptions, refetch: refetchPrescriptions } = useQuery({
     queryKey: ["patient_prescriptions", selectedPatient, user?.id],
     queryFn: async () => {
@@ -94,8 +88,6 @@ export const PrescriptionWriter = () => {
       
       console.log("Fetching prescriptions for patient:", selectedPatient, "by doctor:", user.id);
       
-      // First fetch the medical records - here we fetch records where the authenticated doctor is the creator
-      // This ensures doctors only see prescriptions they created
       const { data: medicalRecords, error: medicalRecordsError } = await supabase
         .from("medical_records")
         .select(`
@@ -117,15 +109,12 @@ export const PrescriptionWriter = () => {
       
       console.log("Medical records found for this doctor-patient pair:", medicalRecords?.length || 0);
       
-      // If no records found, return empty array
       if (!medicalRecords?.length) {
         return [];
       }
       
-      // Get all unique doctor IDs from the records
       const doctorIds = [...new Set(medicalRecords.map(record => record.doctor_id))];
       
-      // Fetch doctor profiles in a separate query
       const { data: doctorProfiles, error: doctorProfilesError } = await supabase
         .from("profiles")
         .select("id, first_name, last_name")
@@ -136,7 +125,6 @@ export const PrescriptionWriter = () => {
         throw doctorProfilesError;
       }
       
-      // Create a map of doctor IDs to doctor names for quick lookup
       const doctorsMap = doctorProfiles?.reduce((acc, doctor) => {
         acc[doctor.id] = {
           first_name: doctor.first_name || "Unknown",
@@ -145,7 +133,6 @@ export const PrescriptionWriter = () => {
         return acc;
       }, {}) || {};
       
-      // Combine the data
       return medicalRecords.map(record => ({
         id: record.id,
         created_at: record.created_at,
@@ -218,14 +205,11 @@ export const PrescriptionWriter = () => {
         description: "Prescription saved successfully",
       });
 
-      // Refetch prescriptions to update the list
       refetchPrescriptions();
 
-      // Reset form
       setDiagnosis("");
       setPrescription("");
       setNotes("");
-
     } catch (error: any) {
       console.error('Error saving prescription:', error);
       toast({
@@ -236,7 +220,6 @@ export const PrescriptionWriter = () => {
     }
   };
 
-  // Filter patients based on search term
   const filteredPatients = patients?.filter((patient) => {
     if (!searchTerm) return true;
     
@@ -265,7 +248,6 @@ export const PrescriptionWriter = () => {
         <div className="space-y-2">
           <Label htmlFor="patient">Select Patient <span className="text-red-500">*</span></Label>
           
-          {/* Searchable Patient Dropdown */}
           <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
             <PopoverTrigger asChild>
               <Button
@@ -278,36 +260,31 @@ export const PrescriptionWriter = () => {
                 <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
-            <PopoverContent className="w-full p-0" align="start">
+            <PopoverContent className="w-[300px] p-0" align="start">
               <Command>
                 <CommandInput 
                   placeholder="Search patients..." 
                   value={searchTerm}
                   onValueChange={setSearchTerm}
+                  className="h-9"
                 />
                 <CommandEmpty>No patient found.</CommandEmpty>
-                <CommandGroup className="max-h-[300px] overflow-auto">
+                <CommandGroup className="max-h-[200px] overflow-y-auto">
                   {isLoadingPatients ? (
                     <CommandItem disabled>Loading patients...</CommandItem>
                   ) : filteredPatients && filteredPatients.length > 0 ? (
                     filteredPatients.map((patient) => (
                       <CommandItem
                         key={patient.id}
-                        value={patient.id}
-                        onSelect={(value) => {
-                          setSelectedPatient(value);
+                        onSelect={() => {
+                          setSelectedPatient(patient.id);
                           setPatientSearchOpen(false);
-                          // Reset the form when changing patients in write mode
                           if (activeTab === "write") {
                             setDiagnosis("");
                             setPrescription("");
                             setNotes("");
                           }
                         }}
-                        className={cn(
-                          "flex items-center gap-2 w-full",
-                          selectedPatient === patient.id ? "bg-accent" : ""
-                        )}
                       >
                         {patient.first_name || "Unknown"} {patient.last_name || ""}
                       </CommandItem>
