@@ -822,6 +822,16 @@ export type Database = {
         }
         Returns: boolean
       }
+      save_prescription: {
+        Args: {
+          p_patient_id: string
+          p_doctor_id: string
+          p_diagnosis: string
+          p_prescription: string
+          p_notes: string
+        }
+        Returns: string
+      }
       search_chatbot_knowledge: {
         Args: {
           search_term: string

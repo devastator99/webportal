@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -185,15 +184,13 @@ export const PrescriptionWriter = () => {
       
       console.log("Saving prescription for patient:", selectedPatient, "by doctor:", user.id);
       
-      // Use the RPC function instead of direct table insert
-      const { data, error } = await supabase
-        .rpc('save_prescription', {
-          p_patient_id: selectedPatient,
-          p_doctor_id: user.id,
-          p_diagnosis: diagnosis,
-          p_prescription: prescription,
-          p_notes: notes
-        });
+      const { data, error } = await supabase.rpc('save_prescription', {
+        p_patient_id: selectedPatient,
+        p_doctor_id: user.id,
+        p_diagnosis: diagnosis,
+        p_prescription: prescription,
+        p_notes: notes
+      });
 
       if (error) {
         console.error('Error saving prescription:', error);
