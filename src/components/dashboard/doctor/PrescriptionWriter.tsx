@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -23,6 +22,14 @@ import {
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
 
 export const PrescriptionWriter = () => {
   const { user } = useAuth();
@@ -34,6 +41,7 @@ export const PrescriptionWriter = () => {
   const [activeTab, setActiveTab] = useState("write");
   const [patientSearchOpen, setPatientSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
   const { data: patients, isLoading: isLoadingPatients } = useQuery({
     queryKey: ["all_patients_rpc"],
@@ -147,7 +155,7 @@ export const PrescriptionWriter = () => {
     enabled: !!selectedPatient && !!user?.id,
   });
 
-  const handleSavePrescription = async () => {
+  const handleSavePrescriptionRequest = () => {
     if (!selectedPatient) {
       toast({
         title: "Error",
@@ -175,6 +183,10 @@ export const PrescriptionWriter = () => {
       return;
     }
 
+    setConfirmDialogOpen(true);
+  };
+
+  const handleSavePrescription = async () => {
     try {
       if (!user?.id) {
         throw new Error("Doctor ID not available. Please try again later.");
@@ -206,6 +218,8 @@ export const PrescriptionWriter = () => {
         description: "Prescription saved successfully",
       });
 
+      setConfirmDialogOpen(false);
+
       refetchPrescriptions();
 
       setDiagnosis("");
@@ -218,6 +232,8 @@ export const PrescriptionWriter = () => {
         description: `Failed to save prescription: ${error.message || "Unknown error"}`,
         variant: "destructive",
       });
+      
+      setConfirmDialogOpen(false);
     }
   };
 
@@ -349,7 +365,7 @@ export const PrescriptionWriter = () => {
 
               <Button
                 className="w-full gap-2"
-                onClick={handleSavePrescription}
+                onClick={handleSavePrescriptionRequest}
               >
                 <Save className="h-4 w-4" />
                 Save Prescription
@@ -394,6 +410,41 @@ export const PrescriptionWriter = () => {
             </TabsContent>
           </Tabs>
         )}
+
+        <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Prescription</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to save this prescription? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 mt-2">
+              <div className="p-3 bg-muted rounded-md">
+                <p className="font-medium">Diagnosis:</p>
+                <p className="text-sm">{diagnosis}</p>
+              </div>
+              <div className="p-3 bg-muted rounded-md">
+                <p className="font-medium">Prescription:</p>
+                <p className="text-sm whitespace-pre-wrap">{prescription}</p>
+              </div>
+              {notes && (
+                <div className="p-3 bg-muted rounded-md">
+                  <p className="font-medium">Notes:</p>
+                  <p className="text-sm whitespace-pre-wrap">{notes}</p>
+                </div>
+              )}
+            </div>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSavePrescription}>
+                Confirm & Save
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
