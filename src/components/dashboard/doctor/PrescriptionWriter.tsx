@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -173,7 +174,7 @@ export const PrescriptionWriter = () => {
   });
 
   const handleSavePrescription = async () => {
-    if (isSaving) return; // Prevent multiple submissions
+    if (isSaving) return;
     
     try {
       setIsSaving(true);
@@ -184,13 +185,16 @@ export const PrescriptionWriter = () => {
       
       console.log("Saving prescription for patient:", selectedPatient, "by doctor:", user.id);
       
-      const { data, error } = await supabase.rpc('save_prescription', {
-        p_patient_id: selectedPatient,
-        p_doctor_id: user.id,
-        p_diagnosis: diagnosis,
-        p_prescription: prescription,
-        p_notes: notes
-      });
+      const { data, error } = await supabase.from('medical_records')
+        .insert({
+          patient_id: selectedPatient,
+          doctor_id: user.id,
+          diagnosis: diagnosis,
+          prescription: prescription,
+          notes: notes
+        })
+        .select()
+        .single();
 
       if (error) {
         console.error('Error saving prescription:', error);
