@@ -43,6 +43,37 @@ export const PrescriptionWriter = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
+  const handleSavePrescriptionRequest = () => {
+    if (!selectedPatient) {
+      toast({
+        title: "Error",
+        description: "Please select a patient",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!diagnosis.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter a diagnosis",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!prescription.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter prescription details",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setConfirmDialogOpen(true);
+  };
+
   const { data: patients, isLoading: isLoadingPatients } = useQuery({
     queryKey: ["all_patients_rpc"],
     queryFn: async () => {
@@ -403,4 +434,3 @@ export const PrescriptionWriter = () => {
     </Card>
   );
 };
-
