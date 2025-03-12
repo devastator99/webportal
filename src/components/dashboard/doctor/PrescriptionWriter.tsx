@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -98,7 +97,6 @@ export const PrescriptionWriter = () => {
       
       console.log("Fetching prescriptions using RPC for patient:", selectedPatient, "by doctor:", user.id);
       
-      // Use the new RPC function to get prescriptions
       const { data: medicalRecords, error: medicalRecordsError } = await supabase
         .rpc('get_doctor_patient_records', {
           p_doctor_id: user.id,
@@ -116,7 +114,6 @@ export const PrescriptionWriter = () => {
         return [];
       }
       
-      // Get the doctor profile information
       const { data: doctorProfile, error: doctorProfileError } = await supabase
         .from("profiles")
         .select("id, first_name, last_name")
@@ -143,37 +140,6 @@ export const PrescriptionWriter = () => {
     enabled: !!selectedPatient && !!user?.id,
   });
 
-  const handleSavePrescriptionRequest = () => {
-    if (!selectedPatient) {
-      toast({
-        title: "Error",
-        description: "Please select a patient",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!diagnosis.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a diagnosis",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!prescription.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter prescription details",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setConfirmDialogOpen(true);
-  };
-
   const handleSavePrescription = async () => {
     try {
       if (!user?.id) {
@@ -186,7 +152,7 @@ export const PrescriptionWriter = () => {
         .from("medical_records")
         .insert({
           patient_id: selectedPatient,
-          doctor_id: user?.id,
+          doctor_id: user.id,
           diagnosis,
           prescription,
           notes,
@@ -207,8 +173,8 @@ export const PrescriptionWriter = () => {
       });
 
       setConfirmDialogOpen(false);
-
-      refetchPrescriptions();
+      
+      await refetchPrescriptions();
 
       setDiagnosis("");
       setPrescription("");
@@ -437,3 +403,4 @@ export const PrescriptionWriter = () => {
     </Card>
   );
 };
+
