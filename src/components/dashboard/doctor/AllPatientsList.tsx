@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase, fetchPatientPrescriptions, getDoctorPatients } from "@/integrations/supabase/client";
@@ -41,12 +42,13 @@ export const AllPatientsList = () => {
   const { data: patients, isLoading: isLoadingPatients } = useQuery({
     queryKey: ["patients_for_doctor", user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) return [] as Patient[];
       
       try {
         console.log("Fetching patients for doctor:", user.id);
         // Use our RPC helper function instead of direct query
-        return await getDoctorPatients(user.id);
+        const result = await getDoctorPatients(user.id);
+        return result as Patient[];
       } catch (error) {
         console.error("Error fetching patients:", error);
         toast({
@@ -54,7 +56,7 @@ export const AllPatientsList = () => {
           description: "Failed to load patients. Please try again.",
           variant: "destructive",
         });
-        return [];
+        return [] as Patient[];
       }
     },
     enabled: !!user?.id,
@@ -64,11 +66,12 @@ export const AllPatientsList = () => {
   const { data: prescriptions, isLoading: isLoadingPrescriptions } = useQuery({
     queryKey: ["patient_prescriptions_view", selectedPatient?.id, user?.id],
     queryFn: async () => {
-      if (!selectedPatient?.id || !user?.id) return [];
+      if (!selectedPatient?.id || !user?.id) return [] as Prescription[];
       
       try {
         console.log("Fetching prescriptions for patient:", selectedPatient.id);
-        return await fetchPatientPrescriptions(selectedPatient.id, user.id);
+        const result = await fetchPatientPrescriptions(selectedPatient.id, user.id);
+        return result as Prescription[];
       } catch (error) {
         console.error("Error fetching prescriptions:", error);
         toast({
@@ -76,7 +79,7 @@ export const AllPatientsList = () => {
           description: "Failed to load prescriptions. Please try again.",
           variant: "destructive",
         });
-        return [];
+        return [] as Prescription[];
       }
     },
     enabled: !!selectedPatient?.id && !!user?.id,
@@ -86,7 +89,7 @@ export const AllPatientsList = () => {
   const { data: medicalReports, isLoading: isLoadingReports } = useQuery({
     queryKey: ["patient_medical_reports", selectedPatient?.id],
     queryFn: async () => {
-      if (!selectedPatient?.id) return [];
+      if (!selectedPatient?.id) return [] as MedicalReport[];
       
       try {
         console.log("Fetching medical reports for patient:", selectedPatient.id);
@@ -101,7 +104,7 @@ export const AllPatientsList = () => {
           throw error;
         }
         
-        return data || [];
+        return data as MedicalReport[] || [];
       } catch (error) {
         console.error("Error fetching medical reports:", error);
         toast({
@@ -109,17 +112,17 @@ export const AllPatientsList = () => {
           description: "Failed to load medical reports. Please try again.",
           variant: "destructive",
         });
-        return [];
+        return [] as MedicalReport[];
       }
     },
     enabled: !!selectedPatient?.id,
   });
 
   // Filter patients based on search term
-  const filteredPatients = patients?.filter(patient => {
+  const filteredPatients = patients ? patients.filter(patient => {
     const fullName = `${patient.first_name || ''} ${patient.last_name || ''}`.toLowerCase();
     return fullName.includes(searchTerm.toLowerCase());
-  }) || [];
+  }) : [];
 
   // Handle opening medical report
   const handleViewReport = async (reportId: string) => {

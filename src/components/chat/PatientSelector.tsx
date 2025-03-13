@@ -31,7 +31,7 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
         const patients = await getDoctorPatients(user.id);
         console.log(`Fetched ${patients.length} patient profiles`);
         
-        return patients;
+        return patients as PatientProfile[];
       } catch (error) {
         console.error("Error in PatientSelector:", error);
         return [] as PatientProfile[];
@@ -46,7 +46,7 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
 
   const patients = assignedPatients || [];
 
-  if (!patients.length) {
+  if (patients.length === 0) {
     return <div className="text-sm text-muted-foreground">No patients assigned yet.</div>;
   }
 
