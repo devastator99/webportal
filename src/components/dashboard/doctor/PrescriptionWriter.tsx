@@ -1,245 +1,40 @@
 
 import React, { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { FileText, Save, Eye, Plus, Search } from "lucide-react";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { FileText, Plus, Eye } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { format } from "date-fns";
-import { 
-  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList 
-} from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from "@/components/ui/dialog";
-
-interface PatientProfile {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-}
-
-interface MedicalRecord {
-  id: string;
-  created_at: string;
-  diagnosis: string | null;
-  prescription: string | null;
-  notes: string | null;
-  doctor_id: string;
-  patient_id: string;
-  doctor_first_name: string | null;
-  doctor_last_name: string | null;
-}
+import { PatientSelector } from "./prescription/PatientSelector";
+import { PrescriptionForm } from "./prescription/PrescriptionForm";
+import { PrescriptionHistory } from "./prescription/PrescriptionHistory";
+import { ConfirmationDialog } from "./prescription/ConfirmationDialog";
+import { usePrescriptions } from "./prescription/usePrescriptions";
 
 export const PrescriptionWriter = () => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [selectedPatient, setSelectedPatient] = useState("");
-  const [diagnosis, setDiagnosis] = useState("");
-  const [prescription, setPrescription] = useState("");
-  const [notes, setNotes] = useState("");
   const [activeTab, setActiveTab] = useState("write");
-  const [patientSearchOpen, setPatientSearchOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  
+  const {
+    diagnosis,
+    setDiagnosis,
+    prescription,
+    setPrescription,
+    notes,
+    setNotes,
+    confirmDialogOpen,
+    setConfirmDialogOpen,
+    isSaving,
+    pastPrescriptions,
+    handleSavePrescriptionRequest,
+    handleSavePrescription,
+    resetForm
+  } = usePrescriptions(selectedPatient);
 
-  const handleSavePrescriptionRequest = () => {
-    if (!selectedPatient) {
-      toast({
-        title: "Error",
-        description: "Please select a patient",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!diagnosis.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a diagnosis",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!prescription.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter prescription details",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setConfirmDialogOpen(true);
-  };
-
-  // Fetch patients with role 'patient'
-  const { data: patients, isLoading: isLoadingPatients } = useQuery({
-    queryKey: ["all_patients"],
-    queryFn: async () => {
-      if (!user?.id) {
-        console.error("No authenticated doctor user found");
-        return [] as PatientProfile[];
-      }
-
-      console.log("Fetching all patients for prescription writer");
-      
-      try {
-        // Use the same RPC function as in PatientSelector
-        const { data, error } = await supabase.rpc('get_patients');
-        
-        if (error) {
-          console.error("Error fetching patients:", error);
-          throw error;
-        }
-        
-        console.log("Patient profiles found:", data.length);
-        return data as PatientProfile[];
-      } catch (error) {
-        console.error("Error fetching patients:", error);
-        return [] as PatientProfile[];
-      }
-    },
-  });
-
-  // Fetch prescriptions for the selected patient by the current doctor using our new RPC function
-  const { data: pastPrescriptions, refetch: refetchPrescriptions } = useQuery({
-    queryKey: ["patient_prescriptions", selectedPatient, user?.id],
-    queryFn: async () => {
-      if (!selectedPatient || !user?.id) {
-        console.log("Missing required IDs for prescription fetch:", { 
-          selectedPatient, 
-          doctorId: user?.id 
-        });
-        return [] as MedicalRecord[];
-      }
-      
-      console.log("Fetching prescriptions for patient:", selectedPatient, "by doctor:", user.id);
-      
-      try {
-        // Use our new security definer function
-        const { data, error } = await supabase.rpc('get_patient_medical_records', {
-          p_patient_id: selectedPatient,
-          p_doctor_id: user.id
-        });
-        
-        if (error) {
-          console.error("Error fetching medical records:", error);
-          throw error;
-        }
-        
-        const records = (data || []) as MedicalRecord[];
-        console.log("Medical records found:", records.length);
-        
-        return records;
-      } catch (error) {
-        console.error("Error fetching past prescriptions:", error);
-        return [] as MedicalRecord[];
-      }
-    },
-    enabled: !!selectedPatient && !!user?.id,
-  });
-
-  const handleSavePrescription = async () => {
-    if (isSaving) return; 
-    
-    try {
-      setIsSaving(true);
-      
-      if (!user?.id) {
-        throw new Error("Doctor ID not available. Please try again later.");
-      }
-      
-      console.log("Saving prescription for patient:", selectedPatient, "by doctor:", user.id);
-      
-      // Use our new security definer function to create a medical record
-      const { data, error } = await supabase.rpc('create_medical_record', {
-        p_patient_id: selectedPatient,
-        p_doctor_id: user.id,
-        p_diagnosis: diagnosis,
-        p_prescription: prescription,
-        p_notes: notes
-      });
-
-      if (error) {
-        console.error('Error saving prescription:', error);
-        throw error;
-      }
-
-      console.log("Prescription saved successfully with ID:", data);
-
-      toast({
-        title: "Success",
-        description: "Prescription saved successfully",
-      });
-
-      setConfirmDialogOpen(false);
-      
-      // Reset form fields
-      setDiagnosis("");
-      setPrescription("");
-      setNotes("");
-      
-      // Refresh the prescriptions list
-      await refetchPrescriptions();
-      
-      // Invalidate any related queries
-      queryClient.invalidateQueries({
-        queryKey: ["patient_medical_records", selectedPatient]
-      });
-      
-      // Switch to view tab to show the new prescription
-      setActiveTab("view");
-      
-    } catch (error: any) {
-      console.error('Error saving prescription:', error);
-      toast({
-        title: "Error",
-        description: `Failed to save prescription: ${error.message || "Unknown error"}`,
-        variant: "destructive",
-      });
-      
-    } finally {
-      setIsSaving(false);
-      setConfirmDialogOpen(false);
+  // Handler for when a patient is selected
+  const handlePatientSelect = () => {
+    if (activeTab === "write") {
+      resetForm();
     }
   };
-
-  const filteredPatients = React.useMemo(() => {
-    if (!patients || !Array.isArray(patients)) return [];
-    
-    if (!searchTerm) return patients;
-    
-    return patients.filter((patient) => {
-      const fullName = `${patient.first_name || ''} ${patient.last_name || ''}`.toLowerCase();
-      return fullName.includes(searchTerm.toLowerCase());
-    });
-  }, [patients, searchTerm]);
-
-  const selectedPatientName = React.useMemo(() => {
-    if (!selectedPatient || !patients || !Array.isArray(patients)) return "Select patient";
-    
-    const patient = patients.find(p => p.id === selectedPatient);
-    if (!patient) return "Select patient";
-    
-    return `${patient.first_name || ""} ${patient.last_name || ""}`;
-  }, [selectedPatient, patients]);
 
   return (
     <Card className="w-full">
@@ -250,59 +45,11 @@ export const PrescriptionWriter = () => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="patient">Select Patient <span className="text-red-500">*</span></Label>
-          
-          <Popover open={patientSearchOpen} onOpenChange={setPatientSearchOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={patientSearchOpen}
-                className="w-full justify-between"
-              >
-                {selectedPatientName}
-                <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[300px] p-0" align="start">
-              <Command>
-                <CommandInput 
-                  placeholder="Search patients..." 
-                  onValueChange={setSearchTerm}
-                  className="h-9"
-                />
-                <CommandList>
-                  <CommandEmpty>No patient found.</CommandEmpty>
-                  <CommandGroup className="max-h-[200px] overflow-y-auto">
-                    {isLoadingPatients ? (
-                      <CommandItem disabled>Loading patients...</CommandItem>
-                    ) : filteredPatients && filteredPatients.length > 0 ? (
-                      filteredPatients.map((patient) => (
-                        <CommandItem
-                          key={patient.id}
-                          onSelect={() => {
-                            setSelectedPatient(patient.id);
-                            setPatientSearchOpen(false);
-                            if (activeTab === "write") {
-                              setDiagnosis("");
-                              setPrescription("");
-                              setNotes("");
-                            }
-                          }}
-                        >
-                          {patient.first_name || "Unknown"} {patient.last_name || ""}
-                        </CommandItem>
-                      ))
-                    ) : (
-                      <CommandItem disabled>No patients found</CommandItem>
-                    )}
-                  </CommandGroup>
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
-        </div>
+        <PatientSelector 
+          selectedPatient={selectedPatient}
+          setSelectedPatient={setSelectedPatient}
+          onPatientSelect={handlePatientSelect}
+        />
 
         {selectedPatient && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -316,121 +63,33 @@ export const PrescriptionWriter = () => {
             </TabsList>
             
             <TabsContent value="write" className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="diagnosis">Diagnosis <span className="text-red-500">*</span></Label>
-                <Input
-                  id="diagnosis"
-                  value={diagnosis}
-                  onChange={(e) => setDiagnosis(e.target.value)}
-                  placeholder="Enter diagnosis"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="prescription">Prescription <span className="text-red-500">*</span></Label>
-                <Textarea
-                  id="prescription"
-                  value={prescription}
-                  onChange={(e) => setPrescription(e.target.value)}
-                  placeholder="Write prescription details"
-                  className="min-h-[100px]"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="notes">Additional Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add any additional notes"
-                />
-              </div>
-
-              <Button
-                className="w-full gap-2"
-                onClick={handleSavePrescriptionRequest}
-                disabled={isSaving}
-              >
-                <Save className="h-4 w-4" />
-                {isSaving ? "Saving..." : "Save Prescription"}
-              </Button>
+              <PrescriptionForm
+                diagnosis={diagnosis}
+                setDiagnosis={setDiagnosis}
+                prescription={prescription}
+                setPrescription={setPrescription}
+                notes={notes}
+                setNotes={setNotes}
+                onSavePrescription={handleSavePrescriptionRequest}
+                isSaving={isSaving}
+              />
             </TabsContent>
             
             <TabsContent value="view" className="pt-4">
-              {pastPrescriptions && pastPrescriptions.length > 0 ? (
-                <div className="rounded-md border overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Diagnosis</TableHead>
-                        <TableHead>Prescription</TableHead>
-                        <TableHead>Notes</TableHead>
-                        <TableHead>Doctor</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {pastPrescriptions.map((record) => (
-                        <TableRow key={record.id}>
-                          <TableCell>{format(new Date(record.created_at), 'MMM dd, yyyy')}</TableCell>
-                          <TableCell>{record.diagnosis}</TableCell>
-                          <TableCell className="max-w-md whitespace-pre-wrap break-words">{record.prescription}</TableCell>
-                          <TableCell className="max-w-xs whitespace-pre-wrap break-words">{record.notes || "-"}</TableCell>
-                          <TableCell>
-                            {`${record.doctor_first_name || 'Unknown'} ${record.doctor_last_name || ''}`}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  No prescriptions found for this patient by you
-                </div>
-              )}
+              <PrescriptionHistory prescriptions={pastPrescriptions} />
             </TabsContent>
           </Tabs>
         )}
 
-        <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Confirm Prescription</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to save this prescription? This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-2 mt-2">
-              <div className="p-3 bg-muted rounded-md">
-                <p className="font-medium">Diagnosis:</p>
-                <p className="text-sm">{diagnosis}</p>
-              </div>
-              <div className="p-3 bg-muted rounded-md">
-                <p className="font-medium">Prescription:</p>
-                <p className="text-sm whitespace-pre-wrap">{prescription}</p>
-              </div>
-              {notes && (
-                <div className="p-3 bg-muted rounded-md">
-                  <p className="font-medium">Notes:</p>
-                  <p className="text-sm whitespace-pre-wrap">{notes}</p>
-                </div>
-              )}
-            </div>
-            <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleSavePrescription}
-                disabled={isSaving}
-              >
-                {isSaving ? "Saving..." : "Confirm & Save"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <ConfirmationDialog 
+          isOpen={confirmDialogOpen}
+          onClose={() => setConfirmDialogOpen(false)}
+          onConfirm={handleSavePrescription}
+          diagnosis={diagnosis}
+          prescription={prescription}
+          notes={notes}
+          isSaving={isSaving}
+        />
       </CardContent>
     </Card>
   );
