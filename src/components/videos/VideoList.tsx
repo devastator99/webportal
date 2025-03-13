@@ -1,4 +1,3 @@
-
 import { useState, memo, useCallback } from "react";
 import { useQuery, QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,7 +27,6 @@ const VideoCard = memo(({ video }: { video: Video }) => {
           controls
           src={videoUrl}
           preload="none" // Don't preload video data
-          loading="lazy" // Use native lazy loading
         />
         <CardHeader>
           <CardTitle>{video.title}</CardTitle>
