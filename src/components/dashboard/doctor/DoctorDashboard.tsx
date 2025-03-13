@@ -1,7 +1,7 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase, getDoctorPatients } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
 import { StatsCards } from "@/components/dashboard/doctor/StatsCards";
 // import { TodaySchedule } from "@/components/dashboard/doctor/TodaySchedule";
 import { ChatInterface } from "@/components/chat/ChatInterface";
@@ -17,50 +17,68 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Users, Mic } from "lucide-react";
 import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
-import { useToast } from "@/hooks/use-toast";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [showVoiceScheduler, setShowVoiceScheduler] = useState(false);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  
+  // Create the action buttons to pass to the header
+  const actionButtons = (
+    <>
+      <Button 
+        className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+        size="sm"
+        onClick={() => {
+          console.log("Navigating to patients view");
+          navigate("/patients");
+        }}
+      >
+        <Users className="h-4 w-4" />
+        <span>Patients</span>
+      </Button>
+      
+      <ScheduleAppointment callerRole="doctor">
+        <Button 
+          className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+          size="sm"
+        >
+          <Calendar className="h-4 w-4" />
+          <span>Schedule</span>
+        </Button>
+      </ScheduleAppointment>
+
+      <Button 
+        className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+        size="sm"
+        onClick={() => setShowVoiceScheduler(true)}
+      >
+        <Mic className="h-4 w-4" />
+        <span>Voice Schedule</span>
+      </Button>
+    </>
+  );
   
   return (
     <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
-      <DashboardHeader />
+      <DashboardHeader actionButton={actionButtons} />
+      
+      {showVoiceScheduler && (
+        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50">
+          <div className="w-full max-w-md">
+            <VoiceScheduler onClose={() => setShowVoiceScheduler(false)} />
+          </div>
+        </div>
+      )}
       
       <StatsCards />
 
-      {/* Action buttons */}
-      <div className="flex flex-wrap justify-end gap-3">
-        <Link to="/patients">
-          <Button 
-            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
-          >
-            <Users className="h-4 w-4" />
-            <span>View All Patients</span>
-          </Button>
-        </Link>
-        
-        <ScheduleAppointment callerRole="doctor">
-          <Button 
-            className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
-          >
-            <Calendar className="h-4 w-4" />
-            <span>Schedule Patient Appointment</span>
-          </Button>
-        </ScheduleAppointment>
-      </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="space-y-6 lg:col-span-1">
-          <TodaySchedule />
-        </div>
-        <div className="lg:col-span-2 space-y-6">
+        {/* Commented out Today's Schedule as requested */}
+        <div className="lg:col-span-3 space-y-6">
           <DoctorAppointmentCalendar doctorId={user?.id || ""} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <DocumentAnalyzer />
