@@ -1,5 +1,5 @@
 
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Hero } from "@/components/Hero";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,8 +25,15 @@ export const LandingPage = () => {
   const { user, forceSignOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [visibleSections, setVisibleSections] = useState({
+    features: false,
+    testimonials: false,
+    pricing: false,
+    videos: false,
+    footer: false
+  });
 
-  // Force logout effect - with non-blocking approach
+  // Force logout effect - use a non-blocking approach 
   useEffect(() => {
     let isMounted = true;
     
@@ -53,35 +60,90 @@ export const LandingPage = () => {
     }
   }, [user, forceSignOut, toast]);
 
+  // Set up intersection observers for each section
+  useEffect(() => {
+    const observerOptions = {
+      rootMargin: '100px',
+      threshold: 0.1
+    };
+
+    const sectionObservers = {} as Record<string, IntersectionObserver>;
+    const sections = [
+      { id: 'features-section', key: 'features' },
+      { id: 'testimonials-section', key: 'testimonials' },
+      { id: 'pricing-section', key: 'pricing' },
+      { id: 'video-section', key: 'videos' },
+      { id: 'footer-section', key: 'footer' }
+    ];
+
+    sections.forEach(({ id, key }) => {
+      sectionObservers[key] = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleSections(prev => ({ ...prev, [key]: true }));
+          sectionObservers[key].disconnect();
+        }
+      }, observerOptions);
+
+      const element = document.getElementById(id);
+      if (element) {
+        sectionObservers[key].observe(element);
+      }
+    });
+
+    return () => {
+      Object.values(sectionObservers).forEach(observer => {
+        observer.disconnect();
+      });
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <Navbar />
       <Hero />
       
-      <Suspense fallback={<LoadingSpinner />}>
-        <Features />
-      </Suspense>
+      <div id="features-section" className="min-h-[200px]">
+        {visibleSections.features ? (
+          <Suspense fallback={<LoadingSpinner />}>
+            <Features />
+          </Suspense>
+        ) : <LoadingSpinner />}
+      </div>
       
-      <Suspense fallback={<LoadingSpinner />}>
-        <Testimonials />
-      </Suspense>
+      <div id="testimonials-section" className="min-h-[200px]">
+        {visibleSections.testimonials ? (
+          <Suspense fallback={<LoadingSpinner />}>
+            <Testimonials />
+          </Suspense>
+        ) : <LoadingSpinner />}
+      </div>
       
-      <Suspense fallback={<LoadingSpinner />}>
-        <Pricing />
-      </Suspense>
+      <div id="pricing-section" className="min-h-[200px]">
+        {visibleSections.pricing ? (
+          <Suspense fallback={<LoadingSpinner />}>
+            <Pricing />
+          </Suspense>
+        ) : <LoadingSpinner />}
+      </div>
       
-      <div id="video-section" className="container mx-auto px-4 py-16">
+      <div id="video-section" className="container mx-auto px-4 py-16 min-h-[200px]">
         <h2 className="text-3xl md:text-4xl font-bold text-center text-[#7E69AB] mb-12">
           Knowledge Sharing
         </h2>
-        <Suspense fallback={<LoadingSpinner />}>
-          <VideoList />
-        </Suspense>
+        {visibleSections.videos ? (
+          <Suspense fallback={<LoadingSpinner />}>
+            <VideoList />
+          </Suspense>
+        ) : <LoadingSpinner />}
       </div>
       
-      <Suspense fallback={<LoadingSpinner />}>
-        <Footer />
-      </Suspense>
+      <div id="footer-section" className="min-h-[200px]">
+        {visibleSections.footer ? (
+          <Suspense fallback={<LoadingSpinner />}>
+            <Footer />
+          </Suspense>
+        ) : <LoadingSpinner />}
+      </div>
     </div>
   );
 };
