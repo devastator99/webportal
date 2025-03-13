@@ -24,23 +24,23 @@ export const CollapsibleSection = ({
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [hasLoaded, setHasLoaded] = useState(defaultOpen);
   const [isLoading, setIsLoading] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
   const { resetInactivityTimer } = useAuth();
 
-  // Handle opening and loading of content
+  // Optimized toggle function
   const handleToggle = () => {
-    // Reset inactivity timer when user interacts with the section
     resetInactivityTimer();
     
     if (!isOpen && !hasLoaded && lazyLoad) {
       setIsLoading(true);
-      setIsOpen(true);
-      
-      // Small delay to allow loading state to render before mounting children
-      setTimeout(() => {
-        setHasLoaded(true);
-        setIsLoading(false);
-      }, 100);
+      // Use requestAnimationFrame for better performance
+      requestAnimationFrame(() => {
+        setIsOpen(true);
+        // Delay loading content slightly for smoother transition
+        setTimeout(() => {
+          setHasLoaded(true);
+          setIsLoading(false);
+        }, 50);
+      });
     } else {
       setIsOpen(!isOpen);
     }
@@ -74,18 +74,16 @@ export const CollapsibleSection = ({
       {isOpen && (
         <div 
           className="p-4" 
-          ref={contentRef}
           data-state={isOpen ? "open" : "closed"}
         >
           {isLoading && (
             <div className="space-y-3">
-              <Skeleton className="h-24 w-full" />
-              <Skeleton className="h-8 w-1/2" />
-              <Skeleton className="h-8 w-3/4" />
+              <Skeleton className="h-16 w-full" />
+              <Skeleton className="h-6 w-1/2" />
+              <Skeleton className="h-6 w-3/4" />
             </div>
           )}
           
-          {/* Only render children when section has been loaded */}
           {hasLoaded && !isLoading && children}
         </div>
       )}

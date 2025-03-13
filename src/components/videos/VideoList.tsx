@@ -16,12 +16,8 @@ interface Video {
   uploader_role: "patient" | "doctor" | "nutritionist" | "administrator" | "reception";
 }
 
-interface VideoCardProps {
-  video: Video;
-}
-
-const VideoCard = memo(({ video }: VideoCardProps) => {
-  // Add error handling for video URL retrieval
+// Memoized VideoCard with optimized rendering
+const VideoCard = memo(({ video }: { video: Video }) => {
   try {
     const videoUrl = supabase.storage.from('videos').getPublicUrl(video.video_path).data.publicUrl;
     
@@ -31,8 +27,8 @@ const VideoCard = memo(({ video }: VideoCardProps) => {
           className="w-full aspect-video object-cover"
           controls
           src={videoUrl}
-          preload="none"
-          onError={() => {}}
+          preload="none" // Don't preload video data
+          loading="lazy" // Use native lazy loading
         />
         <CardHeader>
           <CardTitle>{video.title}</CardTitle>
@@ -68,19 +64,19 @@ VideoCard.displayName = "VideoCard";
 
 const LoadingSkeleton = () => (
   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    {[...Array(3)].map((_, i) => (
+    {[...Array(2)].map((_, i) => (
       <Card key={i} className="animate-pulse">
-        <div className="h-48 bg-gray-200 rounded-t-lg" />
+        <div className="h-40 bg-gray-200 rounded-t-lg" />
         <CardHeader>
-          <div className="h-6 bg-gray-200 rounded w-3/4" />
-          <div className="h-4 bg-gray-200 rounded w-1/2 mt-2" />
+          <div className="h-5 bg-gray-200 rounded w-3/4" />
+          <div className="h-3 bg-gray-200 rounded w-1/2 mt-2" />
         </CardHeader>
       </Card>
     ))}
   </div>
 );
 
-// Sample videos for fallback when database is unavailable
+// Simplified sample videos
 const sampleVideos: Video[] = [
   {
     id: "sample1",
@@ -101,127 +97,85 @@ const sampleVideos: Video[] = [
     updated_at: new Date().toISOString(),
     uploaded_by: "sample",
     uploader_role: "doctor"
-  },
-  {
-    id: "sample3",
-    title: "Nutritional Guidelines for Hormone Health",
-    description: "Dietary recommendations to support endocrine system health.",
-    video_path: "sample/nutrition-hormones.mp4",
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    uploaded_by: "sample",
-    uploader_role: "nutritionist"
   }
 ];
 
-// Standalone VideoList component that doesn't require external QueryClientProvider
+// Optimized VideoList component
 export const VideoList = () => {
   const [showAll, setShowAll] = useState(false);
   
-  try {
-    // Try to use the existing QueryClient from context
-    const { data: videos, isLoading, error } = useQuery({
-      queryKey: ["knowledge_videos"],
-      queryFn: async () => {
-        try {
-          const { data, error } = await supabase
-            .from('knowledge_videos')
-            .select('*')
-            .order('created_at', { ascending: false });
+  // Simplified query with faster options
+  const { data: videos, isLoading } = useQuery({
+    queryKey: ["knowledge_videos"],
+    queryFn: async () => {
+      try {
+        const { data, error } = await supabase
+          .from('knowledge_videos')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(10); // Limit initial fetch
 
-          if (error) {
-            // Return sample videos instead of throwing error
-            return sampleVideos;
-          }
-          
-          if (!data || data.length === 0) {
-            return sampleVideos;
-          }
-          
-          return data as Video[];
-        } catch (err) {
-          // Return sample videos on any error
+        if (error || !data || data.length === 0) {
           return sampleVideos;
         }
-      },
-      // Minimize retry attempts and prevent showing loading state for too long
-      retry: 1,
-      staleTime: 60000,
-      gcTime: 300000,
-    });
+        
+        return data as Video[];
+      } catch (err) {
+        return sampleVideos;
+      }
+    },
+    // Faster query options
+    retry: 0,
+    staleTime: 300000,
+    refetchOnWindowFocus: false,
+  });
 
-    const toggleShowAll = useCallback(() => {
-      setShowAll(prev => !prev);
-    }, []);
+  const toggleShowAll = useCallback(() => {
+    setShowAll(prev => !prev);
+  }, []);
 
-    // Handle loading state
-    if (isLoading) {
-      return <LoadingSkeleton />;
-    }
-    
-    // Always use sample videos if there's an error or no videos
-    const displayVideos = videos || sampleVideos;
-    const displayedVideos = showAll ? displayVideos : displayVideos.slice(0, 4);
-    const hasMoreVideos = displayVideos.length > 4;
-
-    return (
-      <div className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayedVideos.map((video) => (
-            <VideoCard key={video.id} video={video} />
-          ))}
-        </div>
-        {hasMoreVideos && (
-          <div className="flex justify-center">
-            <Button 
-              variant="outline"
-              onClick={toggleShowAll}
-              className="mt-4"
-            >
-              {showAll ? "Show Less" : "Show More"}
-            </Button>
-          </div>
-        )}
-      </div>
-    );
-  } catch (error) {
-    // If there's an error with the query context, use a fallback with sample videos
-    // Create a simple display with sample videos
-    const displayedVideos = showAll ? sampleVideos : sampleVideos.slice(0, 4);
-    const hasMoreVideos = sampleVideos.length > 4;
-    
-    const toggleShowAll = useCallback(() => {
-      setShowAll(prev => !prev);
-    }, []);
-
-    return (
-      <div className="space-y-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayedVideos.map((video) => (
-            <VideoCard key={video.id} video={video} />
-          ))}
-        </div>
-        {hasMoreVideos && (
-          <div className="flex justify-center">
-            <Button 
-              variant="outline"
-              onClick={toggleShowAll}
-              className="mt-4"
-            >
-              {showAll ? "Show Less" : "Show More"}
-            </Button>
-          </div>
-        )}
-      </div>
-    );
+  if (isLoading) {
+    return <LoadingSkeleton />;
   }
+  
+  const displayVideos = videos || sampleVideos;
+  const displayedVideos = showAll ? displayVideos : displayVideos.slice(0, 3);
+  const hasMoreVideos = displayVideos.length > 3;
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {displayedVideos.map((video) => (
+          <VideoCard key={video.id} video={video} />
+        ))}
+      </div>
+      {hasMoreVideos && (
+        <div className="flex justify-center">
+          <Button 
+            variant="outline"
+            onClick={toggleShowAll}
+            className="mt-2"
+          >
+            {showAll ? "Show Less" : "Show More"}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
 };
 
-// Self-contained version of VideoList that brings its own QueryClient
-// This ensures it works even when used in a component tree without QueryClientProvider
+// Optimized standalone version with minimal QueryClient
 export const StandaloneVideoList = () => {
-  // Create a new QueryClient just for this component
-  const queryClient = new QueryClient();
+  // Create a lightweight QueryClient with minimal configuration
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        retry: 0,
+        staleTime: 300000,
+        refetchOnWindowFocus: false,
+      }
+    }
+  });
   
   return (
     <QueryClientProvider client={queryClient}>

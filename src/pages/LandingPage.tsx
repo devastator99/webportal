@@ -7,18 +7,16 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 
-// Lazy load non-critical components with proper error handling
-const Features = lazy(() => import("@/components/Features").then(module => ({ default: module.Features })));
-const Testimonials = lazy(() => import("@/components/Testimonials").then(module => ({ default: module.Testimonials })));
-const Pricing = lazy(() => import("@/components/Pricing").then(module => ({ default: module.Pricing })));
-const Footer = lazy(() => import("@/components/Footer").then(module => ({ default: module.Footer })));
-
-// Use a simpler import for VideoList to avoid potential issues
-const VideoList = lazy(() => import("@/components/videos/VideoList").then(module => ({ default: module.StandaloneVideoList })));
+// Lazy load non-critical components with minimal wrapping
+const Features = lazy(() => import("@/components/Features").then(m => ({ default: m.Features })));
+const Testimonials = lazy(() => import("@/components/Testimonials").then(m => ({ default: m.Testimonials })));
+const Pricing = lazy(() => import("@/components/Pricing").then(m => ({ default: m.Pricing })));
+const Footer = lazy(() => import("@/components/Footer").then(m => ({ default: m.Footer })));
+const VideoList = lazy(() => import("@/components/videos/VideoList").then(m => ({ default: m.StandaloneVideoList })));
 
 const LoadingSpinner = () => (
-  <div className="flex items-center justify-center p-12">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#9b87f5]"></div>
+  <div className="flex items-center justify-center p-6">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9b87f5]"></div>
   </div>
 );
 
@@ -34,71 +32,73 @@ export const LandingPage = () => {
     footer: false
   });
   
-  // Track whether video section has been expanded
-  const [isVideoSectionExpanded, setIsVideoSectionExpanded] = useState(false);
-
-  // Force logout effect - use a non-blocking approach 
+  // Simplified force logout effect
   useEffect(() => {
-    let isMounted = true;
-    
     if (user) {
-      // Show toast
       toast({
         title: "Logging out...",
         description: "Signing you out of your account",
       });
       
-      // Use a small timeout to avoid blocking the render
-      const timeoutId = setTimeout(() => {
-        if (isMounted) {
-          forceSignOut().catch(error => {
-            console.error("Force logout error:", error);
-          });
-        }
+      // Use setTimeout to avoid blocking rendering
+      setTimeout(() => {
+        forceSignOut().catch(error => {
+          console.error("Force logout error:", error);
+        });
       }, 100);
-      
-      return () => {
-        isMounted = false;
-        clearTimeout(timeoutId);
-      };
     }
   }, [user, forceSignOut, toast]);
 
-  // Set up intersection observers for each section
+  // Simplify intersection observer to reduce overhead
   useEffect(() => {
-    const observerOptions = {
-      rootMargin: '100px',
-      threshold: 0.1
-    };
-
-    const sectionObservers = {} as Record<string, IntersectionObserver>;
-    const sections = [
-      { id: 'features-section', key: 'features' },
-      { id: 'testimonials-section', key: 'testimonials' },
-      { id: 'pricing-section', key: 'pricing' },
-      { id: 'video-section', key: 'videos' },
-      { id: 'footer-section', key: 'footer' }
-    ];
-
-    sections.forEach(({ id, key }) => {
-      sectionObservers[key] = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting) {
-          setVisibleSections(prev => ({ ...prev, [key]: true }));
-          sectionObservers[key].disconnect();
-        }
+    // Only observe elements once the component is fully mounted
+    const timer = setTimeout(() => {
+      const observerOptions = {
+        rootMargin: '150px', // Load a bit earlier
+        threshold: 0.01 // Very small threshold for quicker triggering
+      };
+      
+      const sectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const sectionId = entry.target.id;
+            if (sectionId === 'features-section') {
+              setVisibleSections(prev => ({ ...prev, features: true }));
+            } else if (sectionId === 'testimonials-section') {
+              setVisibleSections(prev => ({ ...prev, testimonials: true }));
+            } else if (sectionId === 'pricing-section') {
+              setVisibleSections(prev => ({ ...prev, pricing: true }));
+            } else if (sectionId === 'video-section') {
+              setVisibleSections(prev => ({ ...prev, videos: true }));
+            } else if (sectionId === 'footer-section') {
+              setVisibleSections(prev => ({ ...prev, footer: true }));
+            }
+            sectionObserver.unobserve(entry.target);
+          }
+        });
       }, observerOptions);
-
-      const element = document.getElementById(id);
-      if (element) {
-        sectionObservers[key].observe(element);
-      }
-    });
-
-    return () => {
-      Object.values(sectionObservers).forEach(observer => {
-        observer.disconnect();
+      
+      const sections = [
+        'features-section', 
+        'testimonials-section', 
+        'pricing-section', 
+        'video-section', 
+        'footer-section'
+      ];
+      
+      sections.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+          sectionObserver.observe(element);
+        }
       });
-    };
+      
+      return () => {
+        sectionObserver.disconnect();
+      };
+    }, 100); // Short delay to ensure component is mounted
+    
+    return () => clearTimeout(timer);
   }, []);
 
   return (
@@ -106,31 +106,31 @@ export const LandingPage = () => {
       <Navbar />
       <Hero />
       
-      <div id="features-section" className="min-h-[200px]">
+      <div id="features-section" className="min-h-[50px]">
         {visibleSections.features ? (
           <Suspense fallback={<LoadingSpinner />}>
             <Features />
           </Suspense>
-        ) : <LoadingSpinner />}
+        ) : <div className="h-16"></div>}
       </div>
       
-      <div id="testimonials-section" className="min-h-[200px]">
+      <div id="testimonials-section" className="min-h-[50px]">
         {visibleSections.testimonials ? (
           <Suspense fallback={<LoadingSpinner />}>
             <Testimonials />
           </Suspense>
-        ) : <LoadingSpinner />}
+        ) : <div className="h-16"></div>}
       </div>
       
-      <div id="pricing-section" className="min-h-[200px]">
+      <div id="pricing-section" className="min-h-[50px]">
         {visibleSections.pricing ? (
           <Suspense fallback={<LoadingSpinner />}>
             <Pricing />
           </Suspense>
-        ) : <LoadingSpinner />}
+        ) : <div className="h-16"></div>}
       </div>
       
-      <div id="video-section" className="container mx-auto px-4 py-16 min-h-[200px]">
+      <div id="video-section" className="container mx-auto px-4 py-8 min-h-[50px]">
         {visibleSections.videos && (
           <CollapsibleSection 
             title="Knowledge Sharing" 
@@ -145,12 +145,12 @@ export const LandingPage = () => {
         )}
       </div>
       
-      <div id="footer-section" className="min-h-[200px]">
+      <div id="footer-section" className="min-h-[50px]">
         {visibleSections.footer ? (
           <Suspense fallback={<LoadingSpinner />}>
             <Footer />
           </Suspense>
-        ) : <LoadingSpinner />}
+        ) : <div className="h-16"></div>}
       </div>
     </div>
   );
