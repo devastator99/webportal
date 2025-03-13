@@ -1,5 +1,5 @@
 
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Hero } from "@/components/Hero";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,6 +25,7 @@ export const LandingPage = () => {
   const { user, forceSignOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [showVideos, setShowVideos] = useState(false);
 
   // Force logout effect - using the more aggressive approach
   useEffect(() => {
@@ -52,6 +53,31 @@ export const LandingPage = () => {
     }
   }, [user, forceSignOut, toast]);
 
+  // Detect when video section is near viewport to show videos
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          setShowVideos(true);
+          observer.disconnect();
+        }
+      },
+      { 
+        rootMargin: "200px" // Load when within 200px of viewport
+      }
+    );
+
+    const videoSection = document.getElementById("video-section");
+    if (videoSection) {
+      observer.observe(videoSection);
+    }
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <Navbar />
@@ -69,13 +95,19 @@ export const LandingPage = () => {
         <Pricing />
       </Suspense>
       
-      <div className="container mx-auto px-4 py-16">
+      <div id="video-section" className="container mx-auto px-4 py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center text-[#7E69AB] mb-12">
           Knowledge Sharing
         </h2>
-        <Suspense fallback={<LoadingSpinner />}>
-          <VideoList />
-        </Suspense>
+        {showVideos ? (
+          <Suspense fallback={<LoadingSpinner />}>
+            <VideoList />
+          </Suspense>
+        ) : (
+          <div className="h-48 flex items-center justify-center">
+            <LoadingSpinner />
+          </div>
+        )}
       </div>
       
       <Suspense fallback={<LoadingSpinner />}>
