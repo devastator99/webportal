@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -120,8 +119,9 @@ export const PatientDashboard = () => {
   const actionButton = (
     <ScheduleAppointment callerRole="patient">
       <Button 
-        className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+        className="text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
         size="sm"
+        variant="ghost"
       >
         <Calendar className="h-4 w-4" />
         <span>New Appointment</span>

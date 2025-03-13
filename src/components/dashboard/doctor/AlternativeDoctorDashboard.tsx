@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { StatsCards } from "@/components/dashboard/doctor/StatsCards";
@@ -81,8 +80,9 @@ export const AlternativeDoctorDashboard = () => {
   const actionButtons = (
     <>
       <Button 
-        className="w-full justify-start bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+        className="w-full justify-start text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
         size="sm"
+        variant="ghost"
         onClick={() => {
           navigate("/patients");
         }}
@@ -93,8 +93,9 @@ export const AlternativeDoctorDashboard = () => {
       
       <ScheduleAppointment callerRole="doctor">
         <Button 
-          className="w-full justify-start bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+          className="w-full justify-start text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
           size="sm"
+          variant="ghost"
         >
           <Calendar className="h-4 w-4" />
           <span>Schedule</span>
@@ -102,8 +103,9 @@ export const AlternativeDoctorDashboard = () => {
       </ScheduleAppointment>
 
       <Button 
-        className="w-full justify-start bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+        className="w-full justify-start text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
         size="sm"
+        variant="ghost"
         onClick={() => setShowVoiceScheduler(true)}
       >
         <Mic className="h-4 w-4" />
@@ -111,8 +113,9 @@ export const AlternativeDoctorDashboard = () => {
       </Button>
       
       <Button 
-        className="w-full justify-start bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+        className="w-full justify-start text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
         size="sm"
+        variant="ghost"
         onClick={() => navigate("/dashboard")}
       >
         <Layout className="h-4 w-4" />

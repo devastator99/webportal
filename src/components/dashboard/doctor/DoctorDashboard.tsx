@@ -14,7 +14,7 @@ import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWr
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, Mic } from "lucide-react";
+import { Calendar, Users, Mic, LayoutGrid } from "lucide-react";
 import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -30,8 +30,9 @@ export const DoctorDashboard = () => {
   const actionButtons = (
     <>
       <Button 
-        className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+        className="w-full justify-start text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
         size="sm"
+        variant="ghost"
         onClick={() => {
           console.log("Navigating to patients view");
           navigate("/patients");
@@ -43,8 +44,9 @@ export const DoctorDashboard = () => {
       
       <ScheduleAppointment callerRole="doctor">
         <Button 
-          className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+          className="w-full justify-start text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
           size="sm"
+          variant="ghost"
         >
           <Calendar className="h-4 w-4" />
           <span>Schedule</span>
@@ -52,12 +54,23 @@ export const DoctorDashboard = () => {
       </ScheduleAppointment>
 
       <Button 
-        className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+        className="w-full justify-start text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
         size="sm"
+        variant="ghost"
         onClick={() => setShowVoiceScheduler(true)}
       >
         <Mic className="h-4 w-4" />
         <span>Voice Schedule</span>
+      </Button>
+
+      <Button 
+        className="w-full justify-start text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
+        size="sm"
+        variant="ghost"
+        onClick={() => navigate("/dashboard-alt")}
+      >
+        <LayoutGrid className="h-4 w-4" />
+        <span>Collapsible View</span>
       </Button>
     </>
   );

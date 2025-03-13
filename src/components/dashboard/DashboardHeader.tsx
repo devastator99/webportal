@@ -1,4 +1,3 @@
-
 import React, { ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -13,7 +12,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { MoreHorizontal } from "lucide-react";
 
-// Define a proper interface for the profile data
 interface ProfileData {
   first_name?: string;
   last_name?: string;
@@ -28,7 +26,6 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
 
-  // Fetch profile data with improved error handling
   const { data: profile, isLoading, error: queryError } = useQuery<ProfileData | null>({
     queryKey: ["profile", user?.id],
     queryFn: async () => {
@@ -44,9 +41,7 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
           .maybeSingle();
 
         if (error) {
-          // Check if it's a "no rows returned" error, which means profile doesn't exist
           if (error.code === 'PGRST116') {
-            // Create a profile for this user
             const { data: newProfile, error: createError } = await supabase
               .from("profiles")
               .insert([{ 
@@ -68,7 +63,6 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
             return newProfile;
           }
           
-          // For other errors, return fallback name
           toast({
             variant: "destructive",
             title: "Profile Error",
@@ -78,7 +72,6 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
         }
 
         if (!data) {
-          // Create a profile for this user
           const { data: newProfile, error: createError } = await supabase
             .from("profiles")
             .insert([{ 
@@ -112,10 +105,9 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
     },
     enabled: !!user?.id,
     retry: 1,
-    staleTime: 60000, // Cache for 1 minute
+    staleTime: 60000,
   });
 
-  // Create welcome message based on user role and profile data
   const getWelcomeMessage = () => {
     if (!user) {
       return "Welcome to your dashboard";
@@ -123,7 +115,6 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
     
     const fallbackName = "User";
     
-    // While loading, show a simple welcome
     if (isLoading) {
       return `Welcome back!`;
     }
@@ -132,7 +123,6 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
       return `Welcome, ${fallbackName}`;
     }
     
-    // Use a generic name if no profile or profile name is available
     const firstName = profile?.first_name || fallbackName;
     const lastName = profile?.last_name ? ` ${profile.last_name}` : '';
     
@@ -143,17 +133,14 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
 
   const welcomeMessage = getWelcomeMessage();
   
-  // Determine if we need to use a popover (when there are multiple child elements)
   const shouldUsePopover = () => {
     if (!actionButton) return false;
     
-    // Check if actionButton is a React fragment or div with multiple children
     const isFragment = React.isValidElement(actionButton) && actionButton.type === React.Fragment;
     const isDiv = React.isValidElement(actionButton) && (actionButton.type === 'div' || actionButton.type === 'div');
     
     if (isFragment || isDiv) {
       const children = React.isValidElement(actionButton) ? actionButton.props?.children : null;
-      // If children is an array with more than 2 items, use popover
       return Array.isArray(children) && children.length > 2;
     }
     
@@ -172,13 +159,14 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
             <Popover>
               <PopoverTrigger asChild>
                 <Button 
-                  className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white shadow-md"
+                  className="text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] shadow-none border-[#9b87f5] border"
                   size="sm"
+                  variant="outline"
                 >
                   Actions <MoreHorizontal className="h-4 w-4 ml-1" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent align="end" className="w-fit p-2 bg-white dark:bg-gray-800 shadow-lg rounded-lg flex flex-col gap-2">
+              <PopoverContent align="end" className="w-fit p-2 bg-white dark:bg-gray-800 shadow-lg rounded-lg flex flex-col gap-2 border-[#D6BCFA]">
                 {actionButton}
               </PopoverContent>
             </Popover>
