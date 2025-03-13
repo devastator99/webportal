@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -94,10 +95,7 @@ export const Navbar = () => {
         <div className="flex items-center gap-3">
           {user && !isDashboardPage && (
             <Button 
-              onClick={() => {
-                resetInactivityTimer();
-                navigate("/dashboard");
-              }}
+              onClick={() => handleNavigation("/dashboard")}
               variant="outline" 
               className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2 font-medium shadow-sm"
               size="sm"

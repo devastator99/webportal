@@ -36,7 +36,7 @@ export const CollapsibleSection = ({
       setIsLoading(true);
       setIsOpen(true);
       
-      // Simulate loading delay (can be removed in production)
+      // Small delay to allow loading state to render before mounting children
       setTimeout(() => {
         setHasLoaded(true);
         setIsLoading(false);
@@ -58,6 +58,8 @@ export const CollapsibleSection = ({
       <div
         className="flex items-center justify-between p-4 cursor-pointer"
         onClick={handleToggle}
+        data-state={isOpen ? "open" : "closed"}
+        aria-expanded={isOpen}
       >
         <h3 className="text-lg font-medium">{title}</h3>
         {isOpen ? (
@@ -70,7 +72,11 @@ export const CollapsibleSection = ({
       {isOpen && <Separator />}
       
       {isOpen && (
-        <div className="p-4" ref={contentRef}>
+        <div 
+          className="p-4" 
+          ref={contentRef}
+          data-state={isOpen ? "open" : "closed"}
+        >
           {isLoading && (
             <div className="space-y-3">
               <Skeleton className="h-24 w-full" />
@@ -79,7 +85,8 @@ export const CollapsibleSection = ({
             </div>
           )}
           
-          {(hasLoaded || !lazyLoad) && children}
+          {/* Only render children when section has been loaded */}
+          {hasLoaded && !isLoading && children}
         </div>
       )}
     </div>
