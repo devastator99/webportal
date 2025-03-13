@@ -56,6 +56,30 @@ export const Navbar = () => {
     }
   };
 
+  const handleForceLogout = async () => {
+    try {
+      setIsSigningOut(true);
+      toast({
+        title: "Logging out...",
+        description: "Forcefully signing you out of your account",
+      });
+      await signOut();
+      navigate('/', { replace: true });
+      toast({
+        title: "Logged out",
+        description: "You have been successfully signed out",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error signing out",
+        description: "There was a problem signing you out. Please try again.",
+      });
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+
   const handleNavigation = (path: string) => {
     resetInactivityTimer();
     navigate(path);
@@ -93,6 +117,19 @@ export const Navbar = () => {
         </div>
         
         <div className="flex items-center gap-3">
+          {user && (
+            <Button
+              onClick={handleForceLogout}
+              variant="destructive"
+              className="gap-2 shadow-sm"
+              size="sm"
+              disabled={isSigningOut}
+            >
+              <LogOut className="h-4 w-4" />
+              <span>{isSigningOut ? "Logging Out..." : "Force Logout"}</span>
+            </Button>
+          )}
+          
           {user && !isDashboardPage && (
             <Button 
               onClick={() => handleNavigation("/dashboard")}
