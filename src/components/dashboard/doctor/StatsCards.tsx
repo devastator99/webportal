@@ -7,26 +7,30 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 
-// Define TypeScript types for the RPC function returns
-type DoctorAppointment = {
-  id: string;
-  scheduled_at: string;
-  status: "scheduled" | "completed" | "cancelled";
-};
+// Define TypeScript interface for the combined stats return
+interface DoctorStats {
+  patients_count: number;
+  medical_records_count: number;
+  appointments: {
+    id: string;
+    scheduled_at: string;
+    status: "scheduled" | "completed" | "cancelled";
+  }[];
+}
 
 export const StatsCards = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: patientsCount = 0, isError: isPatientsError } = useQuery({
-    queryKey: ["doctor_patients_count", user?.id],
+  const { data: doctorStats, isError } = useQuery({
+    queryKey: ["doctor_dashboard_stats", user?.id],
     queryFn: async () => {
-      if (!user?.id) return 0;
+      if (!user?.id) return { patients_count: 0, medical_records_count: 0, appointments: [] } as DoctorStats;
       
       try {
-        // Use RPC call to a stored procedure on the server side
+        // Use a single RPC call to fetch all stats in one go
         const { data, error } = await supabase.rpc(
-          'get_doctor_patients_count', 
+          'get_doctor_dashboard_stats', 
           { doctor_id: user.id }
         );
 
@@ -34,61 +38,19 @@ export const StatsCards = () => {
           throw error;
         }
         
-        return data as number || 0;
+        return data as DoctorStats || { 
+          patients_count: 0, 
+          medical_records_count: 0, 
+          appointments: [] 
+        };
       } catch (error) {
-        // Don't show toast here, just return 0
-        return 0;
-      }
-    },
-    enabled: !!user?.id,
-  });
-
-  const { data: medicalRecordsCount = 0, isError: isMedicalRecordsError } = useQuery({
-    queryKey: ["doctor_medical_records_count", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return 0;
-      
-      try {
-        // Use RPC call to a stored procedure on the server side
-        const { data, error } = await supabase.rpc(
-          'get_doctor_medical_records_count', 
-          { doctor_id: user.id }
-        );
-
-        if (error) {
-          throw error;
-        }
-        
-        return data as number || 0;
-      } catch (error) {
-        // Don't show toast here, just return 0
-        return 0;
-      }
-    },
-    enabled: !!user?.id,
-  });
-
-  const { data: appointments = [], isError: isAppointmentsError } = useQuery({
-    queryKey: ["doctor_appointments_stats", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [] as DoctorAppointment[];
-      
-      try {
-        // Use RPC call to a stored procedure on the server side
-        const { data, error } = await supabase.rpc(
-          'get_doctor_appointments', 
-          { doctor_id: user.id }
-        );
-
-        if (error) {
-          throw error;
-        }
-        
-        const typedData = data as DoctorAppointment[];
-        return typedData || [];
-      } catch (error) {
-        // Don't show toast here, just return an empty array
-        return [] as DoctorAppointment[];
+        console.error("Error fetching doctor stats:", error);
+        // Don't show toast here to avoid UI clutter
+        return { 
+          patients_count: 0, 
+          medical_records_count: 0, 
+          appointments: [] 
+        } as DoctorStats;
       }
     },
     enabled: !!user?.id,
@@ -96,8 +58,8 @@ export const StatsCards = () => {
 
   // Calculate today's appointments
   const today = format(new Date(), 'yyyy-MM-dd');
-  const todayAppointments = Array.isArray(appointments) 
-    ? appointments.filter(apt => 
+  const todayAppointments = doctorStats?.appointments 
+    ? doctorStats.appointments.filter(apt => 
         format(new Date(apt.scheduled_at), 'yyyy-MM-dd') === today && 
         apt.status === 'scheduled'
       )
@@ -105,8 +67,8 @@ export const StatsCards = () => {
 
   // Calculate upcoming appointments (future appointments)
   const now = new Date();
-  const upcomingAppointments = Array.isArray(appointments)
-    ? appointments.filter(apt => 
+  const upcomingAppointments = doctorStats?.appointments
+    ? doctorStats.appointments.filter(apt => 
         new Date(apt.scheduled_at) > now && 
         apt.status === 'scheduled'
       )
@@ -120,7 +82,7 @@ export const StatsCards = () => {
           <Users className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{isPatientsError ? "0" : patientsCount}</div>
+          <div className="text-2xl font-bold">{isError ? "0" : doctorStats?.patients_count || 0}</div>
           <p className="text-xs text-muted-foreground">Active patients under care</p>
         </CardContent>
       </Card>
@@ -131,7 +93,7 @@ export const StatsCards = () => {
           <Calendar className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{isAppointmentsError ? "0" : todayAppointments.length}</div>
+          <div className="text-2xl font-bold">{isError ? "0" : todayAppointments.length}</div>
           <p className="text-xs text-muted-foreground">Scheduled for today</p>
         </CardContent>
       </Card>
@@ -142,7 +104,7 @@ export const StatsCards = () => {
           <FileText className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{isMedicalRecordsError ? "0" : medicalRecordsCount}</div>
+          <div className="text-2xl font-bold">{isError ? "0" : doctorStats?.medical_records_count || 0}</div>
           <p className="text-xs text-muted-foreground">Total records created</p>
         </CardContent>
       </Card>
@@ -153,7 +115,7 @@ export const StatsCards = () => {
           <Clock className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold">{isAppointmentsError ? "0" : upcomingAppointments.length}</div>
+          <div className="text-2xl font-bold">{isError ? "0" : upcomingAppointments.length}</div>
           <p className="text-xs text-muted-foreground">Pending appointments</p>
         </CardContent>
       </Card>
