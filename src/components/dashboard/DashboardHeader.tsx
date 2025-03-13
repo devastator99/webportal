@@ -1,10 +1,9 @@
-
+import React, { ReactNode } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
-import { ReactNode } from "react";
 import { 
   Popover,
   PopoverContent,
@@ -182,11 +181,11 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
     if (!actionButton) return false;
     
     // Check if actionButton is a React fragment or div with multiple children
-    const isFragment = (actionButton as any)?.type === React.Fragment;
-    const isDiv = (actionButton as any)?.type === 'div';
+    const isFragment = React.isValidElement(actionButton) && actionButton.type === React.Fragment;
+    const isDiv = React.isValidElement(actionButton) && (actionButton.type === 'div' || actionButton.type === 'div');
     
     if (isFragment || isDiv) {
-      const children = (actionButton as any)?.props?.children;
+      const children = React.isValidElement(actionButton) ? actionButton.props?.children : null;
       // If children is an array with more than 2 items, use popover
       return Array.isArray(children) && children.length > 2;
     }
