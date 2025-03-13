@@ -813,6 +813,25 @@ export type Database = {
           uploaded_at: string
         }[]
       }
+      get_patient_prescriptions: {
+        Args: {
+          p_patient_id: string
+          p_doctor_id: string
+        }
+        Returns: {
+          id: string
+          created_at: string
+          diagnosis: string
+          prescription: string
+          notes: string
+          doctor_id: string
+          patient_id: string
+          doctor_first_name: string
+          doctor_last_name: string
+          patient_first_name: string
+          patient_last_name: string
+        }[]
+      }
       get_patients: {
         Args: Record<PropertyKey, never>
         Returns: {

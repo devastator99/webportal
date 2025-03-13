@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -29,7 +28,7 @@ export const usePrescriptions = (selectedPatient: string) => {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Fetch prescriptions for the selected patient
+  // Fetch prescriptions for the selected patient using our RPC function
   const { data: pastPrescriptions, refetch: refetchPrescriptions } = useQuery({
     queryKey: ["patient_prescriptions", selectedPatient, user?.id],
     queryFn: async () => {
@@ -38,53 +37,18 @@ export const usePrescriptions = (selectedPatient: string) => {
       }
       
       try {
-        // First, get basic medical records
-        const { data: records, error } = await supabase
-          .from('medical_records')
-          .select(`
-            id,
-            created_at,
-            diagnosis,
-            prescription,
-            notes,
-            doctor_id,
-            patient_id
-          `)
-          .eq('patient_id', selectedPatient)
-          .eq('doctor_id', user.id)
-          .order('created_at', { ascending: false });
+        // Use our secure RPC function to get prescriptions with patient and doctor details
+        const { data, error } = await supabase
+          .rpc('get_patient_prescriptions', {
+            p_patient_id: selectedPatient,
+            p_doctor_id: user.id
+          });
         
         if (error) {
           throw error;
         }
         
-        // Now, for each record, get doctor and patient details separately
-        const enhancedRecords = await Promise.all((records || []).map(async (record) => {
-          // Get doctor details
-          const { data: doctorData } = await supabase
-            .from('profiles')
-            .select('first_name, last_name')
-            .eq('id', record.doctor_id)
-            .single();
-          
-          // Get patient details
-          const { data: patientData } = await supabase
-            .from('profiles')
-            .select('first_name, last_name')
-            .eq('id', record.patient_id)
-            .single();
-          
-          // Combine all data
-          return {
-            ...record,
-            doctor_first_name: doctorData?.first_name || null,
-            doctor_last_name: doctorData?.last_name || null,
-            patient_first_name: patientData?.first_name || null,
-            patient_last_name: patientData?.last_name || null
-          } as MedicalRecord;
-        }));
-        
-        return enhancedRecords;
+        return data as MedicalRecord[] || [];
       } catch (error) {
         console.error("Error fetching prescriptions:", error);
         return [] as MedicalRecord[];
