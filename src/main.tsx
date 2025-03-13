@@ -11,7 +11,6 @@ const queryClient = new QueryClient({
       retry: 0, // No retries for faster initial load
       refetchOnWindowFocus: false,
       staleTime: 120000, // Further increase stale time to reduce refetches
-      suspense: false, // Disable suspense for better control
       networkMode: 'online', // Only fetch when online
     },
     mutations: {

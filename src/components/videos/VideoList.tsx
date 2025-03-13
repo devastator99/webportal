@@ -190,7 +190,6 @@ export const StandaloneVideoList = () => {
         retry: 0,
         staleTime: 300000,
         refetchOnWindowFocus: false,
-        suspense: false,
       }
     }
   }));
