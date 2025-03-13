@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -39,10 +40,8 @@ interface MedicalRecord {
   notes: string | null;
   doctor_id: string;
   patient_id: string;
-  doctor?: {
-    first_name: string | null;
-    last_name: string | null;
-  };
+  doctor_first_name: string | null;
+  doctor_last_name: string | null;
 }
 
 export const PrescriptionWriter = () => {
@@ -119,7 +118,7 @@ export const PrescriptionWriter = () => {
     },
   });
 
-  // Fetch prescriptions for the selected patient by the current doctor
+  // Fetch prescriptions for the selected patient by the current doctor using our new RPC function
   const { data: pastPrescriptions, refetch: refetchPrescriptions } = useQuery({
     queryKey: ["patient_prescriptions", selectedPatient, user?.id],
     queryFn: async () => {
@@ -134,48 +133,21 @@ export const PrescriptionWriter = () => {
       console.log("Fetching prescriptions for patient:", selectedPatient, "by doctor:", user.id);
       
       try {
-        // Directly query the medical_records table
-        const { data: medicalRecords, error: medicalRecordsError } = await supabase
-          .from('medical_records')
-          .select('id, created_at, diagnosis, prescription, notes, doctor_id, patient_id')
-          .eq('patient_id', selectedPatient)
-          .eq('doctor_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (medicalRecordsError) {
-          console.error("Error fetching medical records:", medicalRecordsError);
-          throw medicalRecordsError;
+        // Use our new security definer function
+        const { data, error } = await supabase.rpc('get_patient_medical_records', {
+          p_patient_id: selectedPatient,
+          p_doctor_id: user.id
+        });
+        
+        if (error) {
+          console.error("Error fetching medical records:", error);
+          throw error;
         }
         
-        const records = (medicalRecords || []) as MedicalRecord[];
+        const records = (data || []) as MedicalRecord[];
         console.log("Medical records found:", records.length);
         
-        if (records.length === 0) {
-          return [] as MedicalRecord[];
-        }
-        
-        // Get doctor's profile info
-        const { data: doctorProfile, error: doctorProfileError } = await supabase
-          .from("profiles")
-          .select("first_name, last_name")
-          .eq("id", user.id)
-          .single();
-          
-        if (doctorProfileError) {
-          console.error("Error fetching doctor profile:", doctorProfileError);
-          // Continue without doctor info rather than failing completely
-        }
-        
-        const doctorInfo = doctorProfile || { first_name: "Unknown", last_name: "" };
-        
-        // Attach doctor info to each record
-        return records.map(record => ({
-          ...record,
-          doctor: { 
-            first_name: doctorInfo.first_name, 
-            last_name: doctorInfo.last_name
-          }
-        }));
+        return records;
       } catch (error) {
         console.error("Error fetching past prescriptions:", error);
         return [] as MedicalRecord[];
@@ -196,27 +168,21 @@ export const PrescriptionWriter = () => {
       
       console.log("Saving prescription for patient:", selectedPatient, "by doctor:", user.id);
       
-      // Create the medical record object
-      const medicalRecord = {
-        patient_id: selectedPatient,
-        doctor_id: user.id,
-        diagnosis,
-        prescription,
-        notes: notes || null // Ensure null if empty string
-      };
-      
-      // Insert directly into the medical_records table
-      const { data, error } = await supabase
-        .from('medical_records')
-        .insert(medicalRecord)
-        .select();
+      // Use our new security definer function to create a medical record
+      const { data, error } = await supabase.rpc('create_medical_record', {
+        p_patient_id: selectedPatient,
+        p_doctor_id: user.id,
+        p_diagnosis: diagnosis,
+        p_prescription: prescription,
+        p_notes: notes
+      });
 
       if (error) {
         console.error('Error saving prescription:', error);
         throw error;
       }
 
-      console.log("Prescription saved successfully:", data);
+      console.log("Prescription saved successfully with ID:", data);
 
       toast({
         title: "Success",
@@ -412,9 +378,7 @@ export const PrescriptionWriter = () => {
                           <TableCell className="max-w-md whitespace-pre-wrap break-words">{record.prescription}</TableCell>
                           <TableCell className="max-w-xs whitespace-pre-wrap break-words">{record.notes || "-"}</TableCell>
                           <TableCell>
-                            {record.doctor ? 
-                              `${record.doctor.first_name} ${record.doctor.last_name}` : 
-                              'Unknown'}
+                            {`${record.doctor_first_name || 'Unknown'} ${record.doctor_last_name || ''}`}
                           </TableCell>
                         </TableRow>
                       ))}

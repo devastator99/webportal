@@ -655,6 +655,16 @@ export type Database = {
           status: Database["public"]["Enums"]["appointment_status"]
         }[]
       }
+      create_medical_record: {
+        Args: {
+          p_patient_id: string
+          p_doctor_id: string
+          p_diagnosis: string
+          p_prescription: string
+          p_notes: string
+        }
+        Returns: string
+      }
       create_test_users: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -771,6 +781,23 @@ export type Database = {
           id: string
           scheduled_at: string
           status: Database["public"]["Enums"]["appointment_status"]
+          doctor_first_name: string
+          doctor_last_name: string
+        }[]
+      }
+      get_patient_medical_records: {
+        Args: {
+          p_patient_id: string
+          p_doctor_id: string
+        }
+        Returns: {
+          id: string
+          created_at: string
+          diagnosis: string
+          prescription: string
+          notes: string
+          doctor_id: string
+          patient_id: string
           doctor_first_name: string
           doctor_last_name: string
         }[]
