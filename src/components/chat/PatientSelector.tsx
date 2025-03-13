@@ -1,6 +1,6 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase, asArray } from "@/integrations/supabase/client";
+import { supabase, asArray, safeGet } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -25,11 +25,13 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
       if (!user?.id) return [] as PatientProfile[];
       
       try {
-        // First, get all patient IDs assigned to this doctor
+        console.log("Fetching patient assignments for doctor:", user.id);
+        
+        // For doctor role, get patient assignments
         const { data: patientAssignments, error: assignmentError } = await supabase
           .from("patient_assignments")
           .select("patient_id")
-          .eq("doctor_id", user.id);
+          .eq("doctor_id", user.id as string);
           
         if (assignmentError) {
           console.error("Error fetching patient assignments:", assignmentError);
@@ -38,10 +40,16 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
         
         // If no patients assigned, return empty array
         if (!patientAssignments || patientAssignments.length === 0) {
+          console.log("No patient assignments found");
           return [] as PatientProfile[];
         }
         
-        const patientIds = patientAssignments.map(assignment => assignment.patient_id as string);
+        // Extract patient IDs as string array
+        const patientIds = patientAssignments.map(assignment => 
+          safeGet(assignment, 'patient_id', '') as string
+        ).filter(id => id !== '');
+        
+        console.log(`Found ${patientIds.length} patient assignments`);
         
         // Then fetch patient profiles data
         const { data: patientProfiles, error: profilesError } = await supabase
@@ -54,7 +62,10 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
           throw profilesError;
         }
         
-        return (patientProfiles || []) as PatientProfile[];
+        const profiles = asArray<PatientProfile>(patientProfiles);
+        console.log(`Fetched ${profiles.length} patient profiles`);
+        
+        return profiles;
       } catch (error) {
         console.error("Error in PatientSelector:", error);
         return [] as PatientProfile[];
@@ -84,7 +95,7 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
           <SelectValue placeholder="Select a patient" />
         </SelectTrigger>
         <SelectContent>
-          {patients.map((patient: PatientProfile) => (
+          {patients.map((patient) => (
             <SelectItem 
               key={patient.id} 
               value={patient.id}

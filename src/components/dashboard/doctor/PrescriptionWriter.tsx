@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -9,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { supabase, asArray, safeGet } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
@@ -26,7 +25,6 @@ import {
   DialogTitle 
 } from "@/components/ui/dialog";
 
-// Define interfaces for our data structures
 interface PatientProfile {
   id: string;
   first_name: string | null;
@@ -55,6 +53,7 @@ interface MedicalRecord {
 export const PrescriptionWriter = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [selectedPatient, setSelectedPatient] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
   const [prescription, setPrescription] = useState("");
@@ -96,16 +95,15 @@ export const PrescriptionWriter = () => {
     setConfirmDialogOpen(true);
   };
 
-  // Fetch all patients
   const { data: patients, isLoading: isLoadingPatients } = useQuery({
-    queryKey: ["all_patients_rpc"],
+    queryKey: ["all_patients"],
     queryFn: async () => {
       if (!user?.id) {
         console.error("No authenticated doctor user found");
         return [];
       }
 
-      console.log("Fetching all patients using RPC function");
+      console.log("Fetching all patients for prescription writer");
       
       const { data: patientUserIds, error: rpcError } = await supabase
         .rpc('get_users_by_role', { role_name: 'patient' });
@@ -115,13 +113,12 @@ export const PrescriptionWriter = () => {
         throw rpcError;
       }
       
-      console.log("Patient user IDs found via RPC:", patientUserIds?.length || 0);
+      const patientIds = asArray(patientUserIds).map(item => safeGet(item, 'user_id', ''));
+      console.log("Patient user IDs found:", patientIds.length);
       
-      if (!patientUserIds?.length) {
+      if (!patientIds.length) {
         return [] as PatientProfile[];
       }
-      
-      const patientIds = patientUserIds.map(item => item.user_id);
       
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
@@ -133,12 +130,13 @@ export const PrescriptionWriter = () => {
         throw profilesError;
       }
       
-      console.log("Patient profiles found:", profiles?.length || 0);
-      return (profiles || []) as PatientProfile[];
+      const patientProfiles = asArray<PatientProfile>(profiles);
+      console.log("Patient profiles found:", patientProfiles.length);
+      
+      return patientProfiles;
     },
   });
 
-  // Fetch prescriptions for the selected patient
   const { data: pastPrescriptions, refetch: refetchPrescriptions } = useQuery({
     queryKey: ["patient_prescriptions", selectedPatient, user?.id],
     queryFn: async () => {
@@ -152,17 +150,9 @@ export const PrescriptionWriter = () => {
       
       console.log("Fetching prescriptions for patient:", selectedPatient, "by doctor:", user.id);
       
-      // Directly query the medical_records table instead of using the RPC function
       const { data: medicalRecords, error: medicalRecordsError } = await supabase
         .from('medical_records')
-        .select(`
-          id,
-          created_at,
-          diagnosis,
-          prescription,
-          notes,
-          doctor_id
-        `)
+        .select('id, created_at, diagnosis, prescription, notes, doctor_id')
         .eq('patient_id', selectedPatient)
         .eq('doctor_id', user.id)
         .order('created_at', { ascending: false });
@@ -172,9 +162,10 @@ export const PrescriptionWriter = () => {
         throw medicalRecordsError;
       }
       
-      console.log("Medical records found:", medicalRecords?.length || 0);
+      const records = asArray<MedicalRecord>(medicalRecords);
+      console.log("Medical records found:", records.length);
       
-      if (!medicalRecords?.length) {
+      if (!records.length) {
         return [] as MedicalRecord[];
       }
       
@@ -191,13 +182,13 @@ export const PrescriptionWriter = () => {
       
       const doctorInfo = doctorProfile || { first_name: "Unknown", last_name: "" };
       
-      return (medicalRecords || []).map(record => ({
+      return records.map(record => ({
         ...record,
         doctor: { 
-          first_name: doctorInfo.first_name, 
-          last_name: doctorInfo.last_name 
+          first_name: safeGet(doctorInfo, 'first_name', null), 
+          last_name: safeGet(doctorInfo, 'last_name', null)
         }
-      })) as MedicalRecord[];
+      }));
     },
     enabled: !!selectedPatient && !!user?.id,
   });
@@ -214,16 +205,15 @@ export const PrescriptionWriter = () => {
       
       console.log("Saving prescription for patient:", selectedPatient, "by doctor:", user.id);
       
-      // Insert directly into the medical_records table
       const { data, error } = await supabase
         .from('medical_records')
-        .insert([{
+        .insert({
           patient_id: selectedPatient,
           doctor_id: user.id,
           diagnosis,
           prescription,
           notes
-        }])
+        })
         .select();
 
       if (error) {
@@ -240,15 +230,16 @@ export const PrescriptionWriter = () => {
 
       setConfirmDialogOpen(false);
       
-      // Clear the form fields
       setDiagnosis("");
       setPrescription("");
       setNotes("");
       
-      // Refresh the prescriptions list
       await refetchPrescriptions();
       
-      // Switch to the view tab
+      queryClient.invalidateQueries({
+        queryKey: ["patient_medical_records", selectedPatient]
+      });
+      
       setActiveTab("view");
       
     } catch (error: any) {
@@ -285,17 +276,26 @@ export const PrescriptionWriter = () => {
     return `${patient.first_name || ""} ${patient.last_name || ""}`;
   }, [selectedPatient, patients]);
 
-  // Auto-select Jane Doe if available
   useEffect(() => {
     if (patients && patients.length > 0 && !selectedPatient) {
+      const prakashPatient = patients.find(p => 
+        (p.first_name?.toLowerCase()?.includes('prakash') && p.last_name?.toLowerCase()?.includes('babu'))
+      );
+      
+      if (prakashPatient) {
+        console.log("Found Prakash Babu:", prakashPatient);
+        setSelectedPatient(prakashPatient.id);
+        return;
+      }
+      
       const janePatient = patients.find(p => 
         (p.first_name?.toLowerCase() === 'jane' && p.last_name?.toLowerCase() === 'doe') ||
         ((p.first_name?.toLowerCase()?.includes('jane') || p.last_name?.toLowerCase()?.includes('doe')))
       );
       
       if (janePatient) {
-        setSelectedPatient(janePatient.id);
         console.log("Found Jane Doe:", janePatient);
+        setSelectedPatient(janePatient.id);
       }
     }
   }, [patients, selectedPatient]);

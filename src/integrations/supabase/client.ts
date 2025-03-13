@@ -66,6 +66,6 @@ export function isArrayWithItems(data: any): boolean {
 // Safely get properties from an object, handle errors and null/undefined
 export function safeGet<T, K extends keyof T>(obj: T | null | undefined, key: K, defaultValue: T[K]): T[K] {
   if (!obj) return defaultValue;
-  if ('error' in (obj as any)) return defaultValue;
-  return (obj[key] !== undefined && obj[key] !== null) ? obj[key] : defaultValue;
+  if (typeof obj === 'object' && 'error' in (obj as any)) return defaultValue;
+  return ((obj as any)[key] !== undefined && (obj as any)[key] !== null) ? (obj as any)[key] : defaultValue;
 }
