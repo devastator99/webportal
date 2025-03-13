@@ -8,7 +8,7 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Define TypeScript interface for the combined stats return
+// Define TypeScript interface for the stats data
 interface DoctorStats {
   patients_count: number;
   medical_records_count: number;
@@ -29,27 +29,26 @@ export const StatsCards = () => {
       if (!user?.id) return { patients_count: 0, medical_records_count: 0, appointments: [] } as DoctorStats;
       
       try {
-        // Fetch patients count
-        const { data: patientsCount, error: patientsError } = await supabase
-          .from('patients')
-          .select('id', { count: 'exact', head: true })
-          .eq('doctor_id', user.id);
+        // Use the existing RPC functions to fetch counts
+        const { data: patientsCount, error: patientsError } = await supabase.rpc(
+          'get_doctor_patients_count', 
+          { doctor_id: user.id }
+        );
 
         if (patientsError) {
           console.error("Error fetching patients count:", patientsError);
         }
 
-        // Fetch medical records count
-        const { data: recordsCount, error: recordsError } = await supabase
-          .from('medical_records')
-          .select('id', { count: 'exact', head: true })
-          .eq('doctor_id', user.id);
+        const { data: recordsCount, error: recordsError } = await supabase.rpc(
+          'get_doctor_medical_records_count',
+          { doctor_id: user.id }
+        );
 
         if (recordsError) {
           console.error("Error fetching medical records count:", recordsError);
         }
 
-        // Fetch appointments
+        // Fetch appointments 
         const { data: appointments, error: appointmentsError } = await supabase
           .from('appointments')
           .select('id, scheduled_at, status')
@@ -60,8 +59,8 @@ export const StatsCards = () => {
         }
         
         return {
-          patients_count: patientsCount?.count || 0,
-          medical_records_count: recordsCount?.count || 0,
+          patients_count: patientsCount || 0,
+          medical_records_count: recordsCount || 0,
           appointments: appointments || []
         } as DoctorStats;
       } catch (error) {
