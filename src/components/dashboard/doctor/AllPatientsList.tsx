@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, fetchPatientPrescriptions } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,7 +69,7 @@ export const AllPatientsList = () => {
     enabled: !!user?.id,
   });
 
-  // Fetch patient prescriptions
+  // Fetch patient prescriptions using the new helper function
   const { data: prescriptions, isLoading: isLoadingPrescriptions } = useQuery({
     queryKey: ["patient_prescriptions_view", selectedPatient?.id, user?.id],
     queryFn: async () => {
@@ -77,20 +77,7 @@ export const AllPatientsList = () => {
       
       try {
         console.log("Fetching prescriptions for patient:", selectedPatient.id);
-        
-        const { data, error } = await supabase
-          .from("medical_records")
-          .select("id, created_at, diagnosis, prescription, notes")
-          .eq("patient_id", selectedPatient.id)
-          .eq("doctor_id", user.id)
-          .order("created_at", { ascending: false });
-          
-        if (error) {
-          console.error("Error fetching prescriptions:", error);
-          throw error;
-        }
-        
-        return data || [];
+        return await fetchPatientPrescriptions(selectedPatient.id, user.id);
       } catch (error) {
         console.error("Error fetching prescriptions:", error);
         toast({

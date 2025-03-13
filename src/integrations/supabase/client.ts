@@ -69,3 +69,54 @@ export function safeGet<T, K extends keyof T>(obj: T | null | undefined, key: K,
   if (typeof obj === 'object' && 'error' in (obj as any)) return defaultValue;
   return ((obj as any)[key] !== undefined && (obj as any)[key] !== null) ? (obj as any)[key] : defaultValue;
 }
+
+// Generic function to fetch prescriptions for a patient by a doctor
+export async function fetchPatientPrescriptions(patientId: string, doctorId: string) {
+  console.log(`Fetching prescriptions for patient: ${patientId} by doctor: ${doctorId}`);
+  
+  try {
+    // Using the get_doctor_patient_records RPC function to securely retrieve records
+    const { data, error } = await supabase.rpc('get_doctor_patient_records', {
+      p_doctor_id: doctorId,
+      p_patient_id: patientId
+    });
+    
+    if (error) {
+      console.error("Error fetching prescriptions:", error);
+      return [];
+    }
+    
+    console.log("Prescriptions retrieved successfully:", data);
+    return data || [];
+  } catch (err) {
+    console.error("Exception in fetchPatientPrescriptions:", err);
+    return [];
+  }
+}
+
+// Function to save a prescription using RPC
+export async function savePrescription(patientId: string, doctorId: string, diagnosis: string, prescription: string, notes: string) {
+  console.log('Saving prescription:', { patientId, doctorId, diagnosis, prescription, notes });
+  
+  try {
+    // Using the save_prescription RPC function to securely save records
+    const { data, error } = await supabase.rpc('save_prescription', {
+      p_patient_id: patientId,
+      p_doctor_id: doctorId,
+      p_diagnosis: diagnosis,
+      p_prescription: prescription,
+      p_notes: notes
+    });
+    
+    if (error) {
+      console.error("Error saving prescription:", error);
+      throw error;
+    }
+    
+    console.log("Prescription saved successfully with ID:", data);
+    return data;
+  } catch (err) {
+    console.error("Exception in savePrescription:", err);
+    throw err;
+  }
+}
