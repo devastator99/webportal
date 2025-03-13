@@ -32,66 +32,83 @@ export const LandingPage = () => {
     footer: false
   });
   
-  // Simplified force logout effect
+  // Fix: Handle force logout with try/catch and check if user exists
   useEffect(() => {
+    // Only attempt to log out if there's actually a user
     if (user) {
-      toast({
-        title: "Logging out...",
-        description: "Signing you out of your account",
-      });
-      
-      // Use setTimeout to avoid blocking rendering
-      setTimeout(() => {
-        forceSignOut().catch(error => {
+      const handleLogout = async () => {
+        try {
+          toast({
+            title: "Logging out...",
+            description: "Signing you out of your account",
+          });
+          
+          await forceSignOut();
+        } catch (error) {
           console.error("Force logout error:", error);
-        });
-      }, 50);
+        }
+      };
+      
+      // Use a small timeout to avoid blocking initial render
+      const timer = setTimeout(handleLogout, 50);
+      return () => clearTimeout(timer);
     }
   }, [user, forceSignOut, toast]);
 
-  // Ultra-lightweight intersection observer with improved performance
+  // Optimized intersection observer setup
   useEffect(() => {
-    // Use a single IntersectionObserver instance for better performance
-    const observerCallback = useCallback((entries: IntersectionObserverEntry[]) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const sectionId = entry.target.id;
-          
-          // Use functional update to avoid stale state
-          setVisibleSections(prev => {
-            if (sectionId === 'features-section' && !prev.features) {
-              return { ...prev, features: true };
-            } 
-            if (sectionId === 'testimonials-section' && !prev.testimonials) {
-              return { ...prev, testimonials: true };
-            }
-            if (sectionId === 'pricing-section' && !prev.pricing) {
-              return { ...prev, pricing: true };
-            }
-            if (sectionId === 'video-section' && !prev.videos) {
-              return { ...prev, videos: true };
-            }
-            if (sectionId === 'footer-section' && !prev.footer) {
-              return { ...prev, footer: true };
-            }
-            return prev;
-          });
-          
-          // Unobserve to save resources once section is visible
-          observer.unobserve(entry.target);
-        }
+    if (typeof IntersectionObserver === 'undefined') {
+      // Fallback for browsers without IntersectionObserver support
+      setVisibleSections({
+        features: true,
+        testimonials: true,
+        pricing: true,
+        videos: true,
+        footer: true
       });
-    }, []);
-    
-    const observerOptions = {
-      rootMargin: '200px', // Increased to load a bit earlier
-      threshold: 0.01 // Very small threshold for quicker triggering
-    };
-    
-    const observer = new IntersectionObserver(observerCallback, observerOptions);
+      return;
+    }
+
+    // Use a single IntersectionObserver instance for better performance
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const sectionId = entry.target.id;
+            
+            // Use functional update to avoid stale state
+            setVisibleSections(prev => {
+              if (sectionId === 'features-section' && !prev.features) {
+                return { ...prev, features: true };
+              } 
+              if (sectionId === 'testimonials-section' && !prev.testimonials) {
+                return { ...prev, testimonials: true };
+              }
+              if (sectionId === 'pricing-section' && !prev.pricing) {
+                return { ...prev, pricing: true };
+              }
+              if (sectionId === 'video-section' && !prev.videos) {
+                return { ...prev, videos: true };
+              }
+              if (sectionId === 'footer-section' && !prev.footer) {
+                return { ...prev, footer: true };
+              }
+              return prev;
+            });
+            
+            // Unobserve to save resources once section is visible
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      {
+        rootMargin: '200px',
+        threshold: 0.01
+      }
+    );
     
     // Begin observing with a small delay for better initial load performance
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       const sections = [
         'features-section', 
         'testimonials-section', 
@@ -109,6 +126,7 @@ export const LandingPage = () => {
     }, 50);
     
     return () => {
+      clearTimeout(timer);
       observer.disconnect();
     };
   }, []);
