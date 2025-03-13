@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,22 +7,16 @@ import { FileText, Save, Eye, Plus, Search } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, asArray, safeGet } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+  Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList 
+} from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 import { 
   Dialog, 
   DialogContent, 
@@ -30,6 +25,32 @@ import {
   DialogHeader, 
   DialogTitle 
 } from "@/components/ui/dialog";
+
+// Define interfaces for our data structures
+interface PatientProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+}
+
+interface DoctorProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+}
+
+interface MedicalRecord {
+  id: string;
+  created_at: string;
+  diagnosis: string | null;
+  prescription: string | null;
+  notes: string | null;
+  doctor_id: string;
+  doctor?: {
+    first_name: string | null;
+    last_name: string | null;
+  };
+}
 
 export const PrescriptionWriter = () => {
   const { user } = useAuth();
@@ -75,6 +96,7 @@ export const PrescriptionWriter = () => {
     setConfirmDialogOpen(true);
   };
 
+  // Fetch all patients
   const { data: patients, isLoading: isLoadingPatients } = useQuery({
     queryKey: ["all_patients_rpc"],
     queryFn: async () => {
@@ -96,7 +118,7 @@ export const PrescriptionWriter = () => {
       console.log("Patient user IDs found via RPC:", patientUserIds?.length || 0);
       
       if (!patientUserIds?.length) {
-        return [];
+        return [] as PatientProfile[];
       }
       
       const patientIds = patientUserIds.map(item => item.user_id);
@@ -112,10 +134,11 @@ export const PrescriptionWriter = () => {
       }
       
       console.log("Patient profiles found:", profiles?.length || 0);
-      return profiles || [];
+      return (profiles || []) as PatientProfile[];
     },
   });
 
+  // Fetch prescriptions for the selected patient
   const { data: pastPrescriptions, refetch: refetchPrescriptions } = useQuery({
     queryKey: ["patient_prescriptions", selectedPatient, user?.id],
     queryFn: async () => {
@@ -124,26 +147,35 @@ export const PrescriptionWriter = () => {
           selectedPatient, 
           doctorId: user?.id 
         });
-        return [];
+        return [] as MedicalRecord[];
       }
       
-      console.log("Fetching prescriptions using RPC for patient:", selectedPatient, "by doctor:", user.id);
+      console.log("Fetching prescriptions for patient:", selectedPatient, "by doctor:", user.id);
       
+      // Directly query the medical_records table instead of using the RPC function
       const { data: medicalRecords, error: medicalRecordsError } = await supabase
-        .rpc('get_doctor_patient_records', {
-          p_doctor_id: user.id,
-          p_patient_id: selectedPatient
-        });
+        .from('medical_records')
+        .select(`
+          id,
+          created_at,
+          diagnosis,
+          prescription,
+          notes,
+          doctor_id
+        `)
+        .eq('patient_id', selectedPatient)
+        .eq('doctor_id', user.id)
+        .order('created_at', { ascending: false });
 
       if (medicalRecordsError) {
-        console.error("Error fetching medical records via RPC:", medicalRecordsError);
+        console.error("Error fetching medical records:", medicalRecordsError);
         throw medicalRecordsError;
       }
       
-      console.log("Medical records found via RPC:", medicalRecords?.length || 0);
+      console.log("Medical records found:", medicalRecords?.length || 0);
       
       if (!medicalRecords?.length) {
-        return [];
+        return [] as MedicalRecord[];
       }
       
       const { data: doctorProfile, error: doctorProfileError } = await supabase
@@ -159,15 +191,13 @@ export const PrescriptionWriter = () => {
       
       const doctorInfo = doctorProfile || { first_name: "Unknown", last_name: "" };
       
-      return medicalRecords.map(record => ({
-        id: record.id,
-        created_at: record.created_at,
-        diagnosis: record.diagnosis,
-        prescription: record.prescription,
-        notes: record.notes,
-        doctor_id: record.doctor_id,
-        doctor: { first_name: doctorInfo.first_name, last_name: doctorInfo.last_name }
-      }));
+      return (medicalRecords || []).map(record => ({
+        ...record,
+        doctor: { 
+          first_name: doctorInfo.first_name, 
+          last_name: doctorInfo.last_name 
+        }
+      })) as MedicalRecord[];
     },
     enabled: !!selectedPatient && !!user?.id,
   });
@@ -184,16 +214,17 @@ export const PrescriptionWriter = () => {
       
       console.log("Saving prescription for patient:", selectedPatient, "by doctor:", user.id);
       
-      const { data, error } = await supabase.from('medical_records')
-        .insert({
+      // Insert directly into the medical_records table
+      const { data, error } = await supabase
+        .from('medical_records')
+        .insert([{
           patient_id: selectedPatient,
           doctor_id: user.id,
-          diagnosis: diagnosis,
-          prescription: prescription,
-          notes: notes
-        })
-        .select()
-        .single();
+          diagnosis,
+          prescription,
+          notes
+        }])
+        .select();
 
       if (error) {
         console.error('Error saving prescription:', error);
@@ -254,7 +285,8 @@ export const PrescriptionWriter = () => {
     return `${patient.first_name || ""} ${patient.last_name || ""}`;
   }, [selectedPatient, patients]);
 
-  React.useEffect(() => {
+  // Auto-select Jane Doe if available
+  useEffect(() => {
     if (patients && patients.length > 0 && !selectedPatient) {
       const janePatient = patients.find(p => 
         (p.first_name?.toLowerCase() === 'jane' && p.last_name?.toLowerCase() === 'doe') ||

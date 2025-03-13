@@ -22,7 +22,7 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
   const { data: assignedPatients, isLoading } = useQuery({
     queryKey: ["assigned_patients", user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) return [] as PatientProfile[];
       
       try {
         // First, get all patient IDs assigned to this doctor
@@ -38,10 +38,10 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
         
         // If no patients assigned, return empty array
         if (!patientAssignments || patientAssignments.length === 0) {
-          return [];
+          return [] as PatientProfile[];
         }
         
-        const patientIds = patientAssignments.map(assignment => assignment.patient_id);
+        const patientIds = patientAssignments.map(assignment => assignment.patient_id as string);
         
         // Then fetch patient profiles data
         const { data: patientProfiles, error: profilesError } = await supabase
@@ -57,7 +57,7 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
         return (patientProfiles || []) as PatientProfile[];
       } catch (error) {
         console.error("Error in PatientSelector:", error);
-        return [];
+        return [] as PatientProfile[];
       }
     },
     enabled: !!user?.id,
@@ -84,7 +84,7 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
           <SelectValue placeholder="Select a patient" />
         </SelectTrigger>
         <SelectContent>
-          {patients.map((patient) => (
+          {patients.map((patient: PatientProfile) => (
             <SelectItem 
               key={patient.id} 
               value={patient.id}

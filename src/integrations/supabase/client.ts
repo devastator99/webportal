@@ -11,7 +11,6 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
     persistSession: true,
     storageKey: 'supabase.auth.token',
-    storage: typeof window !== 'undefined' ? localStorage : undefined,
     detectSessionInUrl: true,
     flowType: 'pkce'
   },
@@ -57,4 +56,16 @@ export function safeExtractData<T>(result: any, defaultValue: T): T {
   if (!result) return defaultValue;
   if (typeof result === 'object' && 'error' in result) return defaultValue;
   return result as T;
+}
+
+// Helper to safely check if a function response is an array and has items
+export function isArrayWithItems(data: any): boolean {
+  return Array.isArray(data) && data.length > 0;
+}
+
+// Safely get properties from an object, handle errors and null/undefined
+export function safeGet<T, K extends keyof T>(obj: T | null | undefined, key: K, defaultValue: T[K]): T[K] {
+  if (!obj) return defaultValue;
+  if ('error' in (obj as any)) return defaultValue;
+  return (obj[key] !== undefined && obj[key] !== null) ? obj[key] : defaultValue;
 }
