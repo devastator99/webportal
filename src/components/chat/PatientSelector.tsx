@@ -1,10 +1,11 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { getAllPatients, PatientProfile } from "@/integrations/supabase/client";
+import { PatientProfile } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PatientSelectorProps {
   selectedPatientId: string | null;
@@ -21,11 +22,17 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
       try {
         console.log("Fetching all patients");
         
-        // Use RPC function to get all patients
-        const patients = await getAllPatients();
-        console.log(`Fetched ${patients.length} patient profiles:`, patients);
+        // Instead of using the user_roles table which has RLS issues,
+        // use the get_patients RPC function which is more reliable
+        const { data, error } = await supabase.rpc('get_patients');
         
-        return patients;
+        if (error) {
+          console.error("Error fetching patients:", error);
+          throw error;
+        }
+        
+        console.log(`Fetched ${data.length} patient profiles:`, data);
+        return data as PatientProfile[];
       } catch (error) {
         console.error("Error in PatientSelector:", error);
         toast({

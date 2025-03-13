@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -103,44 +102,16 @@ export const PrescriptionWriter = () => {
       console.log("Fetching all patients for prescription writer");
       
       try {
-        // First get all users with 'patient' role
-        const { data: patientRoles, error: rolesError } = await supabase
-          .from('user_roles')
-          .select('user_id')
-          .eq('role', 'patient');
+        // Use the same RPC function as in PatientSelector
+        const { data, error } = await supabase.rpc('get_patients');
         
-        if (rolesError) {
-          console.error("Error fetching patient roles:", rolesError);
-          throw rolesError;
+        if (error) {
+          console.error("Error fetching patients:", error);
+          throw error;
         }
         
-        // If no patients found, return empty array
-        if (!patientRoles || !Array.isArray(patientRoles) || patientRoles.length === 0) {
-          return [] as PatientProfile[];
-        }
-        
-        const patientIds = patientRoles.map(item => item.user_id).filter(Boolean);
-        console.log("Patient user IDs found:", patientIds.length);
-        
-        if (patientIds.length === 0) {
-          return [] as PatientProfile[];
-        }
-        
-        // Get profiles for these patients
-        const { data: profiles, error: profilesError } = await supabase
-          .from("profiles")
-          .select("id, first_name, last_name")
-          .in("id", patientIds);
-          
-        if (profilesError) {
-          console.error("Error fetching patient profiles:", profilesError);
-          throw profilesError;
-        }
-        
-        const patientProfiles = (profiles || []) as PatientProfile[];
-        console.log("Patient profiles found:", patientProfiles.length);
-        
-        return patientProfiles;
+        console.log("Patient profiles found:", data.length);
+        return data as PatientProfile[];
       } catch (error) {
         console.error("Error fetching patients:", error);
         return [] as PatientProfile[];
