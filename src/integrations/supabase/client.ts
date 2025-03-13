@@ -70,6 +70,48 @@ export function safeGet<T, K extends keyof T>(obj: T | null | undefined, key: K,
   return ((obj as any)[key] !== undefined && (obj as any)[key] !== null) ? (obj as any)[key] : defaultValue;
 }
 
+// Get patients for a doctor using RPC function to avoid RLS recursion issues
+export async function getDoctorPatients(doctorId: string) {
+  console.log(`Getting patients for doctor: ${doctorId}`);
+  
+  try {
+    const { data, error } = await supabase.rpc('get_doctor_patients', {
+      p_doctor_id: doctorId
+    });
+    
+    if (error) {
+      console.error("Error fetching doctor's patients:", error);
+      return [];
+    }
+    
+    console.log("Patients retrieved successfully:", data);
+    return data || [];
+  } catch (err) {
+    console.error("Exception in getDoctorPatients:", err);
+    return [];
+  }
+}
+
+// Get all patients (for administrators or system-wide views)
+export async function getAllPatients() {
+  console.log("Getting all patients");
+  
+  try {
+    const { data, error } = await supabase.rpc('get_all_patients');
+    
+    if (error) {
+      console.error("Error fetching all patients:", error);
+      return [];
+    }
+    
+    console.log("All patients retrieved successfully:", data);
+    return data || [];
+  } catch (err) {
+    console.error("Exception in getAllPatients:", err);
+    return [];
+  }
+}
+
 // Generic function to fetch prescriptions for a patient by a doctor
 export async function fetchPatientPrescriptions(patientId: string, doctorId: string) {
   console.log(`Fetching prescriptions for patient: ${patientId} by doctor: ${doctorId}`);

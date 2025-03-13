@@ -1,6 +1,6 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase, asArray, safeGet } from "@/integrations/supabase/client";
+import { getDoctorPatients } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -27,45 +27,11 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
       try {
         console.log("Fetching patient assignments for doctor:", user.id);
         
-        // For doctor role, get patient assignments
-        const { data: patientAssignments, error: assignmentError } = await supabase
-          .from("patient_assignments")
-          .select("patient_id")
-          .eq("doctor_id", user.id as string);
-          
-        if (assignmentError) {
-          console.error("Error fetching patient assignments:", assignmentError);
-          throw assignmentError;
-        }
+        // Use RPC function to get assigned patients for doctor
+        const patients = await getDoctorPatients(user.id);
+        console.log(`Fetched ${patients.length} patient profiles`);
         
-        // If no patients assigned, return empty array
-        if (!patientAssignments || patientAssignments.length === 0) {
-          console.log("No patient assignments found");
-          return [] as PatientProfile[];
-        }
-        
-        // Extract patient IDs as string array
-        const patientIds = patientAssignments.map(assignment => 
-          safeGet(assignment, 'patient_id', '') as string
-        ).filter(id => id !== '');
-        
-        console.log(`Found ${patientIds.length} patient assignments`);
-        
-        // Then fetch patient profiles data
-        const { data: patientProfiles, error: profilesError } = await supabase
-          .from("profiles")
-          .select("id, first_name, last_name")
-          .in("id", patientIds);
-          
-        if (profilesError) {
-          console.error("Error fetching patient profiles:", profilesError);
-          throw profilesError;
-        }
-        
-        const profiles = asArray<PatientProfile>(patientProfiles);
-        console.log(`Fetched ${profiles.length} patient profiles`);
-        
-        return profiles;
+        return patients;
       } catch (error) {
         console.error("Error in PatientSelector:", error);
         return [] as PatientProfile[];

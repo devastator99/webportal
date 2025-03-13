@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase, fetchPatientPrescriptions } from "@/integrations/supabase/client";
+import { supabase, fetchPatientPrescriptions, getDoctorPatients } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,7 +37,7 @@ export const AllPatientsList = () => {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [activeTab, setActiveTab] = useState<"prescriptions" | "reports">("prescriptions");
 
-  // Fetch all patients (using get_patients RPC function instead of direct patient_assignments query)
+  // Fetch all patients using our new RPC helper function
   const { data: patients, isLoading: isLoadingPatients } = useQuery({
     queryKey: ["patients_for_doctor", user?.id],
     queryFn: async () => {
@@ -45,17 +45,8 @@ export const AllPatientsList = () => {
       
       try {
         console.log("Fetching patients for doctor:", user.id);
-        
-        // Get all patients using the get_patients RPC function
-        const { data, error } = await supabase
-          .rpc('get_patients');
-          
-        if (error) {
-          console.error("Error fetching patients:", error);
-          throw error;
-        }
-        
-        return data || [];
+        // Use our RPC helper function instead of direct query
+        return await getDoctorPatients(user.id);
       } catch (error) {
         console.error("Error fetching patients:", error);
         toast({
@@ -69,7 +60,7 @@ export const AllPatientsList = () => {
     enabled: !!user?.id,
   });
 
-  // Fetch patient prescriptions using the new helper function
+  // Fetch patient prescriptions using the helper function
   const { data: prescriptions, isLoading: isLoadingPrescriptions } = useQuery({
     queryKey: ["patient_prescriptions_view", selectedPatient?.id, user?.id],
     queryFn: async () => {
