@@ -30,7 +30,7 @@ export const DoctorDashboard = () => {
   const actionButtons = (
     <>
       <Button 
-        className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+        className="w-full justify-start bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
         size="sm"
         onClick={() => {
           console.log("Navigating to patients view");
@@ -43,7 +43,7 @@ export const DoctorDashboard = () => {
       
       <ScheduleAppointment callerRole="doctor">
         <Button 
-          className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+          className="w-full justify-start bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
           size="sm"
         >
           <Calendar className="h-4 w-4" />
@@ -52,7 +52,7 @@ export const DoctorDashboard = () => {
       </ScheduleAppointment>
 
       <Button 
-        className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+        className="w-full justify-start bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
         size="sm"
         onClick={() => setShowVoiceScheduler(true)}
       >
@@ -61,7 +61,7 @@ export const DoctorDashboard = () => {
       </Button>
 
       <Button 
-        className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+        className="w-full justify-start bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
         size="sm"
         onClick={() => navigate("/dashboard-alt")}
       >

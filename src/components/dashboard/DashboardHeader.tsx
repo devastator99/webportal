@@ -5,6 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { ReactNode } from "react";
+import { 
+  Popover,
+  PopoverContent,
+  PopoverTrigger 
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { MoreHorizontal } from "lucide-react";
 
 // Define a proper interface for the profile data
 interface ProfileData {
@@ -169,16 +176,49 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
   };
 
   const welcomeMessage = getWelcomeMessage();
-  console.log("[Profile Debug] Final welcome message:", welcomeMessage);
+  
+  // Determine if we need to use a popover (when there are multiple child elements)
+  const shouldUsePopover = () => {
+    if (!actionButton) return false;
+    
+    // Check if actionButton is a React fragment or div with multiple children
+    const isFragment = (actionButton as any)?.type === React.Fragment;
+    const isDiv = (actionButton as any)?.type === 'div';
+    
+    if (isFragment || isDiv) {
+      const children = (actionButton as any)?.props?.children;
+      // If children is an array with more than 2 items, use popover
+      return Array.isArray(children) && children.length > 2;
+    }
+    
+    return false;
+  };
 
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full">
       <h1 className={`text-lg sm:text-xl md:text-2xl font-bold text-black dark:text-white py-2 px-1 ${userRole === 'doctor' ? 'text-base sm:text-lg md:text-xl' : ''}`}>
         {welcomeMessage}
       </h1>
+      
       {actionButton && (
         <div className="flex items-center gap-3 mt-2 sm:mt-0">
-          {actionButton}
+          {shouldUsePopover() ? (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button 
+                  className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white shadow-md"
+                  size="sm"
+                >
+                  Actions <MoreHorizontal className="h-4 w-4 ml-1" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-fit p-2 bg-white dark:bg-gray-800 shadow-lg rounded-lg flex flex-col gap-2">
+                {actionButton}
+              </PopoverContent>
+            </Popover>
+          ) : (
+            actionButton
+          )}
         </div>
       )}
     </div>
