@@ -5,6 +5,7 @@ import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 
 // Lazy load non-critical components with proper error handling
 const Features = lazy(() => import("@/components/Features").then(module => ({ default: module.Features })));
@@ -32,6 +33,9 @@ export const LandingPage = () => {
     videos: false,
     footer: false
   });
+  
+  // Track whether video section has been expanded
+  const [isVideoSectionExpanded, setIsVideoSectionExpanded] = useState(false);
 
   // Force logout effect - use a non-blocking approach 
   useEffect(() => {
@@ -127,14 +131,18 @@ export const LandingPage = () => {
       </div>
       
       <div id="video-section" className="container mx-auto px-4 py-16 min-h-[200px]">
-        <h2 className="text-3xl md:text-4xl font-bold text-center text-[#7E69AB] mb-12">
-          Knowledge Sharing
-        </h2>
-        {visibleSections.videos ? (
-          <Suspense fallback={<LoadingSpinner />}>
-            <VideoList />
-          </Suspense>
-        ) : <LoadingSpinner />}
+        {visibleSections.videos && (
+          <CollapsibleSection 
+            title="Knowledge Sharing" 
+            className="bg-white dark:bg-gray-800 shadow-md border-[#D6BCFA]"
+            defaultOpen={false}
+            lazyLoad={true}
+          >
+            <Suspense fallback={<LoadingSpinner />}>
+              <VideoList />
+            </Suspense>
+          </CollapsibleSection>
+        )}
       </div>
       
       <div id="footer-section" className="min-h-[200px]">
