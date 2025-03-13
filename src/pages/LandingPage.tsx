@@ -21,7 +21,7 @@ const LoadingSpinner = () => (
 );
 
 export const LandingPage = () => {
-  const { user, forceSignOut } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [visibleSections, setVisibleSections] = useState({
@@ -32,28 +32,7 @@ export const LandingPage = () => {
     footer: false
   });
   
-  // Fix: Handle force logout with try/catch and check if user exists
-  useEffect(() => {
-    // Only attempt to log out if there's actually a user
-    if (user) {
-      const handleLogout = async () => {
-        try {
-          toast({
-            title: "Logging out...",
-            description: "Signing you out of your account",
-          });
-          
-          await forceSignOut();
-        } catch (error) {
-          console.error("Force logout error:", error);
-        }
-      };
-      
-      // Use a small timeout to avoid blocking initial render
-      const timer = setTimeout(handleLogout, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [user, forceSignOut, toast]);
+  // Removed the force logout functionality since it should only be available on Admin dashboard
 
   // Optimized intersection observer setup
   useEffect(() => {

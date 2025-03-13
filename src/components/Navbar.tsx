@@ -22,6 +22,7 @@ export const Navbar = () => {
   const isMobile = useIsMobile();
   
   const isDashboardPage = location.pathname === '/dashboard';
+  const isAdminPage = location.pathname === '/admin';
 
   const navbarClass = isDashboardPage 
     ? "fixed top-0 w-full bg-white/90 dark:bg-black/90 backdrop-blur-md z-50 border-b border-[#D6BCFA] shadow-sm mb-16" 
@@ -120,7 +121,8 @@ export const Navbar = () => {
         </div>
         
         <div className="flex items-center gap-3">
-          {user && (
+          {/* Only show Force Logout button on the Admin page */}
+          {user && isAdminPage && (
             <Button
               onClick={handleForceLogout}
               variant="destructive"
