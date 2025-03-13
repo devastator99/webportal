@@ -659,6 +659,14 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_all_patients: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          first_name: string
+          last_name: string
+        }[]
+      }
       get_appointments_by_date: {
         Args: {
           p_doctor_id: string
@@ -723,6 +731,16 @@ export type Database = {
           prescription: string
           notes: string
           doctor_id: string
+        }[]
+      }
+      get_doctor_patients: {
+        Args: {
+          p_doctor_id: string
+        }
+        Returns: {
+          id: string
+          first_name: string
+          last_name: string
         }[]
       }
       get_doctor_patients_count: {

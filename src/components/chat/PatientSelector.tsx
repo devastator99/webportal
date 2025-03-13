@@ -1,6 +1,6 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { getDoctorPatients } from "@/integrations/supabase/client";
+import { getDoctorPatients, PatientProfile } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,12 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface PatientSelectorProps {
   selectedPatientId: string | null;
   onPatientSelect: (patientId: string) => void;
-}
-
-interface PatientProfile {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
 }
 
 export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientSelectorProps) => {
@@ -31,7 +25,7 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
         const patients = await getDoctorPatients(user.id);
         console.log(`Fetched ${patients.length} patient profiles`);
         
-        return patients as PatientProfile[];
+        return patients;
       } catch (error) {
         console.error("Error in PatientSelector:", error);
         return [] as PatientProfile[];

@@ -70,14 +70,21 @@ export function safeGet<T, K extends keyof T>(obj: T | null | undefined, key: K,
   return ((obj as any)[key] !== undefined && (obj as any)[key] !== null) ? (obj as any)[key] : defaultValue;
 }
 
+// Define patient profile interface for type safety
+export interface PatientProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+}
+
 // Get patients for a doctor using RPC function to avoid RLS recursion issues
-export async function getDoctorPatients(doctorId: string) {
+export async function getDoctorPatients(doctorId: string): Promise<PatientProfile[]> {
   console.log(`Getting patients for doctor: ${doctorId}`);
   
   try {
     const { data, error } = await supabase.rpc('get_doctor_patients', {
       p_doctor_id: doctorId
-    });
+    }) as { data: PatientProfile[] | null, error: any };
     
     if (error) {
       console.error("Error fetching doctor's patients:", error);
@@ -93,11 +100,14 @@ export async function getDoctorPatients(doctorId: string) {
 }
 
 // Get all patients (for administrators or system-wide views)
-export async function getAllPatients() {
+export async function getAllPatients(): Promise<PatientProfile[]> {
   console.log("Getting all patients");
   
   try {
-    const { data, error } = await supabase.rpc('get_all_patients');
+    const { data, error } = await supabase.rpc('get_all_patients') as { 
+      data: PatientProfile[] | null, 
+      error: any 
+    };
     
     if (error) {
       console.error("Error fetching all patients:", error);

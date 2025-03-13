@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase, fetchPatientPrescriptions, getDoctorPatients } from "@/integrations/supabase/client";
+import { supabase, fetchPatientPrescriptions, getDoctorPatients, PatientProfile } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,12 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Users, FileText, ClipboardList } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-
-interface Patient {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-}
 
 interface Prescription {
   id: string;
@@ -35,20 +28,20 @@ interface MedicalReport {
 export const AllPatientsList = () => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+  const [selectedPatient, setSelectedPatient] = useState<PatientProfile | null>(null);
   const [activeTab, setActiveTab] = useState<"prescriptions" | "reports">("prescriptions");
 
   // Fetch all patients using our new RPC helper function
   const { data: patients, isLoading: isLoadingPatients } = useQuery({
     queryKey: ["patients_for_doctor", user?.id],
     queryFn: async () => {
-      if (!user?.id) return [] as Patient[];
+      if (!user?.id) return [] as PatientProfile[];
       
       try {
         console.log("Fetching patients for doctor:", user.id);
         // Use our RPC helper function instead of direct query
         const result = await getDoctorPatients(user.id);
-        return result as Patient[];
+        return result;
       } catch (error) {
         console.error("Error fetching patients:", error);
         toast({
@@ -56,7 +49,7 @@ export const AllPatientsList = () => {
           description: "Failed to load patients. Please try again.",
           variant: "destructive",
         });
-        return [] as Patient[];
+        return [] as PatientProfile[];
       }
     },
     enabled: !!user?.id,
