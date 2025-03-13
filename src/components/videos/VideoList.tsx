@@ -4,6 +4,15 @@ import { useQuery, QueryClientProvider, QueryClient } from "@tanstack/react-quer
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from "@/components/ui/pagination";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Video {
   id: string;
@@ -99,10 +108,11 @@ const sampleVideos: Video[] = [
   }
 ];
 
-// Optimized VideoList component
+// Optimized VideoList component with pagination
 export const VideoList = () => {
-  const [showAll, setShowAll] = useState(false);
   const [shouldFetch, setShouldFetch] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 2; // Show only 2 videos per page initially for faster loading
   
   // Only fetch when component is visible and interactive
   useEffect(() => {
@@ -115,24 +125,23 @@ export const VideoList = () => {
   }, []);
   
   // Simplified query with faster options and conditional execution
-  const { data: videos, isLoading } = useQuery({
+  const { data: allVideos, isLoading } = useQuery({
     queryKey: ["knowledge_videos"],
     queryFn: async () => {
       try {
-        // Use a smaller limit for initial fetch
+        // Fetch all available videos, but we'll paginate them on the client side
         const { data, error } = await supabase
           .from('knowledge_videos')
           .select('*')
-          .order('created_at', { ascending: false })
-          .limit(showAll ? 10 : 3); // Only fetch what we need
+          .order('created_at', { ascending: false });
 
         if (error || !data || data.length === 0) {
-          return sampleVideos.slice(0, showAll ? sampleVideos.length : 3);
+          return sampleVideos;
         }
         
         return data as Video[];
       } catch (err) {
-        return sampleVideos.slice(0, showAll ? sampleVideos.length : 3);
+        return sampleVideos;
       }
     },
     // Faster query options
@@ -142,9 +151,29 @@ export const VideoList = () => {
     enabled: shouldFetch, // Only run query when shouldFetch is true
   });
 
-  const toggleShowAll = useCallback(() => {
-    setShowAll(prev => !prev);
+  // Calculate pagination information
+  const videos = allVideos || sampleVideos;
+  const totalPages = Math.ceil(videos.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const displayVideos = videos.slice(startIndex, startIndex + itemsPerPage);
+  
+  const goToPage = useCallback((page: number) => {
+    setCurrentPage(page);
+    // Scroll to top of video list
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
+
+  const nextPage = useCallback(() => {
+    if (currentPage < totalPages) {
+      goToPage(currentPage + 1);
+    }
+  }, [currentPage, totalPages, goToPage]);
+
+  const prevPage = useCallback(() => {
+    if (currentPage > 1) {
+      goToPage(currentPage - 1);
+    }
+  }, [currentPage, goToPage]);
 
   // Use simplified early loading state
   if (!shouldFetch) {
@@ -154,9 +183,6 @@ export const VideoList = () => {
   if (isLoading) {
     return <LoadingSkeleton />;
   }
-  
-  const displayVideos = videos || sampleVideos.slice(0, 3);
-  const hasMoreVideos = (videos && videos.length > 3) || sampleVideos.length > 3;
 
   return (
     <div className="space-y-6">
@@ -165,16 +191,36 @@ export const VideoList = () => {
           <VideoCard key={video.id} video={video} />
         ))}
       </div>
-      {hasMoreVideos && (
-        <div className="flex justify-center">
-          <Button 
-            variant="outline"
-            onClick={toggleShowAll}
-            className="mt-2"
-          >
-            {showAll ? "Show Less" : "Show More"}
-          </Button>
-        </div>
+      
+      {totalPages > 1 && (
+        <Pagination className="mt-4">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious 
+                onClick={prevPage} 
+                className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              />
+            </PaginationItem>
+            
+            {[...Array(totalPages)].map((_, i) => (
+              <PaginationItem key={i}>
+                <PaginationLink 
+                  isActive={currentPage === i + 1}
+                  onClick={() => goToPage(i + 1)}
+                >
+                  {i + 1}
+                </PaginationLink>
+              </PaginationItem>
+            ))}
+            
+            <PaginationItem>
+              <PaginationNext 
+                onClick={nextPage} 
+                className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+              />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
       )}
     </div>
   );
