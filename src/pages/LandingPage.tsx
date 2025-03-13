@@ -1,7 +1,9 @@
-
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Hero } from "@/components/Hero";
 import { Navbar } from "@/components/Navbar";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 // Lazy load non-critical components with proper error handling
 const Features = lazy(() => import("@/components/Features").then(module => ({ default: module.Features })));
@@ -19,7 +21,39 @@ const LoadingSpinner = () => (
 );
 
 export const LandingPage = () => {
-  // Add error boundary for each suspense to prevent the entire page from failing
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // Force logout effect
+  useEffect(() => {
+    const performForceLogout = async () => {
+      if (user) {
+        try {
+          toast({
+            title: "Logging out...",
+            description: "Forcefully signing you out of your account",
+          });
+          
+          await signOut();
+          
+          toast({
+            title: "Logged out",
+            description: "You have been successfully signed out",
+          });
+        } catch (error) {
+          toast({
+            variant: "destructive",
+            title: "Error signing out",
+            description: "There was a problem signing you out. Please try again.",
+          });
+        }
+      }
+    };
+
+    performForceLogout();
+  }, [user, signOut, toast]);
+
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <Navbar />
