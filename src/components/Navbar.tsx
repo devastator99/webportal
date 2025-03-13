@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -11,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export const Navbar = () => {
-  const { user, isLoading, signOut, userRole } = useAuth();
+  const { user, isLoading, signOut, userRole, resetInactivityTimer } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -21,10 +20,8 @@ export const Navbar = () => {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   
-  // Check if we're on the dashboard page
   const isDashboardPage = location.pathname === '/dashboard';
 
-  // Add more bottom margin on dashboard page
   const navbarClass = isDashboardPage 
     ? "fixed top-0 w-full bg-white/90 dark:bg-black/90 backdrop-blur-md z-50 border-b border-[#D6BCFA] shadow-sm mb-16" 
     : "fixed top-0 w-full bg-white/90 dark:bg-black/90 backdrop-blur-md z-50 border-b border-[#D6BCFA] shadow-sm";
@@ -32,11 +29,12 @@ export const Navbar = () => {
   useEffect(() => {
     if (user && !isLoading && isDialogOpen) {
       setIsDialogOpen(false);
+      resetInactivityTimer();
       if (location.pathname === '/') {
         navigate('/dashboard');
       }
     }
-  }, [user, isLoading, navigate, location.pathname, isDialogOpen]);
+  }, [user, isLoading, navigate, location.pathname, isDialogOpen, resetInactivityTimer]);
 
   const handleSignOut = async () => {
     try {
@@ -47,7 +45,6 @@ export const Navbar = () => {
         description: "You have been signed out of your account",
       });
     } catch (error) {
-      console.error("Sign out error in Navbar:", error);
       toast({
         variant: "destructive",
         title: "Error signing out",
@@ -58,14 +55,21 @@ export const Navbar = () => {
     }
   };
 
-  // Prevent rendering during initial loading, but show a simplified version for public pages
+  const handleNavigation = (path: string) => {
+    resetInactivityTimer();
+    navigate(path);
+  };
+
   if (isLoading && !isSigningOut && location.pathname !== '/') {
     return (
       <nav className={navbarClass}>
         <div className="container mx-auto px-4 py-2.5 flex justify-between items-center">
           <div 
             className="text-xl sm:text-2xl font-bold text-[#9b87f5] cursor-pointer" 
-            onClick={() => navigate("/")}
+            onClick={() => {
+              resetInactivityTimer();
+              navigate("/");
+            }}
           >
             Anubhuti
           </div>
@@ -79,16 +83,21 @@ export const Navbar = () => {
       <div className="container mx-auto px-4 py-2.5 flex justify-between items-center">
         <div 
           className="text-xl sm:text-2xl font-bold text-[#9b87f5] cursor-pointer" 
-          onClick={() => navigate("/")}
+          onClick={() => {
+            resetInactivityTimer();
+            navigate("/");
+          }}
         >
           Anubhuti
         </div>
         
         <div className="flex items-center gap-3">
-          {/* Dashboard button - only show when user is logged in AND not on dashboard page */}
           {user && !isDashboardPage && (
             <Button 
-              onClick={() => navigate("/dashboard")}
+              onClick={() => {
+                resetInactivityTimer();
+                navigate("/dashboard");
+              }}
               variant="outline" 
               className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2 font-medium shadow-sm"
               size="sm"
@@ -99,11 +108,15 @@ export const Navbar = () => {
           )}
           
           {!user && (
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <Dialog open={isDialogOpen} onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (open) resetInactivityTimer();
+            }}>
               <DialogTrigger asChild>
                 <Button 
                   className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
                   size="sm"
+                  onClick={() => resetInactivityTimer()}
                 >
                   <LogIn className="h-4 w-4" />
                   <span className="hidden sm:inline">Sign In</span>
@@ -121,7 +134,10 @@ export const Navbar = () => {
                   <Button
                     type="button"
                     variant="ghost"
-                    onClick={() => setIsLoginMode(!isLoginMode)}
+                    onClick={() => {
+                      setIsLoginMode(!isLoginMode);
+                      resetInactivityTimer();
+                    }}
                     disabled={loading}
                   >
                     {isLoginMode ? "Need an account? Sign up" : "Already have an account? Sign in"}
@@ -133,7 +149,10 @@ export const Navbar = () => {
           
           {user && (
             <Button 
-              onClick={handleSignOut}
+              onClick={() => {
+                resetInactivityTimer();
+                handleSignOut();
+              }}
               variant="outline" 
               className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2 font-medium shadow-sm"
               size="sm"

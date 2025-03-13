@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -12,13 +12,17 @@ type AuthContextType = {
   userRole: UserRole | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
+  resetInactivityTimer: () => void;
 };
+
+const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutes in milliseconds
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   userRole: null,
   isLoading: true,
   signOut: async () => {},
+  resetInactivityTimer: () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -28,7 +32,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [authInitialized, setAuthInitialized] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const inactivityTimerRef = useRef<number | null>(null);
 
+  const resetInactivityTimer = () => {
+    // Clear the existing timer if there is one
+    if (inactivityTimerRef.current) {
+      window.clearTimeout(inactivityTimerRef.current);
+    }
+    
+    // Only set a new timer if the user is logged in
+    if (user) {
+      inactivityTimerRef.current = window.setTimeout(() => {
+        signOut();
+        toast({
+          title: "Session expired",
+          description: "You have been logged out due to inactivity",
+        });
+      }, INACTIVITY_TIMEOUT);
+    }
+  };
+
+  // Fetch user role function
   const fetchUserRole = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -67,9 +91,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } catch (roleError) {
           setUserRole(null);
         }
+        
+        // Reset the inactivity timer when auth state changes to logged in
+        resetInactivityTimer();
       } else {
         setUser(null);
         setUserRole(null);
+        
+        // Clear any existing inactivity timer when logged out
+        if (inactivityTimerRef.current) {
+          window.clearTimeout(inactivityTimerRef.current);
+          inactivityTimerRef.current = null;
+        }
       }
     } catch (error) {
       // Silent error handling
@@ -109,14 +142,63 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       return () => {
+        // Clean up the inactivity timer when the component unmounts
+        if (inactivityTimerRef.current) {
+          window.clearTimeout(inactivityTimerRef.current);
+        }
         subscription.unsubscribe();
       };
     } catch (error) {
       setIsLoading(false);
       setAuthInitialized(true);
-      return () => {};
+      return () => {
+        // Clean up the inactivity timer when the component unmounts
+        if (inactivityTimerRef.current) {
+          window.clearTimeout(inactivityTimerRef.current);
+        }
+      };
     }
   }, []);
+
+  // Set up event listeners for user activity to reset the timer
+  useEffect(() => {
+    // Only set up listeners if we have a user
+    if (!user) return;
+    
+    // List of events to listen for
+    const events = [
+      'mousedown',
+      'mousemove',
+      'keypress',
+      'scroll',
+      'touchstart',
+      'click'
+    ];
+    
+    // Event handler to reset the timer
+    const handleUserActivity = () => {
+      resetInactivityTimer();
+    };
+    
+    // Add event listeners
+    events.forEach(event => {
+      window.addEventListener(event, handleUserActivity);
+    });
+    
+    // Initialize the timer
+    resetInactivityTimer();
+    
+    // Clean up event listeners on unmount
+    return () => {
+      events.forEach(event => {
+        window.removeEventListener(event, handleUserActivity);
+      });
+      
+      if (inactivityTimerRef.current) {
+        window.clearTimeout(inactivityTimerRef.current);
+      }
+    };
+  }, [user]);
 
   const signOut = async () => {
     try {
@@ -140,6 +222,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           title: "Signed out successfully"
         });
       }
+      
+      // Clear the inactivity timer when signing out
+      if (inactivityTimerRef.current) {
+        window.clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = null;
+      }
     } catch (error: any) {
       navigate('/', { replace: true });
     } finally {
@@ -149,14 +237,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   if (!authInitialized) {
     return (
-      <AuthContext.Provider value={{ user: null, userRole: null, isLoading: true, signOut: async () => {} }}>
+      <AuthContext.Provider value={{ user: null, userRole: null, isLoading: true, signOut: async () => {}, resetInactivityTimer: () => {} }}>
         {children}
       </AuthContext.Provider>
     );
   }
 
   return (
-    <AuthContext.Provider value={{ user, userRole, isLoading, signOut }}>
+    <AuthContext.Provider value={{ user, userRole, isLoading, signOut, resetInactivityTimer }}>
       {children}
     </AuthContext.Provider>
   );

@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface CollapsibleSectionProps {
   title: string;
@@ -24,9 +25,13 @@ export const CollapsibleSection = ({
   const [hasLoaded, setHasLoaded] = useState(defaultOpen);
   const [isLoading, setIsLoading] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const { resetInactivityTimer } = useAuth();
 
   // Handle opening and loading of content
   const handleToggle = () => {
+    // Reset inactivity timer when user interacts with the section
+    resetInactivityTimer();
+    
     if (!isOpen && !hasLoaded && lazyLoad) {
       setIsLoading(true);
       setIsOpen(true);
