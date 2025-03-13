@@ -2,19 +2,44 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { ChatInterface } from "../chat/ChatInterface";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import { PatientStats } from "./patient/PatientStats";
-import { AppointmentsList } from "./patient/AppointmentsList";
-import { MedicalRecordsUpload } from "./patient/MedicalRecordsUpload";
-import { Database } from "@/integrations/supabase/types";
 import { DashboardHeader } from "./DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "lucide-react";
 import { ScheduleAppointment } from "../appointments/ScheduleAppointment";
+import { Suspense, lazy } from "react";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { Skeleton } from "@/components/ui/skeleton";
 
-type Profile = Database["public"]["Tables"]["profiles"]["Row"];
+// Lazy load components
+const LazyAppointmentsList = lazy(() => 
+  import('./patient/AppointmentsList').then(module => ({ 
+    default: module.AppointmentsList 
+  }))
+);
+
+const LazyMedicalRecordsUpload = lazy(() => 
+  import('./patient/MedicalRecordsUpload').then(module => ({ 
+    default: module.MedicalRecordsUpload 
+  }))
+);
+
+const LazyChatInterface = lazy(() => 
+  import('../chat/ChatInterface').then(module => ({ 
+    default: module.ChatInterface 
+  }))
+);
+
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="space-y-3 p-4">
+    <Skeleton className="h-12 w-full" />
+    <Skeleton className="h-24 w-full" />
+    <Skeleton className="h-12 w-3/4" />
+  </div>
+);
 
 type Appointment = {
   id: string;
@@ -34,8 +59,6 @@ export const PatientDashboard = () => {
     queryKey: ["patient_dashboard", user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error("No user ID");
-
-      console.log("Fetching patient profile for user:", user.id);
       
       // First get the profile data
       const { data: profile, error: profileError } = await supabase
@@ -45,16 +68,12 @@ export const PatientDashboard = () => {
         .single();
 
       if (profileError) {
-        console.error("Profile fetch error:", profileError);
         throw profileError;
       }
 
       if (!profile) {
-        console.error("No profile found for user");
         throw new Error("No profile found");
       }
-
-      console.log("Retrieved profile data:", profile);
 
       // Use the get_patient_appointments function to fetch appointments
       const { data: appointments, error: appointmentsError } = await supabase
@@ -63,11 +82,8 @@ export const PatientDashboard = () => {
         });
 
       if (appointmentsError) {
-        console.error("Appointments fetch error:", appointmentsError);
         throw appointmentsError;
       }
-
-      console.log("Raw appointments data:", appointments);
 
       // Transform the appointments to match our expected format
       const transformedAppointments = appointments.map(apt => ({
@@ -79,8 +95,6 @@ export const PatientDashboard = () => {
           last_name: apt.doctor_last_name || ''
         }
       })) as Appointment[];
-
-      console.log("Transformed appointments:", transformedAppointments);
 
       return {
         profile: {
@@ -119,18 +133,31 @@ export const PatientDashboard = () => {
     <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
       <DashboardHeader actionButton={actionButton} />
       
-      {/* Stats Row */}
+      {/* Stats Row - Always loaded since it's essential and compact */}
       <PatientStats />
 
-      {/* Main Content - Use similar grid layout to DoctorDashboard */}
+      {/* Main Content - Use collapsible sections with lazy loading */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="space-y-6 lg:col-span-1">
-          <AppointmentsList appointments={upcomingAppointments} />
+          <CollapsibleSection title="Your Appointments" defaultOpen={true}>
+            <Suspense fallback={<LoadingFallback />}>
+              <LazyAppointmentsList appointments={upcomingAppointments} />
+            </Suspense>
+          </CollapsibleSection>
         </div>
         
         <div className="lg:col-span-2 space-y-6">
-          <MedicalRecordsUpload showUploadOnly />
-          <ChatInterface />
+          <CollapsibleSection title="Upload Medical Records" defaultOpen={false}>
+            <Suspense fallback={<LoadingFallback />}>
+              <LazyMedicalRecordsUpload showUploadOnly />
+            </Suspense>
+          </CollapsibleSection>
+          
+          <CollapsibleSection title="Chat with Doctor" defaultOpen={false}>
+            <Suspense fallback={<LoadingFallback />}>
+              <LazyChatInterface />
+            </Suspense>
+          </CollapsibleSection>
         </div>
       </div>
     </div>

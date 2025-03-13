@@ -14,10 +14,63 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Users, Mic, Layout } from "lucide-react";
 import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, Suspense, lazy } from "react";
 import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Create lazy-loaded components
+const LazyDoctorAppointmentCalendar = lazy(() => 
+  import('@/components/dashboard/doctor/DoctorAppointmentCalendar').then(module => ({ 
+    default: module.DoctorAppointmentCalendar 
+  }))
+);
+
+const LazyDocumentAnalyzer = lazy(() => 
+  import('@/components/dashboard/doctor/DocumentSummary').then(module => ({ 
+    default: module.DocumentAnalyzer 
+  }))
+);
+
+const LazyPrescriptionWriter = lazy(() => 
+  import('@/components/dashboard/doctor/PrescriptionWriter').then(module => ({ 
+    default: module.PrescriptionWriter 
+  }))
+);
+
+const LazyAiAssistant = lazy(() => 
+  import('@/components/dashboard/doctor/AiAssistant').then(module => ({ 
+    default: module.AiAssistant 
+  }))
+);
+
+const LazyChatInterface = lazy(() => 
+  import('@/components/chat/ChatInterface').then(module => ({ 
+    default: module.ChatInterface 
+  }))
+);
+
+const LazyVideoUploader = lazy(() => 
+  import('@/components/videos/VideoUploader').then(module => ({ 
+    default: module.VideoUploader 
+  }))
+);
+
+const LazyVideoList = lazy(() => 
+  import('@/components/videos/VideoList').then(module => ({ 
+    default: module.VideoList 
+  }))
+);
+
+// Loading fallback component
+const LoadingFallback = () => (
+  <div className="space-y-3 p-4">
+    <Skeleton className="h-12 w-full" />
+    <Skeleton className="h-24 w-full" />
+    <Skeleton className="h-12 w-3/4" />
+  </div>
+);
 
 export const AlternativeDoctorDashboard = () => {
   const { user } = useAuth();
@@ -31,7 +84,6 @@ export const AlternativeDoctorDashboard = () => {
         className="w-full justify-start bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
         size="sm"
         onClick={() => {
-          console.log("Navigating to patients view");
           navigate("/patients");
         }}
       >
@@ -81,37 +133,50 @@ export const AlternativeDoctorDashboard = () => {
         </div>
       )}
       
+      {/* Stats are always loaded since they're small and critical */}
       <StatsCards />
 
       <ScrollArea className="h-[calc(100vh-220px)]">
         <div className="space-y-6 pr-4">
           <CollapsibleSection title="Appointments Calendar" defaultOpen={true}>
-            <DoctorAppointmentCalendar doctorId={user?.id || ""} />
+            <Suspense fallback={<LoadingFallback />}>
+              <LazyDoctorAppointmentCalendar doctorId={user?.id || ""} />
+            </Suspense>
           </CollapsibleSection>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <CollapsibleSection title="Document Analyzer">
-              <DocumentAnalyzer />
+            <CollapsibleSection title="Document Analyzer" defaultOpen={false}>
+              <Suspense fallback={<LoadingFallback />}>
+                <LazyDocumentAnalyzer />
+              </Suspense>
             </CollapsibleSection>
             
-            <CollapsibleSection title="Prescription Writer">
-              <PrescriptionWriter />
+            <CollapsibleSection title="Prescription Writer" defaultOpen={false}>
+              <Suspense fallback={<LoadingFallback />}>
+                <LazyPrescriptionWriter />
+              </Suspense>
             </CollapsibleSection>
           </div>
           
-          <CollapsibleSection title="AI Assistant">
-            <AiAssistant />
+          <CollapsibleSection title="AI Assistant" defaultOpen={false}>
+            <Suspense fallback={<LoadingFallback />}>
+              <LazyAiAssistant />
+            </Suspense>
           </CollapsibleSection>
           
-          <CollapsibleSection title="Patient Chat">
-            <ChatInterface />
+          <CollapsibleSection title="Patient Chat" defaultOpen={false}>
+            <Suspense fallback={<LoadingFallback />}>
+              <LazyChatInterface />
+            </Suspense>
           </CollapsibleSection>
           
-          <CollapsibleSection title="Knowledge Sharing Videos">
-            <div className="space-y-4">
-              <VideoUploader />
-              <VideoList />
-            </div>
+          <CollapsibleSection title="Knowledge Sharing Videos" defaultOpen={false}>
+            <Suspense fallback={<LoadingFallback />}>
+              <div className="space-y-4">
+                <LazyVideoUploader />
+                <LazyVideoList />
+              </div>
+            </Suspense>
           </CollapsibleSection>
         </div>
       </ScrollArea>
