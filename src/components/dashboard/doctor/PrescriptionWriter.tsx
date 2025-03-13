@@ -39,6 +39,7 @@ interface MedicalRecord {
   prescription: string | null;
   notes: string | null;
   doctor_id: string;
+  patient_id: string;
   doctor?: {
     first_name: string | null;
     last_name: string | null;
@@ -90,6 +91,7 @@ export const PrescriptionWriter = () => {
     setConfirmDialogOpen(true);
   };
 
+  // Fetch patients with role 'patient'
   const { data: patients, isLoading: isLoadingPatients } = useQuery({
     queryKey: ["all_patients"],
     queryFn: async () => {
@@ -101,26 +103,30 @@ export const PrescriptionWriter = () => {
       console.log("Fetching all patients for prescription writer");
       
       try {
-        const { data: patientUserIds, error: rpcError } = await supabase
-          .rpc('get_users_by_role', { role_name: 'patient' });
+        // First get all users with 'patient' role
+        const { data: patientRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('user_id')
+          .eq('role', 'patient');
         
-        if (rpcError) {
-          console.error("Error fetching patient user IDs via RPC:", rpcError);
-          throw rpcError;
+        if (rolesError) {
+          console.error("Error fetching patient roles:", rolesError);
+          throw rolesError;
         }
         
         // If no patients found, return empty array
-        if (!patientUserIds || !Array.isArray(patientUserIds)) {
+        if (!patientRoles || !Array.isArray(patientRoles) || patientRoles.length === 0) {
           return [] as PatientProfile[];
         }
         
-        const patientIds = patientUserIds.map(item => item.user_id as string).filter(Boolean);
+        const patientIds = patientRoles.map(item => item.user_id).filter(Boolean);
         console.log("Patient user IDs found:", patientIds.length);
         
-        if (!patientIds.length) {
+        if (patientIds.length === 0) {
           return [] as PatientProfile[];
         }
         
+        // Get profiles for these patients
         const { data: profiles, error: profilesError } = await supabase
           .from("profiles")
           .select("id, first_name, last_name")
@@ -142,6 +148,7 @@ export const PrescriptionWriter = () => {
     },
   });
 
+  // Fetch prescriptions for the selected patient by the current doctor
   const { data: pastPrescriptions, refetch: refetchPrescriptions } = useQuery({
     queryKey: ["patient_prescriptions", selectedPatient, user?.id],
     queryFn: async () => {
@@ -156,9 +163,10 @@ export const PrescriptionWriter = () => {
       console.log("Fetching prescriptions for patient:", selectedPatient, "by doctor:", user.id);
       
       try {
+        // Directly query the medical_records table
         const { data: medicalRecords, error: medicalRecordsError } = await supabase
           .from('medical_records')
-          .select('id, created_at, diagnosis, prescription, notes, doctor_id')
+          .select('id, created_at, diagnosis, prescription, notes, doctor_id, patient_id')
           .eq('patient_id', selectedPatient)
           .eq('doctor_id', user.id)
           .order('created_at', { ascending: false });
@@ -171,13 +179,14 @@ export const PrescriptionWriter = () => {
         const records = (medicalRecords || []) as MedicalRecord[];
         console.log("Medical records found:", records.length);
         
-        if (!records.length) {
+        if (records.length === 0) {
           return [] as MedicalRecord[];
         }
         
+        // Get doctor's profile info
         const { data: doctorProfile, error: doctorProfileError } = await supabase
           .from("profiles")
-          .select("id, first_name, last_name")
+          .select("first_name, last_name")
           .eq("id", user.id)
           .single();
           
@@ -188,6 +197,7 @@ export const PrescriptionWriter = () => {
         
         const doctorInfo = doctorProfile || { first_name: "Unknown", last_name: "" };
         
+        // Attach doctor info to each record
         return records.map(record => ({
           ...record,
           doctor: { 
@@ -215,14 +225,16 @@ export const PrescriptionWriter = () => {
       
       console.log("Saving prescription for patient:", selectedPatient, "by doctor:", user.id);
       
+      // Create the medical record object
       const medicalRecord = {
         patient_id: selectedPatient,
         doctor_id: user.id,
         diagnosis,
         prescription,
-        notes
+        notes: notes || null // Ensure null if empty string
       };
       
+      // Insert directly into the medical_records table
       const { data, error } = await supabase
         .from('medical_records')
         .insert(medicalRecord)
@@ -242,16 +254,20 @@ export const PrescriptionWriter = () => {
 
       setConfirmDialogOpen(false);
       
+      // Reset form fields
       setDiagnosis("");
       setPrescription("");
       setNotes("");
       
+      // Refresh the prescriptions list
       await refetchPrescriptions();
       
+      // Invalidate any related queries
       queryClient.invalidateQueries({
         queryKey: ["patient_medical_records", selectedPatient]
       });
       
+      // Switch to view tab to show the new prescription
       setActiveTab("view");
       
     } catch (error: any) {
