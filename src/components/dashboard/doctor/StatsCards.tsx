@@ -18,17 +18,11 @@ export const StatsCards = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  console.log("DoctorStatsCards render - Current user:", { 
-    userId: user?.id, 
-    userEmail: user?.email 
-  });
-
   const { data: patientsCount = 0, isError: isPatientsError } = useQuery({
     queryKey: ["doctor_patients_count", user?.id],
     queryFn: async () => {
       if (!user?.id) return 0;
       
-      console.log("Fetching patients count for doctor:", user?.id);
       try {
         // Use RPC call to a stored procedure on the server side
         const { data, error } = await supabase.rpc(
@@ -37,14 +31,11 @@ export const StatsCards = () => {
         );
 
         if (error) {
-          console.error("Error fetching patients count:", error);
           throw error;
         }
         
-        console.log("Patients count result:", { count: data });
         return data as number || 0;
       } catch (error) {
-        console.error("Error in patients count query:", error);
         // Don't show toast here, just return 0
         return 0;
       }
@@ -57,7 +48,6 @@ export const StatsCards = () => {
     queryFn: async () => {
       if (!user?.id) return 0;
       
-      console.log("Fetching medical records count for doctor:", user?.id);
       try {
         // Use RPC call to a stored procedure on the server side
         const { data, error } = await supabase.rpc(
@@ -66,14 +56,11 @@ export const StatsCards = () => {
         );
 
         if (error) {
-          console.error("Error fetching medical records count:", error);
           throw error;
         }
         
-        console.log("Medical records count result:", { count: data });
         return data as number || 0;
       } catch (error) {
-        console.error("Error in medical records count query:", error);
         // Don't show toast here, just return 0
         return 0;
       }
@@ -86,7 +73,6 @@ export const StatsCards = () => {
     queryFn: async () => {
       if (!user?.id) return [] as DoctorAppointment[];
       
-      console.log("Fetching appointments for doctor:", user?.id);
       try {
         // Use RPC call to a stored procedure on the server side
         const { data, error } = await supabase.rpc(
@@ -95,15 +81,12 @@ export const StatsCards = () => {
         );
 
         if (error) {
-          console.error("Error fetching appointments:", error);
           throw error;
         }
         
         const typedData = data as DoctorAppointment[];
-        console.log("Appointments result:", { count: typedData?.length || 0, data: typedData });
         return typedData || [];
       } catch (error) {
-        console.error("Error in appointments query:", error);
         // Don't show toast here, just return an empty array
         return [] as DoctorAppointment[];
       }
@@ -128,13 +111,6 @@ export const StatsCards = () => {
         apt.status === 'scheduled'
       )
     : [];
-
-  console.log("Doctor Stats summary:", {
-    patientsCount,
-    medicalRecordsCount,
-    todayAppointments: todayAppointments.length,
-    upcomingAppointments: upcomingAppointments.length
-  });
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

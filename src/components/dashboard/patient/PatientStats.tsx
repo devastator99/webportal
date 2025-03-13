@@ -45,7 +45,6 @@ export const PatientStats = () => {
         .rpc('get_patient_appointments', { p_patient_id: user.id });
 
       if (error) {
-        console.error('Error fetching appointments:', error);
         toast({
           title: "Error",
           description: "Could not fetch appointments",
@@ -69,7 +68,6 @@ export const PatientStats = () => {
         .rpc('get_patient_medical_reports', { p_patient_id: user.id });
 
       if (error) {
-        console.error('Error fetching reports:', error);
         toast({
           title: "Error",
           description: "Could not fetch medical reports",
@@ -85,14 +83,11 @@ export const PatientStats = () => {
 
   const handleViewReport = async (report: MedicalReport) => {
     try {
-      console.log('Attempting to view report:', report.id);
-      
       // First call our RPC function to check access and get the file path
       const { data: filePath, error: pathError } = await supabase
         .rpc('get_medical_report_url', { p_report_id: report.id });
         
       if (pathError || !filePath) {
-        console.error('Error getting report path:', pathError);
         toast({
           title: "Access Denied",
           description: "You don't have permission to view this report",
@@ -107,7 +102,6 @@ export const PatientStats = () => {
       });
 
       if (error || !signedUrl) {
-        console.error('Error getting signed URL:', error);
         toast({
           title: "Error",
           description: "Unable to access the report. Please try again.",
@@ -122,7 +116,6 @@ export const PatientStats = () => {
         throw new Error('Invalid URL received from server');
       }
     } catch (error) {
-      console.error('Error viewing report:', error);
       toast({
         title: "Error",
         description: "Unable to view the report. Please try again.",

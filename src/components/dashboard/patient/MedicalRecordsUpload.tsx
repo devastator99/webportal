@@ -33,7 +33,6 @@ export const MedicalRecordsUpload = ({ showUploadOnly = false }: MedicalRecordsU
           .upload(filePath, file);
 
         if (uploadError) throw uploadError;
-        console.log('Uploaded file to storage:', filePath);
 
         // Create document record
         const { error: dbError } = await supabase
@@ -47,10 +46,8 @@ export const MedicalRecordsUpload = ({ showUploadOnly = false }: MedicalRecordsU
           });
 
         if (dbError) {
-          console.error('Error creating document record:', dbError);
           throw dbError;
         }
-        console.log('Created document record for:', file.name);
       }
 
       toast({
@@ -63,7 +60,6 @@ export const MedicalRecordsUpload = ({ showUploadOnly = false }: MedicalRecordsU
         fileInputRef.current.value = '';
       }
     } catch (error) {
-      console.error('Upload error:', error);
       toast({
         title: "Error",
         description: "Failed to upload medical reports",

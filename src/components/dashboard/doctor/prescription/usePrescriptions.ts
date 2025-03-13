@@ -32,14 +32,8 @@ export const usePrescriptions = (selectedPatient: string) => {
     queryKey: ["patient_prescriptions", selectedPatient, user?.id],
     queryFn: async () => {
       if (!selectedPatient || !user?.id) {
-        console.log("Missing required IDs for prescription fetch:", { 
-          selectedPatient, 
-          doctorId: user?.id 
-        });
         return [] as MedicalRecord[];
       }
-      
-      console.log("Fetching prescriptions for patient:", selectedPatient, "by doctor:", user.id);
       
       try {
         // Use our security definer function
@@ -49,16 +43,12 @@ export const usePrescriptions = (selectedPatient: string) => {
         });
         
         if (error) {
-          console.error("Error fetching medical records:", error);
           throw error;
         }
         
         const records = (data || []) as MedicalRecord[];
-        console.log("Medical records found:", records.length);
-        
         return records;
       } catch (error) {
-        console.error("Error fetching past prescriptions:", error);
         return [] as MedicalRecord[];
       }
     },
@@ -106,8 +96,6 @@ export const usePrescriptions = (selectedPatient: string) => {
         throw new Error("Doctor ID not available. Please try again later.");
       }
       
-      console.log("Saving prescription for patient:", selectedPatient, "by doctor:", user.id);
-      
       // Use our security definer function to create a medical record
       const { data, error } = await supabase.rpc('create_medical_record', {
         p_patient_id: selectedPatient,
@@ -118,11 +106,8 @@ export const usePrescriptions = (selectedPatient: string) => {
       });
 
       if (error) {
-        console.error('Error saving prescription:', error);
         throw error;
       }
-
-      console.log("Prescription saved successfully with ID:", data);
 
       toast({
         title: "Success",
@@ -145,7 +130,6 @@ export const usePrescriptions = (selectedPatient: string) => {
       });
       
     } catch (error: any) {
-      console.error('Error saving prescription:', error);
       toast({
         title: "Error",
         description: `Failed to save prescription: ${error.message || "Unknown error"}`,

@@ -5,7 +5,7 @@ import type { Database } from './types';
 const SUPABASE_URL = "https://hcaqodjylicmppxcbqbh.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjYXFvZGp5bGljbXBweGNicWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzMDIxNDksImV4cCI6MjA1Mzg3ODE0OX0.h4pO6UShabHNPWC9o_EMbbhOVHsR-fuZQ5-b85hNB4w";
 
-// Create the Supabase client with improved session handling and logging
+// Create the Supabase client with improved session handling
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
     autoRefreshToken: true,
@@ -79,50 +79,38 @@ export interface PatientProfile {
 
 // Get patients for a doctor using RPC function to avoid RLS recursion issues
 export async function getDoctorPatients(doctorId: string): Promise<PatientProfile[]> {
-  console.log(`Getting patients for doctor: ${doctorId}`);
-  
   try {
     const { data, error } = await supabase.rpc('get_doctor_patients', {
       p_doctor_id: doctorId
     }) as { data: PatientProfile[] | null, error: any };
     
     if (error) {
-      console.error("Error fetching doctor's patients:", error);
       return [];
     }
     
-    console.log("Patients retrieved successfully:", data);
     return data as PatientProfile[] || [];
   } catch (err) {
-    console.error("Exception in getDoctorPatients:", err);
     return [];
   }
 }
 
 // Get all patients (for administrators or system-wide views)
 export async function getAllPatients(): Promise<PatientProfile[]> {
-  console.log("Getting all patients");
-  
   try {
     const { data, error } = await supabase.rpc('get_all_patients') as { data: PatientProfile[] | null, error: any };
     
     if (error) {
-      console.error("Error fetching all patients:", error);
       return [];
     }
     
-    console.log("All patients retrieved successfully:", data);
     return data as PatientProfile[] || [];
   } catch (err) {
-    console.error("Exception in getAllPatients:", err);
     return [];
   }
 }
 
 // Generic function to fetch prescriptions for a patient by a doctor
 export async function fetchPatientPrescriptions(patientId: string, doctorId: string) {
-  console.log(`Fetching prescriptions for patient: ${patientId} by doctor: ${doctorId}`);
-  
   try {
     // Using the get_doctor_patient_records RPC function to securely retrieve records
     const { data, error } = await supabase.rpc('get_doctor_patient_records', {
@@ -131,22 +119,17 @@ export async function fetchPatientPrescriptions(patientId: string, doctorId: str
     });
     
     if (error) {
-      console.error("Error fetching prescriptions:", error);
       return [];
     }
     
-    console.log("Prescriptions retrieved successfully:", data);
     return data || [];
   } catch (err) {
-    console.error("Exception in fetchPatientPrescriptions:", err);
     return [];
   }
 }
 
 // Function to save a prescription using RPC
 export async function savePrescription(patientId: string, doctorId: string, diagnosis: string, prescription: string, notes: string) {
-  console.log('Saving prescription:', { patientId, doctorId, diagnosis, prescription, notes });
-  
   try {
     // Using the save_prescription RPC function to securely save records
     const { data, error } = await supabase.rpc('save_prescription', {
@@ -158,14 +141,11 @@ export async function savePrescription(patientId: string, doctorId: string, diag
     });
     
     if (error) {
-      console.error("Error saving prescription:", error);
       throw error;
     }
     
-    console.log("Prescription saved successfully with ID:", data);
     return data;
   } catch (err) {
-    console.error("Exception in savePrescription:", err);
     throw err;
   }
 }

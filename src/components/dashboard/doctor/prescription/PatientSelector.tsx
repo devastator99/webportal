@@ -34,20 +34,15 @@ export const PatientSelector = ({
   const { data: patients, isLoading: isLoadingPatients } = useQuery({
     queryKey: ["all_patients"],
     queryFn: async () => {
-      console.log("Fetching all patients for prescription writer");
-      
       try {
         const { data, error } = await supabase.rpc('get_patients');
         
         if (error) {
-          console.error("Error fetching patients:", error);
           throw error;
         }
         
-        console.log("Patient profiles found:", data.length);
         return data as PatientProfile[];
       } catch (error) {
-        console.error("Error fetching patients:", error);
         return [] as PatientProfile[];
       }
     },

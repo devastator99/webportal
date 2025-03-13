@@ -32,7 +32,7 @@ const VideoCard = memo(({ video }: VideoCardProps) => {
           controls
           src={videoUrl}
           preload="none"
-          onError={(e) => console.error('Video loading error:', e)}
+          onError={() => {}}
         />
         <CardHeader>
           <CardTitle>{video.title}</CardTitle>
@@ -48,7 +48,6 @@ const VideoCard = memo(({ video }: VideoCardProps) => {
       </Card>
     );
   } catch (error) {
-    console.error('Error creating video card:', error);
     return (
       <Card className="overflow-hidden">
         <div className="w-full aspect-video bg-gray-200 flex items-center justify-center">
@@ -125,30 +124,23 @@ export const VideoList = () => {
       queryKey: ["knowledge_videos"],
       queryFn: async () => {
         try {
-          console.log('Fetching knowledge videos...');
           const { data, error } = await supabase
             .from('knowledge_videos')
             .select('*')
             .order('created_at', { ascending: false });
 
           if (error) {
-            console.error('Error fetching videos:', error);
             // Return sample videos instead of throwing error
-            console.log('Falling back to sample videos');
             return sampleVideos;
           }
           
           if (!data || data.length === 0) {
-            console.log('No videos found, using sample videos');
             return sampleVideos;
           }
           
-          console.log('Videos fetched successfully:', data.length);
           return data as Video[];
         } catch (err) {
-          console.error('Exception in video fetch:', err);
           // Return sample videos on any error
-          console.log('Falling back to sample videos due to exception');
           return sampleVideos;
         }
       },
@@ -194,9 +186,6 @@ export const VideoList = () => {
     );
   } catch (error) {
     // If there's an error with the query context, use a fallback with sample videos
-    console.error('React Query context error:', error);
-    console.log('Falling back to sample videos without React Query');
-    
     // Create a simple display with sample videos
     const displayedVideos = showAll ? sampleVideos : sampleVideos.slice(0, 4);
     const hasMoreVideos = sampleVideos.length > 4;
