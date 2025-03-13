@@ -15,6 +15,8 @@ interface MedicalRecord {
   patient_id: string;
   doctor_first_name: string | null;
   doctor_last_name: string | null;
+  patient_first_name?: string | null;
+  patient_last_name?: string | null;
 }
 
 export const usePrescriptions = (selectedPatient: string) => {
@@ -36,19 +38,52 @@ export const usePrescriptions = (selectedPatient: string) => {
       }
       
       try {
-        // Use our security definer function
-        const { data, error } = await supabase.rpc('get_patient_medical_records', {
-          p_patient_id: selectedPatient,
-          p_doctor_id: user.id
-        });
+        // Get medical records with doctor and patient details
+        const { data, error } = await supabase
+          .from('medical_records')
+          .select(`
+            id,
+            created_at,
+            diagnosis,
+            prescription,
+            notes,
+            doctor_id,
+            patient_id,
+            doctor:profiles!medical_records_doctor_id_fkey (
+              first_name,
+              last_name
+            ),
+            patient:profiles!medical_records_patient_id_fkey (
+              first_name,
+              last_name
+            )
+          `)
+          .eq('patient_id', selectedPatient)
+          .eq('doctor_id', user.id)
+          .order('created_at', { ascending: false });
         
         if (error) {
           throw error;
         }
         
-        const records = (data || []) as MedicalRecord[];
+        // Transform the data to match our interface
+        const records = (data || []).map(record => ({
+          id: record.id,
+          created_at: record.created_at,
+          diagnosis: record.diagnosis,
+          prescription: record.prescription,
+          notes: record.notes,
+          doctor_id: record.doctor_id,
+          patient_id: record.patient_id,
+          doctor_first_name: record.doctor?.first_name || null,
+          doctor_last_name: record.doctor?.last_name || null,
+          patient_first_name: record.patient?.first_name || null,
+          patient_last_name: record.patient?.last_name || null,
+        })) as MedicalRecord[];
+        
         return records;
       } catch (error) {
+        console.error("Error fetching prescriptions:", error);
         return [] as MedicalRecord[];
       }
     },
