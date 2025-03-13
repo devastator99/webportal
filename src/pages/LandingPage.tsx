@@ -1,3 +1,4 @@
+
 import { lazy, Suspense, useEffect } from "react";
 import { Hero } from "@/components/Hero";
 import { Navbar } from "@/components/Navbar";
@@ -21,38 +22,35 @@ const LoadingSpinner = () => (
 );
 
 export const LandingPage = () => {
-  const { user, signOut } = useAuth();
+  const { user, forceSignOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Force logout effect
+  // Force logout effect - using the more aggressive approach
   useEffect(() => {
-    const performForceLogout = async () => {
-      if (user) {
+    if (user) {
+      // Show toast immediately
+      toast({
+        title: "Logging out...",
+        description: "Forcefully signing you out of your account",
+      });
+      
+      // Use setTimeout to ensure UI updates before the potentially blocking operation
+      setTimeout(async () => {
         try {
-          toast({
-            title: "Logging out...",
-            description: "Forcefully signing you out of your account",
-          });
-          
-          await signOut();
-          
-          toast({
-            title: "Logged out",
-            description: "You have been successfully signed out",
-          });
+          await forceSignOut();
+          // Toast will show on page reload
         } catch (error) {
+          console.error("Force logout error:", error);
           toast({
             variant: "destructive",
             title: "Error signing out",
             description: "There was a problem signing you out. Please try again.",
           });
         }
-      }
-    };
-
-    performForceLogout();
-  }, [user, signOut, toast]);
+      }, 100);
+    }
+  }, [user, forceSignOut, toast]);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">

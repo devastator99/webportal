@@ -13,6 +13,7 @@ type AuthContextType = {
   isLoading: boolean;
   signOut: () => Promise<void>;
   resetInactivityTimer: () => void;
+  forceSignOut: () => Promise<void>;
 };
 
 const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutes in milliseconds
@@ -23,6 +24,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   signOut: async () => {},
   resetInactivityTimer: () => {},
+  forceSignOut: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -217,10 +219,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           title: "Warning",
           description: "Sign out completed, but there was an API error."
         });
-      } else {
-        toast({
-          title: "Signed out successfully"
-        });
       }
       
       // Clear the inactivity timer when signing out
@@ -235,16 +233,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Add a more aggressive force sign out method
+  const forceSignOut = async () => {
+    try {
+      setUser(null);
+      setUserRole(null);
+      
+      // Clear local storage directly to ensure session is removed
+      localStorage.removeItem('supabase.auth.token');
+      sessionStorage.removeItem('supabase.auth.token');
+      
+      // Attempt normal sign out
+      await supabase.auth.signOut();
+      
+      // Force page reload to clear any cached state
+      window.location.href = '/';
+      
+      return Promise.resolve();
+    } catch (error) {
+      console.error("Force sign out error:", error);
+      
+      // Even if there's an error, redirect to home
+      window.location.href = '/';
+      
+      return Promise.resolve();
+    }
+  };
+
   if (!authInitialized) {
     return (
-      <AuthContext.Provider value={{ user: null, userRole: null, isLoading: true, signOut: async () => {}, resetInactivityTimer: () => {} }}>
+      <AuthContext.Provider value={{ user: null, userRole: null, isLoading: true, signOut: async () => {}, resetInactivityTimer: () => {}, forceSignOut: async () => {} }}>
         {children}
       </AuthContext.Provider>
     );
   }
 
   return (
-    <AuthContext.Provider value={{ user, userRole, isLoading, signOut, resetInactivityTimer }}>
+    <AuthContext.Provider value={{ user, userRole, isLoading, signOut, resetInactivityTimer, forceSignOut }}>
       {children}
     </AuthContext.Provider>
   );

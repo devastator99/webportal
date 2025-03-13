@@ -11,7 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export const Navbar = () => {
-  const { user, isLoading, signOut, userRole, resetInactivityTimer } = useAuth();
+  const { user, isLoading, signOut, userRole, resetInactivityTimer, forceSignOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -63,8 +63,11 @@ export const Navbar = () => {
         title: "Logging out...",
         description: "Forcefully signing you out of your account",
       });
-      await signOut();
-      navigate('/', { replace: true });
+      
+      // Use the more aggressive forceSignOut method
+      await forceSignOut();
+      
+      // This code might not run due to page reload, but including for completeness
       toast({
         title: "Logged out",
         description: "You have been successfully signed out",
