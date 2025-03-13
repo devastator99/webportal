@@ -4,6 +4,7 @@ import { getDoctorPatients, PatientProfile } from "@/integrations/supabase/clien
 import { useQuery } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 
 interface PatientSelectorProps {
   selectedPatientId: string | null;
@@ -12,6 +13,7 @@ interface PatientSelectorProps {
 
 export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientSelectorProps) => {
   const { user } = useAuth();
+  const { toast } = useToast();
 
   const { data: assignedPatients, isLoading } = useQuery({
     queryKey: ["assigned_patients", user?.id],
@@ -23,11 +25,16 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
         
         // Use RPC function to get assigned patients for doctor
         const patients = await getDoctorPatients(user.id);
-        console.log(`Fetched ${patients.length} patient profiles`);
+        console.log(`Fetched ${patients.length} patient profiles:`, patients);
         
         return patients;
       } catch (error) {
         console.error("Error in PatientSelector:", error);
+        toast({
+          title: "Failed to load patients",
+          description: "There was an error loading your patients. Please refresh and try again.",
+          variant: "destructive",
+        });
         return [] as PatientProfile[];
       }
     },

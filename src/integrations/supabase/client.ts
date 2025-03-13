@@ -84,7 +84,7 @@ export async function getDoctorPatients(doctorId: string): Promise<PatientProfil
   try {
     const { data, error } = await supabase.rpc('get_doctor_patients', {
       p_doctor_id: doctorId
-    }) as { data: PatientProfile[] | null, error: any };
+    });
     
     if (error) {
       console.error("Error fetching doctor's patients:", error);
@@ -92,7 +92,7 @@ export async function getDoctorPatients(doctorId: string): Promise<PatientProfil
     }
     
     console.log("Patients retrieved successfully:", data);
-    return data || [];
+    return data as PatientProfile[] || [];
   } catch (err) {
     console.error("Exception in getDoctorPatients:", err);
     return [];
@@ -104,10 +104,7 @@ export async function getAllPatients(): Promise<PatientProfile[]> {
   console.log("Getting all patients");
   
   try {
-    const { data, error } = await supabase.rpc('get_all_patients') as { 
-      data: PatientProfile[] | null, 
-      error: any 
-    };
+    const { data, error } = await supabase.rpc('get_all_patients');
     
     if (error) {
       console.error("Error fetching all patients:", error);
@@ -115,7 +112,7 @@ export async function getAllPatients(): Promise<PatientProfile[]> {
     }
     
     console.log("All patients retrieved successfully:", data);
-    return data || [];
+    return data as PatientProfile[] || [];
   } catch (err) {
     console.error("Exception in getAllPatients:", err);
     return [];

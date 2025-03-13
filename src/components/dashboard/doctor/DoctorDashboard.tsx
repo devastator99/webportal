@@ -1,9 +1,9 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
+import { supabase, getDoctorPatients } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { StatsCards } from "@/components/dashboard/doctor/StatsCards";
-import { TodaySchedule } from "@/components/dashboard/doctor/TodaySchedule";
+// import { TodaySchedule } from "@/components/dashboard/doctor/TodaySchedule";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { AiAssistant } from "@/components/dashboard/doctor/AiAssistant";
 import { DoctorAppointmentCalendar } from "@/components/dashboard/doctor/DoctorAppointmentCalendar";
@@ -14,13 +14,20 @@ import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWr
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users } from "lucide-react";
+import { Calendar, Users, Mic } from "lucide-react";
 import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
+import { useToast } from "@/hooks/use-toast";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  const [showVoiceScheduler, setShowVoiceScheduler] = useState(false);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   
   return (
     <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
