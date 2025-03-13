@@ -1,5 +1,5 @@
 
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState, useCallback } from "react";
 import { Hero } from "@/components/Hero";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -15,8 +15,8 @@ const Footer = lazy(() => import("@/components/Footer").then(m => ({ default: m.
 const VideoList = lazy(() => import("@/components/videos/VideoList").then(m => ({ default: m.StandaloneVideoList })));
 
 const LoadingSpinner = () => (
-  <div className="flex items-center justify-center p-6">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#9b87f5]"></div>
+  <div className="flex items-center justify-center p-4">
+    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#9b87f5]"></div>
   </div>
 );
 
@@ -45,39 +45,53 @@ export const LandingPage = () => {
         forceSignOut().catch(error => {
           console.error("Force logout error:", error);
         });
-      }, 100);
+      }, 50);
     }
   }, [user, forceSignOut, toast]);
 
-  // Simplify intersection observer to reduce overhead
+  // Ultra-lightweight intersection observer with improved performance
   useEffect(() => {
-    // Only observe elements once the component is fully mounted
-    const timer = setTimeout(() => {
-      const observerOptions = {
-        rootMargin: '150px', // Load a bit earlier
-        threshold: 0.01 // Very small threshold for quicker triggering
-      };
-      
-      const sectionObserver = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            const sectionId = entry.target.id;
-            if (sectionId === 'features-section') {
-              setVisibleSections(prev => ({ ...prev, features: true }));
-            } else if (sectionId === 'testimonials-section') {
-              setVisibleSections(prev => ({ ...prev, testimonials: true }));
-            } else if (sectionId === 'pricing-section') {
-              setVisibleSections(prev => ({ ...prev, pricing: true }));
-            } else if (sectionId === 'video-section') {
-              setVisibleSections(prev => ({ ...prev, videos: true }));
-            } else if (sectionId === 'footer-section') {
-              setVisibleSections(prev => ({ ...prev, footer: true }));
+    // Use a single IntersectionObserver instance for better performance
+    const observerCallback = useCallback((entries: IntersectionObserverEntry[]) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const sectionId = entry.target.id;
+          
+          // Use functional update to avoid stale state
+          setVisibleSections(prev => {
+            if (sectionId === 'features-section' && !prev.features) {
+              return { ...prev, features: true };
+            } 
+            if (sectionId === 'testimonials-section' && !prev.testimonials) {
+              return { ...prev, testimonials: true };
             }
-            sectionObserver.unobserve(entry.target);
-          }
-        });
-      }, observerOptions);
-      
+            if (sectionId === 'pricing-section' && !prev.pricing) {
+              return { ...prev, pricing: true };
+            }
+            if (sectionId === 'video-section' && !prev.videos) {
+              return { ...prev, videos: true };
+            }
+            if (sectionId === 'footer-section' && !prev.footer) {
+              return { ...prev, footer: true };
+            }
+            return prev;
+          });
+          
+          // Unobserve to save resources once section is visible
+          observer.unobserve(entry.target);
+        }
+      });
+    }, []);
+    
+    const observerOptions = {
+      rootMargin: '200px', // Increased to load a bit earlier
+      threshold: 0.01 // Very small threshold for quicker triggering
+    };
+    
+    const observer = new IntersectionObserver(observerCallback, observerOptions);
+    
+    // Begin observing with a small delay for better initial load performance
+    setTimeout(() => {
       const sections = [
         'features-section', 
         'testimonials-section', 
@@ -89,16 +103,14 @@ export const LandingPage = () => {
       sections.forEach(id => {
         const element = document.getElementById(id);
         if (element) {
-          sectionObserver.observe(element);
+          observer.observe(element);
         }
       });
-      
-      return () => {
-        sectionObserver.disconnect();
-      };
-    }, 100); // Short delay to ensure component is mounted
+    }, 50);
     
-    return () => clearTimeout(timer);
+    return () => {
+      observer.disconnect();
+    };
   }, []);
 
   return (
@@ -106,31 +118,31 @@ export const LandingPage = () => {
       <Navbar />
       <Hero />
       
-      <div id="features-section" className="min-h-[50px]">
+      <div id="features-section" className="min-h-[20px]">
         {visibleSections.features ? (
           <Suspense fallback={<LoadingSpinner />}>
             <Features />
           </Suspense>
-        ) : <div className="h-16"></div>}
+        ) : <div className="h-10"></div>}
       </div>
       
-      <div id="testimonials-section" className="min-h-[50px]">
+      <div id="testimonials-section" className="min-h-[20px]">
         {visibleSections.testimonials ? (
           <Suspense fallback={<LoadingSpinner />}>
             <Testimonials />
           </Suspense>
-        ) : <div className="h-16"></div>}
+        ) : <div className="h-10"></div>}
       </div>
       
-      <div id="pricing-section" className="min-h-[50px]">
+      <div id="pricing-section" className="min-h-[20px]">
         {visibleSections.pricing ? (
           <Suspense fallback={<LoadingSpinner />}>
             <Pricing />
           </Suspense>
-        ) : <div className="h-16"></div>}
+        ) : <div className="h-10"></div>}
       </div>
       
-      <div id="video-section" className="container mx-auto px-4 py-8 min-h-[50px]">
+      <div id="video-section" className="container mx-auto px-4 py-6 min-h-[20px]">
         {visibleSections.videos && (
           <CollapsibleSection 
             title="Knowledge Sharing" 
@@ -145,12 +157,12 @@ export const LandingPage = () => {
         )}
       </div>
       
-      <div id="footer-section" className="min-h-[50px]">
+      <div id="footer-section" className="min-h-[20px]">
         {visibleSections.footer ? (
           <Suspense fallback={<LoadingSpinner />}>
             <Footer />
           </Suspense>
-        ) : <div className="h-16"></div>}
+        ) : <div className="h-10"></div>}
       </div>
     </div>
   );

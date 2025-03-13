@@ -1,4 +1,5 @@
-import { useState, memo, useCallback } from "react";
+
+import { useState, memo, useCallback, useEffect } from "react";
 import { useQuery, QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +17,7 @@ interface Video {
 }
 
 // Memoized VideoCard with optimized rendering
-const VideoCard = memo(({ video }: { video: Video }) => {
+const VideoCard = memo(({ video, lazyLoad = true }: { video: Video; lazyLoad?: boolean }) => {
   try {
     const videoUrl = supabase.storage.from('videos').getPublicUrl(video.video_path).data.publicUrl;
     
@@ -101,49 +102,66 @@ const sampleVideos: Video[] = [
 // Optimized VideoList component
 export const VideoList = () => {
   const [showAll, setShowAll] = useState(false);
+  const [shouldFetch, setShouldFetch] = useState(false);
   
-  // Simplified query with faster options
+  // Only fetch when component is visible and interactive
+  useEffect(() => {
+    // Delay fetch initialization to improve initial page load
+    const timer = setTimeout(() => {
+      setShouldFetch(true);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Simplified query with faster options and conditional execution
   const { data: videos, isLoading } = useQuery({
     queryKey: ["knowledge_videos"],
     queryFn: async () => {
       try {
+        // Use a smaller limit for initial fetch
         const { data, error } = await supabase
           .from('knowledge_videos')
           .select('*')
           .order('created_at', { ascending: false })
-          .limit(10); // Limit initial fetch
+          .limit(showAll ? 10 : 3); // Only fetch what we need
 
         if (error || !data || data.length === 0) {
-          return sampleVideos;
+          return sampleVideos.slice(0, showAll ? sampleVideos.length : 3);
         }
         
         return data as Video[];
       } catch (err) {
-        return sampleVideos;
+        return sampleVideos.slice(0, showAll ? sampleVideos.length : 3);
       }
     },
     // Faster query options
     retry: 0,
     staleTime: 300000,
     refetchOnWindowFocus: false,
+    enabled: shouldFetch, // Only run query when shouldFetch is true
   });
 
   const toggleShowAll = useCallback(() => {
     setShowAll(prev => !prev);
   }, []);
 
+  // Use simplified early loading state
+  if (!shouldFetch) {
+    return <LoadingSkeleton />;
+  }
+  
   if (isLoading) {
     return <LoadingSkeleton />;
   }
   
-  const displayVideos = videos || sampleVideos;
-  const displayedVideos = showAll ? displayVideos : displayVideos.slice(0, 3);
-  const hasMoreVideos = displayVideos.length > 3;
+  const displayVideos = videos || sampleVideos.slice(0, 3);
+  const hasMoreVideos = (videos && videos.length > 3) || sampleVideos.length > 3;
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {displayedVideos.map((video) => (
+        {displayVideos.map((video) => (
           <VideoCard key={video.id} video={video} />
         ))}
       </div>
@@ -165,15 +183,17 @@ export const VideoList = () => {
 // Optimized standalone version with minimal QueryClient
 export const StandaloneVideoList = () => {
   // Create a lightweight QueryClient with minimal configuration
-  const queryClient = new QueryClient({
+  // Using memoization to prevent recreating the client on each render
+  const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
         retry: 0,
         staleTime: 300000,
         refetchOnWindowFocus: false,
+        suspense: false,
       }
     }
-  });
+  }));
   
   return (
     <QueryClientProvider client={queryClient}>

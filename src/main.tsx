@@ -4,32 +4,38 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App.tsx'
 import './index.css'
 
-// Create a client with lightweight defaults for faster initialization
+// Immediately create a minimal QueryClient to reduce initialization time
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 0, // Reduce retries for faster initial load
+      retry: 0, // No retries for faster initial load
       refetchOnWindowFocus: false,
-      staleTime: 60000, // Increase stale time to reduce refetches
+      staleTime: 120000, // Further increase stale time to reduce refetches
+      suspense: false, // Disable suspense for better control
+      networkMode: 'online', // Only fetch when online
     },
     mutations: {
       retry: 0,
     }
   },
-})
+});
 
-// Create root before DOM content is loaded, defer rendering
-const rootElement = document.getElementById("root")
-const root = rootElement ? createRoot(rootElement) : null
+// Create root before DOM content is loaded for faster initialization
+const rootElement = document.getElementById("root");
 
-// Render with minimal initial work
-if (root) {
-  root.render(
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  )
-  console.log('App rendered')
-} else {
-  console.error('Root element not found')
-}
+// Use a self-invoking function to avoid delaying render
+(function() {
+  if (rootElement) {
+    // Create root synchronously
+    const root = createRoot(rootElement);
+    
+    // Render immediately without waiting for full document load
+    root.render(
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    );
+  } else {
+    console.error('Root element not found');
+  }
+})();

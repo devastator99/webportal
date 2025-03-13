@@ -24,22 +24,25 @@ export const CollapsibleSection = ({
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [hasLoaded, setHasLoaded] = useState(defaultOpen);
   const [isLoading, setIsLoading] = useState(false);
+  const contentRef = useRef<HTMLDivElement>(null);
   const { resetInactivityTimer } = useAuth();
 
-  // Optimized toggle function
+  // Optimized toggle function with animation frame scheduling
   const handleToggle = () => {
     resetInactivityTimer();
     
     if (!isOpen && !hasLoaded && lazyLoad) {
       setIsLoading(true);
-      // Use requestAnimationFrame for better performance
+      
+      // Use requestAnimationFrame to schedule UI updates
       requestAnimationFrame(() => {
         setIsOpen(true);
-        // Delay loading content slightly for smoother transition
+        
+        // Very short timeout for smoother transition feeling
         setTimeout(() => {
           setHasLoaded(true);
           setIsLoading(false);
-        }, 50);
+        }, 10);
       });
     } else {
       setIsOpen(!isOpen);
@@ -54,7 +57,7 @@ export const CollapsibleSection = ({
   }, [lazyLoad]);
 
   return (
-    <div className={cn("rounded-lg border bg-card shadow-sm", className)}>
+    <div className={cn("rounded-lg border bg-card shadow-sm", className)} style={{contain: "content"}}>
       <div
         className="flex items-center justify-between p-4 cursor-pointer"
         onClick={handleToggle}
@@ -73,8 +76,13 @@ export const CollapsibleSection = ({
       
       {isOpen && (
         <div 
+          ref={contentRef}
           className="p-4" 
           data-state={isOpen ? "open" : "closed"}
+          style={{ 
+            willChange: "transform, opacity",
+            contain: "content"
+          }}
         >
           {isLoading && (
             <div className="space-y-3">
