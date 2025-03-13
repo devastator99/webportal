@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // Define TypeScript interface for the combined stats return
 interface DoctorStats {
@@ -22,30 +23,49 @@ export const StatsCards = () => {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: doctorStats, isError } = useQuery({
+  const { data: doctorStats, isLoading, isError } = useQuery({
     queryKey: ["doctor_dashboard_stats", user?.id],
     queryFn: async () => {
       if (!user?.id) return { patients_count: 0, medical_records_count: 0, appointments: [] } as DoctorStats;
       
       try {
-        // Use a single RPC call to fetch all stats in one go
-        const { data, error } = await supabase.rpc(
-          'get_doctor_dashboard_stats', 
-          { doctor_id: user.id }
-        );
+        // Fetch patients count
+        const { data: patientsCount, error: patientsError } = await supabase
+          .from('patients')
+          .select('id', { count: 'exact', head: true })
+          .eq('doctor_id', user.id);
 
-        if (error) {
-          throw error;
+        if (patientsError) {
+          console.error("Error fetching patients count:", patientsError);
+        }
+
+        // Fetch medical records count
+        const { data: recordsCount, error: recordsError } = await supabase
+          .from('medical_records')
+          .select('id', { count: 'exact', head: true })
+          .eq('doctor_id', user.id);
+
+        if (recordsError) {
+          console.error("Error fetching medical records count:", recordsError);
+        }
+
+        // Fetch appointments
+        const { data: appointments, error: appointmentsError } = await supabase
+          .from('appointments')
+          .select('id, scheduled_at, status')
+          .eq('doctor_id', user.id);
+
+        if (appointmentsError) {
+          console.error("Error fetching appointments:", appointmentsError);
         }
         
-        return data as DoctorStats || { 
-          patients_count: 0, 
-          medical_records_count: 0, 
-          appointments: [] 
-        };
+        return {
+          patients_count: patientsCount?.count || 0,
+          medical_records_count: recordsCount?.count || 0,
+          appointments: appointments || []
+        } as DoctorStats;
       } catch (error) {
         console.error("Error fetching doctor stats:", error);
-        // Don't show toast here to avoid UI clutter
         return { 
           patients_count: 0, 
           medical_records_count: 0, 
@@ -54,6 +74,7 @@ export const StatsCards = () => {
       }
     },
     enabled: !!user?.id,
+    staleTime: 60000, // Cache for 1 minute to reduce frequent refetches
   });
 
   // Calculate today's appointments
@@ -73,6 +94,26 @@ export const StatsCards = () => {
         apt.status === 'scheduled'
       )
     : [];
+
+  // Render loading skeletons if data is still loading
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {[...Array(4)].map((_, index) => (
+          <Card key={index}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-4 rounded-full" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-8 w-12 mb-1" />
+              <Skeleton className="h-4 w-32" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
