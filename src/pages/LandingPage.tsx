@@ -1,5 +1,5 @@
 
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Hero } from "@/components/Hero";
 import { Navbar } from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,58 +25,33 @@ export const LandingPage = () => {
   const { user, forceSignOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [showVideos, setShowVideos] = useState(false);
 
-  // Force logout effect - using the more aggressive approach
+  // Force logout effect - with non-blocking approach
   useEffect(() => {
+    let isMounted = true;
+    
     if (user) {
-      // Show toast immediately
+      // Show toast
       toast({
         title: "Logging out...",
-        description: "Forcefully signing you out of your account",
+        description: "Signing you out of your account",
       });
       
-      // Use setTimeout to ensure UI updates before the potentially blocking operation
-      setTimeout(async () => {
-        try {
-          await forceSignOut();
-          // Toast will show on page reload
-        } catch (error) {
-          console.error("Force logout error:", error);
-          toast({
-            variant: "destructive",
-            title: "Error signing out",
-            description: "There was a problem signing you out. Please try again.",
+      // Use a small timeout to avoid blocking the render
+      const timeoutId = setTimeout(() => {
+        if (isMounted) {
+          forceSignOut().catch(error => {
+            console.error("Force logout error:", error);
           });
         }
       }, 100);
+      
+      return () => {
+        isMounted = false;
+        clearTimeout(timeoutId);
+      };
     }
   }, [user, forceSignOut, toast]);
-
-  // Detect when video section is near viewport to show videos
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const [entry] = entries;
-        if (entry.isIntersecting) {
-          setShowVideos(true);
-          observer.disconnect();
-        }
-      },
-      { 
-        rootMargin: "200px" // Load when within 200px of viewport
-      }
-    );
-
-    const videoSection = document.getElementById("video-section");
-    if (videoSection) {
-      observer.observe(videoSection);
-    }
-
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
@@ -99,15 +74,9 @@ export const LandingPage = () => {
         <h2 className="text-3xl md:text-4xl font-bold text-center text-[#7E69AB] mb-12">
           Knowledge Sharing
         </h2>
-        {showVideos ? (
-          <Suspense fallback={<LoadingSpinner />}>
-            <VideoList />
-          </Suspense>
-        ) : (
-          <div className="h-48 flex items-center justify-center">
-            <LoadingSpinner />
-          </div>
-        )}
+        <Suspense fallback={<LoadingSpinner />}>
+          <VideoList />
+        </Suspense>
       </div>
       
       <Suspense fallback={<LoadingSpinner />}>
