@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,7 @@ import { FileText, Save, Eye, Plus, Search } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { supabase, asArray, safeGet } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,12 +27,6 @@ import {
 } from "@/components/ui/dialog";
 
 interface PatientProfile {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-}
-
-interface DoctorProfile {
   id: string;
   first_name: string | null;
   last_name: string | null;
@@ -100,40 +95,50 @@ export const PrescriptionWriter = () => {
     queryFn: async () => {
       if (!user?.id) {
         console.error("No authenticated doctor user found");
-        return [];
+        return [] as PatientProfile[];
       }
 
       console.log("Fetching all patients for prescription writer");
       
-      const { data: patientUserIds, error: rpcError } = await supabase
-        .rpc('get_users_by_role', { role_name: 'patient' });
-      
-      if (rpcError) {
-        console.error("Error fetching patient user IDs via RPC:", rpcError);
-        throw rpcError;
-      }
-      
-      const patientIds = asArray(patientUserIds).map(item => safeGet(item, 'user_id', ''));
-      console.log("Patient user IDs found:", patientIds.length);
-      
-      if (!patientIds.length) {
+      try {
+        const { data: patientUserIds, error: rpcError } = await supabase
+          .rpc('get_users_by_role', { role_name: 'patient' });
+        
+        if (rpcError) {
+          console.error("Error fetching patient user IDs via RPC:", rpcError);
+          throw rpcError;
+        }
+        
+        // If no patients found, return empty array
+        if (!patientUserIds || !Array.isArray(patientUserIds)) {
+          return [] as PatientProfile[];
+        }
+        
+        const patientIds = patientUserIds.map(item => item.user_id as string).filter(Boolean);
+        console.log("Patient user IDs found:", patientIds.length);
+        
+        if (!patientIds.length) {
+          return [] as PatientProfile[];
+        }
+        
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name")
+          .in("id", patientIds);
+          
+        if (profilesError) {
+          console.error("Error fetching patient profiles:", profilesError);
+          throw profilesError;
+        }
+        
+        const patientProfiles = (profiles || []) as PatientProfile[];
+        console.log("Patient profiles found:", patientProfiles.length);
+        
+        return patientProfiles;
+      } catch (error) {
+        console.error("Error fetching patients:", error);
         return [] as PatientProfile[];
       }
-      
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name")
-        .in("id", patientIds);
-        
-      if (profilesError) {
-        console.error("Error fetching patient profiles:", profilesError);
-        throw profilesError;
-      }
-      
-      const patientProfiles = asArray<PatientProfile>(profiles);
-      console.log("Patient profiles found:", patientProfiles.length);
-      
-      return patientProfiles;
     },
   });
 
@@ -150,45 +155,50 @@ export const PrescriptionWriter = () => {
       
       console.log("Fetching prescriptions for patient:", selectedPatient, "by doctor:", user.id);
       
-      const { data: medicalRecords, error: medicalRecordsError } = await supabase
-        .from('medical_records')
-        .select('id, created_at, diagnosis, prescription, notes, doctor_id')
-        .eq('patient_id', selectedPatient)
-        .eq('doctor_id', user.id)
-        .order('created_at', { ascending: false });
+      try {
+        const { data: medicalRecords, error: medicalRecordsError } = await supabase
+          .from('medical_records')
+          .select('id, created_at, diagnosis, prescription, notes, doctor_id')
+          .eq('patient_id', selectedPatient)
+          .eq('doctor_id', user.id)
+          .order('created_at', { ascending: false });
 
-      if (medicalRecordsError) {
-        console.error("Error fetching medical records:", medicalRecordsError);
-        throw medicalRecordsError;
-      }
-      
-      const records = asArray<MedicalRecord>(medicalRecords);
-      console.log("Medical records found:", records.length);
-      
-      if (!records.length) {
+        if (medicalRecordsError) {
+          console.error("Error fetching medical records:", medicalRecordsError);
+          throw medicalRecordsError;
+        }
+        
+        const records = (medicalRecords || []) as MedicalRecord[];
+        console.log("Medical records found:", records.length);
+        
+        if (!records.length) {
+          return [] as MedicalRecord[];
+        }
+        
+        const { data: doctorProfile, error: doctorProfileError } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name")
+          .eq("id", user.id)
+          .single();
+          
+        if (doctorProfileError) {
+          console.error("Error fetching doctor profile:", doctorProfileError);
+          // Continue without doctor info rather than failing completely
+        }
+        
+        const doctorInfo = doctorProfile || { first_name: "Unknown", last_name: "" };
+        
+        return records.map(record => ({
+          ...record,
+          doctor: { 
+            first_name: doctorInfo.first_name, 
+            last_name: doctorInfo.last_name
+          }
+        }));
+      } catch (error) {
+        console.error("Error fetching past prescriptions:", error);
         return [] as MedicalRecord[];
       }
-      
-      const { data: doctorProfile, error: doctorProfileError } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name")
-        .eq("id", user.id)
-        .single();
-        
-      if (doctorProfileError) {
-        console.error("Error fetching doctor profile:", doctorProfileError);
-        // Continue without doctor info rather than failing completely
-      }
-      
-      const doctorInfo = doctorProfile || { first_name: "Unknown", last_name: "" };
-      
-      return records.map(record => ({
-        ...record,
-        doctor: { 
-          first_name: safeGet(doctorInfo, 'first_name', null), 
-          last_name: safeGet(doctorInfo, 'last_name', null)
-        }
-      }));
     },
     enabled: !!selectedPatient && !!user?.id,
   });
@@ -205,15 +215,17 @@ export const PrescriptionWriter = () => {
       
       console.log("Saving prescription for patient:", selectedPatient, "by doctor:", user.id);
       
+      const medicalRecord = {
+        patient_id: selectedPatient,
+        doctor_id: user.id,
+        diagnosis,
+        prescription,
+        notes
+      };
+      
       const { data, error } = await supabase
         .from('medical_records')
-        .insert({
-          patient_id: selectedPatient,
-          doctor_id: user.id,
-          diagnosis,
-          prescription,
-          notes
-        })
+        .insert(medicalRecord)
         .select();
 
       if (error) {
@@ -257,7 +269,7 @@ export const PrescriptionWriter = () => {
   };
 
   const filteredPatients = React.useMemo(() => {
-    if (!patients) return [];
+    if (!patients || !Array.isArray(patients)) return [];
     
     if (!searchTerm) return patients;
     
@@ -268,37 +280,13 @@ export const PrescriptionWriter = () => {
   }, [patients, searchTerm]);
 
   const selectedPatientName = React.useMemo(() => {
-    if (!selectedPatient || !patients) return "Select patient";
+    if (!selectedPatient || !patients || !Array.isArray(patients)) return "Select patient";
     
     const patient = patients.find(p => p.id === selectedPatient);
     if (!patient) return "Select patient";
     
     return `${patient.first_name || ""} ${patient.last_name || ""}`;
   }, [selectedPatient, patients]);
-
-  useEffect(() => {
-    if (patients && patients.length > 0 && !selectedPatient) {
-      const prakashPatient = patients.find(p => 
-        (p.first_name?.toLowerCase()?.includes('prakash') && p.last_name?.toLowerCase()?.includes('babu'))
-      );
-      
-      if (prakashPatient) {
-        console.log("Found Prakash Babu:", prakashPatient);
-        setSelectedPatient(prakashPatient.id);
-        return;
-      }
-      
-      const janePatient = patients.find(p => 
-        (p.first_name?.toLowerCase() === 'jane' && p.last_name?.toLowerCase() === 'doe') ||
-        ((p.first_name?.toLowerCase()?.includes('jane') || p.last_name?.toLowerCase()?.includes('doe')))
-      );
-      
-      if (janePatient) {
-        console.log("Found Jane Doe:", janePatient);
-        setSelectedPatient(janePatient.id);
-      }
-    }
-  }, [patients, selectedPatient]);
 
   return (
     <Card className="w-full">
