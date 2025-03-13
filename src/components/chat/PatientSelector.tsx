@@ -1,6 +1,6 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { getDoctorPatients, PatientProfile } from "@/integrations/supabase/client";
+import { getAllPatients, PatientProfile } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,16 +15,14 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
   const { user } = useAuth();
   const { toast } = useToast();
 
-  const { data: assignedPatients, isLoading } = useQuery({
-    queryKey: ["assigned_patients", user?.id],
+  const { data: patients, isLoading } = useQuery({
+    queryKey: ["all_patients"],
     queryFn: async () => {
-      if (!user?.id) return [] as PatientProfile[];
-      
       try {
-        console.log("Fetching patient assignments for doctor:", user.id);
+        console.log("Fetching all patients");
         
-        // Use RPC function to get assigned patients for doctor
-        const patients = await getDoctorPatients(user.id);
+        // Use RPC function to get all patients
+        const patients = await getAllPatients();
         console.log(`Fetched ${patients.length} patient profiles:`, patients);
         
         return patients;
@@ -32,7 +30,7 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
         console.error("Error in PatientSelector:", error);
         toast({
           title: "Failed to load patients",
-          description: "There was an error loading your patients. Please refresh and try again.",
+          description: "There was an error loading patients. Please refresh and try again.",
           variant: "destructive",
         });
         return [] as PatientProfile[];
@@ -45,10 +43,8 @@ export const PatientSelector = ({ selectedPatientId, onPatientSelect }: PatientS
     return <div>Loading patients...</div>;
   }
 
-  const patients = assignedPatients || [];
-
-  if (patients.length === 0) {
-    return <div className="text-sm text-muted-foreground">No patients assigned yet.</div>;
+  if (!patients || patients.length === 0) {
+    return <div className="text-sm text-muted-foreground">No patients found.</div>;
   }
 
   return (

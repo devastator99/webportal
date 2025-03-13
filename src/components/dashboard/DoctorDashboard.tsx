@@ -77,11 +77,7 @@ export const DoctorDashboard = () => {
       <StatsCards />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Commented out Today's Schedule as requested
-        <div className="space-y-6 lg:col-span-1">
-          <TodaySchedule />
-        </div>
-        */}
+        {/* Commented out Today's Schedule as requested */}
         <div className="lg:col-span-3 space-y-6">
           <DoctorAppointmentCalendar doctorId={user?.id || ""} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
