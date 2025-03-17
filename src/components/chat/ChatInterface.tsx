@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase, safelyUnwrapValue, asArray } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -98,14 +97,13 @@ export const ChatInterface = () => {
     }
 
     try {
-      const { error } = await supabase
-        .from("chat_messages")
-        .insert({
-          sender_id: user.id,
-          receiver_id: receiverId || null, // Allow null receiver_id
-          message: newMessage,
-          message_type: "text",
-        });
+      // Use the new RPC function to send messages instead of direct insert
+      const { data, error } = await supabase.rpc("send_chat_message", {
+        p_sender_id: user.id,
+        p_receiver_id: receiverId,
+        p_message: newMessage,
+        p_message_type: "text"
+      });
 
       if (error) {
         console.error("Error sending message:", error);

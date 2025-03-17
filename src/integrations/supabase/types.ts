@@ -908,6 +908,15 @@ export type Database = {
           updated_at: string
         }[]
       }
+      send_chat_message: {
+        Args: {
+          p_sender_id: string
+          p_receiver_id: string
+          p_message: string
+          p_message_type?: string
+        }
+        Returns: string
+      }
       validate_appointment_date: {
         Args: {
           p_doctor_id: string
