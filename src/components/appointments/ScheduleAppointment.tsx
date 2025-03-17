@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -180,7 +181,8 @@ export const ScheduleAppointment = ({
         p_patient_id: patientId,
         p_doctor_id: doctorId,
         p_scheduled_at: formattedDate,
-        p_status: "scheduled"
+        p_status: "scheduled",
+        p_notes: notes
       });
 
       if (error) {
@@ -221,7 +223,7 @@ export const ScheduleAppointment = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
+      <DialogTrigger asChild onClick={() => setIsOpen(true)}>{children}</DialogTrigger>
       <DialogContent className={`${isMobile ? 'w-[95vw] p-4' : 'sm:max-w-[500px]'} max-h-[90vh] overflow-y-auto`}>
         <DialogHeader>
           <DialogTitle className="text-center sm:text-left">Schedule an Appointment</DialogTitle>
@@ -317,7 +319,7 @@ export const ScheduleAppointment = ({
                   selected={selectedDate}
                   onSelect={setSelectedDate}
                   disabled={(date) => date < startOfDay(new Date())}
-                  className={`border rounded-md p-2 sm:p-3 mx-auto w-full ${
+                  className={`border rounded-md p-2 sm:p-3 mx-auto w-full pointer-events-auto ${
                     showValidation && isDateMissing ? "border-red-500" : ""
                   }`}
                 />
@@ -374,6 +376,7 @@ export const ScheduleAppointment = ({
 
         <DialogFooter className={isMobile ? "flex-col space-y-2 mt-2" : ""}>
           <Button 
+            type="button"
             onClick={handleScheduleAppointment} 
             disabled={isSubmitting}
             className={`bg-primary text-white ${isMobile ? 'w-full' : ''}`}
