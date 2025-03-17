@@ -177,16 +177,30 @@ export const ScheduleAppointment = ({
         throw new Error("Invalid doctor ID");
       }
 
+      // First create the appointment without notes
       const { data, error } = await supabase.rpc("create_appointment", {
         p_patient_id: patientId,
         p_doctor_id: doctorId,
         p_scheduled_at: formattedDate,
-        p_status: "scheduled",
-        p_notes: notes
+        p_status: "scheduled"
       });
 
       if (error) {
         throw error;
+      }
+
+      // If notes are provided, update the appointment with notes
+      if (notes && notes.trim() !== "") {
+        const appointmentId = data[0].appointment_id;
+        const { error: updateError } = await supabase
+          .from('appointments')
+          .update({ notes: notes })
+          .eq('id', appointmentId);
+          
+        if (updateError) {
+          console.error("Error updating appointment notes:", updateError);
+          // We don't throw here as the appointment was created successfully
+        }
       }
 
       toast({
