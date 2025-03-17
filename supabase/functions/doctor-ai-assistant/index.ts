@@ -8,13 +8,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const INDIAN_LANGUAGES = {
+  hi: "Hindi",
+  ta: "Tamil",
+  te: "Telugu",
+  bn: "Bengali",
+  mr: "Marathi",
+  gu: "Gujarati",
+  kn: "Kannada",
+  ml: "Malayalam",
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { messages, imageUrl } = await req.json();
+    const { messages, imageUrl, preferredLanguage = 'en' } = await req.json();
 
     // Create a Supabase client with the Admin key to query the database
     const supabaseAdmin = createClient(
@@ -29,20 +40,55 @@ serve(async (req) => {
     );
 
     // Prepare system message
-    let systemMessage = "You are a helpful medical assistant for a endocrinology clinic. Your name is EndoCare Assistant. ";
+    let systemMessage = "You are a helpful medical assistant for an endocrinology clinic in India. Your name is EndoCare Assistant. ";
     systemMessage += "You provide information about our clinic, services, doctors, and answer general questions about endocrinology. ";
     systemMessage += "You are not a doctor and cannot provide medical advice, only general information. ";
     systemMessage += "Always encourage users to book an appointment for medical concerns. ";
+    
+    // Add language specific instructions
+    if (preferredLanguage && preferredLanguage !== 'en') {
+      const languageName = INDIAN_LANGUAGES[preferredLanguage as keyof typeof INDIAN_LANGUAGES] || '';
+      if (languageName) {
+        systemMessage += `The user prefers to communicate in ${languageName}. Please respond in ${languageName}. `;
+        systemMessage += "Provide all your responses in both the preferred language and English for clarity. ";
+      }
+    }
+    
+    // Add cultural context
+    systemMessage += "Be respectful and use appropriate honorifics (ji, etc.) when addressing users. ";
+    systemMessage += "Be aware of Indian cultural context around health and medicine, including traditional and Ayurvedic concepts. ";
+    systemMessage += "When discussing costs, use INR (₹) as the currency. ";
+    systemMessage += "When discussing treatments, be aware of Indian healthcare system specifics like Ayushman Bharat, etc. ";
     systemMessage += "Be concise and friendly in your responses.";
 
     // Preprocess the user's last message to identify if they're asking about specific topics
     const lastUserMessage = messages[messages.length - 1].content;
     
     // Determine if we should fetch knowledge for specific topics
-    let isPackageQuery = lastUserMessage.toLowerCase().includes('package') || lastUserMessage.toLowerCase().includes('cost') || lastUserMessage.toLowerCase().includes('price');
-    let isDoctorQuery = lastUserMessage.toLowerCase().includes('doctor') || lastUserMessage.toLowerCase().includes('physician') || lastUserMessage.toLowerCase().includes('specialist');
-    let isClinicQuery = lastUserMessage.toLowerCase().includes('clinic') || lastUserMessage.toLowerCase().includes('location') || lastUserMessage.toLowerCase().includes('timing') || lastUserMessage.toLowerCase().includes('contact');
-    let isFaqQuery = lastUserMessage.toLowerCase().includes('faq') || lastUserMessage.toLowerCase().includes('question');
+    let isPackageQuery = lastUserMessage.toLowerCase().includes('package') || 
+                          lastUserMessage.toLowerCase().includes('cost') || 
+                          lastUserMessage.toLowerCase().includes('price') ||
+                          lastUserMessage.toLowerCase().includes('fee');
+                          
+    let isDoctorQuery = lastUserMessage.toLowerCase().includes('doctor') || 
+                         lastUserMessage.toLowerCase().includes('physician') || 
+                         lastUserMessage.toLowerCase().includes('specialist') ||
+                         lastUserMessage.toLowerCase().includes('ayurvedic');
+                         
+    let isClinicQuery = lastUserMessage.toLowerCase().includes('clinic') || 
+                         lastUserMessage.toLowerCase().includes('location') || 
+                         lastUserMessage.toLowerCase().includes('timing') || 
+                         lastUserMessage.toLowerCase().includes('contact') ||
+                         lastUserMessage.toLowerCase().includes('address');
+                         
+    let isFaqQuery = lastUserMessage.toLowerCase().includes('faq') || 
+                      lastUserMessage.toLowerCase().includes('question');
+                      
+    let isInsuranceQuery = lastUserMessage.toLowerCase().includes('insurance') || 
+                           lastUserMessage.toLowerCase().includes('cover') || 
+                           lastUserMessage.toLowerCase().includes('ayushman') ||
+                           lastUserMessage.toLowerCase().includes('cghs') ||
+                           lastUserMessage.toLowerCase().includes('policy');
     
     // Prepare knowledge context from database based on query
     let knowledgeContext = "";
@@ -53,7 +99,7 @@ serve(async (req) => {
         const packages = packagesData[0].content;
         knowledgeContext += "Here is information about our packages:\n";
         packages.forEach((pkg: any) => {
-          knowledgeContext += `- ${pkg.name}: ${pkg.price} - ${pkg.description}\n`;
+          knowledgeContext += `- ${pkg.name}: ₹${pkg.price} - ${pkg.description}\n`;
         });
       }
     }
@@ -90,6 +136,15 @@ serve(async (req) => {
       }
     }
     
+    if (isInsuranceQuery) {
+      knowledgeContext += "Here is information about insurance and payment options:\n";
+      knowledgeContext += "- We accept most major health insurance providers in India including Star Health, HDFC ERGO, and Bajaj Allianz.\n";
+      knowledgeContext += "- We are empanelled with Ayushman Bharat Pradhan Mantri Jan Arogya Yojana (PM-JAY).\n";
+      knowledgeContext += "- Central Government Health Scheme (CGHS) coverage is available for eligible patients.\n";
+      knowledgeContext += "- We also accept cash, UPI payments (PhonePe, Google Pay, Paytm), credit cards, and debit cards.\n";
+      knowledgeContext += "- EMI options are available for treatment packages above ₹10,000.\n";
+    }
+    
     // If no specific topic was detected, search for keywords
     if (!knowledgeContext) {
       const searchTerm = lastUserMessage.split(' ').slice(0, 3).join(' '); // Use first few words as search term
@@ -116,6 +171,11 @@ serve(async (req) => {
         });
       }
     }
+
+    // Add information about traditional medicine integration
+    knowledgeContext += "\nOur clinic combines modern endocrinology with traditional Indian medicine approaches when appropriate. ";
+    knowledgeContext += "We offer lifestyle modification programs based on Ayurvedic principles alongside conventional treatments. ";
+    knowledgeContext += "Our dieticians are familiar with regional Indian diets and can provide culturally appropriate nutrition advice. ";
 
     // Prepare the messages array
     const formattedMessages = [

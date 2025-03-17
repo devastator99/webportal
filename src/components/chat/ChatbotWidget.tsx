@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type Message = {
   id: string;
@@ -23,12 +24,13 @@ export const ChatbotWidget = () => {
     {
       id: '1',
       role: 'assistant',
-      content: 'Hello! I\'m your EndoCare Assistant. How can I help you today?',
+      content: 'नमस्ते! मैं आपका EndoCare सहायक हूँ। आज मैं आपकी कैसे मदद कर सकता हूँ? (Hello! I am your EndoCare Assistant. How can I help you today?)',
       timestamp: new Date(),
     },
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [language, setLanguage] = useState('en');
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -58,7 +60,10 @@ export const ChatbotWidget = () => {
 
     try {
       const { data, error } = await supabase.functions.invoke('doctor-ai-assistant', {
-        body: { messages: formattedMessages },
+        body: { 
+          messages: formattedMessages,
+          preferredLanguage: language 
+        },
       });
 
       if (error) {
@@ -68,7 +73,7 @@ export const ChatbotWidget = () => {
       const assistantMessage = {
         id: Date.now().toString(),
         role: 'assistant' as const,
-        content: data.response || 'I apologize, but I couldn\'t generate a response. Please try again.',
+        content: data.response || 'मुझे क्षमा करें, मैं उत्तर नहीं दे पा रहा हूँ। कृपया फिर से प्रयास करें। (I apologize, but I couldn\'t generate a response. Please try again.)',
         timestamp: new Date(),
       };
 
@@ -78,7 +83,7 @@ export const ChatbotWidget = () => {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'Failed to get a response from the assistant. Please try again.',
+        description: 'सहायक से जवाब प्राप्त करने में विफल। कृपया पुन: प्रयास करें। (Failed to get a response from the assistant. Please try again.)',
       });
     } finally {
       setIsLoading(false);
@@ -106,6 +111,18 @@ export const ChatbotWidget = () => {
     }
   }, [isOpen]);
 
+  const languageOptions = [
+    { value: 'en', label: 'English' },
+    { value: 'hi', label: 'हिंदी (Hindi)' },
+    { value: 'ta', label: 'தமிழ் (Tamil)' },
+    { value: 'te', label: 'తెలుగు (Telugu)' },
+    { value: 'bn', label: 'বাংলা (Bengali)' },
+    { value: 'mr', label: 'मराठी (Marathi)' },
+    { value: 'gu', label: 'ગુજરાતી (Gujarati)' },
+    { value: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
+    { value: 'ml', label: 'മലയാളം (Malayalam)' },
+  ];
+
   return (
     <>
       {/* Floating chat button */}
@@ -127,7 +144,7 @@ export const ChatbotWidget = () => {
               <Avatar className="h-7 w-7 bg-primary">
                 <MessageSquare className="h-4 w-4 text-white" />
               </Avatar>
-              <CardTitle className="text-base font-medium">EndoCare Assistant</CardTitle>
+              <CardTitle className="text-base font-medium">EndoCare सहायक</CardTitle>
             </div>
             <Button
               variant="ghost"
@@ -139,6 +156,21 @@ export const ChatbotWidget = () => {
               <X className="h-4 w-4" />
             </Button>
           </CardHeader>
+
+          <div className="px-4 py-2 border-b bg-muted/30">
+            <Select value={language} onValueChange={setLanguage}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue placeholder="Select Language" />
+              </SelectTrigger>
+              <SelectContent>
+                {languageOptions.map(option => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <CardContent className="flex-1 p-0 overflow-hidden">
             <ScrollArea className="h-full w-full px-4 py-2">
@@ -176,7 +208,7 @@ export const ChatbotWidget = () => {
                 {isLoading && (
                   <div className="flex justify-start">
                     <Badge variant="outline" className="animate-pulse">
-                      Assistant is typing...
+                      प्रतिक्रिया दे रहा है... (Assistant is typing...)
                     </Badge>
                   </div>
                 )}
@@ -192,7 +224,7 @@ export const ChatbotWidget = () => {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Type your message..."
+                placeholder={language === 'hi' ? "अपना संदेश यहां टाइप करें..." : "Type your message..."}
                 className="min-h-[40px] flex-1 resize-none"
                 disabled={isLoading}
               />

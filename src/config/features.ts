@@ -12,7 +12,10 @@ export const featureFlags = {
   // Individual dashboard chat controls
   patientDashboardChat: true,
   doctorDashboardChat: true,
-  receptionDashboardChat: true
+  receptionDashboardChat: true,
+  
+  // Set to true to enable Indian language support in chat
+  enableIndianLanguageSupport: true
 };
 
 // Try to load saved feature flags from localStorage

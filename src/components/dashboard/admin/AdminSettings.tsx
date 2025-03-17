@@ -1,195 +1,115 @@
-
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Settings, MessageSquare } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel } from "@/components/ui/form";
-import { useForm } from "react-hook-form";
-import { featureFlags } from "@/config/features";
-import { toast } from "sonner";
-
-// Define the interface for our form values
-interface FeatureFlagsFormValues {
-  enableChat: boolean;
-  enableChatbotWidget: boolean;
-  patientDashboardChat: boolean;
-  doctorDashboardChat: boolean;
-  receptionDashboardChat: boolean;
-}
+import { useToast } from "@/hooks/use-toast";
+import { featureFlags, updateFeatureFlags } from "@/config/features";
 
 export const AdminSettings = () => {
-  // Initialize form with current feature flag values
-  const form = useForm<FeatureFlagsFormValues>({
-    defaultValues: {
-      enableChat: featureFlags.enableChat,
-      enableChatbotWidget: featureFlags.enableChatbotWidget,
-      patientDashboardChat: featureFlags.patientDashboardChat,
-      doctorDashboardChat: featureFlags.doctorDashboardChat,
-      receptionDashboardChat: featureFlags.receptionDashboardChat,
-    },
-  });
+  const [flags, setFlags] = useState(featureFlags);
+  const { toast } = useToast();
 
-  const onSubmit = (data: FeatureFlagsFormValues) => {
-    // In a real app, this would make an API call to update the flags in the database
-    // For this demo, we'll update the values in localStorage
-    localStorage.setItem('featureFlags', JSON.stringify(data));
+  useEffect(() => {
+    setFlags(featureFlags);
+  }, []);
+
+  const updateFlag = (key: keyof typeof featureFlags, value: boolean) => {
+    updateFeatureFlags({ [key]: value });
+    setFlags(prev => ({ ...prev, [key]: value }));
     
-    // Update the current featureFlags object (this will be lost on page refresh)
-    Object.assign(featureFlags, data);
-    
-    toast.success("Feature flags updated successfully", {
-      description: "Changes will take effect immediately",
+    toast({
+      title: "Feature flags updated",
+      description: `Successfully updated ${key} to ${value}`,
     });
   };
 
-  // Load saved feature flags from localStorage when component mounts
-  useEffect(() => {
-    const savedFlags = localStorage.getItem('featureFlags');
-    if (savedFlags) {
-      const parsedFlags = JSON.parse(savedFlags);
-      form.reset(parsedFlags);
-      
-      // Update the current featureFlags object
-      Object.assign(featureFlags, parsedFlags);
-    }
-  }, [form]);
-
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-xl font-bold">Feature Settings</CardTitle>
-        <Settings className="h-5 w-5 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="space-y-4">
-              <div className="border-b pb-4">
-                <h3 className="text-lg font-medium flex items-center gap-2">
-                  <MessageSquare className="h-5 w-5" /> 
-                  Chat Features
-                </h3>
-              </div>
-              
-              <FormField
-                control={form.control}
-                name="enableChat"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                    <div className="space-y-0.5">
-                      <FormLabel>Master Chat Toggle</FormLabel>
-                      <FormDescription>
-                        Enable or disable all chat functionality across the application
-                      </FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              
-              <div className="ml-6 space-y-4">
-                <FormField
-                  control={form.control}
-                  name="enableChatbotWidget"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                      <div className="space-y-0.5">
-                        <FormLabel>Chatbot Widget</FormLabel>
-                        <FormDescription>
-                          Enable the floating chatbot widget
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={!form.watch("enableChat")}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="patientDashboardChat"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                      <div className="space-y-0.5">
-                        <FormLabel>Patient Dashboard Chat</FormLabel>
-                        <FormDescription>
-                          Enable chat in the patient dashboard
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={!form.watch("enableChat")}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="doctorDashboardChat"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                      <div className="space-y-0.5">
-                        <FormLabel>Doctor Dashboard Chat</FormLabel>
-                        <FormDescription>
-                          Enable chat in the doctor dashboard
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={!form.watch("enableChat")}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="receptionDashboardChat"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
-                      <div className="space-y-0.5">
-                        <FormLabel>Reception Dashboard Chat</FormLabel>
-                        <FormDescription>
-                          Enable chat in the reception dashboard
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          disabled={!form.watch("enableChat")}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Chat Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-medium">Enable Chat</h3>
+              <p className="text-sm text-muted-foreground">
+                Turn on/off all chat functionality across the application
+              </p>
             </div>
-            
-            <Button type="submit" className="w-full">Save Settings</Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+            <Switch 
+              checked={flags.enableChat}
+              onCheckedChange={(checked) => updateFlag('enableChat', checked)}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-medium">Enable Chatbot Widget</h3>
+              <p className="text-sm text-muted-foreground">
+                Show/hide the floating chatbot widget
+              </p>
+            </div>
+            <Switch 
+              checked={flags.enableChatbotWidget}
+              onCheckedChange={(checked) => updateFlag('enableChatbotWidget', checked)}
+              disabled={!flags.enableChat}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-medium">Enable Indian Language Support</h3>
+              <p className="text-sm text-muted-foreground">
+                Enable support for multiple Indian languages in the chat interface
+              </p>
+            </div>
+            <Switch 
+              checked={flags.enableIndianLanguageSupport}
+              onCheckedChange={(checked) => updateFlag('enableIndianLanguageSupport', checked)}
+              disabled={!flags.enableChat}
+            />
+          </div>
+
+          <Separator />
+
+          <h3 className="font-medium">Dashboard Chat Controls</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="patient-chat">Patient Dashboard</Label>
+              <Switch 
+                id="patient-chat"
+                checked={flags.patientDashboardChat}
+                onCheckedChange={(checked) => updateFlag('patientDashboardChat', checked)}
+                disabled={!flags.enableChat}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="doctor-chat">Doctor Dashboard</Label>
+              <Switch 
+                id="doctor-chat"
+                checked={flags.doctorDashboardChat}
+                onCheckedChange={(checked) => updateFlag('doctorDashboardChat', checked)}
+                disabled={!flags.enableChat}
+              />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="reception-chat">Reception Dashboard</Label>
+              <Switch 
+                id="reception-chat"
+                checked={flags.receptionDashboardChat}
+                onCheckedChange={(checked) => updateFlag('receptionDashboardChat', checked)}
+                disabled={!flags.enableChat}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      
+    </div>
   );
 };
