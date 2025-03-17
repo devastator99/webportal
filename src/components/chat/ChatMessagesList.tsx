@@ -7,8 +7,7 @@ import { useEffect, useRef } from "react";
 import { ChatMessage } from "./ChatMessage";
 
 interface ChatMessagesListProps {
-  selectedPatientId: string | null;
-  doctorAssignment: any;
+  selectedUserId: string | null;
 }
 
 interface ProfileInfo {
@@ -26,14 +25,14 @@ interface MessageData {
   receiver: ProfileInfo;
 }
 
-export const ChatMessagesList = ({ selectedPatientId, doctorAssignment }: ChatMessagesListProps) => {
-  const { user, userRole } = useAuth();
+export const ChatMessagesList = ({ selectedUserId }: ChatMessagesListProps) => {
+  const { user } = useAuth();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const { data: messages, refetch } = useQuery({
-    queryKey: ["chat_messages", user?.id, selectedPatientId, doctorAssignment?.doctor_id],
+    queryKey: ["chat_messages", user?.id, selectedUserId],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id || !selectedUserId) return [];
       
       const query = supabase
         .from("chat_messages")
@@ -46,16 +45,8 @@ export const ChatMessagesList = ({ selectedPatientId, doctorAssignment }: ChatMe
           receiver:profiles!chat_messages_receiver_profile_fkey(id, first_name, last_name)
         `);
 
-      if (userRole === "doctor" && selectedPatientId) {
-        // For doctors, get messages between them and the selected patient
-        query.or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedPatientId}),and(sender_id.eq.${selectedPatientId},receiver_id.eq.${user.id})`);
-      } else if (userRole === "patient" && doctorAssignment?.doctor_id) {
-        // For patients, get messages between them and their assigned doctor
-        query.or(`and(sender_id.eq.${user.id},receiver_id.eq.${doctorAssignment.doctor_id}),and(sender_id.eq.${doctorAssignment.doctor_id},receiver_id.eq.${user.id})`);
-      } else if (userRole === "patient") {
-        // If patient has no assigned doctor, still show any messages they've sent or received
-        query.or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
-      }
+      // Get messages between current user and selected user (in both directions)
+      query.or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`);
 
       const { data, error } = await query.order("created_at", { ascending: true });
 
@@ -65,10 +56,7 @@ export const ChatMessagesList = ({ selectedPatientId, doctorAssignment }: ChatMe
       }
       return data as MessageData[] || [];
     },
-    enabled: !!user?.id && (
-      (userRole === "doctor" && !!selectedPatientId) || 
-      (userRole === "patient")
-    ),
+    enabled: !!user?.id && !!selectedUserId,
   });
 
   // Scroll to bottom when new messages arrive
@@ -102,6 +90,14 @@ export const ChatMessagesList = ({ selectedPatientId, doctorAssignment }: ChatMe
       supabase.removeChannel(channel);
     };
   }, [user?.id, refetch]);
+
+  if (!selectedUserId) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+        Select a user to start a conversation
+      </div>
+    );
+  }
 
   if (!messages?.length) {
     return (

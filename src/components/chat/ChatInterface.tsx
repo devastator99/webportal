@@ -7,93 +7,65 @@ import { MessageSquare } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ChatInput } from "./ChatInput";
-import { PatientSelector } from "./PatientSelector";
 import { ChatMessagesList } from "./ChatMessagesList";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
-type Doctor = {
+type UserProfile = {
   id: string;
   first_name: string | null;
   last_name: string | null;
 };
 
-type DoctorAssignment = {
-  doctor_id: string;
-  doctor: Doctor;
-};
-
 export const ChatInterface = () => {
-  const { user, userRole } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [newMessage, setNewMessage] = useState("");
-  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-  // For patients, fetch their assigned doctor
-  const { data: doctorAssignment, error: doctorError } = useQuery({
-    queryKey: ["doctor_assignment", user?.id],
+  // Fetch all users for the dropdown
+  const { data: allUsers, error: usersError } = useQuery({
+    queryKey: ["all_users"],
     queryFn: async () => {
-      if (!user?.id || userRole !== "patient") return null;
+      if (!user?.id) return [];
       
-      // First query to get the doctor_id
-      const { data: assignmentData, error: assignmentError } = await supabase
-        .from("patient_assignments")
-        .select("doctor_id")
-        .eq("patient_id", user.id)
-        .maybeSingle();
-
-      if (assignmentError) {
-        console.error("Error fetching doctor assignment:", assignmentError);
-        throw assignmentError;
-      }
-
-      if (!assignmentData) {
-        return null;
-      }
-
-      // Second query to get the doctor details
-      const { data: doctorData, error: doctorError } = await supabase
+      // Get all profiles except current user
+      const { data, error } = await supabase
         .from("profiles")
         .select("id, first_name, last_name")
-        .eq("id", assignmentData.doctor_id)
-        .maybeSingle();
+        .neq("id", user.id);
 
-      if (doctorError) {
-        console.error("Error fetching doctor profile:", doctorError);
-        throw doctorError;
+      if (error) {
+        console.error("Error fetching users:", error);
+        throw error;
       }
-
-      return {
-        doctor_id: assignmentData.doctor_id,
-        doctor: doctorData as Doctor
-      } as DoctorAssignment;
+      
+      return data as UserProfile[];
     },
-    enabled: !!user?.id && userRole === "patient",
+    enabled: !!user?.id,
   });
 
-  // For doctors, fetch selected patient details
-  const { data: selectedPatient, error: patientError } = useQuery({
-    queryKey: ["selected_patient", selectedPatientId],
+  // Fetch selected user details
+  const { data: selectedUser, error: selectedUserError } = useQuery({
+    queryKey: ["selected_user", selectedUserId],
     queryFn: async () => {
-      if (!selectedPatientId) return null;
+      if (!selectedUserId) return null;
       
       const { data, error } = await supabase
         .from("profiles")
         .select("id, first_name, last_name")
-        .eq("id", selectedPatientId)
+        .eq("id", selectedUserId)
         .maybeSingle();
 
       if (error) throw error;
-      return data;
+      return data as UserProfile;
     },
-    enabled: !!selectedPatientId,
+    enabled: !!selectedUserId,
   });
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
-
-    const receiverId = userRole === "doctor" 
-      ? selectedPatientId 
-      : doctorAssignment?.doctor_id;
 
     if (!user?.id) {
       toast({
@@ -104,21 +76,19 @@ export const ChatInterface = () => {
       return;
     }
 
-    // For patients, allow sending messages even without an assigned doctor
-    if (userRole === "doctor" && !selectedPatientId) {
+    if (!selectedUserId) {
       toast({
         title: "Cannot send message",
-        description: "Please select a patient first.",
+        description: "Please select a recipient first.",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      // Use the new RPC function to send messages instead of direct insert
       const { data, error } = await supabase.rpc("send_chat_message", {
         p_sender_id: user.id,
-        p_receiver_id: receiverId,
+        p_receiver_id: selectedUserId,
         p_message: newMessage,
         p_message_type: "text"
       });
@@ -148,37 +118,31 @@ export const ChatInterface = () => {
   };
 
   const getHeaderTitle = () => {
-    const patientName = selectedPatient 
-      ? `${safelyUnwrapValue(selectedPatient.first_name, "")} ${safelyUnwrapValue(selectedPatient.last_name, "")}`
+    const userName = selectedUser 
+      ? `${safelyUnwrapValue(selectedUser.first_name, "")} ${safelyUnwrapValue(selectedUser.last_name, "")}`
       : "";
       
-    const doctorName = doctorAssignment && doctorAssignment.doctor 
-      ? `Dr. ${safelyUnwrapValue(doctorAssignment.doctor.first_name, "")} ${safelyUnwrapValue(doctorAssignment.doctor.last_name, "")}`
-      : "";
-
-    if (userRole === "doctor" && patientName) {
-      return `Chat with ${patientName}`;
-    } else if (userRole === "patient" && doctorName) {
-      return `Chat with ${doctorName}`;
+    if (userName) {
+      return `Chat with ${userName}`;
     }
     return "Messages";
   };
 
   const renderError = () => {
-    if (doctorError) {
+    if (usersError) {
       return (
         <Alert>
           <AlertDescription>
-            Unable to find your assigned doctor. You can still send messages that will be received by our medical team.
+            Unable to load users. Please refresh the page.
           </AlertDescription>
         </Alert>
       );
     }
-    if (patientError) {
+    if (selectedUserError) {
       return (
         <Alert variant="destructive">
           <AlertDescription>
-            Unable to load patient information. Please try again later.
+            Unable to load user information. Please try again later.
           </AlertDescription>
         </Alert>
       );
@@ -193,24 +157,38 @@ export const ChatInterface = () => {
           <MessageSquare className="h-5 w-5" />
           {getHeaderTitle()}
         </CardTitle>
-        {userRole === "doctor" && (
-          <PatientSelector
-            selectedPatientId={selectedPatientId}
-            onPatientSelect={setSelectedPatientId}
-          />
-        )}
+        <div className="space-y-2">
+          <Label htmlFor="user-select">Select User</Label>
+          <Select
+            value={selectedUserId || ""}
+            onValueChange={setSelectedUserId}
+          >
+            <SelectTrigger id="user-select">
+              <SelectValue placeholder="Select a user to chat with" />
+            </SelectTrigger>
+            <SelectContent>
+              {allUsers?.map((user) => (
+                <SelectItem 
+                  key={user.id} 
+                  value={user.id}
+                >
+                  {user.first_name || ''} {user.last_name || ''}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
         {renderError()}
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">
         <ChatMessagesList
-          selectedPatientId={selectedPatientId}
-          doctorAssignment={doctorAssignment}
+          selectedUserId={selectedUserId}
         />
         <ChatInput
           value={newMessage}
           onChange={setNewMessage}
           onSend={handleSendMessage}
-          disabled={userRole === "doctor" ? !selectedPatientId : false}
+          disabled={!selectedUserId}
         />
       </CardContent>
     </Card>
