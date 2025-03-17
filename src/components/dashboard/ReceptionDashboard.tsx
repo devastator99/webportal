@@ -5,9 +5,10 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, MessageCircle, Users } from "lucide-react";
-import { ChatInterface } from "@/components/chat/ChatInterface";
 import { AppointmentsList } from "./patient/AppointmentsList";
 import { DashboardHeader } from "./DashboardHeader";
+import { featureFlags } from "@/config/features";
+import { ChatModule } from "@/modules/chat/ChatModule";
 
 export const ReceptionDashboard = () => {
   const { user } = useAuth();
@@ -104,7 +105,11 @@ export const ReceptionDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <AppointmentsList appointments={dashboardData?.appointments || []} />
-        <ChatInterface />
+        
+        {/* Only show chat if enabled */}
+        {featureFlags.enableChat && featureFlags.receptionDashboardChat && (
+          <ChatModule showChatbotWidget={false} />
+        )}
       </div>
     </div>
   );

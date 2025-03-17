@@ -11,6 +11,7 @@ import { ScheduleAppointment } from "../appointments/ScheduleAppointment";
 import { Suspense, lazy } from "react";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Skeleton } from "@/components/ui/skeleton";
+import { featureFlags } from "@/config/features";
 
 // Lazy load components
 const LazyAppointmentsList = lazy(() => 
@@ -153,11 +154,14 @@ export const PatientDashboard = () => {
             </Suspense>
           </CollapsibleSection>
           
-          <CollapsibleSection title="Chat with Doctor" defaultOpen={false}>
-            <Suspense fallback={<LoadingFallback />}>
-              <LazyChatInterface />
-            </Suspense>
-          </CollapsibleSection>
+          {/* Only show chat if enabled */}
+          {featureFlags.enableChat && featureFlags.patientDashboardChat && (
+            <CollapsibleSection title="Chat with Doctor" defaultOpen={false}>
+              <Suspense fallback={<LoadingFallback />}>
+                <LazyChatInterface />
+              </Suspense>
+            </CollapsibleSection>
+          )}
         </div>
       </div>
     </div>

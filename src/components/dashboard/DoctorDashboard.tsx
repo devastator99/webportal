@@ -3,8 +3,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { StatsCards } from "@/components/dashboard/doctor/StatsCards";
-// import { TodaySchedule } from "@/components/dashboard/doctor/TodaySchedule";
-import { ChatInterface } from "@/components/chat/ChatInterface";
 import { AiAssistant } from "@/components/dashboard/doctor/AiAssistant";
 import { DoctorAppointmentCalendar } from "@/components/dashboard/doctor/DoctorAppointmentCalendar";
 import { VideoUploader } from "@/components/videos/VideoUploader";
@@ -19,6 +17,8 @@ import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointme
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
+import { featureFlags } from "@/config/features";
+import { ChatModule } from "@/modules/chat/ChatModule";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
@@ -86,7 +86,6 @@ export const DoctorDashboard = () => {
       <StatsCards />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Commented out Today's Schedule as requested */}
         <div className="lg:col-span-3 space-y-6">
           <DoctorAppointmentCalendar doctorId={user?.id || ""} />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -94,7 +93,12 @@ export const DoctorDashboard = () => {
             <PrescriptionWriter />
           </div>
           <AiAssistant />
-          <ChatInterface />
+          
+          {/* Only show chat if enabled */}
+          {featureFlags.enableChat && featureFlags.doctorDashboardChat && (
+            <ChatModule showChatbotWidget={false} />
+          )}
+          
           <div>
             <h2 className="text-2xl font-semibold mb-4">Your Knowledge Sharing Videos</h2>
             <VideoUploader />

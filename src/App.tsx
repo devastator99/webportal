@@ -10,7 +10,8 @@ import Dashboard from './pages/Dashboard';
 import AlternativeDashboard from './pages/AlternativeDashboard';
 import Admin from './pages/Admin';
 import PatientsView from './pages/PatientsView';
-import { ChatbotWidget } from './components/chat/ChatbotWidget';
+import { featureFlags } from './config/features';
+import { ChatModule } from './modules/chat/ChatModule';
 
 function App() {
   return (
@@ -25,7 +26,12 @@ function App() {
             <Route path="/admin/*" element={<Admin />} />
             <Route path="/patients" element={<PatientsView />} />
           </Routes>
-          <ChatbotWidget />
+          
+          {/* Only render the chatbot widget if chat is enabled */}
+          {featureFlags.enableChat && featureFlags.enableChatbotWidget && (
+            <ChatModule showChatInterface={false} showChatbotWidget={true} />
+          )}
+          
           <Toaster position="top-right" />
         </AuthProvider>
       </Router>
