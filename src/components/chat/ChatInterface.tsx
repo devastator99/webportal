@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase, safelyUnwrapValue, asArray } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -37,7 +38,7 @@ export const ChatInterface = () => {
         .from("patient_assignments")
         .select(`
           doctor_id,
-          doctor:profiles!patient_assignments_doctor_profile_fkey(
+          doctor:profiles!patient_assignments_doctor_id_fkey(
             id,
             first_name,
             last_name
@@ -46,7 +47,10 @@ export const ChatInterface = () => {
         .eq("patient_id", user.id)
         .maybeSingle();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching doctor assignment:", error);
+        throw error;
+      }
       return data as DoctorAssignment;
     },
     enabled: !!user?.id && userRole === "patient",

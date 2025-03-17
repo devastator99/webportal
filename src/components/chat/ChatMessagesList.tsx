@@ -31,7 +31,7 @@ export const ChatMessagesList = ({ selectedPatientId, doctorAssignment }: ChatMe
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   const { data: messages, refetch } = useQuery({
-    queryKey: ["chat_messages", user?.id, selectedPatientId],
+    queryKey: ["chat_messages", user?.id, selectedPatientId, doctorAssignment?.doctor_id],
     queryFn: async () => {
       if (!user?.id) return [];
       
@@ -47,19 +47,27 @@ export const ChatMessagesList = ({ selectedPatientId, doctorAssignment }: ChatMe
         `);
 
       if (userRole === "doctor" && selectedPatientId) {
+        // For doctors, get messages between them and the selected patient
         query.or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedPatientId}),and(sender_id.eq.${selectedPatientId},receiver_id.eq.${user.id})`);
       } else if (userRole === "patient" && doctorAssignment?.doctor_id) {
+        // For patients, get messages between them and their assigned doctor
         query.or(`and(sender_id.eq.${user.id},receiver_id.eq.${doctorAssignment.doctor_id}),and(sender_id.eq.${doctorAssignment.doctor_id},receiver_id.eq.${user.id})`);
+      } else if (userRole === "patient") {
+        // If patient has no assigned doctor, still show any messages they've sent or received
+        query.or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
       }
 
       const { data, error } = await query.order("created_at", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching messages:", error);
+        throw error;
+      }
       return data as MessageData[] || [];
     },
     enabled: !!user?.id && (
       (userRole === "doctor" && !!selectedPatientId) || 
-      (userRole === "patient" && !!doctorAssignment?.doctor_id)
+      (userRole === "patient")
     ),
   });
 
