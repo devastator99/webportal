@@ -6,6 +6,7 @@ import { Users, Stethoscope, Heart, Settings } from "lucide-react";
 import { VideoUploader } from "@/components/videos/VideoUploader";
 import { VideoList } from "@/components/videos/VideoList";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
 
 export const AdminDashboard = () => {
   const { data: userStats } = useQuery({
@@ -84,7 +85,10 @@ export const AdminDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1">
-          <VideoUploader />
+          <AdminSettings />
+          <div className="mt-6">
+            <VideoUploader />
+          </div>
         </div>
         <div className="lg:col-span-2">
           <h2 className="text-2xl font-semibold mb-4">Uploaded Videos</h2>

@@ -12,8 +12,39 @@ import Admin from './pages/Admin';
 import PatientsView from './pages/PatientsView';
 import { featureFlags } from './config/features';
 import { ChatModule } from './modules/chat/ChatModule';
+import { useEffect, useState } from 'react';
 
 function App() {
+  // Initialize state with current feature flags
+  const [chatEnabled, setChatEnabled] = useState(featureFlags.enableChat);
+  const [chatbotWidgetEnabled, setChatbotWidgetEnabled] = useState(featureFlags.enableChatbotWidget);
+  
+  // Listen for changes to feature flags in localStorage
+  useEffect(() => {
+    const checkFeatureFlags = () => {
+      const savedFlags = localStorage.getItem('featureFlags');
+      if (savedFlags) {
+        const parsedFlags = JSON.parse(savedFlags);
+        setChatEnabled(parsedFlags.enableChat);
+        setChatbotWidgetEnabled(parsedFlags.enableChatbotWidget);
+      }
+    };
+    
+    // Check initially
+    checkFeatureFlags();
+    
+    // Set up event listener for storage changes
+    window.addEventListener('storage', checkFeatureFlags);
+    
+    // Custom event for when flags change within the same window
+    window.addEventListener('featureFlagsChanged', checkFeatureFlags);
+    
+    return () => {
+      window.removeEventListener('storage', checkFeatureFlags);
+      window.removeEventListener('featureFlagsChanged', checkFeatureFlags);
+    };
+  }, []);
+
   return (
     <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
       <Router>
@@ -28,7 +59,7 @@ function App() {
           </Routes>
           
           {/* Only render the chatbot widget if chat is enabled */}
-          {featureFlags.enableChat && featureFlags.enableChatbotWidget && (
+          {chatEnabled && chatbotWidgetEnabled && (
             <ChatModule showChatInterface={false} showChatbotWidget={true} />
           )}
           
