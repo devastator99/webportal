@@ -534,31 +534,40 @@ export type Database = {
       }
       profiles: {
         Row: {
+          clinic_location: string | null
           consultation_fee: number | null
           created_at: string
           first_name: string | null
           id: string
           last_name: string | null
           phone: string | null
+          specialty: string | null
           updated_at: string
+          visiting_hours: string | null
         }
         Insert: {
+          clinic_location?: string | null
           consultation_fee?: number | null
           created_at?: string
           first_name?: string | null
           id: string
           last_name?: string | null
           phone?: string | null
+          specialty?: string | null
           updated_at?: string
+          visiting_hours?: string | null
         }
         Update: {
+          clinic_location?: string | null
           consultation_fee?: number | null
           created_at?: string
           first_name?: string | null
           id?: string
           last_name?: string | null
           phone?: string | null
+          specialty?: string | null
           updated_at?: string
+          visiting_hours?: string | null
         }
         Relationships: []
       }
@@ -759,6 +768,18 @@ export type Database = {
         }
         Returns: number
       }
+      get_doctor_profiles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          first_name: string
+          last_name: string
+          specialty: string
+          visiting_hours: string
+          clinic_location: string
+          consultation_fee: number
+        }[]
+      }
       get_doctors: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -766,6 +787,10 @@ export type Database = {
           first_name: string
           last_name: string
         }[]
+      }
+      get_doctors_for_chatbot: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       get_medical_report_url: {
         Args: {

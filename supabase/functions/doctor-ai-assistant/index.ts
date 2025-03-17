@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
@@ -104,13 +105,34 @@ serve(async (req) => {
     }
     
     if (isDoctorQuery) {
-      const { data: doctorsData } = await supabaseAdmin.rpc('get_chatbot_knowledge', { topic_filter: 'doctors' });
-      if (doctorsData && doctorsData.length > 0) {
-        const doctors = doctorsData[0].content;
+      // Get doctor information from the database using the new RPC function
+      const { data: doctorsData, error: doctorsError } = await supabaseAdmin.rpc('get_doctors_for_chatbot');
+      
+      if (doctorsError) {
+        console.error('Error fetching doctors:', doctorsError);
+      }
+      
+      if (doctorsData && doctorsData.doctors && doctorsData.doctors.length > 0) {
         knowledgeContext += "Here is information about our doctors:\n";
-        doctors.forEach((doc: any) => {
-          knowledgeContext += `- ${doc.name}, ${doc.specialty}, ${doc.experience} experience, ${doc.qualifications}\n`;
+        doctorsData.doctors.forEach((doc: any) => {
+          knowledgeContext += `- Dr. ${doc.name}`;
+          if (doc.specialty) knowledgeContext += `, ${doc.specialty}`;
+          if (doc.consultation_fee) knowledgeContext += `, Consultation Fee: ₹${doc.consultation_fee}`;
+          knowledgeContext += `\n`;
+          
+          if (doc.visiting_hours) knowledgeContext += `  Visiting Hours: ${doc.visiting_hours}\n`;
+          if (doc.clinic_location) knowledgeContext += `  Location: ${doc.clinic_location}\n`;
         });
+      } else {
+        // Fallback to the chatbot knowledge table if no doctors found in profiles
+        const { data: oldDoctorsData } = await supabaseAdmin.rpc('get_chatbot_knowledge', { topic_filter: 'doctors' });
+        if (oldDoctorsData && oldDoctorsData.length > 0) {
+          const doctors = oldDoctorsData[0].content;
+          knowledgeContext += "Here is information about our doctors:\n";
+          doctors.forEach((doc: any) => {
+            knowledgeContext += `- ${doc.name}, ${doc.specialty}, ${doc.experience} experience, ${doc.qualifications}\n`;
+          });
+        }
       }
     }
     

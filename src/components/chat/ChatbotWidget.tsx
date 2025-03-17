@@ -21,16 +21,25 @@ type Message = {
 
 // Welcome messages for different languages
 const welcomeMessages = {
-  en: "Hello! I am your Anubhuti Assistant. How can I help you today?",
-  hi: "नमस्ते! मैं आपका Anubhuti सहायक हूँ। आज मैं आपकी कैसे मदद कर सकता हूँ? (Hello! I am your Anubhuti Assistant. How can I help you today?)",
-  ta: "வணக்கம்! நான் உங்கள் Anubhuti உதவியாளர். இன்று நான் உங்களுக்கு எப்படி உதவ முடியும்?",
-  te: "నమస్కారం! నేను మీ Anubhuti సహాయకుడిని. నేను ఈరోజు మీకు ఎలా సహాయం చేయగలను?",
-  bn: "নমস্কার! আমি আপনার Anubhuti সহায়ক। আজ আমি আপনাকে কীভাবে সাহায্য করতে পারি?",
-  mr: "नमस्कार! मी तुमचा Anubhuti सहाय्यक आहे. आज मी तुम्हाला कशी मदत करू शकतो?",
-  gu: "નમસ્તે! હું તમારો Anubhuti સહાયક છું. આજે હું તમને કેવી રીતે મદદ કરી શકું?",
-  kn: "ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ Anubhuti ಸಹಾಯಕ. ಇಂದು ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?",
-  ml: "നമസ്കാരം! ഞാൻ നിങ്ങളുടെ Anubhuti സഹായി ആണ്. ഇന്ന് എനിക്ക് നിങ്ങളെ എങ്ങനെ സഹായിക്കാൻ കഴിയും?",
+  en: "Hello! I am your Anubhuti Assistant. How can I help you today? You can ask me about our doctors, clinic location, or services.",
+  hi: "नमस्ते! मैं आपका Anubhuti सहायक हूँ। आज मैं आपकी कैसे मदद कर सकता हूँ? आप मुझसे हमारे डॉक्टरों, क्लिनिक स्थान, या सेवाओं के बारे में पूछ सकते हैं।",
+  ta: "வணக்கம்! நான் உங்கள் Anubhuti உதவியாளர். இன்று நான் உங்களுக்கு எப்படி உதவ முடியும்? எங்கள் மருத்துவர்கள், மருத்துவமனை இருப்பிடம் அல்லது சேவைகள் பற்றி என்னிடம் கேட்கலாம்.",
+  te: "నమస్కారం! నేను మీ Anubhuti సహాయకుడిని. నేను ఈరోజు మీకు ఎలా సహాయం చేయగలను? మీరు నన్ను మా వైద్యులు, క్లినిక్ స్థానం లేదా సేవల గురించి అడగవచ్చు.",
+  bn: "নমস্কার! আমি আপনার Anubhuti সহায়ক। আজ আমি আপনাকে কীভাবে সাহায্য করতে পারি? আপনি আমাকে আমাদের ডাক্তার, ক্লিনিকের অবস্থান বা পরিষেবাগুলি সম্পর্কে জিজ্ঞাসা করতে পারেন।",
+  mr: "नमस्कार! मी तुमचा Anubhuti सहाय्यक आहे. आज मी तुम्हाला कशी मदत करू शकतो? तुम्ही मला आमच्या डॉक्टरांबद्दल, क्लिनिकच्या स्थानाबद्दल किंवा सेवांबद्दल विचारू शकता.",
+  gu: "નમસ્તે! હું તમારો Anubhuti સહાયક છું. આજે હું તમને કેવી રીતે મદદ કરી શકું? તમે મને અમારા ડૉક્ટરો, ક્લિનિકના સ્થાન અથવા સેવાઓ વિશે પૂછી શકો છો.",
+  kn: "ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ Anubhuti ಸಹಾಯಕ. ಇಂದು ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು? ನೀವು ನನ್ನನ್ನು ನಮ್ಮ ವೈದ್ಯರು, ಕ್ಲಿನಿಕ್ ಸ್ಥಳ ಅಥವಾ ಸೇವೆಗಳ ಬಗ್ಗೆ ಕೇಳಬಹುದು.",
+  ml: "നമസ്കാരം! ഞാൻ നിങ്ങളുടെ Anubhuti സഹായി ആണ്. ഇന്ന് എനിക്ക് നിങ്ങളെ എങ്ങനെ സഹായിക്കാൻ കഴിയും? ഞങ്ങളുടെ ഡോക്ടർമാർ, ക്ലിനിക് സ്ഥാനം അല്ലെങ്കിൽ സേവനങ്ങളെക്കുറിച്ച് നിങ്ങൾക്ക് എന്നോട് ചോദിക്കാം.",
 };
+
+// Helper function to suggest doctor queries to users
+const suggestedDoctorQueries = [
+  "Who are the doctors at your clinic?",
+  "Tell me about your specialists",
+  "What are the consulting hours?",
+  "Which doctor specializes in diabetes?",
+  "Where is the clinic located?"
+];
 
 export const ChatbotWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -109,6 +118,10 @@ export const ChatbotWidget = () => {
     }
   };
 
+  const handleSuggestedQuery = (query: string) => {
+    setInput(query);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -144,6 +157,9 @@ export const ChatbotWidget = () => {
 
   // Check if Indian language support is enabled
   const isLanguageSupportEnabled = featureFlags.enableIndianLanguageSupport;
+
+  // Only show suggested queries when the chat is first opened or has only welcome message
+  const showSuggestions = messages.length <= 1;
 
   return (
     <>
@@ -238,6 +254,30 @@ export const ChatbotWidget = () => {
                     </Badge>
                   </div>
                 )}
+                
+                {/* Suggested queries */}
+                {showSuggestions && (
+                  <div className="mt-4">
+                    <p className="text-xs text-muted-foreground mb-2">
+                      {language === 'hi' ? 
+                        "आप ये पूछ सकते हैं:" : 
+                        "You can ask:"}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {suggestedDoctorQueries.map((query, index) => (
+                        <Badge 
+                          key={index} 
+                          variant="secondary" 
+                          className="cursor-pointer hover:bg-secondary/80"
+                          onClick={() => handleSuggestedQuery(query)}
+                        >
+                          {query}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
                 <div ref={messagesEndRef} />
               </div>
             </ScrollArea>
@@ -249,12 +289,7 @@ export const ChatbotWidget = () => {
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
+                onKeyDown={handleKeyDown}
                 placeholder={language === 'hi' ? "अपना संदेश यहां टाइप करें..." : "Type your message..."}
                 className="min-h-[40px] flex-1 resize-none"
                 disabled={isLoading}
