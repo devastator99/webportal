@@ -10,6 +10,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { featureFlags } from '@/config/features';
 
 type Message = {
   id: string;
@@ -18,22 +19,40 @@ type Message = {
   timestamp: Date;
 };
 
+// Welcome messages for different languages
+const welcomeMessages = {
+  en: "Hello! I am your Anubhuti Assistant. How can I help you today?",
+  hi: "नमस्ते! मैं आपका Anubhuti सहायक हूँ। आज मैं आपकी कैसे मदद कर सकता हूँ? (Hello! I am your Anubhuti Assistant. How can I help you today?)",
+  ta: "வணக்கம்! நான் உங்கள் Anubhuti உதவியாளர். இன்று நான் உங்களுக்கு எப்படி உதவ முடியும்?",
+  te: "నమస్కారం! నేను మీ Anubhuti సహాయకుడిని. నేను ఈరోజు మీకు ఎలా సహాయం చేయగలను?",
+  bn: "নমস্কার! আমি আপনার Anubhuti সহায়ক। আজ আমি আপনাকে কীভাবে সাহায্য করতে পারি?",
+  mr: "नमस्कार! मी तुमचा Anubhuti सहाय्यक आहे. आज मी तुम्हाला कशी मदत करू शकतो?",
+  gu: "નમસ્તે! હું તમારો Anubhuti સહાયક છું. આજે હું તમને કેવી રીતે મદદ કરી શકું?",
+  kn: "ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ Anubhuti ಸಹಾಯಕ. ಇಂದು ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು?",
+  ml: "നമസ്കാരം! ഞാൻ നിങ്ങളുടെ Anubhuti സഹായി ആണ്. ഇന്ന് എനിക്ക് നിങ്ങളെ എങ്ങനെ സഹായിക്കാൻ കഴിയും?",
+};
+
 export const ChatbotWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: 'नमस्ते! मैं आपका Anubhuti सहायक हूँ। आज मैं आपकी कैसे मदद कर सकता हूँ? (Hello! I am your Anubhuti Assistant. How can I help you today?)',
-      timestamp: new Date(),
-    },
-  ]);
+  const [language, setLanguage] = useState('en');
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [language, setLanguage] = useState('en');
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Set welcome message based on selected language
+  useEffect(() => {
+    // Clear messages and set welcome message in the selected language
+    const welcomeMessage = welcomeMessages[language as keyof typeof welcomeMessages] || welcomeMessages.en;
+    setMessages([{
+      id: '1',
+      role: 'assistant',
+      content: welcomeMessage,
+      timestamp: new Date(),
+    }]);
+  }, [language]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -73,7 +92,7 @@ export const ChatbotWidget = () => {
       const assistantMessage = {
         id: Date.now().toString(),
         role: 'assistant' as const,
-        content: data.response || 'मुझे क्षमा करें, मैं उत्तर नहीं दे पा रहा हूँ। कृपया फिर से प्रयास करें। (I apologize, but I couldn\'t generate a response. Please try again.)',
+        content: data.response || 'I apologize, but I couldn\'t generate a response. Please try again.',
         timestamp: new Date(),
       };
 
@@ -83,7 +102,7 @@ export const ChatbotWidget = () => {
       toast({
         variant: 'destructive',
         title: 'Error',
-        description: 'सहायक से जवाब प्राप्त करने में विफल। कृपया पुन: प्रयास करें। (Failed to get a response from the assistant. Please try again.)',
+        description: 'Failed to get a response from the assistant. Please try again.',
       });
     } finally {
       setIsLoading(false);
@@ -123,6 +142,9 @@ export const ChatbotWidget = () => {
     { value: 'ml', label: 'മലയാളം (Malayalam)' },
   ];
 
+  // Check if Indian language support is enabled
+  const isLanguageSupportEnabled = featureFlags.enableIndianLanguageSupport;
+
   return (
     <>
       {/* Floating chat button */}
@@ -157,20 +179,22 @@ export const ChatbotWidget = () => {
             </Button>
           </CardHeader>
 
-          <div className="px-4 py-2 border-b bg-muted/30">
-            <Select value={language} onValueChange={setLanguage}>
-              <SelectTrigger className="h-8 text-xs">
-                <SelectValue placeholder="Select Language" />
-              </SelectTrigger>
-              <SelectContent>
-                {languageOptions.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {isLanguageSupportEnabled && (
+            <div className="px-4 py-2 border-b bg-muted/30">
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select Language" />
+                </SelectTrigger>
+                <SelectContent>
+                  {languageOptions.map(option => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <CardContent className="flex-1 p-0 overflow-hidden">
             <ScrollArea className="h-full w-full px-4 py-2">
@@ -208,7 +232,9 @@ export const ChatbotWidget = () => {
                 {isLoading && (
                   <div className="flex justify-start">
                     <Badge variant="outline" className="animate-pulse">
-                      प्रतिक्रिया दे रहा है... (Assistant is typing...)
+                      {language === 'hi' ? 
+                        "प्रतिक्रिया दे रहा है... (Assistant is typing...)" : 
+                        "Assistant is typing..."}
                     </Badge>
                   </div>
                 )}
@@ -223,7 +249,12 @@ export const ChatbotWidget = () => {
                 ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                  }
+                }}
                 placeholder={language === 'hi' ? "अपना संदेश यहां टाइप करें..." : "Type your message..."}
                 className="min-h-[40px] flex-1 resize-none"
                 disabled={isLoading}
