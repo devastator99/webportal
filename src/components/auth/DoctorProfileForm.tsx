@@ -57,7 +57,7 @@ export const DoctorProfileForm = () => {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("specialty, visiting_hours, clinic_location")
+          .select("specialty, visiting_hours, clinic_location, consultation_fee")
           .eq("id", user.id)
           .single();
 
