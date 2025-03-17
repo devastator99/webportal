@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
@@ -40,7 +39,7 @@ serve(async (req) => {
     );
 
     // Prepare system message
-    let systemMessage = "You are a helpful medical assistant for an endocrinology clinic in India. Your name is EndoCare Assistant. ";
+    let systemMessage = "You are a helpful medical assistant for an endocrinology clinic in India. Your name is Anubhuti Assistant. ";
     systemMessage += "You provide information about our clinic, services, doctors, and answer general questions about endocrinology. ";
     systemMessage += "You are not a doctor and cannot provide medical advice, only general information. ";
     systemMessage += "Always encourage users to book an appointment for medical concerns. ";

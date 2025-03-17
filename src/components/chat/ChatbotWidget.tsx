@@ -24,7 +24,7 @@ export const ChatbotWidget = () => {
     {
       id: '1',
       role: 'assistant',
-      content: 'नमस्ते! मैं आपका EndoCare सहायक हूँ। आज मैं आपकी कैसे मदद कर सकता हूँ? (Hello! I am your EndoCare Assistant. How can I help you today?)',
+      content: 'नमस्ते! मैं आपका Anubhuti सहायक हूँ। आज मैं आपकी कैसे मदद कर सकता हूँ? (Hello! I am your Anubhuti Assistant. How can I help you today?)',
       timestamp: new Date(),
     },
   ]);
@@ -144,7 +144,7 @@ export const ChatbotWidget = () => {
               <Avatar className="h-7 w-7 bg-primary">
                 <MessageSquare className="h-4 w-4 text-white" />
               </Avatar>
-              <CardTitle className="text-base font-medium">EndoCare सहायक</CardTitle>
+              <CardTitle className="text-base font-medium">Anubhuti सहायक</CardTitle>
             </div>
             <Button
               variant="ghost"
