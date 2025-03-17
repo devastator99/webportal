@@ -34,24 +34,38 @@ export const ChatInterface = () => {
     queryFn: async () => {
       if (!user?.id || userRole !== "patient") return null;
       
-      const { data, error } = await supabase
+      // First query to get the doctor_id
+      const { data: assignmentData, error: assignmentError } = await supabase
         .from("patient_assignments")
-        .select(`
-          doctor_id,
-          doctor:profiles!patient_assignments_doctor_id_fkey(
-            id,
-            first_name,
-            last_name
-          )
-        `)
+        .select("doctor_id")
         .eq("patient_id", user.id)
         .maybeSingle();
 
-      if (error) {
-        console.error("Error fetching doctor assignment:", error);
-        throw error;
+      if (assignmentError) {
+        console.error("Error fetching doctor assignment:", assignmentError);
+        throw assignmentError;
       }
-      return data as DoctorAssignment;
+
+      if (!assignmentData) {
+        return null;
+      }
+
+      // Second query to get the doctor details
+      const { data: doctorData, error: doctorError } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name")
+        .eq("id", assignmentData.doctor_id)
+        .maybeSingle();
+
+      if (doctorError) {
+        console.error("Error fetching doctor profile:", doctorError);
+        throw doctorError;
+      }
+
+      return {
+        doctor_id: assignmentData.doctor_id,
+        doctor: doctorData as Doctor
+      } as DoctorAssignment;
     },
     enabled: !!user?.id && userRole === "patient",
   });
