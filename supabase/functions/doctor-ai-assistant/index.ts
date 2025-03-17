@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
@@ -166,33 +165,6 @@ serve(async (req) => {
       knowledgeContext += "- EMI options are available for treatment packages above ₹10,000.\n";
     }
     
-    // If no specific topic was detected, search for keywords
-    if (!knowledgeContext) {
-      const searchTerm = lastUserMessage.split(' ').slice(0, 3).join(' '); // Use first few words as search term
-      const { data: searchResults } = await supabaseAdmin.rpc('search_chatbot_knowledge', { search_term: searchTerm });
-      
-      if (searchResults && searchResults.length > 0) {
-        searchResults.forEach((result: any) => {
-          if (typeof result.content === 'object') {
-            if (Array.isArray(result.content)) {
-              // For array content (packages, doctors, FAQs)
-              result.content.forEach((item: any) => {
-                if (item.name) knowledgeContext += `${item.name}: ${item.description || item.specialty}\n`;
-                if (item.question) knowledgeContext += `Q: ${item.question}\nA: ${item.answer}\n`;
-              });
-            } else {
-              // For object content (clinic)
-              const clinic = result.content;
-              if (clinic.name) {
-                knowledgeContext += `${clinic.name} at ${clinic.address}\n`;
-                knowledgeContext += `Hours: Weekdays ${clinic.hours?.weekdays}, Saturday ${clinic.hours?.saturday}\n`;
-              }
-            }
-          }
-        });
-      }
-    }
-
     // Add information about traditional medicine integration
     knowledgeContext += "\nOur clinic combines modern endocrinology with traditional Indian medicine approaches when appropriate. ";
     knowledgeContext += "We offer lifestyle modification programs based on Ayurvedic principles alongside conventional treatments. ";

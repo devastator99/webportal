@@ -8,19 +8,52 @@ import { TestLoginButtons } from "@/components/auth/TestLoginButtons";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { LucideLoader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { DoctorProfileForm } from "@/components/auth/DoctorProfileForm";
 
 const Auth = () => {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, userRole } = useAuth();
   const navigate = useNavigate();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const { loading, error, handleLogin, handleSignUp, handleTestLogin } = useAuthHandlers();
+  const [shouldShowDoctorForm, setShouldShowDoctorForm] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      console.log("User found in Auth, redirecting to dashboard");
-      navigate("/dashboard");
+    const checkDoctorProfile = async () => {
+      // If user is logged in and is a doctor
+      if (user && userRole === "doctor") {
+        // Check if doctor profile is complete
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("specialty, visiting_hours, clinic_location")
+          .eq("id", user.id)
+          .single();
+
+        if (error) {
+          console.error("Error checking doctor profile:", error);
+          return;
+        }
+
+        // If profile is incomplete (missing required fields), show doctor form
+        if (!data.specialty || !data.visiting_hours || !data.clinic_location) {
+          setShouldShowDoctorForm(true);
+          return;
+        }
+
+        // If profile is complete, redirect to dashboard
+        console.log("Doctor profile is complete, redirecting to dashboard");
+        navigate("/dashboard");
+      } else if (user) {
+        // Non-doctor users go straight to dashboard
+        console.log("User found in Auth, redirecting to dashboard");
+        navigate("/dashboard");
+      }
+    };
+
+    if (user && !isLoading) {
+      checkDoctorProfile();
     }
-  }, [user, navigate]);
+  }, [user, userRole, navigate, isLoading]);
 
   // Show loading state while checking auth
   if (isLoading) {
@@ -31,7 +64,12 @@ const Auth = () => {
     );
   }
 
-  // If user is logged in, useEffect will handle redirect
+  // If user is a doctor who needs to complete profile, show the doctor profile form
+  if (user && shouldShowDoctorForm) {
+    return <DoctorProfileForm />;
+  }
+
+  // If user is logged in, useEffect will handle redirect (or has already shown doctor form)
   if (user) {
     return null;
   }
