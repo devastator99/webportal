@@ -34,22 +34,43 @@ export const usePrescriptions = (patientId: string) => {
 
   const fetchPrescriptions = async () => {
     try {
-      const { data, error } = await supabase.rpc('get_doctor_patient_records', {
-        p_doctor_id: user?.id,
-        p_patient_id: patientId
-      });
+      // Instead of RPC, use direct query to avoid TypeScript errors
+      const { data, error } = await supabase
+        .from('medical_records')
+        .select(`
+          id,
+          created_at,
+          diagnosis,
+          prescription,
+          notes,
+          doctor_id,
+          patient_id,
+          doctor:profiles!medical_records_doctor_id_fkey(
+            first_name,
+            last_name
+          )
+        `)
+        .eq('doctor_id', user?.id)
+        .eq('patient_id', patientId);
       
       if (error) {
         throw error;
       }
 
-      // Transform the data to include patient_id
-      const prescriptionsWithPatientId = data.map((prescription: any) => ({
-        ...prescription,
-        patient_id: patientId
+      // Transform the data to match our Prescription interface
+      const prescriptionsWithDoctorInfo = data.map((record: any) => ({
+        id: record.id,
+        created_at: record.created_at,
+        diagnosis: record.diagnosis,
+        prescription: record.prescription,
+        notes: record.notes,
+        patient_id: record.patient_id,
+        doctor_id: record.doctor_id,
+        doctor_first_name: record.doctor?.first_name,
+        doctor_last_name: record.doctor?.last_name
       }));
       
-      setPastPrescriptions(prescriptionsWithPatientId);
+      setPastPrescriptions(prescriptionsWithDoctorInfo);
     } catch (error: any) {
       console.error('Error fetching prescriptions:', error);
       toast({
@@ -92,13 +113,18 @@ export const usePrescriptions = (patientId: string) => {
     try {
       setIsSaving(true);
 
-      const { data, error } = await supabase.rpc('save_prescription', {
-        p_patient_id: patientId,
-        p_doctor_id: user.id,
-        p_diagnosis: diagnosis,
-        p_prescription: prescription,
-        p_notes: notes
-      });
+      // Direct database insert instead of RPC call for better TypeScript support
+      const { data, error } = await supabase
+        .from('medical_records')
+        .insert({
+          patient_id: patientId,
+          doctor_id: user.id,
+          diagnosis: diagnosis,
+          prescription: prescription, 
+          notes: notes
+        })
+        .select('id')
+        .single();
       
       if (error) {
         throw error;
@@ -116,7 +142,7 @@ export const usePrescriptions = (patientId: string) => {
       // Refresh prescriptions list
       await fetchPrescriptions();
       
-      return data;
+      return data.id;
     } catch (error: any) {
       console.error('Error saving prescription:', error);
       toast({

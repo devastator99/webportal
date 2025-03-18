@@ -53,14 +53,29 @@ export const AssignNutritionistDialog = ({
     const fetchNutritionists = async () => {
       try {
         setIsFetching(true);
-        // Use the new RPC function
-        const { data, error } = await supabase.rpc('get_nutritionists');
+        // Use direct query instead of RPC to avoid TypeScript errors
+        const { data, error } = await supabase
+          .from('profiles')
+          .select(`
+            id,
+            first_name,
+            last_name,
+            user_roles!inner(role)
+          `)
+          .eq('user_roles.role', 'nutritionist');
         
         if (error) {
           throw error;
         }
         
-        setNutritionists(data || []);
+        // Transform data to match our Nutritionist interface
+        const nutritionistsList = data.map((item: any) => ({
+          id: item.id,
+          first_name: item.first_name || '',
+          last_name: item.last_name || ''
+        }));
+        
+        setNutritionists(nutritionistsList);
       } catch (error: any) {
         console.error("Error fetching nutritionists:", error);
         toast({
@@ -100,15 +115,22 @@ export const AssignNutritionistDialog = ({
     try {
       setIsLoading(true);
 
-      // Use the new RPC function to assign the nutritionist
-      const { data: assignment, error: assignError } = await supabase.rpc(
-        'assign_patient_to_nutritionist',
-        {
-          p_patient_id: patientId,
-          p_nutritionist_id: selectedNutritionist,
-          p_doctor_id: user.id
-        }
-      );
+      // Use direct upsert instead of RPC to avoid TypeScript issues
+      const { data: assignment, error: assignError } = await supabase
+        .from('patient_assignments')
+        .upsert(
+          {
+            patient_id: patientId,
+            nutritionist_id: selectedNutritionist,
+            doctor_id: user.id
+          },
+          {
+            onConflict: 'patient_id,doctor_id',
+            returning: 'id'
+          }
+        )
+        .select()
+        .single();
 
       if (assignError) {
         throw assignError;

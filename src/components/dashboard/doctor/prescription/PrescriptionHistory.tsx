@@ -1,5 +1,4 @@
 
-// Update the import statement to include the updated Prescription interface
 import React, { useState } from "react";
 import { Prescription } from "./usePrescriptions";
 import { Button } from "@/components/ui/button";
@@ -13,23 +12,12 @@ import { AssignNutritionistDialog } from "./AssignNutritionistDialog";
 import { PatientHealthPlan } from "../PatientHealthPlan";
 import { ChevronDown, ChevronUp, CalendarClock, FilePlus, UserPlus } from "lucide-react";
 
-interface MedicalRecord {
-  id: string;
-  created_at: string;
-  diagnosis: string;
-  prescription: string;
-  notes: string;
-  doctor_id: string;
-  patient_id: string;
-  doctor_first_name: string;
-  doctor_last_name: string;
-}
-
 interface PrescriptionHistoryProps {
   prescriptions: Prescription[];
+  onAssignNutritionist?: (prescriptionId: string) => void;
 }
 
-export const PrescriptionHistory = ({ prescriptions }: PrescriptionHistoryProps) => {
+export const PrescriptionHistory = ({ prescriptions, onAssignNutritionist }: PrescriptionHistoryProps) => {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [showHealthPlan, setShowHealthPlan] = useState(false);
@@ -58,6 +46,9 @@ export const PrescriptionHistory = ({ prescriptions }: PrescriptionHistoryProps)
   const handleAssignNutritionist = (prescription: Prescription) => {
     setSelectedPrescription(prescription);
     setShowAssignDialog(true);
+    if (onAssignNutritionist) {
+      onAssignNutritionist(prescription.id);
+    }
   };
 
   return (

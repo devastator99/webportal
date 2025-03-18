@@ -279,6 +279,42 @@ export type Database = {
         }
         Relationships: []
       }
+      health_plan_items: {
+        Row: {
+          created_at: string
+          description: string
+          duration: string | null
+          frequency: string
+          id: string
+          nutritionist_id: string
+          patient_id: string
+          scheduled_time: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          duration?: string | null
+          frequency: string
+          id?: string
+          nutritionist_id: string
+          patient_id: string
+          scheduled_time: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          duration?: string | null
+          frequency?: string
+          id?: string
+          nutritionist_id?: string
+          patient_id?: string
+          scheduled_time?: string
+          type?: string
+        }
+        Relationships: []
+      }
       knowledge_videos: {
         Row: {
           created_at: string
@@ -621,6 +657,14 @@ export type Database = {
       }
     }
     Functions: {
+      assign_patient_to_nutritionist: {
+        Args: {
+          p_patient_id: string
+          p_nutritionist_id: string
+          p_doctor_id: string
+        }
+        Returns: string
+      }
       can_insert_user_role: {
         Args: {
           checking_user_id: string
@@ -798,6 +842,14 @@ export type Database = {
         }
         Returns: string
       }
+      get_nutritionists: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          first_name: string
+          last_name: string
+        }[]
+      }
       get_patient_appointments: {
         Args: {
           p_patient_id: string
@@ -808,6 +860,19 @@ export type Database = {
           status: Database["public"]["Enums"]["appointment_status"]
           doctor_first_name: string
           doctor_last_name: string
+        }[]
+      }
+      get_patient_health_plan: {
+        Args: {
+          p_patient_id: string
+        }
+        Returns: {
+          id: string
+          type: string
+          scheduled_time: string
+          description: string
+          frequency: string
+          duration: string
         }[]
       }
       get_patient_medical_records: {
@@ -910,6 +975,14 @@ export type Database = {
           user_id: string
         }
         Returns: boolean
+      }
+      save_health_plan_items: {
+        Args: {
+          p_patient_id: string
+          p_nutritionist_id: string
+          p_items: Json
+        }
+        Returns: string[]
       }
       save_prescription: {
         Args: {
