@@ -93,11 +93,37 @@ serve(async (req) => {
 
     if (nutritionistProfileError) throw nutritionistProfileError;
 
+    // Create test administrator
+    const { data: adminData, error: adminError } = await supabase.auth.admin.createUser({
+      email: 'admin@example.com',
+      password: 'testpassword123',
+      email_confirm: true,
+      user_metadata: {
+        first_name: 'Admin',
+        last_name: 'User',
+        user_type: 'administrator'
+      }
+    });
+
+    if (adminError) throw adminError;
+
+    // Create admin profile
+    const { error: adminProfileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: adminData.user.id,
+        first_name: 'Admin',
+        last_name: 'User'
+      });
+
+    if (adminProfileError) throw adminProfileError;
+
     // Create user roles
     await supabase.from('user_roles').insert([
       { user_id: patientData.user.id, role: 'patient' },
       { user_id: doctorData.user.id, role: 'doctor' },
-      { user_id: nutritionistData.user.id, role: 'nutritionist' }
+      { user_id: nutritionistData.user.id, role: 'nutritionist' },
+      { user_id: adminData.user.id, role: 'administrator' }
     ]);
 
     // Create patient assignment
@@ -138,6 +164,7 @@ serve(async (req) => {
         patient: patientData.user,
         doctor: doctorData.user,
         nutritionist: nutritionistData.user,
+        administrator: adminData.user,
         test_credentials: {
           patient: {
             email: 'ram.naresh@example.com',
@@ -149,6 +176,10 @@ serve(async (req) => {
           },
           nutritionist: {
             email: 'mary.johnson@example.com',
+            password: 'testpassword123'
+          },
+          administrator: {
+            email: 'admin@example.com',
             password: 'testpassword123'
           }
         }
