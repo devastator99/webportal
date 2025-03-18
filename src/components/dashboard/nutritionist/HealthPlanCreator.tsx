@@ -170,17 +170,16 @@ export const HealthPlanCreator = () => {
         });
         
         // Fetch existing health plan items for this patient
-        const { data: healthPlanData, error: healthPlanError } = await supabase
-          .from('health_plan_items')
-          .select('*')
-          .eq('patient_id', selectedPatient)
-          .order('scheduled_time');
+        const { data: healthPlanData, error: healthPlanError } = await supabase.rpc(
+          'get_patient_health_plan',
+          { p_patient_id: selectedPatient }
+        );
           
         if (healthPlanError) {
           throw healthPlanError;
         }
         
-        if (healthPlanData && healthPlanData.length > 0) {
+        if (healthPlanData && Array.isArray(healthPlanData) && healthPlanData.length > 0) {
           const formattedItems: HealthPlanItem[] = healthPlanData.map(item => ({
             id: item.id,
             type: item.type as 'food' | 'exercise' | 'medication',
@@ -290,36 +289,18 @@ export const HealthPlanCreator = () => {
     try {
       setIsSaving(true);
       
-      // Delete existing items first
-      const { error: deleteError } = await supabase
-        .from('health_plan_items')
-        .delete()
-        .match({ 
-          patient_id: selectedPatient,
-          nutritionist_id: user.id
-        });
+      // Use RPC function to save health plan items
+      const { data, error } = await supabase.rpc(
+        'save_health_plan_items', 
+        {
+          p_patient_id: selectedPatient,
+          p_nutritionist_id: user.id,
+          p_items: JSON.stringify(healthPlanItems)
+        }
+      );
         
-      if (deleteError) {
-        throw deleteError;
-      }
-      
-      // Insert new items using direct insert instead of RPC
-      const itemsToInsert = healthPlanItems.map(item => ({
-        patient_id: selectedPatient,
-        nutritionist_id: user.id,
-        type: item.type,
-        scheduled_time: item.time,
-        description: item.description,
-        frequency: item.frequency,
-        duration: item.duration
-      }));
-      
-      const { error: insertError } = await supabase
-        .from('health_plan_items')
-        .insert(itemsToInsert);
-        
-      if (insertError) {
-        throw insertError;
+      if (error) {
+        throw error;
       }
       
       // Send notification to patient

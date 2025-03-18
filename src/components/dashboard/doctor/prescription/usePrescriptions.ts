@@ -12,6 +12,8 @@ export interface Prescription {
   notes: string;
   patient_id: string;
   doctor_id?: string;
+  doctor_first_name?: string;
+  doctor_last_name?: string;
 }
 
 export const usePrescriptions = (patientId: string) => {

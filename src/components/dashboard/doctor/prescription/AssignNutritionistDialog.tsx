@@ -20,6 +20,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Nutritionist {
   id: string;
@@ -45,37 +46,21 @@ export const AssignNutritionistDialog = ({
   const [isLoading, setIsLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Fetch available nutritionists
   useEffect(() => {
     const fetchNutritionists = async () => {
       try {
         setIsFetching(true);
-        // Fetch directly from user_roles and profiles to avoid RPC type issues
-        const { data, error } = await supabase
-          .from('user_roles')
-          .select(`
-            user_id,
-            profiles:user_id (
-              id,
-              first_name,
-              last_name
-            )
-          `)
-          .eq('role', 'nutritionist');
+        // Use the new RPC function
+        const { data, error } = await supabase.rpc('get_nutritionists');
         
         if (error) {
           throw error;
         }
         
-        // Transform data to the expected format
-        const formattedData = data.map(item => ({
-          id: item.profiles.id,
-          first_name: item.profiles.first_name,
-          last_name: item.profiles.last_name
-        }));
-        
-        setNutritionists(formattedData);
+        setNutritionists(data || []);
       } catch (error: any) {
         console.error("Error fetching nutritionists:", error);
         toast({
@@ -103,20 +88,27 @@ export const AssignNutritionistDialog = ({
       return;
     }
 
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "Doctor ID not available",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsLoading(true);
 
-      // Use direct insert instead of RPC function
-      const { data: assignment, error: assignError } = await supabase
-        .from('patient_assignments')
-        .upsert({
-          patient_id: patientId,
-          nutritionist_id: selectedNutritionist
-        }, {
-          onConflict: 'patient_id,nutritionist_id'
-        })
-        .select('id')
-        .single();
+      // Use the new RPC function to assign the nutritionist
+      const { data: assignment, error: assignError } = await supabase.rpc(
+        'assign_patient_to_nutritionist',
+        {
+          p_patient_id: patientId,
+          p_nutritionist_id: selectedNutritionist,
+          p_doctor_id: user.id
+        }
+      );
 
       if (assignError) {
         throw assignError;
