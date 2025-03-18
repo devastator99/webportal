@@ -1,120 +1,106 @@
 
-import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.1';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.21.0'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+// Get environment variables
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || ''
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || ''
+const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 
-console.log("Send Health Plan Notification Function started");
+// Create Supabase client with admin privileges
+const supabaseAdmin = createClient(SUPABASE_URL, SERVICE_ROLE_KEY)
 
-serve(async (req) => {
-  // Handle CORS preflight request
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+Deno.serve(async (req) => {
+  if (req.method !== 'POST') {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+      status: 405,
+      headers: { 'Content-Type': 'application/json' }
+    })
   }
 
   try {
-    const { patientId, nutritionistId, planItems } = await req.json();
+    const { patientId, nutritionistId, planItems } = await req.json()
     
-    console.log(`Notification request received for patient ${patientId} from nutritionist ${nutritionistId}, ${planItems} items`);
-
-    // Create Supabase client
-    const supabaseUrl = Deno.env.get("SUPABASE_URL");
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    
-    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
-      throw new Error("Missing Supabase environment variables");
+    if (!patientId || !nutritionistId) {
+      return new Response(JSON.stringify({ error: 'Missing required parameters' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' }
+      })
     }
-    
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get patient details
-    const { data: patient, error: patientError } = await supabase
+    // Get patient and nutritionist details
+    const { data: patient, error: patientError } = await supabaseAdmin
       .from('profiles')
       .select('first_name, last_name, phone')
       .eq('id', patientId)
-      .single();
-      
-    if (patientError) {
-      throw patientError;
-    }
+      .single()
     
-    // Get nutritionist details
-    const { data: nutritionist, error: nutritionistError } = await supabase
+    if (patientError || !patient) {
+      console.error('Error fetching patient:', patientError)
+      return new Response(JSON.stringify({ error: 'Patient not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      })
+    }
+
+    const { data: nutritionist, error: nutritionistError } = await supabaseAdmin
       .from('profiles')
       .select('first_name, last_name')
       .eq('id', nutritionistId)
-      .single();
-      
-    if (nutritionistError) {
-      throw nutritionistError;
-    }
-
-    console.log("Retrieved patient and nutritionist data");
+      .single()
     
-    // Send WhatsApp notification (mock for now)
-    if (patient.phone) {
-      console.log(`Would send WhatsApp notification to ${patient.phone} for patient ${patient.first_name} ${patient.last_name}`);
-      
-      // Here you would integrate with actual WhatsApp API
-      // For example, using Twilio:
-      /*
-      const message = await client.messages.create({
-        body: `Hello ${patient.first_name},\n\nYour nutritionist ${nutritionist.first_name} ${nutritionist.last_name} has created a health plan for you with ${planItems} items. Check your account for details.`,
-        from: 'whatsapp:+14155238886',
-        to: `whatsapp:${patient.phone}`
-      });
-      */
+    if (nutritionistError || !nutritionist) {
+      console.error('Error fetching nutritionist:', nutritionistError)
+      return new Response(JSON.stringify({ error: 'Nutritionist not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' }
+      })
     }
 
-    // Record the notification in a database log
-    const { data: logData, error: logError } = await supabase
-      .from('notification_logs')
-      .insert({
-        recipient_id: patientId,
-        recipient_type: 'patient',
-        notification_type: 'health_plan_created',
-        related_id: nutritionistId,
-        message: `A new health plan with ${planItems} items has been created for you by ${nutritionist.first_name} ${nutritionist.last_name}`,
-        status: 'sent'
-      })
-      .select()
-      .single();
-      
-    if (logError) {
-      console.error("Error logging notification:", logError);
-      // Continue anyway
+    // Construct the message
+    const itemCount = typeof planItems === 'number' ? planItems : 'multiple'
+    const message = `Hello ${patient.first_name},
+
+Your nutritionist ${nutritionist.first_name} ${nutritionist.last_name} has created a personalized health plan for you with ${itemCount} items.
+
+Please log in to view your complete health plan and set up reminders.
+
+Best regards,
+Your Healthcare Team`
+
+    // Send WhatsApp notification if phone number is available
+    if (patient.phone) {
+      try {
+        // Use the WhatsApp notification edge function
+        await supabaseAdmin.functions.invoke('send-whatsapp-notification', {
+          body: {
+            to: patient.phone,
+            message: message
+          }
+        })
+      } catch (whatsappError) {
+        console.error('Error sending WhatsApp notification:', whatsappError)
+        // Don't fail the entire operation if WhatsApp notification fails
+      }
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: "Notification sent successfully",
-        notification_id: logData?.id
+        message: `Health plan notification sent to ${patient.first_name} ${patient.last_name}` 
       }),
       { 
-        headers: { 
-          ...corsHeaders,
-          "Content-Type": "application/json" 
-        } 
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
       }
-    );
-    
+    )
   } catch (error) {
-    console.error("Error in send-health-plan-notification function:", error);
-    
+    console.error('Error in send-health-plan-notification:', error)
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ error: 'Internal server error' }),
       { 
-        headers: { 
-          ...corsHeaders,
-          "Content-Type": "application/json" 
-        },
-        status: 400 
+        status: 500,
+        headers: { 'Content-Type': 'application/json' }
       }
-    );
+    )
   }
-});
+})
