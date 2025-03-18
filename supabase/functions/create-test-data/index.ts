@@ -68,10 +68,36 @@ serve(async (req) => {
 
     if (doctorProfileError) throw doctorProfileError;
 
+    // Create test nutritionist
+    const { data: nutritionistData, error: nutritionistError } = await supabase.auth.admin.createUser({
+      email: 'mary.johnson@example.com',
+      password: 'testpassword123',
+      email_confirm: true,
+      user_metadata: {
+        first_name: 'Mary',
+        last_name: 'Johnson',
+        user_type: 'nutritionist'
+      }
+    });
+
+    if (nutritionistError) throw nutritionistError;
+
+    // Create nutritionist profile
+    const { error: nutritionistProfileError } = await supabase
+      .from('profiles')
+      .insert({
+        id: nutritionistData.user.id,
+        first_name: 'Mary',
+        last_name: 'Johnson'
+      });
+
+    if (nutritionistProfileError) throw nutritionistProfileError;
+
     // Create user roles
     await supabase.from('user_roles').insert([
       { user_id: patientData.user.id, role: 'patient' },
-      { user_id: doctorData.user.id, role: 'doctor' }
+      { user_id: doctorData.user.id, role: 'doctor' },
+      { user_id: nutritionistData.user.id, role: 'nutritionist' }
     ]);
 
     // Create patient assignment
@@ -111,6 +137,7 @@ serve(async (req) => {
         message: 'Test data created successfully',
         patient: patientData.user,
         doctor: doctorData.user,
+        nutritionist: nutritionistData.user,
         test_credentials: {
           patient: {
             email: 'ram.naresh@example.com',
@@ -118,6 +145,10 @@ serve(async (req) => {
           },
           doctor: {
             email: 'vinay.pulkit@example.com',
+            password: 'testpassword123'
+          },
+          nutritionist: {
+            email: 'mary.johnson@example.com',
             password: 'testpassword123'
           }
         }

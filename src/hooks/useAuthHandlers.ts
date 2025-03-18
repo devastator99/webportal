@@ -83,6 +83,10 @@ export const useAuthHandlers = () => {
           email = "vinay.pulkit@example.com";
           password = "testpassword123";
           break;
+        case "nutritionist":
+          email = "mary.johnson@example.com";
+          password = "testpassword123";
+          break;
         default:
           throw new Error("Invalid user type for test login");
       }
