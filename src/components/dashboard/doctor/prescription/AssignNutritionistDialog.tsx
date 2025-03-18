@@ -51,17 +51,31 @@ export const AssignNutritionistDialog = ({
     const fetchNutritionists = async () => {
       try {
         setIsFetching(true);
-        // Using type assertion to match the expected return type
-        const { data, error } = await supabase.rpc('get_nutritionists') as { 
-          data: Nutritionist[] | null; 
-          error: any 
-        };
+        // Fetch directly from user_roles and profiles to avoid RPC type issues
+        const { data, error } = await supabase
+          .from('user_roles')
+          .select(`
+            user_id,
+            profiles:user_id (
+              id,
+              first_name,
+              last_name
+            )
+          `)
+          .eq('role', 'nutritionist');
         
         if (error) {
           throw error;
         }
         
-        setNutritionists(data as Nutritionist[] || []);
+        // Transform data to the expected format
+        const formattedData = data.map(item => ({
+          id: item.profiles.id,
+          first_name: item.profiles.first_name,
+          last_name: item.profiles.last_name
+        }));
+        
+        setNutritionists(formattedData);
       } catch (error: any) {
         console.error("Error fetching nutritionists:", error);
         toast({
@@ -92,12 +106,17 @@ export const AssignNutritionistDialog = ({
     try {
       setIsLoading(true);
 
-      // Use the RPC function to assign patient to nutritionist with type assertion
-      const { data: assignmentId, error: assignError } = await supabase
-        .rpc('assign_patient_to_nutritionist', {
-          p_patient_id: patientId,
-          p_nutritionist_id: selectedNutritionist
-        }) as { data: string | null, error: any };
+      // Use direct insert instead of RPC function
+      const { data: assignment, error: assignError } = await supabase
+        .from('patient_assignments')
+        .upsert({
+          patient_id: patientId,
+          nutritionist_id: selectedNutritionist
+        }, {
+          onConflict: 'patient_id,nutritionist_id'
+        })
+        .select('id')
+        .single();
 
       if (assignError) {
         throw assignError;

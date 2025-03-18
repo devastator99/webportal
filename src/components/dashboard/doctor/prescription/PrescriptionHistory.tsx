@@ -11,14 +11,7 @@ import {
 } from "lucide-react";
 import { PrescriptionPrintTemplate } from "./PrescriptionPrintTemplate";
 import { HealthPlanDialog } from "./HealthPlanDialog";
-
-interface Prescription {
-  id: string;
-  created_at: string;
-  diagnosis: string;
-  prescription: string;
-  notes: string;
-}
+import { Prescription } from "./usePrescriptions";
 
 interface PrescriptionHistoryProps {
   prescriptions: Prescription[];

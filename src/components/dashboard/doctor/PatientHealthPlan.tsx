@@ -30,9 +30,12 @@ export const PatientHealthPlan = ({ patientId }: PatientHealthPlanProps) => {
       try {
         setIsLoading(true);
         
-        const { data, error } = await supabase.rpc('get_patient_health_plan', {
-          p_patient_id: patientId
-        }) as { data: HealthPlanItem[] | null, error: any };
+        // Use a direct query instead of RPC function to avoid type issues
+        const { data, error } = await supabase
+          .from('health_plan_items')
+          .select('*')
+          .eq('patient_id', patientId)
+          .order('scheduled_time');
         
         if (error) {
           throw error;
