@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,16 +34,8 @@ export const PrescriptionForm = ({
   const [patientId, setPatientId] = useState<string | null>(null);
   const [showAssignDialog, setShowAssignDialog] = useState(false);
 
-  const handleSavePrescription = async () => {
+  const handleSavePrescription = () => {
     onSavePrescription();
-  };
-
-  const handlePrescriptionSaved = (prescriptionId: string, patientId: string) => {
-    setSavedPrescriptionId(prescriptionId);
-    setPatientId(patientId);
-    if (onPrescriptionSaved) {
-      onPrescriptionSaved(prescriptionId);
-    }
   };
 
   return (

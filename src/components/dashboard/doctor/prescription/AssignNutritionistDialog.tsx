@@ -1,25 +1,19 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
   DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
   DialogHeader, 
-  DialogTitle, 
-  DialogDescription,
-  DialogFooter
+  DialogTitle 
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface Nutritionist {
   id: string;
@@ -34,16 +28,16 @@ interface AssignNutritionistDialogProps {
   prescriptionId: string;
 }
 
-export const AssignNutritionistDialog = ({ 
-  isOpen, 
-  onClose, 
+export const AssignNutritionistDialog = ({
+  isOpen,
+  onClose,
   patientId,
   prescriptionId
 }: AssignNutritionistDialogProps) => {
   const [nutritionists, setNutritionists] = useState<Nutritionist[]>([]);
-  const [selectedNutritionist, setSelectedNutritionist] = useState("");
+  const [selectedNutritionist, setSelectedNutritionist] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetching, setIsFetching] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -51,29 +45,17 @@ export const AssignNutritionistDialog = ({
     const fetchNutritionists = async () => {
       try {
         setIsFetching(true);
-        const { data, error } = await supabase
-          .from('profiles')
-          .select(`
-            id,
-            first_name,
-            last_name,
-            user_roles!inner(role)
-          `)
-          .eq('user_roles.role', 'nutritionist');
-        
+        const { data, error } = await supabase.rpc(
+          'get_nutritionists'
+        );
+          
         if (error) {
           throw error;
         }
         
-        const nutritionistsList = data.map((item: any) => ({
-          id: item.id,
-          first_name: item.first_name || '',
-          last_name: item.last_name || ''
-        }));
-        
-        setNutritionists(nutritionistsList);
+        setNutritionists(data || []);
       } catch (error: any) {
-        console.error("Error fetching nutritionists:", error);
+        console.error('Error fetching nutritionists:', error);
         toast({
           title: "Error",
           description: `Failed to load nutritionists: ${error.message}`,
@@ -89,7 +71,7 @@ export const AssignNutritionistDialog = ({
     }
   }, [isOpen, toast]);
 
-  const handleAssignNutritionist = async () => {
+  const handleAssign = async () => {
     if (!selectedNutritionist) {
       toast({
         title: "Error",
@@ -99,34 +81,21 @@ export const AssignNutritionistDialog = ({
       return;
     }
 
-    if (!user?.id) {
-      toast({
-        title: "Error",
-        description: "Doctor ID not available",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       setIsLoading(true);
 
-      const { data: assignment, error: assignError } = await supabase
-        .from('patient_assignments')
-        .upsert(
-          {
-            patient_id: patientId,
-            nutritionist_id: selectedNutritionist,
-            doctor_id: user.id
-          },
-          {
-            onConflict: 'patient_id,doctor_id'
-          }
-        )
-        .select('id');
+      // Use the RPC function to assign nutritionist
+      const { data, error } = await supabase.rpc(
+        'assign_patient_to_nutritionist',
+        {
+          p_patient_id: patientId,
+          p_nutritionist_id: selectedNutritionist,
+          p_doctor_id: user.id
+        }
+      );
 
-      if (assignError) {
-        throw assignError;
+      if (error) {
+        throw error;
       }
 
       const selectedNutritionistData = nutritionists.find(n => n.id === selectedNutritionist);
@@ -139,8 +108,8 @@ export const AssignNutritionistDialog = ({
       try {
         await supabase.functions.invoke('assign-nutritionist-notification', {
           body: { 
-            nutritionistId: selectedNutritionist,
             patientId: patientId,
+            nutritionistId: selectedNutritionist,
             prescriptionId: prescriptionId
           }
         });
@@ -150,7 +119,7 @@ export const AssignNutritionistDialog = ({
 
       onClose();
     } catch (error: any) {
-      console.error("Error assigning nutritionist:", error);
+      console.error('Error assigning nutritionist:', error);
       toast({
         title: "Error",
         description: `Failed to assign nutritionist: ${error.message}`,
@@ -162,54 +131,47 @@ export const AssignNutritionistDialog = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
         <DialogHeader>
-          <DialogTitle>Assign a Nutritionist</DialogTitle>
+          <DialogTitle>Assign Nutritionist</DialogTitle>
           <DialogDescription>
-            The nutritionist will create a personalized health plan for this patient based on your prescription.
+            Assign a nutritionist to create a personalized health plan for this patient.
           </DialogDescription>
         </DialogHeader>
-        
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="nutritionist">Select Nutritionist</Label>
+            <Label htmlFor="nutritionist-select">Select Nutritionist</Label>
             {isFetching ? (
-              <div className="flex items-center justify-center p-4">
-                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-              </div>
+              <div className="text-sm text-muted-foreground">Loading nutritionists...</div>
+            ) : nutritionists.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No nutritionists available.</div>
             ) : (
-              <Select 
-                value={selectedNutritionist} 
+              <Select
+                value={selectedNutritionist}
                 onValueChange={setSelectedNutritionist}
                 disabled={isLoading}
               >
-                <SelectTrigger id="nutritionist">
+                <SelectTrigger id="nutritionist-select">
                   <SelectValue placeholder="Select a nutritionist" />
                 </SelectTrigger>
                 <SelectContent>
-                  {nutritionists.length === 0 ? (
-                    <SelectItem value="none" disabled>No nutritionists available</SelectItem>
-                  ) : (
-                    nutritionists.map((nutritionist) => (
-                      <SelectItem key={nutritionist.id} value={nutritionist.id}>
-                        {nutritionist.first_name} {nutritionist.last_name}
-                      </SelectItem>
-                    ))
-                  )}
+                  {nutritionists.map((nutritionist) => (
+                    <SelectItem key={nutritionist.id} value={nutritionist.id}>
+                      {nutritionist.first_name} {nutritionist.last_name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             )}
           </div>
         </div>
-        
         <DialogFooter>
-          <Button type="button" variant="outline" onClick={onClose} disabled={isLoading}>
+          <Button variant="outline" onClick={onClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button type="button" onClick={handleAssignNutritionist} disabled={isLoading || !selectedNutritionist}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Assign Nutritionist
+          <Button onClick={handleAssign} disabled={!selectedNutritionist || isLoading}>
+            {isLoading ? "Assigning..." : "Assign Nutritionist"}
           </Button>
         </DialogFooter>
       </DialogContent>
