@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -88,8 +89,8 @@ export const usePrescriptions = (selectedPatient: string) => {
     setConfirmDialogOpen(true);
   };
 
-  const handleSavePrescription = async () => {
-    if (isSaving) return; 
+  const handleSavePrescription = async (): Promise<string | null> => {
+    if (isSaving) return null; 
     
     try {
       setIsSaving(true);
@@ -131,12 +132,16 @@ export const usePrescriptions = (selectedPatient: string) => {
         queryKey: ["patient_medical_records", selectedPatient]
       });
       
+      return data; // Return the prescription id
+      
     } catch (error: any) {
       toast({
         title: "Error",
         description: `Failed to save prescription: ${error.message || "Unknown error"}`,
         variant: "destructive",
       });
+      
+      return null;
       
     } finally {
       setIsSaving(false);

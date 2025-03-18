@@ -15,6 +15,7 @@ interface PrescriptionFormProps {
   setNotes: (value: string) => void;
   onSavePrescription: () => void;
   isSaving: boolean;
+  onPrescriptionSaved?: (prescriptionId: string) => void;
 }
 
 export const PrescriptionForm = ({
@@ -25,7 +26,8 @@ export const PrescriptionForm = ({
   notes,
   setNotes,
   onSavePrescription,
-  isSaving
+  isSaving,
+  onPrescriptionSaved
 }: PrescriptionFormProps) => {
   return (
     <div className="space-y-4">

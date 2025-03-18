@@ -1,17 +1,22 @@
 
 import React, { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { FileText, Plus, Eye } from "lucide-react";
+import { FileText, Plus, Eye, UserPlus } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PatientSelector } from "./prescription/PatientSelector";
 import { PrescriptionForm } from "./prescription/PrescriptionForm";
 import { PrescriptionHistory } from "./prescription/PrescriptionHistory";
 import { ConfirmationDialog } from "./prescription/ConfirmationDialog";
 import { usePrescriptions } from "./prescription/usePrescriptions";
+import { AssignNutritionistDialog } from "./prescription/AssignNutritionistDialog";
+import { useToast } from "@/hooks/use-toast";
 
 export const PrescriptionWriter = () => {
   const [selectedPatient, setSelectedPatient] = useState("");
   const [activeTab, setActiveTab] = useState("write");
+  const [showAssignNutritionist, setShowAssignNutritionist] = useState(false);
+  const [lastSavedPrescriptionId, setLastSavedPrescriptionId] = useState<string | null>(null);
+  const { toast } = useToast();
   
   const {
     diagnosis,
@@ -34,6 +39,23 @@ export const PrescriptionWriter = () => {
     if (activeTab === "write") {
       resetForm();
     }
+  };
+
+  // Handler for when a prescription is saved successfully
+  const handlePrescriptionSaved = (prescriptionId: string) => {
+    setLastSavedPrescriptionId(prescriptionId);
+    toast({
+      title: "Prescription saved",
+      description: "Would you like to assign a nutritionist to this patient?",
+      action: (
+        <div 
+          className="bg-primary text-primary-foreground hover:bg-primary/90 h-8 rounded-md px-3 text-xs cursor-pointer flex items-center"
+          onClick={() => setShowAssignNutritionist(true)}
+        >
+          Assign
+        </div>
+      ),
+    });
   };
 
   return (
@@ -72,11 +94,18 @@ export const PrescriptionWriter = () => {
                 setNotes={setNotes}
                 onSavePrescription={handleSavePrescriptionRequest}
                 isSaving={isSaving}
+                onPrescriptionSaved={handlePrescriptionSaved}
               />
             </TabsContent>
             
             <TabsContent value="view" className="pt-4">
-              <PrescriptionHistory prescriptions={pastPrescriptions} />
+              <PrescriptionHistory 
+                prescriptions={pastPrescriptions} 
+                onAssignNutritionist={(prescriptionId) => {
+                  setLastSavedPrescriptionId(prescriptionId);
+                  setShowAssignNutritionist(true);
+                }}
+              />
             </TabsContent>
           </Tabs>
         )}
@@ -84,12 +113,27 @@ export const PrescriptionWriter = () => {
         <ConfirmationDialog 
           isOpen={confirmDialogOpen}
           onClose={() => setConfirmDialogOpen(false)}
-          onConfirm={handleSavePrescription}
+          onConfirm={() => {
+            handleSavePrescription().then((prescriptionId) => {
+              if (prescriptionId) {
+                handlePrescriptionSaved(prescriptionId);
+              }
+            });
+          }}
           diagnosis={diagnosis}
           prescription={prescription}
           notes={notes}
           isSaving={isSaving}
         />
+
+        {showAssignNutritionist && selectedPatient && lastSavedPrescriptionId && (
+          <AssignNutritionistDialog
+            isOpen={showAssignNutritionist}
+            onClose={() => setShowAssignNutritionist(false)}
+            patientId={selectedPatient}
+            prescriptionId={lastSavedPrescriptionId}
+          />
+        )}
       </CardContent>
     </Card>
   );
