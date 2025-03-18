@@ -89,22 +89,40 @@ export const AssignNutritionistDialog = ({
         doctorId: user.id
       });
 
-      // Use the RPC function to assign nutritionist
-      const { data, error } = await supabase.rpc(
-        'assign_patient_to_nutritionist',
-        {
-          p_patient_id: patientId,
-          p_nutritionist_id: selectedNutritionist,
-          p_doctor_id: user.id
-        }
-      );
+      // First check if an assignment already exists and update or create as needed
+      const { data: existingAssignment, error: checkError } = await supabase
+        .from('patient_assignments')
+        .select('*')
+        .eq('patient_id', patientId)
+        .eq('doctor_id', user.id)
+        .maybeSingle();
 
-      if (error) {
-        console.error("Assignment error:", error);
-        throw error;
+      if (checkError) {
+        throw checkError;
       }
 
-      console.log("Assignment successful:", data);
+      let result;
+      if (existingAssignment) {
+        // Update existing assignment
+        result = await supabase
+          .from('patient_assignments')
+          .update({ nutritionist_id: selectedNutritionist, updated_at: new Date().toISOString() })
+          .eq('id', existingAssignment.id);
+      } else {
+        // Create new assignment
+        result = await supabase
+          .from('patient_assignments')
+          .insert({
+            patient_id: patientId,
+            nutritionist_id: selectedNutritionist,
+            doctor_id: user.id
+          });
+      }
+
+      if (result.error) {
+        throw result.error;
+      }
+
       const selectedNutritionistData = nutritionists.find(n => n.id === selectedNutritionist);
       
       toast({

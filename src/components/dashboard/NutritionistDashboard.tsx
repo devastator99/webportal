@@ -9,28 +9,37 @@ import { DashboardHeader } from "./DashboardHeader";
 import { useState } from "react";
 import { HealthPlanCreator } from "./nutritionist/HealthPlanCreator";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 export const NutritionistDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
 
   const { data: patients, isLoading } = useQuery({
     queryKey: ["nutritionist_patients", user?.id],
     queryFn: async () => {
-      // Get patients assigned to this nutritionist
+      console.log("Fetching patients for nutritionist:", user?.id);
+      
+      // Get patients assigned to this nutritionist directly
       const { data, error } = await supabase
         .from("patient_assignments")
         .select(`
           id,
           patient_id,
           created_at,
-          patient:profiles!patient_id(first_name, last_name)
+          profiles!patient_id(first_name, last_name)
         `)
         .eq("nutritionist_id", user?.id);
 
       if (error) {
-        console.error("Error fetching patients:", error);
+        console.error("Error fetching patients for nutritionist:", error);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load assigned patients."
+        });
         throw error;
       }
       
@@ -99,7 +108,7 @@ export const NutritionistDashboard = () => {
                   <div key={assignment.id} className="flex justify-between items-center border-b pb-2">
                     <div>
                       <p className="font-medium">
-                        {assignment.patient?.first_name} {assignment.patient?.last_name}
+                        {assignment.profiles?.first_name} {assignment.profiles?.last_name}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         Assigned: {new Date(assignment.created_at).toLocaleDateString()}
