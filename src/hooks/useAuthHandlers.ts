@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -66,7 +65,7 @@ export const useAuthHandlers = () => {
     }
   };
 
-  const handleTestLogin = async (userType: "patient" | "doctor" | "nutritionist") => {
+  const handleTestLogin = async (userType: "patient" | "doctor" | "nutritionist" | "administrator") => {
     setLoading(true);
     setError(null);
 
@@ -85,6 +84,10 @@ export const useAuthHandlers = () => {
           break;
         case "nutritionist":
           email = "mary.johnson@example.com";
+          password = "testpassword123";
+          break;
+        case "administrator":
+          email = "admin@example.com";
           password = "testpassword123";
           break;
         default:

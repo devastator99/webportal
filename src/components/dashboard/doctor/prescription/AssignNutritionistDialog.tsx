@@ -83,6 +83,11 @@ export const AssignNutritionistDialog = ({
 
     try {
       setIsLoading(true);
+      console.log("Assigning patient to nutritionist:", {
+        patientId,
+        nutritionistId: selectedNutritionist,
+        doctorId: user.id
+      });
 
       // Use the RPC function to assign nutritionist
       const { data, error } = await supabase.rpc(
@@ -95,9 +100,11 @@ export const AssignNutritionistDialog = ({
       );
 
       if (error) {
+        console.error("Assignment error:", error);
         throw error;
       }
 
+      console.log("Assignment successful:", data);
       const selectedNutritionistData = nutritionists.find(n => n.id === selectedNutritionist);
       
       toast({
