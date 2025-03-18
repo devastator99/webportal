@@ -1,83 +1,135 @@
 
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import React, { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { UserPlus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { 
+  ClipboardList, 
+  UserPlus, 
+  Eye,
+  CalendarCheck
+} from "lucide-react";
+import { PrescriptionPrintTemplate } from "./PrescriptionPrintTemplate";
+import { HealthPlanDialog } from "./HealthPlanDialog";
 
-interface PrescriptionHistoryProps {
-  prescriptions: any[];
-  onAssignNutritionist?: (prescriptionId: string) => void;
+interface Prescription {
+  id: string;
+  created_at: string;
+  diagnosis: string;
+  prescription: string;
+  notes: string;
 }
 
-export const PrescriptionHistory = ({ prescriptions, onAssignNutritionist }: PrescriptionHistoryProps) => {
-  if (!prescriptions || prescriptions.length === 0) {
-    return (
-      <div className="text-center p-6 bg-muted rounded-md">
-        <p className="text-muted-foreground">No previous prescriptions found for this patient.</p>
-      </div>
-    );
-  }
+interface PrescriptionHistoryProps {
+  prescriptions: Prescription[];
+  onAssignNutritionist: (prescriptionId: string) => void;
+}
+
+export const PrescriptionHistory = ({ 
+  prescriptions, 
+  onAssignNutritionist 
+}: PrescriptionHistoryProps) => {
+  const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
+  const [showHealthPlan, setShowHealthPlan] = useState(false);
+  const [selectedPatientId, setSelectedPatientId] = useState<string>("");
+
+  const handleViewPrescription = (prescription: Prescription) => {
+    setSelectedPrescription(prescription);
+  };
+
+  const handleClosePrintView = () => {
+    setSelectedPrescription(null);
+  };
+
+  const handleViewHealthPlan = (patientId: string) => {
+    setSelectedPatientId(patientId);
+    setShowHealthPlan(true);
+  };
 
   return (
     <div className="space-y-4">
-      {prescriptions.map((prescription) => (
-        <Card key={prescription.id} className="bg-card/50">
-          <CardHeader className="pb-2">
-            <div className="flex justify-between items-start">
-              <div>
-                <CardTitle className="text-base">
-                  Prescribed by Dr. {prescription.doctor_first_name} {prescription.doctor_last_name}
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  {formatDistanceToNow(new Date(prescription.created_at), { addSuffix: true })}
-                </p>
-              </div>
-              {onAssignNutritionist && (
-                <Button 
-                  size="sm" 
-                  variant="outline" 
-                  className="flex items-center gap-1"
-                  onClick={() => onAssignNutritionist(prescription.id)}
-                >
-                  <UserPlus className="h-4 w-4" />
-                  <span className="hidden sm:inline">Assign Nutritionist</span>
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent className="text-sm">
-            <div className="space-y-3">
-              <div>
-                <h4 className="font-medium mb-1 flex items-center gap-2">
-                  Diagnosis 
-                  <Badge variant="outline" className="font-normal">Medical Assessment</Badge>
-                </h4>
-                <p className="text-muted-foreground whitespace-pre-line">{prescription.diagnosis}</p>
-              </div>
-              
-              <Separator />
-              
-              <div>
-                <h4 className="font-medium mb-1">Prescription</h4>
-                <p className="text-muted-foreground whitespace-pre-line">{prescription.prescription}</p>
-              </div>
-              
-              {prescription.notes && (
-                <>
-                  <Separator />
-                  <div>
-                    <h4 className="font-medium mb-1">Additional Notes</h4>
-                    <p className="text-muted-foreground whitespace-pre-line">{prescription.notes}</p>
+      {prescriptions.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          No prescriptions found for this patient.
+        </div>
+      ) : (
+        <ScrollArea className="h-[400px] pr-4">
+          <div className="space-y-4">
+            {prescriptions.map((prescription) => (
+              <div 
+                key={prescription.id} 
+                className="border rounded-md p-4 shadow-sm hover:shadow-md transition-shadow"
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center gap-2">
+                    <ClipboardList className="h-5 w-5 text-muted-foreground" />
+                    <h3 className="font-medium">
+                      {prescription.diagnosis}
+                    </h3>
                   </div>
-                </>
-              )}
+                  <span className="text-xs text-muted-foreground">
+                    {formatDistanceToNow(new Date(prescription.created_at), { addSuffix: true })}
+                  </span>
+                </div>
+                
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleViewPrescription(prescription)}
+                    className="flex items-center gap-1"
+                  >
+                    <Eye className="h-4 w-4" />
+                    View
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => onAssignNutritionist(prescription.id)}
+                    className="flex items-center gap-1"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    Assign Nutritionist
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleViewHealthPlan(prescription.patient_id)}
+                    className="flex items-center gap-1"
+                  >
+                    <CalendarCheck className="h-4 w-4" />
+                    View Health Plan
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </ScrollArea>
+      )}
+
+      {selectedPrescription && (
+        <div className="fixed inset-0 bg-background/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-background rounded-lg shadow-lg max-w-4xl w-full p-6 max-h-[90vh] overflow-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-semibold">Prescription</h2>
+              <Button variant="outline" onClick={handleClosePrintView}>
+                Close
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-      ))}
+            <PrescriptionPrintTemplate prescription={selectedPrescription} />
+          </div>
+        </div>
+      )}
+
+      {showHealthPlan && (
+        <HealthPlanDialog
+          isOpen={showHealthPlan}
+          onClose={() => setShowHealthPlan(false)}
+          patientId={selectedPatientId}
+        />
+      )}
     </div>
   );
 };

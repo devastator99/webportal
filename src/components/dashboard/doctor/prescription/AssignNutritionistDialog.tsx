@@ -51,7 +51,11 @@ export const AssignNutritionistDialog = ({
     const fetchNutritionists = async () => {
       try {
         setIsFetching(true);
-        const { data, error } = await supabase.rpc('get_nutritionists');
+        // Using type assertion to match the expected return type
+        const { data, error } = await supabase.rpc('get_nutritionists') as { 
+          data: Nutritionist[] | null; 
+          error: any 
+        };
         
         if (error) {
           throw error;
@@ -88,12 +92,12 @@ export const AssignNutritionistDialog = ({
     try {
       setIsLoading(true);
 
-      // Use the RPC function to assign patient to nutritionist
+      // Use the RPC function to assign patient to nutritionist with type assertion
       const { data: assignmentId, error: assignError } = await supabase
         .rpc('assign_patient_to_nutritionist', {
           p_patient_id: patientId,
           p_nutritionist_id: selectedNutritionist
-        });
+        }) as { data: string | null, error: any };
 
       if (assignError) {
         throw assignError;

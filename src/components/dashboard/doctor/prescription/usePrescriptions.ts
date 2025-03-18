@@ -1,86 +1,73 @@
 
-import { useState } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
-interface MedicalRecord {
+export interface Prescription {
   id: string;
   created_at: string;
-  diagnosis: string | null;
-  prescription: string | null;
-  notes: string | null;
-  doctor_id: string;
+  diagnosis: string;
+  prescription: string;
+  notes: string;
   patient_id: string;
-  doctor_first_name: string | null;
-  doctor_last_name: string | null;
-  patient_first_name?: string | null;
-  patient_last_name?: string | null;
 }
 
-export const usePrescriptions = (selectedPatient: string) => {
-  const { user } = useAuth();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+export const usePrescriptions = (patientId: string) => {
   const [diagnosis, setDiagnosis] = useState("");
   const [prescription, setPrescription] = useState("");
   const [notes, setNotes] = useState("");
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [pastPrescriptions, setPastPrescriptions] = useState<Prescription[]>([]);
+  const { user } = useAuth();
+  const { toast } = useToast();
 
-  // Fetch prescriptions for the selected patient using our RPC function
-  const { data: pastPrescriptions, refetch: refetchPrescriptions } = useQuery({
-    queryKey: ["patient_prescriptions", selectedPatient, user?.id],
-    queryFn: async () => {
-      if (!selectedPatient || !user?.id) {
-        return [] as MedicalRecord[];
-      }
+  useEffect(() => {
+    if (patientId && user) {
+      fetchPrescriptions();
+    }
+  }, [patientId, user]);
+
+  const fetchPrescriptions = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_doctor_patient_records', {
+        p_doctor_id: user?.id,
+        p_patient_id: patientId
+      });
       
-      try {
-        // Use our secure RPC function to get prescriptions with patient and doctor details
-        const { data, error } = await supabase
-          .rpc('get_patient_prescriptions', {
-            p_patient_id: selectedPatient,
-            p_doctor_id: user.id
-          });
-        
-        if (error) {
-          throw error;
-        }
-        
-        return data as MedicalRecord[] || [];
-      } catch (error) {
-        console.error("Error fetching prescriptions:", error);
-        return [] as MedicalRecord[];
+      if (error) {
+        throw error;
       }
-    },
-    enabled: !!selectedPatient && !!user?.id,
-  });
+
+      // Transform the data to include patient_id
+      const prescriptionsWithPatientId = data.map((prescription: any) => ({
+        ...prescription,
+        patient_id: patientId
+      }));
+      
+      setPastPrescriptions(prescriptionsWithPatientId);
+    } catch (error: any) {
+      console.error('Error fetching prescriptions:', error);
+      toast({
+        title: "Error",
+        description: `Failed to load prescriptions: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const resetForm = () => {
+    setDiagnosis("");
+    setPrescription("");
+    setNotes("");
+  };
 
   const handleSavePrescriptionRequest = () => {
-    if (!selectedPatient) {
+    if (!diagnosis.trim() || !prescription.trim()) {
       toast({
         title: "Error",
-        description: "Please select a patient",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!diagnosis.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a diagnosis",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!prescription.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter prescription details",
+        description: "Diagnosis and prescription are required",
         variant: "destructive",
       });
       return;
@@ -89,70 +76,55 @@ export const usePrescriptions = (selectedPatient: string) => {
     setConfirmDialogOpen(true);
   };
 
-  const handleSavePrescription = async (): Promise<string | null> => {
-    if (isSaving) return null; 
-    
+  const handleSavePrescription = async () => {
+    if (!user || !patientId) {
+      toast({
+        title: "Error",
+        description: "Missing user or patient information",
+        variant: "destructive",
+      });
+      return null;
+    }
+
     try {
       setIsSaving(true);
-      
-      if (!user?.id) {
-        throw new Error("Doctor ID not available. Please try again later.");
-      }
-      
-      // Use our security definer function to create a medical record
-      const { data, error } = await supabase.rpc('create_medical_record', {
-        p_patient_id: selectedPatient,
+
+      const { data, error } = await supabase.rpc('save_prescription', {
+        p_patient_id: patientId,
         p_doctor_id: user.id,
         p_diagnosis: diagnosis,
         p_prescription: prescription,
         p_notes: notes
       });
-
+      
       if (error) {
         throw error;
       }
 
+      setConfirmDialogOpen(false);
       toast({
         title: "Success",
         description: "Prescription saved successfully",
       });
-
-      setConfirmDialogOpen(false);
       
-      // Reset form fields
-      setDiagnosis("");
-      setPrescription("");
-      setNotes("");
+      // Reset form
+      resetForm();
       
-      // Refresh the prescriptions list
-      await refetchPrescriptions();
+      // Refresh prescriptions list
+      await fetchPrescriptions();
       
-      // Invalidate any related queries
-      queryClient.invalidateQueries({
-        queryKey: ["patient_medical_records", selectedPatient]
-      });
-      
-      return data; // Return the prescription id
-      
+      return data;
     } catch (error: any) {
+      console.error('Error saving prescription:', error);
       toast({
         title: "Error",
-        description: `Failed to save prescription: ${error.message || "Unknown error"}`,
+        description: `Failed to save prescription: ${error.message}`,
         variant: "destructive",
       });
-      
       return null;
-      
     } finally {
       setIsSaving(false);
-      setConfirmDialogOpen(false);
     }
-  };
-
-  const resetForm = () => {
-    setDiagnosis("");
-    setPrescription("");
-    setNotes("");
   };
 
   return {
