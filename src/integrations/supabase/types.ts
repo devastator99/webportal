@@ -842,6 +842,18 @@ export type Database = {
         }
         Returns: string
       }
+      get_nutritionist_patients: {
+        Args: {
+          p_nutritionist_id: string
+        }
+        Returns: {
+          id: string
+          patient_id: string
+          created_at: string
+          patient_first_name: string
+          patient_last_name: string
+        }[]
+      }
       get_nutritionists: {
         Args: Record<PropertyKey, never>
         Returns: {

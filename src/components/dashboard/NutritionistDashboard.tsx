@@ -3,11 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, MessageSquare, FileText, ArrowRight, Salad, Heart, Calendar } from "lucide-react";
+import { Users, ArrowRight, Salad, Calendar } from "lucide-react";
 import { DashboardHeader } from "./DashboardHeader";
 import { useState } from "react";
 import { HealthPlanCreator } from "./nutritionist/HealthPlanCreator";
-import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 // Create a StatsCards component to keep the file size manageable
@@ -52,15 +51,12 @@ interface PatientAssignment {
   id: string;
   patient_id: string;
   created_at: string;
-  patient: {
-    first_name: string;
-    last_name: string;
-  };
+  patient_first_name: string;
+  patient_last_name: string;
 }
 
 export const NutritionistDashboard = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
 
@@ -69,82 +65,22 @@ export const NutritionistDashboard = () => {
     queryFn: async () => {
       console.log("Fetching patients for nutritionist:", user?.id);
       
-      // Direct SQL query approach instead of going through RLS
+      // Use the RPC function to get nutritionist's patients
       const { data, error } = await supabase
-        .from("nutritionist_patients_view")
-        .select("*")
-        .eq("nutritionist_id", user?.id);
+        .rpc('get_nutritionist_patients', { p_nutritionist_id: user?.id });
 
       if (error) {
         console.error("Error fetching patients for nutritionist:", error);
-        
-        // Try fallback query with fewer joins
-        const { data: fallbackData, error: fallbackError } = await supabase
-          .from("patient_assignments")
-          .select("id, patient_id, created_at, doctor_id")
-          .eq("nutritionist_id", user?.id);
-
-        if (fallbackError) {
-          console.error("Fallback also failed:", fallbackError);
-          toast({
-            variant: "destructive",
-            title: "Error",
-            description: "Failed to load assigned patients."
-          });
-          throw fallbackError;
-        }
-
-        // For the fallback data, we need to separately fetch patient profiles
-        if (fallbackData && fallbackData.length > 0) {
-          const patientIds = fallbackData.map(item => item.patient_id);
-          
-          const { data: profilesData, error: profilesError } = await supabase
-            .from("profiles")
-            .select("id, first_name, last_name")
-            .in("id", patientIds);
-            
-          if (profilesError) {
-            console.error("Error fetching patient profiles:", profilesError);
-            toast({
-              variant: "destructive",
-              title: "Error",
-              description: "Failed to load patient details."
-            });
-            return fallbackData.map(item => ({
-              ...item,
-              patient: { first_name: "Unknown", last_name: "Patient" }
-            }));
-          }
-          
-          // Join the profile data with the assignment data
-          return fallbackData.map(assignment => {
-            const profile = profilesData?.find(p => p.id === assignment.patient_id);
-            return {
-              ...assignment,
-              patient: {
-                first_name: profile?.first_name || "Unknown",
-                last_name: profile?.last_name || "Patient"
-              }
-            };
-          });
-        }
-        
-        return [];
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load assigned patients."
+        });
+        throw error;
       }
       
-      // Transform the data to match our expected format if needed
-      const formattedData = data?.map(row => ({
-        id: row.id,
-        patient_id: row.patient_id,
-        created_at: row.created_at,
-        patient: {
-          first_name: row.first_name,
-          last_name: row.last_name
-        }
-      }));
-      
-      console.log("Fetched nutritionist patients:", formattedData);
-      return formattedData || [];
+      console.log("Fetched nutritionist patients:", data);
+      return data as PatientAssignment[] || [];
     },
     enabled: !!user?.id,
   });
@@ -178,7 +114,7 @@ export const NutritionistDashboard = () => {
                   <div key={assignment.id} className="flex justify-between items-center border-b pb-2">
                     <div>
                       <p className="font-medium">
-                        {assignment.patient?.first_name} {assignment.patient?.last_name}
+                        {assignment.patient_first_name} {assignment.patient_last_name}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         Assigned: {new Date(assignment.created_at).toLocaleDateString()}

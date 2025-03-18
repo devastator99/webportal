@@ -89,34 +89,18 @@ export const AssignNutritionistDialog = ({
         doctorId: user.id
       });
 
-      // Create a direct insert to patient_assignments table
-      const { data, error } = await supabase
-        .from('patient_assignments')
-        .insert({
-          patient_id: patientId,
-          nutritionist_id: selectedNutritionist,
-          doctor_id: user.id
-        })
-        .select("id");
+      // Use assign_patient_to_nutritionist RPC function
+      const { data, error } = await supabase.rpc(
+        'assign_patient_to_nutritionist',
+        {
+          p_patient_id: patientId,
+          p_nutritionist_id: selectedNutritionist,
+          p_doctor_id: user.id
+        }
+      );
 
       if (error) {
-        // If it already exists, try an update instead
-        if (error.code === '23505') { // Unique violation
-          const { error: updateError } = await supabase
-            .from('patient_assignments')
-            .update({ 
-              nutritionist_id: selectedNutritionist,
-              updated_at: new Date().toISOString() 
-            })
-            .eq('patient_id', patientId)
-            .eq('doctor_id', user.id);
-            
-          if (updateError) {
-            throw updateError;
-          }
-        } else {
-          throw error;
-        }
+        throw error;
       }
 
       const selectedNutritionistData = nutritionists.find(n => n.id === selectedNutritionist);
