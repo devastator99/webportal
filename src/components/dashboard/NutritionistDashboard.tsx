@@ -1,12 +1,14 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, ArrowRight, Salad, Calendar } from "lucide-react";
+import { Users, ArrowRight, Salad, Calendar, FileText } from "lucide-react";
 import { DashboardHeader } from "./DashboardHeader";
 import { useState } from "react";
 import { HealthPlanCreator } from "./nutritionist/HealthPlanCreator";
+import { HealthPlanPDF } from "./nutritionist/HealthPlanPDF";
 import { useToast } from "@/hooks/use-toast";
 
 // Create a StatsCards component to keep the file size manageable
@@ -59,6 +61,7 @@ export const NutritionistDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'create' | 'pdf'>('list');
 
   const { data: patients, isLoading } = useQuery({
     queryKey: ["nutritionist_patients", user?.id],
@@ -85,18 +88,35 @@ export const NutritionistDashboard = () => {
     enabled: !!user?.id,
   });
 
+  const handlePatientAction = (patientId: string, mode: 'create' | 'pdf') => {
+    setSelectedPatientId(patientId);
+    setViewMode(mode);
+  };
+
+  const handleBackToList = () => {
+    setSelectedPatientId(null);
+    setViewMode('list');
+  };
+
   return (
     <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
       <DashboardHeader />
       
       <NutritionistStatsCards patientsCount={patients?.length || 0} />
 
-      {selectedPatientId ? (
+      {viewMode !== 'list' ? (
         <>
-          <Button variant="outline" onClick={() => setSelectedPatientId(null)} className="mb-4">
+          <Button variant="outline" onClick={handleBackToList} className="mb-4">
             Back to Patient List
           </Button>
-          <HealthPlanCreator patientId={selectedPatientId} />
+          
+          {viewMode === 'create' && selectedPatientId && (
+            <HealthPlanCreator patientId={selectedPatientId} />
+          )}
+          
+          {viewMode === 'pdf' && selectedPatientId && (
+            <HealthPlanPDF patientId={selectedPatientId} onClose={handleBackToList} />
+          )}
         </>
       ) : (
         <Card>
@@ -120,9 +140,19 @@ export const NutritionistDashboard = () => {
                         Assigned: {new Date(assignment.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <Button onClick={() => setSelectedPatientId(assignment.patient_id)} size="sm">
-                      Create Health Plan <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => handlePatientAction(assignment.patient_id, 'pdf')} 
+                        size="sm"
+                        variant="outline"
+                      >
+                        <FileText className="mr-2 h-4 w-4" />
+                        View Plan
+                      </Button>
+                      <Button onClick={() => handlePatientAction(assignment.patient_id, 'create')} size="sm">
+                        Create/Edit Plan <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
