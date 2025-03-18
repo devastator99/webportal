@@ -1,10 +1,11 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { Save } from "lucide-react";
+import { Save, UserPlus } from "lucide-react";
+import { AssignNutritionistDialog } from "./AssignNutritionistDialog";
 
 interface PrescriptionFormProps {
   diagnosis: string;
@@ -29,6 +30,22 @@ export const PrescriptionForm = ({
   isSaving,
   onPrescriptionSaved
 }: PrescriptionFormProps) => {
+  const [savedPrescriptionId, setSavedPrescriptionId] = useState<string | null>(null);
+  const [patientId, setPatientId] = useState<string | null>(null);
+  const [showAssignDialog, setShowAssignDialog] = useState(false);
+
+  const handleSavePrescription = async () => {
+    onSavePrescription();
+  };
+
+  const handlePrescriptionSaved = (prescriptionId: string, patientId: string) => {
+    setSavedPrescriptionId(prescriptionId);
+    setPatientId(patientId);
+    if (onPrescriptionSaved) {
+      onPrescriptionSaved(prescriptionId);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="space-y-2">
@@ -62,14 +79,36 @@ export const PrescriptionForm = ({
         />
       </div>
 
-      <Button
-        className="w-full gap-2"
-        onClick={onSavePrescription}
-        disabled={isSaving}
-      >
-        <Save className="h-4 w-4" />
-        {isSaving ? "Saving..." : "Save Prescription"}
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Button
+          className="gap-2 flex-1"
+          onClick={handleSavePrescription}
+          disabled={isSaving}
+        >
+          <Save className="h-4 w-4" />
+          {isSaving ? "Saving..." : "Save Prescription"}
+        </Button>
+        
+        {savedPrescriptionId && patientId && (
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setShowAssignDialog(true)}
+          >
+            <UserPlus className="h-4 w-4" />
+            Assign Nutritionist
+          </Button>
+        )}
+      </div>
+
+      {savedPrescriptionId && patientId && (
+        <AssignNutritionistDialog
+          isOpen={showAssignDialog}
+          onClose={() => setShowAssignDialog(false)}
+          patientId={patientId}
+          prescriptionId={savedPrescriptionId}
+        />
+      )}
     </div>
   );
 };

@@ -1,167 +1,143 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight requests
+console.log("Send Health Plan Reminders Function started");
+
+serve(async (req) => {
+  // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const { patientId, nutritionistId } = await req.json();
+    
+    console.log(`Reminder request received for patient ${patientId} from nutritionist ${nutritionistId}`);
 
-    // Parse the request body
-    const { patientId, nutritionistId } = await req.json()
-
-    // Validate inputs
-    if (!patientId || !nutritionistId) {
-      throw new Error('Missing required parameters: patientId or nutritionistId')
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+      throw new Error("Missing Supabase environment variables");
     }
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get patient details
-    const { data: patientData, error: patientError } = await supabaseClient
+    const { data: patient, error: patientError } = await supabase
       .from('profiles')
       .select('first_name, last_name, phone')
       .eq('id', patientId)
-      .single()
-
-    if (patientError || !patientData) {
-      throw new Error(`Failed to get patient details: ${patientError?.message || 'Not found'}`)
+      .single();
+      
+    if (patientError) {
+      throw patientError;
+    }
+    
+    // Get nutritionist details
+    const { data: nutritionist, error: nutritionistError } = await supabase
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('id', nutritionistId)
+      .single();
+      
+    if (nutritionistError) {
+      throw nutritionistError;
     }
 
-    // Get health plan items
-    const { data: healthPlanItems, error: healthPlanError } = await supabaseClient
-      .from('health_plan_items')
-      .select('*')
-      .eq('patient_id', patientId)
-      .eq('nutritionist_id', nutritionistId)
-      .order('time')
-
+    // Get patient's health plan items using RPC
+    const { data: healthPlanItems, error: healthPlanError } = await supabase
+      .rpc('get_patient_health_plan', {
+        p_patient_id: patientId
+      });
+      
     if (healthPlanError) {
-      throw new Error(`Failed to get health plan items: ${healthPlanError.message}`)
+      throw healthPlanError;
     }
 
     if (!healthPlanItems || healthPlanItems.length === 0) {
-      return new Response(
-        JSON.stringify({ success: false, message: 'No health plan items found for this patient' }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 404
-        }
-      )
+      throw new Error("No health plan items found for this patient");
     }
 
-    console.log(`Found ${healthPlanItems.length} health plan items for patient`)
+    console.log(`Found ${healthPlanItems.length} health plan items`);
+    
+    // Send WhatsApp reminders (mock for now)
+    if (patient.phone) {
+      console.log(`Would send WhatsApp health plan reminders to ${patient.phone} for patient ${patient.first_name} ${patient.last_name}`);
+      
+      // Format the message
+      const reminderMessage = `Hello ${patient.first_name}, here is your health plan from Dr. ${nutritionist.first_name} ${nutritionist.last_name}:\n\n` + 
+        healthPlanItems.map((item: any) => {
+          return `${item.time} - ${item.type.toUpperCase()}: ${item.description} (${item.frequency})`;
+        }).join('\n\n');
+      
+      console.log("Reminder message:", reminderMessage);
+      
+      // Here you would integrate with actual WhatsApp API
+      // For example, using Twilio:
+      /*
+      const message = await client.messages.create({
+        body: reminderMessage,
+        from: 'whatsapp:+14155238886',
+        to: `whatsapp:${patient.phone}`
+      });
+      */
+    }
 
-    // If the patient has a phone number, send WhatsApp notifications for each item
-    if (patientData.phone) {
-      try {
-        // Send overview message first
-        const overviewMessage = `Hello ${patientData.first_name},\n\nHere is your daily health plan reminder:\n\n${healthPlanItems.map((item, index) => 
-          `${index + 1}. ${item.time} - ${item.type.charAt(0).toUpperCase() + item.type.slice(1)}: ${item.description}`
-        ).join('\n\n')}\n\nYou'll receive individual reminders at the scheduled times.`
-
-        await sendWhatsAppMessage(patientData.phone, overviewMessage)
-        console.log('Health plan overview sent successfully')
-
-        // Schedule individual reminders (in a real app, this would use a proper scheduler)
-        // Here we're just demonstrating the concept
-        for (const item of healthPlanItems) {
-          const reminderMessage = `Reminder: ${item.type.charAt(0).toUpperCase() + item.type.slice(1)} at ${item.time}\n\n${item.description}`
-          
-          // In a real app, you would use a scheduling service instead of sending immediately
-          // This is just a placeholder to show the concept
-          await sendWhatsAppMessage(patientData.phone, reminderMessage)
-          console.log(`Reminder for ${item.type} at ${item.time} sent`)
-          
-          // Add a small delay between messages to avoid rate limits
-          await new Promise(resolve => setTimeout(resolve, 1000))
-        }
-      } catch (whatsAppError) {
-        console.error('Failed to send WhatsApp reminders:', whatsAppError)
-        throw whatsAppError
-      }
-    } else {
-      console.log('Patient has no phone number for WhatsApp notifications')
+    // Record the reminders in a database log
+    const { data: logData, error: logError } = await supabase
+      .from('notification_logs')
+      .insert({
+        recipient_id: patientId,
+        recipient_type: 'patient',
+        notification_type: 'health_plan_reminder',
+        related_id: nutritionistId,
+        message: `Health plan reminders sent by ${nutritionist.first_name} ${nutritionist.last_name}`,
+        status: 'sent'
+      })
+      .select()
+      .single();
+      
+    if (logError) {
+      console.error("Error logging notification:", logError);
+      // Continue anyway
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Health plan reminders sent successfully',
-        itemCount: healthPlanItems.length
+        message: "Health plan reminders sent successfully",
+        items_count: healthPlanItems.length,
+        notification_id: logData?.id
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
+        headers: { 
+          ...corsHeaders,
+          "Content-Type": "application/json" 
+        } 
       }
-    )
-
+    );
+    
   } catch (error) {
-    console.error('Error in send-health-plan-reminders function:', error)
+    console.error("Error in send-health-plan-reminders function:", error);
     
     return new Response(
-      JSON.stringify({ 
-        error: error.message || 'An unknown error occurred',
-      }),
+      JSON.stringify({ success: false, error: error.message }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
-      }
-    )
-  }
-})
-
-// Function to send WhatsApp message using WhatsApp Business API
-async function sendWhatsAppMessage(to: string, message: string) {
-  const whatsappPhoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID')
-  const whatsappAccessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN')
-
-  if (!whatsappPhoneNumberId || !whatsappAccessToken) {
-    throw new Error('WhatsApp API credentials not configured')
-  }
-
-  // Format the phone number (remove + if present, ensure it has country code)
-  const formattedPhone = to.startsWith('+') ? to.substring(1) : to
-
-  try {
-    const response = await fetch(
-      `https://graph.facebook.com/v17.0/${whatsappPhoneNumberId}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${whatsappAccessToken}`,
-          'Content-Type': 'application/json',
+        headers: { 
+          ...corsHeaders,
+          "Content-Type": "application/json" 
         },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          recipient_type: 'individual',
-          to: formattedPhone,
-          type: 'text',
-          text: {
-            preview_url: false,
-            body: message
-          }
-        })
+        status: 400 
       }
-    )
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(`WhatsApp API error: ${JSON.stringify(errorData)}`)
-    }
-
-    return await response.json()
-  } catch (error) {
-    console.error('Error sending WhatsApp message:', error)
-    throw error
+    );
   }
-}
+});

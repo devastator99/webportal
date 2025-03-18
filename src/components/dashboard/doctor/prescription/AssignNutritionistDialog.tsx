@@ -57,7 +57,7 @@ export const AssignNutritionistDialog = ({
           throw error;
         }
         
-        setNutritionists(data || []);
+        setNutritionists(data as Nutritionist[] || []);
       } catch (error: any) {
         console.error("Error fetching nutritionists:", error);
         toast({
@@ -88,29 +88,15 @@ export const AssignNutritionistDialog = ({
     try {
       setIsLoading(true);
 
-      // First check if the patient is already assigned to this nutritionist
-      const { data: existingAssignment, error: checkError } = await supabase
-        .from('patient_assignments')
-        .select()
-        .eq('patient_id', patientId)
-        .eq('nutritionist_id', selectedNutritionist);
+      // Use the RPC function to assign patient to nutritionist
+      const { data: assignmentId, error: assignError } = await supabase
+        .rpc('assign_patient_to_nutritionist', {
+          p_patient_id: patientId,
+          p_nutritionist_id: selectedNutritionist
+        });
 
-      if (checkError) {
-        throw checkError;
-      }
-
-      // If not already assigned, create the assignment
-      if (!existingAssignment || existingAssignment.length === 0) {
-        const { error: assignError } = await supabase
-          .from('patient_assignments')
-          .upsert({
-            patient_id: patientId,
-            nutritionist_id: selectedNutritionist
-          });
-
-        if (assignError) {
-          throw assignError;
-        }
+      if (assignError) {
+        throw assignError;
       }
 
       // Now find the nutritionist's name for the notification

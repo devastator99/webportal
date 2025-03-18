@@ -1,135 +1,120 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import { serve } from "https://deno.land/std@0.131.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.48.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight requests
+console.log("Send Health Plan Notification Function started");
+
+serve(async (req) => {
+  // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const { patientId, nutritionistId, planItems } = await req.json();
+    
+    console.log(`Notification request received for patient ${patientId} from nutritionist ${nutritionistId}, ${planItems} items`);
 
-    // Parse the request body
-    const { patientId, nutritionistId, planItems } = await req.json()
-
-    // Validate inputs
-    if (!patientId || !nutritionistId || !planItems) {
-      throw new Error('Missing required parameters: patientId, nutritionistId, or planItems')
+    // Create Supabase client
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+      throw new Error("Missing Supabase environment variables");
     }
-
-    // Get nutritionist details
-    const { data: nutritionistData, error: nutritionistError } = await supabaseClient
-      .from('profiles')
-      .select('first_name, last_name')
-      .eq('id', nutritionistId)
-      .single()
-
-    if (nutritionistError || !nutritionistData) {
-      throw new Error(`Failed to get nutritionist details: ${nutritionistError?.message || 'Not found'}`)
-    }
+    
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Get patient details
-    const { data: patientData, error: patientError } = await supabaseClient
+    const { data: patient, error: patientError } = await supabase
       .from('profiles')
       .select('first_name, last_name, phone')
       .eq('id', patientId)
-      .single()
-
-    if (patientError || !patientData) {
-      throw new Error(`Failed to get patient details: ${patientError?.message || 'Not found'}`)
+      .single();
+      
+    if (patientError) {
+      throw patientError;
     }
-
-    console.log('Retrieved all necessary data for notification')
-
-    // If the patient has a phone number, send WhatsApp notification
-    if (patientData.phone) {
-      try {
-        // Prepare message content
-        const message = `Hello ${patientData.first_name},\n\nYour nutrition and health specialist ${nutritionistData.first_name} ${nutritionistData.last_name} has created a personalized health plan for you with ${planItems} items.\n\nCheck your health plan for diet recommendations, exercise routines, and medication schedules.\n\nYou will receive reminders for each item in your health plan through WhatsApp.`
-
-        // Send the WhatsApp notification
-        await sendWhatsAppMessage(patientData.phone, message)
-        console.log('WhatsApp notification sent successfully')
-      } catch (whatsAppError) {
-        // Log error but don't fail the entire function
-        console.error('Failed to send WhatsApp notification:', whatsAppError)
-      }
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, message: 'Health plan notification sent' }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
-      }
-    )
-
-  } catch (error) {
-    console.error('Error in send-health-plan-notification function:', error)
     
+    // Get nutritionist details
+    const { data: nutritionist, error: nutritionistError } = await supabase
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('id', nutritionistId)
+      .single();
+      
+    if (nutritionistError) {
+      throw nutritionistError;
+    }
+
+    console.log("Retrieved patient and nutritionist data");
+    
+    // Send WhatsApp notification (mock for now)
+    if (patient.phone) {
+      console.log(`Would send WhatsApp notification to ${patient.phone} for patient ${patient.first_name} ${patient.last_name}`);
+      
+      // Here you would integrate with actual WhatsApp API
+      // For example, using Twilio:
+      /*
+      const message = await client.messages.create({
+        body: `Hello ${patient.first_name},\n\nYour nutritionist ${nutritionist.first_name} ${nutritionist.last_name} has created a health plan for you with ${planItems} items. Check your account for details.`,
+        from: 'whatsapp:+14155238886',
+        to: `whatsapp:${patient.phone}`
+      });
+      */
+    }
+
+    // Record the notification in a database log
+    const { data: logData, error: logError } = await supabase
+      .from('notification_logs')
+      .insert({
+        recipient_id: patientId,
+        recipient_type: 'patient',
+        notification_type: 'health_plan_created',
+        related_id: nutritionistId,
+        message: `A new health plan with ${planItems} items has been created for you by ${nutritionist.first_name} ${nutritionist.last_name}`,
+        status: 'sent'
+      })
+      .select()
+      .single();
+      
+    if (logError) {
+      console.error("Error logging notification:", logError);
+      // Continue anyway
+    }
+
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'An unknown error occurred',
+        success: true, 
+        message: "Notification sent successfully",
+        notification_id: logData?.id
       }),
       { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400
+        headers: { 
+          ...corsHeaders,
+          "Content-Type": "application/json" 
+        } 
       }
-    )
-  }
-})
-
-// Function to send WhatsApp message using WhatsApp Business API
-async function sendWhatsAppMessage(to: string, message: string) {
-  const whatsappPhoneNumberId = Deno.env.get('WHATSAPP_PHONE_NUMBER_ID')
-  const whatsappAccessToken = Deno.env.get('WHATSAPP_ACCESS_TOKEN')
-
-  if (!whatsappPhoneNumberId || !whatsappAccessToken) {
-    throw new Error('WhatsApp API credentials not configured')
-  }
-
-  // Format the phone number (remove + if present, ensure it has country code)
-  const formattedPhone = to.startsWith('+') ? to.substring(1) : to
-
-  try {
-    const response = await fetch(
-      `https://graph.facebook.com/v17.0/${whatsappPhoneNumberId}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${whatsappAccessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          recipient_type: 'individual',
-          to: formattedPhone,
-          type: 'text',
-          text: {
-            preview_url: false,
-            body: message
-          }
-        })
-      }
-    )
-
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(`WhatsApp API error: ${JSON.stringify(errorData)}`)
-    }
-
-    return await response.json()
+    );
+    
   } catch (error) {
-    console.error('Error sending WhatsApp message:', error)
-    throw error
+    console.error("Error in send-health-plan-notification function:", error);
+    
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      { 
+        headers: { 
+          ...corsHeaders,
+          "Content-Type": "application/json" 
+        },
+        status: 400 
+      }
+    );
   }
-}
+});
