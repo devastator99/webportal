@@ -1,15 +1,62 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, MessageSquare, FileText, ArrowRight } from "lucide-react";
+import { Users, MessageSquare, FileText, ArrowRight, Salad, Heart, Calendar } from "lucide-react";
 import { DashboardHeader } from "./DashboardHeader";
 import { useState } from "react";
 import { HealthPlanCreator } from "./nutritionist/HealthPlanCreator";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+
+// Create a StatsCards component to keep the file size manageable
+const NutritionistStatsCards = ({ patientsCount }: { patientsCount: number }) => {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Assigned Patients</CardTitle>
+          <Users className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">{patientsCount || 0}</div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Health Plans Created</CardTitle>
+          <Salad className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">0</div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">Calendar Events</CardTitle>
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div className="text-2xl font-bold">0</div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+// Interface for patient assignment data
+interface PatientAssignment {
+  id: string;
+  patient_id: string;
+  created_at: string;
+  patient: {
+    first_name: string;
+    last_name: string;
+  };
+}
 
 export const NutritionistDashboard = () => {
   const { user } = useAuth();
@@ -22,29 +69,82 @@ export const NutritionistDashboard = () => {
     queryFn: async () => {
       console.log("Fetching patients for nutritionist:", user?.id);
       
-      // Get patients assigned to this nutritionist directly
+      // Direct SQL query approach instead of going through RLS
       const { data, error } = await supabase
-        .from("patient_assignments")
-        .select(`
-          id,
-          patient_id,
-          created_at,
-          profiles!patient_id(first_name, last_name)
-        `)
+        .from("nutritionist_patients_view")
+        .select("*")
         .eq("nutritionist_id", user?.id);
 
       if (error) {
         console.error("Error fetching patients for nutritionist:", error);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load assigned patients."
-        });
-        throw error;
+        
+        // Try fallback query with fewer joins
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("patient_assignments")
+          .select("id, patient_id, created_at, doctor_id")
+          .eq("nutritionist_id", user?.id);
+
+        if (fallbackError) {
+          console.error("Fallback also failed:", fallbackError);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to load assigned patients."
+          });
+          throw fallbackError;
+        }
+
+        // For the fallback data, we need to separately fetch patient profiles
+        if (fallbackData && fallbackData.length > 0) {
+          const patientIds = fallbackData.map(item => item.patient_id);
+          
+          const { data: profilesData, error: profilesError } = await supabase
+            .from("profiles")
+            .select("id, first_name, last_name")
+            .in("id", patientIds);
+            
+          if (profilesError) {
+            console.error("Error fetching patient profiles:", profilesError);
+            toast({
+              variant: "destructive",
+              title: "Error",
+              description: "Failed to load patient details."
+            });
+            return fallbackData.map(item => ({
+              ...item,
+              patient: { first_name: "Unknown", last_name: "Patient" }
+            }));
+          }
+          
+          // Join the profile data with the assignment data
+          return fallbackData.map(assignment => {
+            const profile = profilesData?.find(p => p.id === assignment.patient_id);
+            return {
+              ...assignment,
+              patient: {
+                first_name: profile?.first_name || "Unknown",
+                last_name: profile?.last_name || "Patient"
+              }
+            };
+          });
+        }
+        
+        return [];
       }
       
-      console.log("Fetched nutritionist patients:", data);
-      return data;
+      // Transform the data to match our expected format if needed
+      const formattedData = data?.map(row => ({
+        id: row.id,
+        patient_id: row.patient_id,
+        created_at: row.created_at,
+        patient: {
+          first_name: row.first_name,
+          last_name: row.last_name
+        }
+      }));
+      
+      console.log("Fetched nutritionist patients:", formattedData);
+      return formattedData || [];
     },
     enabled: !!user?.id,
   });
@@ -53,37 +153,7 @@ export const NutritionistDashboard = () => {
     <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
       <DashboardHeader />
       
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Assigned Patients</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{patients?.length || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unread Messages</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Resources Shared</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">0</div>
-          </CardContent>
-        </Card>
-      </div>
+      <NutritionistStatsCards patientsCount={patients?.length || 0} />
 
       {selectedPatientId ? (
         <>
@@ -108,7 +178,7 @@ export const NutritionistDashboard = () => {
                   <div key={assignment.id} className="flex justify-between items-center border-b pb-2">
                     <div>
                       <p className="font-medium">
-                        {assignment.profiles?.first_name} {assignment.profiles?.last_name}
+                        {assignment.patient?.first_name} {assignment.patient?.last_name}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         Assigned: {new Date(assignment.created_at).toLocaleDateString()}

@@ -89,38 +89,34 @@ export const AssignNutritionistDialog = ({
         doctorId: user.id
       });
 
-      // First check if an assignment already exists and update or create as needed
-      const { data: existingAssignment, error: checkError } = await supabase
+      // Create a direct insert to patient_assignments table
+      const { data, error } = await supabase
         .from('patient_assignments')
-        .select('*')
-        .eq('patient_id', patientId)
-        .eq('doctor_id', user.id)
-        .maybeSingle();
+        .insert({
+          patient_id: patientId,
+          nutritionist_id: selectedNutritionist,
+          doctor_id: user.id
+        })
+        .select("id");
 
-      if (checkError) {
-        throw checkError;
-      }
-
-      let result;
-      if (existingAssignment) {
-        // Update existing assignment
-        result = await supabase
-          .from('patient_assignments')
-          .update({ nutritionist_id: selectedNutritionist, updated_at: new Date().toISOString() })
-          .eq('id', existingAssignment.id);
-      } else {
-        // Create new assignment
-        result = await supabase
-          .from('patient_assignments')
-          .insert({
-            patient_id: patientId,
-            nutritionist_id: selectedNutritionist,
-            doctor_id: user.id
-          });
-      }
-
-      if (result.error) {
-        throw result.error;
+      if (error) {
+        // If it already exists, try an update instead
+        if (error.code === '23505') { // Unique violation
+          const { error: updateError } = await supabase
+            .from('patient_assignments')
+            .update({ 
+              nutritionist_id: selectedNutritionist,
+              updated_at: new Date().toISOString() 
+            })
+            .eq('patient_id', patientId)
+            .eq('doctor_id', user.id);
+            
+          if (updateError) {
+            throw updateError;
+          }
+        } else {
+          throw error;
+        }
       }
 
       const selectedNutritionistData = nutritionists.find(n => n.id === selectedNutritionist);
