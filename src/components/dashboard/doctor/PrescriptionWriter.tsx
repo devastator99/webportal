@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -47,11 +46,9 @@ export const PrescriptionWriter = () => {
   };
 
   const handleAssignNutritionist = (prescriptionId: string) => {
-    // This function can be extended if additional functionality is needed
     console.log("Assigning nutritionist for prescription:", prescriptionId);
   };
 
-  // Reset prescription form when selected patient changes
   useEffect(() => {
     resetForm();
   }, [selectedPatient]);
@@ -104,8 +101,10 @@ export const PrescriptionWriter = () => {
           isOpen={confirmDialogOpen}
           onClose={() => setConfirmDialogOpen(false)}
           onConfirm={onConfirmSave}
-          title="Save Prescription"
-          description="Are you sure you want to save this prescription to the patient's medical record?"
+          diagnosis={diagnosis}
+          prescription={prescription}
+          notes={notes}
+          isSaving={isSaving}
         />
       </CardContent>
     </Card>

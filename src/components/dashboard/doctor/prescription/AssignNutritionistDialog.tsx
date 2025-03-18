@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -48,12 +47,10 @@ export const AssignNutritionistDialog = ({
   const { toast } = useToast();
   const { user } = useAuth();
 
-  // Fetch available nutritionists
   useEffect(() => {
     const fetchNutritionists = async () => {
       try {
         setIsFetching(true);
-        // Use direct query instead of RPC to avoid TypeScript errors
         const { data, error } = await supabase
           .from('profiles')
           .select(`
@@ -68,7 +65,6 @@ export const AssignNutritionistDialog = ({
           throw error;
         }
         
-        // Transform data to match our Nutritionist interface
         const nutritionistsList = data.map((item: any) => ({
           id: item.id,
           first_name: item.first_name || '',
@@ -115,7 +111,6 @@ export const AssignNutritionistDialog = ({
     try {
       setIsLoading(true);
 
-      // Use direct upsert instead of RPC to avoid TypeScript issues
       const { data: assignment, error: assignError } = await supabase
         .from('patient_assignments')
         .upsert(
@@ -125,18 +120,15 @@ export const AssignNutritionistDialog = ({
             doctor_id: user.id
           },
           {
-            onConflict: 'patient_id,doctor_id',
-            returning: 'id'
+            onConflict: 'patient_id,doctor_id'
           }
         )
-        .select()
-        .single();
+        .select('id');
 
       if (assignError) {
         throw assignError;
       }
 
-      // Now find the nutritionist's name for the notification
       const selectedNutritionistData = nutritionists.find(n => n.id === selectedNutritionist);
       
       toast({
@@ -144,7 +136,6 @@ export const AssignNutritionistDialog = ({
         description: `Patient assigned to ${selectedNutritionistData?.first_name} ${selectedNutritionistData?.last_name}`,
       });
 
-      // Call edge function to send WhatsApp notification to nutritionist about new patient assignment
       try {
         await supabase.functions.invoke('assign-nutritionist-notification', {
           body: { 
@@ -155,7 +146,6 @@ export const AssignNutritionistDialog = ({
         });
       } catch (notifyError) {
         console.error("Error sending notification:", notifyError);
-        // Don't fail the whole operation if notification fails
       }
 
       onClose();
