@@ -1,4 +1,3 @@
-
 import { useState, memo, useCallback, useEffect } from "react";
 import { useQuery, QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,10 +22,45 @@ interface Video {
   updated_at: string;
   uploaded_by: string;
   uploader_role: "patient" | "doctor" | "nutritionist" | "administrator" | "reception";
+  is_youtube?: boolean;
 }
 
-// Memoized VideoCard with optimized rendering
-const VideoCard = memo(({ video, lazyLoad = true }: { video: Video; lazyLoad?: boolean }) => {
+const getYoutubeVideoId = (url: string): string | null => {
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+  const match = url.match(regExp);
+  return match && match[2].length === 11 ? match[2] : null;
+};
+
+const VideoCard = memo(({ video }: { video: Video }) => {
+  if (video.is_youtube || video.video_path.includes('youtube.com') || video.video_path.includes('youtu.be')) {
+    const videoId = getYoutubeVideoId(video.video_path);
+    
+    return (
+      <Card key={video.id} className="overflow-hidden">
+        <div className="w-full aspect-video">
+          <iframe
+            className="w-full h-full"
+            src={`https://www.youtube.com/embed/${videoId}`}
+            title={video.title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
+        <CardHeader>
+          <CardTitle>{video.title}</CardTitle>
+          <CardDescription>
+            Educational Video
+          </CardDescription>
+        </CardHeader>
+        {video.description && (
+          <CardContent>
+            <p className="text-sm text-gray-500">{video.description}</p>
+          </CardContent>
+        )}
+      </Card>
+    );
+  }
+  
   try {
     const videoUrl = supabase.storage.from('videos').getPublicUrl(video.video_path).data.publicUrl;
     
@@ -36,7 +70,7 @@ const VideoCard = memo(({ video, lazyLoad = true }: { video: Video; lazyLoad?: b
           className="w-full aspect-video object-cover"
           controls
           src={videoUrl}
-          preload="none" // Don't preload video data
+          preload="none"
         />
         <CardHeader>
           <CardTitle>{video.title}</CardTitle>
@@ -84,39 +118,37 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-// Simplified sample videos
 const sampleVideos: Video[] = [
   {
     id: "sample1",
     title: "Understanding Diabetes Management",
     description: "Learn about the basics of diabetes management and daily care routines.",
-    video_path: "sample/diabetes-intro.mp4",
+    video_path: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     uploaded_by: "sample",
-    uploader_role: "doctor"
+    uploader_role: "doctor",
+    is_youtube: true
   },
   {
     id: "sample2",
     title: "Thyroid Health Essentials",
     description: "An overview of thyroid function and common thyroid conditions.",
-    video_path: "sample/thyroid-basics.mp4",
+    video_path: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
     uploaded_by: "sample",
-    uploader_role: "doctor"
+    uploader_role: "doctor",
+    is_youtube: true
   }
 ];
 
-// Optimized VideoList component with pagination
 export const VideoList = () => {
   const [shouldFetch, setShouldFetch] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 2; // Show only 2 videos per page initially for faster loading
   
-  // Only fetch when component is visible and interactive
   useEffect(() => {
-    // Delay fetch initialization to improve initial page load
     const timer = setTimeout(() => {
       setShouldFetch(true);
     }, 100);
@@ -124,12 +156,10 @@ export const VideoList = () => {
     return () => clearTimeout(timer);
   }, []);
   
-  // Simplified query with faster options and conditional execution
   const { data: allVideos, isLoading } = useQuery({
     queryKey: ["knowledge_videos"],
     queryFn: async () => {
       try {
-        // Fetch all available videos, but we'll paginate them on the client side
         const { data, error } = await supabase
           .from('knowledge_videos')
           .select('*')
@@ -144,14 +174,12 @@ export const VideoList = () => {
         return sampleVideos;
       }
     },
-    // Faster query options
     retry: 0,
     staleTime: 300000,
     refetchOnWindowFocus: false,
-    enabled: shouldFetch, // Only run query when shouldFetch is true
+    enabled: shouldFetch
   });
 
-  // Calculate pagination information
   const videos = allVideos || sampleVideos;
   const totalPages = Math.ceil(videos.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -159,7 +187,6 @@ export const VideoList = () => {
   
   const goToPage = useCallback((page: number) => {
     setCurrentPage(page);
-    // Scroll to top of video list
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
@@ -175,7 +202,6 @@ export const VideoList = () => {
     }
   }, [currentPage, goToPage]);
 
-  // Use simplified early loading state
   if (!shouldFetch) {
     return <LoadingSkeleton />;
   }
@@ -226,10 +252,7 @@ export const VideoList = () => {
   );
 };
 
-// Optimized standalone version with minimal QueryClient
 export const StandaloneVideoList = () => {
-  // Create a lightweight QueryClient with minimal configuration
-  // Using memoization to prevent recreating the client on each render
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {

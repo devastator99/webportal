@@ -6,23 +6,38 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { Upload } from "lucide-react";
+import { Link } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
 export const VideoUploader = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [file, setFile] = useState<File | null>(null);
+  const [youtubeUrl, setYoutubeUrl] = useState("");
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
   const { user, userRole } = useAuth();
   const queryClient = useQueryClient();
 
+  // Simple YouTube URL validation
+  const isValidYoutubeUrl = (url: string) => {
+    const ytRegex = /^(https?:\/\/)?(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})$/;
+    return ytRegex.test(url);
+  };
+
   const handleUpload = async () => {
-    if (!file || !title || !user?.id || !userRole) {
+    if (!youtubeUrl || !title || !user?.id || !userRole) {
       toast({
         title: "Missing information",
-        description: "Please fill in all fields and select a video file.",
+        description: "Please fill in all fields including a valid YouTube URL.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isValidYoutubeUrl(youtubeUrl)) {
+      toast({
+        title: "Invalid YouTube URL",
+        description: "Please enter a valid YouTube video URL (e.g., https://youtube.com/watch?v=XXXXXXXXXXX or https://youtu.be/XXXXXXXXXXX).",
         variant: "destructive",
       });
       return;
@@ -31,35 +46,27 @@ export const VideoUploader = () => {
     try {
       setUploading(true);
 
-      const fileExt = file.name.split('.').pop();
-      const filePath = `${crypto.randomUUID()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('videos')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
       const { error: dbError } = await supabase
         .from('knowledge_videos')
         .insert({
           title,
           description,
-          video_path: filePath,
+          video_path: youtubeUrl,
           uploaded_by: user.id,
           uploader_role: userRole,
+          is_youtube: true
         });
 
       if (dbError) throw dbError;
 
       toast({
         title: "Success",
-        description: "Video uploaded successfully!",
+        description: "YouTube video added successfully!",
       });
 
       setTitle("");
       setDescription("");
-      setFile(null);
+      setYoutubeUrl("");
       
       queryClient.invalidateQueries({ queryKey: ["knowledge_videos"] });
     } catch (error: any) {
@@ -76,7 +83,7 @@ export const VideoUploader = () => {
 
   return (
     <div className="space-y-4 p-4 bg-white rounded-lg shadow">
-      <h3 className="text-lg font-semibold">Upload Knowledge Sharing Video</h3>
+      <h3 className="text-lg font-semibold">Share YouTube Knowledge Video</h3>
       
       <Input
         type="text"
@@ -92,23 +99,24 @@ export const VideoUploader = () => {
       />
       
       <Input
-        type="file"
-        accept="video/*"
-        onChange={(e) => setFile(e.target.files?.[0] || null)}
-        className="cursor-pointer"
+        type="text"
+        placeholder="YouTube URL (e.g., https://youtube.com/watch?v=XXXXXXXXXXX)"
+        value={youtubeUrl}
+        onChange={(e) => setYoutubeUrl(e.target.value)}
+        className="cursor-text"
       />
       
       <Button
         onClick={handleUpload}
-        disabled={uploading || !file || !title}
+        disabled={uploading || !youtubeUrl || !title}
         className="w-full"
       >
         {uploading ? (
-          "Uploading..."
+          "Submitting..."
         ) : (
           <>
-            <Upload className="mr-2 h-4 w-4" />
-            Upload Video
+            <Link className="mr-2 h-4 w-4" />
+            Add YouTube Video
           </>
         )}
       </Button>
