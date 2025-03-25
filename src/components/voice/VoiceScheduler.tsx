@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,7 @@ import { VoiceCommandsHelp } from "@/components/voice/VoiceCommandsHelp";
 import { AppointmentConfirmation } from "@/components/voice/AppointmentConfirmation";
 import { speak } from "@/utils/textToSpeech";
 import { format } from "date-fns";
+import { extractDate, extractTime } from "@/utils/VoiceAgent";
 
 interface VoiceSchedulerProps {
   onClose: () => void;
