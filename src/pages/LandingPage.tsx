@@ -8,6 +8,8 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { StandaloneVideoList } from "@/components/videos/VideoList";
+import { ChatbotWidget } from "@/components/chat/ChatbotWidget";
+import { featureFlags } from "@/config/features";
 
 // Simple loading component
 const LoadingSpinner = () => (
@@ -180,6 +182,8 @@ export const LandingPage = () => {
       <div id="footer-section" className="min-h-[20px]">
         {visibleSections.footer && <Footer />}
       </div>
+
+      {featureFlags.enableChatbotWidget && <ChatbotWidget />}
     </div>
   );
 };
