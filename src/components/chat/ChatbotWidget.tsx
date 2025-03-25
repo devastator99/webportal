@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, X, MessageSquare, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,6 @@ type Message = {
   timestamp: Date;
 };
 
-// Welcome messages for different languages
 const welcomeMessages = {
   en: "Hello! I am your Anubhuti Assistant. How can I help you today? You can ask me about our doctors, clinic location, or services.",
   hi: "नमस्ते! मैं आपका Anubhuti सहायक हूँ। आज मैं आपकी कैसे मदद कर सकता हूँ? आप मुझसे हमारे डॉक्टरों, क्लिनिक स्थान, या सेवाओं के बारे में पूछ सकते हैं।",
@@ -32,7 +30,6 @@ const welcomeMessages = {
   ml: "നമസ്കാരം! ഞാൻ നിങ്ങളുടെ Anubhuti സഹായി ആണ്. ഇന്ന് എനിക്ക് നിങ്ങളെ എങ്ങനെ സഹായിക്കാൻ കഴിയും? ഞങ്ങളുടെ ഡോക്ടർമാർ, ക്ലിനിക് സ്ഥാനം അല്ലെങ്കിൽ സേവനങ്ങളെക്കുറിച്ച് നിങ്ങൾക്ക് എന്നോട് ചോദിക്കാം.",
 };
 
-// Helper function to suggest doctor queries to users
 const suggestedDoctorQueries = [
   "Who are the doctors at your clinic?",
   "Tell me about your specialists",
@@ -51,9 +48,7 @@ export const ChatbotWidget = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Set welcome message based on selected language
   useEffect(() => {
-    // Clear messages and set welcome message in the selected language
     const welcomeMessage = welcomeMessages[language as keyof typeof welcomeMessages] || welcomeMessages.en;
     setMessages([{
       id: '1',
@@ -77,9 +72,8 @@ export const ChatbotWidget = () => {
     setInput('');
     setIsLoading(true);
 
-    // Format messages for the API call
     const formattedMessages = messages
-      .filter((msg) => msg.id !== '1' || messages.length === 1) // Keep initial greeting only if it's the only message
+      .filter((msg) => msg.id !== '1' || messages.length === 1)
       .concat(userMessage)
       .map((msg) => ({
         role: msg.role,
@@ -129,12 +123,10 @@ export const ChatbotWidget = () => {
     }
   };
 
-  // Auto-scroll to the bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Focus input when chat opens
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => {
@@ -155,15 +147,12 @@ export const ChatbotWidget = () => {
     { value: 'ml', label: 'മലയാളം (Malayalam)' },
   ];
 
-  // Check if Indian language support is enabled
   const isLanguageSupportEnabled = featureFlags.enableIndianLanguageSupport;
 
-  // Only show suggested queries when the chat is first opened or has only welcome message
   const showSuggestions = messages.length <= 1;
 
   return (
     <>
-      {/* Floating chat button */}
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
@@ -174,7 +163,6 @@ export const ChatbotWidget = () => {
         </Button>
       )}
 
-      {/* Chat widget */}
       {isOpen && (
         <Card className="fixed bottom-5 right-5 w-[350px] h-[500px] shadow-xl flex flex-col z-50">
           <CardHeader className="px-4 py-3 border-b flex flex-row items-center justify-between space-y-0">
@@ -182,7 +170,7 @@ export const ChatbotWidget = () => {
               <Avatar className="h-7 w-7 bg-primary">
                 <MessageSquare className="h-4 w-4 text-white" />
               </Avatar>
-              <CardTitle className="text-base font-medium">Anubhuti सहायक</CardTitle>
+              <CardTitle className="text-base font-medium">Anoobhooti सहायक</CardTitle>
             </div>
             <Button
               variant="ghost"
@@ -255,7 +243,6 @@ export const ChatbotWidget = () => {
                   </div>
                 )}
                 
-                {/* Suggested queries */}
                 {showSuggestions && (
                   <div className="mt-4">
                     <p className="text-xs text-muted-foreground mb-2">

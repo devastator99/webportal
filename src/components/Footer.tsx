@@ -4,7 +4,7 @@ export const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="grid md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-xl font-bold mb-4 text-[#9b87f5]">Anubhuti</h3>
+            <h3 className="text-xl font-bold mb-4 text-[#9b87f5]">Anoobhooti</h3>
             <p className="text-[#D6BCFA]">
               Transform your healthcare experience with our comprehensive endocrinology platform.
             </p>
@@ -35,7 +35,7 @@ export const Footer = () => {
           </div>
         </div>
         <div className="border-t border-[#D6BCFA]/20 mt-8 pt-8 text-center text-[#D6BCFA]">
-          <p>&copy; 2024 Anubhuti. All rights reserved.</p>
+          <p>&copy; 2024 Anoobhooti. All rights reserved.</p>
         </div>
       </div>
     </footer>

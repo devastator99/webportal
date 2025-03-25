@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -65,10 +64,8 @@ export const Navbar = () => {
         description: "Forcefully signing you out of your account",
       });
       
-      // Use the more aggressive forceSignOut method
       await forceSignOut();
       
-      // This code might not run due to page reload, but including for completeness
       toast({
         title: "Logged out",
         description: "You have been successfully signed out",
@@ -100,7 +97,7 @@ export const Navbar = () => {
               navigate("/");
             }}
           >
-            Anubhuti
+            Anoobhooti
           </div>
         </div>
       </nav>
@@ -117,11 +114,10 @@ export const Navbar = () => {
             navigate("/");
           }}
         >
-          Anubhuti
+          Anoobhooti
         </div>
         
         <div className="flex items-center gap-3">
-          {/* Only show Force Logout button on the Admin page */}
           {user && isAdminPage && (
             <Button
               onClick={handleForceLogout}
