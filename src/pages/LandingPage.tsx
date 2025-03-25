@@ -1,24 +1,60 @@
 
-import { lazy, Suspense, useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import { Hero } from "@/components/Hero";
 import { Navbar } from "@/components/Navbar";
+import { Features } from "@/components/Features";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { StandaloneVideoList } from "@/components/videos/VideoList";
 
-// Lazy load non-critical components with minimal wrapping
-const Features = lazy(() => import("@/components/Features").then(m => ({ default: m.Features })));
-const Testimonials = lazy(() => import("@/components/Testimonials").then(m => ({ default: m.Testimonials })));
-const Pricing = lazy(() => import("@/components/Pricing").then(m => ({ default: m.Pricing })));
-const Footer = lazy(() => import("@/components/Footer").then(m => ({ default: m.Footer })));
-const VideoList = lazy(() => import("@/components/videos/VideoList").then(m => ({ default: m.StandaloneVideoList })));
-
+// Simple loading component
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center p-4">
     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#9b87f5]"></div>
   </div>
 );
+
+// Lazy load only non-critical components with dynamic import()
+const Testimonials = () => {
+  const [Component, setComponent] = useState<React.ComponentType | null>(null);
+
+  useEffect(() => {
+    import("@/components/Testimonials").then((module) => {
+      setComponent(() => module.Testimonials);
+    });
+  }, []);
+
+  if (!Component) return <LoadingSpinner />;
+  return <Component />;
+};
+
+const Pricing = () => {
+  const [Component, setComponent] = useState<React.ComponentType | null>(null);
+
+  useEffect(() => {
+    import("@/components/Pricing").then((module) => {
+      setComponent(() => module.Pricing);
+    });
+  }, []);
+
+  if (!Component) return <LoadingSpinner />;
+  return <Component />;
+};
+
+const Footer = () => {
+  const [Component, setComponent] = useState<React.ComponentType | null>(null);
+
+  useEffect(() => {
+    import("@/components/Footer").then((module) => {
+      setComponent(() => module.Footer);
+    });
+  }, []);
+
+  if (!Component) return <LoadingSpinner />;
+  return <Component />;
+};
 
 export const LandingPage = () => {
   const { user } = useAuth();
@@ -32,8 +68,6 @@ export const LandingPage = () => {
     footer: false
   });
   
-  // Removed the force logout functionality since it should only be available on Admin dashboard
-
   // Optimized intersection observer setup
   useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') {
@@ -116,27 +150,15 @@ export const LandingPage = () => {
       <Hero />
       
       <div id="features-section" className="min-h-[20px]">
-        {visibleSections.features ? (
-          <Suspense fallback={<LoadingSpinner />}>
-            <Features />
-          </Suspense>
-        ) : <div className="h-10"></div>}
+        {visibleSections.features && <Features />}
       </div>
       
       <div id="testimonials-section" className="min-h-[20px]">
-        {visibleSections.testimonials ? (
-          <Suspense fallback={<LoadingSpinner />}>
-            <Testimonials />
-          </Suspense>
-        ) : <div className="h-10"></div>}
+        {visibleSections.testimonials && <Testimonials />}
       </div>
       
       <div id="pricing-section" className="min-h-[20px]">
-        {visibleSections.pricing ? (
-          <Suspense fallback={<LoadingSpinner />}>
-            <Pricing />
-          </Suspense>
-        ) : <div className="h-10"></div>}
+        {visibleSections.pricing && <Pricing />}
       </div>
       
       <div id="video-section" className="container mx-auto px-4 py-6 min-h-[20px]">
@@ -147,19 +169,16 @@ export const LandingPage = () => {
             defaultOpen={false}
             lazyLoad={true}
           >
+            {/* Manual loading of VideoList to prevent dynamic import errors */}
             <Suspense fallback={<LoadingSpinner />}>
-              <VideoList />
+              <StandaloneVideoList />
             </Suspense>
           </CollapsibleSection>
         )}
       </div>
       
       <div id="footer-section" className="min-h-[20px]">
-        {visibleSections.footer ? (
-          <Suspense fallback={<LoadingSpinner />}>
-            <Footer />
-          </Suspense>
-        ) : <div className="h-10"></div>}
+        {visibleSections.footer && <Footer />}
       </div>
     </div>
   );
