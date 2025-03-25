@@ -13,7 +13,7 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, imageUrl, preferredLanguage = 'en' } = await req.json();
+    const { messages, imageUrl, preferredLanguage = 'en', documentId } = await req.json();
 
     // Create a Supabase client with the Admin key to query the database
     const supabaseAdmin = createClient(
@@ -33,8 +33,31 @@ serve(async (req) => {
     // Fetch relevant knowledge based on the query
     const knowledgeContext = await fetchKnowledgeForQuery(lastUserMessage, supabaseAdmin);
     
+    // If a specific document ID was provided, add its content to the context
+    let documentContext = "";
+    if (documentId) {
+      try {
+        const { data: document, error } = await supabaseAdmin
+          .from('analyzed_documents')
+          .select('original_filename, analysis_text')
+          .eq('id', documentId)
+          .single();
+        
+        if (error) {
+          console.error('Error fetching specific document:', error);
+        } else if (document) {
+          documentContext = `\nSpecific document reference:\nDocument: ${document.original_filename}\nAnalysis: ${document.analysis_text}\n`;
+        }
+      } catch (err) {
+        console.error('Error processing document reference:', err);
+      }
+    }
+    
     // Build the system message with context
-    const systemMessage = buildSystemMessage(preferredLanguage, knowledgeContext);
+    const systemMessage = buildSystemMessage(
+      preferredLanguage, 
+      knowledgeContext + documentContext
+    );
 
     // Prepare the messages array
     const formattedMessages = [

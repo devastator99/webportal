@@ -1,5 +1,6 @@
+
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, X, MessageSquare, MessageCircle } from 'lucide-react';
+import { Send, X, MessageSquare, MessageCircle, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar } from '@/components/ui/avatar';
@@ -10,6 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { featureFlags } from '@/config/features';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useQuery } from '@tanstack/react-query';
 
 type Message = {
   id: string;
@@ -17,6 +20,13 @@ type Message = {
   content: string;
   timestamp: Date;
 };
+
+interface AnalyzedDocument {
+  id: string;
+  original_filename: string;
+  analysis_text: string;
+  created_at: string;
+}
 
 const welcomeMessages = {
   en: "Hello! I am your Anubhuti Assistant. How can I help you today? You can ask me about our doctors, clinic location, or services.",
@@ -38,15 +48,38 @@ const suggestedDoctorQueries = [
   "Where is the clinic located?"
 ];
 
+const documentQueries = [
+  "What do my latest test results show?",
+  "Explain my medical reports",
+  "What did the analysis of my documents reveal?",
+  "Tell me about my lab results"
+];
+
 export const ChatbotWidget = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [language, setLanguage] = useState('en');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Fetch analyzed documents for reference
+  const { data: analyzedDocuments } = useQuery({
+    queryKey: ["analyzed_documents_for_chat"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('analyzed_documents')
+        .select('id, original_filename, created_at')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      return data as AnalyzedDocument[];
+    },
+  });
 
   useEffect(() => {
     const welcomeMessage = welcomeMessages[language as keyof typeof welcomeMessages] || welcomeMessages.en;
@@ -84,7 +117,8 @@ export const ChatbotWidget = () => {
       const { data, error } = await supabase.functions.invoke('doctor-ai-assistant', {
         body: { 
           messages: formattedMessages,
-          preferredLanguage: language 
+          preferredLanguage: language,
+          documentId: selectedDocumentId // Pass selected document ID if any
         },
       });
 
@@ -100,6 +134,7 @@ export const ChatbotWidget = () => {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+      setSelectedDocumentId(null); // Reset after sending
     } catch (error) {
       console.error('Error invoking AI assistant:', error);
       toast({
@@ -114,6 +149,14 @@ export const ChatbotWidget = () => {
 
   const handleSuggestedQuery = (query: string) => {
     setInput(query);
+  };
+
+  const handleDocumentSelect = (id: string) => {
+    setSelectedDocumentId(id);
+    toast({
+      title: "Document Selected",
+      description: "The chatbot will reference this document in its next response",
+    });
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -261,6 +304,17 @@ export const ChatbotWidget = () => {
                           {query}
                         </Badge>
                       ))}
+                      
+                      {documentQueries.map((query, index) => (
+                        <Badge 
+                          key={`doc-${index}`} 
+                          variant="outline" 
+                          className="cursor-pointer hover:bg-secondary/80"
+                          onClick={() => handleSuggestedQuery(query)}
+                        >
+                          {query}
+                        </Badge>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -270,7 +324,37 @@ export const ChatbotWidget = () => {
             </ScrollArea>
           </CardContent>
 
-          <CardFooter className="p-3 pt-2 border-t">
+          <CardFooter className="p-3 pt-2 border-t flex-col space-y-2">
+            {analyzedDocuments && analyzedDocuments.length > 0 && (
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="w-full flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    {selectedDocumentId ? "Document Selected" : "Reference a Document"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[300px] p-0" align="center">
+                  <ScrollArea className="h-[200px]">
+                    <div className="p-4 space-y-2">
+                      <h4 className="font-medium text-sm mb-2">Select a document to reference:</h4>
+                      {analyzedDocuments.map((doc) => (
+                        <div 
+                          key={doc.id} 
+                          className="p-2 text-sm border rounded hover:bg-muted cursor-pointer"
+                          onClick={() => handleDocumentSelect(doc.id)}
+                        >
+                          {doc.original_filename}
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(doc.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
+            )}
+            
             <div className="flex items-center w-full space-x-2">
               <Textarea
                 ref={inputRef}

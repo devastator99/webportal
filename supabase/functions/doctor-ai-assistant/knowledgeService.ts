@@ -31,8 +31,41 @@ export async function fetchKnowledgeForQuery(
                          lastUserMessage.toLowerCase().includes('cghs') ||
                          lastUserMessage.toLowerCase().includes('policy');
   
+  // Check if query might be related to medical documents
+  let isDocumentQuery = lastUserMessage.toLowerCase().includes('document') ||
+                         lastUserMessage.toLowerCase().includes('report') ||
+                         lastUserMessage.toLowerCase().includes('lab') ||
+                         lastUserMessage.toLowerCase().includes('test') ||
+                         lastUserMessage.toLowerCase().includes('analysis') ||
+                         lastUserMessage.toLowerCase().includes('diagnosis');
+  
   // Prepare knowledge context from database based on query
   let knowledgeContext = "";
+  
+  // If document related query, search analyzed documents
+  if (isDocumentQuery) {
+    try {
+      // Search in the analyzed documents for relevant information
+      const { data: documents, error } = await supabaseAdmin
+        .from('analyzed_documents')
+        .select('original_filename, analysis_text, created_at')
+        .order('created_at', { ascending: false })
+        .limit(3); // Limit to recent documents
+      
+      if (error) {
+        console.error('Error fetching analyzed documents:', error);
+      } else if (documents && documents.length > 0) {
+        knowledgeContext += "Here is information from recently analyzed medical documents:\n\n";
+        
+        documents.forEach((doc) => {
+          knowledgeContext += `Document: ${doc.original_filename}\n`;
+          knowledgeContext += `Analysis: ${doc.analysis_text}\n\n`;
+        });
+      }
+    } catch (err) {
+      console.error('Error in document query:', err);
+    }
+  }
   
   if (isPackageQuery) {
     const { data: packagesData } = await supabaseAdmin.rpc('get_chatbot_knowledge', { topic_filter: 'packages' });
@@ -114,3 +147,4 @@ export async function fetchKnowledgeForQuery(
 
   return knowledgeContext;
 }
+

@@ -7,7 +7,7 @@ export async function getAIResponse(formattedMessages: any[]) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: 'gpt-4o', // Using a more advanced model for better medical document analysis
       messages: formattedMessages,
       temperature: 0.7,
     }),
