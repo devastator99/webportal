@@ -18,6 +18,7 @@ function App() {
   // Initialize state with current feature flags
   const [chatEnabled, setChatEnabled] = useState(featureFlags.enableChat);
   const [chatbotWidgetEnabled, setChatbotWidgetEnabled] = useState(featureFlags.enableChatbotWidget);
+  const [chatbotVoiceEnabled, setChatbotVoiceEnabled] = useState(featureFlags.enableChatbotVoice);
   
   // Listen for changes to feature flags in localStorage
   useEffect(() => {
@@ -27,6 +28,7 @@ function App() {
         const parsedFlags = JSON.parse(savedFlags);
         setChatEnabled(parsedFlags.enableChat);
         setChatbotWidgetEnabled(parsedFlags.enableChatbotWidget);
+        setChatbotVoiceEnabled(parsedFlags.enableChatbotVoice);
       }
     };
     

@@ -17,6 +17,9 @@ export const featureFlags = {
   // Set to true to enable Indian language support in chat
   enableIndianLanguageSupport: true,
 
+  // Set to true to enable voice responses from the chatbot
+  enableChatbotVoice: true,
+
   // Set to false by default to hide the video uploader component in the doctor dashboard
   enableDoctorVideoUploader: false
 };

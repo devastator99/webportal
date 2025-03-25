@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, X, MessageSquare, MessageCircle, FileText } from 'lucide-react';
+import { Send, X, MessageSquare, MessageCircle, FileText, VolumeX, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar } from '@/components/ui/avatar';
@@ -13,6 +13,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { featureFlags } from '@/config/features';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useQuery } from '@tanstack/react-query';
+import { speak } from '@/utils/textToSpeech';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 type Message = {
   id: string;
@@ -62,6 +65,7 @@ export const ChatbotWidget = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
+  const [voiceEnabled, setVoiceEnabled] = useState(featureFlags.enableChatbotVoice);
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -89,7 +93,28 @@ export const ChatbotWidget = () => {
       content: welcomeMessage,
       timestamp: new Date(),
     }]);
-  }, [language]);
+    
+    // If voice is enabled, speak the welcome message
+    if (voiceEnabled && isOpen) {
+      speak(welcomeMessage, language);
+    }
+  }, [language, isOpen, voiceEnabled]);
+
+  // Listen for feature flag changes
+  useEffect(() => {
+    const handleFeatureFlagsChanged = () => {
+      const savedFlags = localStorage.getItem('featureFlags');
+      if (savedFlags) {
+        const parsedFlags = JSON.parse(savedFlags);
+        setVoiceEnabled(parsedFlags.enableChatbotVoice);
+      }
+    };
+    
+    window.addEventListener('featureFlagsChanged', handleFeatureFlagsChanged);
+    return () => {
+      window.removeEventListener('featureFlagsChanged', handleFeatureFlagsChanged);
+    };
+  }, []);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -126,14 +151,22 @@ export const ChatbotWidget = () => {
         throw error;
       }
 
+      const response = data.response || 'I apologize, but I couldn\'t generate a response. Please try again.';
+      
       const assistantMessage = {
         id: Date.now().toString(),
         role: 'assistant' as const,
-        content: data.response || 'I apologize, but I couldn\'t generate a response. Please try again.',
+        content: response,
         timestamp: new Date(),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+      
+      // If voice is enabled, speak the response
+      if (voiceEnabled) {
+        speak(response, language);
+      }
+      
       setSelectedDocumentId(null); // Reset after sending
     } catch (error) {
       console.error('Error invoking AI assistant:', error);
@@ -164,6 +197,21 @@ export const ChatbotWidget = () => {
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const toggleVoice = () => {
+    const newValue = !voiceEnabled;
+    setVoiceEnabled(newValue);
+    
+    // Update feature flag
+    updateFeatureFlags({ enableChatbotVoice: newValue });
+    
+    toast({
+      title: newValue ? "Voice enabled" : "Voice disabled",
+      description: newValue 
+        ? "The chatbot will now speak its responses" 
+        : "The chatbot will no longer speak its responses",
+    });
   };
 
   useEffect(() => {
@@ -215,21 +263,36 @@ export const ChatbotWidget = () => {
               </Avatar>
               <CardTitle className="text-base font-medium">Anoobhooti सहायक</CardTitle>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setIsOpen(false)}
-              aria-label="Close chat"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={toggleVoice}
+                title={voiceEnabled ? "Disable voice" : "Enable voice"}
+              >
+                {voiceEnabled ? (
+                  <Volume2 className="h-4 w-4" />
+                ) : (
+                  <VolumeX className="h-4 w-4" />
+                )}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => setIsOpen(false)}
+                aria-label="Close chat"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           </CardHeader>
 
-          {isLanguageSupportEnabled && (
-            <div className="px-4 py-2 border-b bg-muted/30">
+          <div className="px-4 py-2 border-b bg-muted/30 flex items-center justify-between">
+            {isLanguageSupportEnabled && (
               <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger className="h-8 text-xs">
+                <SelectTrigger className="h-8 text-xs w-[180px]">
                   <SelectValue placeholder="Select Language" />
                 </SelectTrigger>
                 <SelectContent>
@@ -240,8 +303,17 @@ export const ChatbotWidget = () => {
                   ))}
                 </SelectContent>
               </Select>
+            )}
+            <div className="flex items-center space-x-2">
+              <Label htmlFor="voice-toggle" className="text-xs">Digital Doctor</Label>
+              <Switch 
+                id="voice-toggle"
+                checked={voiceEnabled} 
+                onCheckedChange={toggleVoice} 
+                size="sm"
+              />
             </div>
-          )}
+          </div>
 
           <CardContent className="flex-1 p-0 overflow-hidden">
             <ScrollArea className="h-full w-full px-4 py-2">
