@@ -18,6 +18,7 @@ import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Skeleton } from "@/components/ui/skeleton";
+import { featureFlags } from "@/config/features";
 
 // Create lazy-loaded components
 const LazyDoctorAppointmentCalendar = lazy(() => 
@@ -59,6 +60,12 @@ const LazyVideoUploader = lazy(() =>
 const LazyVideoList = lazy(() => 
   import('@/components/videos/VideoList').then(module => ({ 
     default: module.VideoList 
+  }))
+);
+
+const LazyDoctorVideoUploader = lazy(() => 
+  import('@/components/dashboard/doctor/DoctorVideoUploader').then(module => ({ 
+    default: module.DoctorVideoUploader 
   }))
 );
 
@@ -173,14 +180,13 @@ export const AlternativeDoctorDashboard = () => {
             </Suspense>
           </CollapsibleSection>
           
-          <CollapsibleSection title="Knowledge Sharing Videos" defaultOpen={false}>
-            <Suspense fallback={<LoadingFallback />}>
-              <div className="space-y-4">
-                <LazyVideoUploader />
-                <LazyVideoList />
-              </div>
-            </Suspense>
-          </CollapsibleSection>
+          {featureFlags.enableDoctorVideoUploader && (
+            <CollapsibleSection title="Knowledge Sharing Videos" defaultOpen={false}>
+              <Suspense fallback={<LoadingFallback />}>
+                <LazyDoctorVideoUploader />
+              </Suspense>
+            </CollapsibleSection>
+          )}
         </div>
       </ScrollArea>
     </div>

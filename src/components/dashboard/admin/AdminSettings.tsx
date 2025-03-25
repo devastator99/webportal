@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -5,6 +6,7 @@ import { Separator } from "@/components/ui/separator";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { featureFlags, updateFeatureFlags } from "@/config/features";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const AdminSettings = () => {
   const [flags, setFlags] = useState(featureFlags);
@@ -109,7 +111,32 @@ export const AdminSettings = () => {
         </CardContent>
       </Card>
 
-      
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl">Doctor Dashboard Settings</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center space-x-2">
+            <Checkbox 
+              id="doctor-video-uploader"
+              checked={flags.enableDoctorVideoUploader}
+              onCheckedChange={(checked) => {
+                if (typeof checked === 'boolean') {
+                  updateFlag('enableDoctorVideoUploader', checked);
+                }
+              }}
+            />
+            <div className="grid gap-1.5 leading-none">
+              <Label htmlFor="doctor-video-uploader" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                Enable Video Uploader for Doctors
+              </Label>
+              <p className="text-sm text-muted-foreground">
+                Allow doctors to upload knowledge sharing videos
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

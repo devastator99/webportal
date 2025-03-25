@@ -15,7 +15,10 @@ export const featureFlags = {
   receptionDashboardChat: true,
   
   // Set to true to enable Indian language support in chat
-  enableIndianLanguageSupport: true
+  enableIndianLanguageSupport: true,
+
+  // Set to false by default to hide the video uploader component in the doctor dashboard
+  enableDoctorVideoUploader: false
 };
 
 // Try to load saved feature flags from localStorage

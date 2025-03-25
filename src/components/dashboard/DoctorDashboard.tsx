@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -19,6 +18,7 @@ import { useState } from "react";
 import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
 import { featureFlags } from "@/config/features";
 import { ChatModule } from "@/modules/chat/ChatModule";
+import { DoctorVideoUploader } from "@/components/dashboard/doctor/DoctorVideoUploader";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
@@ -99,11 +99,10 @@ export const DoctorDashboard = () => {
             <ChatModule showChatbotWidget={false} />
           )}
           
-          <div>
-            <h2 className="text-2xl font-semibold mb-4">Your Knowledge Sharing Videos</h2>
-            <VideoUploader />
-            <VideoList />
-          </div>
+          {/* Only show video uploader if feature flag is enabled */}
+          {featureFlags.enableDoctorVideoUploader && (
+            <DoctorVideoUploader />
+          )}
         </div>
       </div>
     </div>
