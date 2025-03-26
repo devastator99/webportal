@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Send, X, MessageSquare, MessageCircle, FileText, VolumeX, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { featureFlags } from '@/config/features';
+import { featureFlags, updateFeatureFlags } from '@/config/features';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useQuery } from '@tanstack/react-query';
 import { speak } from '@/utils/textToSpeech';
@@ -35,11 +34,11 @@ const welcomeMessages = {
   en: "Hello! I am your Anubhuti Assistant. How can I help you today? You can ask me about our doctors, clinic location, or services.",
   hi: "नमस्ते! मैं आपका Anubhuti सहायक हूँ। आज मैं आपकी कैसे मदद कर सकता हूँ? आप मुझसे हमारे डॉक्टरों, क्लिनिक स्थान, या सेवाओं के बारे में पूछ सकते हैं।",
   ta: "வணக்கம்! நான் உங்கள் Anubhuti உதவியாளர். இன்று நான் உங்களுக்கு எப்படி உதவ முடியும்? எங்கள் மருத்துவர்கள், மருத்துவமனை இருப்பிடம் அல்லது சேவைகள் பற்றி என்னிடம் கேட்கலாம்.",
-  te: "నమస్కారం! నేను మీ Anubhuti సహాయకుడిని. నేను ఈరోజు మీకు ఎలా సహాయం చేయగలను? మీరు నన్ను మా వైద్యులు, క్లినిక్ స్థానం లేదా సేవల గురించి అడగవచ్చు.",
+  te: "నమస్కారం! నేను మీ Anubhuti సహాయకుడిని. నేను ఈరోజు మీకు ఎలా సహాयం చేయగలను? మీరు నన్ను మా వైద్యులు, క్లినిక్ స్థానం లేదా సేవల గురించి అడగవచ్చు.",
   bn: "নমস্কার! আমি আপনার Anubhuti সহায়ক। আজ আমি আপনাকে কীভাবে সাহায্য করতে পারি? আপনি আমাকে আমাদের ডাক্তার, ক্লিনিকের অবস্থান বা পরিষেবাগুলি সম্পর্কে জিজ্ঞাসা করতে পারেন।",
   mr: "नमस्कार! मी तुमचा Anubhuti सहाय्यक आहे. आज मी तुम्हाला कशी मदत करू शकतो? तुम्ही मला आमच्या डॉक्टरांबद्दल, क्लिनिकच्या स्थानाबद्दल किंवा सेवांबद्दल विचारू शकता.",
   gu: "નમસ્તે! હું તમારો Anubhuti સહાયક છું. આજે હું તમને કેવી રીતે મદદ કરી શકું? તમે મને અમારા ડૉક્ટરો, ક્લિનિકના સ્થાન અથવા સેવાઓ વિશે પૂછી શકો છો.",
-  kn: "ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ Anubhuti ಸಹಾಯಕ. ಇಂದು ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು? ನೀವು ನನ್ನನ್ನು ನಮ್ಮ ವೈದ್ಯರು, ಕ್ಲಿನಿಕ್ ಸ್ಥಳ ಅಥವಾ ಸೇವೆಗಳ ಬಗ್ಗೆ ಕೇಳಬಹುದು.",
+  kn: "ನಮಸ್ಕಾರ! ನಾನು ನಿಮ್ಮ Anubhuti ಸಹಾಯಕ. ಇಂದು ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಬಹುದು? ನೀವು ನಿಮ್ಮನ್��ು ನಮ್ಮ ವೈದ್ಯರು, ಕ್ಲಿನಿಕ್ ಸ್ಥಳ ಅಥವಾ ಸೇವೆಗಳ ಬಗ್ಗೆ ಕೇಳಬಹುದು.",
   ml: "നമസ്കാരം! ഞാൻ നിങ്ങളുടെ Anubhuti സഹായി ആണ്. ഇന്ന് എനിക്ക് നിങ്ങളെ എങ്ങനെ സഹായിക്കാൻ കഴിയും? ഞങ്ങളുടെ ഡോക്ടർമാർ, ക്ലിനിക് സ്ഥാനം അല്ലെങ്കിൽ സേവനങ്ങളെക്കുറിച്ച് നിങ്ങൾക്ക് എന്നോട് ചോദിക്കാം.",
 };
 
@@ -70,7 +69,6 @@ export const ChatbotWidget = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Fetch analyzed documents for reference
   const { data: analyzedDocuments } = useQuery({
     queryKey: ["analyzed_documents_for_chat"],
     queryFn: async () => {
@@ -94,13 +92,11 @@ export const ChatbotWidget = () => {
       timestamp: new Date(),
     }]);
     
-    // If voice is enabled, speak the welcome message
     if (voiceEnabled && isOpen) {
       speak(welcomeMessage, language);
     }
   }, [language, isOpen, voiceEnabled]);
 
-  // Listen for feature flag changes
   useEffect(() => {
     const handleFeatureFlagsChanged = () => {
       const savedFlags = localStorage.getItem('featureFlags');
@@ -143,7 +139,7 @@ export const ChatbotWidget = () => {
         body: { 
           messages: formattedMessages,
           preferredLanguage: language,
-          documentId: selectedDocumentId // Pass selected document ID if any
+          documentId: selectedDocumentId
         },
       });
 
@@ -162,12 +158,11 @@ export const ChatbotWidget = () => {
 
       setMessages((prev) => [...prev, assistantMessage]);
       
-      // If voice is enabled, speak the response
       if (voiceEnabled) {
         speak(response, language);
       }
       
-      setSelectedDocumentId(null); // Reset after sending
+      setSelectedDocumentId(null);
     } catch (error) {
       console.error('Error invoking AI assistant:', error);
       toast({
@@ -203,7 +198,6 @@ export const ChatbotWidget = () => {
     const newValue = !voiceEnabled;
     setVoiceEnabled(newValue);
     
-    // Update feature flag
     updateFeatureFlags({ enableChatbotVoice: newValue });
     
     toast({
@@ -309,8 +303,7 @@ export const ChatbotWidget = () => {
               <Switch 
                 id="voice-toggle"
                 checked={voiceEnabled} 
-                onCheckedChange={toggleVoice} 
-                size="sm"
+                onCheckedChange={toggleVoice}
               />
             </div>
           </div>
