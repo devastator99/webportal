@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useState, Suspense, lazy } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { StatsCards } from "@/components/dashboard/doctor/StatsCards";
 import { ChatInterface } from "@/components/chat/ChatInterface";
@@ -10,11 +9,6 @@ import { VideoList } from "@/components/videos/VideoList";
 import { DocumentAnalyzer } from "@/components/dashboard/doctor/DocumentSummary";
 import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWriter";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { Button } from "@/components/ui/button";
-import { Calendar, Users, Mic, Layout } from "lucide-react";
-import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
-import { useNavigate } from "react-router-dom";
-import { useState, Suspense, lazy } from "react";
 import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
@@ -81,62 +75,11 @@ const LoadingFallback = () => (
 
 export const AlternativeDoctorDashboard = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const [showVoiceScheduler, setShowVoiceScheduler] = useState(false);
-  
-  // Create the action buttons to pass to the header
-  const actionButtons = (
-    <>
-      <Button 
-        className="w-full justify-start text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
-        size="sm"
-        variant="ghost"
-        onClick={() => {
-          navigate("/patients");
-        }}
-      >
-        <Users className="h-4 w-4" />
-        <span>Patients</span>
-      </Button>
-      
-      <ScheduleAppointment callerRole="doctor">
-        <Button 
-          className="w-full justify-start text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
-          size="sm"
-          variant="ghost"
-        >
-          <Calendar className="h-4 w-4" />
-          <span>Schedule</span>
-        </Button>
-      </ScheduleAppointment>
-
-      <Button 
-        className="w-full justify-start text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
-        size="sm"
-        variant="ghost"
-        onClick={() => setShowVoiceScheduler(true)}
-      >
-        <Mic className="h-4 w-4" />
-        <span>Voice Schedule</span>
-      </Button>
-      
-      {/* Commented out Standard View button
-      <Button 
-        className="w-full justify-start text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
-        size="sm"
-        variant="ghost"
-        onClick={() => navigate("/dashboard")}
-      >
-        <Layout className="h-4 w-4" />
-        <span>Standard View</span>
-      </Button>
-      */}
-    </>
-  );
   
   return (
     <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
-      <DashboardHeader actionButton={actionButtons} />
+      <DashboardHeader />
       
       {showVoiceScheduler && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50">
