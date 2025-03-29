@@ -151,7 +151,7 @@ export const AlternativeDoctorDashboard = () => {
 
       <ScrollArea className="h-[calc(100vh-220px)]">
         <div className="space-y-6 pr-4">
-          <CollapsibleSection title="Appointments Calendar" defaultOpen={true}>
+          <CollapsibleSection title="Appointments Calendar" defaultOpen={false}>
             <Suspense fallback={<LoadingFallback />}>
               <LazyDoctorAppointmentCalendar doctorId={user?.id || ""} />
             </Suspense>
