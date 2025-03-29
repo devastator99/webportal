@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { StatsCards } from "@/components/dashboard/doctor/StatsCards";
@@ -119,6 +120,7 @@ export const AlternativeDoctorDashboard = () => {
         <span>Voice Schedule</span>
       </Button>
       
+      {/* Commented out Standard View button
       <Button 
         className="w-full justify-start text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
         size="sm"
@@ -128,6 +130,7 @@ export const AlternativeDoctorDashboard = () => {
         <Layout className="h-4 w-4" />
         <span>Standard View</span>
       </Button>
+      */}
     </>
   );
   
