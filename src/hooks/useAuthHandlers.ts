@@ -6,6 +6,19 @@ import { useNavigate } from "react-router-dom";
 
 type UserRole = "patient" | "doctor" | "nutritionist" | "administrator";
 
+export interface PatientData {
+  age: string;
+  gender: string;
+  bloodGroup: string;
+  allergies?: string;
+  emergencyContact: string;
+  height?: string;
+  birthDate?: string;
+  foodHabit?: string;
+  knownAllergies?: string;
+  currentMedicalConditions?: string;
+}
+
 export const useAuthHandlers = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,13 +127,7 @@ export const useAuthHandlers = () => {
     userType: UserRole,
     firstName?: string,
     lastName?: string,
-    patientData?: {
-      age: string;
-      gender: string;
-      bloodGroup: string;
-      allergies: string;
-      emergencyContact: string;
-    }
+    patientData?: PatientData
   ) => {
     setLoading(true);
     setError(null);
@@ -159,16 +166,19 @@ export const useAuthHandlers = () => {
 
       // If it's a patient, save the additional patient data
       if (userType === 'patient' && patientData) {
-        const { error: patientDataError } = await supabase
-          .from('patient_details')
-          .insert({
-            user_id: authData.user.id,
-            age: parseInt(patientData.age),
-            gender: patientData.gender,
-            blood_group: patientData.bloodGroup,
-            allergies: patientData.allergies || null,
-            emergency_contact: patientData.emergencyContact
-          });
+        // Save to a custom RPC function that handles patient details creation
+        const { error: patientDataError } = await supabase.rpc('create_patient_details', {
+          p_user_id: authData.user.id,
+          p_age: parseInt(patientData.age),
+          p_gender: patientData.gender,
+          p_blood_group: patientData.bloodGroup,
+          p_allergies: patientData.allergies || patientData.knownAllergies || null,
+          p_emergency_contact: patientData.emergencyContact,
+          p_height: patientData.height ? parseFloat(patientData.height) : null,
+          p_birth_date: patientData.birthDate || null,
+          p_food_habit: patientData.foodHabit || null,
+          p_current_medical_conditions: patientData.currentMedicalConditions || null
+        });
 
         if (patientDataError) {
           console.error('Patient data creation error:', patientDataError);

@@ -6,15 +6,21 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { LucideLoader2 } from "lucide-react";
+import { LucideLoader2, Calendar } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { PatientData } from "@/hooks/useAuthHandlers";
+import { Textarea } from "@/components/ui/textarea";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 
 interface AuthFormProps {
   type: "login" | "register";
-  onSubmit: (email: string, password: string, userType?: string, firstName?: string, lastName?: string, patientData?: any) => Promise<void>;
+  onSubmit: (email: string, password: string, userType?: string, firstName?: string, lastName?: string, patientData?: PatientData) => Promise<void>;
   error: string | null;
   loading: boolean;
 }
@@ -26,6 +32,11 @@ const patientDataSchema = z.object({
   bloodGroup: z.string().min(1, "Blood group is required"),
   allergies: z.string().optional(),
   emergencyContact: z.string().min(10, "Valid emergency contact is required").max(15),
+  height: z.string().optional(),
+  birthDate: z.string().optional(),
+  foodHabit: z.string().optional(),
+  knownAllergies: z.string().optional(),
+  currentMedicalConditions: z.string().optional(),
 });
 
 // For patient signup validation
@@ -40,6 +51,11 @@ const patientSignupSchema = z.object({
   bloodGroup: z.string().min(1, "Blood group is required"),
   allergies: z.string().optional(),
   emergencyContact: z.string().min(10, "Valid emergency contact is required").max(15),
+  height: z.string().optional(),
+  birthDate: z.string().optional(),
+  foodHabit: z.string().optional(),
+  knownAllergies: z.string().optional(),
+  currentMedicalConditions: z.string().optional(),
 });
 
 // For other user types
@@ -80,6 +96,11 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
       bloodGroup: "",
       allergies: "",
       emergencyContact: "",
+      height: "",
+      birthDate: "",
+      foodHabit: "",
+      knownAllergies: "",
+      currentMedicalConditions: "",
     },
   });
 
@@ -97,12 +118,17 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
       
       // If it's patient registration, collect the patient-specific data
       if (type === "register" && userType === "patient") {
-        const patientData = {
+        const patientData: PatientData = {
           age: data.age,
           gender: data.gender,
           bloodGroup: data.bloodGroup,
           allergies: data.allergies || "",
           emergencyContact: data.emergencyContact,
+          height: data.height || undefined,
+          birthDate: data.birthDate || undefined,
+          foodHabit: data.foodHabit || undefined,
+          knownAllergies: data.knownAllergies || undefined,
+          currentMedicalConditions: data.currentMedicalConditions || undefined,
         };
         await onSubmit(email, password, userType, firstName, lastName, patientData);
       } else {
@@ -155,8 +181,10 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           </Alert>
         )}
 
+        {/* Basic registration fields */}
         {type === "register" && (
           <>
+            {/* First and Last Name fields */}
             <motion.div variants={itemVariants}>
               <FormField
                 control={form.control}
@@ -197,6 +225,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           </>
         )}
 
+        {/* Email and Password fields */}
         <motion.div variants={itemVariants}>
           <FormField
             control={form.control}
@@ -238,6 +267,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           />
         </motion.div>
 
+        {/* User Type Selector */}
         {type === "register" && (
           <motion.div variants={itemVariants}>
             <Select
@@ -268,16 +298,170 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           >
             <h3 className="text-sm font-medium text-purple-800">Patient Information</h3>
             
+            {/* Basic patient info */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="age"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="number"
+                        placeholder="Age"
+                        disabled={loading}
+                        className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="height"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="text"
+                        placeholder="Height (cm)"
+                        disabled={loading}
+                        className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Gender and Birth Date */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="gender"
+                render={({ field }) => (
+                  <FormItem>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={loading}
+                    >
+                      <SelectTrigger className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900">
+                        <SelectValue placeholder="Select gender" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="male">Male</SelectItem>
+                        <SelectItem value="female">Female</SelectItem>
+                        <SelectItem value="other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="birthDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start text-left font-normal bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900"
+                          disabled={loading}
+                        >
+                          {field.value ? (
+                            format(new Date(field.value), "PPP")
+                          ) : (
+                            <span className="text-purple-400">Birth Date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <CalendarComponent
+                          mode="single"
+                          selected={field.value ? new Date(field.value) : undefined}
+                          onSelect={(date) => field.onChange(date ? date.toISOString() : "")}
+                          disabled={loading}
+                          initialFocus
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Blood Group and Food Habit */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="bloodGroup"
+                render={({ field }) => (
+                  <FormItem>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={loading}
+                    >
+                      <SelectTrigger className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900">
+                        <SelectValue placeholder="Blood group" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="A+">A+</SelectItem>
+                        <SelectItem value="A-">A-</SelectItem>
+                        <SelectItem value="B+">B+</SelectItem>
+                        <SelectItem value="B-">B-</SelectItem>
+                        <SelectItem value="AB+">AB+</SelectItem>
+                        <SelectItem value="AB-">AB-</SelectItem>
+                        <SelectItem value="O+">O+</SelectItem>
+                        <SelectItem value="O-">O-</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="foodHabit"
+                render={({ field }) => (
+                  <FormItem>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={loading}
+                    >
+                      <SelectTrigger className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900">
+                        <SelectValue placeholder="Food Habit" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="vegetarian">Vegetarian</SelectItem>
+                        <SelectItem value="vegan">Vegan</SelectItem>
+                        <SelectItem value="non-vegetarian">Non-Vegetarian</SelectItem>
+                        <SelectItem value="pescatarian">Pescatarian</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Known Allergies */}
             <FormField
               control={form.control}
-              name="age"
+              name="knownAllergies"
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
                     <Input
                       {...field}
-                      type="number"
-                      placeholder="Age"
+                      placeholder="Known Allergies (if any)"
                       disabled={loading}
                       className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
                     />
@@ -286,74 +470,25 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
               )}
             />
 
+            {/* Current Medical Conditions */}
             <FormField
               control={form.control}
-              name="gender"
-              render={({ field }) => (
-                <FormItem>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    disabled={loading}
-                  >
-                    <SelectTrigger className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900">
-                      <SelectValue placeholder="Select gender" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="bloodGroup"
-              render={({ field }) => (
-                <FormItem>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    disabled={loading}
-                  >
-                    <SelectTrigger className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900">
-                      <SelectValue placeholder="Blood group" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="A+">A+</SelectItem>
-                      <SelectItem value="A-">A-</SelectItem>
-                      <SelectItem value="B+">B+</SelectItem>
-                      <SelectItem value="B-">B-</SelectItem>
-                      <SelectItem value="AB+">AB+</SelectItem>
-                      <SelectItem value="AB-">AB-</SelectItem>
-                      <SelectItem value="O+">O+</SelectItem>
-                      <SelectItem value="O-">O-</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="allergies"
+              name="currentMedicalConditions"
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
-                    <Input
+                    <Textarea
                       {...field}
-                      placeholder="Allergies (if any)"
+                      placeholder="Current Medical Conditions (if any)"
                       disabled={loading}
-                      className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
+                      className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400 min-h-[80px]"
                     />
                   </FormControl>
                 </FormItem>
               )}
             />
 
+            {/* Emergency Contact */}
             <FormField
               control={form.control}
               name="emergencyContact"
@@ -373,6 +508,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           </motion.div>
         )}
 
+        {/* Submit Button */}
         <motion.div variants={itemVariants}>
           <Button 
             type="submit" 
