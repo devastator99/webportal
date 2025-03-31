@@ -166,19 +166,21 @@ export const useAuthHandlers = () => {
 
       // If it's a patient, save the additional patient data
       if (userType === 'patient' && patientData) {
-        // Save to a custom RPC function that handles patient details creation
-        const { error: patientDataError } = await supabase.rpc('create_patient_details', {
-          p_user_id: authData.user.id,
-          p_age: parseInt(patientData.age),
-          p_gender: patientData.gender,
-          p_blood_group: patientData.bloodGroup,
-          p_allergies: patientData.allergies || patientData.knownAllergies || null,
-          p_emergency_contact: patientData.emergencyContact,
-          p_height: patientData.height ? parseFloat(patientData.height) : null,
-          p_birth_date: patientData.birthDate || null,
-          p_food_habit: patientData.foodHabit || null,
-          p_current_medical_conditions: patientData.currentMedicalConditions || null
-        });
+        // Instead of using an RPC call, insert directly into the patient_details table
+        const { error: patientDataError } = await supabase
+          .from('patient_details')
+          .insert({
+            user_id: authData.user.id,
+            age: parseInt(patientData.age),
+            gender: patientData.gender,
+            blood_group: patientData.bloodGroup,
+            allergies: patientData.allergies || patientData.knownAllergies || null,
+            emergency_contact: patientData.emergencyContact,
+            height: patientData.height ? parseFloat(patientData.height) : null,
+            birth_date: patientData.birthDate || null,
+            food_habit: patientData.foodHabit || null,
+            current_medical_conditions: patientData.currentMedicalConditions || null
+          });
 
         if (patientDataError) {
           console.error('Patient data creation error:', patientDataError);
