@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -112,7 +113,14 @@ export const useAuthHandlers = () => {
     password: string, 
     userType: UserRole,
     firstName?: string,
-    lastName?: string
+    lastName?: string,
+    patientData?: {
+      age: string;
+      gender: string;
+      bloodGroup: string;
+      allergies: string;
+      emergencyContact: string;
+    }
   ) => {
     setLoading(true);
     setError(null);
@@ -147,6 +155,30 @@ export const useAuthHandlers = () => {
       if (roleError) {
         console.error('Role creation error:', roleError);
         throw roleError;
+      }
+
+      // If it's a patient, save the additional patient data
+      if (userType === 'patient' && patientData) {
+        const { error: patientDataError } = await supabase
+          .from('patient_details')
+          .insert({
+            user_id: authData.user.id,
+            age: parseInt(patientData.age),
+            gender: patientData.gender,
+            blood_group: patientData.bloodGroup,
+            allergies: patientData.allergies || null,
+            emergency_contact: patientData.emergencyContact
+          });
+
+        if (patientDataError) {
+          console.error('Patient data creation error:', patientDataError);
+          toast({
+            variant: "destructive",
+            title: "Patient data creation error",
+            description: "Account created but patient details couldn't be saved. Please update your profile later."
+          });
+          // Continue with account creation even if patient details fail
+        }
       }
 
       navigate('/dashboard');

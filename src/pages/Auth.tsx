@@ -74,6 +74,29 @@ const Auth = () => {
     return null;
   }
 
+  // Handle login with or without patientData
+  const handleFormSubmit = async (
+    email: string, 
+    password: string, 
+    userType?: string, 
+    firstName?: string, 
+    lastName?: string,
+    patientData?: any
+  ) => {
+    if (isLoginMode) {
+      return handleLogin(email, password);
+    } else {
+      return handleSignUp(
+        email, 
+        password, 
+        userType as any, 
+        firstName, 
+        lastName,
+        patientData
+      );
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -97,7 +120,7 @@ const Auth = () => {
         <div className="bg-white py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10">
           <AuthForm
             type={isLoginMode ? "login" : "register"}
-            onSubmit={isLoginMode ? handleLogin : handleSignUp}
+            onSubmit={handleFormSubmit}
             error={error}
             loading={loading}
           />
