@@ -149,3 +149,40 @@ export async function savePrescription(patientId: string, doctorId: string, diag
     throw err;
   }
 }
+
+// Function to create patient details using RPC
+export async function createPatientDetails(
+  userId: string,
+  age: number,
+  gender: string,
+  bloodGroup: string,
+  allergies: string | null,
+  emergencyContact: string,
+  height: number | null,
+  birthDate: string | null,
+  foodHabit: string | null,
+  currentMedicalConditions: string | null
+) {
+  try {
+    const { data, error } = await supabase.rpc('create_patient_details', {
+      p_user_id: userId,
+      p_age: age,
+      p_gender: gender,
+      p_blood_group: bloodGroup,
+      p_allergies: allergies,
+      p_emergency_contact: emergencyContact,
+      p_height: height,
+      p_birth_date: birthDate,
+      p_food_habit: foodHabit,
+      p_current_medical_conditions: currentMedicalConditions
+    });
+    
+    if (error) {
+      throw error;
+    }
+    
+    return data;
+  } catch (err) {
+    throw err;
+  }
+}
