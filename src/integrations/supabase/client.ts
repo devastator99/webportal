@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
@@ -150,7 +149,7 @@ export async function savePrescription(patientId: string, doctorId: string, diag
   }
 }
 
-// Function to create patient details using RPC
+// Function to create patient details using RPC with type assertion
 export async function createPatientDetails(
   userId: string,
   age: number,
@@ -164,7 +163,8 @@ export async function createPatientDetails(
   currentMedicalConditions: string | null
 ) {
   try {
-    const { data, error } = await supabase.rpc('create_patient_details', {
+    // Use type assertion to bypass TypeScript's strict typing of the RPC function names
+    const { data, error } = await supabase.rpc('create_patient_details' as any, {
       p_user_id: userId,
       p_age: age,
       p_gender: gender,

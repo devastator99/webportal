@@ -166,9 +166,9 @@ export const useAuthHandlers = () => {
 
       // If it's a patient, save the additional patient data
       if (userType === 'patient' && patientData) {
-        // Use the RPC function to create patient details
+        // Use the RPC function to create patient details with type assertion
         const { error: patientDataError } = await supabase.rpc(
-          'create_patient_details',
+          'create_patient_details' as any,
           {
             p_user_id: authData.user.id,
             p_age: parseInt(patientData.age),
