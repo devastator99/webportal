@@ -24,7 +24,7 @@
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -33,6 +33,16 @@
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Mobile app specific variables */
+    --mobile-background: 0 0% 98%;
+    --mobile-card: 0 0% 100%;
+    --mobile-primary: 262 83% 76%;
+    --mobile-primary-foreground: 0 0% 98%;
+    --mobile-secondary: 264 100% 94%;
+    --mobile-accent: 262 83% 76%;
+    --mobile-border-radius: 1rem;
+    --mobile-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    --bottom-nav-height: 4rem;
   }
 
   .dark {
@@ -63,6 +73,13 @@
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Mobile app specific variables for dark mode */
+    --mobile-background: 240 10% 3.9%;
+    --mobile-card: 240 10% 10%;
+    --mobile-primary: 262 83% 58%;
+    --mobile-primary-foreground: 0 0% 98%;
+    --mobile-secondary: 264 65% 15%;
+    --mobile-accent: 262 83% 58%;
   }
 }
 
@@ -70,7 +87,88 @@
   * {
     @apply border-border;
   }
+  
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
+  }
+  
+  /* Mobile app specific global styles */
+  .mobile-container {
+    @apply max-w-md mx-auto h-[100svh] overflow-hidden flex flex-col;
+    box-shadow: var(--mobile-shadow);
+  }
+  
+  .mobile-screen {
+    @apply flex-1 overflow-y-auto pb-[var(--bottom-nav-height)] pt-16;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .mobile-card {
+    @apply rounded-[var(--mobile-border-radius)] bg-white p-4 shadow-sm;
+  }
+  
+  .mobile-header {
+    @apply fixed top-0 left-0 right-0 z-10 h-16 flex items-center justify-between bg-white/80 px-4 backdrop-blur-md;
+    max-width: inherit;
+    margin: 0 auto;
+  }
+  
+  .bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 z-10 h-[var(--bottom-nav-height)] bg-white border-t flex items-center justify-around;
+    max-width: inherit;
+    margin: 0 auto;
+  }
+  
+  .bottom-nav-item {
+    @apply flex flex-col items-center justify-center text-xs text-gray-500;
+  }
+  
+  .bottom-nav-item.active {
+    @apply text-[#9b87f5];
+  }
+  
+  .nav-icon {
+    @apply mb-1 text-current;
+  }
+  
+  /* Status bar */
+  .status-bar {
+    @apply h-6 flex items-center justify-between px-4 text-xs font-medium;
+  }
+  
+  /* Improved scrolling for mobile */
+  .smooth-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* Hide scrollbar for cleaner look */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Bottom sheet animation */
+  .sheet-animation-enter {
+    transform: translateY(100%);
+  }
+  
+  .sheet-animation-enter-active {
+    transform: translateY(0);
+    transition: transform 300ms ease-out;
+  }
+  
+  .sheet-animation-exit {
+    transform: translateY(0);
+  }
+  
+  .sheet-animation-exit-active {
+    transform: translateY(100%);
+    transition: transform 300ms ease-in;
   }
 }

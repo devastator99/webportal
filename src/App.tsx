@@ -13,6 +13,8 @@ import PatientsView from './pages/PatientsView';
 import { featureFlags } from './config/features';
 import { ChatModule } from './modules/chat/ChatModule';
 import { useEffect, useState } from 'react';
+import { MobileStatusBar } from './components/mobile/MobileStatusBar';
+import { MobileNavigation } from './components/mobile/MobileNavigation';
 
 function App() {
   // Initialize state with current feature flags
@@ -49,25 +51,32 @@ function App() {
 
   return (
     <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">
-      <Router>
-        <AuthProvider>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard/*" element={<Dashboard />} />
-            <Route path="/dashboard-alt" element={<AlternativeDashboard />} />
-            <Route path="/admin/*" element={<Admin />} />
-            <Route path="/patients" element={<PatientsView />} />
-          </Routes>
-          
-          {/* Only render the chatbot widget if chat is enabled */}
-          {chatEnabled && chatbotWidgetEnabled && (
-            <ChatModule showChatInterface={false} showChatbotWidget={true} />
-          )}
-          
-          <Toaster position="top-right" />
-        </AuthProvider>
-      </Router>
+      <div className="app-container">
+        <MobileStatusBar />
+        <Router>
+          <AuthProvider>
+            <div className="mobile-content">
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/dashboard/*" element={<Dashboard />} />
+                <Route path="/dashboard-alt" element={<AlternativeDashboard />} />
+                <Route path="/admin/*" element={<Admin />} />
+                <Route path="/patients" element={<PatientsView />} />
+              </Routes>
+            </div>
+            
+            <MobileNavigation />
+            
+            {/* Only render the chatbot widget if chat is enabled */}
+            {chatEnabled && chatbotWidgetEnabled && (
+              <ChatModule showChatInterface={false} showChatbotWidget={true} />
+            )}
+            
+            <Toaster position="top-center" />
+          </AuthProvider>
+        </Router>
+      </div>
     </ThemeProvider>
   );
 }

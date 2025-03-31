@@ -1,9 +1,6 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
 import { StatsCards } from "@/components/dashboard/doctor/StatsCards";
-// import { TodaySchedule } from "@/components/dashboard/doctor/TodaySchedule";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { AiAssistant } from "@/components/dashboard/doctor/AiAssistant";
 import { DoctorAppointmentCalendar } from "@/components/dashboard/doctor/DoctorAppointmentCalendar";
@@ -11,7 +8,6 @@ import { VideoUploader } from "@/components/videos/VideoUploader";
 import { VideoList } from "@/components/videos/VideoList";
 import { DocumentAnalyzer } from "@/components/dashboard/doctor/DocumentSummary";
 import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWriter";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Calendar, Users, Mic, LayoutGrid } from "lucide-react";
@@ -19,6 +15,8 @@ import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointme
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
@@ -26,58 +24,84 @@ export const DoctorDashboard = () => {
   const navigate = useNavigate();
   const [showVoiceScheduler, setShowVoiceScheduler] = useState(false);
   
-  // Create the action buttons to pass to the header
-  const actionButtons = (
-    <>
-      <Button 
-        className="w-full justify-start text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
-        size="sm"
-        variant="ghost"
-        onClick={() => {
-          console.log("Navigating to patients view");
-          navigate("/patients");
-        }}
-      >
-        <Users className="h-4 w-4" />
-        <span>Patients</span>
-      </Button>
-      
-      <ScheduleAppointment callerRole="doctor">
-        <Button 
-          className="w-full justify-start text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
-          size="sm"
-          variant="ghost"
-        >
-          <Calendar className="h-4 w-4" />
-          <span>Schedule</span>
-        </Button>
-      </ScheduleAppointment>
-
-      <Button 
-        className="w-full justify-start text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
-        size="sm"
-        variant="ghost"
-        onClick={() => setShowVoiceScheduler(true)}
-      >
-        <Mic className="h-4 w-4" />
-        <span>Voice Schedule</span>
-      </Button>
-
-      <Button 
-        className="w-full justify-start text-[#9b87f5] hover:text-[#7E69AB] bg-transparent hover:bg-[#E5DEFF] flex items-center gap-2 text-sm border-0 shadow-none"
-        size="sm"
-        variant="ghost"
-        onClick={() => navigate("/dashboard-alt")}
-      >
-        <LayoutGrid className="h-4 w-4" />
-        <span>Collapsible View</span>
-      </Button>
-    </>
-  );
-  
   return (
-    <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
-      <DashboardHeader actionButton={actionButtons} />
+    <div className="animate-fade-up">
+      {/* Greeting and quick action buttons */}
+      <div className="mobile-card mb-4">
+        <h1 className="text-xl font-bold mb-2 text-left">Hello, Doctor 👋</h1>
+        <p className="text-sm text-gray-500 text-left mb-4">Welcome back to your dashboard</p>
+        
+        <div className="grid grid-cols-2 gap-2">
+          <Button 
+            className="rounded-full bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
+            onClick={() => navigate("/patients")}
+          >
+            <Users className="mr-2 h-4 w-4" />
+            Patients
+          </Button>
+          
+          <ScheduleAppointment callerRole="doctor">
+            <Button 
+              className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
+            >
+              <Calendar className="mr-2 h-4 w-4" />
+              Schedule
+            </Button>
+          </ScheduleAppointment>
+        </div>
+      </div>
+      
+      {/* Stats cards in a more compact design */}
+      <StatsCards />
+      
+      {/* Main content with collapsible sections for mobile */}
+      <ScrollArea className="mb-16">
+        <div className="space-y-4">
+          <CollapsibleSection 
+            title="Today's Appointments" 
+            defaultOpen={true}
+            className="mobile-card"
+          >
+            <DoctorAppointmentCalendar doctorId={user?.id || ""} />
+          </CollapsibleSection>
+          
+          <CollapsibleSection 
+            title="Document Analyzer" 
+            className="mobile-card"
+          >
+            <DocumentAnalyzer />
+          </CollapsibleSection>
+          
+          <CollapsibleSection 
+            title="Write Prescription" 
+            className="mobile-card"
+          >
+            <PrescriptionWriter />
+          </CollapsibleSection>
+          
+          <CollapsibleSection 
+            title="AI Assistant" 
+            className="mobile-card"
+          >
+            <AiAssistant />
+          </CollapsibleSection>
+          
+          <CollapsibleSection 
+            title="Patient Chat" 
+            className="mobile-card"
+          >
+            <ChatInterface />
+          </CollapsibleSection>
+          
+          <CollapsibleSection 
+            title="Knowledge Sharing" 
+            className="mobile-card"
+          >
+            <VideoUploader />
+            <VideoList />
+          </CollapsibleSection>
+        </div>
+      </ScrollArea>
       
       {showVoiceScheduler && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50">
@@ -87,25 +111,15 @@ export const DoctorDashboard = () => {
         </div>
       )}
       
-      <StatsCards />
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Commented out Today's Schedule as requested */}
-        <div className="lg:col-span-3 space-y-6">
-          <DoctorAppointmentCalendar doctorId={user?.id || ""} />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <DocumentAnalyzer />
-            <PrescriptionWriter />
-          </div>
-          <AiAssistant />
-          <ChatInterface />
-          <div>
-            <h2 className="text-2xl font-semibold mb-4">Your Knowledge Sharing Videos</h2>
-            <VideoUploader />
-            <VideoList />
-          </div>
-        </div>
-      </div>
+      {/* Only show fixed FAB for voice scheduling on mobile */}
+      {isMobile && (
+        <Button
+          className="fixed right-6 bottom-20 z-40 rounded-full w-14 h-14 p-0 bg-[#9b87f5] hover:bg-[#7E69AB] shadow-lg"
+          onClick={() => setShowVoiceScheduler(true)}
+        >
+          <Mic className="h-6 w-6 text-white" />
+        </Button>
+      )}
     </div>
   );
 };
