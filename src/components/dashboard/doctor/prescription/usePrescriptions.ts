@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,7 +33,6 @@ export const usePrescriptions = (patientId: string) => {
 
   const fetchPrescriptions = async () => {
     try {
-      // Use the RPC function instead of direct database query
       const { data, error } = await supabase.rpc(
         'get_doctor_patient_records', 
         { 
@@ -47,7 +45,6 @@ export const usePrescriptions = (patientId: string) => {
         throw error;
       }
 
-      // Transform the data to match our Prescription interface
       const prescriptions: Prescription[] = data.map((record: any) => ({
         id: record.id,
         created_at: record.created_at,
@@ -101,7 +98,6 @@ export const usePrescriptions = (patientId: string) => {
     try {
       setIsSaving(true);
 
-      // Use the RPC function instead of direct database insert
       const { data, error } = await supabase.rpc(
         'save_prescription',
         {
@@ -123,10 +119,8 @@ export const usePrescriptions = (patientId: string) => {
         description: "Prescription saved successfully",
       });
       
-      // Reset form
       resetForm();
       
-      // Refresh prescriptions list
       await fetchPrescriptions();
       
       return data;

@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { FileText, Eye } from "lucide-react";
@@ -66,11 +65,10 @@ export const MedicalRecordsList = () => {
       if (!user?.id) throw new Error("No user ID");
 
       console.log('Fetching medical reports for user:', user.id);
-      const { data, error } = await supabase
-        .from('patient_medical_reports')
-        .select('*')
-        .eq('patient_id', user.id)
-        .order('uploaded_at', { ascending: false });
+      const { data, error } = await supabase.rpc(
+        'get_patient_medical_reports',
+        { p_patient_id: user.id }
+      );
 
       if (error) {
         console.error('Error fetching medical reports:', error);
