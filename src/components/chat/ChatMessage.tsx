@@ -1,3 +1,4 @@
+
 import { formatDistanceToNow } from "date-fns";
 
 interface ChatMessageProps {
@@ -12,9 +13,10 @@ interface ChatMessageProps {
     };
   };
   isCurrentUser: boolean;
+  showSender?: boolean;
 }
 
-export const ChatMessage = ({ message, isCurrentUser }: ChatMessageProps) => {
+export const ChatMessage = ({ message, isCurrentUser, showSender = false }: ChatMessageProps) => {
   const senderName = message.sender.first_name || message.sender.last_name 
     ? `${message.sender.first_name || ''} ${message.sender.last_name || ''}`.trim()
     : 'Unknown User';
@@ -32,7 +34,9 @@ export const ChatMessage = ({ message, isCurrentUser }: ChatMessageProps) => {
             : "bg-muted"
         }`}
       >
-        <p className="text-sm font-medium">{senderName}</p>
+        {(showSender || !isCurrentUser) && (
+          <p className="text-sm font-medium">{senderName}</p>
+        )}
         <p className="text-sm">{message.message}</p>
         <p className="text-xs opacity-70">
           {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}

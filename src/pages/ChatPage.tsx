@@ -5,7 +5,7 @@ import { ChatInterface } from "@/components/chat/ChatInterface";
 import { AiChatInterface } from "@/components/chat/AiChatInterface";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, MessageSquare } from "lucide-react";
+import { Brain, MessageSquare, Users } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -20,6 +20,12 @@ interface UserProfile {
   user_role?: { role: string } | null;
 }
 
+// Group chat object to represent a care team group
+interface CareTeamGroup {
+  groupName: string;
+  members: UserProfile[];
+}
+
 const ChatPage = () => {
   const { user, userRole } = useAuth();
   const navigate = useNavigate();
@@ -32,11 +38,11 @@ const ChatPage = () => {
     }
   }, [user, navigate]);
 
-  // Get assigned users based on role
-  const { data: assignedUsers, isLoading, error } = useQuery({
+  // Get assigned users and care team group based on role
+  const { data, isLoading, error } = useQuery({
     queryKey: ["assigned_users", user?.id, userRole],
     queryFn: async () => {
-      if (!user?.id) return [];
+      if (!user?.id) return { assignedUsers: [], careTeamGroup: null };
       
       try {
         if (userRole === "patient") {
@@ -63,8 +69,23 @@ const ChatPage = () => {
             role: "administrator"
           }));
           
+          // Create care team group from assigned doctor and nutritionist
+          const careTeamMembers = (careTeam || []).filter(member => 
+            member.role === "doctor" || member.role === "nutritionist"
+          );
+          
+          const careTeamGroup = careTeamMembers.length > 0 ? {
+            groupName: "Care Team",
+            members: [...careTeamMembers]
+          } : null;
+          
           // Combine providers and admins, ensuring admins are always included
-          return [...(careTeam || []), ...formattedAdmins];
+          const allUsers = [...(careTeam || []), ...formattedAdmins];
+          
+          return { 
+            assignedUsers: allUsers,
+            careTeamGroup: careTeamGroup
+          };
         } else if (userRole === "doctor" || userRole === "nutritionist") {
           // Get assigned patients for this doctor/nutritionist
           const { data, error } = await (supabase.rpc as any)("get_assigned_patients", {
@@ -73,7 +94,10 @@ const ChatPage = () => {
           });
           
           if (error) throw error;
-          return (data || []) as UserProfile[];
+          return { 
+            assignedUsers: (data || []) as UserProfile[],
+            careTeamGroup: null
+          };
         } else if (userRole === "administrator") {
           // Admin can chat with everyone
           const { data, error } = await supabase
@@ -82,16 +106,22 @@ const ChatPage = () => {
             .neq("id", user.id);
           
           if (error) throw error;
-          return data as UserProfile[];
+          return { 
+            assignedUsers: data as UserProfile[],
+            careTeamGroup: null
+          };
         }
-        return [] as UserProfile[];
+        return { assignedUsers: [] as UserProfile[], careTeamGroup: null };
       } catch (error) {
         console.error("Error fetching assigned users:", error);
-        return [] as UserProfile[];
+        return { assignedUsers: [] as UserProfile[], careTeamGroup: null };
       }
     },
     enabled: !!user?.id && !!userRole
   });
+
+  const assignedUsers = data?.assignedUsers || [];
+  const careTeamGroup = data?.careTeamGroup;
 
   // Helper to render the appropriate content based on loading state
   const renderContent = () => {
@@ -111,7 +141,11 @@ const ChatPage = () => {
 
     return (
       <Tabs defaultValue={selectedTab} onValueChange={setSelectedTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 mb-4">
+        <TabsList className="grid w-full grid-cols-3 mb-4">
+          <TabsTrigger value="group">
+            <Users className="mr-2 h-4 w-4" />
+            Care Team
+          </TabsTrigger>
           <TabsTrigger value="messages">
             <MessageSquare className="mr-2 h-4 w-4" />
             Messages
@@ -122,8 +156,16 @@ const ChatPage = () => {
           </TabsTrigger>
         </TabsList>
         
+        <TabsContent value="group" className="space-y-4">
+          <ChatInterface 
+            assignedUsers={assignedUsers} 
+            careTeamGroup={careTeamGroup}
+            showGroupChat={true}
+          />
+        </TabsContent>
+        
         <TabsContent value="messages" className="space-y-4">
-          <ChatInterface assignedUsers={assignedUsers || []} />
+          <ChatInterface assignedUsers={assignedUsers} />
         </TabsContent>
         
         <TabsContent value="ai" className="space-y-4">

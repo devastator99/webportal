@@ -1,5 +1,7 @@
-import { Button } from "@/components/ui/button";
+
+import { useState, KeyboardEvent } from "react";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { Send } from "lucide-react";
 
 interface ChatInputProps {
@@ -7,25 +9,41 @@ interface ChatInputProps {
   onChange: (value: string) => void;
   onSend: () => void;
   disabled?: boolean;
+  placeholder?: string;
 }
 
-export const ChatInput = ({ value, onChange, onSend, disabled }: ChatInputProps) => {
+export const ChatInput = ({
+  value,
+  onChange,
+  onSend,
+  disabled = false,
+  placeholder = "Type a message..."
+}: ChatInputProps) => {
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (!disabled && value.trim()) {
+        onSend();
+      }
+    }
+  };
+
   return (
-    <div className="flex gap-2 mt-4">
+    <div className="flex items-end gap-2 mt-4">
       <Textarea
-        placeholder="Type your message..."
+        placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="resize-none"
         disabled={disabled}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            onSend();
-          }
-        }}
+        className="flex-1 min-h-[80px] resize-none"
+        onKeyDown={handleKeyDown}
       />
-      <Button onClick={onSend} disabled={disabled}>
+      <Button
+        onClick={onSend}
+        disabled={disabled || !value.trim()}
+        size="icon"
+        className="mb-[4px]"
+      >
         <Send className="h-4 w-4" />
       </Button>
     </div>

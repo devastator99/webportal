@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase, safelyUnwrapValue, asArray } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Users } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ChatInput } from "./ChatInput";
@@ -21,15 +21,23 @@ type UserProfile = {
   user_role?: { role: string } | null;
 };
 
-interface ChatInterfaceProps {
-  assignedUsers?: UserProfile[];
+interface CareTeamGroup {
+  groupName: string;
+  members: UserProfile[];
 }
 
-export const ChatInterface = ({ assignedUsers = [] }: ChatInterfaceProps) => {
+interface ChatInterfaceProps {
+  assignedUsers?: UserProfile[];
+  careTeamGroup?: CareTeamGroup | null;
+  showGroupChat?: boolean;
+}
+
+export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGroupChat = false }: ChatInterfaceProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   const [newMessage, setNewMessage] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [isGroupChat, setIsGroupChat] = useState<boolean>(showGroupChat && !!careTeamGroup);
 
   // Fetch available chat users based on user role
   const { data: allUsers, isLoading: usersLoading, error: usersError } = useQuery({
@@ -128,10 +136,12 @@ export const ChatInterface = ({ assignedUsers = [] }: ChatInterfaceProps) => {
 
   // Select first user by default when users are loaded
   useEffect(() => {
-    if (allUsers?.length > 0 && !selectedUserId) {
+    if (showGroupChat && careTeamGroup) {
+      setIsGroupChat(true);
+    } else if (allUsers?.length > 0 && !selectedUserId && !isGroupChat) {
       setSelectedUserId(allUsers[0].id);
     }
-  }, [allUsers, selectedUserId]);
+  }, [allUsers, selectedUserId, isGroupChat, showGroupChat, careTeamGroup]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -145,7 +155,7 @@ export const ChatInterface = ({ assignedUsers = [] }: ChatInterfaceProps) => {
       return;
     }
 
-    if (!selectedUserId) {
+    if (!isGroupChat && !selectedUserId) {
       toast({
         title: "Cannot send message",
         description: "Please select a recipient first.",
@@ -155,27 +165,58 @@ export const ChatInterface = ({ assignedUsers = [] }: ChatInterfaceProps) => {
     }
 
     try {
-      const { error } = await (supabase.rpc as any)("send_chat_message", {
-        p_sender_id: user.id,
-        p_receiver_id: selectedUserId,
-        p_message: newMessage,
-        p_message_type: "text"
-      });
-
-      if (error) {
-        console.error("Error sending message:", error);
-        toast({
-          title: "Error sending message",
-          description: "Failed to send message. Please try again.",
-          variant: "destructive",
+      if (isGroupChat && careTeamGroup) {
+        // Send message to all members of the care team
+        const sendPromises = careTeamGroup.members.map(member => {
+          return (supabase.rpc as any)("send_chat_message", {
+            p_sender_id: user.id,
+            p_receiver_id: member.id,
+            p_message: newMessage,
+            p_message_type: "text"
+          });
         });
-        return;
-      }
 
-      setNewMessage("");
-      toast({
-        title: "Message sent",
-      });
+        // Add AI response if appropriate
+        if (newMessage.toLowerCase().includes("@ai") || 
+            newMessage.toLowerCase().includes("@assistant")) {
+          // This will be handled by the real-time listener
+          // Send a message that looks like it's from the AI
+          const aiResponse = "This is an automated response. For personalized AI assistance, please use the AI Assistant tab.";
+          
+          // Add AI "user" to the database if it doesn't exist yet
+          // In a real implementation, you would have a dedicated AI user in the database
+        }
+
+        await Promise.all(sendPromises);
+        
+        setNewMessage("");
+        toast({
+          title: "Group message sent",
+        });
+      } else if (selectedUserId) {
+        // Send individual message
+        const { error } = await (supabase.rpc as any)("send_chat_message", {
+          p_sender_id: user.id,
+          p_receiver_id: selectedUserId,
+          p_message: newMessage,
+          p_message_type: "text"
+        });
+
+        if (error) {
+          console.error("Error sending message:", error);
+          toast({
+            title: "Error sending message",
+            description: "Failed to send message. Please try again.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        setNewMessage("");
+        toast({
+          title: "Message sent",
+        });
+      }
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast({
@@ -187,6 +228,9 @@ export const ChatInterface = ({ assignedUsers = [] }: ChatInterfaceProps) => {
   };
 
   const getHeaderTitle = () => {
+    if (isGroupChat && careTeamGroup) {
+      return careTeamGroup.groupName;
+    }
     if (usersLoading) return "Loading contacts...";
     if (usersError) return "Error loading contacts";
     if (allUsers?.length === 0) return "No contacts available";
@@ -222,46 +266,54 @@ export const ChatInterface = ({ assignedUsers = [] }: ChatInterfaceProps) => {
     <Card className="h-[600px] flex flex-col">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <MessageSquare className="h-5 w-5" />
+          {isGroupChat ? 
+            <Users className="h-5 w-5" /> :
+            <MessageSquare className="h-5 w-5" />
+          }
           {getHeaderTitle()}
         </CardTitle>
-        <div className="space-y-2">
-          <Label htmlFor="user-select">Select Contact</Label>
-          {usersLoading ? (
-            <Skeleton className="h-10 w-full" />
-          ) : (
-            <Select
-              value={selectedUserId || ""}
-              onValueChange={setSelectedUserId}
-              disabled={allUsers?.length === 0}
-            >
-              <SelectTrigger id="user-select">
-                <SelectValue placeholder="Select a contact" />
-              </SelectTrigger>
-              <SelectContent>
-                {allUsers?.map((user) => (
-                  <SelectItem 
-                    key={user.id} 
-                    value={user.id}
-                  >
-                    {getUserDisplayName(user)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
+        {!isGroupChat && (
+          <div className="space-y-2">
+            <Label htmlFor="user-select">Select Contact</Label>
+            {usersLoading ? (
+              <Skeleton className="h-10 w-full" />
+            ) : (
+              <Select
+                value={selectedUserId || ""}
+                onValueChange={setSelectedUserId}
+                disabled={allUsers?.length === 0}
+              >
+                <SelectTrigger id="user-select">
+                  <SelectValue placeholder="Select a contact" />
+                </SelectTrigger>
+                <SelectContent>
+                  {allUsers?.map((user) => (
+                    <SelectItem 
+                      key={user.id} 
+                      value={user.id}
+                    >
+                      {getUserDisplayName(user)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+        )}
         {renderError()}
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">
         <ChatMessagesList
           selectedUserId={selectedUserId}
+          isGroupChat={isGroupChat}
+          careTeamGroup={careTeamGroup}
         />
         <ChatInput
           value={newMessage}
           onChange={setNewMessage}
           onSend={handleSendMessage}
-          disabled={!selectedUserId}
+          disabled={(!selectedUserId && !isGroupChat)}
+          placeholder={isGroupChat ? "Message your care team..." : "Type a message..."}
         />
       </CardContent>
     </Card>

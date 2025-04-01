@@ -7,8 +7,23 @@ import { useEffect, useRef } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { Skeleton } from "@/components/ui/skeleton";
 
+interface CareTeamGroup {
+  groupName: string;
+  members: UserProfile[];
+}
+
+interface UserProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  role?: string;
+  user_role?: { role: string } | null;
+}
+
 interface ChatMessagesListProps {
   selectedUserId: string | null;
+  isGroupChat?: boolean;
+  careTeamGroup?: CareTeamGroup | null;
 }
 
 interface ProfileInfo {
@@ -27,18 +42,79 @@ interface MessageData {
   receiver: ProfileInfo;
 }
 
-export const ChatMessagesList = ({ selectedUserId }: ChatMessagesListProps) => {
+export const ChatMessagesList = ({ 
+  selectedUserId, 
+  isGroupChat = false, 
+  careTeamGroup = null 
+}: ChatMessagesListProps) => {
   const { user } = useAuth();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
-  const { data: messages, isLoading, error } = useQuery({
-    queryKey: ["chat_messages", user?.id, selectedUserId],
-    queryFn: async () => {
-      if (!user?.id || !selectedUserId) return [];
-      
+  // Determine query key based on whether we're in group chat or individual chat
+  const queryKey = isGroupChat && careTeamGroup 
+    ? ["group_chat_messages", user?.id, careTeamGroup.members.map(m => m.id).join('_')]
+    : ["chat_messages", user?.id, selectedUserId];
+
+  // Function to fetch messages for either individual or group chat
+  const fetchMessages = async () => {
+    if (!user?.id) return [];
+    
+    if (isGroupChat && careTeamGroup?.members) {
+      // For group chat, collect messages from all care team members
       try {
-        // Use the RPC function get_chat_messages
+        const promises = careTeamGroup.members.map(member => 
+          (supabase.rpc as any)('get_chat_messages', {
+            p_user_id: user.id,
+            p_other_user_id: member.id
+          })
+        );
+        
+        const results = await Promise.all(promises);
+        let allMessages: MessageData[] = [];
+        
+        // Combine all messages from different senders
+        results.forEach(result => {
+          if (result.data) {
+            allMessages = [...allMessages, ...result.data];
+          }
+        });
+        
+        // Sort messages by timestamp
+        allMessages.sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+        
+        // Mark messages as read
+        const unreadMessagesGrouped = allMessages.filter(
+          (msg: any) => 
+            careTeamGroup.members.some(member => member.id === msg.sender?.id) && 
+            !msg.read
+        );
+        
+        if (unreadMessagesGrouped.length > 0) {
+          // Group by sender ID and mark each group as read
+          const senderIds = [...new Set(unreadMessagesGrouped.map(msg => msg.sender?.id))];
+          
+          await Promise.all(
+            senderIds.map(senderId => 
+              (supabase.rpc as any)("mark_messages_as_read", {
+                p_user_id: user.id,
+                p_sender_id: senderId
+              })
+            )
+          );
+        }
+        
+        return allMessages;
+      } catch (error) {
+        console.error("Error fetching group chat messages:", error);
+        return [];
+      }
+    } 
+    else if (selectedUserId) {
+      // For individual chat, use the existing logic
+      try {
         const { data, error } = await (supabase.rpc as any)('get_chat_messages', {
           p_user_id: user.id,
           p_other_user_id: selectedUserId
@@ -68,8 +144,16 @@ export const ChatMessagesList = ({ selectedUserId }: ChatMessagesListProps) => {
         console.error("Error in chat messages query:", error);
         return [];
       }
-    },
-    enabled: !!user?.id && !!selectedUserId,
+    }
+    
+    return [];
+  };
+
+  // Use the fetchMessages function in the query
+  const { data: messages, isLoading, error } = useQuery({
+    queryKey,
+    queryFn: fetchMessages,
+    enabled: !!user?.id && (!!selectedUserId || (isGroupChat && !!careTeamGroup)),
   });
 
   // Scroll to bottom when new messages arrive
@@ -80,47 +164,97 @@ export const ChatMessagesList = ({ selectedUserId }: ChatMessagesListProps) => {
     }
   }, [messages]);
 
-  // Subscribe to real-time updates
+  // Subscribe to real-time updates for the appropriate channels
   useEffect(() => {
-    if (!user?.id || !selectedUserId) return;
+    if (!user?.id) return;
+    
+    let channel: any;
+    
+    if (isGroupChat && careTeamGroup?.members.length) {
+      // For group chat, listen to changes from all care team members
+      const memberIds = careTeamGroup.members.map(m => m.id);
+      
+      // Create a filter for messages to or from any group member
+      const filterConditions = memberIds.map(memberId => 
+        `or(and(sender_id=eq.${user.id},receiver_id=eq.${memberId}),and(sender_id=eq.${memberId},receiver_id=eq.${user.id}))`
+      ).join(',');
+      
+      channel = supabase
+        .channel('group_chat_updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: `or(${filterConditions})`,
+          },
+          () => {
+            queryClient.invalidateQueries({ queryKey });
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: `or(${filterConditions})`,
+          },
+          () => {
+            queryClient.invalidateQueries({ queryKey });
+          }
+        )
+        .subscribe();
+    } 
+    else if (selectedUserId) {
+      // For individual chat, listen to changes between the two users
+      channel = supabase
+        .channel('chat_updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: `or(and(sender_id=eq.${user.id},receiver_id=eq.${selectedUserId}),and(sender_id=eq.${selectedUserId},receiver_id=eq.${user.id}))`,
+          },
+          () => {
+            queryClient.invalidateQueries({ queryKey });
+          }
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'chat_messages',
+            filter: `or(and(sender_id=eq.${user.id},receiver_id=eq.${selectedUserId}),and(sender_id=eq.${selectedUserId},receiver_id=eq.${user.id}))`,
+          },
+          () => {
+            queryClient.invalidateQueries({ queryKey });
+          }
+        )
+        .subscribe();
+    }
 
-    // Create a channel for new message notifications
-    const channel = supabase
-      .channel('chat_updates')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'chat_messages',
-          filter: `or(and(sender_id=eq.${user.id},receiver_id=eq.${selectedUserId}),and(sender_id=eq.${selectedUserId},receiver_id=eq.${user.id}))`,
-        },
-        () => {
-          // Invalidate the query to refresh messages
-          queryClient.invalidateQueries({ queryKey: ["chat_messages", user.id, selectedUserId] });
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'chat_messages',
-          filter: `or(and(sender_id=eq.${user.id},receiver_id=eq.${selectedUserId}),and(sender_id=eq.${selectedUserId},receiver_id=eq.${user.id}))`,
-        },
-        () => {
-          queryClient.invalidateQueries({ queryKey: ["chat_messages", user.id, selectedUserId] });
-        }
-      )
-      .subscribe();
-
-    // Clean up the subscription when the component unmounts or when the selected user changes
+    // Clean up the subscription
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
-  }, [user?.id, selectedUserId, queryClient]);
+  }, [user?.id, selectedUserId, isGroupChat, careTeamGroup, queryClient, queryKey]);
 
-  if (!selectedUserId) {
+  if (isGroupChat && !careTeamGroup) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+        No care team available. Please contact an administrator.
+      </div>
+    );
+  }
+
+  if (!isGroupChat && !selectedUserId) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
         Select a user to start a conversation
@@ -151,7 +285,10 @@ export const ChatMessagesList = ({ selectedUserId }: ChatMessagesListProps) => {
   if (!messages?.length) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
-        No messages yet. Start a conversation!
+        {isGroupChat 
+          ? "No group messages yet. Start a conversation with your care team!" 
+          : "No messages yet. Start a conversation!"
+        }
       </div>
     );
   }
@@ -176,6 +313,7 @@ export const ChatMessagesList = ({ selectedUserId }: ChatMessagesListProps) => {
                 }
               }}
               isCurrentUser={msg.sender.id === user?.id}
+              showSender={isGroupChat}
             />
           );
         })}
