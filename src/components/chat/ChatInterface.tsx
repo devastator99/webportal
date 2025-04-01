@@ -309,6 +309,7 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
         <ChatMessagesList
           isGroupChat={true}
           careTeamGroup={careTeamGroup}
+          selectedUserId={null}
         />
         <ChatInput
           value={newMessage}

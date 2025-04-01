@@ -21,7 +21,7 @@ interface UserProfile {
 }
 
 interface ChatMessagesListProps {
-  selectedUserId: string | null;
+  selectedUserId?: string | null;  // Make this prop optional with ?
   isGroupChat?: boolean;
   careTeamGroup?: CareTeamGroup | null;
 }
