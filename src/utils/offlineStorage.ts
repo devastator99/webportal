@@ -12,14 +12,11 @@ interface ChatMessage {
   synced: boolean;
 }
 
-// Define the correct schema structure for IndexedDB
+// Define the schema for our IndexedDB
 interface OfflineDB extends DBSchema {
   messages: {
     key: string;
     value: ChatMessage;
-    indexes: {
-      'by-synced': { key: boolean; value: any };
-    };
   };
 }
 
@@ -52,6 +49,7 @@ export const saveOfflineMessage = async (message: ChatMessage): Promise<void> =>
 // Get all unsynced messages
 export const getUnsyncedMessages = async (): Promise<ChatMessage[]> => {
   const db = await initOfflineDB();
+  // Using the exact key value - the boolean 'false'
   return db.getAllFromIndex(MESSAGE_STORE, 'by-synced', false);
 };
 
