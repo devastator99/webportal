@@ -1,5 +1,6 @@
 
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
+import { v4 as uuidv4 } from 'uuid';
 
 interface ChatMessage {
   id: string;
@@ -12,7 +13,7 @@ interface ChatMessage {
 }
 
 interface OfflineDB extends DBSchema {
-  offlineMessages: {
+  messages: {
     key: string;
     value: ChatMessage;
     indexes: { 'by-synced': boolean };
@@ -21,7 +22,7 @@ interface OfflineDB extends DBSchema {
 
 const DB_NAME = 'chat_offline_db';
 const DB_VERSION = 1;
-const MESSAGE_STORE = 'offlineMessages';
+const MESSAGE_STORE = 'messages';
 
 let dbPromise: Promise<IDBPDatabase<OfflineDB>>;
 
