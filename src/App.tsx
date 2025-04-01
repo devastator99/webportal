@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard';
 import AlternativeDashboard from './pages/AlternativeDashboard';
 import Admin from './pages/Admin';
 import PatientsView from './pages/PatientsView';
+import ChatPage from './pages/ChatPage';
 import { featureFlags } from './config/features';
 import { ChatModule } from './modules/chat/ChatModule';
 import { useEffect, useState } from 'react';
@@ -63,14 +64,17 @@ function App() {
                 <Route path="/dashboard-alt" element={<AlternativeDashboard />} />
                 <Route path="/admin/*" element={<Admin />} />
                 <Route path="/patients" element={<PatientsView />} />
+                <Route path="/chat" element={<ChatPage />} />
               </Routes>
             </div>
             
             <MobileNavigation />
             
-            {/* Only render the chatbot widget if chat is enabled */}
+            {/* Only render the chatbot widget as a chat link button */}
             {chatEnabled && chatbotWidgetEnabled && (
-              <ChatModule showChatInterface={false} showChatbotWidget={true} />
+              <div className="fixed right-6 bottom-6 z-40">
+                <ChatModule showChatInterface={false} showChatbotWidget={true} />
+              </div>
             )}
             
             <Toaster position="top-center" />

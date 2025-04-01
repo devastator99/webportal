@@ -7,6 +7,7 @@ import { VideoUploader } from "@/components/videos/VideoUploader";
 import { VideoList } from "@/components/videos/VideoList";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
+import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAssignmentManager";
 
 export const AdminDashboard = () => {
   const { data: userStats } = useQuery({
@@ -84,11 +85,10 @@ export const AdminDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
+        <div className="lg:col-span-1 space-y-6">
           <AdminSettings />
-          <div className="mt-6">
-            <VideoUploader />
-          </div>
+          <PatientAssignmentManager />
+          <VideoUploader />
         </div>
         <div className="lg:col-span-2">
           <h2 className="text-2xl font-semibold mb-4">Uploaded Videos</h2>

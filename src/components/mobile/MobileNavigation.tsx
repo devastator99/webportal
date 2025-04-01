@@ -36,7 +36,7 @@ export const MobileNavigation: React.FC = () => {
     {
       label: 'Chat',
       icon: MessageSquare,
-      path: '/dashboard',
+      path: '/chat',
       active: location.pathname.includes('chat')
     },
     {

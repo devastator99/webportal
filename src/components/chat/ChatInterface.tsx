@@ -4,7 +4,7 @@ import { supabase, safelyUnwrapValue, asArray } from "@/integrations/supabase/cl
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ChatInput } from "./ChatInput";
 import { ChatMessagesList } from "./ChatMessagesList";
@@ -16,19 +16,29 @@ type UserProfile = {
   id: string;
   first_name: string | null;
   last_name: string | null;
+  role?: string;
+  user_role?: { role: string } | null;
 };
 
-export const ChatInterface = () => {
-  const { user } = useAuth();
+interface ChatInterfaceProps {
+  assignedUsers?: UserProfile[];
+}
+
+export const ChatInterface = ({ assignedUsers = [] }: ChatInterfaceProps) => {
+  const { user, userRole } = useAuth();
   const { toast } = useToast();
   const [newMessage, setNewMessage] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-  // Fetch all users for the dropdown
+  // If assignedUsers is provided, use that instead of fetching all users
   const { data: allUsers, error: usersError } = useQuery({
-    queryKey: ["all_users"],
+    queryKey: ["all_users", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
+      
+      if (assignedUsers?.length > 0) {
+        return assignedUsers;
+      }
       
       // Get all profiles except current user
       const { data, error } = await supabase
@@ -46,11 +56,22 @@ export const ChatInterface = () => {
     enabled: !!user?.id,
   });
 
+  // Select first user by default
+  useEffect(() => {
+    if (allUsers?.length > 0 && !selectedUserId) {
+      setSelectedUserId(allUsers[0].id);
+    }
+  }, [allUsers, selectedUserId]);
+
   // Fetch selected user details
   const { data: selectedUser, error: selectedUserError } = useQuery({
     queryKey: ["selected_user", selectedUserId],
     queryFn: async () => {
       if (!selectedUserId) return null;
+      
+      if (assignedUsers?.length > 0) {
+        return assignedUsers.find(u => u.id === selectedUserId) || null;
+      }
       
       const { data, error } = await supabase
         .from("profiles")
@@ -128,6 +149,18 @@ export const ChatInterface = () => {
     return "Messages";
   };
 
+  const getUserRole = (user: UserProfile) => {
+    if (user.role) return user.role;
+    if (user.user_role?.role) return user.user_role.role;
+    return "";
+  };
+
+  const getUserDisplayName = (user: UserProfile) => {
+    const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    const role = getUserRole(user);
+    return role ? `${name} (${role})` : name;
+  };
+
   const renderError = () => {
     if (usersError) {
       return (
@@ -172,7 +205,7 @@ export const ChatInterface = () => {
                   key={user.id} 
                   value={user.id}
                 >
-                  {user.first_name || ''} {user.last_name || ''}
+                  {getUserDisplayName(user)}
                 </SelectItem>
               ))}
             </SelectContent>
