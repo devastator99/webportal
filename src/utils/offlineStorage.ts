@@ -14,13 +14,11 @@ interface ChatMessage {
 
 // Define the schema for our IndexedDB using the correct format
 interface OfflineDB extends DBSchema {
-  // For each object store, define its key, value, and indices
   messages: {
     key: string;  // Primary key (id)
     value: ChatMessage;  // Value type
-    // Define indices properly
     indexes: {
-      'by-synced': boolean;  // Index name and key type
+      'by-synced': boolean;  // This should be the key path, not the type
     };
   };
 }
