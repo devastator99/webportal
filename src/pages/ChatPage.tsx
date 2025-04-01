@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatInterface } from "@/components/chat/ChatInterface";
@@ -52,7 +53,7 @@ const ChatPage = () => {
           
           // Try to get care team using get_patient_care_team function
           try {
-            const { data, error } = await (supabase.rpc as any)("get_patient_care_team", {
+            const { data, error } = await supabase.rpc("get_patient_care_team", {
               p_patient_id: user.id
             });
             
@@ -67,30 +68,35 @@ const ChatPage = () => {
             console.error("Failed to call get_patient_care_team function:", err);
           }
           
-          // If the function call fails, try to get doctor and nutritionist separately
+          // If the function call fails, try to get doctor and nutritionist separately using RPC
           if (careTeamError) {
             try {
-              // Fallback: query the assignments tables directly
-              const { data: doctorData } = await supabase
-                .from("patient_doctor_assignments")
-                .select("doctor_id:profiles!patient_doctor_assignments_doctor_id_fkey(id, first_name, last_name)")
-                .eq("patient_id", user.id);
+              // Get assigned doctor information
+              const { data: doctorData } = await supabase.rpc("get_doctor_for_patient", { 
+                p_patient_id: user.id 
+              });
               
-              const { data: nutritionistData } = await supabase
-                .from("patient_nutritionist_assignments")
-                .select("nutritionist_id:profiles!patient_nutritionist_assignments_nutritionist_id_fkey(id, first_name, last_name)")
-                .eq("patient_id", user.id);
+              // Get assigned nutritionist information
+              const { data: nutritionistData } = await supabase.rpc("get_nutritionist_for_patient", { 
+                p_patient_id: user.id 
+              });
               
               if (doctorData && doctorData.length > 0) {
+                const doctor = doctorData[0];
                 careTeam.push({
-                  ...doctorData[0].doctor_id,
+                  id: doctor.id,
+                  first_name: doctor.first_name,
+                  last_name: doctor.last_name,
                   role: "doctor"
                 });
               }
               
               if (nutritionistData && nutritionistData.length > 0) {
+                const nutritionist = nutritionistData[0];
                 careTeam.push({
-                  ...nutritionistData[0].nutritionist_id,
+                  id: nutritionist.id,
+                  first_name: nutritionist.first_name,
+                  last_name: nutritionist.last_name,
                   role: "nutritionist"
                 });
               }
@@ -141,7 +147,7 @@ const ChatPage = () => {
           };
         } else if (userRole === "doctor" || userRole === "nutritionist") {
           // Get assigned patients for this doctor/nutritionist
-          const { data, error } = await (supabase.rpc as any)("get_assigned_patients", {
+          const { data, error } = await supabase.rpc("get_assigned_patients", {
             p_provider_id: user.id,
             p_provider_role: userRole
           });
