@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatInterface } from "@/components/chat/ChatInterface";
@@ -11,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 
 interface UserProfile {
   id: string;
@@ -30,6 +30,7 @@ const ChatPage = () => {
   const { user, userRole } = useAuth();
   const navigate = useNavigate();
   const [selectedTab, setSelectedTab] = useState<string>("messages");
+  const { toast } = useToast();
   
   // Redirect if not logged in
   useEffect(() => {
@@ -46,12 +47,57 @@ const ChatPage = () => {
       
       try {
         if (userRole === "patient") {
-          // Get assigned doctor and nutritionist for this patient
-          const { data: careTeam, error: careTeamError } = await (supabase.rpc as any)("get_patient_care_team", {
-            p_patient_id: user.id
-          });
+          let careTeam: UserProfile[] = [];
+          let careTeamError = null;
           
-          if (careTeamError) throw careTeamError;
+          // Try to get care team using get_patient_care_team function
+          try {
+            const { data, error } = await (supabase.rpc as any)("get_patient_care_team", {
+              p_patient_id: user.id
+            });
+            
+            if (!error && data) {
+              careTeam = data;
+            } else {
+              careTeamError = error;
+              console.error("Error fetching care team:", error);
+            }
+          } catch (err) {
+            careTeamError = err;
+            console.error("Failed to call get_patient_care_team function:", err);
+          }
+          
+          // If the function call fails, try to get doctor and nutritionist separately
+          if (careTeamError) {
+            try {
+              // Fallback: query the assignments tables directly
+              const { data: doctorData } = await supabase
+                .from("patient_doctor_assignments")
+                .select("doctor_id:profiles!patient_doctor_assignments_doctor_id_fkey(id, first_name, last_name)")
+                .eq("patient_id", user.id);
+              
+              const { data: nutritionistData } = await supabase
+                .from("patient_nutritionist_assignments")
+                .select("nutritionist_id:profiles!patient_nutritionist_assignments_nutritionist_id_fkey(id, first_name, last_name)")
+                .eq("patient_id", user.id);
+              
+              if (doctorData && doctorData.length > 0) {
+                careTeam.push({
+                  ...doctorData[0].doctor_id,
+                  role: "doctor"
+                });
+              }
+              
+              if (nutritionistData && nutritionistData.length > 0) {
+                careTeam.push({
+                  ...nutritionistData[0].nutritionist_id,
+                  role: "nutritionist"
+                });
+              }
+            } catch (err) {
+              console.error("Error in fallback doctor/nutritionist fetch:", err);
+            }
+          }
           
           // Always get administrators for patients
           const { data: admins, error: adminsError } = await supabase
@@ -59,7 +105,14 @@ const ChatPage = () => {
             .select("id, first_name, last_name, user_role:user_roles(role)")
             .eq("user_roles.role", "administrator");
             
-          if (adminsError) throw adminsError;
+          if (adminsError) {
+            console.error("Error fetching admins:", adminsError);
+            toast({
+              title: "Error",
+              description: "Could not load administrators for chat",
+              variant: "destructive"
+            });
+          }
           
           // Format admin users
           const formattedAdmins = (admins || []).map(admin => ({
@@ -70,7 +123,7 @@ const ChatPage = () => {
           }));
           
           // Create care team group from assigned doctor and nutritionist
-          const careTeamMembers = (careTeam || []).filter(member => 
+          const careTeamMembers = careTeam.filter(member => 
             member.role === "doctor" || member.role === "nutritionist"
           );
           
@@ -80,7 +133,7 @@ const ChatPage = () => {
           } : null;
           
           // Combine providers and admins, ensuring admins are always included
-          const allUsers = [...(careTeam || []), ...formattedAdmins];
+          const allUsers = [...careTeam, ...formattedAdmins];
           
           return { 
             assignedUsers: allUsers,
@@ -114,6 +167,11 @@ const ChatPage = () => {
         return { assignedUsers: [] as UserProfile[], careTeamGroup: null };
       } catch (error) {
         console.error("Error fetching assigned users:", error);
+        toast({
+          title: "Error",
+          description: "Could not load chat contacts. Please try again later.",
+          variant: "destructive"
+        });
         return { assignedUsers: [] as UserProfile[], careTeamGroup: null };
       }
     },

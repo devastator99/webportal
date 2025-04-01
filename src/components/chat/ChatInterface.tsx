@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase, safelyUnwrapValue, asArray } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -53,12 +52,57 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
       try {
         // For patients: always ensure admins are included
         if (userRole === "patient") {
-          // Get assigned care team (doctors and nutritionists)
-          const { data: careTeam, error: careTeamError } = await (supabase.rpc as any)("get_patient_care_team", {
-            p_patient_id: user.id
-          });
+          let careTeam: UserProfile[] = [];
+          let careTeamError = null;
           
-          if (careTeamError) throw careTeamError;
+          // Try to get care team using get_patient_care_team function
+          try {
+            const { data, error } = await (supabase.rpc as any)("get_patient_care_team", {
+              p_patient_id: user.id
+            });
+            
+            if (!error && data) {
+              careTeam = data;
+            } else {
+              careTeamError = error;
+              console.error("Error fetching care team:", error);
+            }
+          } catch (err) {
+            careTeamError = err;
+            console.error("Failed to call get_patient_care_team function:", err);
+          }
+          
+          // If the function call fails, try to get doctor and nutritionist separately
+          if (careTeamError) {
+            try {
+              // Fallback: query the assignments tables directly
+              const { data: doctorData } = await supabase
+                .from("patient_doctor_assignments")
+                .select("doctor_id:profiles!patient_doctor_assignments_doctor_id_fkey(id, first_name, last_name)")
+                .eq("patient_id", user.id);
+              
+              const { data: nutritionistData } = await supabase
+                .from("patient_nutritionist_assignments")
+                .select("nutritionist_id:profiles!patient_nutritionist_assignments_nutritionist_id_fkey(id, first_name, last_name)")
+                .eq("patient_id", user.id);
+              
+              if (doctorData && doctorData.length > 0) {
+                careTeam.push({
+                  ...doctorData[0].doctor_id,
+                  role: "doctor"
+                });
+              }
+              
+              if (nutritionistData && nutritionistData.length > 0) {
+                careTeam.push({
+                  ...nutritionistData[0].nutritionist_id,
+                  role: "nutritionist"
+                });
+              }
+            } catch (err) {
+              console.error("Error in fallback doctor/nutritionist fetch:", err);
+            }
+          }
           
           // Always get administrators for patients
           const { data: admins, error: adminsError } = await supabase
@@ -77,7 +121,7 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           }));
           
           // Combine providers and admins, ensuring admins are always included
-          return [...(careTeam || []), ...formattedAdmins];
+          return [...careTeam, ...formattedAdmins];
         } 
         // For doctors and nutritionists: get assigned patients and admins
         else if (userRole === "doctor" || userRole === "nutritionist") {
@@ -128,10 +172,16 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
         return [];
       } catch (error) {
         console.error("Error fetching available users for chat:", error);
+        toast({
+          title: "Error loading contacts",
+          description: "Unable to load your chat contacts. Please try again later.",
+          variant: "destructive"
+        });
         throw error;
       }
     },
-    enabled: !!user?.id && !!userRole
+    enabled: !!user?.id && !!userRole,
+    retry: 2
   });
 
   // Select first user by default when users are loaded
