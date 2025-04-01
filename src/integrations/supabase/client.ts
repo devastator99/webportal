@@ -86,10 +86,11 @@ export interface UserRole {
   created_at: string;
 }
 
-// Create user role using RPC function to bypass RLS restrictions
+// Create user role using custom RPC function (bypassing type system constraints)
 export async function createUserRole(userId: string, role: string): Promise<UserRole | null> {
   try {
-    const { data, error } = await supabase.rpc(
+    // Use a type assertion to bypass TypeScript's type checking for the function name
+    const { data, error } = await (supabase.rpc as any)(
       'create_user_role',
       {
         p_user_id: userId,
@@ -102,6 +103,7 @@ export async function createUserRole(userId: string, role: string): Promise<User
       throw error;
     }
     
+    // Cast the returned data to UserRole
     return data as UserRole;
   } catch (err) {
     console.error('Failed to create user role:', err);
@@ -182,7 +184,7 @@ export async function savePrescription(patientId: string, doctorId: string, diag
   }
 }
 
-// Function to create patient details using RPC with security definer
+// Function to create patient details using custom RPC with security definer
 export async function createPatientDetails(
   userId: string,
   age: number,
@@ -198,8 +200,8 @@ export async function createPatientDetails(
   try {
     const formattedBirthDate = birthDate ? formatDateForDatabase(birthDate) : null;
     
-    // Use the create_patient_details RPC function
-    const { data, error } = await supabase.rpc(
+    // Use type assertion to bypass TypeScript's type checking for the function name
+    const { data, error } = await (supabase.rpc as any)(
       'create_patient_details',
       {
         p_user_id: userId,
