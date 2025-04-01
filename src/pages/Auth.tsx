@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { LucideLoader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DoctorProfileForm } from "@/components/auth/DoctorProfileForm";
+import { toast } from "sonner";
 
 const Auth = () => {
   const { user, isLoading, userRole } = useAuth();
@@ -22,6 +23,7 @@ const Auth = () => {
     const checkDoctorProfile = async () => {
       // If user is logged in and is a doctor
       if (user && userRole === "doctor") {
+        console.log("Checking doctor profile for:", user.id);
         // Check if doctor profile is complete
         const { data, error } = await supabase
           .from("profiles")
@@ -36,6 +38,7 @@ const Auth = () => {
 
         // If profile is incomplete (missing required fields), show doctor form
         if (!data.specialty || !data.visiting_hours || !data.clinic_location) {
+          console.log("Doctor profile incomplete, showing form");
           setShouldShowDoctorForm(true);
           return;
         }
@@ -50,8 +53,11 @@ const Auth = () => {
       }
     };
 
-    if (user && !isLoading) {
-      checkDoctorProfile();
+    if (!isLoading) {
+      console.log("Auth state resolved:", { user, userRole });
+      if (user) {
+        checkDoctorProfile();
+      }
     }
   }, [user, userRole, navigate, isLoading]);
 
@@ -83,17 +89,26 @@ const Auth = () => {
     lastName?: string,
     patientData?: any
   ) => {
+    console.log("Form submitted with:", { email, userType, firstName, lastName });
+    console.log("Patient data:", patientData);
+    
     if (isLoginMode) {
       return handleLogin(email, password);
     } else {
-      return handleSignUp(
-        email, 
-        password, 
-        userType as any, 
-        firstName, 
-        lastName,
-        patientData
-      );
+      try {
+        await handleSignUp(
+          email, 
+          password, 
+          userType as any, 
+          firstName, 
+          lastName,
+          patientData
+        );
+        
+        toast("Account created successfully!");
+      } catch (error) {
+        console.error("Sign up error:", error);
+      }
     }
   };
 

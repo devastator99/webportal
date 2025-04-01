@@ -75,7 +75,7 @@ const loginSchema = z.object({
 
 export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
   const [userType, setUserType] = useState<"patient" | "doctor" | "nutritionist">("patient");
-  const [showPatientFields, setShowPatientFields] = useState(false);
+  const [showPatientFields, setShowPatientFields] = useState(type === "register" && userType === "patient");
   const { toast } = useToast();
 
   // Determine which schema to use
@@ -102,6 +102,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
       knownAllergies: "",
       currentMedicalConditions: "",
     },
+    mode: "onChange", // This enables validation as fields change
   });
 
   const handleUserTypeChange = (value: "patient" | "doctor" | "nutritionist") => {
@@ -111,6 +112,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
   };
 
   const handleSubmit = async (data: any) => {
+    console.log("Form submitted with data:", data);
     if (loading) return;
 
     try {
@@ -130,6 +132,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           knownAllergies: data.knownAllergies || undefined,
           currentMedicalConditions: data.currentMedicalConditions || undefined,
         };
+        console.log("Submitting patient data:", patientData);
         await onSubmit(email, password, userType, firstName, lastName, patientData);
       } else {
         // For login or non-patient registration

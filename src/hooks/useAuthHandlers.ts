@@ -3,6 +3,7 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 type UserRole = "patient" | "doctor" | "nutritionist" | "administrator";
 
@@ -22,7 +23,7 @@ export interface PatientData {
 export const useAuthHandlers = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const navigate = useNavigate();
 
   const handleLogin = async (email: string, password: string) => {
@@ -62,14 +63,14 @@ export const useAuthHandlers = () => {
 
       navigate('/dashboard');
       
-      toast({
+      uiToast({
         title: "Welcome back!",
         description: `Logged in as ${email}`
       });
     } catch (error: any) {
       console.error('Login error:', error);
       setError(error.message);
-      toast({
+      uiToast({
         variant: "destructive",
         title: "Login failed",
         description: "Invalid email or password. Please try again."
@@ -111,7 +112,7 @@ export const useAuthHandlers = () => {
       await handleLogin(email, password);
     } catch (error: any) {
       setError(error.message);
-      toast({
+      uiToast({
         variant: "destructive",
         title: "Test Login Failed",
         description: error.message
@@ -134,6 +135,8 @@ export const useAuthHandlers = () => {
 
     try {
       console.log('Creating new user:', email, userType);
+      console.log('Patient data:', patientData);
+      
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -146,10 +149,17 @@ export const useAuthHandlers = () => {
         }
       });
 
-      if (signUpError) throw signUpError;
-      if (!authData.user) throw new Error("User creation failed");
+      if (signUpError) {
+        console.error('Signup error:', signUpError);
+        throw signUpError;
+      }
+      
+      if (!authData.user) {
+        console.error('User creation failed - no user returned');
+        throw new Error("User creation failed");
+      }
 
-      console.log('User created:', authData.user);
+      console.log('User created successfully:', authData.user);
 
       // Create user role
       const { error: roleError } = await supabase
@@ -164,10 +174,26 @@ export const useAuthHandlers = () => {
         throw roleError;
       }
 
+      console.log('User role created successfully');
+
       // If it's a patient, save the additional patient data
       if (userType === 'patient' && patientData) {
+        console.log('Creating patient details for user:', authData.user.id);
+        console.log('Patient data to save:', {
+          p_user_id: authData.user.id,
+          p_age: parseInt(patientData.age),
+          p_gender: patientData.gender,
+          p_blood_group: patientData.bloodGroup,
+          p_allergies: patientData.allergies || patientData.knownAllergies || null,
+          p_emergency_contact: patientData.emergencyContact,
+          p_height: patientData.height ? parseFloat(patientData.height) : null,
+          p_birth_date: patientData.birthDate || null,
+          p_food_habit: patientData.foodHabit || null,
+          p_current_medical_conditions: patientData.currentMedicalConditions || null
+        });
+        
         // Use the RPC function to create patient details with type assertion
-        const { error: patientDataError } = await supabase.rpc(
+        const { data: patientResult, error: patientDataError } = await supabase.rpc(
           'create_patient_details' as any,
           {
             p_user_id: authData.user.id,
@@ -185,25 +211,21 @@ export const useAuthHandlers = () => {
 
         if (patientDataError) {
           console.error('Patient data creation error:', patientDataError);
-          toast({
-            variant: "destructive",
-            title: "Patient data creation error",
-            description: "Account created but patient details couldn't be saved. Please update your profile later."
-          });
+          toast("Account created but patient details couldn't be saved. Please update your profile later.");
           // Continue with account creation even if patient details fail
+        } else {
+          console.log('Patient details created successfully:', patientResult);
         }
       }
 
+      // Navigate to dashboard after successful registration
       navigate('/dashboard');
 
-      toast({
-        title: "Account created successfully!",
-        description: "Please check your email to confirm your account."
-      });
+      toast("Account created successfully! Please check your email to confirm your account.");
     } catch (error: any) {
       console.error('Signup error:', error);
       setError(error.message);
-      toast({
+      uiToast({
         variant: "destructive",
         title: "Signup failed",
         description: error.message
