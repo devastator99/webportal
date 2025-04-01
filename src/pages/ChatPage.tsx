@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { UsersProvider } from "@/components/chat/UsersProvider";
 import { ChatPageHeader } from "@/components/chat/ChatPageHeader";
-import { ChatPageContent } from "@/components/chat/ChatPageContent";
 
 const ChatPage = () => {
   const { user } = useAuth();
@@ -23,15 +22,11 @@ const ChatPage = () => {
     <>
       <Navbar />
       <div className="container mx-auto pt-20 pb-6 px-6">
-        <ChatPageHeader 
-          selectedTab={selectedTab} 
-          onTabChange={setSelectedTab} 
-        />
-        
         <UsersProvider>
           {({ assignedUsers, careTeamGroup, isLoading, error }) => (
-            <ChatPageContent
-              selectedTab={selectedTab}
+            <ChatPageHeader 
+              selectedTab={selectedTab} 
+              onTabChange={setSelectedTab}
               assignedUsers={assignedUsers}
               careTeamGroup={careTeamGroup}
               isLoading={isLoading}
