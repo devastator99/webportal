@@ -81,6 +81,45 @@ BEGIN
 END;
 $$;
 
+-- Create a function to get chat messages with sender/receiver info using security definer
+CREATE OR REPLACE FUNCTION public.get_chat_messages(
+  p_user_id UUID,
+  p_other_user_id UUID
+)
+RETURNS SETOF json
+SECURITY DEFINER
+SET search_path = public
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT 
+    json_build_object(
+      'id', cm.id,
+      'message', cm.message,
+      'message_type', cm.message_type,
+      'created_at', cm.created_at,
+      'read', cm.read,
+      'sender', json_build_object(
+        'id', sender.id,
+        'first_name', sender.first_name,
+        'last_name', sender.last_name
+      ),
+      'receiver', json_build_object(
+        'id', receiver.id,
+        'first_name', receiver.first_name,
+        'last_name', receiver.last_name
+      )
+    )
+  FROM chat_messages cm
+  JOIN profiles sender ON cm.sender_id = sender.id
+  JOIN profiles receiver ON cm.receiver_id = receiver.id
+  WHERE (cm.sender_id = p_user_id AND cm.receiver_id = p_other_user_id) OR 
+        (cm.sender_id = p_other_user_id AND cm.receiver_id = p_user_id)
+  ORDER BY cm.created_at ASC;
+END;
+$$;
+
 -- Row level security policies
 ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
 
@@ -106,3 +145,4 @@ CREATE POLICY "Users can update their own messages"
 GRANT SELECT, INSERT, UPDATE ON public.chat_messages TO authenticated;
 GRANT EXECUTE ON FUNCTION public.send_chat_message TO authenticated;
 GRANT EXECUTE ON FUNCTION public.mark_messages_as_read TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_chat_messages TO authenticated;

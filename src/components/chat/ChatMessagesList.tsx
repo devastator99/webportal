@@ -38,22 +38,11 @@ export const ChatMessagesList = ({ selectedUserId }: ChatMessagesListProps) => {
       if (!user?.id || !selectedUserId) return [];
       
       try {
-        // Query the chat_messages table for conversation between current user and selected user
-        const query = supabase
-          .from("chat_messages")
-          .select(`
-            id,
-            message,
-            message_type,
-            created_at,
-            read,
-            sender:profiles!chat_messages_sender_id_fkey(id, first_name, last_name),
-            receiver:profiles!chat_messages_receiver_id_fkey(id, first_name, last_name)
-          `)
-          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`)
-          .order("created_at", { ascending: true });
-
-        const { data, error } = await query;
+        // Use the RPC function get_chat_messages
+        const { data, error } = await (supabase.rpc as any)('get_chat_messages', {
+          p_user_id: user.id,
+          p_other_user_id: selectedUserId
+        });
 
         if (error) {
           console.error("Error fetching messages:", error);
@@ -63,7 +52,7 @@ export const ChatMessagesList = ({ selectedUserId }: ChatMessagesListProps) => {
         // Mark messages as read
         if (data && data.length > 0) {
           const unreadMessages = data.filter(
-            msg => msg.sender?.id === selectedUserId && !msg.read
+            (msg: any) => msg.sender?.id === selectedUserId && !msg.read
           );
           
           if (unreadMessages.length > 0) {
