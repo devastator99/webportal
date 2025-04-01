@@ -16,7 +16,7 @@ const Auth = () => {
   const { user, isLoading, userRole } = useAuth();
   const navigate = useNavigate();
   const [isLoginMode, setIsLoginMode] = useState(true);
-  const { loading, error, handleLogin, handleSignUp, handleTestLogin } = useAuthHandlers();
+  const { loading, error, handleLogin, handleSignUp, handleTestLogin, setError } = useAuthHandlers();
   const [shouldShowDoctorForm, setShouldShowDoctorForm] = useState(false);
 
   useEffect(() => {
@@ -90,24 +90,36 @@ const Auth = () => {
     patientData?: any
   ) => {
     console.log("Form submitted with:", { email, userType, firstName, lastName });
-    console.log("Patient data:", patientData);
+    
+    if (patientData) {
+      console.log("Patient data:", patientData);
+    }
+    
+    // Clear any previous errors
+    setError(null);
     
     if (isLoginMode) {
       return handleLogin(email, password);
     } else {
       try {
-        await handleSignUp(
-          email, 
-          password, 
-          userType as any, 
-          firstName, 
-          lastName,
-          patientData
+        toast.promise(
+          handleSignUp(
+            email, 
+            password, 
+            userType as any, 
+            firstName, 
+            lastName,
+            patientData
+          ),
+          {
+            loading: 'Creating your account...',
+            success: 'Account created successfully!',
+            error: (err) => `Sign up failed: ${err.message || 'Please try again'}`
+          }
         );
-        
-        toast("Account created successfully!");
-      } catch (error) {
+      } catch (error: any) {
         console.error("Sign up error:", error);
+        toast.error(`Sign up failed: ${error.message || 'Please try again'}`);
       }
     }
   };

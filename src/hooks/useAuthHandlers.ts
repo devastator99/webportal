@@ -75,6 +75,7 @@ export const useAuthHandlers = () => {
         title: "Login failed",
         description: "Invalid email or password. Please try again."
       });
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -117,6 +118,7 @@ export const useAuthHandlers = () => {
         title: "Test Login Failed",
         description: error.message
       });
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -129,13 +131,15 @@ export const useAuthHandlers = () => {
     firstName?: string,
     lastName?: string,
     patientData?: PatientData
-  ) => {
+  ): Promise<void> => {
     setLoading(true);
     setError(null);
 
     try {
       console.log('Creating new user:', email, userType);
-      console.log('Patient data:', patientData);
+      if (patientData) {
+        console.log('Patient data:', patientData);
+      }
       
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
@@ -220,8 +224,7 @@ export const useAuthHandlers = () => {
 
       // Navigate to dashboard after successful registration
       navigate('/dashboard');
-
-      toast("Account created successfully! Please check your email to confirm your account.");
+      return;
     } catch (error: any) {
       console.error('Signup error:', error);
       setError(error.message);
@@ -230,6 +233,7 @@ export const useAuthHandlers = () => {
         title: "Signup failed",
         description: error.message
       });
+      throw error;
     } finally {
       setLoading(false);
     }
