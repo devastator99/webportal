@@ -12,6 +12,7 @@ interface ChatMessage {
   synced: boolean;
 }
 
+// Define the correct schema structure for IndexedDB
 interface OfflineDB extends DBSchema {
   messages: {
     key: string;
