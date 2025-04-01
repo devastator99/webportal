@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -24,7 +25,6 @@ interface AuthFormProps {
   loading: boolean;
 }
 
-// Schema for patient-specific data
 const patientDataSchema = z.object({
   age: z.string().min(1, "Age is required"),
   gender: z.string().min(1, "Gender is required"),
@@ -38,7 +38,6 @@ const patientDataSchema = z.object({
   currentMedicalConditions: z.string().optional(),
 });
 
-// For patient signup validation
 const patientSignupSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -57,7 +56,6 @@ const patientSignupSchema = z.object({
   currentMedicalConditions: z.string().optional(),
 });
 
-// For other user types
 const standardSignupSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -66,7 +64,6 @@ const standardSignupSchema = z.object({
   userType: z.string(),
 });
 
-// For login
 const loginSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
@@ -77,7 +74,6 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
   const [showPatientFields, setShowPatientFields] = useState(type === "register" && userType === "patient");
   const { toast } = useToast();
 
-  // Determine which schema to use
   const activeSchema = type === "login" 
     ? loginSchema 
     : (userType === "patient" ? patientSignupSchema : standardSignupSchema);
@@ -101,7 +97,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
       knownAllergies: "",
       currentMedicalConditions: "",
     },
-    mode: "onChange", // This enables validation as fields change
+    mode: "onChange",
   });
 
   const handleUserTypeChange = (value: "patient" | "doctor" | "nutritionist") => {
@@ -117,9 +113,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
     try {
       const { email, password, firstName, lastName } = data;
       
-      // If it's patient registration, collect the patient-specific data
       if (type === "register" && userType === "patient") {
-        // Format birthDate properly if it exists
         const birthDateFormatted = data.birthDate ? new Date(data.birthDate).toISOString().split('T')[0] : null;
         
         const patientData: PatientData = {
@@ -137,7 +131,6 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
         console.log("Submitting patient data:", patientData);
         await onSubmit(email, password, userType, firstName, lastName, patientData);
       } else {
-        // For login or non-patient registration
         if (type === "register") {
           await onSubmit(email, password, userType, firstName, lastName);
         } else {
@@ -186,10 +179,8 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           </Alert>
         )}
 
-        {/* Basic registration fields */}
         {type === "register" && (
           <>
-            {/* First and Last Name fields */}
             <motion.div variants={itemVariants}>
               <FormField
                 control={form.control}
@@ -230,7 +221,6 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           </>
         )}
 
-        {/* Email and Password fields */}
         <motion.div variants={itemVariants}>
           <FormField
             control={form.control}
@@ -272,7 +262,6 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           />
         </motion.div>
 
-        {/* User Type Selector */}
         {type === "register" && (
           <motion.div variants={itemVariants}>
             <Select
@@ -292,7 +281,6 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           </motion.div>
         )}
 
-        {/* Patient-specific fields */}
         {showPatientFields && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
@@ -303,217 +291,214 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           >
             <h3 className="text-sm font-medium text-purple-800">Patient Information</h3>
             
-            {/* Basic patient info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="age"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="number"
-                        placeholder="Age"
-                        disabled={loading}
-                        className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+            <ScrollArea className="h-[300px] pr-4">
+              <div className="space-y-4 pr-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="age"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="number"
+                            placeholder="Age"
+                            disabled={loading}
+                            className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
 
-              <FormField
-                control={form.control}
-                name="height"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="text"
-                        placeholder="Height (cm)"
-                        disabled={loading}
-                        className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
+                  <FormField
+                    control={form.control}
+                    name="height"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            type="text"
+                            placeholder="Height (cm)"
+                            disabled={loading}
+                            className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-            {/* Gender and Birth Date */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="gender"
-                render={({ field }) => (
-                  <FormItem>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={loading}
-                    >
-                      <SelectTrigger className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900">
-                        <SelectValue placeholder="Select gender" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">Male</SelectItem>
-                        <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="birthDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-start text-left font-normal bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900"
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="gender"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
                           disabled={loading}
                         >
-                          {field.value ? (
-                            format(new Date(field.value), "PPP")
-                          ) : (
-                            <span className="text-purple-400">Birth Date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <CalendarComponent
-                          mode="single"
-                          selected={field.value ? new Date(field.value) : undefined}
-                          onSelect={(date) => field.onChange(date ? date.toISOString() : "")}
+                          <SelectTrigger className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900">
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="male">Male</SelectItem>
+                            <SelectItem value="female">Female</SelectItem>
+                            <SelectItem value="other">Other</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="birthDate"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900"
+                              disabled={loading}
+                            >
+                              {field.value ? (
+                                format(new Date(field.value), "PPP")
+                              ) : (
+                                <span className="text-purple-400">Birth Date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                              mode="single"
+                              selected={field.value ? new Date(field.value) : undefined}
+                              onSelect={(date) => field.onChange(date ? date.toISOString() : "")}
+                              disabled={loading}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="bloodGroup"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
                           disabled={loading}
-                          initialFocus
+                        >
+                          <SelectTrigger className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900">
+                            <SelectValue placeholder="Blood group" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="A+">A+</SelectItem>
+                            <SelectItem value="A-">A-</SelectItem>
+                            <SelectItem value="B+">B+</SelectItem>
+                            <SelectItem value="B-">B-</SelectItem>
+                            <SelectItem value="AB+">AB+</SelectItem>
+                            <SelectItem value="AB-">AB-</SelectItem>
+                            <SelectItem value="O+">O+</SelectItem>
+                            <SelectItem value="O-">O-</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="foodHabit"
+                    render={({ field }) => (
+                      <FormItem>
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          disabled={loading}
+                        >
+                          <SelectTrigger className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900">
+                            <SelectValue placeholder="Food Habit" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="vegetarian">Vegetarian</SelectItem>
+                            <SelectItem value="vegan">Vegan</SelectItem>
+                            <SelectItem value="non-vegetarian">Non-Vegetarian</SelectItem>
+                            <SelectItem value="pescatarian">Pescatarian</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <FormField
+                  control={form.control}
+                  name="knownAllergies"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Known Allergies (if any)"
+                          disabled={loading}
+                          className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
                         />
-                      </PopoverContent>
-                    </Popover>
-                  </FormItem>
-                )}
-              />
-            </div>
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
 
-            {/* Blood Group and Food Habit */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="bloodGroup"
-                render={({ field }) => (
-                  <FormItem>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={loading}
-                    >
-                      <SelectTrigger className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900">
-                        <SelectValue placeholder="Blood group" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="A+">A+</SelectItem>
-                        <SelectItem value="A-">A-</SelectItem>
-                        <SelectItem value="B+">B+</SelectItem>
-                        <SelectItem value="B-">B-</SelectItem>
-                        <SelectItem value="AB+">AB+</SelectItem>
-                        <SelectItem value="AB-">AB-</SelectItem>
-                        <SelectItem value="O+">O+</SelectItem>
-                        <SelectItem value="O-">O-</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
+                <FormField
+                  control={form.control}
+                  name="currentMedicalConditions"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Textarea
+                          {...field}
+                          placeholder="Current Medical Conditions (if any)"
+                          disabled={loading}
+                          className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400 min-h-[80px]"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="foodHabit"
-                render={({ field }) => (
-                  <FormItem>
-                    <Select
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={loading}
-                    >
-                      <SelectTrigger className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900">
-                        <SelectValue placeholder="Food Habit" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="vegetarian">Vegetarian</SelectItem>
-                        <SelectItem value="vegan">Vegan</SelectItem>
-                        <SelectItem value="non-vegetarian">Non-Vegetarian</SelectItem>
-                        <SelectItem value="pescatarian">Pescatarian</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Known Allergies */}
-            <FormField
-              control={form.control}
-              name="knownAllergies"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Known Allergies (if any)"
-                      disabled={loading}
-                      className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {/* Current Medical Conditions */}
-            <FormField
-              control={form.control}
-              name="currentMedicalConditions"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="Current Medical Conditions (if any)"
-                      disabled={loading}
-                      className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400 min-h-[80px]"
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            {/* Emergency Contact */}
-            <FormField
-              control={form.control}
-              name="emergencyContact"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      placeholder="Emergency Contact Number"
-                      disabled={loading}
-                      className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
+                <FormField
+                  control={form.control}
+                  name="emergencyContact"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="Emergency Contact Number"
+                          disabled={loading}
+                          className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </ScrollArea>
           </motion.div>
         )}
 
-        {/* Submit Button */}
         <motion.div variants={itemVariants}>
           <Button 
             type="submit" 
