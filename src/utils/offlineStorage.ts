@@ -17,7 +17,9 @@ interface OfflineDB extends DBSchema {
   messages: {
     key: string;
     value: ChatMessage;
-    indexes: { 'by-synced': boolean };
+    indexes: {
+      'by-synced': boolean;
+    };
   };
 }
 
