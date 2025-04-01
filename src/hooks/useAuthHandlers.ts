@@ -169,7 +169,7 @@ export const useAuthHandlers = () => {
 
       console.log('User created successfully:', authData.user);
 
-      // Step 2: Create user role directly in the user_roles table
+      // Step 2: Create user role using RPC function
       try {
         const roleResult = await createUserRole(authData.user.id, userType);
         console.log('User role created successfully:', roleResult);
@@ -179,7 +179,7 @@ export const useAuthHandlers = () => {
         toast.warning("Account created but role assignment had an issue. Some features may be limited.");
       }
 
-      // Step 3: If it's a patient, save the additional patient data
+      // Step 3: If it's a patient, save the additional patient data using RPC function
       if (userType === 'patient' && patientData) {
         console.log('Creating patient details for user:', authData.user.id);
         
@@ -190,7 +190,7 @@ export const useAuthHandlers = () => {
           // Parse the height as a number if provided
           const heightNumber = patientData.height ? parseFloat(patientData.height) : null;
           
-          // Create the patient details by inserting directly into patient_details table
+          // Create the patient details using the RPC function
           const patientResult = await createPatientDetails(
             authData.user.id,
             ageNumber,
