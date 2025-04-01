@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { formatDateForDatabase } from '@/utils/dateUtils';
@@ -97,7 +98,7 @@ export async function createUserRole(userId: string, role: string): Promise<User
         p_user_id: userId,
         p_role: role
       }
-    );
+    ) as { data: any, error: any };
     
     if (error) {
       console.error('Error creating user role:', error);
@@ -105,14 +106,19 @@ export async function createUserRole(userId: string, role: string): Promise<User
     }
     
     console.log('User role created successfully:', data);
-    // Need to cast the returned data to match our interface
-    const userRole: UserRole = {
-      id: data.id,
-      user_id: data.user_id,
-      role: data.role,
-      created_at: data.created_at
-    };
-    return userRole;
+    
+    // Cast the returned JSON data to our UserRole interface
+    if (typeof data === 'object') {
+      const userRole: UserRole = {
+        id: data.id,
+        user_id: data.user_id,
+        role: data.role,
+        created_at: data.created_at
+      };
+      return userRole;
+    }
+    
+    return null;
   } catch (err) {
     console.error('Failed to create user role:', err);
     throw err;
@@ -228,7 +234,7 @@ export async function createPatientDetails(
         p_food_habit: foodHabit,
         p_current_medical_conditions: currentMedicalConditions
       }
-    );
+    ) as { data: any, error: any };
     
     if (error) {
       console.error('Error creating patient details:', error);
