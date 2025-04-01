@@ -1,7 +1,7 @@
 
 import { ReactNode } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageSquare, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { UserProfile, CareTeamGroup } from "./UsersProvider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -49,14 +49,10 @@ export const ChatPageHeader = ({
 
   return (
     <Tabs value={selectedTab} onValueChange={onTabChange} className="w-full">
-      <TabsList className="grid w-full grid-cols-2 mb-4">
-        <TabsTrigger value="group">
+      <TabsList className="w-full mb-4">
+        <TabsTrigger value="group" className="w-full">
           <Users className="mr-2 h-4 w-4" />
           Care Team
-        </TabsTrigger>
-        <TabsTrigger value="messages">
-          <MessageSquare className="mr-2 h-4 w-4" />
-          Messages
         </TabsTrigger>
       </TabsList>
 
@@ -68,10 +64,6 @@ export const ChatPageHeader = ({
           careTeamGroup={careTeamGroup}
           showGroupChat={true}
         />
-      </TabsContent>
-      
-      <TabsContent value="messages" className="space-y-4">
-        <ChatInterface assignedUsers={assignedUsers} />
       </TabsContent>
     </Tabs>
   );

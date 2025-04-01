@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -32,31 +31,27 @@ interface ChatInterfaceProps {
   showGroupChat?: boolean;
 }
 
-export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGroupChat = false }: ChatInterfaceProps) => {
+export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGroupChat = true }: ChatInterfaceProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   const [newMessage, setNewMessage] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [isGroupChat, setIsGroupChat] = useState<boolean>(showGroupChat && !!careTeamGroup);
+  const [isGroupChat, setIsGroupChat] = useState<boolean>(true);
 
-  // Fetch available chat users based on user role
   const { data: allUsers, isLoading: usersLoading, error: usersError } = useQuery({
     queryKey: ["available_chat_users", user?.id, userRole],
     queryFn: async () => {
       if (!user?.id) return [];
       
       if (assignedUsers?.length > 0) {
-        // If we have assigned users from props, use them directly
         return assignedUsers;
       }
       
       try {
-        // For patients: always ensure admins are included
         if (userRole === "patient") {
           let careTeam: UserProfile[] = [];
           let careTeamError = null;
           
-          // Try to get care team using get_patient_care_team function
           try {
             const { data, error } = await supabase.functions.invoke('get-patient-care-team', {
               body: { patient_id: user.id }
@@ -73,7 +68,6 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
             console.error("Failed to call get_patient_care_team function:", err);
           }
           
-          // If the function call fails, try to get doctor and nutritionist separately using functions
           if (careTeamError || (Array.isArray(careTeam) && careTeam.length === 0)) {
             try {
               const { data: doctorData } = await supabase.functions.invoke('get-doctor-for-patient', { 
@@ -104,7 +98,6 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
                 });
               }
               
-              // Add AI bot manually if using fallback
               careTeam.push({
                 id: '00000000-0000-0000-0000-000000000000',
                 first_name: 'AI',
@@ -116,7 +109,6 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
             }
           }
           
-          // Always get administrators for patients
           const { data: admins, error: adminsError } = await supabase
             .from("profiles")
             .select("id, first_name, last_name, user_role:user_roles(role)")
@@ -124,7 +116,6 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
             
           if (adminsError) throw adminsError;
           
-          // Format admin users
           const formattedAdmins = (admins || []).map(admin => ({
             id: admin.id,
             first_name: admin.first_name,
@@ -132,12 +123,9 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
             role: "administrator"
           }));
           
-          // Combine providers and admins, ensuring admins are always included
           return [...careTeam, ...formattedAdmins];
         } 
-        // For doctors and nutritionists: get assigned patients and admins
         else if (userRole === "doctor" || userRole === "nutritionist") {
-          // Get assigned patients
           const { data: patients } = await supabase.functions.invoke('get-assigned-patients', {
             body: {
               provider_id: user.id,
@@ -145,7 +133,6 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
             }
           });
           
-          // Get administrators
           const { data: admins, error: adminsError } = await supabase
             .from("profiles")
             .select("id, first_name, last_name, user_role:user_roles(role)")
@@ -153,7 +140,6 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
             
           if (adminsError) throw adminsError;
           
-          // Format admin users
           const formattedAdmins = (admins || []).map(admin => ({
             id: admin.id,
             first_name: admin.first_name,
@@ -161,10 +147,8 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
             role: "administrator"
           }));
           
-          // Combine patients and admins
           return [...(patients as UserProfile[] || []), ...formattedAdmins];
         } 
-        // For admins: get all users
         else if (userRole === "administrator") {
           const { data, error } = await supabase
             .from("profiles")
@@ -196,24 +180,19 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
     retry: 2
   });
 
-  // Select first user by default when users are loaded
   useEffect(() => {
-    if (showGroupChat && careTeamGroup) {
+    if (careTeamGroup) {
       setIsGroupChat(true);
-    } else if (allUsers?.length > 0 && !selectedUserId && !isGroupChat) {
-      setSelectedUserId(allUsers[0].id);
     }
-  }, [allUsers, selectedUserId, isGroupChat, showGroupChat, careTeamGroup]);
+  }, [careTeamGroup]);
 
-  // Helper functions for the component
   const getHeaderTitle = () => {
     if (isGroupChat && careTeamGroup) {
       return careTeamGroup.groupName;
     }
     if (usersLoading) return "Loading contacts...";
     if (usersError) return "Error loading contacts";
-    if (allUsers?.length === 0) return "No contacts available";
-    return "Messages";
+    return "Care Team";
   };
 
   const getUserRole = (user: UserProfile) => {
@@ -253,20 +232,9 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
       return;
     }
 
-    if (!isGroupChat && !selectedUserId) {
-      toast({
-        title: "Cannot send message",
-        description: "Please select a recipient first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
-      if (isGroupChat && careTeamGroup) {
-        // Send message to all members of the care team
+      if (careTeamGroup) {
         const sendPromises = careTeamGroup.members.map(member => {
-          // Don't send message to AI bot through regular channels
           if (member.role === 'aibot') return Promise.resolve();
           
           return supabase.functions.invoke("send-chat-message", {
@@ -279,13 +247,10 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           });
         }).filter(Boolean);
 
-        // Process messages
         await Promise.all(sendPromises);
         
-        // Handle AI bot response if this is a group chat with AI
         if (careTeamGroup.members.some(member => member.role === 'aibot')) {
           try {
-            // Generate AI response
             const { data: aiResponse } = await supabase.functions.invoke('doctor-ai-assistant', {
               body: { 
                 messages: [{ role: "user", content: newMessage }],
@@ -294,15 +259,13 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
             });
             
             if (aiResponse && aiResponse.response) {
-              // AI response delay for natural feel
               setTimeout(async () => {
-                // Send AI response back to all human group members
                 const aiSendPromises = careTeamGroup.members
                   .filter(member => member.role !== 'aibot')
                   .map(member => {
                     return supabase.functions.invoke("send-chat-message", {
                       body: {
-                        sender_id: '00000000-0000-0000-0000-000000000000', // AI bot ID
+                        sender_id: '00000000-0000-0000-0000-000000000000',
                         receiver_id: member.id,
                         message: aiResponse.response,
                         message_type: "text"
@@ -320,83 +283,8 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
         
         setNewMessage("");
         toast({
-          title: "Group message sent",
+          title: "Message sent",
         });
-      } else if (selectedUserId) {
-        // Individual chat - check if user is chatting with AI bot
-        if (selectedUserId === '00000000-0000-0000-0000-000000000000') {
-          // Direct message to AI bot
-          try {
-            // Save user message
-            await supabase.functions.invoke("send-chat-message", {
-              body: {
-                sender_id: user.id,
-                receiver_id: selectedUserId,
-                message: newMessage,
-                message_type: "text"
-              }
-            });
-            
-            // Generate AI response
-            const { data: aiResponse } = await supabase.functions.invoke('doctor-ai-assistant', {
-              body: { 
-                messages: [{ role: "user", content: newMessage }],
-                preferredLanguage: 'en' 
-              },
-            });
-            
-            if (aiResponse && aiResponse.response) {
-              // Send AI response back to user with slight delay for natural feel
-              setTimeout(async () => {
-                await supabase.functions.invoke("send-chat-message", {
-                  body: {
-                    sender_id: selectedUserId, // AI bot ID
-                    receiver_id: user.id,
-                    message: aiResponse.response,
-                    message_type: "text"
-                  }
-                });
-              }, 1500);
-            }
-            
-            setNewMessage("");
-            toast({
-              title: "Message sent to AI Assistant",
-            });
-          } catch (error) {
-            console.error("Error in AI chat:", error);
-            toast({
-              title: "Error",
-              description: "Failed to get AI response. Please try again.",
-              variant: "destructive",
-            });
-          }
-        } else {
-          // Regular user-to-user chat
-          const { error } = await supabase.functions.invoke("send-chat-message", {
-            body: {
-              sender_id: user.id,
-              receiver_id: selectedUserId,
-              message: newMessage,
-              message_type: "text"
-            }
-          });
-
-          if (error) {
-            console.error("Error sending message:", error);
-            toast({
-              title: "Error sending message",
-              description: "Failed to send message. Please try again.",
-              variant: "destructive",
-            });
-            return;
-          }
-
-          setNewMessage("");
-          toast({
-            title: "Message sent",
-          });
-        }
       }
     } catch (error: any) {
       console.error("Error sending message:", error);
@@ -412,54 +300,22 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
     <Card className="h-[600px] flex flex-col">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          {isGroupChat ? 
-            <Users className="h-5 w-5" /> :
-            <MessageSquare className="h-5 w-5" />
-          }
+          <Users className="h-5 w-5" />
           {getHeaderTitle()}
         </CardTitle>
-        {!isGroupChat && (
-          <div className="space-y-2">
-            <Label htmlFor="user-select">Select Contact</Label>
-            {usersLoading ? (
-              <Skeleton className="h-10 w-full" />
-            ) : (
-              <Select
-                value={selectedUserId || ""}
-                onValueChange={setSelectedUserId}
-                disabled={allUsers?.length === 0}
-              >
-                <SelectTrigger id="user-select">
-                  <SelectValue placeholder="Select a contact" />
-                </SelectTrigger>
-                <SelectContent>
-                  {allUsers?.map((user) => (
-                    <SelectItem 
-                      key={user.id} 
-                      value={user.id}
-                    >
-                      {getUserDisplayName(user)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-        )}
         {renderError()}
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">
         <ChatMessagesList
-          selectedUserId={selectedUserId}
-          isGroupChat={isGroupChat}
+          isGroupChat={true}
           careTeamGroup={careTeamGroup}
         />
         <ChatInput
           value={newMessage}
           onChange={setNewMessage}
           onSend={handleSendMessage}
-          disabled={(!selectedUserId && !isGroupChat)}
-          placeholder={isGroupChat ? "Message your care team..." : "Type a message..."}
+          disabled={!careTeamGroup}
+          placeholder="Message your care team..."
         />
       </CardContent>
     </Card>

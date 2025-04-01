@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
@@ -9,7 +9,6 @@ import { ChatPageHeader } from "@/components/chat/ChatPageHeader";
 const ChatPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [selectedTab, setSelectedTab] = useState<string>("group");
   
   // Redirect if not logged in
   useEffect(() => {
@@ -25,8 +24,8 @@ const ChatPage = () => {
         <UsersProvider>
           {({ assignedUsers, careTeamGroup, isLoading, error }) => (
             <ChatPageHeader 
-              selectedTab={selectedTab} 
-              onTabChange={setSelectedTab}
+              selectedTab="group" 
+              onTabChange={() => {}} // Empty function as we only have one tab now
               assignedUsers={assignedUsers}
               careTeamGroup={careTeamGroup}
               isLoading={isLoading}
