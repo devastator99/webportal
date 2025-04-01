@@ -1,7 +1,8 @@
 
-import { useState } from "react";
+import { useEffect } from "react";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { ChatbotWidget } from "@/components/chat/ChatbotWidget";
+import { initOfflineDB } from "@/utils/offlineStorage";
 
 interface ChatModuleProps {
   showChatInterface?: boolean;
@@ -16,6 +17,20 @@ export const ChatModule = ({
   showChatInterface = true, 
   showChatbotWidget = true 
 }: ChatModuleProps) => {
+  // Initialize the offline database when the chat module loads
+  useEffect(() => {
+    const initDb = async () => {
+      try {
+        await initOfflineDB();
+        console.log("Offline chat database initialized");
+      } catch (error) {
+        console.error("Error initializing offline chat database:", error);
+      }
+    };
+    
+    initDb();
+  }, []);
+  
   return (
     <>
       {showChatInterface && <ChatInterface />}

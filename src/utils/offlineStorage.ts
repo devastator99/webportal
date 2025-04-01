@@ -33,8 +33,10 @@ export const initOfflineDB = async () => {
   if (!dbPromise) {
     dbPromise = openDB<OfflineDB>(DB_NAME, DB_VERSION, {
       upgrade(db) {
-        const store = db.createObjectStore(MESSAGE_STORE, { keyPath: 'id' });
-        store.createIndex('by-synced', 'synced');
+        if (!db.objectStoreNames.contains(MESSAGE_STORE)) {
+          const store = db.createObjectStore(MESSAGE_STORE, { keyPath: 'id' });
+          store.createIndex('by-synced', 'synced');
+        }
       },
     });
   }
