@@ -18,12 +18,6 @@ const LazyMedicalRecordsUpload = lazy(() =>
   }))
 );
 
-const LazyChatInterface = lazy(() => 
-  import('../chat/ChatInterface').then(module => ({ 
-    default: module.ChatInterface 
-  }))
-);
-
 // Loading fallback component
 const LoadingFallback = () => (
   <div className="space-y-3 p-4">
@@ -89,14 +83,7 @@ export const PatientDashboard = () => {
             </Suspense>
           </CollapsibleSection>
           
-          {/* Only show chat if enabled */}
-          {featureFlags.enableChat && featureFlags.patientDashboardChat && (
-            <CollapsibleSection title="Chat with Doctor" defaultOpen={false}>
-              <Suspense fallback={<LoadingFallback />}>
-                <LazyChatInterface />
-              </Suspense>
-            </CollapsibleSection>
-          )}
+          {/* Removed the chat section as requested */}
         </div>
       </div>
     </div>
