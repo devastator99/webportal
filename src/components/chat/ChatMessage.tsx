@@ -1,6 +1,6 @@
 
 import { formatDistanceToNow } from "date-fns";
-import { Check } from "lucide-react";
+import { Check, Clock } from "lucide-react";
 
 interface ChatMessageProps {
   message: {
@@ -14,12 +14,19 @@ interface ChatMessageProps {
       last_name: string | null;
       role?: string;
     };
+    synced?: boolean;
   };
   isCurrentUser: boolean;
   showSender?: boolean;
+  offlineMode?: boolean;
 }
 
-export const ChatMessage = ({ message, isCurrentUser, showSender = false }: ChatMessageProps) => {
+export const ChatMessage = ({ 
+  message, 
+  isCurrentUser, 
+  showSender = false, 
+  offlineMode = false 
+}: ChatMessageProps) => {
   const senderName = message.sender.first_name || message.sender.last_name 
     ? `${message.sender.first_name || ''} ${message.sender.last_name || ''}`.trim()
     : 'Unknown User';
@@ -34,7 +41,13 @@ export const ChatMessage = ({ message, isCurrentUser, showSender = false }: Chat
   const renderReadStatus = () => {
     if (!isCurrentUser) return null;
     
-    if (isDieticianSender) {
+    if (offlineMode) {
+      return (
+        <span className="ml-1 text-yellow-500" title="Will be delivered when online">
+          <Clock className="h-3 w-3" />
+        </span>
+      );
+    } else if (isDieticianSender) {
       return (
         <span className="ml-1 inline-flex">
           <Check className="h-3 w-3" />
@@ -61,7 +74,9 @@ export const ChatMessage = ({ message, isCurrentUser, showSender = false }: Chat
       <div
         className={`max-w-[80%] rounded-lg p-3 ${
           isCurrentUser
-            ? "bg-primary text-primary-foreground"
+            ? offlineMode 
+              ? "bg-yellow-200 text-yellow-900" 
+              : "bg-primary text-primary-foreground"
             : "bg-muted"
         }`}
       >
@@ -75,6 +90,7 @@ export const ChatMessage = ({ message, isCurrentUser, showSender = false }: Chat
         <p className="text-xs opacity-70 flex items-center">
           {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
           {isCurrentUser && renderReadStatus()}
+          {offlineMode && <span className="ml-1 text-xs font-medium"> (offline)</span>}
         </p>
       </div>
     </div>

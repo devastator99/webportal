@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MessageSquare, Users } from "lucide-react";
+import { MessageSquare, Users, WifiOff } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { ChatInput } from "./ChatInput";
@@ -11,6 +11,9 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { v4 as uuidv4 } from "uuid";
+import { useOnlineStatus } from "@/utils/networkStatus";
+import { saveOfflineMessage, getUnsyncedMessages, markMessageAsSynced, deleteOfflineMessage } from "@/utils/offlineStorage";
 
 type UserProfile = {
   id: string;
@@ -37,6 +40,47 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
   const [newMessage, setNewMessage] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isGroupChat, setIsGroupChat] = useState<boolean>(true);
+  const isOnline = useOnlineStatus();
+
+  useEffect(() => {
+    const syncOfflineMessages = async () => {
+      if (isOnline && user?.id) {
+        const unsyncedMessages = await getUnsyncedMessages();
+        
+        if (unsyncedMessages.length > 0) {
+          toast({
+            title: "Syncing messages",
+            description: `Syncing ${unsyncedMessages.length} messages that were sent offline...`,
+          });
+
+          for (const message of unsyncedMessages) {
+            try {
+              await supabase.functions.invoke("send-chat-message", {
+                body: {
+                  sender_id: message.sender_id,
+                  receiver_id: message.receiver_id,
+                  message: message.message,
+                  message_type: message.message_type
+                }
+              });
+              
+              await markMessageAsSynced(message.id);
+              await deleteOfflineMessage(message.id);
+            } catch (error) {
+              console.error("Failed to sync message:", error);
+            }
+          }
+
+          toast({
+            title: "Messages synced",
+            description: "Your offline messages have been delivered.",
+          });
+        }
+      }
+    };
+
+    syncOfflineMessages();
+  }, [isOnline, user?.id, toast]);
 
   const { data: allUsers, isLoading: usersLoading, error: usersError } = useQuery({
     queryKey: ["available_chat_users", user?.id, userRole],
@@ -234,6 +278,33 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
 
     try {
       if (careTeamGroup) {
+        if (!isOnline) {
+          const offlineMessageId = uuidv4();
+          const timestamp = new Date().toISOString();
+          
+          for (const member of careTeamGroup.members) {
+            if (member.role === 'aibot') continue;
+            
+            await saveOfflineMessage({
+              id: uuidv4(),
+              sender_id: user.id,
+              receiver_id: member.id,
+              message: newMessage,
+              message_type: "text",
+              created_at: timestamp,
+              synced: false
+            });
+          }
+          
+          toast({
+            title: "Message saved",
+            description: "Your message will be sent when you're back online.",
+          });
+          
+          setNewMessage("");
+          return;
+        }
+        
         const sendPromises = careTeamGroup.members.map(member => {
           if (member.role === 'aibot') return Promise.resolve();
           
@@ -302,7 +373,15 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
           {getHeaderTitle()}
+          {!isOnline && <WifiOff className="h-4 w-4 text-red-500 ml-2" />}
         </CardTitle>
+        {!isOnline && (
+          <Alert className="bg-yellow-50 border-yellow-200">
+            <AlertDescription className="text-yellow-800">
+              You're currently offline. Messages will be sent when your connection returns.
+            </AlertDescription>
+          </Alert>
+        )}
         {renderError()}
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">
@@ -310,13 +389,15 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           isGroupChat={true}
           careTeamGroup={careTeamGroup}
           selectedUserId={null}
+          offlineMode={!isOnline}
         />
         <ChatInput
           value={newMessage}
           onChange={setNewMessage}
           onSend={handleSendMessage}
           disabled={!careTeamGroup}
-          placeholder="Message your care team..."
+          placeholder={isOnline ? "Message your care team..." : "Message your care team (offline)..."}
+          offlineMode={!isOnline}
         />
       </CardContent>
     </Card>

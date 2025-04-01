@@ -1,11 +1,11 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getAllOfflineMessages } from "@/utils/offlineStorage";
 
 interface CareTeamGroup {
   groupName: string;
@@ -21,9 +21,10 @@ interface UserProfile {
 }
 
 interface ChatMessagesListProps {
-  selectedUserId?: string | null;  // Make this prop optional with ?
+  selectedUserId?: string | null;
   isGroupChat?: boolean;
   careTeamGroup?: CareTeamGroup | null;
+  offlineMode?: boolean;
 }
 
 interface ProfileInfo {
@@ -41,21 +42,79 @@ interface MessageData {
   read: boolean;
   sender: ProfileInfo;
   receiver: ProfileInfo;
+  synced?: boolean;
 }
 
 export const ChatMessagesList = ({ 
   selectedUserId, 
   isGroupChat = false, 
-  careTeamGroup = null 
+  careTeamGroup = null,
+  offlineMode = false
 }: ChatMessagesListProps) => {
   const { user } = useAuth();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const [offlineMessages, setOfflineMessages] = useState<MessageData[]>([]);
 
   // Determine query key based on whether we're in group chat or individual chat
   const queryKey = isGroupChat && careTeamGroup 
     ? ["group_chat_messages", user?.id, careTeamGroup.members.map(m => m.id).join('_')]
     : ["chat_messages", user?.id, selectedUserId];
+
+  // Load offline messages
+  useEffect(() => {
+    const loadOfflineMessages = async () => {
+      if (user?.id) {
+        try {
+          const messages = await getAllOfflineMessages();
+          
+          // Format offline messages to match MessageData structure
+          const formattedMessages = messages.map(msg => {
+            // Simple offline message format conversion
+            const senderInfo: ProfileInfo = {
+              id: msg.sender_id,
+              first_name: msg.sender_id === user.id ? "You (offline)" : "Contact",
+              last_name: "",
+              role: ""
+            };
+            
+            // Try to find sender info in care team if available
+            if (careTeamGroup?.members && msg.sender_id !== user.id) {
+              const member = careTeamGroup.members.find(m => m.id === msg.sender_id);
+              if (member) {
+                senderInfo.first_name = member.first_name;
+                senderInfo.last_name = member.last_name;
+                senderInfo.role = member.role;
+              }
+            }
+            
+            return {
+              id: msg.id,
+              message: msg.message,
+              message_type: msg.message_type,
+              created_at: msg.created_at,
+              read: false,
+              sender: senderInfo,
+              receiver: {
+                id: msg.receiver_id,
+                first_name: null,
+                last_name: null
+              },
+              synced: msg.synced
+            };
+          });
+          
+          setOfflineMessages(formattedMessages);
+        } catch (err) {
+          console.error("Error loading offline messages:", err);
+        }
+      }
+    };
+    
+    if (offlineMode) {
+      loadOfflineMessages();
+    }
+  }, [user?.id, offlineMode, careTeamGroup]);
 
   // Function to fetch messages for either individual or group chat
   const fetchMessages = async () => {
@@ -189,12 +248,15 @@ export const ChatMessagesList = ({
   };
 
   // Use the fetchMessages function in the query
-  const { data: messages, isLoading, error } = useQuery({
+  const { data: onlineMessages, isLoading, error } = useQuery({
     queryKey,
     queryFn: fetchMessages,
-    enabled: !!user?.id && (!!selectedUserId || (isGroupChat && !!careTeamGroup)),
+    enabled: !!user?.id && (!!selectedUserId || (isGroupChat && !!careTeamGroup)) && !offlineMode,
     refetchInterval: 3000, // Poll every 3 seconds to ensure we get new messages
   });
+
+  // Combine online and offline messages when needed
+  const messages = offlineMode ? offlineMessages : onlineMessages;
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -302,7 +364,7 @@ export const ChatMessagesList = ({
     );
   }
 
-  if (isLoading) {
+  if (isLoading && !offlineMode) {
     return (
       <div className="flex-1 space-y-4">
         {[...Array(3)].map((_, i) => (
@@ -314,7 +376,7 @@ export const ChatMessagesList = ({
     );
   }
 
-  if (error) {
+  if (error && !offlineMode) {
     return (
       <div className="flex-1 flex items-center justify-center text-destructive">
         Error loading messages. Please try again.
@@ -325,9 +387,11 @@ export const ChatMessagesList = ({
   if (!messages || !messages.length) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
-        {isGroupChat 
-          ? "No group messages yet. Start a conversation with your care team!" 
-          : "No messages yet. Start a conversation!"
+        {offlineMode
+          ? "No offline messages available."
+          : isGroupChat 
+            ? "No group messages yet. Start a conversation with your care team!" 
+            : "No messages yet. Start a conversation!"
         }
       </div>
     );
@@ -352,10 +416,12 @@ export const ChatMessagesList = ({
                   first_name: msg.sender.first_name || '',
                   last_name: msg.sender.last_name || '',
                   role: msg.sender.role
-                }
+                },
+                synced: msg.synced
               }}
               isCurrentUser={msg.sender.id === user?.id}
               showSender={isGroupChat}
+              offlineMode={offlineMode && msg.synced === false}
             />
           );
         })}
