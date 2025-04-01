@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { LucideLoader2, Calendar } from "lucide-react";
+import { LucideLoader2, CalendarIcon } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -14,8 +14,7 @@ import { PatientData } from "@/hooks/useAuthHandlers";
 import { Textarea } from "@/components/ui/textarea";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import { Calendar } from "@/components/ui/calendar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface AuthFormProps {
@@ -383,7 +382,9 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
                                 console.log("Date selected:", date);
                                 field.onChange(date ? date.toISOString() : "");
                               }}
-                              disabled={(date) => date > new Date() || date < new Date("1900-01-01")}
+                              disabled={(date) => 
+                                date > new Date() || date < new Date("1900-01-01")
+                              }
                               initialFocus
                             />
                           </PopoverContent>
