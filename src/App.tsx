@@ -13,7 +13,7 @@ import PatientsView from './pages/PatientsView';
 import ChatPage from './pages/ChatPage';
 import { featureFlags } from './config/features';
 import { ChatModule } from './modules/chat/ChatModule';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { MobileStatusBar } from './components/mobile/MobileStatusBar';
 import { MobileNavigation } from './components/mobile/MobileNavigation';
 
@@ -26,6 +26,8 @@ function App() {
   // Listen for changes to feature flags in localStorage
   useEffect(() => {
     const checkFeatureFlags = () => {
+      if (typeof window === 'undefined') return;
+      
       const savedFlags = localStorage.getItem('featureFlags');
       if (savedFlags) {
         const parsedFlags = JSON.parse(savedFlags);
@@ -39,15 +41,17 @@ function App() {
     checkFeatureFlags();
     
     // Set up event listener for storage changes
-    window.addEventListener('storage', checkFeatureFlags);
-    
-    // Custom event for when flags change within the same window
-    window.addEventListener('featureFlagsChanged', checkFeatureFlags);
-    
-    return () => {
-      window.removeEventListener('storage', checkFeatureFlags);
-      window.removeEventListener('featureFlagsChanged', checkFeatureFlags);
-    };
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', checkFeatureFlags);
+      
+      // Custom event for when flags change within the same window
+      window.addEventListener('featureFlagsChanged', checkFeatureFlags);
+      
+      return () => {
+        window.removeEventListener('storage', checkFeatureFlags);
+        window.removeEventListener('featureFlagsChanged', checkFeatureFlags);
+      };
+    }
   }, []);
 
   return (

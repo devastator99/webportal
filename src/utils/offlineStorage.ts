@@ -27,7 +27,7 @@ const DB_NAME = 'chat_offline_db';
 const DB_VERSION = 1;
 const MESSAGE_STORE = 'messages';
 
-let dbPromise: Promise<IDBPDatabase<OfflineDB>>;
+let dbPromise: Promise<IDBPDatabase<OfflineDB>> | null = null;
 
 export const initOfflineDB = async () => {
   if (!dbPromise) {
