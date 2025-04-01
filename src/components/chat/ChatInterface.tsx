@@ -1,6 +1,6 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase, safelyUnwrapValue, asArray } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare, Users } from "lucide-react";
@@ -58,12 +58,12 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           
           // Try to get care team using get_patient_care_team function
           try {
-            const { data, error } = await supabase.rpc("get_patient_care_team", {
+            const { data, error } = await supabase.rpc('get_patient_care_team', {
               p_patient_id: user.id
             });
             
             if (!error && data) {
-              careTeam = data;
+              careTeam = data as UserProfile[];
             } else {
               careTeamError = error;
               console.error("Error fetching care team:", error);
@@ -74,19 +74,19 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           }
           
           // If the function call fails, try to get doctor and nutritionist separately using RPC
-          if (careTeamError) {
+          if (careTeamError || (Array.isArray(careTeam) && careTeam.length === 0)) {
             try {
               // Get assigned doctor information
-              const { data: doctorData } = await supabase.rpc("get_doctor_for_patient", { 
+              const { data: doctorData } = await supabase.rpc('get_doctor_for_patient', { 
                 p_patient_id: user.id 
               });
               
               // Get assigned nutritionist information
-              const { data: nutritionistData } = await supabase.rpc("get_nutritionist_for_patient", { 
+              const { data: nutritionistData } = await supabase.rpc('get_nutritionist_for_patient', { 
                 p_patient_id: user.id 
               });
               
-              if (doctorData && doctorData.length > 0) {
+              if (doctorData && Array.isArray(doctorData) && doctorData.length > 0) {
                 const doctor = doctorData[0];
                 careTeam.push({
                   id: doctor.id,
@@ -96,7 +96,7 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
                 });
               }
               
-              if (nutritionistData && nutritionistData.length > 0) {
+              if (nutritionistData && Array.isArray(nutritionistData) && nutritionistData.length > 0) {
                 const nutritionist = nutritionistData[0];
                 careTeam.push({
                   id: nutritionist.id,
@@ -105,6 +105,14 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
                   role: "nutritionist"
                 });
               }
+              
+              // Add AI bot manually if using fallback
+              careTeam.push({
+                id: '00000000-0000-0000-0000-000000000000',
+                first_name: 'AI',
+                last_name: 'Assistant',
+                role: 'aibot'
+              });
             } catch (err) {
               console.error("Error in fallback doctor/nutritionist fetch:", err);
             }
@@ -132,7 +140,7 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
         // For doctors and nutritionists: get assigned patients and admins
         else if (userRole === "doctor" || userRole === "nutritionist") {
           // Get assigned patients
-          const { data: patients, error: patientsError } = await supabase.rpc("get_assigned_patients", {
+          const { data: patients, error: patientsError } = await supabase.rpc('get_assigned_patients', {
             p_provider_id: user.id,
             p_provider_role: userRole
           });
@@ -156,7 +164,7 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           }));
           
           // Combine patients and admins
-          return [...(patients || []), ...formattedAdmins];
+          return [...(patients as UserProfile[] || []), ...formattedAdmins];
         } 
         // For admins: get all users
         else if (userRole === "administrator") {
@@ -224,26 +232,58 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
       if (isGroupChat && careTeamGroup) {
         // Send message to all members of the care team
         const sendPromises = careTeamGroup.members.map(member => {
+          // Don't send message to AI bot through regular channels
+          if (member.role === 'aibot') return Promise.resolve();
+          
           return (supabase.rpc as any)("send_chat_message", {
             p_sender_id: user.id,
             p_receiver_id: member.id,
             p_message: newMessage,
             p_message_type: "text"
           });
-        });
+        }).filter(Boolean);
 
-        // Add AI response if appropriate
-        if (newMessage.toLowerCase().includes("@ai") || 
-            newMessage.toLowerCase().includes("@assistant")) {
-          // This will be handled by the real-time listener
-          // Send a message that looks like it's from the AI
-          const aiResponse = "This is an automated response. For personalized AI assistance, please use the AI Assistant tab.";
-          
-          // Add AI "user" to the database if it doesn't exist yet
-          // In a real implementation, you would have a dedicated AI user in the database
-        }
-
+        // Process messages
         await Promise.all(sendPromises);
+        
+        // Handle AI bot response if this is a group chat with AI
+        if (careTeamGroup.members.some(member => member.role === 'aibot')) {
+          try {
+            // Generate AI response
+            const { data: aiResponse } = await supabase.functions.invoke('doctor-ai-assistant', {
+              body: { 
+                messages: [{ role: "user", content: newMessage }],
+                preferredLanguage: 'en'
+              },
+            });
+            
+            if (aiResponse && aiResponse.response) {
+              // AI response delay for natural feel
+              setTimeout(async () => {
+                // Send AI response back to all human group members
+                const aiSendPromises = careTeamGroup.members
+                  .filter(member => member.role !== 'aibot')
+                  .map(member => {
+                    return (supabase.rpc as any)("send_chat_message", {
+                      p_sender_id: '00000000-0000-0000-0000-000000000000', // AI bot ID
+                      p_receiver_id: member.id,
+                      p_message: aiResponse.response,
+                      p_message_type: "text"
+                    });
+                  });
+                
+                await Promise.all(aiSendPromises);
+                
+                toast({
+                  title: "AI Assistant responded",
+                  description: "The AI Assistant has responded to your message.",
+                });
+              }, 1500);
+            }
+          } catch (error) {
+            console.error("Error getting AI response:", error);
+          }
+        }
         
         setNewMessage("");
         toast({

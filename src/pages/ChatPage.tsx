@@ -51,14 +51,14 @@ const ChatPage = () => {
           let careTeam: UserProfile[] = [];
           let careTeamError = null;
           
-          // Try to get care team using get_patient_care_team function
+          // Try to fetch care team (including AI bot)
           try {
-            const { data, error } = await supabase.rpc("get_patient_care_team", {
+            const { data, error } = await supabase.rpc('get_patient_care_team', {
               p_patient_id: user.id
             });
             
             if (!error && data) {
-              careTeam = data;
+              careTeam = data as UserProfile[];
             } else {
               careTeamError = error;
               console.error("Error fetching care team:", error);
@@ -69,19 +69,19 @@ const ChatPage = () => {
           }
           
           // If the function call fails, try to get doctor and nutritionist separately using RPC
-          if (careTeamError) {
+          if (careTeamError || careTeam.length === 0) {
             try {
               // Get assigned doctor information
-              const { data: doctorData } = await supabase.rpc("get_doctor_for_patient", { 
+              const { data: doctorData } = await supabase.rpc('get_doctor_for_patient', { 
                 p_patient_id: user.id 
               });
               
               // Get assigned nutritionist information
-              const { data: nutritionistData } = await supabase.rpc("get_nutritionist_for_patient", { 
+              const { data: nutritionistData } = await supabase.rpc('get_nutritionist_for_patient', { 
                 p_patient_id: user.id 
               });
               
-              if (doctorData && doctorData.length > 0) {
+              if (doctorData && Array.isArray(doctorData) && doctorData.length > 0) {
                 const doctor = doctorData[0];
                 careTeam.push({
                   id: doctor.id,
@@ -91,7 +91,7 @@ const ChatPage = () => {
                 });
               }
               
-              if (nutritionistData && nutritionistData.length > 0) {
+              if (nutritionistData && Array.isArray(nutritionistData) && nutritionistData.length > 0) {
                 const nutritionist = nutritionistData[0];
                 careTeam.push({
                   id: nutritionist.id,
@@ -100,6 +100,14 @@ const ChatPage = () => {
                   role: "nutritionist"
                 });
               }
+              
+              // Add AI bot manually if using fallback
+              careTeam.push({
+                id: '00000000-0000-0000-0000-000000000000',
+                first_name: 'AI',
+                last_name: 'Assistant',
+                role: 'aibot'
+              });
             } catch (err) {
               console.error("Error in fallback doctor/nutritionist fetch:", err);
             }
@@ -128,9 +136,9 @@ const ChatPage = () => {
             role: "administrator"
           }));
           
-          // Create care team group from assigned doctor and nutritionist
+          // Create care team group from assigned doctor, nutritionist and AI bot
           const careTeamMembers = careTeam.filter(member => 
-            member.role === "doctor" || member.role === "nutritionist"
+            member.role === "doctor" || member.role === "nutritionist" || member.role === "aibot"
           );
           
           const careTeamGroup = careTeamMembers.length > 0 ? {
@@ -138,7 +146,7 @@ const ChatPage = () => {
             members: [...careTeamMembers]
           } : null;
           
-          // Combine providers and admins, ensuring admins are always included
+          // Combine providers, AI bot and admins, ensuring admins are always included
           const allUsers = [...careTeam, ...formattedAdmins];
           
           return { 
@@ -147,14 +155,14 @@ const ChatPage = () => {
           };
         } else if (userRole === "doctor" || userRole === "nutritionist") {
           // Get assigned patients for this doctor/nutritionist
-          const { data, error } = await supabase.rpc("get_assigned_patients", {
+          const { data, error } = await supabase.rpc('get_assigned_patients', {
             p_provider_id: user.id,
             p_provider_role: userRole
           });
           
           if (error) throw error;
           return { 
-            assignedUsers: (data || []) as UserProfile[],
+            assignedUsers: data as UserProfile[],
             careTeamGroup: null
           };
         } else if (userRole === "administrator") {
