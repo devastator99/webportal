@@ -12,13 +12,15 @@ interface ChatMessage {
   synced: boolean;
 }
 
-// Define the schema for our IndexedDB
+// Define the schema for our IndexedDB using the correct format
 interface OfflineDB extends DBSchema {
+  // For each object store, define its key, value, and indices
   messages: {
-    key: string;
-    value: ChatMessage;
+    key: string;  // Primary key (id)
+    value: ChatMessage;  // Value type
+    // Define indices properly
     indexes: {
-      'by-synced': boolean;
+      'by-synced': boolean;  // Index name and key type
     };
   };
 }
@@ -46,32 +48,64 @@ export const initOfflineDB = async () => {
 // Save an offline message
 export const saveOfflineMessage = async (message: ChatMessage): Promise<void> => {
   const db = await initOfflineDB();
-  await db.put(MESSAGE_STORE, { ...message, synced: false });
+  try {
+    await db.put(MESSAGE_STORE, { ...message, synced: false });
+    console.log('Message saved successfully:', message.id);
+  } catch (error) {
+    console.error('Error saving offline message:', error);
+    throw error;
+  }
 };
 
 // Get all unsynced messages
 export const getUnsyncedMessages = async (): Promise<ChatMessage[]> => {
   const db = await initOfflineDB();
-  return db.getAllFromIndex(MESSAGE_STORE, 'by-synced', false);
+  try {
+    const messages = await db.getAllFromIndex(MESSAGE_STORE, 'by-synced', false);
+    console.log('Retrieved unsynced messages:', messages.length);
+    return messages;
+  } catch (error) {
+    console.error('Error getting unsynced messages:', error);
+    return [];
+  }
 };
 
 // Mark message as synced
 export const markMessageAsSynced = async (messageId: string): Promise<void> => {
   const db = await initOfflineDB();
-  const message = await db.get(MESSAGE_STORE, messageId);
-  if (message) {
-    await db.put(MESSAGE_STORE, { ...message, synced: true });
+  try {
+    const message = await db.get(MESSAGE_STORE, messageId);
+    if (message) {
+      await db.put(MESSAGE_STORE, { ...message, synced: true });
+      console.log('Message marked as synced:', messageId);
+    }
+  } catch (error) {
+    console.error('Error marking message as synced:', error);
+    throw error;
   }
 };
 
 // Delete a message
 export const deleteOfflineMessage = async (messageId: string): Promise<void> => {
   const db = await initOfflineDB();
-  await db.delete(MESSAGE_STORE, messageId);
+  try {
+    await db.delete(MESSAGE_STORE, messageId);
+    console.log('Message deleted:', messageId);
+  } catch (error) {
+    console.error('Error deleting offline message:', error);
+    throw error;
+  }
 };
 
 // Get all messages
 export const getAllOfflineMessages = async (): Promise<ChatMessage[]> => {
   const db = await initOfflineDB();
-  return db.getAll(MESSAGE_STORE);
+  try {
+    const messages = await db.getAll(MESSAGE_STORE);
+    console.log('Retrieved all messages:', messages.length);
+    return messages;
+  } catch (error) {
+    console.error('Error getting all offline messages:', error);
+    return [];
+  }
 };
