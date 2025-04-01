@@ -11,6 +11,7 @@ import { ChatMessagesList } from "./ChatMessagesList";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type UserProfile = {
   id: string;
@@ -30,9 +31,9 @@ export const ChatInterface = ({ assignedUsers = [] }: ChatInterfaceProps) => {
   const [newMessage, setNewMessage] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
-  // If assignedUsers is provided, use that instead of fetching all users
-  const { data: allUsers, error: usersError } = useQuery({
-    queryKey: ["all_users", user?.id],
+  // Fetch available chat users based on user role
+  const { data: allUsers, isLoading: usersLoading, error: usersError } = useQuery({
+    queryKey: ["available_chat_users", user?.id, userRole],
     queryFn: async () => {
       if (!user?.id) return [];
       
@@ -40,50 +41,96 @@ export const ChatInterface = ({ assignedUsers = [] }: ChatInterfaceProps) => {
         return assignedUsers;
       }
       
-      // Get all profiles except current user
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name")
-        .neq("id", user.id);
-
-      if (error) {
-        console.error("Error fetching users:", error);
+      try {
+        // For patients: only fetch assigned doctors, nutritionists, and admins
+        if (userRole === "patient") {
+          // Get assigned care team (doctors and nutritionists)
+          const { data: careTeam, error: careTeamError } = await (supabase.rpc as any)("get_patient_care_team", {
+            p_patient_id: user.id
+          });
+          
+          if (careTeamError) throw careTeamError;
+          
+          // Get administrators
+          const { data: admins, error: adminsError } = await supabase
+            .from("profiles")
+            .select("id, first_name, last_name, user_role:user_roles(role)")
+            .eq("user_roles.role", "administrator");
+            
+          if (adminsError) throw adminsError;
+          
+          // Format admin users
+          const formattedAdmins = (admins || []).map(admin => ({
+            id: admin.id,
+            first_name: admin.first_name,
+            last_name: admin.last_name,
+            role: "administrator"
+          }));
+          
+          // Combine providers and admins
+          return [...(careTeam || []), ...formattedAdmins];
+        } 
+        // For doctors and nutritionists: get assigned patients and admins
+        else if (userRole === "doctor" || userRole === "nutritionist") {
+          // Get assigned patients
+          const { data: patients, error: patientsError } = await (supabase.rpc as any)("get_assigned_patients", {
+            p_provider_id: user.id,
+            p_provider_role: userRole
+          });
+          
+          if (patientsError) throw patientsError;
+          
+          // Get administrators
+          const { data: admins, error: adminsError } = await supabase
+            .from("profiles")
+            .select("id, first_name, last_name, user_role:user_roles(role)")
+            .eq("user_roles.role", "administrator");
+            
+          if (adminsError) throw adminsError;
+          
+          // Format admin users
+          const formattedAdmins = (admins || []).map(admin => ({
+            id: admin.id,
+            first_name: admin.first_name,
+            last_name: admin.last_name,
+            role: "administrator"
+          }));
+          
+          // Combine patients and admins
+          return [...(patients || []), ...formattedAdmins];
+        } 
+        // For admins: get all users
+        else if (userRole === "administrator") {
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("id, first_name, last_name, user_role:user_roles(role)")
+            .neq("id", user.id);
+          
+          if (error) throw error;
+          
+          return (data || []).map(profile => ({
+            id: profile.id,
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+            role: profile.user_role?.role || ""
+          }));
+        }
+        
+        return [];
+      } catch (error) {
+        console.error("Error fetching available users for chat:", error);
         throw error;
       }
-      
-      return data as UserProfile[];
     },
-    enabled: !!user?.id,
+    enabled: !!user?.id && !!userRole
   });
 
-  // Select first user by default
+  // Select first user by default when users are loaded
   useEffect(() => {
     if (allUsers?.length > 0 && !selectedUserId) {
       setSelectedUserId(allUsers[0].id);
     }
   }, [allUsers, selectedUserId]);
-
-  // Fetch selected user details
-  const { data: selectedUser, error: selectedUserError } = useQuery({
-    queryKey: ["selected_user", selectedUserId],
-    queryFn: async () => {
-      if (!selectedUserId) return null;
-      
-      if (assignedUsers?.length > 0) {
-        return assignedUsers.find(u => u.id === selectedUserId) || null;
-      }
-      
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name")
-        .eq("id", selectedUserId)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data as UserProfile;
-    },
-    enabled: !!selectedUserId,
-  });
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -107,7 +154,7 @@ export const ChatInterface = ({ assignedUsers = [] }: ChatInterfaceProps) => {
     }
 
     try {
-      const { data, error } = await supabase.rpc("send_chat_message", {
+      const { error } = await (supabase.rpc as any)("send_chat_message", {
         p_sender_id: user.id,
         p_receiver_id: selectedUserId,
         p_message: newMessage,
@@ -126,7 +173,7 @@ export const ChatInterface = ({ assignedUsers = [] }: ChatInterfaceProps) => {
 
       setNewMessage("");
       toast({
-        title: "Message sent successfully",
+        title: "Message sent",
       });
     } catch (error: any) {
       console.error("Error sending message:", error);
@@ -139,13 +186,9 @@ export const ChatInterface = ({ assignedUsers = [] }: ChatInterfaceProps) => {
   };
 
   const getHeaderTitle = () => {
-    const userName = selectedUser 
-      ? `${safelyUnwrapValue(selectedUser.first_name, "")} ${safelyUnwrapValue(selectedUser.last_name, "")}`
-      : "";
-      
-    if (userName) {
-      return `Chat with ${userName}`;
-    }
+    if (usersLoading) return "Loading contacts...";
+    if (usersError) return "Error loading contacts";
+    if (allUsers?.length === 0) return "No contacts available";
     return "Messages";
   };
 
@@ -166,16 +209,7 @@ export const ChatInterface = ({ assignedUsers = [] }: ChatInterfaceProps) => {
       return (
         <Alert>
           <AlertDescription>
-            Unable to load users. Please refresh the page.
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    if (selectedUserError) {
-      return (
-        <Alert variant="destructive">
-          <AlertDescription>
-            Unable to load user information. Please try again later.
+            Unable to load contacts. Please refresh the page.
           </AlertDescription>
         </Alert>
       );
@@ -191,25 +225,30 @@ export const ChatInterface = ({ assignedUsers = [] }: ChatInterfaceProps) => {
           {getHeaderTitle()}
         </CardTitle>
         <div className="space-y-2">
-          <Label htmlFor="user-select">Select User</Label>
-          <Select
-            value={selectedUserId || ""}
-            onValueChange={setSelectedUserId}
-          >
-            <SelectTrigger id="user-select">
-              <SelectValue placeholder="Select a user to chat with" />
-            </SelectTrigger>
-            <SelectContent>
-              {allUsers?.map((user) => (
-                <SelectItem 
-                  key={user.id} 
-                  value={user.id}
-                >
-                  {getUserDisplayName(user)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label htmlFor="user-select">Select Contact</Label>
+          {usersLoading ? (
+            <Skeleton className="h-10 w-full" />
+          ) : (
+            <Select
+              value={selectedUserId || ""}
+              onValueChange={setSelectedUserId}
+              disabled={allUsers?.length === 0}
+            >
+              <SelectTrigger id="user-select">
+                <SelectValue placeholder="Select a contact" />
+              </SelectTrigger>
+              <SelectContent>
+                {allUsers?.map((user) => (
+                  <SelectItem 
+                    key={user.id} 
+                    value={user.id}
+                  >
+                    {getUserDisplayName(user)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
         </div>
         {renderError()}
       </CardHeader>

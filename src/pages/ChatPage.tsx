@@ -9,6 +9,8 @@ import { Brain, MessageSquare } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface UserProfile {
   id: string;
@@ -31,7 +33,7 @@ const ChatPage = () => {
   }, [user, navigate]);
 
   // Get assigned users based on role
-  const { data: assignedUsers } = useQuery({
+  const { data: assignedUsers, isLoading, error } = useQuery({
     queryKey: ["assigned_users", user?.id, userRole],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -73,30 +75,51 @@ const ChatPage = () => {
     enabled: !!user?.id && !!userRole
   });
 
+  // Helper to render the appropriate content based on loading state
+  const renderContent = () => {
+    if (isLoading) {
+      return <div className="space-y-6">
+        <Skeleton className="h-[600px] w-full rounded-lg" />
+      </div>;
+    }
+
+    if (error) {
+      return <Alert>
+        <AlertDescription>
+          There was an error loading your contacts. Please refresh the page and try again.
+        </AlertDescription>
+      </Alert>;
+    }
+
+    return (
+      <Tabs defaultValue={selectedTab} onValueChange={setSelectedTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsTrigger value="messages">
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Messages
+          </TabsTrigger>
+          <TabsTrigger value="ai">
+            <Brain className="mr-2 h-4 w-4" />
+            AI Assistant
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="messages" className="space-y-4">
+          <ChatInterface assignedUsers={assignedUsers || []} />
+        </TabsContent>
+        
+        <TabsContent value="ai" className="space-y-4">
+          <AiChatInterface />
+        </TabsContent>
+      </Tabs>
+    );
+  };
+
   return (
     <>
       <Navbar />
       <div className="container mx-auto pt-20 pb-6 px-6">
-        <Tabs defaultValue={selectedTab} onValueChange={setSelectedTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
-            <TabsTrigger value="messages">
-              <MessageSquare className="mr-2 h-4 w-4" />
-              Messages
-            </TabsTrigger>
-            <TabsTrigger value="ai">
-              <Brain className="mr-2 h-4 w-4" />
-              AI Assistant
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="messages" className="space-y-4">
-            <ChatInterface assignedUsers={assignedUsers || []} />
-          </TabsContent>
-          
-          <TabsContent value="ai" className="space-y-4">
-            <AiChatInterface />
-          </TabsContent>
-        </Tabs>
+        {renderContent()}
       </div>
     </>
   );
