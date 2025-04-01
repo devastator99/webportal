@@ -1,5 +1,7 @@
+
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
+import { formatDateForDatabase } from '@/utils/dateUtils';
 
 const SUPABASE_URL = "https://hcaqodjylicmppxcbqbh.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjYXFvZGp5bGljbXBweGNicWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzMDIxNDksImV4cCI6MjA1Mzg3ODE0OX0.h4pO6UShabHNPWC9o_EMbbhOVHsR-fuZQ5-b85hNB4w";
@@ -76,6 +78,37 @@ export interface PatientProfile {
   last_name: string | null;
 }
 
+// Define user role interface
+export interface UserRole {
+  id: number;
+  user_id: string;
+  role: string;
+  created_at: string;
+}
+
+// Create user role using RPC function to bypass RLS restrictions
+export async function createUserRole(userId: string, role: string): Promise<UserRole | null> {
+  try {
+    const { data, error } = await supabase.rpc(
+      'create_user_role',
+      {
+        p_user_id: userId,
+        p_role: role
+      }
+    );
+    
+    if (error) {
+      console.error('Error creating user role:', error);
+      throw error;
+    }
+    
+    return data as UserRole;
+  } catch (err) {
+    console.error('Failed to create user role:', err);
+    throw err;
+  }
+}
+
 // Get patients for a doctor using RPC function to avoid RLS recursion issues
 export async function getDoctorPatients(doctorId: string): Promise<PatientProfile[]> {
   try {
@@ -149,7 +182,7 @@ export async function savePrescription(patientId: string, doctorId: string, diag
   }
 }
 
-// Function to create patient details using RPC with type assertion
+// Function to create patient details using RPC with security definer
 export async function createPatientDetails(
   userId: string,
   age: number,
@@ -163,26 +196,33 @@ export async function createPatientDetails(
   currentMedicalConditions: string | null
 ) {
   try {
-    // Use type assertion to bypass TypeScript's strict typing of the RPC function names
-    const { data, error } = await supabase.rpc('create_patient_details' as any, {
-      p_user_id: userId,
-      p_age: age,
-      p_gender: gender,
-      p_blood_group: bloodGroup,
-      p_allergies: allergies,
-      p_emergency_contact: emergencyContact,
-      p_height: height,
-      p_birth_date: birthDate,
-      p_food_habit: foodHabit,
-      p_current_medical_conditions: currentMedicalConditions
-    });
+    const formattedBirthDate = birthDate ? formatDateForDatabase(birthDate) : null;
+    
+    // Use the create_patient_details RPC function
+    const { data, error } = await supabase.rpc(
+      'create_patient_details',
+      {
+        p_user_id: userId,
+        p_age: age,
+        p_gender: gender,
+        p_blood_group: bloodGroup,
+        p_allergies: allergies,
+        p_emergency_contact: emergencyContact,
+        p_height: height,
+        p_birth_date: formattedBirthDate,
+        p_food_habit: foodHabit,
+        p_current_medical_conditions: currentMedicalConditions
+      }
+    );
     
     if (error) {
+      console.error('Error creating patient details:', error);
       throw error;
     }
     
     return data;
   } catch (err) {
+    console.error('Failed to create patient details:', err);
     throw err;
   }
 }

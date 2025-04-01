@@ -1,8 +1,10 @@
+
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, createUserRole, createPatientDetails } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { formatDateForDatabase } from "@/utils/dateUtils";
 
 type UserRole = "patient" | "doctor" | "nutritionist" | "administrator";
 
@@ -167,54 +169,39 @@ export const useAuthHandlers = () => {
 
       console.log('User created successfully:', authData.user);
 
-      // Step 2: Create user role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: userType
-        });
-
-      if (roleError) {
+      // Step 2: Create user role using our new RPC function
+      try {
+        const roleResult = await createUserRole(authData.user.id, userType);
+        console.log('User role created successfully:', roleResult);
+      } catch (roleError: any) {
         console.error('Role creation error:', roleError);
-        throw roleError;
+        // Continue with the registration but notify the user
+        toast.warning("Account created but role assignment had an issue. Some features may be limited.");
       }
-
-      console.log('User role created successfully');
 
       // Step 3: If it's a patient, save the additional patient data
       if (userType === 'patient' && patientData) {
         console.log('Creating patient details for user:', authData.user.id);
         
         try {
-          // Create the parameters for the patient details
-          const patientDataParams = {
-            p_user_id: authData.user.id,
-            p_age: parseInt(patientData.age),
-            p_gender: patientData.gender,
-            p_blood_group: patientData.bloodGroup,
-            p_allergies: patientData.allergies || patientData.knownAllergies || null,
-            p_emergency_contact: patientData.emergencyContact,
-            p_height: patientData.height ? parseFloat(patientData.height) : null,
-            p_birth_date: patientData.birthDate || null,
-            p_food_habit: patientData.foodHabit || null,
-            p_current_medical_conditions: patientData.currentMedicalConditions || null
-          };
+          // Process birth date to ensure it's in the right format
+          const birthDate = patientData.birthDate ? formatDateForDatabase(patientData.birthDate) : null;
           
-          console.log('Patient data being sent to RPC:', patientDataParams);
-          
-          // Use type assertion with any to bypass the TypeScript type checking for RPC function names
-          const { data: patientResult, error: patientDataError } = await supabase.rpc(
-            'create_patient_details' as any, 
-            patientDataParams
+          // Create the patient details using our RPC function
+          const patientResult = await createPatientDetails(
+            authData.user.id,
+            parseInt(patientData.age),
+            patientData.gender,
+            patientData.bloodGroup,
+            patientData.allergies || patientData.knownAllergies || null,
+            patientData.emergencyContact,
+            patientData.height ? parseFloat(patientData.height) : null,
+            birthDate,
+            patientData.foodHabit || null,
+            patientData.currentMedicalConditions || null
           );
-
-          if (patientDataError) {
-            console.error('Patient data creation error:', patientDataError);
-            toast.warning("Account created but patient details couldn't be saved. Please update your profile later.");
-          } else {
-            console.log('Patient details created successfully:', patientResult);
-          }
+          
+          console.log('Patient details created successfully:', patientResult);
         } catch (patientError: any) {
           console.error('Error in patient data creation:', patientError);
           toast.warning("Account created but there was an issue saving your patient details. Please update your profile later.");
