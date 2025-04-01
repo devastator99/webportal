@@ -26,6 +26,7 @@ export const formatDateForDatabase = (date: Date | string | null): string | null
   
   try {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
+    console.log("Formatting for DB:", dateObj);
     return dateFnsFormat(dateObj, 'yyyy-MM-dd');
   } catch (error) {
     console.error('Error formatting date for database:', error);
@@ -94,10 +95,11 @@ export const parseDateFromDisplay = (dateString: string): Date | null => {
     const [day, month, year] = dateString.split('/').map(part => parseInt(part, 10));
     
     // Create a new date, month is 0-indexed in JavaScript
-    return new Date(year, month - 1, day);
+    const parsedDate = new Date(year, month - 1, day);
+    console.log(`Parsed ${dateString} to:`, parsedDate);
+    return parsedDate;
   } catch (error) {
     console.error('Error parsing display date:', error);
     return null;
   }
 };
-

@@ -169,7 +169,7 @@ export const useAuthHandlers = () => {
 
       console.log('User created successfully:', authData.user);
 
-      // Step 2: Create user role using our new RPC function
+      // Step 2: Create user role directly in the user_roles table
       try {
         const roleResult = await createUserRole(authData.user.id, userType);
         console.log('User role created successfully:', roleResult);
@@ -184,19 +184,22 @@ export const useAuthHandlers = () => {
         console.log('Creating patient details for user:', authData.user.id);
         
         try {
-          // Process birth date to ensure it's in the right format
-          const birthDate = patientData.birthDate ? formatDateForDatabase(patientData.birthDate) : null;
+          // Parse the age as a number for the database
+          const ageNumber = parseInt(patientData.age, 10);
           
-          // Create the patient details using our RPC function
+          // Parse the height as a number if provided
+          const heightNumber = patientData.height ? parseFloat(patientData.height) : null;
+          
+          // Create the patient details by inserting directly into patient_details table
           const patientResult = await createPatientDetails(
             authData.user.id,
-            parseInt(patientData.age),
+            ageNumber,
             patientData.gender,
             patientData.bloodGroup,
             patientData.allergies || patientData.knownAllergies || null,
             patientData.emergencyContact,
-            patientData.height ? parseFloat(patientData.height) : null,
-            birthDate,
+            heightNumber,
+            patientData.birthDate,
             patientData.foodHabit || null,
             patientData.currentMedicalConditions || null
           );

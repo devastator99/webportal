@@ -86,24 +86,27 @@ export interface UserRole {
   created_at: string;
 }
 
-// Create user role using custom RPC function (bypassing type system constraints)
+// Create user role using direct table insert instead of RPC
 export async function createUserRole(userId: string, role: string): Promise<UserRole | null> {
   try {
-    // Use a type assertion to bypass TypeScript's type checking for the function name
-    const { data, error } = await (supabase.rpc as any)(
-      'create_user_role',
-      {
-        p_user_id: userId,
-        p_role: role
-      }
-    );
+    console.log(`Creating user role: ${userId} as ${role}`);
+    
+    // Insert role directly into the user_roles table
+    const { data, error } = await supabase
+      .from('user_roles')
+      .insert({
+        user_id: userId,
+        role: role
+      })
+      .select()
+      .single();
     
     if (error) {
       console.error('Error creating user role:', error);
       throw error;
     }
     
-    // Cast the returned data to UserRole
+    console.log('User role created successfully:', data);
     return data as UserRole;
   } catch (err) {
     console.error('Failed to create user role:', err);
@@ -184,7 +187,7 @@ export async function savePrescription(patientId: string, doctorId: string, diag
   }
 }
 
-// Function to create patient details using custom RPC with security definer
+// Function to create patient details using direct table insert
 export async function createPatientDetails(
   userId: string,
   age: number,
@@ -198,30 +201,37 @@ export async function createPatientDetails(
   currentMedicalConditions: string | null
 ) {
   try {
+    console.log('Creating patient details with data:', {
+      userId, age, gender, bloodGroup, allergies, emergencyContact, height, birthDate, foodHabit, currentMedicalConditions
+    });
+    
+    // Format birth date properly
     const formattedBirthDate = birthDate ? formatDateForDatabase(birthDate) : null;
     
-    // Use type assertion to bypass TypeScript's type checking for the function name
-    const { data, error } = await (supabase.rpc as any)(
-      'create_patient_details',
-      {
-        p_user_id: userId,
-        p_age: age,
-        p_gender: gender,
-        p_blood_group: bloodGroup,
-        p_allergies: allergies,
-        p_emergency_contact: emergencyContact,
-        p_height: height,
-        p_birth_date: formattedBirthDate,
-        p_food_habit: foodHabit,
-        p_current_medical_conditions: currentMedicalConditions
-      }
-    );
+    // Insert directly into the patient_details table
+    const { data, error } = await supabase
+      .from('patient_details')
+      .insert({
+        user_id: userId,
+        age: age,
+        gender: gender,
+        blood_group: bloodGroup,
+        allergies: allergies,
+        emergency_contact: emergencyContact,
+        height: height,
+        birth_date: formattedBirthDate,
+        food_habit: foodHabit,
+        current_medical_conditions: currentMedicalConditions
+      })
+      .select()
+      .single();
     
     if (error) {
       console.error('Error creating patient details:', error);
       throw error;
     }
     
+    console.log('Patient details created successfully:', data);
     return data;
   } catch (err) {
     console.error('Failed to create patient details:', err);
