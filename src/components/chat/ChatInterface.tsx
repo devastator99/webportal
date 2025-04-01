@@ -211,6 +211,42 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
     }
   }, [allUsers, selectedUserId, isGroupChat, showGroupChat, careTeamGroup]);
 
+  // Helper functions for the component
+  const getHeaderTitle = () => {
+    if (isGroupChat && careTeamGroup) {
+      return careTeamGroup.groupName;
+    }
+    if (usersLoading) return "Loading contacts...";
+    if (usersError) return "Error loading contacts";
+    if (allUsers?.length === 0) return "No contacts available";
+    return "Messages";
+  };
+
+  const getUserRole = (user: UserProfile) => {
+    if (user.role) return user.role;
+    if (user.user_role?.role) return user.user_role.role;
+    return "";
+  };
+
+  const getUserDisplayName = (user: UserProfile) => {
+    const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+    const role = getUserRole(user);
+    return role ? `${name} (${role})` : name;
+  };
+
+  const renderError = () => {
+    if (usersError) {
+      return (
+        <Alert>
+          <AlertDescription>
+            Unable to load contacts. Please refresh the page.
+          </AlertDescription>
+        </Alert>
+      );
+    }
+    return null;
+  };
+
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
 
@@ -327,41 +363,6 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
     }
   };
 
-  const getHeaderTitle = () => {
-    if (isGroupChat && careTeamGroup) {
-      return careTeamGroup.groupName;
-    }
-    if (usersLoading) return "Loading contacts...";
-    if (usersError) return "Error loading contacts";
-    if (allUsers?.length === 0) return "No contacts available";
-    return "Messages";
-  };
-
-  const getUserRole = (user: UserProfile) => {
-    if (user.role) return user.role;
-    if (user.user_role?.role) return user.user_role.role;
-    return "";
-  };
-
-  const getUserDisplayName = (user: UserProfile) => {
-    const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-    const role = getUserRole(user);
-    return role ? `${name} (${role})` : name;
-  };
-
-  const renderError = () => {
-    if (usersError) {
-      return (
-        <Alert>
-          <AlertDescription>
-            Unable to load contacts. Please refresh the page.
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    return null;
-  };
-
   return (
     <Card className="h-[600px] flex flex-col">
       <CardHeader>
@@ -418,156 +419,4 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
       </CardContent>
     </Card>
   );
-
-  // Helper functions for the component
-  function getHeaderTitle() {
-    if (isGroupChat && careTeamGroup) {
-      return careTeamGroup.groupName;
-    }
-    if (usersLoading) return "Loading contacts...";
-    if (usersError) return "Error loading contacts";
-    if (allUsers?.length === 0) return "No contacts available";
-    return "Messages";
-  }
-
-  function getUserRole(user: UserProfile) {
-    if (user.role) return user.role;
-    if (user.user_role?.role) return user.user_role.role;
-    return "";
-  }
-
-  function getUserDisplayName(user: UserProfile) {
-    const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-    const role = getUserRole(user);
-    return role ? `${name} (${role})` : name;
-  }
-
-  function renderError() {
-    if (usersError) {
-      return (
-        <Alert>
-          <AlertDescription>
-            Unable to load contacts. Please refresh the page.
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    return null;
-  }
-
-  async function handleSendMessage() {
-    if (!newMessage.trim()) return;
-
-    if (!user?.id) {
-      toast({
-        title: "Cannot send message",
-        description: "You must be logged in to send messages.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!isGroupChat && !selectedUserId) {
-      toast({
-        title: "Cannot send message",
-        description: "Please select a recipient first.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      if (isGroupChat && careTeamGroup) {
-        // Send message to all members of the care team
-        const sendPromises = careTeamGroup.members.map(member => {
-          // Don't send message to AI bot through regular channels
-          if (member.role === 'aibot') return Promise.resolve();
-          
-          return (supabase.rpc as any)("send_chat_message", {
-            p_sender_id: user.id,
-            p_receiver_id: member.id,
-            p_message: newMessage,
-            p_message_type: "text"
-          });
-        }).filter(Boolean);
-
-        // Process messages
-        await Promise.all(sendPromises);
-        
-        // Handle AI bot response if this is a group chat with AI
-        if (careTeamGroup.members.some(member => member.role === 'aibot')) {
-          try {
-            // Generate AI response
-            const { data: aiResponse } = await supabase.functions.invoke('doctor-ai-assistant', {
-              body: { 
-                messages: [{ role: "user", content: newMessage }],
-                preferredLanguage: 'en'
-              },
-            });
-            
-            if (aiResponse && aiResponse.response) {
-              // AI response delay for natural feel
-              setTimeout(async () => {
-                // Send AI response back to all human group members
-                const aiSendPromises = careTeamGroup.members
-                  .filter(member => member.role !== 'aibot')
-                  .map(member => {
-                    return (supabase.rpc as any)("send_chat_message", {
-                      p_sender_id: '00000000-0000-0000-0000-000000000000', // AI bot ID
-                      p_receiver_id: member.id,
-                      p_message: aiResponse.response,
-                      p_message_type: "text"
-                    });
-                  });
-                
-                await Promise.all(aiSendPromises);
-                
-                toast({
-                  title: "AI Assistant responded",
-                  description: "The AI Assistant has responded to your message.",
-                });
-              }, 1500);
-            }
-          } catch (error) {
-            console.error("Error getting AI response:", error);
-          }
-        }
-        
-        setNewMessage("");
-        toast({
-          title: "Group message sent",
-        });
-      } else if (selectedUserId) {
-        // Send individual message
-        const { error } = await (supabase.rpc as any)("send_chat_message", {
-          p_sender_id: user.id,
-          p_receiver_id: selectedUserId,
-          p_message: newMessage,
-          p_message_type: "text"
-        });
-
-        if (error) {
-          console.error("Error sending message:", error);
-          toast({
-            title: "Error sending message",
-            description: "Failed to send message. Please try again.",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        setNewMessage("");
-        toast({
-          title: "Message sent",
-        });
-      }
-    } catch (error: any) {
-      console.error("Error sending message:", error);
-      toast({
-        title: "Error",
-        description: "Failed to send message. Please try again later.",
-        variant: "destructive",
-      });
-    }
-  }
 };
