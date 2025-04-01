@@ -29,7 +29,7 @@ CREATE OR REPLACE FUNCTION public.send_chat_message(
   p_sender_id UUID,
   p_receiver_id UUID,
   p_message TEXT,
-  p_message_type TEXT
+  p_message_type TEXT DEFAULT 'text'
 )
 RETURNS UUID
 SECURITY DEFINER
@@ -122,6 +122,11 @@ $$;
 
 -- Row level security policies
 ALTER TABLE public.chat_messages ENABLE ROW LEVEL SECURITY;
+
+-- Drop existing policies if they exist
+DROP POLICY IF EXISTS "Users can see their own messages" ON public.chat_messages;
+DROP POLICY IF EXISTS "Users can send messages" ON public.chat_messages;
+DROP POLICY IF EXISTS "Users can update their own messages" ON public.chat_messages;
 
 -- Policy for users to see messages they've sent or received
 CREATE POLICY "Users can see their own messages" 

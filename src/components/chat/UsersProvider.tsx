@@ -44,8 +44,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
           
           // Try to fetch care team (including AI bot)
           try {
-            // Fix: Use type assertion for RPC function call
-            const { data, error } = await (supabase.rpc as any)('get_patient_care_team', {
+            const { data, error } = await supabase.rpc('get_patient_care_team', {
               p_patient_id: user.id
             });
             
@@ -63,18 +62,15 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
           // If the function call fails, try to get doctor and nutritionist separately using RPC
           if (careTeamError || careTeam.length === 0) {
             try {
-              // Fix: Use type assertion for RPC function call
-              const { data: doctorData } = await (supabase.rpc as any)('get_doctor_for_patient', { 
+              const { data: doctorData } = await supabase.rpc('get_doctor_for_patient', { 
                 p_patient_id: user.id 
               });
               
-              // Fix: Use type assertion for RPC function call
-              const { data: nutritionistData } = await (supabase.rpc as any)('get_nutritionist_for_patient', { 
+              const { data: nutritionistData } = await supabase.rpc('get_nutritionist_for_patient', { 
                 p_patient_id: user.id 
               });
               
               if (doctorData && Array.isArray(doctorData) && doctorData.length > 0) {
-                // Fix: Use type assertion when accessing properties
                 const doctor = doctorData[0] as UserProfile;
                 careTeam.push({
                   id: doctor.id,
@@ -85,7 +81,6 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
               }
               
               if (nutritionistData && Array.isArray(nutritionistData) && nutritionistData.length > 0) {
-                // Fix: Use type assertion when accessing properties
                 const nutritionist = nutritionistData[0] as UserProfile;
                 careTeam.push({
                   id: nutritionist.id,
@@ -149,8 +144,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
           };
         } else if (userRole === "doctor" || userRole === "nutritionist") {
           // Get assigned patients for this doctor/nutritionist
-          // Fix: Use type assertion for RPC function call
-          const { data, error } = await (supabase.rpc as any)('get_assigned_patients', {
+          const { data, error } = await supabase.rpc('get_assigned_patients', {
             p_provider_id: user.id,
             p_provider_role: userRole
           });

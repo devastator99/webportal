@@ -104,8 +104,30 @@ BEGIN
 END;
 $$;
 
+-- Create tables for patient-doctor and patient-nutritionist assignments if they don't exist
+CREATE TABLE IF NOT EXISTS public.patient_doctor_assignments (
+  patient_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  doctor_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  PRIMARY KEY (patient_id, doctor_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.patient_nutritionist_assignments (
+  patient_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  nutritionist_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  PRIMARY KEY (patient_id, nutritionist_id)
+);
+
 -- Grant execute permission on the functions
 GRANT EXECUTE ON FUNCTION public.get_patient_care_team TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.get_doctor_for_patient TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.get_nutritionist_for_patient TO anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.get_assigned_patients TO anon, authenticated, service_role;
+
+-- Grant permissions on the tables
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.patient_doctor_assignments TO service_role;
+GRANT SELECT ON public.patient_doctor_assignments TO authenticated;
+
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.patient_nutritionist_assignments TO service_role;
+GRANT SELECT ON public.patient_nutritionist_assignments TO authenticated;

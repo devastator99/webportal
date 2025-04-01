@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -57,8 +58,7 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           
           // Try to get care team using get_patient_care_team function
           try {
-            // Fix: Use type assertion for RPC function call
-            const { data, error } = await (supabase.rpc as any)('get_patient_care_team', {
+            const { data, error } = await supabase.rpc('get_patient_care_team', {
               p_patient_id: user.id
             });
             
@@ -76,18 +76,15 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           // If the function call fails, try to get doctor and nutritionist separately using RPC
           if (careTeamError || (Array.isArray(careTeam) && careTeam.length === 0)) {
             try {
-              // Fix: Use type assertion for RPC function call
-              const { data: doctorData } = await (supabase.rpc as any)('get_doctor_for_patient', { 
+              const { data: doctorData } = await supabase.rpc('get_doctor_for_patient', { 
                 p_patient_id: user.id 
               });
               
-              // Fix: Use type assertion for RPC function call
-              const { data: nutritionistData } = await (supabase.rpc as any)('get_nutritionist_for_patient', { 
+              const { data: nutritionistData } = await supabase.rpc('get_nutritionist_for_patient', { 
                 p_patient_id: user.id 
               });
               
               if (doctorData && Array.isArray(doctorData) && doctorData.length > 0) {
-                // Fix: Use type assertion when accessing properties
                 const doctor = doctorData[0] as UserProfile;
                 careTeam.push({
                   id: doctor.id,
@@ -98,7 +95,6 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
               }
               
               if (nutritionistData && Array.isArray(nutritionistData) && nutritionistData.length > 0) {
-                // Fix: Use type assertion when accessing properties
                 const nutritionist = nutritionistData[0] as UserProfile;
                 careTeam.push({
                   id: nutritionist.id,
@@ -142,8 +138,7 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
         // For doctors and nutritionists: get assigned patients and admins
         else if (userRole === "doctor" || userRole === "nutritionist") {
           // Get assigned patients
-          // Fix: Use type assertion for RPC function call
-          const { data: patients, error: patientsError } = await (supabase.rpc as any)('get_assigned_patients', {
+          const { data: patients, error: patientsError } = await supabase.rpc('get_assigned_patients', {
             p_provider_id: user.id,
             p_provider_role: userRole
           });
@@ -274,7 +269,7 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           // Don't send message to AI bot through regular channels
           if (member.role === 'aibot') return Promise.resolve();
           
-          return (supabase.rpc as any)("send_chat_message", {
+          return supabase.rpc("send_chat_message", {
             p_sender_id: user.id,
             p_receiver_id: member.id,
             p_message: newMessage,
@@ -303,7 +298,7 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
                 const aiSendPromises = careTeamGroup.members
                   .filter(member => member.role !== 'aibot')
                   .map(member => {
-                    return (supabase.rpc as any)("send_chat_message", {
+                    return supabase.rpc("send_chat_message", {
                       p_sender_id: '00000000-0000-0000-0000-000000000000', // AI bot ID
                       p_receiver_id: member.id,
                       p_message: aiResponse.response,
@@ -329,7 +324,7 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           // Direct message to AI bot
           try {
             // Save user message
-            await (supabase.rpc as any)("send_chat_message", {
+            await supabase.rpc("send_chat_message", {
               p_sender_id: user.id,
               p_receiver_id: selectedUserId,
               p_message: newMessage,
@@ -347,7 +342,7 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
             if (aiResponse && aiResponse.response) {
               // Send AI response back to user with slight delay for natural feel
               setTimeout(async () => {
-                await (supabase.rpc as any)("send_chat_message", {
+                await supabase.rpc("send_chat_message", {
                   p_sender_id: selectedUserId, // AI bot ID
                   p_receiver_id: user.id,
                   p_message: aiResponse.response,
@@ -370,7 +365,7 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           }
         } else {
           // Regular user-to-user chat
-          const { error } = await (supabase.rpc as any)("send_chat_message", {
+          const { error } = await supabase.rpc("send_chat_message", {
             p_sender_id: user.id,
             p_receiver_id: selectedUserId,
             p_message: newMessage,

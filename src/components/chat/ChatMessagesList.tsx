@@ -61,16 +61,16 @@ export const ChatMessagesList = ({
   const fetchMessages = async () => {
     if (!user?.id) return [];
     
-    if (isGroupChat && careTeamGroup?.members) {
-      // For group chat, collect messages from all care team members
-      try {
+    try {
+      if (isGroupChat && careTeamGroup?.members) {
+        // For group chat, collect messages from all care team members
         const promises = careTeamGroup.members.map(member => {
           // Don't try to fetch messages from AI bot if this is a direct query
           if (member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000') {
             return Promise.resolve({ data: [] });
           }
           
-          return (supabase.rpc as any)('get_chat_messages', {
+          return supabase.rpc('get_chat_messages', {
             p_user_id: user.id,
             p_other_user_id: member.id
           });
@@ -120,7 +120,7 @@ export const ChatMessagesList = ({
           
           await Promise.all(
             senderIds.map(senderId => 
-              (supabase.rpc as any)("mark_messages_as_read", {
+              supabase.rpc("mark_messages_as_read", {
                 p_user_id: user.id,
                 p_sender_id: senderId
               })
@@ -129,15 +129,10 @@ export const ChatMessagesList = ({
         }
         
         return allMessages;
-      } catch (error) {
-        console.error("Error fetching group chat messages:", error);
-        return [];
-      }
-    } 
-    else if (selectedUserId) {
-      // For individual chat, use the existing logic
-      try {
-        const { data, error } = await (supabase.rpc as any)('get_chat_messages', {
+      } 
+      else if (selectedUserId) {
+        // For individual chat, use the existing logic
+        const { data, error } = await supabase.rpc('get_chat_messages', {
           p_user_id: user.id,
           p_other_user_id: selectedUserId
         });
@@ -154,7 +149,7 @@ export const ChatMessagesList = ({
           );
           
           if (unreadMessages.length > 0) {
-            await (supabase.rpc as any)("mark_messages_as_read", {
+            await supabase.rpc("mark_messages_as_read", {
               p_user_id: user.id,
               p_sender_id: selectedUserId
             });
@@ -178,10 +173,10 @@ export const ChatMessagesList = ({
         }
         
         return data as MessageData[] || [];
-      } catch (error) {
-        console.error("Error in chat messages query:", error);
-        return [];
       }
+    } catch (error) {
+      console.error("Error in chat messages query:", error);
+      return [];
     }
     
     return [];
@@ -192,6 +187,7 @@ export const ChatMessagesList = ({
     queryKey,
     queryFn: fetchMessages,
     enabled: !!user?.id && (!!selectedUserId || (isGroupChat && !!careTeamGroup)),
+    refetchInterval: 3000, // Poll every 3 seconds to ensure we get new messages
   });
 
   // Scroll to bottom when new messages arrive
