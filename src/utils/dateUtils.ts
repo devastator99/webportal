@@ -48,3 +48,18 @@ export const safeParseDateString = (dateString: string | null): Date | null => {
     return null;
   }
 };
+
+/**
+ * Debug helper to log date values
+ * @param date The date to debug
+ * @param label A label for the debug message
+ */
+export const debugDate = (date: any, label: string = 'Date debug'): void => {
+  console.log(`${label}:`, {
+    original: date,
+    type: typeof date,
+    isValid: date instanceof Date ? !isNaN(date.getTime()) : 'not a date',
+    asISO: date instanceof Date ? date.toISOString() : 'not a date',
+    formatted: date instanceof Date ? formatDateForDatabase(date) : 'not a date'
+  });
+};
