@@ -38,11 +38,12 @@ export const ChatInterface = ({ assignedUsers = [] }: ChatInterfaceProps) => {
       if (!user?.id) return [];
       
       if (assignedUsers?.length > 0) {
+        // If we have assigned users from props, use them directly
         return assignedUsers;
       }
       
       try {
-        // For patients: only fetch assigned doctors, nutritionists, and admins
+        // For patients: always ensure admins are included
         if (userRole === "patient") {
           // Get assigned care team (doctors and nutritionists)
           const { data: careTeam, error: careTeamError } = await (supabase.rpc as any)("get_patient_care_team", {
@@ -51,7 +52,7 @@ export const ChatInterface = ({ assignedUsers = [] }: ChatInterfaceProps) => {
           
           if (careTeamError) throw careTeamError;
           
-          // Get administrators
+          // Always get administrators for patients
           const { data: admins, error: adminsError } = await supabase
             .from("profiles")
             .select("id, first_name, last_name, user_role:user_roles(role)")
@@ -67,7 +68,7 @@ export const ChatInterface = ({ assignedUsers = [] }: ChatInterfaceProps) => {
             role: "administrator"
           }));
           
-          // Combine providers and admins
+          // Combine providers and admins, ensuring admins are always included
           return [...(careTeam || []), ...formattedAdmins];
         } 
         // For doctors and nutritionists: get assigned patients and admins

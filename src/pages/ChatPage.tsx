@@ -41,12 +41,30 @@ const ChatPage = () => {
       try {
         if (userRole === "patient") {
           // Get assigned doctor and nutritionist for this patient
-          const { data, error } = await (supabase.rpc as any)("get_patient_care_team", {
+          const { data: careTeam, error: careTeamError } = await (supabase.rpc as any)("get_patient_care_team", {
             p_patient_id: user.id
           });
           
-          if (error) throw error;
-          return (data || []) as UserProfile[];
+          if (careTeamError) throw careTeamError;
+          
+          // Always get administrators for patients
+          const { data: admins, error: adminsError } = await supabase
+            .from("profiles")
+            .select("id, first_name, last_name, user_role:user_roles(role)")
+            .eq("user_roles.role", "administrator");
+            
+          if (adminsError) throw adminsError;
+          
+          // Format admin users
+          const formattedAdmins = (admins || []).map(admin => ({
+            id: admin.id,
+            first_name: admin.first_name,
+            last_name: admin.last_name,
+            role: "administrator"
+          }));
+          
+          // Combine providers and admins, ensuring admins are always included
+          return [...(careTeam || []), ...formattedAdmins];
         } else if (userRole === "doctor" || userRole === "nutritionist") {
           // Get assigned patients for this doctor/nutritionist
           const { data, error } = await (supabase.rpc as any)("get_assigned_patients", {
