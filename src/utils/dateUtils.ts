@@ -1,5 +1,5 @@
 
-import { parse as dateFnsParse } from "date-fns";
+import { parse as dateFnsParse, format as dateFnsFormat } from "date-fns";
 
 /**
  * Parses a time string into a Date object
@@ -14,4 +14,37 @@ export const parseTime = (
   referenceDate: Date
 ): Date => {
   return dateFnsParse(timeString, format, referenceDate);
+};
+
+/**
+ * Formats a date to a database-friendly format (YYYY-MM-DD)
+ * @param date The date to format
+ * @returns A string in YYYY-MM-DD format
+ */
+export const formatDateForDatabase = (date: Date | string | null): string | null => {
+  if (!date) return null;
+  
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateFnsFormat(dateObj, 'yyyy-MM-dd');
+  } catch (error) {
+    console.error('Error formatting date for database:', error);
+    return null;
+  }
+};
+
+/**
+ * Safely parses a date string into a Date object
+ * @param dateString The date string to parse
+ * @returns A Date object or null if parsing fails
+ */
+export const safeParseDateString = (dateString: string | null): Date | null => {
+  if (!dateString) return null;
+  
+  try {
+    return new Date(dateString);
+  } catch (error) {
+    console.error('Error parsing date string:', error);
+    return null;
+  }
 };

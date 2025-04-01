@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -120,6 +119,9 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
       
       // If it's patient registration, collect the patient-specific data
       if (type === "register" && userType === "patient") {
+        // Format birthDate properly if it exists
+        const birthDateFormatted = data.birthDate ? new Date(data.birthDate).toISOString().split('T')[0] : null;
+        
         const patientData: PatientData = {
           age: data.age,
           gender: data.gender,
@@ -127,7 +129,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           allergies: data.allergies || "",
           emergencyContact: data.emergencyContact,
           height: data.height || undefined,
-          birthDate: data.birthDate || undefined,
+          birthDate: birthDateFormatted,
           foodHabit: data.foodHabit || undefined,
           knownAllergies: data.knownAllergies || undefined,
           currentMedicalConditions: data.currentMedicalConditions || undefined,
