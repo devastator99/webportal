@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { formatDateForDisplay, parseDateFromDisplay } from "@/utils/dateUtils";
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -71,6 +72,7 @@ const loginSchema = z.object({
 export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
   const [userType, setUserType] = useState<"patient" | "doctor" | "nutritionist">("patient");
   const [showPatientFields, setShowPatientFields] = useState(type === "register" && userType === "patient");
+  const [dateInputValue, setDateInputValue] = useState("");
   const { toast } = useToast();
 
   const activeSchema = type === "login" 
@@ -103,6 +105,21 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
     setUserType(value);
     form.setValue("userType", value);
     setShowPatientFields(value === "patient" && type === "register");
+  };
+
+  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setDateInputValue(value);
+    
+    if (value.match(/^\d{2}\/\d{2}\/\d{4}$/)) {
+      const parsedDate = parseDateFromDisplay(value);
+      if (parsedDate && !isNaN(parsedDate.getTime())) {
+        if (parsedDate < new Date() && parsedDate > new Date("1900-01-01")) {
+          console.log("Manual date entered:", parsedDate);
+          form.setValue("birthDate", parsedDate.toISOString());
+        }
+      }
+    }
   };
 
   const handleSubmit = async (data: any) => {
@@ -358,37 +375,54 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
                     control={form.control}
                     name="birthDate"
                     render={({ field }) => (
-                      <FormItem>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              className="w-full justify-start text-left font-normal bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900"
-                              disabled={loading}
-                            >
-                              {field.value ? (
-                                format(new Date(field.value), "PPP")
-                              ) : (
-                                <span className="text-purple-400">Birth Date</span>
-                              )}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0 z-50" align="start">
-                            <Calendar
-                              mode="single"
-                              selected={field.value ? new Date(field.value) : undefined}
-                              onSelect={(date) => {
-                                console.log("Date selected:", date);
-                                field.onChange(date ? date.toISOString() : "");
-                              }}
-                              disabled={(date) => 
-                                date > new Date() || date < new Date("1900-01-01")
-                              }
-                              initialFocus
-                            />
-                          </PopoverContent>
-                        </Popover>
+                      <FormItem className="flex flex-col gap-0.5">
+                        <FormLabel className="text-sm font-medium text-purple-800">Birth Date</FormLabel>
+                        <div className="relative">
+                          <Input
+                            placeholder="DD/MM/YYYY"
+                            value={dateInputValue || (field.value ? formatDateForDisplay(field.value) : "")}
+                            onChange={handleDateInputChange}
+                            className="w-full bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
+                          />
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-0 top-0 h-full px-3 text-purple-500 hover:text-purple-600"
+                              >
+                                <CalendarIcon className="h-4 w-4" />
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0 z-50" align="end">
+                              <Calendar
+                                mode="single"
+                                selected={field.value ? new Date(field.value) : undefined}
+                                onSelect={(date) => {
+                                  console.log("Date selected:", date);
+                                  if (date) {
+                                    field.onChange(date.toISOString());
+                                    setDateInputValue(formatDateForDisplay(date));
+                                  } else {
+                                    field.onChange("");
+                                    setDateInputValue("");
+                                  }
+                                }}
+                                disabled={(date) => 
+                                  date > new Date() || date < new Date("1900-01-01")
+                                }
+                                captionLayout="dropdown-buttons"
+                                fromYear={1900}
+                                toYear={new Date().getFullYear()}
+                                className="pointer-events-auto"
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+                        <div className="text-xs text-purple-500 mt-1">
+                          Format: DD/MM/YYYY (e.g., 03/04/1972)
+                        </div>
                       </FormItem>
                     )}
                   />
