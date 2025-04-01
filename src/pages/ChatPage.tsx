@@ -9,7 +9,7 @@ import { ChatPageHeader } from "@/components/chat/ChatPageHeader";
 const ChatPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [selectedTab, setSelectedTab] = useState<string>("messages");
+  const [selectedTab, setSelectedTab] = useState<string>("group");
   
   // Redirect if not logged in
   useEffect(() => {

@@ -30,6 +30,7 @@ interface ProfileInfo {
   id: string;
   first_name: string | null;
   last_name: string | null;
+  role?: string;
 }
 
 interface MessageData {
@@ -63,12 +64,17 @@ export const ChatMessagesList = ({
     if (isGroupChat && careTeamGroup?.members) {
       // For group chat, collect messages from all care team members
       try {
-        const promises = careTeamGroup.members.map(member => 
-          (supabase.rpc as any)('get_chat_messages', {
+        const promises = careTeamGroup.members.map(member => {
+          // Don't try to fetch messages from AI bot if this is a direct query
+          if (member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000') {
+            return Promise.resolve({ data: [] });
+          }
+          
+          return (supabase.rpc as any)('get_chat_messages', {
             p_user_id: user.id,
             p_other_user_id: member.id
-          })
-        );
+          });
+        }).filter(Boolean);
         
         const results = await Promise.all(promises);
         let allMessages: MessageData[] = [];
@@ -76,7 +82,23 @@ export const ChatMessagesList = ({
         // Combine all messages from different senders
         results.forEach(result => {
           if (result.data) {
-            allMessages = [...allMessages, ...result.data];
+            // Enhance messages with role information from care team
+            const messagesWithRoles = result.data.map((msg: MessageData) => {
+              // Find the member in care team to get their role
+              const senderMember = careTeamGroup.members.find(m => m.id === msg.sender.id);
+              if (senderMember && senderMember.role) {
+                return {
+                  ...msg,
+                  sender: {
+                    ...msg.sender,
+                    role: senderMember.role
+                  }
+                };
+              }
+              return msg;
+            });
+            
+            allMessages = [...allMessages, ...messagesWithRoles];
           }
         });
         
@@ -137,6 +159,22 @@ export const ChatMessagesList = ({
               p_sender_id: selectedUserId
             });
           }
+        }
+        
+        // If this is a chat with the AI bot, add role information
+        if (selectedUserId === '00000000-0000-0000-0000-000000000000') {
+          return (data || []).map((msg: MessageData) => {
+            if (msg.sender.id === selectedUserId) {
+              return {
+                ...msg,
+                sender: {
+                  ...msg.sender,
+                  role: 'aibot'
+                }
+              };
+            }
+            return msg;
+          });
         }
         
         return data as MessageData[] || [];
@@ -306,10 +344,12 @@ export const ChatMessagesList = ({
                 id: msg.id,
                 message: msg.message || '',
                 created_at: msg.created_at,
+                read: msg.read,
                 sender: {
                   id: msg.sender.id,
                   first_name: msg.sender.first_name || '',
-                  last_name: msg.sender.last_name || ''
+                  last_name: msg.sender.last_name || '',
+                  role: msg.sender.role
                 }
               }}
               isCurrentUser={msg.sender.id === user?.id}

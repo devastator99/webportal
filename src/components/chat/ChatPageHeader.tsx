@@ -1,9 +1,8 @@
 
 import { ReactNode } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, MessageSquare, Users } from "lucide-react";
+import { MessageSquare, Users } from "lucide-react";
 import { ChatInterface } from "@/components/chat/ChatInterface";
-import { AiChatInterface } from "@/components/chat/AiChatInterface";
 import { UserProfile, CareTeamGroup } from "./UsersProvider";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -50,7 +49,7 @@ export const ChatPageHeader = ({
 
   return (
     <Tabs value={selectedTab} onValueChange={onTabChange} className="w-full">
-      <TabsList className="grid w-full grid-cols-3 mb-4">
+      <TabsList className="grid w-full grid-cols-2 mb-4">
         <TabsTrigger value="group">
           <Users className="mr-2 h-4 w-4" />
           Care Team
@@ -58,10 +57,6 @@ export const ChatPageHeader = ({
         <TabsTrigger value="messages">
           <MessageSquare className="mr-2 h-4 w-4" />
           Messages
-        </TabsTrigger>
-        <TabsTrigger value="ai">
-          <Brain className="mr-2 h-4 w-4" />
-          AI Assistant
         </TabsTrigger>
       </TabsList>
 
@@ -77,10 +72,6 @@ export const ChatPageHeader = ({
       
       <TabsContent value="messages" className="space-y-4">
         <ChatInterface assignedUsers={assignedUsers} />
-      </TabsContent>
-      
-      <TabsContent value="ai" className="space-y-4">
-        <AiChatInterface />
       </TabsContent>
     </Tabs>
   );

@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -313,11 +312,6 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
                   });
                 
                 await Promise.all(aiSendPromises);
-                
-                toast({
-                  title: "AI Assistant responded",
-                  description: "The AI Assistant has responded to your message.",
-                });
               }, 1500);
             }
           } catch (error) {
@@ -330,28 +324,74 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           title: "Group message sent",
         });
       } else if (selectedUserId) {
-        // Send individual message
-        const { error } = await (supabase.rpc as any)("send_chat_message", {
-          p_sender_id: user.id,
-          p_receiver_id: selectedUserId,
-          p_message: newMessage,
-          p_message_type: "text"
-        });
-
-        if (error) {
-          console.error("Error sending message:", error);
-          toast({
-            title: "Error sending message",
-            description: "Failed to send message. Please try again.",
-            variant: "destructive",
+        // Individual chat - check if user is chatting with AI bot
+        if (selectedUserId === '00000000-0000-0000-0000-000000000000') {
+          // Direct message to AI bot
+          try {
+            // Save user message
+            await (supabase.rpc as any)("send_chat_message", {
+              p_sender_id: user.id,
+              p_receiver_id: selectedUserId,
+              p_message: newMessage,
+              p_message_type: "text"
+            });
+            
+            // Generate AI response
+            const { data: aiResponse } = await supabase.functions.invoke('doctor-ai-assistant', {
+              body: { 
+                messages: [{ role: "user", content: newMessage }],
+                preferredLanguage: 'en' 
+              },
+            });
+            
+            if (aiResponse && aiResponse.response) {
+              // Send AI response back to user with slight delay for natural feel
+              setTimeout(async () => {
+                await (supabase.rpc as any)("send_chat_message", {
+                  p_sender_id: selectedUserId, // AI bot ID
+                  p_receiver_id: user.id,
+                  p_message: aiResponse.response,
+                  p_message_type: "text"
+                });
+              }, 1500);
+            }
+            
+            setNewMessage("");
+            toast({
+              title: "Message sent to AI Assistant",
+            });
+          } catch (error) {
+            console.error("Error in AI chat:", error);
+            toast({
+              title: "Error",
+              description: "Failed to get AI response. Please try again.",
+              variant: "destructive",
+            });
+          }
+        } else {
+          // Regular user-to-user chat
+          const { error } = await (supabase.rpc as any)("send_chat_message", {
+            p_sender_id: user.id,
+            p_receiver_id: selectedUserId,
+            p_message: newMessage,
+            p_message_type: "text"
           });
-          return;
-        }
 
-        setNewMessage("");
-        toast({
-          title: "Message sent",
-        });
+          if (error) {
+            console.error("Error sending message:", error);
+            toast({
+              title: "Error sending message",
+              description: "Failed to send message. Please try again.",
+              variant: "destructive",
+            });
+            return;
+          }
+
+          setNewMessage("");
+          toast({
+            title: "Message sent",
+          });
+        }
       }
     } catch (error: any) {
       console.error("Error sending message:", error);
