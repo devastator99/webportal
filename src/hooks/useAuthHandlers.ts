@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -188,7 +187,7 @@ export const useAuthHandlers = () => {
         console.log('Creating patient details for user:', authData.user.id);
         
         try {
-          // Use the RPC function to create patient details
+          // Create the parameters for the patient details
           const patientDataParams = {
             p_user_id: authData.user.id,
             p_age: parseInt(patientData.age),
@@ -204,8 +203,9 @@ export const useAuthHandlers = () => {
           
           console.log('Patient data being sent to RPC:', patientDataParams);
           
+          // Use type assertion with any to bypass the TypeScript type checking for RPC function names
           const { data: patientResult, error: patientDataError } = await supabase.rpc(
-            'create_patient_details',
+            'create_patient_details' as any, 
             patientDataParams
           );
 
