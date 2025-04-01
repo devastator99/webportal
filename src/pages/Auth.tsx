@@ -80,7 +80,7 @@ const Auth = () => {
     return null;
   }
 
-  // Handle login with or without patientData
+  // Handle form submission with better error handling and feedback
   const handleFormSubmit = async (
     email: string, 
     password: string, 
@@ -92,25 +92,25 @@ const Auth = () => {
     console.log("Form submitted with:", { email, userType, firstName, lastName });
     
     if (patientData) {
-      console.log("Patient data:", patientData);
+      console.log("Patient data received:", patientData);
     }
     
     // Clear any previous errors
     setError(null);
     
     if (isLoginMode) {
-      return handleLogin(email, password);
+      try {
+        await handleLogin(email, password);
+        toast.success('Logged in successfully!');
+      } catch (error: any) {
+        console.error("Login error:", error);
+        toast.error(`Login failed: ${error.message || 'Please try again'}`);
+      }
     } else {
       try {
-        toast.promise(
-          handleSignUp(
-            email, 
-            password, 
-            userType as any, 
-            firstName, 
-            lastName,
-            patientData
-          ),
+        // For signup we'll show a toast with progress
+        await toast.promise(
+          handleSignUp(email, password, userType as any, firstName, lastName, patientData),
           {
             loading: 'Creating your account...',
             success: 'Account created successfully!',
@@ -118,6 +118,7 @@ const Auth = () => {
           }
         );
       } catch (error: any) {
+        // This catch will handle any uncaught errors
         console.error("Sign up error:", error);
         toast.error(`Sign up failed: ${error.message || 'Please try again'}`);
       }

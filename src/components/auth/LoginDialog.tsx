@@ -31,8 +31,10 @@ export const LoginDialog = () => {
       if (isLoginMode) {
         await handleLogin(email, password);
         setIsDialogOpen(false);
+        toast.success('Signed in successfully!');
       } else {
-        toast.promise(
+        // For signup, we'll use toast.promise for better feedback
+        await toast.promise(
           handleSignUp(email, password, userType as any, firstName, lastName, patientData),
           {
             loading: 'Creating your account...',
@@ -46,6 +48,7 @@ export const LoginDialog = () => {
       }
     } catch (error: any) {
       console.error("Authentication error:", error);
+      toast.error(`Authentication error: ${error.message || 'Please try again'}`);
     }
   };
 
