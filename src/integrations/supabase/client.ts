@@ -91,14 +91,14 @@ export async function createUserRole(userId: string, role: string): Promise<User
   try {
     console.log(`Creating user role: ${userId} as ${role}`);
     
-    // Use the RPC function to insert the role
-    const { data, error } = await supabase.rpc(
+    // Use type assertion to bypass TypeScript's strict checking for RPC function names
+    const { data, error } = await (supabase.rpc as any)(
       'insert_user_role',
       {
         p_user_id: userId,
         p_role: role
       }
-    ) as { data: any, error: any };
+    );
     
     if (error) {
       console.error('Error creating user role:', error);
@@ -219,8 +219,8 @@ export async function createPatientDetails(
     // Format birth date properly
     const formattedBirthDate = birthDate ? formatDateForDatabase(birthDate) : null;
     
-    // Use the RPC function to insert/update patient details
-    const { data, error } = await supabase.rpc(
+    // Use type assertion to bypass TypeScript's strict checking for RPC function names
+    const { data, error } = await (supabase.rpc as any)(
       'upsert_patient_details',
       {
         p_user_id: userId,
@@ -234,7 +234,7 @@ export async function createPatientDetails(
         p_food_habit: foodHabit,
         p_current_medical_conditions: currentMedicalConditions
       }
-    ) as { data: any, error: any };
+    );
     
     if (error) {
       console.error('Error creating patient details:', error);
