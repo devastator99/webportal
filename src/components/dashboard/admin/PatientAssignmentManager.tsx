@@ -25,12 +25,12 @@ export const PatientAssignmentManager = () => {
   const { data: patients } = useQuery({
     queryKey: ["all_patients"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_users_by_role", { 
-        p_role: "patient" 
+      const { data, error } = await (supabase.rpc as any)("get_users_by_role", { 
+        role_name: "patient" 
       });
       
       if (error) throw error;
-      return data as Profile[];
+      return (data || []) as Profile[];
     }
   });
   
@@ -38,12 +38,12 @@ export const PatientAssignmentManager = () => {
   const { data: doctors } = useQuery({
     queryKey: ["all_doctors"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_users_by_role", { 
-        p_role: "doctor" 
+      const { data, error } = await (supabase.rpc as any)("get_users_by_role", { 
+        role_name: "doctor" 
       });
       
       if (error) throw error;
-      return data as Profile[];
+      return (data || []) as Profile[];
     }
   });
   
@@ -51,12 +51,12 @@ export const PatientAssignmentManager = () => {
   const { data: nutritionists } = useQuery({
     queryKey: ["all_nutritionists"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_users_by_role", { 
-        p_role: "nutritionist" 
+      const { data, error } = await (supabase.rpc as any)("get_users_by_role", { 
+        role_name: "nutritionist" 
       });
       
       if (error) throw error;
-      return data as Profile[];
+      return (data || []) as Profile[];
     }
   });
   
@@ -71,7 +71,7 @@ export const PatientAssignmentManager = () => {
     }
     
     try {
-      const { error } = await supabase.rpc("assign_doctor_to_patient", {
+      const { error } = await (supabase.rpc as any)("assign_doctor_to_patient", {
         p_doctor_id: selectedDoctor,
         p_patient_id: selectedPatient
       });
@@ -103,7 +103,7 @@ export const PatientAssignmentManager = () => {
     }
     
     try {
-      const { error } = await supabase.rpc("assign_nutritionist_to_patient", {
+      const { error } = await (supabase.rpc as any)("assign_nutritionist_to_patient", {
         p_nutritionist_id: selectedNutritionist,
         p_patient_id: selectedPatient
       });

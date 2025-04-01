@@ -10,6 +10,14 @@ import { Navbar } from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 
+interface UserProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  role?: string;
+  user_role?: { role: string } | null;
+}
+
 const ChatPage = () => {
   const { user, userRole } = useAuth();
   const navigate = useNavigate();
@@ -31,21 +39,21 @@ const ChatPage = () => {
       try {
         if (userRole === "patient") {
           // Get assigned doctor and nutritionist for this patient
-          const { data, error } = await supabase.rpc('get_patient_care_team', {
+          const { data, error } = await (supabase.rpc as any)("get_patient_care_team", {
             p_patient_id: user.id
           });
           
           if (error) throw error;
-          return data || [];
+          return (data || []) as UserProfile[];
         } else if (userRole === "doctor" || userRole === "nutritionist") {
           // Get assigned patients for this doctor/nutritionist
-          const { data, error } = await supabase.rpc('get_assigned_patients', {
+          const { data, error } = await (supabase.rpc as any)("get_assigned_patients", {
             p_provider_id: user.id,
             p_provider_role: userRole
           });
           
           if (error) throw error;
-          return data || [];
+          return (data || []) as UserProfile[];
         } else if (userRole === "administrator") {
           // Admin can chat with everyone
           const { data, error } = await supabase
@@ -54,12 +62,12 @@ const ChatPage = () => {
             .neq("id", user.id);
           
           if (error) throw error;
-          return data || [];
+          return data as UserProfile[];
         }
-        return [];
+        return [] as UserProfile[];
       } catch (error) {
         console.error("Error fetching assigned users:", error);
-        return [];
+        return [] as UserProfile[];
       }
     },
     enabled: !!user?.id && !!userRole
