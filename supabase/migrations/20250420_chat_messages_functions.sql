@@ -86,7 +86,15 @@ CREATE OR REPLACE FUNCTION public.get_chat_messages(
   p_user_id UUID,
   p_other_user_id UUID
 )
-RETURNS SETOF json
+RETURNS TABLE (
+  id UUID,
+  message TEXT,
+  message_type TEXT,
+  created_at TIMESTAMP WITH TIME ZONE,
+  read BOOLEAN,
+  sender JSON,
+  receiver JSON
+)
 SECURITY DEFINER
 SET search_path = public
 LANGUAGE plpgsql
@@ -94,23 +102,21 @@ AS $$
 BEGIN
   RETURN QUERY
   SELECT 
+    cm.id,
+    cm.message,
+    cm.message_type::TEXT,
+    cm.created_at,
+    cm.read,
     json_build_object(
-      'id', cm.id,
-      'message', cm.message,
-      'message_type', cm.message_type,
-      'created_at', cm.created_at,
-      'read', cm.read,
-      'sender', json_build_object(
-        'id', sender.id,
-        'first_name', sender.first_name,
-        'last_name', sender.last_name
-      ),
-      'receiver', json_build_object(
-        'id', receiver.id,
-        'first_name', receiver.first_name,
-        'last_name', receiver.last_name
-      )
-    )
+      'id', sender.id,
+      'first_name', sender.first_name,
+      'last_name', sender.last_name
+    ) as sender,
+    json_build_object(
+      'id', receiver.id,
+      'first_name', receiver.first_name,
+      'last_name', receiver.last_name
+    ) as receiver
   FROM chat_messages cm
   JOIN profiles sender ON cm.sender_id = sender.id
   JOIN profiles receiver ON cm.receiver_id = receiver.id

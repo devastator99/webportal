@@ -70,9 +70,11 @@ export const ChatMessagesList = ({
             return Promise.resolve({ data: [] });
           }
           
-          return supabase.rpc('get_chat_messages', {
-            p_user_id: user.id,
-            p_other_user_id: member.id
+          return supabase.functions.invoke('get-chat-messages', {
+            body: {
+              user_id: user.id,
+              other_user_id: member.id
+            }
           });
         }).filter(Boolean);
         
@@ -81,9 +83,10 @@ export const ChatMessagesList = ({
         
         // Combine all messages from different senders
         results.forEach(result => {
-          if (result.data) {
+          if (result && result.data) {
+            const messagesData = result.data as MessageData[];
             // Enhance messages with role information from care team
-            const messagesWithRoles = result.data.map((msg: MessageData) => {
+            const messagesWithRoles = messagesData.map((msg: MessageData) => {
               // Find the member in care team to get their role
               const senderMember = careTeamGroup.members.find(m => m.id === msg.sender.id);
               if (senderMember && senderMember.role) {
@@ -109,7 +112,7 @@ export const ChatMessagesList = ({
         
         // Mark messages as read
         const unreadMessagesGrouped = allMessages.filter(
-          (msg: any) => 
+          (msg: MessageData) => 
             careTeamGroup.members.some(member => member.id === msg.sender?.id) && 
             !msg.read
         );
@@ -120,9 +123,11 @@ export const ChatMessagesList = ({
           
           await Promise.all(
             senderIds.map(senderId => 
-              supabase.rpc("mark_messages_as_read", {
-                p_user_id: user.id,
-                p_sender_id: senderId
+              supabase.functions.invoke("mark-messages-as-read", {
+                body: {
+                  user_id: user.id,
+                  sender_id: senderId
+                }
               })
             )
           );
@@ -131,34 +136,35 @@ export const ChatMessagesList = ({
         return allMessages;
       } 
       else if (selectedUserId) {
-        // For individual chat, use the existing logic
-        const { data, error } = await supabase.rpc('get_chat_messages', {
-          p_user_id: user.id,
-          p_other_user_id: selectedUserId
+        // For individual chat, use our serverless function
+        const { data } = await supabase.functions.invoke('get-chat-messages', {
+          body: {
+            user_id: user.id,
+            other_user_id: selectedUserId
+          }
         });
 
-        if (error) {
-          console.error("Error fetching messages:", error);
-          throw error;
-        }
+        const messages = data as MessageData[];
 
         // Mark messages as read
-        if (data && data.length > 0) {
-          const unreadMessages = data.filter(
-            (msg: any) => msg.sender?.id === selectedUserId && !msg.read
+        if (messages && messages.length > 0) {
+          const unreadMessages = messages.filter(
+            (msg: MessageData) => msg.sender?.id === selectedUserId && !msg.read
           );
           
           if (unreadMessages.length > 0) {
-            await supabase.rpc("mark_messages_as_read", {
-              p_user_id: user.id,
-              p_sender_id: selectedUserId
+            await supabase.functions.invoke("mark-messages-as-read", {
+              body: {
+                user_id: user.id,
+                sender_id: selectedUserId
+              }
             });
           }
         }
         
         // If this is a chat with the AI bot, add role information
         if (selectedUserId === '00000000-0000-0000-0000-000000000000') {
-          return (data || []).map((msg: MessageData) => {
+          return messages.map((msg: MessageData) => {
             if (msg.sender.id === selectedUserId) {
               return {
                 ...msg,
@@ -172,14 +178,14 @@ export const ChatMessagesList = ({
           });
         }
         
-        return data as MessageData[] || [];
+        return messages || [];
       }
+      
+      return [];
     } catch (error) {
       console.error("Error in chat messages query:", error);
       return [];
     }
-    
-    return [];
   };
 
   // Use the fetchMessages function in the query
@@ -316,7 +322,7 @@ export const ChatMessagesList = ({
     );
   }
 
-  if (!messages?.length) {
+  if (!messages || !messages.length) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
         {isGroupChat 
@@ -330,7 +336,7 @@ export const ChatMessagesList = ({
   return (
     <ScrollArea className="flex-1 pr-4" ref={scrollAreaRef}>
       <div className="space-y-4">
-        {messages?.map((msg) => {
+        {messages.map((msg: MessageData) => {
           if (!msg || !msg.sender) return null;
           
           return (

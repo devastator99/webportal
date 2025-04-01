@@ -58,8 +58,8 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           
           // Try to get care team using get_patient_care_team function
           try {
-            const { data, error } = await supabase.rpc('get_patient_care_team', {
-              p_patient_id: user.id
+            const { data, error } = await supabase.functions.invoke('get-patient-care-team', {
+              body: { patient_id: user.id }
             });
             
             if (!error && data) {
@@ -73,15 +73,15 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
             console.error("Failed to call get_patient_care_team function:", err);
           }
           
-          // If the function call fails, try to get doctor and nutritionist separately using RPC
+          // If the function call fails, try to get doctor and nutritionist separately using functions
           if (careTeamError || (Array.isArray(careTeam) && careTeam.length === 0)) {
             try {
-              const { data: doctorData } = await supabase.rpc('get_doctor_for_patient', { 
-                p_patient_id: user.id 
+              const { data: doctorData } = await supabase.functions.invoke('get-doctor-for-patient', { 
+                body: { patient_id: user.id }
               });
               
-              const { data: nutritionistData } = await supabase.rpc('get_nutritionist_for_patient', { 
-                p_patient_id: user.id 
+              const { data: nutritionistData } = await supabase.functions.invoke('get-nutritionist-for-patient', { 
+                body: { patient_id: user.id }
               });
               
               if (doctorData && Array.isArray(doctorData) && doctorData.length > 0) {
@@ -138,12 +138,12 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
         // For doctors and nutritionists: get assigned patients and admins
         else if (userRole === "doctor" || userRole === "nutritionist") {
           // Get assigned patients
-          const { data: patients, error: patientsError } = await supabase.rpc('get_assigned_patients', {
-            p_provider_id: user.id,
-            p_provider_role: userRole
+          const { data: patients } = await supabase.functions.invoke('get-assigned-patients', {
+            body: {
+              provider_id: user.id,
+              provider_role: userRole
+            }
           });
-          
-          if (patientsError) throw patientsError;
           
           // Get administrators
           const { data: admins, error: adminsError } = await supabase
@@ -269,11 +269,13 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           // Don't send message to AI bot through regular channels
           if (member.role === 'aibot') return Promise.resolve();
           
-          return supabase.rpc("send_chat_message", {
-            p_sender_id: user.id,
-            p_receiver_id: member.id,
-            p_message: newMessage,
-            p_message_type: "text"
+          return supabase.functions.invoke("send-chat-message", {
+            body: {
+              sender_id: user.id,
+              receiver_id: member.id,
+              message: newMessage,
+              message_type: "text"
+            }
           });
         }).filter(Boolean);
 
@@ -298,11 +300,13 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
                 const aiSendPromises = careTeamGroup.members
                   .filter(member => member.role !== 'aibot')
                   .map(member => {
-                    return supabase.rpc("send_chat_message", {
-                      p_sender_id: '00000000-0000-0000-0000-000000000000', // AI bot ID
-                      p_receiver_id: member.id,
-                      p_message: aiResponse.response,
-                      p_message_type: "text"
+                    return supabase.functions.invoke("send-chat-message", {
+                      body: {
+                        sender_id: '00000000-0000-0000-0000-000000000000', // AI bot ID
+                        receiver_id: member.id,
+                        message: aiResponse.response,
+                        message_type: "text"
+                      }
                     });
                   });
                 
@@ -324,11 +328,13 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           // Direct message to AI bot
           try {
             // Save user message
-            await supabase.rpc("send_chat_message", {
-              p_sender_id: user.id,
-              p_receiver_id: selectedUserId,
-              p_message: newMessage,
-              p_message_type: "text"
+            await supabase.functions.invoke("send-chat-message", {
+              body: {
+                sender_id: user.id,
+                receiver_id: selectedUserId,
+                message: newMessage,
+                message_type: "text"
+              }
             });
             
             // Generate AI response
@@ -342,11 +348,13 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
             if (aiResponse && aiResponse.response) {
               // Send AI response back to user with slight delay for natural feel
               setTimeout(async () => {
-                await supabase.rpc("send_chat_message", {
-                  p_sender_id: selectedUserId, // AI bot ID
-                  p_receiver_id: user.id,
-                  p_message: aiResponse.response,
-                  p_message_type: "text"
+                await supabase.functions.invoke("send-chat-message", {
+                  body: {
+                    sender_id: selectedUserId, // AI bot ID
+                    receiver_id: user.id,
+                    message: aiResponse.response,
+                    message_type: "text"
+                  }
                 });
               }, 1500);
             }
@@ -365,11 +373,13 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           }
         } else {
           // Regular user-to-user chat
-          const { error } = await supabase.rpc("send_chat_message", {
-            p_sender_id: user.id,
-            p_receiver_id: selectedUserId,
-            p_message: newMessage,
-            p_message_type: "text"
+          const { error } = await supabase.functions.invoke("send-chat-message", {
+            body: {
+              sender_id: user.id,
+              receiver_id: selectedUserId,
+              message: newMessage,
+              message_type: "text"
+            }
           });
 
           if (error) {
