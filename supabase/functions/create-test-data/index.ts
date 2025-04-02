@@ -23,59 +23,98 @@ serve(async (req) => {
     console.log("Supabase client initialized");
 
     // Check if admin exists
-    const adminExists = await checkIfUserExists(supabase, 'admin@example.com');
-    console.log("Admin exists check complete:", adminExists);
+    let adminExists = false;
+    try {
+      const { data, error } = await supabase.auth.admin.getUserByEmail('admin@example.com');
+      if (data?.user) {
+        adminExists = true;
+        console.log("Admin user already exists:", data.user.id);
+      }
+      if (error) {
+        // If the error is "User not found" that's actually what we want
+        if (!error.message.includes("User not found")) {
+          console.error("Error checking if admin exists:", error);
+          throw error;
+        }
+      }
+    } catch (checkError) {
+      console.error("Error during email check:", checkError);
+      return new Response(
+        JSON.stringify({ 
+          error: "Database error checking email", 
+          details: checkError.toString() 
+        }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        }
+      );
+    }
     
     // Only create the admin if it doesn't exist
     if (!adminExists) {
       console.log("Creating admin user...");
-      // Create admin user
-      const { data: adminData, error: adminError } = await supabase.auth.admin.createUser({
-        email: 'admin@example.com',
-        password: 'testpassword123',
-        email_confirm: true,
-        user_metadata: {
-          first_name: 'Admin',
-          last_name: 'User',
-          user_type: 'administrator'
+      try {
+        // Create admin user
+        const { data: adminData, error: adminError } = await supabase.auth.admin.createUser({
+          email: 'admin@example.com',
+          password: 'testpassword123',
+          email_confirm: true,
+          user_metadata: {
+            first_name: 'Admin',
+            last_name: 'User',
+            user_type: 'administrator'
+          }
+        });
+
+        if (adminError) {
+          console.error("Error creating admin user:", adminError);
+          throw adminError;
         }
-      });
 
-      if (adminError) {
-        console.error("Error creating admin user:", adminError);
-        throw adminError;
+        console.log("Admin user created:", adminData.user.id);
+
+        // Create admin profile
+        const { error: adminProfileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: adminData.user.id,
+            first_name: 'Admin',
+            last_name: 'User'
+          });
+
+        if (adminProfileError) {
+          console.error("Error creating admin profile:", adminProfileError);
+          throw adminProfileError;
+        }
+
+        // Create admin role
+        const { error: adminRoleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: adminData.user.id,
+            role: 'administrator'
+          });
+
+        if (adminRoleError) {
+          console.error("Error creating admin role:", adminRoleError);
+          throw adminRoleError;
+        }
+        
+        console.log("Admin user setup completed");
+      } catch (creationError) {
+        console.error("Error during admin user creation:", creationError);
+        return new Response(
+          JSON.stringify({ 
+            error: "Error creating admin user", 
+            details: creationError.toString() 
+          }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400,
+          }
+        );
       }
-
-      console.log("Admin user created:", adminData.user.id);
-
-      // Create admin profile
-      const { error: adminProfileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: adminData.user.id,
-          first_name: 'Admin',
-          last_name: 'User'
-        });
-
-      if (adminProfileError) {
-        console.error("Error creating admin profile:", adminProfileError);
-        throw adminProfileError;
-      }
-
-      // Create admin role
-      const { error: adminRoleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: adminData.user.id,
-          role: 'administrator'
-        });
-
-      if (adminRoleError) {
-        console.error("Error creating admin role:", adminRoleError);
-        throw adminRoleError;
-      }
-      
-      console.log("Admin user setup completed");
     } else {
       console.log("Admin user already exists, skipping creation");
     }
@@ -97,7 +136,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Error:', error);
+    console.error('General error:', error);
     return new Response(
       JSON.stringify({ 
         error: error.message || "Unknown error occurred",
@@ -105,25 +144,8 @@ serve(async (req) => {
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: 500,
       }
     );
   }
 });
-
-// Helper function to check if user exists
-async function checkIfUserExists(supabase, email) {
-  try {
-    const { data, error } = await supabase.auth.admin.getUserByEmail(email);
-    
-    // If we get a user back, the user exists
-    if (data?.user) {
-      return true;
-    }
-    
-    return false;
-  } catch (error) {
-    console.error("Error checking if user exists:", error);
-    return false;
-  }
-}
