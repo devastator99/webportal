@@ -58,21 +58,17 @@ export const ChatMessagesList = ({
   const queryClient = useQueryClient();
   const [offlineMessages, setOfflineMessages] = useState<MessageData[]>([]);
 
-  // Determine query key based on whether we're in group chat or individual chat
   const queryKey = isGroupChat && careTeamGroup 
     ? ["group_chat_messages", user?.id, careTeamGroup.members.map(m => m.id).join('_')]
     : ["chat_messages", user?.id, selectedUserId];
 
-  // Load offline messages
   useEffect(() => {
     const loadOfflineMessages = async () => {
       if (user?.id) {
         try {
           const messages = await getAllOfflineMessages();
           
-          // Format offline messages to match MessageData structure
           const formattedMessages = messages.map(msg => {
-            // Simple offline message format conversion
             const senderInfo: ProfileInfo = {
               id: msg.sender_id,
               first_name: msg.sender_id === user.id ? "You (offline)" : "Contact",
@@ -80,7 +76,6 @@ export const ChatMessagesList = ({
               role: ""
             };
             
-            // Try to find sender info in care team if available
             if (careTeamGroup?.members && msg.sender_id !== user.id) {
               const member = careTeamGroup.members.find(m => m.id === msg.sender_id);
               if (member) {
@@ -117,20 +112,17 @@ export const ChatMessagesList = ({
       }
     };
     
-    if (offlineMode) {
+    if (offlineMode || localMessages.length > 0) {
       loadOfflineMessages();
     }
-  }, [user?.id, offlineMode, careTeamGroup, userRole]);
+  }, [user?.id, offlineMode, careTeamGroup, userRole, localMessages.length]);
 
-  // Function to fetch messages for either individual or group chat
   const fetchMessages = async () => {
     if (!user?.id) return [];
     
     try {
       if (isGroupChat && careTeamGroup?.members) {
-        // For group chat, collect messages from all care team members
         const promises = careTeamGroup.members.map(member => {
-          // Don't try to fetch messages from AI bot if this is a direct query
           if (member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000') {
             return Promise.resolve({ data: [] });
           }
@@ -146,13 +138,10 @@ export const ChatMessagesList = ({
         const results = await Promise.all(promises);
         let allMessages: MessageData[] = [];
         
-        // Combine all messages from different senders
         results.forEach(result => {
           if (result && result.data) {
             const messagesData = result.data as MessageData[];
-            // Enhance messages with role information from care team
             const messagesWithRoles = messagesData.map((msg: MessageData) => {
-              // Find the member in care team to get their role
               const senderMember = careTeamGroup.members.find(m => m.id === msg.sender.id);
               if (senderMember && senderMember.role) {
                 return {
@@ -170,12 +159,10 @@ export const ChatMessagesList = ({
           }
         });
         
-        // Sort messages by timestamp
         allMessages.sort((a, b) => 
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
         
-        // Mark messages as read
         const unreadMessagesGrouped = allMessages.filter(
           (msg: MessageData) => 
             careTeamGroup.members.some(member => member.id === msg.sender?.id) && 
@@ -183,7 +170,6 @@ export const ChatMessagesList = ({
         );
         
         if (unreadMessagesGrouped.length > 0) {
-          // Group by sender ID and mark each group as read
           const senderIds = [...new Set(unreadMessagesGrouped.map(msg => msg.sender?.id))];
           
           await Promise.all(
@@ -201,7 +187,6 @@ export const ChatMessagesList = ({
         return allMessages;
       } 
       else if (selectedUserId) {
-        // For individual chat, use our serverless function
         const { data } = await supabase.functions.invoke('get-chat-messages', {
           body: {
             user_id: user.id,
@@ -211,7 +196,6 @@ export const ChatMessagesList = ({
 
         const messages = data as MessageData[];
 
-        // Mark messages as read
         if (messages && messages.length > 0) {
           const unreadMessages = messages.filter(
             (msg: MessageData) => msg.sender?.id === selectedUserId && !msg.read
@@ -227,7 +211,6 @@ export const ChatMessagesList = ({
           }
         }
         
-        // If this is a chat with the AI bot, add role information
         if (selectedUserId === '00000000-0000-0000-0000-000000000000') {
           return messages.map((msg: MessageData) => {
             if (msg.sender.id === selectedUserId) {
@@ -253,24 +236,24 @@ export const ChatMessagesList = ({
     }
   };
 
-  // Use the fetchMessages function in the query
   const { data: onlineMessages, isLoading, error } = useQuery({
     queryKey,
     queryFn: fetchMessages,
     enabled: !!user?.id && (!!selectedUserId || (isGroupChat && !!careTeamGroup)) && !offlineMode,
-    refetchInterval: 3000, // Poll every 3 seconds to ensure we get new messages
+    refetchInterval: 3000,
   });
 
-  // Combine online, offline and local messages
   const combinedMessages = () => {
     const online = offlineMode ? [] : (onlineMessages || []);
     const offline = offlineMessages || [];
     const local = localMessages || [];
     
-    // Combine all message sources
+    console.log("Online messages count:", online.length);
+    console.log("Offline messages count:", offline.length);
+    console.log("Local messages count:", local.length);
+    
     const allMessages = [...online, ...offline, ...local];
     
-    // Filter duplicates by ID (keeping the first occurrence)
     const uniqueIds = new Set();
     const uniqueMessages = allMessages.filter(msg => {
       if (!uniqueIds.has(msg.id)) {
@@ -280,16 +263,13 @@ export const ChatMessagesList = ({
       return false;
     });
     
-    // Sort by timestamp
     return uniqueMessages.sort((a, b) => 
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
     );
   };
-  
-  // Get the final list of messages to display
+
   const messages = combinedMessages();
 
-  // Scroll to bottom when new messages arrive
   useEffect(() => {
     if (scrollAreaRef.current && messages?.length) {
       const scrollArea = scrollAreaRef.current;
@@ -297,17 +277,14 @@ export const ChatMessagesList = ({
     }
   }, [messages]);
 
-  // Subscribe to real-time updates for the appropriate channels
   useEffect(() => {
     if (!user?.id) return;
     
     let channel: any;
     
     if (isGroupChat && careTeamGroup?.members.length) {
-      // For group chat, listen to changes from all care team members
       const memberIds = careTeamGroup.members.map(m => m.id);
       
-      // Create a filter for messages to or from any group member
       const filterConditions = memberIds.map(memberId => 
         `or(and(sender_id=eq.${user.id},receiver_id=eq.${memberId}),and(sender_id=eq.${memberId},receiver_id=eq.${user.id}))`
       ).join(',');
@@ -341,7 +318,6 @@ export const ChatMessagesList = ({
         .subscribe();
     } 
     else if (selectedUserId) {
-      // For individual chat, listen to changes between the two users
       channel = supabase
         .channel('chat_updates')
         .on(
@@ -371,7 +347,6 @@ export const ChatMessagesList = ({
         .subscribe();
     }
 
-    // Clean up the subscription
     return () => {
       if (channel) {
         supabase.removeChannel(channel);

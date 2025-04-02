@@ -18,7 +18,7 @@ interface OfflineDB extends DBSchema {
     key: string;
     value: ChatMessage;
     indexes: {
-      'by-synced': string;  // Using string type for indexing
+      'by-synced': boolean;  // Using boolean type for indexing
     };
   };
 }
@@ -36,7 +36,7 @@ export const initOfflineDB = async () => {
         upgrade(db) {
           if (!db.objectStoreNames.contains(MESSAGE_STORE)) {
             const store = db.createObjectStore(MESSAGE_STORE, { keyPath: 'id' });
-            // Create an index on synced field, using string since IndexedDB works better with strings
+            // Create an index on synced field
             store.createIndex('by-synced', 'synced', { unique: false });
           }
         },
@@ -55,7 +55,6 @@ export const initOfflineDB = async () => {
 export const saveOfflineMessage = async (message: ChatMessage): Promise<void> => {
   const db = await initOfflineDB();
   try {
-    // Convert boolean synced status to string for indexing
     const messageToStore = {
       ...message,
       synced: message.synced || false,
@@ -72,8 +71,8 @@ export const saveOfflineMessage = async (message: ChatMessage): Promise<void> =>
 export const getUnsyncedMessages = async (): Promise<ChatMessage[]> => {
   const db = await initOfflineDB();
   try {
-    // Use the string 'false' for querying the index
-    const messages = await db.getAllFromIndex(MESSAGE_STORE, 'by-synced', "false");
+    // Use boolean false for querying the index
+    const messages = await db.getAllFromIndex(MESSAGE_STORE, 'by-synced', false);
     console.log('Retrieved unsynced messages:', messages.length);
     return messages;
   } catch (error) {

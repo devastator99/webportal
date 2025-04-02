@@ -43,6 +43,47 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
   const [isGroupChat, setIsGroupChat] = useState<boolean>(true);
   const isOnline = useOnlineStatus();
   const [localMessages, setLocalMessages] = useState<any[]>([]);
+  const [hasInitialAiMessage, setHasInitialAiMessage] = useState<boolean>(false);
+
+  // Ensure AI bot is in care team group
+  useEffect(() => {
+    if (careTeamGroup && !hasInitialAiMessage && isOnline) {
+      // Check if AI bot is in members and user is a patient
+      const hasAiBot = careTeamGroup.members.some(member => 
+        member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000'
+      );
+      
+      if (hasAiBot && userRole === 'patient') {
+        // Send initial AI greeting
+        setTimeout(async () => {
+          try {
+            const welcomeMessage = `Welcome to your Care Team chat! I'm your AI assistant and I'm here to help answer any questions you might have. Your doctor and nutritionist are also available in this group chat. How can we assist you today?`;
+            
+            // Create AI greeting message
+            const aiMessage = {
+              id: uuidv4(),
+              message: welcomeMessage,
+              created_at: new Date().toISOString(),
+              read: false,
+              sender: {
+                id: '00000000-0000-0000-0000-000000000000',
+                first_name: 'AI',
+                last_name: 'Assistant',
+                role: 'aibot'
+              },
+              synced: true
+            };
+            
+            // Add to local messages
+            setLocalMessages(prev => [...prev, aiMessage]);
+            setHasInitialAiMessage(true);
+          } catch (error) {
+            console.error("Error sending AI welcome message:", error);
+          }
+        }, 1000);
+      }
+    }
+  }, [careTeamGroup, hasInitialAiMessage, isOnline, userRole]);
 
   useEffect(() => {
     const syncOfflineMessages = async () => {
@@ -287,27 +328,28 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
 
     try {
       if (careTeamGroup) {
+        const timestamp = new Date().toISOString();
+        
+        // Save a local copy of the message for immediate display
+        const localMessage = {
+          id: uuidv4(),
+          message: newMessage,
+          created_at: timestamp,
+          read: false,
+          sender: {
+            id: user.id,
+            first_name: user.user_metadata?.first_name || "",
+            last_name: user.user_metadata?.last_name || "",
+            role: userRole
+          },
+          synced: !isOnline
+        };
+        
+        // Add to local state for immediate display
+        setLocalMessages(prev => [...prev, localMessage]);
+        
         if (!isOnline) {
-          const timestamp = new Date().toISOString();
-          
-          // Save a local copy of the message for immediate display
-          const localMessage = {
-            id: uuidv4(),
-            message: newMessage,
-            created_at: timestamp,
-            read: false,
-            sender: {
-              id: user.id,
-              first_name: user.user_metadata?.first_name || "",
-              last_name: user.user_metadata?.last_name || "",
-              role: userRole
-            },
-            synced: false
-          };
-          
-          // Add to local state for immediate display
-          setLocalMessages(prev => [...prev, localMessage]);
-          
+          // Save offline messages for all team members
           for (const member of careTeamGroup.members) {
             if (member.role === 'aibot') continue;
             
@@ -359,6 +401,25 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
             
             if (aiResponse && aiResponse.response) {
               setTimeout(async () => {
+                // Create AI response message for local display
+                const aiMessage = {
+                  id: uuidv4(),
+                  message: aiResponse.response,
+                  created_at: new Date().toISOString(),
+                  read: false,
+                  sender: {
+                    id: '00000000-0000-0000-0000-000000000000',
+                    first_name: 'AI',
+                    last_name: 'Assistant',
+                    role: 'aibot'
+                  },
+                  synced: true
+                };
+                
+                // Add AI response to local messages for immediate display
+                setLocalMessages(prev => [...prev, aiMessage]);
+                
+                // Send AI response to all members
                 const aiSendPromises = careTeamGroup.members
                   .filter(member => member.id !== '00000000-0000-0000-0000-000000000000')  // Skip sending to AI itself
                   .map(member => {
