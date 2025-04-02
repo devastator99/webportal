@@ -14,7 +14,7 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Search, Users, RefreshCw } from "lucide-react";
+import { Search, Users, RefreshCw, UserPlus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
@@ -32,6 +32,7 @@ export const UserManagement = () => {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [creatingTestData, setCreatingTestData] = useState(false);
   
   useEffect(() => {
     fetchUsers();
@@ -66,6 +67,36 @@ export const UserManagement = () => {
     }
   };
   
+  const createTestData = async () => {
+    setCreatingTestData(true);
+    try {
+      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/create-test-data`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to create test data: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log("Test data created:", result);
+      
+      toast.success("Test data created successfully! Admin login: admin@example.com / testpassword123");
+      
+      // Refresh the users list
+      fetchUsers();
+    } catch (error: any) {
+      console.error("Error creating test data:", error);
+      toast.error(`Error creating test data: ${error.message}`);
+    } finally {
+      setCreatingTestData(false);
+    }
+  };
+  
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
       (user.first_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
@@ -96,7 +127,7 @@ export const UserManagement = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <div>
+          <div className="flex gap-2">
             <Button 
               variant="outline" 
               onClick={fetchUsers}
@@ -106,7 +137,23 @@ export const UserManagement = () => {
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               {loading ? "Refreshing..." : "Refresh"}
             </Button>
+            
+            <Button 
+              variant="secondary" 
+              onClick={createTestData}
+              disabled={creatingTestData}
+              className="flex items-center gap-2"
+            >
+              <UserPlus className="h-4 w-4" />
+              {creatingTestData ? "Creating..." : "Create Test Users"}
+            </Button>
           </div>
+        </div>
+        
+        <div className="bg-amber-50 border border-amber-300 p-4 rounded-md mb-4">
+          <p className="text-amber-800 font-medium">Admin Test Credentials</p>
+          <p className="text-amber-700 text-sm">Email: admin@example.com</p>
+          <p className="text-amber-700 text-sm">Password: testpassword123</p>
         </div>
         
         <Tabs defaultValue="all" value={roleFilter} onValueChange={setRoleFilter}>
