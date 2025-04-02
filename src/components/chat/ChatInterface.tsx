@@ -232,7 +232,14 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
 
   const getHeaderTitle = () => {
     if (isGroupChat && careTeamGroup) {
-      return careTeamGroup.groupName;
+      return (
+        <div className="flex items-center gap-2">
+          {careTeamGroup.groupName}
+          <span className="text-xs text-muted-foreground">
+            ({careTeamGroup.members.length} members)
+          </span>
+        </div>
+      );
     }
     if (usersLoading) return "Loading contacts...";
     if (usersError) return "Error loading contacts";

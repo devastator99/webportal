@@ -1,6 +1,6 @@
 
 import { formatDistanceToNow } from "date-fns";
-import { Check, Clock } from "lucide-react";
+import { Check, Clock, User, Stethoscope, Apple, Bot } from "lucide-react";
 
 interface ChatMessageProps {
   message: {
@@ -31,12 +31,24 @@ export const ChatMessage = ({
     ? `${message.sender.first_name || ''} ${message.sender.last_name || ''}`.trim()
     : 'Unknown User';
 
+  const firstName = message.sender.first_name || '';
+  
   // AI bot has a special ID and role
   const isAiSender = message.sender.id === '00000000-0000-0000-0000-000000000000' || 
                     message.sender.role === 'aibot';
   
   // Nutritionist/Dietician role check
   const isDieticianSender = message.sender.role === 'nutritionist';
+  const isDoctorSender = message.sender.role === 'doctor';
+  const isPatientSender = message.sender.role === 'patient';
+
+  const renderSenderIcon = () => {
+    if (isAiSender) return <Bot className="h-4 w-4 mr-1" />;
+    if (isDoctorSender) return <Stethoscope className="h-4 w-4 mr-1" />;
+    if (isDieticianSender) return <Apple className="h-4 w-4 mr-1" />;
+    if (isPatientSender) return <User className="h-4 w-4 mr-1" />;
+    return <User className="h-4 w-4 mr-1" />;
+  };
 
   const renderReadStatus = () => {
     if (!isCurrentUser) return null;
@@ -81,13 +93,14 @@ export const ChatMessage = ({
         }`}
       >
         {(showSender || !isCurrentUser) && (
-          <p className="text-sm font-medium flex items-center">
-            {senderName}
+          <p className="text-sm font-medium flex items-center mb-1">
+            {renderSenderIcon()}
+            {firstName}
             {renderReadStatus()}
           </p>
         )}
         <p className="text-sm">{message.message}</p>
-        <p className="text-xs opacity-70 flex items-center">
+        <p className="text-xs opacity-70 flex items-center mt-1">
           {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
           {isCurrentUser && renderReadStatus()}
           {offlineMode && <span className="ml-1 text-xs font-medium"> (offline)</span>}
@@ -96,3 +109,4 @@ export const ChatMessage = ({
     </div>
   );
 };
+
