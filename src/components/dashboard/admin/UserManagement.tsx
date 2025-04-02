@@ -14,7 +14,7 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Search, Users, RefreshCw, UserPlus } from "lucide-react";
+import { Search, Users, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
@@ -32,7 +32,6 @@ export const UserManagement = () => {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [creatingTestData, setCreatingTestData] = useState(false);
   
   useEffect(() => {
     fetchUsers();
@@ -64,38 +63,6 @@ export const UserManagement = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-  
-  const createTestData = async () => {
-    setCreatingTestData(true);
-    try {
-      // Use the direct Supabase function URL instead of accessing protected properties
-      const response = await fetch("https://hcaqodjylicmppxcbqbh.supabase.co/functions/v1/create-test-data", {
-        method: 'POST',
-        headers: {
-          // Use the auth token from the current session or the anon key
-          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjYXFvZGp5bGljbXBweGNicWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzMDIxNDksImV4cCI6MjA1Mzg3ODE0OX0.h4pO6UShabHNPWC9o_EMbbhOVHsR-fuZQ5-b85hNB4w`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to create test data: ${response.status}`);
-      }
-      
-      const result = await response.json();
-      console.log("Test data created:", result);
-      
-      toast.success("Test data created successfully!");
-      
-      // Refresh the users list
-      fetchUsers();
-    } catch (error: any) {
-      console.error("Error creating test data:", error);
-      toast.error(`Error creating test data: ${error.message}`);
-    } finally {
-      setCreatingTestData(false);
     }
   };
   
@@ -131,16 +98,6 @@ export const UserManagement = () => {
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             {loading ? "Refreshing..." : "Refresh"}
-          </Button>
-          
-          <Button 
-            variant="secondary" 
-            onClick={createTestData}
-            disabled={creatingTestData}
-            className="flex items-center gap-2"
-          >
-            <UserPlus className="h-4 w-4" />
-            {creatingTestData ? "Creating..." : "Create Test Users"}
           </Button>
         </div>
       </div>
