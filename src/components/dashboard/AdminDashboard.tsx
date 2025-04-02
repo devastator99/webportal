@@ -8,6 +8,9 @@ import { VideoList } from "@/components/videos/VideoList";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
 import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAssignmentManager";
+import { UserRegistration } from "@/components/dashboard/admin/UserRegistration";
+import { UserManagement } from "@/components/dashboard/admin/UserManagement";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const AdminDashboard = () => {
   const { data: userStats } = useQuery({
@@ -84,17 +87,39 @@ export const AdminDashboard = () => {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1 space-y-6">
-          <AdminSettings />
+      <Tabs defaultValue="users">
+        <TabsList className="w-full border-b pb-0 mb-4">
+          <TabsTrigger value="users">User Management</TabsTrigger>
+          <TabsTrigger value="assignments">Care Team Assignments</TabsTrigger>
+          <TabsTrigger value="videos">Education Videos</TabsTrigger>
+          <TabsTrigger value="settings">System Settings</TabsTrigger>
+        </TabsList>
+      
+        <TabsContent value="users" className="space-y-6">
+          <UserManagement />
+          <UserRegistration />
+        </TabsContent>
+
+        <TabsContent value="assignments" className="space-y-6">
           <PatientAssignmentManager />
-          <VideoUploader />
-        </div>
-        <div className="lg:col-span-2">
-          <h2 className="text-2xl font-semibold mb-4">Uploaded Videos</h2>
-          <VideoList />
-        </div>
-      </div>
+        </TabsContent>
+
+        <TabsContent value="videos" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-1 space-y-6">
+              <VideoUploader />
+            </div>
+            <div className="lg:col-span-2">
+              <h2 className="text-2xl font-semibold mb-4">Uploaded Videos</h2>
+              <VideoList />
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="settings" className="space-y-6">
+          <AdminSettings />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

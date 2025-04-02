@@ -14,7 +14,7 @@ interface ChatMessageProps {
       last_name: string | null;
       role?: string;
     };
-    synced?: boolean | string; // Updated to accept both boolean and string
+    synced?: boolean | string; // Explicitly allowing both boolean and string
   };
   isCurrentUser: boolean;
   showSender?: boolean;
