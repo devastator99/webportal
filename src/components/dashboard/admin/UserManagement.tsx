@@ -70,10 +70,12 @@ export const UserManagement = () => {
   const createTestData = async () => {
     setCreatingTestData(true);
     try {
-      const response = await fetch(`${supabase.supabaseUrl}/functions/v1/create-test-data`, {
+      // Use the direct Supabase function URL instead of accessing protected properties
+      const response = await fetch("https://hcaqodjylicmppxcbqbh.supabase.co/functions/v1/create-test-data", {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${supabase.supabaseKey}`,
+          // Use the auth token from the current session or the anon key
+          'Authorization': `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjYXFvZGp5bGljbXBweGNicWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzMDIxNDksImV4cCI6MjA1Mzg3ODE0OX0.h4pO6UShabHNPWC9o_EMbbhOVHsR-fuZQ5-b85hNB4w`,
           'Content-Type': 'application/json'
         }
       });
