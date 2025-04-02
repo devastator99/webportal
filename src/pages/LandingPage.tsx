@@ -11,7 +11,7 @@ import { ChatbotWidget } from "@/components/chat/ChatbotWidget";
 import { featureFlags } from "@/config/features";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { UserPlus } from "lucide-react";
+import { UserPlus, AlertCircle } from "lucide-react";
 
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center p-4">
@@ -63,6 +63,7 @@ export const LandingPage = () => {
   const navigate = useNavigate();
   const { toast: uiToast } = useToast();
   const [creatingTestData, setCreatingTestData] = useState(false);
+  const [adminCreationError, setAdminCreationError] = useState<string | null>(null);
   const [visibleSections, setVisibleSections] = useState({
     features: false,
     testimonials: false,
@@ -73,7 +74,10 @@ export const LandingPage = () => {
   
   const createAdminUser = async () => {
     setCreatingTestData(true);
+    setAdminCreationError(null);
+    
     try {
+      console.log("Starting admin user creation request");
       const response = await fetch("https://hcaqodjylicmppxcbqbh.supabase.co/functions/v1/create-test-data", {
         method: 'POST',
         headers: {
@@ -82,11 +86,23 @@ export const LandingPage = () => {
         }
       });
       
-      if (!response.ok) {
-        throw new Error(`Failed to create admin user: ${response.status}`);
+      const responseText = await response.text();
+      console.log("Response from admin creation:", responseText);
+      
+      let result;
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        console.error("Failed to parse response as JSON:", e);
+        throw new Error(`Invalid response: ${responseText}`);
       }
       
-      const result = await response.json();
+      if (!response.ok) {
+        const errorMessage = result.error || `Failed to create admin user: ${response.status}`;
+        const errorDetails = result.details ? ` (${result.details})` : '';
+        throw new Error(`${errorMessage}${errorDetails}`);
+      }
+      
       console.log("Admin user created:", result);
       
       toast.success("Admin user created successfully! Login: admin@example.com / testpassword123", {
@@ -94,6 +110,7 @@ export const LandingPage = () => {
       });
     } catch (error: any) {
       console.error("Error creating admin user:", error);
+      setAdminCreationError(error.message);
       toast.error(`Error creating admin user: ${error.message}`, {
         duration: 5000,
       });
@@ -187,6 +204,17 @@ export const LandingPage = () => {
           <div className="mb-4">
             <p className="text-amber-700"><strong>Admin:</strong> admin@example.com / testpassword123</p>
           </div>
+          
+          {adminCreationError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded mb-4 flex items-start">
+              <AlertCircle className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">Error:</p>
+                <p className="text-sm">{adminCreationError}</p>
+              </div>
+            </div>
+          )}
+          
           <Button
             onClick={createAdminUser}
             disabled={creatingTestData}

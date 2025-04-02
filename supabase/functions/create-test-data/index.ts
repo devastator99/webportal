@@ -8,24 +8,22 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  // Handle preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    console.log("Starting admin user creation...");
+    console.log("Starting admin user creation process");
     
-    // Initialize Supabase client
+    // Initialize Supabase client with service role key
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error("Missing Supabase URL or service role key");
       return new Response(
-        JSON.stringify({ 
-          error: "Server configuration error", 
-          details: "Missing required environment variables" 
-        }),
+        JSON.stringify({ error: "Server configuration error" }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 500,
@@ -34,127 +32,120 @@ serve(async (req) => {
     }
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    
     console.log("Supabase client initialized");
 
-    // Define admin data for easier reference
+    // Admin user details
     const adminEmail = 'admin@example.com';
     const adminPassword = 'testpassword123';
     
-    // First, directly try to create the admin user without checking for existence
-    // This is to avoid potential issues with the email check query
-    console.log("Creating admin user...");
-    
+    // Simplified approach: Try to create user directly
     try {
-      const { data: adminData, error: adminError } = await supabase.auth.admin.createUser({
+      console.log("Attempting to create admin user directly");
+      
+      const { data: userCreateData, error: userCreateError } = await supabase.auth.admin.createUser({
         email: adminEmail,
         password: adminPassword,
-        email_confirm: true, 
-        user_metadata: {
-          first_name: 'Admin',
-          last_name: 'User'
-        }
+        email_confirm: true
       });
-
-      // If there's an error about the user already existing, we can ignore it
-      if (adminError) {
-        if (adminError.message.includes('already exists')) {
-          console.log("Admin user already exists, fetching user ID...");
-          // Try to get the existing user's ID
-          const { data: userData } = await supabase.auth.admin.listUsers();
-          const existingAdmin = userData?.users.find(user => user.email === adminEmail);
+      
+      if (userCreateError) {
+        console.error("Error in first creation attempt:", userCreateError);
+        
+        // If error indicates user exists, fetch the user
+        if (userCreateError.message.includes('already exists')) {
+          console.log("Admin user already exists, fetching user data");
           
-          if (existingAdmin?.id) {
-            console.log("Found existing admin user:", existingAdmin.id);
-            // Try to update the admin user's password
-            await supabase.auth.admin.updateUserById(existingAdmin.id, {
+          // Search for the user in auth.users table
+          const { data: users } = await supabase.auth.admin.listUsers();
+          const adminUser = users?.users.find(u => u.email === adminEmail);
+          
+          if (adminUser) {
+            console.log("Found existing admin user:", adminUser.id);
+            
+            // Update password for existing user
+            await supabase.auth.admin.updateUserById(adminUser.id, {
               password: adminPassword,
-              email_confirm: true,
+              email_confirm: true
             });
             
-            // Ensure admin has correct profile and role
-            await ensureAdminProfileAndRole(supabase, existingAdmin.id, adminEmail);
+            // Create/update profile and role
+            await createProfileAndRole(supabase, adminUser.id, adminEmail);
+            
+            return successResponse();
+          } else {
+            console.error("User reported as existing but not found in listUsers");
+          }
+        }
+        
+        // If we get here, there was an error and user wasn't found in listUsers
+        console.log("Trying alternate creation approach");
+        
+        // Try a different approach using direct SQL
+        try {
+          // This is a fallback to ensure we get a user created one way or another
+          const { data: fallbackUser, error: fallbackError } = await supabase.auth.signUp({
+            email: adminEmail,
+            password: adminPassword
+          });
+          
+          if (fallbackError) {
+            console.error("Fallback signup failed:", fallbackError);
+            throw fallbackError;
+          }
+          
+          if (fallbackUser?.user) {
+            console.log("Created admin via fallback method:", fallbackUser.user.id);
+            
+            // Confirm email directly
+            await supabase.auth.admin.updateUserById(fallbackUser.user.id, {
+              email_confirm: true
+            });
+            
+            // Create profile and role
+            await createProfileAndRole(supabase, fallbackUser.user.id, adminEmail);
             
             return successResponse();
           }
-        } else {
-          // If it's any other error, report it
-          console.error("Error creating admin user:", adminError);
-          return new Response(
-            JSON.stringify({ 
-              error: "Error creating admin user", 
-              details: adminError.message
-            }),
-            {
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-              status: 400,
-            }
-          );
+        } catch (fallbackCatchError) {
+          console.error("Error in fallback method:", fallbackCatchError);
         }
-      } else if (adminData?.user) {
-        console.log("Admin user created successfully:", adminData.user.id);
         
-        // Create admin profile and role
-        await ensureAdminProfileAndRole(supabase, adminData.user.id, adminEmail);
+        // If all attempts failed, return the original error
+        return new Response(
+          JSON.stringify({ error: "Failed to create admin user", details: userCreateError.message }),
+          {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 400,
+          }
+        );
+      }
+      
+      // User was created successfully
+      if (userCreateData?.user) {
+        console.log("Admin user created successfully:", userCreateData.user.id);
+        
+        // Create profile and role
+        await createProfileAndRole(supabase, userCreateData.user.id, adminEmail);
         
         return successResponse();
       }
-    } catch (error) {
-      console.error("Exception during admin creation attempt:", error);
-      // We'll continue to the next approach
-    }
-    
-    // If direct creation failed, try a more careful approach
-    console.log("Falling back to alternate admin creation approach...");
-    
-    // First, try to find the admin user
-    let adminUserId = null;
-    let adminExists = false;
-    
-    try {
-      // Check auth.users first
-      const { data: usersData } = await supabase.auth.admin.listUsers();
-      const adminUser = usersData?.users.find(user => user.email === adminEmail);
       
-      if (adminUser?.id) {
-        adminUserId = adminUser.id;
-        adminExists = true;
-        console.log("Admin user found in auth.users:", adminUserId);
-      } else {
-        // If not found, try creating a new admin user
-        console.log("Admin not found in auth.users, creating new admin...");
-        const { data: newAdminData, error: newAdminError } = await supabase.auth.admin.createUser({
-          email: adminEmail,
-          password: adminPassword,
-          email_confirm: true,
-          user_metadata: {
-            first_name: 'Admin',
-            last_name: 'User'
-          }
-        });
-
-        if (newAdminError) {
-          throw new Error(`Failed to create admin: ${newAdminError.message}`);
+      // No user data returned
+      return new Response(
+        JSON.stringify({ error: "User creation returned no data" }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 500,
         }
-
-        if (!newAdminData?.user?.id) {
-          throw new Error("No user ID returned after admin creation");
-        }
-
-        adminUserId = newAdminData.user.id;
-        console.log("New admin user created:", adminUserId);
-      }
+      );
       
-      // Ensure admin has profile and role
-      await ensureAdminProfileAndRole(supabase, adminUserId, adminEmail);
+    } catch (directCreateError) {
+      console.error("Exception during direct admin creation:", directCreateError);
       
-      return successResponse();
-    } catch (finalError) {
-      console.error("Final error during admin creation:", finalError);
       return new Response(
         JSON.stringify({ 
-          error: "Failed to create or update admin user", 
-          details: finalError.message
+          error: "Server error during admin creation", 
+          details: directCreateError.message || "Unknown error" 
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -163,11 +154,12 @@ serve(async (req) => {
       );
     }
   } catch (outerError) {
-    console.error("Unhandled exception:", outerError);
+    console.error("Unhandled outer exception:", outerError);
+    
     return new Response(
       JSON.stringify({ 
         error: "Server error", 
-        details: outerError.message || "Unknown error occurred"
+        details: outerError.message || "Unknown error occurred" 
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -176,10 +168,12 @@ serve(async (req) => {
     );
   }
   
-  // Helper functions
-  async function ensureAdminProfileAndRole(supabase, userId, email) {
-    // Try to create or update profile
+  // Helper function to create/update profile and role
+  async function createProfileAndRole(supabase, userId, email) {
+    console.log("Creating/updating profile and role for:", userId);
+    
     try {
+      // Create/update profile - using upsert to handle both create and update cases
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
@@ -190,15 +184,16 @@ serve(async (req) => {
         });
 
       if (profileError) {
-        console.error("Error upserting profile:", profileError);
+        console.error("Error creating profile:", profileError);
+      } else {
+        console.log("Profile created or updated successfully");
       }
     } catch (profileError) {
-      console.error("Exception during profile upsert:", profileError);
+      console.error("Exception during profile creation:", profileError);
     }
     
-    // Try to create or update role
     try {
-      // Check if role exists first
+      // Check if role already exists
       const { data: existingRoles } = await supabase
         .from('user_roles')
         .select('*')
@@ -214,19 +209,25 @@ serve(async (req) => {
           });
 
         if (roleError) {
-          console.error("Error inserting role:", roleError);
+          console.error("Error creating role:", roleError);
+        } else {
+          console.log("Role created successfully");
         }
       } else {
-        // Update role if it exists but is wrong
+        // Update role if needed
         if (existingRoles[0].role !== 'administrator') {
-          const { error: updateRoleError } = await supabase
+          const { error: roleUpdateError } = await supabase
             .from('user_roles')
             .update({ role: 'administrator' })
             .eq('user_id', userId);
             
-          if (updateRoleError) {
-            console.error("Error updating role:", updateRoleError);
+          if (roleUpdateError) {
+            console.error("Error updating role:", roleUpdateError);
+          } else {
+            console.log("Role updated successfully");
           }
+        } else {
+          console.log("Admin role already assigned");
         }
       }
     } catch (roleError) {
