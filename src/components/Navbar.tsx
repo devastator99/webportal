@@ -25,9 +25,10 @@ export const Navbar = () => {
   const isAdminPage = location.pathname === '/admin';
   const isAlternativeDashboard = location.pathname === '/dashboard-alt';
 
+  // Enhanced navbar styling to ensure visibility
   const navbarClass = (isDashboardPage || isAlternativeDashboard)
-    ? "fixed top-0 w-full bg-white/90 dark:bg-black/90 backdrop-blur-md z-50 border-b border-[#D6BCFA] shadow-sm mb-16" 
-    : "fixed top-0 w-full bg-white/90 dark:bg-black/90 backdrop-blur-md z-50 border-b border-[#D6BCFA] shadow-sm";
+    ? "fixed top-0 w-full bg-white dark:bg-gray-900 z-50 border-b border-[#D6BCFA] shadow-md mb-16" 
+    : "fixed top-0 w-full bg-white dark:bg-gray-900 z-50 border-b border-[#D6BCFA] shadow-md";
 
   useEffect(() => {
     resetInactivityTimer();
@@ -44,7 +45,7 @@ export const Navbar = () => {
   if (isLoading && !isSigningOut && location.pathname !== '/') {
     return (
       <nav className={navbarClass}>
-        <div className="container mx-auto px-4 py-2.5 flex justify-between items-center">
+        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
           <Logo />
         </div>
       </nav>
@@ -53,7 +54,7 @@ export const Navbar = () => {
 
   return (
     <nav className={navbarClass}>
-      <div className="container mx-auto px-4 py-2.5 flex justify-between items-center">
+      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <Logo />
         
         {/* Mobile/iPad menu button */}
@@ -79,8 +80,8 @@ export const Navbar = () => {
         
         {/* Mobile/iPad navigation */}
         {useResponsiveDisplay && mobileMenuOpen && (
-          <div className="absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-b border-[#D6BCFA] shadow-md z-50 py-3 px-4">
-            <div className="flex flex-col gap-2">
+          <div className="absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-b border-[#D6BCFA] shadow-lg z-50 py-4 px-4">
+            <div className="flex flex-col gap-3">
               {user && <DashboardButton />}
               {user && <DoctorActions />}
               {user && isAdminPage && <ForceLogoutButton />}
