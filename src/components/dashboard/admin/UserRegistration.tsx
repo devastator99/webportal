@@ -8,13 +8,15 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createUserRole, supabase } from "@/integrations/supabase/client";
-import { UserPlus } from "lucide-react";
+import { UserPlus, Eye, EyeOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const UserRegistration = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [role, setRole] = useState<"patient" | "doctor" | "nutritionist" | "administrator">("patient");
@@ -174,13 +176,28 @@ export const UserRegistration = () => {
           
           <div className="space-y-2">
             <Label htmlFor="password">Password *</Label>
-            <Input 
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="relative">
+              <Input 
+                id="password"
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex items-center space-x-2 mt-1">
+              <Checkbox 
+                id="showPassword" 
+                checked={showPassword} 
+                onCheckedChange={(checked) => setShowPassword(checked === true)}
+              />
+              <Label 
+                htmlFor="showPassword" 
+                className="text-sm cursor-pointer font-normal"
+              >
+                Show password
+              </Label>
+            </div>
           </div>
           
           <div className="space-y-2">

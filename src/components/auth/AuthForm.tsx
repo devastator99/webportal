@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { LucideLoader2, CalendarIcon } from "lucide-react";
+import { LucideLoader2, CalendarIcon, Eye, EyeOff } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -17,6 +17,7 @@ import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDateForDisplay, parseDateFromDisplay } from "@/utils/dateUtils";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -73,6 +74,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
   const [userType, setUserType] = useState<"patient" | "doctor" | "nutritionist">("patient");
   const [showPatientFields, setShowPatientFields] = useState(type === "register" && userType === "patient");
   const [dateInputValue, setDateInputValue] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
 
   const activeSchema = type === "login" 
@@ -264,15 +266,31 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
             render={({ field }) => (
               <FormItem>
                 <FormControl>
-                  <Input
-                    {...field}
-                    type="password"
-                    placeholder="Password"
-                    disabled={loading}
-                    className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
-                    minLength={6}
-                  />
+                  <div className="relative">
+                    <Input
+                      {...field}
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Password"
+                      disabled={loading}
+                      className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
+                      minLength={6}
+                    />
+                  </div>
                 </FormControl>
+                <div className="flex items-center space-x-2 mt-1">
+                  <Checkbox 
+                    id="showPassword" 
+                    checked={showPassword} 
+                    onCheckedChange={(checked) => setShowPassword(checked === true)}
+                    className="border-purple-300"
+                  />
+                  <label 
+                    htmlFor="showPassword" 
+                    className="text-xs cursor-pointer text-purple-700"
+                  >
+                    Show password
+                  </label>
+                </div>
               </FormItem>
             )}
           />
