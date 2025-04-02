@@ -126,14 +126,11 @@ export const PatientAssignmentManager = () => {
     try {
       setIsAssigning(true);
       
-      // Direct database operation instead of using the Edge Function
-      const { data, error } = await supabase
-        .from('patient_doctor_assignments')
-        .upsert({
-          patient_id: selectedPatient,
-          doctor_id: selectedDoctor
-        })
-        .select();
+      // Using RPC call for assigning doctor to patient
+      const { data, error } = await supabase.rpc('assign_doctor_to_patient', {
+        p_doctor_id: selectedDoctor,
+        p_patient_id: selectedPatient
+      });
       
       if (error) throw error;
       
@@ -178,14 +175,11 @@ export const PatientAssignmentManager = () => {
     try {
       setIsAssigning(true);
       
-      // Direct database operation instead of using the Edge Function
-      const { data, error } = await supabase
-        .from('patient_nutritionist_assignments')
-        .upsert({
-          patient_id: selectedPatient,
-          nutritionist_id: selectedNutritionist
-        })
-        .select();
+      // Using RPC call for assigning nutritionist to patient
+      const { data, error } = await supabase.rpc('assign_nutritionist_to_patient', {
+        p_nutritionist_id: selectedNutritionist,
+        p_patient_id: selectedPatient
+      });
       
       if (error) throw error;
       
