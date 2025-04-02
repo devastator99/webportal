@@ -1,21 +1,48 @@
 
 import * as React from "react"
 
-// Standard Tailwind breakpoint for small screens
-const MOBILE_BREAKPOINT = 640
+// Update the breakpoint to include iPads (most iPads are 768px or higher)
+const MOBILE_BREAKPOINT = 768
 
 export function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
 
   React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const onChange = () => {
+    // Initial check
+    const checkIfMobile = () => {
       setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
     }
-    mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    return () => mql.removeEventListener("change", onChange)
+    
+    // Check immediately
+    checkIfMobile()
+    
+    // Add resize listener
+    window.addEventListener("resize", checkIfMobile)
+    
+    // Cleanup
+    return () => window.removeEventListener("resize", checkIfMobile)
   }, [])
 
   return !!isMobile
+}
+
+// Add a new hook for iPad detection specifically
+export function useIsIPad() {
+  const [isIPad, setIsIPad] = React.useState<boolean | undefined>(undefined)
+
+  React.useEffect(() => {
+    const checkIfIPad = () => {
+      // iPad typically has width between 768px and 1024px
+      const width = window.innerWidth
+      const isTablet = width >= 768 && width <= 1024
+      setIsIPad(isTablet)
+    }
+    
+    checkIfIPad()
+    window.addEventListener("resize", checkIfIPad)
+    
+    return () => window.removeEventListener("resize", checkIfIPad)
+  }, [])
+
+  return !!isIPad
 }

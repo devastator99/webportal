@@ -17,6 +17,7 @@ const LoadingSpinner = () => (
   </div>
 );
 
+// Lazy-loaded components with better suspense handling
 const Testimonials = () => {
   const [Component, setComponent] = useState<React.ComponentType | null>(null);
 
@@ -141,39 +142,42 @@ export const LandingPage = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <Navbar />
-      <Hero />
-      
-      <div id="features-section" className="min-h-[20px]">
-        {visibleSections.features && <Features />}
+      {/* Add padding-top to ensure content doesn't hide under navbar */}
+      <div className="pt-16 md:pt-20">
+        <Hero />
+        
+        <div id="features-section" className="min-h-[20px]">
+          {visibleSections.features && <Features />}
+        </div>
+        
+        <div id="testimonials-section" className="min-h-[20px]">
+          {visibleSections.testimonials && <Testimonials />}
+        </div>
+        
+        <div id="pricing-section" className="min-h-[20px]">
+          {visibleSections.pricing && <Pricing />}
+        </div>
+        
+        <div id="video-section" className="container mx-auto px-4 py-6 min-h-[20px]">
+          {visibleSections.videos && (
+            <CollapsibleSection 
+              title="Knowledge Sharing" 
+              className="bg-white dark:bg-gray-800 shadow-md border-[#D6BCFA]"
+              defaultOpen={false}
+              lazyLoad={true}
+            >
+              <Suspense fallback={<LoadingSpinner />}>
+                <StandaloneVideoList />
+              </Suspense>
+            </CollapsibleSection>
+          )}
+        </div>
+        
+        <div id="footer-section" className="min-h-[20px]">
+          {visibleSections.footer && <Footer />}
+        </div>
       </div>
       
-      <div id="testimonials-section" className="min-h-[20px]">
-        {visibleSections.testimonials && <Testimonials />}
-      </div>
-      
-      <div id="pricing-section" className="min-h-[20px]">
-        {visibleSections.pricing && <Pricing />}
-      </div>
-      
-      <div id="video-section" className="container mx-auto px-4 py-6 min-h-[20px]">
-        {visibleSections.videos && (
-          <CollapsibleSection 
-            title="Knowledge Sharing" 
-            className="bg-white dark:bg-gray-800 shadow-md border-[#D6BCFA]"
-            defaultOpen={false}
-            lazyLoad={true}
-          >
-            <Suspense fallback={<LoadingSpinner />}>
-              <StandaloneVideoList />
-            </Suspense>
-          </CollapsibleSection>
-        )}
-      </div>
-      
-      <div id="footer-section" className="min-h-[20px]">
-        {visibleSections.footer && <Footer />}
-      </div>
-
       {featureFlags.enableChatbotWidget && <ChatbotWidget />}
     </div>
   );
