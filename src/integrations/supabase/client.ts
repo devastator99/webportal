@@ -31,10 +31,12 @@ export interface PatientProfile {
 // Function to create or update a user role
 export async function createUserRole(userId: string, role: string): Promise<any> {
   try {
-    // Call the Supabase RPC function to create/update user role
-    const { data, error } = await supabase.rpc('upsert_user_role', {
-      p_user_id: userId,
-      p_role: role
+    // Call the Edge Function instead of direct RPC
+    const { data, error } = await supabase.functions.invoke('upsert-user-role', {
+      body: { 
+        userId, 
+        role 
+      }
     });
 
     if (error) {
@@ -63,18 +65,20 @@ export async function createPatientDetails(
   currentMedicalConditions: string | null
 ): Promise<any> {
   try {
-    // Call the Supabase RPC function to create/update patient details
-    const { data, error } = await supabase.rpc('upsert_patient_details', {
-      p_user_id: patientId,
-      p_age: age,
-      p_gender: gender,
-      p_blood_group: bloodGroup,
-      p_allergies: allergies,
-      p_emergency_contact: emergencyContact,
-      p_height: height,
-      p_birth_date: birthDate,
-      p_food_habit: foodHabit,
-      p_current_medical_conditions: currentMedicalConditions
+    // Call the Edge Function instead of direct RPC
+    const { data, error } = await supabase.functions.invoke('upsert-patient-details', {
+      body: {
+        patientId,
+        age,
+        gender,
+        bloodGroup,
+        allergies,
+        emergencyContact,
+        height,
+        birthDate,
+        foodHabit,
+        currentMedicalConditions
+      }
     });
 
     if (error) {
