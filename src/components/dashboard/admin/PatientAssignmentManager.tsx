@@ -125,12 +125,15 @@ export const PatientAssignmentManager = () => {
     
     try {
       setIsAssigning(true);
-      
-      // Using RPC call for assigning doctor to patient
-      const { data, error } = await supabase.rpc('assign_doctor_to_patient', {
-        p_doctor_id: selectedDoctor,
-        p_patient_id: selectedPatient
-      });
+
+      // Using direct database operations with the patient_assignments table
+      const { data, error } = await supabase
+        .from('patient_assignments')
+        .upsert({
+          patient_id: selectedPatient,
+          doctor_id: selectedDoctor
+        })
+        .select();
       
       if (error) throw error;
       
@@ -163,10 +166,10 @@ export const PatientAssignmentManager = () => {
   };
   
   const handleAssignNutritionist = async () => {
-    if (!selectedPatient || !selectedNutritionist) {
+    if (!selectedPatient || !selectedNutritionist || !selectedDoctor) {
       toast({
         title: "Missing selection",
-        description: "Please select both a patient and a nutritionist",
+        description: "Please select a patient, nutritionist, and doctor",
         variant: "destructive"
       });
       return;
@@ -175,10 +178,11 @@ export const PatientAssignmentManager = () => {
     try {
       setIsAssigning(true);
       
-      // Using RPC call for assigning nutritionist to patient
-      const { data, error } = await supabase.rpc('assign_nutritionist_to_patient', {
+      // Using the existing assign_patient_to_nutritionist RPC function
+      const { data, error } = await supabase.rpc('assign_patient_to_nutritionist', {
         p_nutritionist_id: selectedNutritionist,
-        p_patient_id: selectedPatient
+        p_patient_id: selectedPatient,
+        p_doctor_id: selectedDoctor
       });
       
       if (error) throw error;
