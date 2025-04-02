@@ -25,6 +25,7 @@ interface ChatMessagesListProps {
   isGroupChat?: boolean;
   careTeamGroup?: CareTeamGroup | null;
   offlineMode?: boolean;
+  localMessages?: any[];
 }
 
 interface ProfileInfo {
@@ -49,9 +50,10 @@ export const ChatMessagesList = ({
   selectedUserId, 
   isGroupChat = false, 
   careTeamGroup = null,
-  offlineMode = false
+  offlineMode = false,
+  localMessages = []
 }: ChatMessagesListProps) => {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const [offlineMessages, setOfflineMessages] = useState<MessageData[]>([]);
@@ -86,6 +88,10 @@ export const ChatMessagesList = ({
                 senderInfo.last_name = member.last_name;
                 senderInfo.role = member.role;
               }
+            } else if (msg.sender_id === user.id) {
+              senderInfo.first_name = user.first_name || "You";
+              senderInfo.last_name = user.last_name || "";
+              senderInfo.role = userRole;
             }
             
             return {
@@ -114,7 +120,7 @@ export const ChatMessagesList = ({
     if (offlineMode) {
       loadOfflineMessages();
     }
-  }, [user?.id, offlineMode, careTeamGroup]);
+  }, [user?.id, offlineMode, careTeamGroup, userRole]);
 
   // Function to fetch messages for either individual or group chat
   const fetchMessages = async () => {
@@ -255,8 +261,33 @@ export const ChatMessagesList = ({
     refetchInterval: 3000, // Poll every 3 seconds to ensure we get new messages
   });
 
-  // Combine online and offline messages when needed
-  const messages = offlineMode ? offlineMessages : onlineMessages;
+  // Combine online, offline and local messages
+  const combinedMessages = () => {
+    const online = offlineMode ? [] : (onlineMessages || []);
+    const offline = offlineMessages || [];
+    const local = localMessages || [];
+    
+    // Combine all message sources
+    const allMessages = [...online, ...offline, ...local];
+    
+    // Filter duplicates by ID (keeping the first occurrence)
+    const uniqueIds = new Set();
+    const uniqueMessages = allMessages.filter(msg => {
+      if (!uniqueIds.has(msg.id)) {
+        uniqueIds.add(msg.id);
+        return true;
+      }
+      return false;
+    });
+    
+    // Sort by timestamp
+    return uniqueMessages.sort((a, b) => 
+      new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+  };
+  
+  // Get the final list of messages to display
+  const messages = combinedMessages();
 
   // Scroll to bottom when new messages arrive
   useEffect(() => {
@@ -364,7 +395,7 @@ export const ChatMessagesList = ({
     );
   }
 
-  if (isLoading && !offlineMode) {
+  if (isLoading && !offlineMode && messages.length === 0) {
     return (
       <div className="flex-1 space-y-4">
         {[...Array(3)].map((_, i) => (
@@ -376,7 +407,7 @@ export const ChatMessagesList = ({
     );
   }
 
-  if (error && !offlineMode) {
+  if (error && !offlineMode && messages.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-destructive">
         Error loading messages. Please try again.
@@ -384,7 +415,7 @@ export const ChatMessagesList = ({
     );
   }
 
-  if (!messages || !messages.length) {
+  if (!messages || messages.length === 0) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
         {offlineMode

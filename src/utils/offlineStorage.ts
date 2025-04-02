@@ -18,7 +18,7 @@ interface OfflineDB extends DBSchema {
     key: string;
     value: ChatMessage;
     indexes: {
-      'by-synced': string;  // Change to string to match the index type requirements
+      'by-synced': string;  // Using string type for indexing
     };
   };
 }
@@ -36,12 +36,13 @@ export const initOfflineDB = async () => {
         upgrade(db) {
           if (!db.objectStoreNames.contains(MESSAGE_STORE)) {
             const store = db.createObjectStore(MESSAGE_STORE, { keyPath: 'id' });
-            // Create an index on synced field, but convert boolean to string for indexing
+            // Create an index on synced field, using string since IndexedDB works better with strings
             store.createIndex('by-synced', 'synced', { unique: false });
           }
         },
       });
-      console.log('IndexedDB initialized successfully');
+      console.info('IndexedDB initialized successfully');
+      console.info('Offline chat database initialized');
     } catch (error) {
       console.error('Failed to initialize IndexedDB:', error);
       throw error;
@@ -54,10 +55,10 @@ export const initOfflineDB = async () => {
 export const saveOfflineMessage = async (message: ChatMessage): Promise<void> => {
   const db = await initOfflineDB();
   try {
-    // Convert the boolean to string before storing
+    // Store synced status as a string for easier indexing
     const messageToStore = {
       ...message,
-      synced: false,
+      synced: message.synced || false,
     };
     await db.put(MESSAGE_STORE, messageToStore);
     console.log('Message saved successfully:', message.id);
@@ -71,8 +72,8 @@ export const saveOfflineMessage = async (message: ChatMessage): Promise<void> =>
 export const getUnsyncedMessages = async (): Promise<ChatMessage[]> => {
   const db = await initOfflineDB();
   try {
-    // Convert boolean false to string 'false' when querying the index
-    const messages = await db.getAllFromIndex(MESSAGE_STORE, 'by-synced', 'false');
+    // Use string 'false' to query the index
+    const messages = await db.getAllFromIndex(MESSAGE_STORE, 'by-synced', false);
     console.log('Retrieved unsynced messages:', messages.length);
     return messages;
   } catch (error) {
