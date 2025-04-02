@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useCallback, Suspense } from "react";
 import { Hero } from "@/components/Hero";
 import { Navbar } from "@/components/Navbar";
@@ -14,14 +13,12 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { UserPlus } from "lucide-react";
 
-// Simple loading component
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center p-4">
     <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#9b87f5]"></div>
   </div>
 );
 
-// Lazy load only non-critical components with dynamic import()
 const Testimonials = () => {
   const [Component, setComponent] = useState<React.ComponentType | null>(null);
 
@@ -74,7 +71,6 @@ export const LandingPage = () => {
     footer: false
   });
   
-  // Function to handle test data creation
   const createTestData = async () => {
     setCreatingTestData(true);
     try {
@@ -106,10 +102,8 @@ export const LandingPage = () => {
     }
   };
   
-  // Optimized intersection observer setup
   useEffect(() => {
     if (typeof IntersectionObserver === 'undefined') {
-      // Fallback for browsers without IntersectionObserver support
       setVisibleSections({
         features: true,
         testimonials: true,
@@ -120,14 +114,12 @@ export const LandingPage = () => {
       return;
     }
 
-    // Use a single IntersectionObserver instance for better performance
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
             const sectionId = entry.target.id;
             
-            // Use functional update to avoid stale state
             setVisibleSections(prev => {
               if (sectionId === 'features-section' && !prev.features) {
                 return { ...prev, features: true };
@@ -147,7 +139,6 @@ export const LandingPage = () => {
               return prev;
             });
             
-            // Unobserve to save resources once section is visible
             observer.unobserve(entry.target);
           }
         });
@@ -158,7 +149,6 @@ export const LandingPage = () => {
       }
     );
     
-    // Begin observing with a small delay for better initial load performance
     const timer = setTimeout(() => {
       const sections = [
         'features-section', 
@@ -187,7 +177,6 @@ export const LandingPage = () => {
       <Navbar />
       <Hero />
       
-      {/* Test Data Creation Button */}
       <div className="container mx-auto px-4 py-6">
         <div className="bg-amber-50 border border-amber-300 p-6 rounded-lg shadow-md mb-8">
           <h2 className="text-lg font-semibold text-amber-800 mb-2">Create Test Data</h2>
@@ -199,6 +188,7 @@ export const LandingPage = () => {
             <p className="text-amber-700"><strong>Admin:</strong> admin@example.com / testpassword123</p>
             <p className="text-amber-700"><strong>Patient:</strong> ram.naresh@example.com / testpassword123</p>
             <p className="text-amber-700"><strong>Doctor:</strong> vinay.pulkit@example.com / testpassword123</p>
+            <p className="text-amber-700"><strong>Nutritionist:</strong> mary.johnson@example.com / testpassword123</p>
           </div>
           <Button
             onClick={createTestData}
@@ -231,7 +221,6 @@ export const LandingPage = () => {
             defaultOpen={false}
             lazyLoad={true}
           >
-            {/* Manual loading of VideoList to prevent dynamic import errors */}
             <Suspense fallback={<LoadingSpinner />}>
               <StandaloneVideoList />
             </Suspense>
