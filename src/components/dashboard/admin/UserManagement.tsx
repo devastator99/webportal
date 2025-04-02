@@ -42,8 +42,8 @@ export const UserManagement = () => {
     try {
       console.log("Fetching users with roles...");
       
-      // Call RPC function to get users with roles
-      const { data, error } = await supabase.rpc('get_users_with_roles');
+      // Call the function using fetch directly since it's not in the typed RPC list
+      const { data, error } = await supabase.from('get_users_with_roles').select();
       
       if (error) {
         console.error("RPC error:", error);
@@ -51,7 +51,7 @@ export const UserManagement = () => {
       }
       
       console.log("Users data received:", data);
-      setUsers(data || []);
+      setUsers(data as UserItem[] || []);
       toast.success("User data refreshed");
     } catch (error: any) {
       console.error("Error fetching users:", error);
