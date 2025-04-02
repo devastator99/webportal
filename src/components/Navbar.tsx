@@ -25,10 +25,10 @@ export const Navbar = () => {
   const isAdminPage = location.pathname === '/admin';
   const isAlternativeDashboard = location.pathname === '/dashboard-alt';
 
-  // Enhanced navbar styling to ensure visibility
+  // Enhanced navbar styling with improved visibility and spacing
   const navbarClass = (isDashboardPage || isAlternativeDashboard)
-    ? "fixed top-0 w-full bg-white dark:bg-gray-900 z-50 border-b border-[#D6BCFA] shadow-md mb-16" 
-    : "fixed top-0 w-full bg-white dark:bg-gray-900 z-50 border-b border-[#D6BCFA] shadow-md";
+    ? "fixed top-0 w-full bg-white dark:bg-gray-900 z-50 border-b border-[#D6BCFA] shadow-lg mb-16" 
+    : "fixed top-0 w-full bg-white dark:bg-gray-900 z-50 border-b border-[#D6BCFA] shadow-lg";
 
   useEffect(() => {
     resetInactivityTimer();
@@ -45,7 +45,7 @@ export const Navbar = () => {
   if (isLoading && !isSigningOut && location.pathname !== '/') {
     return (
       <nav className={navbarClass}>
-        <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <Logo />
         </div>
       </nav>
@@ -54,7 +54,7 @@ export const Navbar = () => {
 
   return (
     <nav className={navbarClass}>
-      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+      <div className="container mx-auto px-6 py-4 flex justify-between items-center">
         <Logo />
         
         {/* Mobile/iPad menu button */}
@@ -70,7 +70,7 @@ export const Navbar = () => {
         )}
         
         {/* Desktop navigation */}
-        <div className={`${useResponsiveDisplay ? 'hidden' : 'flex'} items-center gap-3`}>
+        <div className={`${useResponsiveDisplay ? 'hidden' : 'flex'} items-center gap-4`}>
           {user && <DashboardButton />}
           {user && <DoctorActions />}
           {user && isAdminPage && <ForceLogoutButton />}
