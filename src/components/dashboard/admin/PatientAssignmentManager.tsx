@@ -126,15 +126,14 @@ export const PatientAssignmentManager = () => {
     try {
       setIsAssigning(true);
 
-      // Instead of using the RPC function directly, use the patient_assignments table
-      // This avoids TypeScript errors with RPC functions not in the types
-      const { data, error } = await supabase
-        .from('patient_assignments')
-        .upsert({
-          patient_id: selectedPatient,
-          doctor_id: selectedDoctor
-        })
-        .select();
+      // Call the admin-assign-care-team Edge Function for doctor assignment
+      const { data, error } = await supabase.functions.invoke('admin-assign-care-team', {
+        body: {
+          action: "assignDoctor",
+          patientId: selectedPatient,
+          doctorId: selectedDoctor
+        }
+      });
       
       if (error) throw error;
       
