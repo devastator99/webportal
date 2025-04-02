@@ -71,7 +71,7 @@ export const LandingPage = () => {
     footer: false
   });
   
-  const createTestData = async () => {
+  const createAdminUser = async () => {
     setCreatingTestData(true);
     try {
       const response = await fetch("https://hcaqodjylicmppxcbqbh.supabase.co/functions/v1/create-test-data", {
@@ -83,18 +83,18 @@ export const LandingPage = () => {
       });
       
       if (!response.ok) {
-        throw new Error(`Failed to create test data: ${response.status}`);
+        throw new Error(`Failed to create admin user: ${response.status}`);
       }
       
       const result = await response.json();
-      console.log("Test data created:", result);
+      console.log("Admin user created:", result);
       
-      toast.success("Test data created successfully! Admin login: admin@example.com / testpassword123", {
+      toast.success("Admin user created successfully! Login: admin@example.com / testpassword123", {
         duration: 8000,
       });
     } catch (error: any) {
-      console.error("Error creating test data:", error);
-      toast.error(`Error creating test data: ${error.message}`, {
+      console.error("Error creating admin user:", error);
+      toast.error(`Error creating admin user: ${error.message}`, {
         duration: 5000,
       });
     } finally {
@@ -179,24 +179,21 @@ export const LandingPage = () => {
       
       <div className="container mx-auto px-4 py-6">
         <div className="bg-amber-50 border border-amber-300 p-6 rounded-lg shadow-md mb-8">
-          <h2 className="text-lg font-semibold text-amber-800 mb-2">Create Test Data</h2>
+          <h2 className="text-lg font-semibold text-amber-800 mb-2">Create Admin User</h2>
           <p className="text-amber-700 mb-4">
-            Click the button below to create test users including an admin account. 
-            After creation, you can log in with the following credentials:
+            Click the button below to create an administrator account for testing. 
+            After creation, you can log in with:
           </p>
           <div className="mb-4">
             <p className="text-amber-700"><strong>Admin:</strong> admin@example.com / testpassword123</p>
-            <p className="text-amber-700"><strong>Patient:</strong> ram.naresh@example.com / testpassword123</p>
-            <p className="text-amber-700"><strong>Doctor:</strong> vinay.pulkit@example.com / testpassword123</p>
-            <p className="text-amber-700"><strong>Nutritionist:</strong> mary.johnson@example.com / testpassword123</p>
           </div>
           <Button
-            onClick={createTestData}
+            onClick={createAdminUser}
             disabled={creatingTestData}
             className="bg-amber-600 hover:bg-amber-700"
           >
             <UserPlus className="h-4 w-4 mr-2" />
-            {creatingTestData ? "Creating Test Data..." : "Create Test Users"}
+            {creatingTestData ? "Creating Admin User..." : "Create Admin User"}
           </Button>
         </div>
       </div>
