@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -35,6 +34,20 @@ interface ChatInterfaceProps {
   showGroupChat?: boolean;
 }
 
+interface LocalMessage {
+  id: string;
+  message: string;
+  created_at: string;
+  read: boolean;
+  sender: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    role?: string;
+  };
+  synced?: boolean | string;
+}
+
 export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGroupChat = true }: ChatInterfaceProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
@@ -42,25 +55,21 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [isGroupChat, setIsGroupChat] = useState<boolean>(true);
   const isOnline = useOnlineStatus();
-  const [localMessages, setLocalMessages] = useState<any[]>([]);
+  const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
   const [hasInitialAiMessage, setHasInitialAiMessage] = useState<boolean>(false);
 
-  // Ensure AI bot is in care team group
   useEffect(() => {
     if (careTeamGroup && !hasInitialAiMessage && isOnline) {
-      // Check if AI bot is in members and user is a patient
       const hasAiBot = careTeamGroup.members.some(member => 
         member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000'
       );
       
       if (hasAiBot && userRole === 'patient') {
-        // Send initial AI greeting
         setTimeout(async () => {
           try {
             const welcomeMessage = `Welcome to your Care Team chat! I'm your AI assistant and I'm here to help answer any questions you might have. Your doctor and nutritionist are also available in this group chat. How can we assist you today?`;
             
-            // Create AI greeting message
-            const aiMessage = {
+            const aiMessage: LocalMessage = {
               id: uuidv4(),
               message: welcomeMessage,
               created_at: new Date().toISOString(),
@@ -74,7 +83,6 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
               synced: true
             };
             
-            // Add to local messages
             setLocalMessages(prev => [...prev, aiMessage]);
             setHasInitialAiMessage(true);
           } catch (error) {
@@ -330,8 +338,7 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
       if (careTeamGroup) {
         const timestamp = new Date().toISOString();
         
-        // Save a local copy of the message for immediate display
-        const localMessage = {
+        const localMessage: LocalMessage = {
           id: uuidv4(),
           message: newMessage,
           created_at: timestamp,
@@ -345,11 +352,9 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           synced: !isOnline
         };
         
-        // Add to local state for immediate display
         setLocalMessages(prev => [...prev, localMessage]);
         
         if (!isOnline) {
-          // Save offline messages for all team members
           for (const member of careTeamGroup.members) {
             if (member.role === 'aibot') continue;
             
@@ -373,7 +378,6 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           return;
         }
         
-        // Online message sending
         const sendPromises = careTeamGroup.members.map(member => {
           if (member.role === 'aibot') return Promise.resolve();
           
@@ -389,7 +393,6 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
 
         await Promise.all(sendPromises);
         
-        // Handle AI responses if needed
         if (careTeamGroup.members.some(member => member.role === 'aibot')) {
           try {
             const { data: aiResponse } = await supabase.functions.invoke('doctor-ai-assistant', {
@@ -401,8 +404,7 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
             
             if (aiResponse && aiResponse.response) {
               setTimeout(async () => {
-                // Create AI response message for local display
-                const aiMessage = {
+                const aiMessage: LocalMessage = {
                   id: uuidv4(),
                   message: aiResponse.response,
                   created_at: new Date().toISOString(),
@@ -416,12 +418,10 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
                   synced: true
                 };
                 
-                // Add AI response to local messages for immediate display
                 setLocalMessages(prev => [...prev, aiMessage]);
                 
-                // Send AI response to all members
                 const aiSendPromises = careTeamGroup.members
-                  .filter(member => member.id !== '00000000-0000-0000-0000-000000000000')  // Skip sending to AI itself
+                  .filter(member => member.id !== '00000000-0000-0000-0000-000000000000')
                   .map(member => {
                     return supabase.functions.invoke("send-chat-message", {
                       body: {

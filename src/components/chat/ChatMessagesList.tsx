@@ -43,7 +43,7 @@ interface MessageData {
   read: boolean;
   sender: ProfileInfo;
   receiver: ProfileInfo;
-  synced?: boolean;
+  synced?: boolean | string;
 }
 
 export const ChatMessagesList = ({ 

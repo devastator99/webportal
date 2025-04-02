@@ -14,7 +14,7 @@ interface ChatMessageProps {
       last_name: string | null;
       role?: string;
     };
-    synced?: boolean;
+    synced?: boolean | string; // Updated to accept both boolean and string
   };
   isCurrentUser: boolean;
   showSender?: boolean;
@@ -109,4 +109,3 @@ export const ChatMessage = ({
     </div>
   );
 };
-
