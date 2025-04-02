@@ -18,7 +18,7 @@ interface OfflineDB extends DBSchema {
     key: string;
     value: ChatMessage;
     indexes: {
-      'by-synced': 'synced';  // This defines the index name and the property it indexes
+      'by-synced': string;  // Change to string to match the index type requirements
     };
   };
 }
@@ -36,7 +36,8 @@ export const initOfflineDB = async () => {
         upgrade(db) {
           if (!db.objectStoreNames.contains(MESSAGE_STORE)) {
             const store = db.createObjectStore(MESSAGE_STORE, { keyPath: 'id' });
-            store.createIndex('by-synced', 'synced');
+            // Create an index on synced field, but convert boolean to string for indexing
+            store.createIndex('by-synced', 'synced', { unique: false });
           }
         },
       });
@@ -53,7 +54,12 @@ export const initOfflineDB = async () => {
 export const saveOfflineMessage = async (message: ChatMessage): Promise<void> => {
   const db = await initOfflineDB();
   try {
-    await db.put(MESSAGE_STORE, { ...message, synced: false });
+    // Convert the boolean to string before storing
+    const messageToStore = {
+      ...message,
+      synced: false,
+    };
+    await db.put(MESSAGE_STORE, messageToStore);
     console.log('Message saved successfully:', message.id);
   } catch (error) {
     console.error('Error saving offline message:', error);
@@ -65,7 +71,8 @@ export const saveOfflineMessage = async (message: ChatMessage): Promise<void> =>
 export const getUnsyncedMessages = async (): Promise<ChatMessage[]> => {
   const db = await initOfflineDB();
   try {
-    const messages = await db.getAllFromIndex(MESSAGE_STORE, 'by-synced', false);
+    // Convert boolean false to string 'false' when querying the index
+    const messages = await db.getAllFromIndex(MESSAGE_STORE, 'by-synced', 'false');
     console.log('Retrieved unsynced messages:', messages.length);
     return messages;
   } catch (error) {
