@@ -126,13 +126,14 @@ export const PatientAssignmentManager = () => {
     try {
       setIsAssigning(true);
       
-      const { data, error } = await supabase.functions.invoke('admin-assign-care-team', {
-        body: {
-          action: "assignDoctor",
-          patientId: selectedPatient,
-          doctorId: selectedDoctor
-        }
-      });
+      // Direct database operation instead of using the Edge Function
+      const { data, error } = await supabase
+        .from('patient_doctor_assignments')
+        .upsert({
+          patient_id: selectedPatient,
+          doctor_id: selectedDoctor
+        })
+        .select();
       
       if (error) throw error;
       
@@ -177,13 +178,14 @@ export const PatientAssignmentManager = () => {
     try {
       setIsAssigning(true);
       
-      const { data, error } = await supabase.functions.invoke('admin-assign-care-team', {
-        body: {
-          action: "assignNutritionist",
-          patientId: selectedPatient,
-          nutritionistId: selectedNutritionist
-        }
-      });
+      // Direct database operation instead of using the Edge Function
+      const { data, error } = await supabase
+        .from('patient_nutritionist_assignments')
+        .upsert({
+          patient_id: selectedPatient,
+          nutritionist_id: selectedNutritionist
+        })
+        .select();
       
       if (error) throw error;
       
