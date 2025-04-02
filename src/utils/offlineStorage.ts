@@ -55,7 +55,7 @@ export const initOfflineDB = async () => {
 export const saveOfflineMessage = async (message: ChatMessage): Promise<void> => {
   const db = await initOfflineDB();
   try {
-    // Store synced status as a string for easier indexing
+    // Convert boolean synced status to string for indexing
     const messageToStore = {
       ...message,
       synced: message.synced || false,
@@ -72,8 +72,8 @@ export const saveOfflineMessage = async (message: ChatMessage): Promise<void> =>
 export const getUnsyncedMessages = async (): Promise<ChatMessage[]> => {
   const db = await initOfflineDB();
   try {
-    // Use string 'false' to query the index
-    const messages = await db.getAllFromIndex(MESSAGE_STORE, 'by-synced', false);
+    // Use the string 'false' for querying the index
+    const messages = await db.getAllFromIndex(MESSAGE_STORE, 'by-synced', "false");
     console.log('Retrieved unsynced messages:', messages.length);
     return messages;
   } catch (error) {

@@ -89,8 +89,8 @@ export const ChatMessagesList = ({
                 senderInfo.role = member.role;
               }
             } else if (msg.sender_id === user.id) {
-              senderInfo.first_name = user.first_name || "You";
-              senderInfo.last_name = user.last_name || "";
+              senderInfo.first_name = user.user_metadata?.first_name || "You";
+              senderInfo.last_name = user.user_metadata?.last_name || "";
               senderInfo.role = userRole;
             }
             

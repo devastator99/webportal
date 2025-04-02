@@ -298,8 +298,8 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
             read: false,
             sender: {
               id: user.id,
-              first_name: user.first_name || "",
-              last_name: user.last_name || "",
+              first_name: user.user_metadata?.first_name || "",
+              last_name: user.user_metadata?.last_name || "",
               role: userRole
             },
             synced: false
