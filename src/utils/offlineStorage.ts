@@ -12,13 +12,13 @@ interface ChatMessage {
   synced: boolean;
 }
 
-// Define the schema for our IndexedDB using the correct format
+// Define the schema for our IndexedDB
 interface OfflineDB extends DBSchema {
   messages: {
-    key: string;  // Primary key (id)
-    value: ChatMessage;  // Value type
+    key: string;
+    value: ChatMessage;
     indexes: {
-      'by-synced': boolean;  // This should be the key path, not the type
+      'by-synced': 'synced';  // This defines the index name and the property it indexes
     };
   };
 }
@@ -31,14 +31,20 @@ let dbPromise: Promise<IDBPDatabase<OfflineDB>> | null = null;
 
 export const initOfflineDB = async () => {
   if (!dbPromise) {
-    dbPromise = openDB<OfflineDB>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
-        if (!db.objectStoreNames.contains(MESSAGE_STORE)) {
-          const store = db.createObjectStore(MESSAGE_STORE, { keyPath: 'id' });
-          store.createIndex('by-synced', 'synced');
-        }
-      },
-    });
+    try {
+      dbPromise = openDB<OfflineDB>(DB_NAME, DB_VERSION, {
+        upgrade(db) {
+          if (!db.objectStoreNames.contains(MESSAGE_STORE)) {
+            const store = db.createObjectStore(MESSAGE_STORE, { keyPath: 'id' });
+            store.createIndex('by-synced', 'synced');
+          }
+        },
+      });
+      console.log('IndexedDB initialized successfully');
+    } catch (error) {
+      console.error('Failed to initialize IndexedDB:', error);
+      throw error;
+    }
   }
   return dbPromise;
 };
