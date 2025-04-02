@@ -25,31 +25,18 @@ export const PatientAssignmentManager = () => {
   const [selectedNutritionist, setSelectedNutritionist] = useState<string>("");
   const [isAssigning, setIsAssigning] = useState<boolean>(false);
   
-  // Query for all patients
+  // Query for all patients using the RPC function
   const { data: patients, isLoading: patientsLoading, error: patientsError } = useQuery({
-    queryKey: ["all_patients"],
+    queryKey: ["admin_patients"],
     queryFn: async () => {
       try {
-        // Get all users with patient role
+        // Use the RPC function instead of directly querying tables
         const { data, error } = await supabase
-          .from('user_roles')
-          .select('user_id')
-          .eq('role', 'patient');
+          .rpc('get_admin_patients');
           
         if (error) throw error;
         
-        if (!data || data.length === 0) return [];
-        
-        // Get profile info for all patients
-        const patientIds = data.map(item => item.user_id);
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name')
-          .in('id', patientIds);
-          
-        if (profilesError) throw profilesError;
-        
-        return profiles as Profile[];
+        return data as Profile[] || [];
       } catch (error) {
         console.error("Error fetching patients:", error);
         toast({
@@ -62,31 +49,18 @@ export const PatientAssignmentManager = () => {
     }
   });
   
-  // Query for all doctors
+  // Query for all doctors using the RPC function
   const { data: doctors, isLoading: doctorsLoading, error: doctorsError } = useQuery({
-    queryKey: ["all_doctors"],
+    queryKey: ["admin_doctors"],
     queryFn: async () => {
       try {
-        // Get all users with doctor role
+        // Use the RPC function instead of directly querying tables
         const { data, error } = await supabase
-          .from('user_roles')
-          .select('user_id')
-          .eq('role', 'doctor');
+          .rpc('get_admin_doctors');
           
         if (error) throw error;
         
-        if (!data || data.length === 0) return [];
-        
-        // Get profile info for all doctors
-        const doctorIds = data.map(item => item.user_id);
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name')
-          .in('id', doctorIds);
-          
-        if (profilesError) throw profilesError;
-        
-        return profiles as Profile[];
+        return data as Profile[] || [];
       } catch (error) {
         console.error("Error fetching doctors:", error);
         toast({
@@ -99,31 +73,18 @@ export const PatientAssignmentManager = () => {
     }
   });
   
-  // Query for all nutritionists
+  // Query for all nutritionists using the RPC function
   const { data: nutritionists, isLoading: nutritionistsLoading, error: nutritionistsError } = useQuery({
-    queryKey: ["all_nutritionists"],
+    queryKey: ["admin_nutritionists"],
     queryFn: async () => {
       try {
-        // Get all users with nutritionist role
+        // Use the RPC function instead of directly querying tables
         const { data, error } = await supabase
-          .from('user_roles')
-          .select('user_id')
-          .eq('role', 'nutritionist');
+          .rpc('get_admin_nutritionists');
           
         if (error) throw error;
         
-        if (!data || data.length === 0) return [];
-        
-        // Get profile info for all nutritionists
-        const nutritionistIds = data.map(item => item.user_id);
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, first_name, last_name')
-          .in('id', nutritionistIds);
-          
-        if (profilesError) throw profilesError;
-        
-        return profiles as Profile[];
+        return data as Profile[] || [];
       } catch (error) {
         console.error("Error fetching nutritionists:", error);
         toast({

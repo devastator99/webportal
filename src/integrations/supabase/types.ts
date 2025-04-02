@@ -722,6 +722,30 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_admin_doctors: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          first_name: string
+          last_name: string
+        }[]
+      }
+      get_admin_nutritionists: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          first_name: string
+          last_name: string
+        }[]
+      }
+      get_admin_patients: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          first_name: string
+          last_name: string
+        }[]
+      }
       get_all_patients: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -874,6 +898,13 @@ export type Database = {
           doctor_last_name: string
         }[]
       }
+      get_patient_doctor_assignments: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          patient_id: string
+          doctor_id: string
+        }[]
+      }
       get_patient_health_plan: {
         Args: {
           p_patient_id: string
@@ -913,6 +944,13 @@ export type Database = {
           file_name: string
           file_path: string
           uploaded_at: string
+        }[]
+      }
+      get_patient_nutritionist_assignments: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          patient_id: string
+          nutritionist_id: string
         }[]
       }
       get_patient_prescriptions: {
