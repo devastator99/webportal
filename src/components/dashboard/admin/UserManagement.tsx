@@ -14,8 +14,9 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Search, Users } from "lucide-react";
+import { Search, Users, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 
 interface UserItem {
   id: string;
@@ -26,7 +27,7 @@ interface UserItem {
 }
 
 export const UserManagement = () => {
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,15 +40,22 @@ export const UserManagement = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
+      console.log("Fetching users with roles...");
+      
       // Call RPC function to get users with roles
-      const { data, error } = await (supabase.rpc as any)('get_users_with_roles');
+      const { data, error } = await supabase.rpc('get_users_with_roles');
       
-      if (error) throw error;
+      if (error) {
+        console.error("RPC error:", error);
+        throw error;
+      }
       
+      console.log("Users data received:", data);
       setUsers(data || []);
+      toast.success("User data refreshed");
     } catch (error: any) {
       console.error("Error fetching users:", error);
-      toast({
+      uiToast({
         title: "Error loading users",
         description: error.message,
         variant: "destructive",
@@ -59,9 +67,9 @@ export const UserManagement = () => {
   
   const filteredUsers = users.filter(user => {
     const matchesSearch = 
-      user.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      (user.first_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (user.last_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase());
       
     const matchesRole = roleFilter === "all" || user.role === roleFilter;
     
@@ -92,7 +100,9 @@ export const UserManagement = () => {
               variant="outline" 
               onClick={fetchUsers}
               disabled={loading}
+              className="flex items-center gap-2"
             >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
               {loading ? "Refreshing..." : "Refresh"}
             </Button>
           </div>

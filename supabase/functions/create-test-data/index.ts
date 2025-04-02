@@ -13,10 +13,79 @@ serve(async (req) => {
   }
 
   try {
+    console.log("Starting test data creation...");
+    
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    console.log("Supabase client initialized");
+
+    // Check if admin user already exists to prevent duplicates
+    const { data: existingAdmin, error: checkError } = await supabase
+      .from('auth.users')
+      .select('email')
+      .eq('email', 'admin@example.com')
+      .maybeSingle();
+
+    if (checkError) {
+      console.error("Error checking for existing admin:", checkError);
+    }
+
+    // Only create the admin if it doesn't exist
+    if (!existingAdmin) {
+      console.log("Creating admin user...");
+      // Create test administrator
+      const { data: adminData, error: adminError } = await supabase.auth.admin.createUser({
+        email: 'admin@example.com',
+        password: 'testpassword123',
+        email_confirm: true,
+        user_metadata: {
+          first_name: 'Admin',
+          last_name: 'User',
+          user_type: 'administrator'
+        }
+      });
+
+      if (adminError) {
+        console.error("Error creating admin user:", adminError);
+        throw adminError;
+      }
+
+      console.log("Admin user created:", adminData.user.id);
+
+      // Create admin profile
+      const { error: adminProfileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: adminData.user.id,
+          first_name: 'Admin',
+          last_name: 'User'
+        });
+
+      if (adminProfileError) {
+        console.error("Error creating admin profile:", adminProfileError);
+        throw adminProfileError;
+      }
+
+      // Create admin role
+      const { error: adminRoleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: adminData.user.id,
+          role: 'administrator'
+        });
+
+      if (adminRoleError) {
+        console.error("Error creating admin role:", adminRoleError);
+        throw adminRoleError;
+      }
+      
+      console.log("Admin user setup completed");
+    } else {
+      console.log("Admin user already exists, skipping creation");
+    }
 
     // Create test patient
     const { data: patientData, error: patientError } = await supabase.auth.admin.createUser({
@@ -93,37 +162,11 @@ serve(async (req) => {
 
     if (nutritionistProfileError) throw nutritionistProfileError;
 
-    // Create test administrator
-    const { data: adminData, error: adminError } = await supabase.auth.admin.createUser({
-      email: 'admin@example.com',
-      password: 'testpassword123',
-      email_confirm: true,
-      user_metadata: {
-        first_name: 'Admin',
-        last_name: 'User',
-        user_type: 'administrator'
-      }
-    });
-
-    if (adminError) throw adminError;
-
-    // Create admin profile
-    const { error: adminProfileError } = await supabase
-      .from('profiles')
-      .insert({
-        id: adminData.user.id,
-        first_name: 'Admin',
-        last_name: 'User'
-      });
-
-    if (adminProfileError) throw adminProfileError;
-
     // Create user roles
     await supabase.from('user_roles').insert([
       { user_id: patientData.user.id, role: 'patient' },
       { user_id: doctorData.user.id, role: 'doctor' },
-      { user_id: nutritionistData.user.id, role: 'nutritionist' },
-      { user_id: adminData.user.id, role: 'administrator' }
+      { user_id: nutritionistData.user.id, role: 'nutritionist' }
     ]);
 
     // Create patient assignment
@@ -164,7 +207,6 @@ serve(async (req) => {
         patient: patientData.user,
         doctor: doctorData.user,
         nutritionist: nutritionistData.user,
-        administrator: adminData.user,
         test_credentials: {
           patient: {
             email: 'ram.naresh@example.com',
