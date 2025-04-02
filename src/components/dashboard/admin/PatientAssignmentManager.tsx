@@ -33,8 +33,7 @@ export const PatientAssignmentManager = () => {
     queryFn: async () => {
       try {
         const { data, error } = await supabase
-          .from('get_admin_patients')
-          .select('*');
+          .rpc('get_admin_patients');
           
         if (error) throw error;
         
@@ -57,8 +56,7 @@ export const PatientAssignmentManager = () => {
     queryFn: async () => {
       try {
         const { data, error } = await supabase
-          .from('get_admin_doctors')
-          .select('*');
+          .rpc('get_admin_doctors');
           
         if (error) throw error;
         
@@ -81,8 +79,7 @@ export const PatientAssignmentManager = () => {
     queryFn: async () => {
       try {
         const { data, error } = await supabase
-          .from('get_admin_nutritionists')
-          .select('*');
+          .rpc('get_admin_nutritionists');
           
         if (error) throw error;
         
