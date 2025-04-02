@@ -87,7 +87,7 @@ export const UserManagement = () => {
       const result = await response.json();
       console.log("Test data created:", result);
       
-      toast.success("Test data created successfully! Admin login: admin@example.com / testpassword123");
+      toast.success("Test data created successfully!");
       
       // Refresh the users list
       fetchUsers();
@@ -111,62 +111,50 @@ export const UserManagement = () => {
   });
 
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          User Management
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search users..."
-              className="pl-8"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={fetchUsers}
-              disabled={loading}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              {loading ? "Refreshing..." : "Refresh"}
-            </Button>
-            
-            <Button 
-              variant="secondary" 
-              onClick={createTestData}
-              disabled={creatingTestData}
-              className="flex items-center gap-2"
-            >
-              <UserPlus className="h-4 w-4" />
-              {creatingTestData ? "Creating..." : "Create Test Users"}
-            </Button>
-          </div>
+    <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search users..."
+            className="pl-8"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
-        
-        <div className="bg-amber-50 border border-amber-300 p-4 rounded-md mb-4">
-          <p className="text-amber-800 font-medium">Admin Test Credentials</p>
-          <p className="text-amber-700 text-sm">Email: admin@example.com</p>
-          <p className="text-amber-700 text-sm">Password: testpassword123</p>
-        </div>
-        
-        <Tabs defaultValue="all" value={roleFilter} onValueChange={setRoleFilter}>
-          <TabsList className="grid grid-cols-5 mb-4">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="patient">Patients</TabsTrigger>
-            <TabsTrigger value="doctor">Doctors</TabsTrigger>
-            <TabsTrigger value="nutritionist">Nutritionists</TabsTrigger>
-            <TabsTrigger value="administrator">Admins</TabsTrigger>
-          </TabsList>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={fetchUsers}
+            disabled={loading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            {loading ? "Refreshing..." : "Refresh"}
+          </Button>
           
+          <Button 
+            variant="secondary" 
+            onClick={createTestData}
+            disabled={creatingTestData}
+            className="flex items-center gap-2"
+          >
+            <UserPlus className="h-4 w-4" />
+            {creatingTestData ? "Creating..." : "Create Test Users"}
+          </Button>
+        </div>
+      </div>
+      
+      <Tabs defaultValue="all" value={roleFilter} onValueChange={setRoleFilter}>
+        <TabsList className="grid grid-cols-5 mb-4">
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="patient">Patients</TabsTrigger>
+          <TabsTrigger value="doctor">Doctors</TabsTrigger>
+          <TabsTrigger value="nutritionist">Nutritionists</TabsTrigger>
+          <TabsTrigger value="administrator">Admins</TabsTrigger>
+        </TabsList>
+        
+        <div className="bg-white dark:bg-gray-800 border rounded-md shadow-sm overflow-hidden">
           <Table>
             <TableCaption>
               {loading ? "Loading users..." : `${filteredUsers.length} users found`}
@@ -200,8 +188,8 @@ export const UserManagement = () => {
               )}
             </TableBody>
           </Table>
-        </Tabs>
-      </CardContent>
-    </Card>
+        </div>
+      </Tabs>
+    </div>
   );
 };

@@ -10,7 +10,7 @@ import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
 import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAssignmentManager";
 import { UserRegistration } from "@/components/dashboard/admin/UserRegistration";
 import { UserManagement } from "@/components/dashboard/admin/UserManagement";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
 
 export const AdminDashboard = () => {
   const { data: userStats } = useQuery({
@@ -42,10 +42,10 @@ export const AdminDashboard = () => {
   });
 
   return (
-    <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
+    <div className="container mx-auto pt-20 pb-6 px-4 md:px-6 space-y-6">
       <DashboardHeader />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Patients</CardTitle>
@@ -87,24 +87,20 @@ export const AdminDashboard = () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="users">
-        <TabsList className="w-full border-b pb-0 mb-4">
-          <TabsTrigger value="users">User Management</TabsTrigger>
-          <TabsTrigger value="assignments">Care Team Assignments</TabsTrigger>
-          <TabsTrigger value="videos">Education Videos</TabsTrigger>
-          <TabsTrigger value="settings">System Settings</TabsTrigger>
-        </TabsList>
-      
-        <TabsContent value="users" className="space-y-6">
+      <div className="space-y-6">
+        <CollapsibleSection title="User Management" defaultOpen={true}>
           <UserManagement />
+        </CollapsibleSection>
+        
+        <CollapsibleSection title="User Registration">
           <UserRegistration />
-        </TabsContent>
-
-        <TabsContent value="assignments" className="space-y-6">
+        </CollapsibleSection>
+        
+        <CollapsibleSection title="Care Team Assignments">
           <PatientAssignmentManager />
-        </TabsContent>
-
-        <TabsContent value="videos" className="space-y-6">
+        </CollapsibleSection>
+        
+        <CollapsibleSection title="Education Videos">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1 space-y-6">
               <VideoUploader />
@@ -114,12 +110,12 @@ export const AdminDashboard = () => {
               <VideoList />
             </div>
           </div>
-        </TabsContent>
-
-        <TabsContent value="settings" className="space-y-6">
+        </CollapsibleSection>
+        
+        <CollapsibleSection title="System Settings">
           <AdminSettings />
-        </TabsContent>
-      </Tabs>
+        </CollapsibleSection>
+      </div>
     </div>
   );
 };

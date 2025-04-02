@@ -8,7 +8,7 @@ import { DoctorActions } from "@/components/navbar/DoctorActions";
 import { LoginDialog } from "@/components/auth/LoginDialog";
 import { SignOutButton } from "@/components/navbar/SignOutButton";
 import { ForceLogoutButton } from "@/components/navbar/ForceLogoutButton";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState as useHookState } from "react";
@@ -19,6 +19,7 @@ export const Navbar = () => {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useHookState(false);
   const isMobile = useIsMobile();
+  const isIPad = useIsIPad();
   
   const isDashboardPage = location.pathname === '/dashboard';
   const isAdminPage = location.pathname === '/admin';
@@ -37,6 +38,9 @@ export const Navbar = () => {
     setMobileMenuOpen(false);
   }, [location.pathname, setMobileMenuOpen]);
 
+  // Use either mobile or iPad display logic
+  const useResponsiveDisplay = isMobile || isIPad;
+
   if (isLoading && !isSigningOut && location.pathname !== '/') {
     return (
       <nav className={navbarClass}>
@@ -52,8 +56,8 @@ export const Navbar = () => {
       <div className="container mx-auto px-4 py-2.5 flex justify-between items-center">
         <Logo />
         
-        {/* Mobile menu button */}
-        {isMobile && (
+        {/* Mobile/iPad menu button */}
+        {useResponsiveDisplay && (
           <Button
             variant="ghost"
             className="md:hidden"
@@ -64,7 +68,7 @@ export const Navbar = () => {
         )}
         
         {/* Desktop navigation */}
-        <div className={`${isMobile ? 'hidden' : 'flex'} items-center gap-3`}>
+        <div className={`${useResponsiveDisplay ? 'hidden' : 'flex'} items-center gap-3`}>
           {user && <DashboardButton />}
           {user && <DoctorActions />}
           {user && isAdminPage && <ForceLogoutButton />}
@@ -72,8 +76,8 @@ export const Navbar = () => {
           {user && <SignOutButton />}
         </div>
         
-        {/* Mobile navigation */}
-        {isMobile && mobileMenuOpen && (
+        {/* Mobile/iPad navigation */}
+        {useResponsiveDisplay && mobileMenuOpen && (
           <div className="absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-b border-[#D6BCFA] shadow-md z-50 py-3 px-4">
             <div className="flex flex-col gap-2">
               {user && <DashboardButton />}
