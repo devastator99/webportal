@@ -54,7 +54,7 @@ export const Navbar = () => {
 
   return (
     <nav className={navbarClass}>
-      <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <Logo />
         
         {/* Mobile/iPad menu button */}
@@ -69,25 +69,40 @@ export const Navbar = () => {
           </Button>
         )}
         
-        {/* Desktop navigation */}
+        {/* Desktop navigation - increased visibility */}
         <div className={`${useResponsiveDisplay ? 'hidden' : 'flex'} items-center gap-4`}>
           {user && <DashboardButton />}
           {user && <DoctorActions />}
           {user && isAdminPage && <ForceLogoutButton />}
-          {!user && <LoginDialog />}
+          {!user && (
+            <div className="flex-shrink-0">
+              <LoginDialog />
+            </div>
+          )}
           {user && <SignOutButton />}
         </div>
         
-        {/* Mobile/iPad navigation */}
+        {/* Mobile/iPad navigation - improved layout */}
         {useResponsiveDisplay && mobileMenuOpen && (
           <div className="absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-b border-[#D6BCFA] shadow-lg z-50 py-4 px-4">
             <div className="flex flex-col gap-3">
               {user && <DashboardButton />}
               {user && <DoctorActions />}
               {user && isAdminPage && <ForceLogoutButton />}
-              {!user && <LoginDialog />}
+              {!user && (
+                <div className="flex justify-start my-2">
+                  <LoginDialog />
+                </div>
+              )}
               {user && <SignOutButton />}
             </div>
+          </div>
+        )}
+        
+        {/* Always show login button for mobile/iPad when menu is closed */}
+        {useResponsiveDisplay && !mobileMenuOpen && !user && (
+          <div className="flex-shrink-0">
+            <LoginDialog />
           </div>
         )}
       </div>
