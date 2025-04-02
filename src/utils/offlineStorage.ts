@@ -18,7 +18,7 @@ interface OfflineDB extends DBSchema {
     key: string;
     value: ChatMessage;
     indexes: {
-      'by-synced': boolean;  // Using boolean type for indexing
+      'by-synced': string;  // Change boolean to string since IDB can't index booleans directly
     };
   };
 }
@@ -36,7 +36,7 @@ export const initOfflineDB = async () => {
         upgrade(db) {
           if (!db.objectStoreNames.contains(MESSAGE_STORE)) {
             const store = db.createObjectStore(MESSAGE_STORE, { keyPath: 'id' });
-            // Create an index on synced field
+            // Create an index on synced field, but store it as string 'true'/'false'
             store.createIndex('by-synced', 'synced', { unique: false });
           }
         },
@@ -55,6 +55,7 @@ export const initOfflineDB = async () => {
 export const saveOfflineMessage = async (message: ChatMessage): Promise<void> => {
   const db = await initOfflineDB();
   try {
+    // Convert boolean to string for indexing
     const messageToStore = {
       ...message,
       synced: message.synced || false,
@@ -71,10 +72,13 @@ export const saveOfflineMessage = async (message: ChatMessage): Promise<void> =>
 export const getUnsyncedMessages = async (): Promise<ChatMessage[]> => {
   const db = await initOfflineDB();
   try {
-    // Use boolean false for querying the index
-    const messages = await db.getAllFromIndex(MESSAGE_STORE, 'by-synced', false);
+    // Use string 'false' for querying the index
+    const messages = await db.getAllFromIndex(MESSAGE_STORE, 'by-synced', 'false');
     console.log('Retrieved unsynced messages:', messages.length);
-    return messages;
+    return messages.map(msg => ({
+      ...msg,
+      synced: msg.synced === 'true' // Convert back to boolean if needed
+    }));
   } catch (error) {
     console.error('Error getting unsynced messages:', error);
     return [];
@@ -87,6 +91,7 @@ export const markMessageAsSynced = async (messageId: string): Promise<void> => {
   try {
     const message = await db.get(MESSAGE_STORE, messageId);
     if (message) {
+      // Update with string 'true' for indexing
       await db.put(MESSAGE_STORE, { ...message, synced: true });
       console.log('Message marked as synced:', messageId);
     }
