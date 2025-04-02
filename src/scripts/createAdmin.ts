@@ -10,7 +10,7 @@ async function createAdminUser() {
   
   try {
     // Check if admin user already exists
-    const { data: existingAdmin, error: checkError } = await supabase.auth.admin.signIn({
+    const { data: existingAdmin, error: checkError } = await supabase.auth.signInWithPassword({
       email: "admin@example.com",
       password: "testpassword123"
     });
