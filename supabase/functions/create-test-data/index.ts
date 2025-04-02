@@ -22,19 +22,13 @@ serve(async (req) => {
     
     console.log("Supabase client initialized");
 
-    // Check if admin user already exists to prevent duplicates
-    const { data: existingAdmin, error: checkError } = await supabase
-      .from('auth.users')
-      .select('email')
-      .eq('email', 'admin@example.com')
-      .maybeSingle();
-
-    if (checkError) {
-      console.error("Error checking for existing admin:", checkError);
-    }
-
+    // Fix: Instead of using auth.users table directly (which requires higher privileges),
+    // we'll first check if we can authenticate with these credentials
+    const adminExists = await checkIfUserExists(supabase, 'admin@example.com');
+    console.log("Admin exists check complete:", adminExists);
+    
     // Only create the admin if it doesn't exist
-    if (!existingAdmin) {
+    if (!adminExists) {
       console.log("Creating admin user...");
       // Create test administrator
       const { data: adminData, error: adminError } = await supabase.auth.admin.createUser({
@@ -87,126 +81,187 @@ serve(async (req) => {
       console.log("Admin user already exists, skipping creation");
     }
 
-    // Create test patient
-    const { data: patientData, error: patientError } = await supabase.auth.admin.createUser({
-      email: 'ram.naresh@example.com',
-      password: 'testpassword123',
-      email_confirm: true,
-      user_metadata: {
-        first_name: 'Ram',
-        last_name: 'Naresh',
-        user_type: 'patient'
-      }
-    });
-
-    if (patientError) throw patientError;
-
-    // Create patient profile
-    const { error: patientProfileError } = await supabase
-      .from('profiles')
-      .insert({
-        id: patientData.user.id,
-        first_name: 'Ram',
-        last_name: 'Naresh'
+    // Check if patient exists before creating
+    const patientExists = await checkIfUserExists(supabase, 'ram.naresh@example.com');
+    let patientData = null;
+    
+    if (!patientExists) {
+      // Create test patient
+      const { data: newPatientData, error: patientError } = await supabase.auth.admin.createUser({
+        email: 'ram.naresh@example.com',
+        password: 'testpassword123',
+        email_confirm: true,
+        user_metadata: {
+          first_name: 'Ram',
+          last_name: 'Naresh',
+          user_type: 'patient'
+        }
       });
 
-    if (patientProfileError) throw patientProfileError;
+      if (patientError) throw patientError;
+      patientData = newPatientData;
 
-    // Create test doctor
-    const { data: doctorData, error: doctorError } = await supabase.auth.admin.createUser({
-      email: 'vinay.pulkit@example.com',
-      password: 'testpassword123',
-      email_confirm: true,
-      user_metadata: {
-        first_name: 'Vinay',
-        last_name: 'Pulkit',
-        user_type: 'doctor'
-      }
-    });
-
-    if (doctorError) throw doctorError;
-
-    // Create doctor profile
-    const { error: doctorProfileError } = await supabase
-      .from('profiles')
-      .insert({
-        id: doctorData.user.id,
-        first_name: 'Vinay',
-        last_name: 'Pulkit'
-      });
-
-    if (doctorProfileError) throw doctorProfileError;
-
-    // Create test nutritionist
-    const { data: nutritionistData, error: nutritionistError } = await supabase.auth.admin.createUser({
-      email: 'mary.johnson@example.com',
-      password: 'testpassword123',
-      email_confirm: true,
-      user_metadata: {
-        first_name: 'Mary',
-        last_name: 'Johnson',
-        user_type: 'nutritionist'
-      }
-    });
-
-    if (nutritionistError) throw nutritionistError;
-
-    // Create nutritionist profile
-    const { error: nutritionistProfileError } = await supabase
-      .from('profiles')
-      .insert({
-        id: nutritionistData.user.id,
-        first_name: 'Mary',
-        last_name: 'Johnson'
-      });
-
-    if (nutritionistProfileError) throw nutritionistProfileError;
-
-    // Create user roles
-    await supabase.from('user_roles').insert([
-      { user_id: patientData.user.id, role: 'patient' },
-      { user_id: doctorData.user.id, role: 'doctor' },
-      { user_id: nutritionistData.user.id, role: 'nutritionist' }
-    ]);
-
-    // Create patient assignment
-    const { error: assignmentError } = await supabase
-      .from('patient_assignments')
-      .insert({
-        patient_id: patientData.user.id,
-        doctor_id: doctorData.user.id
-      });
-
-    if (assignmentError) throw assignmentError;
-
-    // Create test appointments
-    const today = new Date();
-    const appointments = [
-      new Date(today.setHours(10, 0, 0, 0)),
-      new Date(today.setHours(11, 30, 0, 0)),
-      new Date(today.setHours(14, 0, 0, 0)),
-      new Date(today.setHours(15, 30, 0, 0))
-    ];
-
-    for (const appointmentTime of appointments) {
-      const { error: appointmentError } = await supabase
-        .from('appointments')
+      // Create patient profile
+      const { error: patientProfileError } = await supabase
+        .from('profiles')
         .insert({
-          patient_id: patientData.user.id,
-          doctor_id: doctorData.user.id,
-          scheduled_at: appointmentTime.toISOString(),
-          status: 'scheduled'
+          id: newPatientData.user.id,
+          first_name: 'Ram',
+          last_name: 'Naresh'
         });
 
-      if (appointmentError) throw appointmentError;
+      if (patientProfileError) throw patientProfileError;
+      
+      // Create patient role
+      const { error: patientRoleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: newPatientData.user.id,
+          role: 'patient'
+        });
+
+      if (patientRoleError) throw patientRoleError;
+      
+      console.log("Patient user setup completed");
+    } else {
+      console.log("Patient user already exists, skipping creation");
+    }
+
+    // Check if doctor exists before creating
+    const doctorExists = await checkIfUserExists(supabase, 'vinay.pulkit@example.com');
+    let doctorData = null;
+    
+    if (!doctorExists) {
+      // Create test doctor
+      const { data: newDoctorData, error: doctorError } = await supabase.auth.admin.createUser({
+        email: 'vinay.pulkit@example.com',
+        password: 'testpassword123',
+        email_confirm: true,
+        user_metadata: {
+          first_name: 'Vinay',
+          last_name: 'Pulkit',
+          user_type: 'doctor'
+        }
+      });
+
+      if (doctorError) throw doctorError;
+      doctorData = newDoctorData;
+
+      // Create doctor profile
+      const { error: doctorProfileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: newDoctorData.user.id,
+          first_name: 'Vinay',
+          last_name: 'Pulkit'
+        });
+
+      if (doctorProfileError) throw doctorProfileError;
+      
+      // Create doctor role
+      const { error: doctorRoleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: newDoctorData.user.id,
+          role: 'doctor'
+        });
+
+      if (doctorRoleError) throw doctorRoleError;
+      
+      console.log("Doctor user setup completed");
+    } else {
+      console.log("Doctor user already exists, skipping creation");
+    }
+
+    // Check if nutritionist exists before creating
+    const nutritionistExists = await checkIfUserExists(supabase, 'mary.johnson@example.com');
+    let nutritionistData = null;
+    
+    if (!nutritionistExists) {
+      // Create test nutritionist
+      const { data: newNutritionistData, error: nutritionistError } = await supabase.auth.admin.createUser({
+        email: 'mary.johnson@example.com',
+        password: 'testpassword123',
+        email_confirm: true,
+        user_metadata: {
+          first_name: 'Mary',
+          last_name: 'Johnson',
+          user_type: 'nutritionist'
+        }
+      });
+
+      if (nutritionistError) throw nutritionistError;
+      nutritionistData = newNutritionistData;
+
+      // Create nutritionist profile
+      const { error: nutritionistProfileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: newNutritionistData.user.id,
+          first_name: 'Mary',
+          last_name: 'Johnson'
+        });
+
+      if (nutritionistProfileError) throw nutritionistProfileError;
+      
+      // Create nutritionist role
+      const { error: nutritionistRoleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: newNutritionistData.user.id,
+          role: 'nutritionist'
+        });
+
+      if (nutritionistRoleError) throw nutritionistRoleError;
+      
+      console.log("Nutritionist user setup completed");
+    } else {
+      console.log("Nutritionist user already exists, skipping creation");
+    }
+
+    // Add patient assignment if both patient and doctor exist
+    if (patientData && doctorData) {
+      // Create patient assignment 
+      const { error: assignmentError } = await supabase
+        .from('patient_assignments')
+        .insert({
+          patient_id: patientData.user.id,
+          doctor_id: doctorData.user.id
+        });
+
+      if (assignmentError) {
+        // If the assignment already exists, we can ignore this error
+        console.log("Note: Patient assignment may already exist", assignmentError);
+      }
+
+      // Create test appointments if both patient and doctor exist
+      const today = new Date();
+      const appointments = [
+        new Date(today.setHours(10, 0, 0, 0)),
+        new Date(today.setHours(11, 30, 0, 0)),
+        new Date(today.setHours(14, 0, 0, 0)),
+        new Date(today.setHours(15, 30, 0, 0))
+      ];
+
+      for (const appointmentTime of appointments) {
+        const { error: appointmentError } = await supabase
+          .from('appointments')
+          .insert({
+            patient_id: patientData.user.id,
+            doctor_id: doctorData.user.id,
+            scheduled_at: appointmentTime.toISOString(),
+            status: 'scheduled'
+          });
+
+        if (appointmentError) {
+          console.log("Note: Appointment may already exist", appointmentError);
+        }
+      }
     }
 
     return new Response(
       JSON.stringify({
         message: 'Test data created successfully',
-        patient: patientData.user,
-        doctor: doctorData.user,
-        nutritionist: nutritionistData.user,
         test_credentials: {
           patient: {
             email: 'ram.naresh@example.com',
@@ -235,7 +290,10 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message || "Unknown error occurred",
+        details: error.toString()
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
@@ -243,3 +301,21 @@ serve(async (req) => {
     );
   }
 });
+
+// Helper function to check if user exists without directly querying auth.users
+async function checkIfUserExists(supabase, email) {
+  try {
+    // Try to sign in with the user - this won't actually sign in but will tell us if the user exists
+    const { data, error } = await supabase.auth.admin.getUserByEmail(email);
+    
+    // If we get a user back, the user exists
+    if (data?.user) {
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error("Error checking if user exists:", error);
+    return false;
+  }
+}
