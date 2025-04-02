@@ -26,7 +26,7 @@ export function useIsMobile() {
   return !!isMobile
 }
 
-// Add a new hook for iPad detection specifically
+// iPad detection hook
 export function useIsIPad() {
   const [isIPad, setIsIPad] = React.useState<boolean | undefined>(undefined)
 
@@ -34,7 +34,13 @@ export function useIsIPad() {
     const checkIfIPad = () => {
       // iPad typically has width between 768px and 1024px
       const width = window.innerWidth
-      const isTablet = width >= 768 && width <= 1024
+      const height = window.innerHeight
+      
+      // Better iPad detection using both dimensions and aspect ratio
+      const isTablet = 
+        (width >= 768 && width <= 1024) || 
+        (height >= 768 && height <= 1024 && width / height < 1.2 && width / height > 0.6);
+        
       setIsIPad(isTablet)
     }
     

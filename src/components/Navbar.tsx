@@ -9,7 +9,7 @@ import { LoginDialog } from "@/components/auth/LoginDialog";
 import { SignOutButton } from "@/components/navbar/SignOutButton";
 import { ForceLogoutButton } from "@/components/navbar/ForceLogoutButton";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
-import { Menu } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState as useHookState } from "react";
 
@@ -62,8 +62,9 @@ export const Navbar = () => {
             variant="ghost"
             className="md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
           >
-            <Menu className="h-5 w-5" />
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </Button>
         )}
         
