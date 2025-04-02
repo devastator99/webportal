@@ -9,7 +9,7 @@ interface ChatMessage {
   message: string;
   message_type: string;
   created_at: string;
-  synced: boolean;
+  synced: boolean | string; // Allow both boolean and string for flexibility
 }
 
 // Define the schema for our IndexedDB
@@ -18,7 +18,7 @@ interface OfflineDB extends DBSchema {
     key: string;
     value: ChatMessage;
     indexes: {
-      'by-synced': string;  // Change boolean to string since IDB can't index booleans directly
+      'by-synced': string;  // Index must use string type for IDB compatibility
     };
   };
 }
@@ -51,14 +51,22 @@ export const initOfflineDB = async () => {
   return dbPromise;
 };
 
+// Helper function to convert boolean to string for IndexedDB
+const boolToString = (value: boolean | string | undefined): string => {
+  if (typeof value === 'boolean') {
+    return value ? 'true' : 'false';
+  }
+  return value === 'true' ? 'true' : 'false';
+};
+
 // Save an offline message
 export const saveOfflineMessage = async (message: ChatMessage): Promise<void> => {
   const db = await initOfflineDB();
   try {
-    // Convert boolean to string for indexing
+    // Ensure synced is stored as a string for indexing
     const messageToStore = {
       ...message,
-      synced: message.synced || false,
+      synced: boolToString(message.synced || false),
     };
     await db.put(MESSAGE_STORE, messageToStore);
     console.log('Message saved successfully:', message.id);
@@ -77,7 +85,7 @@ export const getUnsyncedMessages = async (): Promise<ChatMessage[]> => {
     console.log('Retrieved unsynced messages:', messages.length);
     return messages.map(msg => ({
       ...msg,
-      synced: msg.synced === 'true' // Convert back to boolean if needed
+      synced: msg.synced === 'true' // Convert string back to boolean
     }));
   } catch (error) {
     console.error('Error getting unsynced messages:', error);
@@ -92,7 +100,7 @@ export const markMessageAsSynced = async (messageId: string): Promise<void> => {
     const message = await db.get(MESSAGE_STORE, messageId);
     if (message) {
       // Update with string 'true' for indexing
-      await db.put(MESSAGE_STORE, { ...message, synced: true });
+      await db.put(MESSAGE_STORE, { ...message, synced: 'true' });
       console.log('Message marked as synced:', messageId);
     }
   } catch (error) {
@@ -119,7 +127,10 @@ export const getAllOfflineMessages = async (): Promise<ChatMessage[]> => {
   try {
     const messages = await db.getAll(MESSAGE_STORE);
     console.log('Retrieved all messages:', messages.length);
-    return messages;
+    return messages.map(msg => ({
+      ...msg,
+      synced: msg.synced === 'true' // Ensure consistent return type
+    }));
   } catch (error) {
     console.error('Error getting all offline messages:', error);
     return [];
