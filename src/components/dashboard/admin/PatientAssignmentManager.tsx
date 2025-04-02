@@ -126,11 +126,15 @@ export const PatientAssignmentManager = () => {
     try {
       setIsAssigning(true);
 
-      // Using the assign_doctor_to_patient RPC function
-      const { data, error } = await supabase.rpc('assign_doctor_to_patient', {
-        p_patient_id: selectedPatient,
-        p_doctor_id: selectedDoctor
-      });
+      // Instead of using the RPC function directly, use the patient_assignments table
+      // This avoids TypeScript errors with RPC functions not in the types
+      const { data, error } = await supabase
+        .from('patient_assignments')
+        .upsert({
+          patient_id: selectedPatient,
+          doctor_id: selectedDoctor
+        })
+        .select();
       
       if (error) throw error;
       
@@ -175,7 +179,7 @@ export const PatientAssignmentManager = () => {
     try {
       setIsAssigning(true);
       
-      // Using the assign_patient_to_nutritionist RPC function
+      // Using the assign_patient_to_nutritionist RPC function that's available in types
       const { data, error } = await supabase.rpc('assign_patient_to_nutritionist', {
         p_nutritionist_id: selectedNutritionist,
         p_patient_id: selectedPatient,
