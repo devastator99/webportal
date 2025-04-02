@@ -103,13 +103,15 @@ export const UserManagement = () => {
       </div>
       
       <Tabs defaultValue="all" value={roleFilter} onValueChange={setRoleFilter}>
-        <TabsList className="grid grid-cols-5 mb-4">
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="patient">Patients</TabsTrigger>
-          <TabsTrigger value="doctor">Doctors</TabsTrigger>
-          <TabsTrigger value="nutritionist">Nutritionists</TabsTrigger>
-          <TabsTrigger value="administrator">Admins</TabsTrigger>
-        </TabsList>
+        <div className="mb-4">
+          <TabsList className="w-full grid grid-cols-5 gap-1">
+            <TabsTrigger className="flex-1" value="all">All</TabsTrigger>
+            <TabsTrigger className="flex-1" value="patient">Patients</TabsTrigger>
+            <TabsTrigger className="flex-1" value="doctor">Doctors</TabsTrigger>
+            <TabsTrigger className="flex-1" value="nutritionist">Nutritionists</TabsTrigger>
+            <TabsTrigger className="flex-1" value="administrator">Admins</TabsTrigger>
+          </TabsList>
+        </div>
         
         <div className="bg-white dark:bg-gray-800 border rounded-md shadow-sm overflow-hidden">
           <Table>
