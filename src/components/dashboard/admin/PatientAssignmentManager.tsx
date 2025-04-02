@@ -6,9 +6,10 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Loader2 } from "lucide-react";
+import { UserPlus, Loader2, CheckCircle2 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Profile {
   id: string;
@@ -24,15 +25,16 @@ export const PatientAssignmentManager = () => {
   const [selectedDoctor, setSelectedDoctor] = useState<string>("");
   const [selectedNutritionist, setSelectedNutritionist] = useState<string>("");
   const [isAssigning, setIsAssigning] = useState<boolean>(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
   // Query for all patients using the RPC function
   const { data: patients, isLoading: patientsLoading, error: patientsError } = useQuery({
     queryKey: ["admin_patients"],
     queryFn: async () => {
       try {
-        // Use the RPC function instead of directly querying tables
         const { data, error } = await supabase
-          .rpc('get_admin_patients');
+          .from('get_admin_patients')
+          .select('*');
           
         if (error) throw error;
         
@@ -54,9 +56,9 @@ export const PatientAssignmentManager = () => {
     queryKey: ["admin_doctors"],
     queryFn: async () => {
       try {
-        // Use the RPC function instead of directly querying tables
         const { data, error } = await supabase
-          .rpc('get_admin_doctors');
+          .from('get_admin_doctors')
+          .select('*');
           
         if (error) throw error;
         
@@ -78,9 +80,9 @@ export const PatientAssignmentManager = () => {
     queryKey: ["admin_nutritionists"],
     queryFn: async () => {
       try {
-        // Use the RPC function instead of directly querying tables
         const { data, error } = await supabase
-          .rpc('get_admin_nutritionists');
+          .from('get_admin_nutritionists')
+          .select('*');
           
         if (error) throw error;
         
@@ -102,6 +104,17 @@ export const PatientAssignmentManager = () => {
       console.error("Data fetch errors:", { patientsError, doctorsError, nutritionistsError });
     }
   }, [patientsError, doctorsError, nutritionistsError]);
+
+  // Clear success message after 5 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => {
+        setSuccessMessage(null);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
   
   const handleAssignDoctor = async () => {
     if (!selectedPatient || !selectedDoctor) {
@@ -126,9 +139,16 @@ export const PatientAssignmentManager = () => {
       
       if (error) throw error;
       
+      // Set success message and show toast
+      const patientName = patients?.find(p => p.id === selectedPatient);
+      const doctorName = doctors?.find(d => d.id === selectedDoctor);
+      
+      const successMsg = `Dr. ${formatName(doctorName)} has been assigned to ${formatName(patientName)}`;
+      setSuccessMessage(successMsg);
+      
       toast({
         title: "Doctor assigned successfully",
-        description: "The doctor has been assigned to the patient"
+        description: successMsg
       });
       
       // Invalidate any relevant queries
@@ -170,9 +190,16 @@ export const PatientAssignmentManager = () => {
       
       if (error) throw error;
       
+      // Set success message and show toast
+      const patientName = patients?.find(p => p.id === selectedPatient);
+      const nutritionistName = nutritionists?.find(n => n.id === selectedNutritionist);
+      
+      const successMsg = `Nutritionist ${formatName(nutritionistName)} has been assigned to ${formatName(patientName)}`;
+      setSuccessMessage(successMsg);
+      
       toast({
         title: "Nutritionist assigned successfully",
-        description: "The nutritionist has been assigned to the patient"
+        description: successMsg
       });
       
       // Invalidate any relevant queries
@@ -191,7 +218,8 @@ export const PatientAssignmentManager = () => {
     }
   };
   
-  const formatName = (profile: Profile) => {
+  const formatName = (profile: Profile | undefined) => {
+    if (!profile) return 'Unknown';
     return `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown';
   };
 
@@ -206,6 +234,13 @@ export const PatientAssignmentManager = () => {
         </CardTitle>
       </CardHeader>
       <CardContent>
+        {successMessage && (
+          <Alert className="mb-4 bg-green-50 border-green-200 text-green-800">
+            <CheckCircle2 className="h-4 w-4 text-green-600" />
+            <AlertDescription>{successMessage}</AlertDescription>
+          </Alert>
+        )}
+        
         {isLoading ? (
           <div className="flex justify-center items-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
