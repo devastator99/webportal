@@ -657,6 +657,13 @@ export type Database = {
       }
     }
     Functions: {
+      assign_doctor_to_patient: {
+        Args: {
+          p_patient_id: string
+          p_doctor_id: string
+        }
+        Returns: string
+      }
       assign_patient_to_nutritionist: {
         Args: {
           p_patient_id: string

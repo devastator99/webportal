@@ -126,14 +126,11 @@ export const PatientAssignmentManager = () => {
     try {
       setIsAssigning(true);
 
-      // Using direct database operations with the patient_assignments table
-      const { data, error } = await supabase
-        .from('patient_assignments')
-        .upsert({
-          patient_id: selectedPatient,
-          doctor_id: selectedDoctor
-        })
-        .select();
+      // Using the assign_doctor_to_patient RPC function
+      const { data, error } = await supabase.rpc('assign_doctor_to_patient', {
+        p_patient_id: selectedPatient,
+        p_doctor_id: selectedDoctor
+      });
       
       if (error) throw error;
       
@@ -178,7 +175,7 @@ export const PatientAssignmentManager = () => {
     try {
       setIsAssigning(true);
       
-      // Using the existing assign_patient_to_nutritionist RPC function
+      // Using the assign_patient_to_nutritionist RPC function
       const { data, error } = await supabase.rpc('assign_patient_to_nutritionist', {
         p_nutritionist_id: selectedNutritionist,
         p_patient_id: selectedPatient,
@@ -325,9 +322,29 @@ export const PatientAssignmentManager = () => {
                   </Select>
                 </div>
                 
+                <div>
+                  <label className="block text-sm font-medium mb-1">Select Doctor</label>
+                  <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a doctor" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {doctors?.map(doctor => (
+                        <SelectItem key={doctor.id} value={doctor.id}>
+                          {formatName(doctor)}
+                        </SelectItem>
+                      ))}
+                      {!doctors?.length && (
+                        <SelectItem value="no-data" disabled>No doctors available</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground mt-1">A doctor must be assigned when assigning a nutritionist</p>
+                </div>
+                
                 <Button 
                   onClick={handleAssignNutritionist} 
-                  disabled={!selectedPatient || !selectedNutritionist || isAssigning}
+                  disabled={!selectedPatient || !selectedNutritionist || !selectedDoctor || isAssigning}
                   className="w-full"
                 >
                   {isAssigning ? (
