@@ -42,8 +42,8 @@ export const UserManagement = () => {
     try {
       console.log("Fetching users with roles...");
       
-      // Use rpc with correct typing and handle the conversion
-      const { data, error } = await supabase.rpc('get_users_with_roles');
+      // Use type assertion to bypass TypeScript's strict checking for RPC function names
+      const { data, error } = await (supabase.rpc as any)('get_users_with_roles');
       
       if (error) {
         console.error("RPC error:", error);
