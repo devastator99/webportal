@@ -28,5 +28,6 @@ site_url = "http://127.0.0.1:5173"
 [analytics]
 enabled = false
 
+# The experimental section needs to follow the correct format
+# Rather than having an 'enabled' key directly under experimental
 [experimental]
-enabled = false
