@@ -120,6 +120,7 @@ export const PatientAssignmentManager = () => {
     
     try {
       setIsAssigning(true);
+      console.log("Assigning doctor to patient", { patientId: selectedPatient, doctorId: selectedDoctor });
 
       const { data, error } = await supabase.functions.invoke('admin-assign-care-team', {
         body: {
@@ -129,7 +130,12 @@ export const PatientAssignmentManager = () => {
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error in assign doctor response:", error);
+        throw error;
+      }
+      
+      console.log("Doctor assignment response:", data);
       
       const patientName = patients?.find(p => p.id === selectedPatient);
       const doctorName = doctors?.find(d => d.id === selectedDoctor);
@@ -170,14 +176,27 @@ export const PatientAssignmentManager = () => {
     
     try {
       setIsAssigning(true);
-      
-      const { data, error } = await supabase.rpc('assign_patient_to_nutritionist', {
-        p_nutritionist_id: selectedNutritionist,
-        p_patient_id: selectedPatient,
-        p_doctor_id: selectedDoctor
+      console.log("Assigning nutritionist to patient", { 
+        patientId: selectedPatient, 
+        nutritionistId: selectedNutritionist,
+        doctorId: selectedDoctor 
       });
       
-      if (error) throw error;
+      const { data, error } = await supabase.functions.invoke('admin-assign-care-team', {
+        body: {
+          action: "assignNutritionist",
+          patientId: selectedPatient,
+          doctorId: selectedDoctor,
+          nutritionistId: selectedNutritionist
+        }
+      });
+      
+      if (error) {
+        console.error("Error in assign nutritionist response:", error);
+        throw error;
+      }
+      
+      console.log("Nutritionist assignment response:", data);
       
       const patientName = patients?.find(p => p.id === selectedPatient);
       const nutritionistName = nutritionists?.find(n => n.id === selectedNutritionist);

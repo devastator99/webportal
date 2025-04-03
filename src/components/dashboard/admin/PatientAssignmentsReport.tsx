@@ -36,46 +36,40 @@ export const PatientAssignmentsReport = () => {
     queryKey: ["patient_assignments_report"],
     queryFn: async () => {
       try {
+        console.log("Fetching patient assignments report");
+        
         // Get all patients
         const { data: patients, error: patientsError } = await supabase.rpc('get_admin_patients');
         
-        if (patientsError) throw patientsError;
-        
-        console.log("Patient Assignments Report: Found", patients.length, "patients");
-        
-        // Get all doctor assignments at once
-        const { data: doctorAssignments, error: doctorAssignmentsError } = await supabase
-          .from('patient_doctor_assignments')
-          .select(`
-            patient_id,
-            doctor:doctor_id(id, first_name, last_name)
-          `);
-        
-        if (doctorAssignmentsError) {
-          console.error("Error fetching doctor assignments:", doctorAssignmentsError);
+        if (patientsError) {
+          console.error("Error fetching patients:", patientsError);
+          throw patientsError;
         }
         
-        // Create a map for faster lookups
-        const doctorAssignmentMap = new Map();
-        doctorAssignments?.forEach(assignment => {
-          doctorAssignmentMap.set(assignment.patient_id, assignment.doctor);
-        });
+        console.log("Patient Assignments Report: Found", patients?.length, "patients");
         
-        // Get all nutritionist assignments at once
-        const { data: nutritionistAssignments, error: nutritionistAssignmentsError } = await supabase
-          .from('patient_nutritionist_assignments')
+        // Get all assignments at once
+        const { data: allAssignments, error: assignmentsError } = await supabase
+          .from('patient_assignments')
           .select(`
             patient_id,
+            doctor:doctor_id(id, first_name, last_name),
             nutritionist:nutritionist_id(id, first_name, last_name)
           `);
         
-        if (nutritionistAssignmentsError) {
-          console.error("Error fetching nutritionist assignments:", nutritionistAssignmentsError);
+        if (assignmentsError) {
+          console.error("Error fetching assignments:", assignmentsError);
+          throw assignmentsError;
         }
         
-        // Create a map for faster lookups
+        console.log("Patient Assignments Report: Found", allAssignments?.length, "assignments");
+        
+        // Create maps for faster lookups
+        const doctorAssignmentMap = new Map();
         const nutritionistAssignmentMap = new Map();
-        nutritionistAssignments?.forEach(assignment => {
+        
+        allAssignments?.forEach(assignment => {
+          doctorAssignmentMap.set(assignment.patient_id, assignment.doctor);
           nutritionistAssignmentMap.set(assignment.patient_id, assignment.nutritionist);
         });
         
@@ -96,6 +90,7 @@ export const PatientAssignmentsReport = () => {
           description: error.message || "Failed to load patient assignments",
           variant: "destructive"
         });
+        console.error("Error in patient assignments report:", error);
         return [];
       }
     }
@@ -120,7 +115,7 @@ export const PatientAssignmentsReport = () => {
     }
   };
 
-  const formatName = (profile: { first_name: string | null; last_name: string | null }) => {
+  const formatName = (profile: { first_name: string | null; last_name: string | null } | null) => {
     if (!profile) return 'Not assigned';
     return `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown';
   };
