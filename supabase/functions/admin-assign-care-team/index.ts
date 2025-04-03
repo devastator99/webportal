@@ -16,7 +16,7 @@ serve(async (req: Request) => {
   try {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "", // Use service role key to bypass RLS
       {
         global: { headers: { Authorization: req.headers.get("Authorization")! } },
       }
@@ -43,10 +43,10 @@ serve(async (req: Request) => {
       // Assign doctor to patient
       console.log("Assigning doctor to patient:", { patientId, doctorId });
       
-      // First check if the assignment already exists
+      // Check if the assignment already exists using a direct query
       const { data: existingAssignment, error: existingError } = await supabaseClient
         .from('patient_assignments')
-        .select()
+        .select('*')
         .eq('patient_id', patientId)
         .eq('doctor_id', doctorId)
         .maybeSingle();
@@ -61,7 +61,7 @@ serve(async (req: Request) => {
         console.log("Doctor assignment already exists:", existingAssignment);
         assignmentData = existingAssignment;
       } else {
-        // Create a new assignment
+        // Create a new assignment with direct insert
         const { data, error } = await supabaseClient
           .from('patient_assignments')
           .insert({ 
@@ -72,7 +72,7 @@ serve(async (req: Request) => {
           .single();
           
         if (error) {
-          console.error("Error assigning doctor:", error);
+          console.error("Error creating doctor assignment:", error);
           throw error;
         }
         
@@ -96,10 +96,10 @@ serve(async (req: Request) => {
         );
       }
       
-      // First check if the assignment already exists with this doctor
+      // Check if an assignment already exists with this doctor
       const { data: existingAssignment, error: existingError } = await supabaseClient
         .from('patient_assignments')
-        .select()
+        .select('*')
         .eq('patient_id', patientId)
         .eq('doctor_id', doctorId)
         .maybeSingle();
@@ -111,7 +111,7 @@ serve(async (req: Request) => {
       
       let assignmentData;
       if (existingAssignment) {
-        // Update existing assignment with nutritionist
+        // Update existing assignment with nutritionist using direct update
         const { data, error } = await supabaseClient
           .from('patient_assignments')
           .update({ nutritionist_id: nutritionistId })
@@ -127,7 +127,7 @@ serve(async (req: Request) => {
         console.log("Updated nutritionist assignment:", data);
         assignmentData = data;
       } else {
-        // Create new assignment with both doctor and nutritionist
+        // Create new assignment with both doctor and nutritionist using direct insert
         const { data, error } = await supabaseClient
           .from('patient_assignments')
           .insert({ 
