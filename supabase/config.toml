@@ -1,4 +1,32 @@
 
 project_id = "hcaqodjylicmppxcbqbh"
 
-[functions.admin-assign-care-team]
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
+
+[inbucket]
+enabled = true
+port = 54324
+
+[storage]
+enabled = true
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:5173"
+
+[analytics]
+enabled = false
+
+[experimental]
+enabled = false

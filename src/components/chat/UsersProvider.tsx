@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -44,7 +43,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
           
           // Try to fetch care team (including AI bot)
           try {
-            // Use rpc with type casting to avoid TypeScript errors
+            // Use the new edge function instead of direct RPC
             const { data: careTeamData, error } = await supabase.functions.invoke('get-patient-care-team', {
               body: { patient_id: user.id }
             });
@@ -57,7 +56,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             }
           } catch (err) {
             careTeamError = err;
-            console.error("Failed to call get_patient_care_team function:", err);
+            console.error("Failed to call get-patient-care-team function:", err);
           }
           
           // If the function call fails, try to get doctor and nutritionist separately using our API

@@ -28,25 +28,25 @@ serve(async (req: Request) => {
       }
     );
     
-    // Get patient's nutritionist
-    const { data: nutritionistData, error: nutritionistError } = await supabaseClient
+    // Get nutritionist assigned to this patient
+    const { data, error } = await supabaseClient
       .from('patient_nutritionist_assignments')
       .select('nutritionist:nutritionist_id(id, first_name, last_name)')
       .eq('patient_id', patient_id)
       .maybeSingle();
       
-    if (nutritionistError) {
-      console.error("Error fetching nutritionist:", nutritionistError);
+    if (error) {
+      console.error("Error fetching nutritionist:", error);
       return new Response(
-        JSON.stringify({ error: nutritionistError.message }),
+        JSON.stringify({ error: error.message }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
     
-    const result = nutritionistData && nutritionistData.nutritionist ? [nutritionistData.nutritionist] : [];
+    const nutritionist = data?.nutritionist ? [data.nutritionist] : [];
     
     return new Response(
-      JSON.stringify(result),
+      JSON.stringify(nutritionist),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
     
