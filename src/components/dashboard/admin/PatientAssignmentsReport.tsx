@@ -1,0 +1,149 @@
+
+import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import { Users, Stethoscope, Heart, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+
+interface PatientAssignment {
+  patient: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+  };
+  doctor: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
+  nutritionist: {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+  } | null;
+}
+
+export const PatientAssignmentsReport = () => {
+  const { toast } = useToast();
+  const [assignments, setAssignments] = useState<PatientAssignment[]>([]);
+  
+  const { isLoading } = useQuery({
+    queryKey: ["patient_assignments_report"],
+    queryFn: async () => {
+      try {
+        // Get all patients
+        const { data: patients, error: patientsError } = await supabase.rpc('get_admin_patients');
+        
+        if (patientsError) throw patientsError;
+        
+        // For each patient, get their doctor and nutritionist
+        const patientAssignments = await Promise.all(
+          patients.map(async (patient) => {
+            // Get doctor
+            const { data: doctorData } = await supabase.functions.invoke('get-doctor-for-patient', {
+              body: { patient_id: patient.id }
+            });
+            
+            // Get nutritionist
+            const { data: nutritionistData } = await supabase.functions.invoke('get-nutritionist-for-patient', {
+              body: { patient_id: patient.id }
+            });
+            
+            return {
+              patient,
+              doctor: doctorData && doctorData.length > 0 ? doctorData[0] : null,
+              nutritionist: nutritionistData && nutritionistData.length > 0 ? nutritionistData[0] : null
+            };
+          })
+        );
+        
+        setAssignments(patientAssignments);
+        return patientAssignments;
+      } catch (error: any) {
+        toast({
+          title: "Error loading assignments",
+          description: error.message || "Failed to load patient assignments",
+          variant: "destructive"
+        });
+        return [];
+      }
+    }
+  });
+
+  const formatName = (profile: { first_name: string | null; last_name: string | null }) => {
+    if (!profile) return 'Not assigned';
+    return `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown';
+  };
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Users className="h-5 w-5" />
+          Patient Care Team Assignments
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Patient Name</TableHead>
+                  <TableHead>Doctor Assignment</TableHead>
+                  <TableHead>Nutritionist Assignment</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {assignments.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center py-4 text-muted-foreground">
+                      No patient assignments found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  assignments.map((assignment) => (
+                    <TableRow key={assignment.patient.id}>
+                      <TableCell className="font-medium">{formatName(assignment.patient)}</TableCell>
+                      <TableCell>
+                        {assignment.doctor ? (
+                          <div className="flex items-center gap-2">
+                            <Stethoscope className="h-4 w-4 text-blue-500" />
+                            <span>{formatName(assignment.doctor)}</span>
+                          </div>
+                        ) : (
+                          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                            No doctor assigned
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {assignment.nutritionist ? (
+                          <div className="flex items-center gap-2">
+                            <Heart className="h-4 w-4 text-green-500" />
+                            <span>{formatName(assignment.nutritionist)}</span>
+                          </div>
+                        ) : (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                            No nutritionist assigned
+                          </Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+};

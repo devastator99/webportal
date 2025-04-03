@@ -11,6 +11,7 @@ import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAs
 import { UserRegistration } from "@/components/dashboard/admin/UserRegistration";
 import { UserManagement } from "@/components/dashboard/admin/UserManagement";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { PatientAssignmentsReport } from "@/components/dashboard/admin/PatientAssignmentsReport";
 
 export const AdminDashboard = () => {
   const { data: userStats } = useQuery({
@@ -88,7 +89,11 @@ export const AdminDashboard = () => {
       </div>
 
       <div className="space-y-6">
-        <CollapsibleSection title="User Management" defaultOpen={true}>
+        <CollapsibleSection title="Patient Assignments Report" defaultOpen={true}>
+          <PatientAssignmentsReport />
+        </CollapsibleSection>
+
+        <CollapsibleSection title="User Management">
           <UserManagement />
         </CollapsibleSection>
         
