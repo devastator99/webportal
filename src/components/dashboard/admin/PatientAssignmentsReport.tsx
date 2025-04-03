@@ -1,12 +1,13 @@
 
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
-import { Users, Stethoscope, Heart, Loader2 } from "lucide-react";
+import { Users, Stethoscope, Heart, Loader2, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface PatientAssignment {
   patient: {
@@ -28,9 +29,10 @@ interface PatientAssignment {
 
 export const PatientAssignmentsReport = () => {
   const { toast } = useToast();
-  const [assignments, setAssignments] = useState<PatientAssignment[]>([]);
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
   
-  const { isLoading } = useQuery({
+  const { data: assignments = [], isLoading, refetch } = useQuery({
     queryKey: ["patient_assignments_report"],
     queryFn: async () => {
       try {
@@ -39,18 +41,28 @@ export const PatientAssignmentsReport = () => {
         
         if (patientsError) throw patientsError;
         
+        console.log("Patient Assignments Report: Found", patients.length, "patients");
+        
         // For each patient, get their doctor and nutritionist
         const patientAssignments = await Promise.all(
           patients.map(async (patient) => {
             // Get doctor
-            const { data: doctorData } = await supabase.functions.invoke('get-doctor-for-patient', {
+            const { data: doctorData, error: doctorError } = await supabase.functions.invoke('get-doctor-for-patient', {
               body: { patient_id: patient.id }
             });
             
+            if (doctorError) {
+              console.error("Error fetching doctor for patient", patient.id, doctorError);
+            }
+            
             // Get nutritionist
-            const { data: nutritionistData } = await supabase.functions.invoke('get-nutritionist-for-patient', {
+            const { data: nutritionistData, error: nutritionistError } = await supabase.functions.invoke('get-nutritionist-for-patient', {
               body: { patient_id: patient.id }
             });
+            
+            if (nutritionistError) {
+              console.error("Error fetching nutritionist for patient", patient.id, nutritionistError);
+            }
             
             return {
               patient,
@@ -60,8 +72,8 @@ export const PatientAssignmentsReport = () => {
           })
         );
         
-        setAssignments(patientAssignments);
-        return patientAssignments;
+        console.log("Patient Assignments Report: Processed", patientAssignments.length, "assignments");
+        return patientAssignments as PatientAssignment[];
       } catch (error: any) {
         toast({
           title: "Error loading assignments",
@@ -73,6 +85,25 @@ export const PatientAssignmentsReport = () => {
     }
   });
 
+  const handleRefresh = async () => {
+    try {
+      setRefreshing(true);
+      await refetch();
+      toast({
+        title: "Assignments refreshed",
+        description: "Latest patient assignments have been loaded"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error refreshing data",
+        description: error.message || "Failed to refresh assignments",
+        variant: "destructive"
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   const formatName = (profile: { first_name: string | null; last_name: string | null }) => {
     if (!profile) return 'Not assigned';
     return `${profile.first_name || ''} ${profile.last_name || ''}`.trim() || 'Unknown';
@@ -80,11 +111,21 @@ export const PatientAssignmentsReport = () => {
   
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
           Patient Care Team Assignments
         </CardTitle>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleRefresh} 
+          disabled={isLoading || refreshing}
+          className="gap-1"
+        >
+          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </CardHeader>
       <CardContent>
         {isLoading ? (
