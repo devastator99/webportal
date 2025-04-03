@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,7 +26,6 @@ export const PatientAssignmentManager = () => {
   const [isAssigning, setIsAssigning] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   
-  // Query for all patients using the RPC function
   const { data: patients, isLoading: patientsLoading, error: patientsError } = useQuery({
     queryKey: ["admin_patients"],
     queryFn: async () => {
@@ -50,7 +48,6 @@ export const PatientAssignmentManager = () => {
     }
   });
   
-  // Query for all doctors using the RPC function
   const { data: doctors, isLoading: doctorsLoading, error: doctorsError } = useQuery({
     queryKey: ["admin_doctors"],
     queryFn: async () => {
@@ -73,7 +70,6 @@ export const PatientAssignmentManager = () => {
     }
   });
   
-  // Query for all nutritionists using the RPC function
   const { data: nutritionists, isLoading: nutritionistsLoading, error: nutritionistsError } = useQuery({
     queryKey: ["admin_nutritionists"],
     queryFn: async () => {
@@ -102,7 +98,6 @@ export const PatientAssignmentManager = () => {
     }
   }, [patientsError, doctorsError, nutritionistsError]);
 
-  // Clear success message after 5 seconds
   useEffect(() => {
     if (successMessage) {
       const timer = setTimeout(() => {
@@ -126,7 +121,6 @@ export const PatientAssignmentManager = () => {
     try {
       setIsAssigning(true);
 
-      // Call the admin-assign-care-team Edge Function for doctor assignment
       const { data, error } = await supabase.functions.invoke('admin-assign-care-team', {
         body: {
           action: "assignDoctor",
@@ -137,7 +131,6 @@ export const PatientAssignmentManager = () => {
       
       if (error) throw error;
       
-      // Set success message and show toast
       const patientName = patients?.find(p => p.id === selectedPatient);
       const doctorName = doctors?.find(d => d.id === selectedDoctor);
       
@@ -149,9 +142,9 @@ export const PatientAssignmentManager = () => {
         description: successMsg
       });
       
-      // Invalidate any relevant queries
       queryClient.invalidateQueries({ queryKey: ["doctor_patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient_doctor"] });
+      queryClient.invalidateQueries({ queryKey: ["patient_assignments_report"] });
       
     } catch (error: any) {
       console.error("Error assigning doctor:", error);
@@ -178,7 +171,6 @@ export const PatientAssignmentManager = () => {
     try {
       setIsAssigning(true);
       
-      // Using the assign_patient_to_nutritionist RPC function that's available in types
       const { data, error } = await supabase.rpc('assign_patient_to_nutritionist', {
         p_nutritionist_id: selectedNutritionist,
         p_patient_id: selectedPatient,
@@ -187,7 +179,6 @@ export const PatientAssignmentManager = () => {
       
       if (error) throw error;
       
-      // Set success message and show toast
       const patientName = patients?.find(p => p.id === selectedPatient);
       const nutritionistName = nutritionists?.find(n => n.id === selectedNutritionist);
       
@@ -199,9 +190,9 @@ export const PatientAssignmentManager = () => {
         description: successMsg
       });
       
-      // Invalidate any relevant queries
       queryClient.invalidateQueries({ queryKey: ["nutritionist_patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient_nutritionist"] });
+      queryClient.invalidateQueries({ queryKey: ["patient_assignments_report"] });
       
     } catch (error: any) {
       console.error("Error assigning nutritionist:", error);

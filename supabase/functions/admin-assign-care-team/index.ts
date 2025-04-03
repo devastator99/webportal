@@ -41,6 +41,8 @@ serve(async (req: Request) => {
     
     if (action === "assignDoctor" && doctorId) {
       // Assign doctor to patient
+      console.log("Assigning doctor to patient:", { patientId, doctorId });
+      
       const { data, error } = await supabaseClient
         .from('patient_doctor_assignments')
         .upsert({ 
@@ -49,11 +51,18 @@ serve(async (req: Request) => {
         })
         .select();
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error assigning doctor:", error);
+        throw error;
+      }
+      
+      console.log("Doctor assignment successful:", data);
       result = { success: true, data };
     } 
     else if (action === "assignNutritionist" && nutritionistId) {
       // Assign nutritionist to patient
+      console.log("Assigning nutritionist to patient:", { patientId, nutritionistId });
+      
       const { data, error } = await supabaseClient
         .from('patient_nutritionist_assignments')
         .upsert({ 
@@ -62,7 +71,12 @@ serve(async (req: Request) => {
         })
         .select();
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error assigning nutritionist:", error);
+        throw error;
+      }
+      
+      console.log("Nutritionist assignment successful:", data);
       result = { success: true, data };
     } 
     else {
