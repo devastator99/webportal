@@ -53,6 +53,7 @@ serve(async (req: Request) => {
       
       if (existingError) {
         console.error("Error checking existing doctor assignment:", existingError);
+        throw existingError;
       }
       
       let assignmentData;
@@ -60,10 +61,10 @@ serve(async (req: Request) => {
         console.log("Doctor assignment already exists:", existingAssignment);
         assignmentData = existingAssignment;
       } else {
-        // Create a new assignment or update if conflicts
+        // Create a new assignment
         const { data, error } = await supabaseClient
           .from('patient_assignments')
-          .upsert({ 
+          .insert({ 
             patient_id: patientId, 
             doctor_id: doctorId 
           })
@@ -105,6 +106,7 @@ serve(async (req: Request) => {
       
       if (existingError) {
         console.error("Error checking existing patient assignment:", existingError);
+        throw existingError;
       }
       
       let assignmentData;

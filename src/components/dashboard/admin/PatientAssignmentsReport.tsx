@@ -48,13 +48,14 @@ export const PatientAssignmentsReport = () => {
         
         console.log("Patient Assignments Report: Found", patients?.length, "patients");
         
-        // Get all assignments at once
+        // Get all assignments directly from patient_assignments table
         const { data: allAssignments, error: assignmentsError } = await supabase
           .from('patient_assignments')
           .select(`
+            id,
             patient_id,
-            doctor:doctor_id(id, first_name, last_name),
-            nutritionist:nutritionist_id(id, first_name, last_name)
+            doctor_id,
+            nutritionist_id
           `);
         
         if (assignmentsError) {
@@ -64,21 +65,38 @@ export const PatientAssignmentsReport = () => {
         
         console.log("Patient Assignments Report: Found", allAssignments?.length, "assignments");
         
-        // Create maps for faster lookups
-        const doctorAssignmentMap = new Map();
-        const nutritionistAssignmentMap = new Map();
+        // Get all profiles for doctors and nutritionists
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, first_name, last_name');
+          
+        if (profilesError) {
+          console.error("Error fetching profiles:", profilesError);
+          throw profilesError;
+        }
         
+        // Create maps for faster lookups
+        const profileMap = new Map();
+        profiles?.forEach(profile => {
+          profileMap.set(profile.id, profile);
+        });
+        
+        const assignmentMap = new Map();
         allAssignments?.forEach(assignment => {
-          doctorAssignmentMap.set(assignment.patient_id, assignment.doctor);
-          nutritionistAssignmentMap.set(assignment.patient_id, assignment.nutritionist);
+          assignmentMap.set(assignment.patient_id, {
+            doctorId: assignment.doctor_id,
+            nutritionistId: assignment.nutritionist_id
+          });
         });
         
         // Map patients to their assignments
         const patientAssignments = patients.map(patient => {
+          const assignment = assignmentMap.get(patient.id);
+          
           return {
             patient,
-            doctor: doctorAssignmentMap.get(patient.id) || null,
-            nutritionist: nutritionistAssignmentMap.get(patient.id) || null
+            doctor: assignment?.doctorId ? profileMap.get(assignment.doctorId) : null,
+            nutritionist: assignment?.nutritionistId ? profileMap.get(assignment.nutritionistId) : null
           };
         });
         
