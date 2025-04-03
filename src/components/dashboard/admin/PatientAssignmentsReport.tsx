@@ -43,34 +43,50 @@ export const PatientAssignmentsReport = () => {
         
         console.log("Patient Assignments Report: Found", patients.length, "patients");
         
-        // For each patient, get their doctor and nutritionist
-        const patientAssignments = await Promise.all(
-          patients.map(async (patient) => {
-            // Get doctor
-            const { data: doctorData, error: doctorError } = await supabase.functions.invoke('get-doctor-for-patient', {
-              body: { patient_id: patient.id }
-            });
-            
-            if (doctorError) {
-              console.error("Error fetching doctor for patient", patient.id, doctorError);
-            }
-            
-            // Get nutritionist
-            const { data: nutritionistData, error: nutritionistError } = await supabase.functions.invoke('get-nutritionist-for-patient', {
-              body: { patient_id: patient.id }
-            });
-            
-            if (nutritionistError) {
-              console.error("Error fetching nutritionist for patient", patient.id, nutritionistError);
-            }
-            
-            return {
-              patient,
-              doctor: doctorData && doctorData.length > 0 ? doctorData[0] : null,
-              nutritionist: nutritionistData && nutritionistData.length > 0 ? nutritionistData[0] : null
-            };
-          })
-        );
+        // Get all doctor assignments at once
+        const { data: doctorAssignments, error: doctorAssignmentsError } = await supabase
+          .from('patient_doctor_assignments')
+          .select(`
+            patient_id,
+            doctor:doctor_id(id, first_name, last_name)
+          `);
+        
+        if (doctorAssignmentsError) {
+          console.error("Error fetching doctor assignments:", doctorAssignmentsError);
+        }
+        
+        // Create a map for faster lookups
+        const doctorAssignmentMap = new Map();
+        doctorAssignments?.forEach(assignment => {
+          doctorAssignmentMap.set(assignment.patient_id, assignment.doctor);
+        });
+        
+        // Get all nutritionist assignments at once
+        const { data: nutritionistAssignments, error: nutritionistAssignmentsError } = await supabase
+          .from('patient_nutritionist_assignments')
+          .select(`
+            patient_id,
+            nutritionist:nutritionist_id(id, first_name, last_name)
+          `);
+        
+        if (nutritionistAssignmentsError) {
+          console.error("Error fetching nutritionist assignments:", nutritionistAssignmentsError);
+        }
+        
+        // Create a map for faster lookups
+        const nutritionistAssignmentMap = new Map();
+        nutritionistAssignments?.forEach(assignment => {
+          nutritionistAssignmentMap.set(assignment.patient_id, assignment.nutritionist);
+        });
+        
+        // Map patients to their assignments
+        const patientAssignments = patients.map(patient => {
+          return {
+            patient,
+            doctor: doctorAssignmentMap.get(patient.id) || null,
+            nutritionist: nutritionistAssignmentMap.get(patient.id) || null
+          };
+        });
         
         console.log("Patient Assignments Report: Processed", patientAssignments.length, "assignments");
         return patientAssignments as PatientAssignment[];

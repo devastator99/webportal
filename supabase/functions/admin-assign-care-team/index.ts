@@ -43,41 +43,85 @@ serve(async (req: Request) => {
       // Assign doctor to patient
       console.log("Assigning doctor to patient:", { patientId, doctorId });
       
-      const { data, error } = await supabaseClient
+      // First check if the assignment already exists
+      const { data: existingAssignment, error: existingError } = await supabaseClient
         .from('patient_doctor_assignments')
-        .upsert({ 
-          patient_id: patientId, 
-          doctor_id: doctorId 
-        })
-        .select();
-        
-      if (error) {
-        console.error("Error assigning doctor:", error);
-        throw error;
+        .select()
+        .eq('patient_id', patientId)
+        .eq('doctor_id', doctorId)
+        .maybeSingle();
+      
+      if (existingError) {
+        console.error("Error checking existing doctor assignment:", existingError);
       }
       
-      console.log("Doctor assignment successful:", data);
-      result = { success: true, data };
+      let assignmentData;
+      if (existingAssignment) {
+        console.log("Doctor assignment already exists:", existingAssignment);
+        assignmentData = existingAssignment;
+      } else {
+        // Insert new assignment
+        const { data, error } = await supabaseClient
+          .from('patient_doctor_assignments')
+          .insert({ 
+            patient_id: patientId, 
+            doctor_id: doctorId 
+          })
+          .select()
+          .single();
+          
+        if (error) {
+          console.error("Error assigning doctor:", error);
+          throw error;
+        }
+        
+        console.log("New doctor assignment created:", data);
+        assignmentData = data;
+      }
+      
+      result = { success: true, data: assignmentData };
     } 
     else if (action === "assignNutritionist" && nutritionistId) {
       // Assign nutritionist to patient
       console.log("Assigning nutritionist to patient:", { patientId, nutritionistId });
       
-      const { data, error } = await supabaseClient
+      // First check if the assignment already exists
+      const { data: existingAssignment, error: existingError } = await supabaseClient
         .from('patient_nutritionist_assignments')
-        .upsert({ 
-          patient_id: patientId, 
-          nutritionist_id: nutritionistId 
-        })
-        .select();
-        
-      if (error) {
-        console.error("Error assigning nutritionist:", error);
-        throw error;
+        .select()
+        .eq('patient_id', patientId)
+        .eq('nutritionist_id', nutritionistId)
+        .maybeSingle();
+      
+      if (existingError) {
+        console.error("Error checking existing nutritionist assignment:", existingError);
       }
       
-      console.log("Nutritionist assignment successful:", data);
-      result = { success: true, data };
+      let assignmentData;
+      if (existingAssignment) {
+        console.log("Nutritionist assignment already exists:", existingAssignment);
+        assignmentData = existingAssignment;
+      } else {
+        // Insert new assignment
+        const { data, error } = await supabaseClient
+          .from('patient_nutritionist_assignments')
+          .insert({ 
+            patient_id: patientId, 
+            nutritionist_id: nutritionistId 
+          })
+          .select()
+          .single();
+          
+        if (error) {
+          console.error("Error assigning nutritionist:", error);
+          throw error;
+        }
+        
+        console.log("New nutritionist assignment created:", data);
+        assignmentData = data;
+      }
+      
+      result = { success: true, data: assignmentData };
     } 
     else {
       return new Response(
