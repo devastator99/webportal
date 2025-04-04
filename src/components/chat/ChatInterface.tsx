@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -378,6 +379,7 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
           return;
         }
         
+        // Send message to all care team members
         const sendPromises = careTeamGroup.members.map(member => {
           if (member.role === 'aibot') return Promise.resolve();
           
@@ -393,12 +395,15 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
 
         await Promise.all(sendPromises);
         
+        // Get AI response if there's an AI bot in the care team
         if (careTeamGroup.members.some(member => member.role === 'aibot')) {
           try {
             const { data: aiResponse } = await supabase.functions.invoke('doctor-ai-assistant', {
               body: { 
                 messages: [{ role: "user", content: newMessage }],
-                preferredLanguage: 'en'
+                preferredLanguage: 'en',
+                patientId: user.id,
+                isCareTeamChat: true
               },
             });
             
@@ -420,6 +425,7 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
                 
                 setLocalMessages(prev => [...prev, aiMessage]);
                 
+                // Send AI's response to all human care team members
                 const aiSendPromises = careTeamGroup.members
                   .filter(member => member.id !== '00000000-0000-0000-0000-000000000000')
                   .map(member => {

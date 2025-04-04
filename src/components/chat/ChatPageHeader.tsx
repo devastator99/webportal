@@ -6,7 +6,6 @@ import { ChatInterface } from "./ChatInterface";
 import { UsersList } from "./UsersList";
 import { UserProfile, CareTeamGroup } from "./UsersProvider";
 import { Loader2, Users } from "lucide-react";
-import { CareTeamAIChat } from "./CareTeamAIChat";
 
 interface ChatPageHeaderProps {
   selectedTab: string;
@@ -114,15 +113,10 @@ export const ChatPageHeader = ({
               </Card>
               <Card className="lg:col-span-3 md:col-span-2">
                 <CardContent className="p-4">
-                  <div className="grid grid-cols-1 gap-6">
-                    <ChatInterface 
-                      careTeamGroup={careTeamGroup} 
-                      showGroupChat={true} 
-                    />
-                    <div className="border-t pt-4">
-                      <CareTeamAIChat />
-                    </div>
-                  </div>
+                  <ChatInterface 
+                    careTeamGroup={careTeamGroup} 
+                    showGroupChat={true} 
+                  />
                 </CardContent>
               </Card>
             </div>
