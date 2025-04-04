@@ -101,12 +101,64 @@ export const CareTeamAIChat = () => {
         content: m.content
       }));
 
-      // Call the Supabase Edge Function for AI response
+      // First, verify if this patient has a doctor assigned
+      const { data: doctorAssignment, error: doctorError } = await supabase
+        .from('patient_doctor_assignments')
+        .select('doctor_id')
+        .eq('patient_id', user.id)
+        .maybeSingle();
+      
+      if (doctorError) {
+        console.error("Error checking doctor assignment:", doctorError);
+      }
+
+      // If we found a doctor assignment, include that in the context
+      let patientContext = {};
+      if (doctorAssignment && doctorAssignment.doctor_id) {
+        // Get doctor details
+        const { data: doctorData, error: doctorDetailsError } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', doctorAssignment.doctor_id)
+          .maybeSingle();
+          
+        if (doctorDetailsError) {
+          console.error("Error fetching doctor details:", doctorDetailsError);
+        } else if (doctorData) {
+          patientContext = {
+            hasDoctorAssigned: true,
+            doctorName: `Dr. ${doctorData.first_name} ${doctorData.last_name}`
+          };
+        }
+      } else {
+        patientContext = {
+          hasDoctorAssigned: false
+        };
+      }
+
+      // Get patient's profile info
+      const { data: patientProfile, error: profileError } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', user.id)
+        .maybeSingle();
+        
+      if (profileError) {
+        console.error("Error fetching patient profile:", profileError);
+      } else if (patientProfile) {
+        patientContext = {
+          ...patientContext,
+          patientName: `${patientProfile.first_name} ${patientProfile.last_name}`
+        };
+      }
+
+      // Call the Supabase Edge Function for AI response with enhanced context
       const { data, error } = await supabase.functions.invoke('doctor-ai-assistant', {
         body: { 
           messages: messageHistory,
           patientId: user.id,
-          isCareTeamChat: true
+          isCareTeamChat: true,
+          patientContext: patientContext // Pass verified patient and doctor info
         },
       });
 

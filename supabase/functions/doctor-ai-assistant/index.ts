@@ -19,7 +19,8 @@ serve(async (req) => {
       preferredLanguage = 'en', 
       documentId,
       patientId,
-      isCareTeamChat = false
+      isCareTeamChat = false,
+      patientContext = {}
     } = await req.json();
 
     // Create a Supabase client with the Admin key to query the database
@@ -39,6 +40,7 @@ serve(async (req) => {
     
     // Log for debugging
     console.log(`Processing message: "${lastUserMessage}" for patient ID: ${patientId}`);
+    console.log("Patient context:", JSON.stringify(patientContext));
     
     // Fetch relevant knowledge based on the query and patient ID if available
     const knowledgeContext = await fetchKnowledgeForQuery(
@@ -69,10 +71,24 @@ serve(async (req) => {
       }
     }
     
+    // Add verified patient context to prevent AI from making up information
+    let verifiedContext = "";
+    if (patientContext) {
+      if (patientContext.patientName) {
+        verifiedContext += `\nPatient Name: ${patientContext.patientName}\n`;
+      }
+      
+      if (patientContext.hasDoctorAssigned === true && patientContext.doctorName) {
+        verifiedContext += `The patient is assigned to ${patientContext.doctorName}.\n`;
+      } else {
+        verifiedContext += `The patient is currently not assigned to any doctor.\n`;
+      }
+    }
+    
     // Build the system message with context
     const systemMessage = buildSystemMessage(
       preferredLanguage, 
-      knowledgeContext + documentContext,
+      knowledgeContext + documentContext + verifiedContext,
       isCareTeamChat
     );
 
