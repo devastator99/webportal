@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -55,6 +56,7 @@ export const ChatMessagesList = ({
 }: ChatMessagesListProps) => {
   const { user, userRole } = useAuth();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const [offlineMessages, setOfflineMessages] = useState<MessageData[]>([]);
 
@@ -270,10 +272,10 @@ export const ChatMessagesList = ({
 
   const messages = combinedMessages();
 
+  // Scroll to bottom when messages change
   useEffect(() => {
-    if (scrollAreaRef.current && messages?.length) {
-      const scrollArea = scrollAreaRef.current;
-      scrollArea.scrollTop = scrollArea.scrollHeight;
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
@@ -404,8 +406,8 @@ export const ChatMessagesList = ({
   }
 
   return (
-    <ScrollArea className="flex-1 pr-4" ref={scrollAreaRef}>
-      <div className="space-y-4">
+    <ScrollArea className="flex-1 pr-4 h-full" ref={scrollAreaRef}>
+      <div className="space-y-4 pb-2">
         {messages.map((msg: MessageData) => {
           if (!msg || !msg.sender) return null;
           
@@ -431,6 +433,7 @@ export const ChatMessagesList = ({
             />
           );
         })}
+        <div ref={messagesEndRef} />
       </div>
     </ScrollArea>
   );

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +27,13 @@ export const AiChatInterface = ({ isCareTeamChat = false }: AiChatInterfaceProps
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   const handleSendMessage = async () => {
     if (!input.trim()) return;
@@ -88,8 +95,8 @@ export const AiChatInterface = ({ isCareTeamChat = false }: AiChatInterfaceProps
           {isCareTeamChat ? "Care Team AI Assistant" : "AI Healthcare Assistant"}
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col">
-        <ScrollArea className="flex-1 pr-4">
+      <CardContent className="flex-1 flex flex-col overflow-hidden">
+        <ScrollArea className="flex-1 pr-4 mb-4">
           {messages.length === 0 ? (
             <div className="h-full flex items-center justify-center text-muted-foreground">
               <p>{isCareTeamChat 
@@ -97,7 +104,7 @@ export const AiChatInterface = ({ isCareTeamChat = false }: AiChatInterfaceProps
                 : "Ask me anything about health, medicine, or general wellness!"}</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-4 pb-2">
               {messages.map((message, index) => (
                 <div
                   key={index}
@@ -124,10 +131,11 @@ export const AiChatInterface = ({ isCareTeamChat = false }: AiChatInterfaceProps
                   </div>
                 </div>
               ))}
+              <div ref={messagesEndRef} />
             </div>
           )}
         </ScrollArea>
-        <div className="flex gap-2 mt-4">
+        <div className="flex gap-2 mt-auto">
           <Textarea
             placeholder="Ask me anything..."
             value={input}
