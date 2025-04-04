@@ -1,8 +1,8 @@
 
-import { useState, KeyboardEvent } from "react";
+import { useState } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Send, WifiOff } from "lucide-react";
+import { Loader2, Send, Paperclip } from "lucide-react";
 
 interface ChatInputProps {
   value: string;
@@ -21,32 +21,51 @@ export const ChatInput = ({
   placeholder = "Type a message...",
   offlineMode = false
 }: ChatInputProps) => {
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+  const [isUploading, setIsUploading] = useState(false);
+  
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!disabled && value.trim()) {
+      if (value.trim()) {
         onSend();
       }
     }
   };
 
   return (
-    <div className="flex items-end gap-2 mt-4">
-      <Textarea
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        disabled={disabled}
-        className="flex-1 min-h-[80px] resize-none"
-        onKeyDown={handleKeyDown}
-      />
+    <div className="flex items-end gap-2 mt-4 w-full">
+      <div className="relative flex-1">
+        <Textarea
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="min-h-24 resize-none pr-12 py-3 w-full"
+          onKeyDown={handleKeyDown}
+          disabled={disabled}
+        />
+        <div className="absolute right-3 bottom-3">
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            onClick={() => {}}
+            className="rounded-full"
+            disabled={disabled || isUploading}
+          >
+            <Paperclip className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
       <Button
         onClick={onSend}
-        disabled={disabled || !value.trim()}
-        size="icon"
-        className={`mb-[4px] ${offlineMode ? 'bg-yellow-600 hover:bg-yellow-700' : ''}`}
+        disabled={disabled || !value.trim() || isUploading}
+        className="h-10 w-10 shrink-0 rounded-full"
       >
-        {offlineMode ? <WifiOff className="h-4 w-4" /> : <Send className="h-4 w-4" />}
+        {isUploading ? (
+          <Loader2 className="h-5 w-5 animate-spin" />
+        ) : (
+          <Send className="h-5 w-5" />
+        )}
       </Button>
     </div>
   );

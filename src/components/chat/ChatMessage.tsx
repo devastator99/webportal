@@ -14,7 +14,7 @@ interface ChatMessageProps {
       last_name: string | null;
       role?: string;
     };
-    synced?: boolean | string; // Explicitly allowing both boolean and string
+    synced?: boolean | string;
   };
   isCurrentUser: boolean;
   showSender?: boolean;
@@ -59,27 +59,25 @@ export const ChatMessage = ({
           <Clock className="h-3 w-3" />
         </span>
       );
-    } else if (isDieticianSender) {
+    } else if (message.read) {
       return (
         <span className="ml-1 inline-flex">
           <Check className="h-3 w-3" />
           <Check className="h-3 w-3 -ml-1" />
         </span>
       );
-    } else if (isAiSender) {
+    } else {
       return (
         <span className="ml-1">
           <Check className="h-3 w-3" />
         </span>
       );
     }
-    
-    return null;
   };
 
   return (
     <div
-      className={`flex ${
+      className={`flex mb-3 ${
         isCurrentUser ? "justify-end" : "justify-start"
       }`}
     >
@@ -99,7 +97,7 @@ export const ChatMessage = ({
             {renderReadStatus()}
           </p>
         )}
-        <p className="text-sm">{message.message}</p>
+        <p className="text-sm whitespace-pre-wrap">{message.message}</p>
         <p className="text-xs opacity-70 flex items-center mt-1">
           {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
           {isCurrentUser && renderReadStatus()}

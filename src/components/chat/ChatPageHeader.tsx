@@ -52,7 +52,7 @@ export const ChatPageHeader = ({
   }
 
   return (
-    <div className="space-y-6 max-w-full">
+    <div className="space-y-6 w-full">
       <Tabs value={selectedTab} onValueChange={onTabChange} className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2 mx-auto">
           <TabsTrigger value="direct">Direct Messages</TabsTrigger>
@@ -63,8 +63,8 @@ export const ChatPageHeader = ({
         </TabsList>
 
         <TabsContent value="direct" className="mt-6">
-          <div className="grid lg:grid-cols-4 md:grid-cols-3 gap-6">
-            <Card className="lg:col-span-1 md:col-span-1">
+          <div className="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-1 gap-6">
+            <Card className="lg:col-span-1 md:col-span-1 sm:col-span-1">
               <CardContent className="p-4">
                 <UsersList
                   users={assignedUsers}
@@ -73,7 +73,7 @@ export const ChatPageHeader = ({
                 />
               </CardContent>
             </Card>
-            <Card className="lg:col-span-3 md:col-span-2">
+            <Card className="lg:col-span-3 md:col-span-2 sm:col-span-1">
               <CardContent className="p-4">
                 {selectedUser ? (
                   <ChatInterface 
@@ -92,8 +92,8 @@ export const ChatPageHeader = ({
 
         <TabsContent value="group" className="mt-6">
           {careTeamGroup ? (
-            <div className="grid lg:grid-cols-4 md:grid-cols-3 gap-6">
-              <Card className="lg:col-span-1 md:col-span-1">
+            <div className="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-1 gap-6">
+              <Card className="lg:col-span-1 md:col-span-1 sm:col-span-1">
                 <CardContent className="p-4">
                   <div className="space-y-4">
                     <div>
@@ -111,7 +111,7 @@ export const ChatPageHeader = ({
                   </div>
                 </CardContent>
               </Card>
-              <Card className="lg:col-span-3 md:col-span-2">
+              <Card className="lg:col-span-3 md:col-span-2 sm:col-span-1">
                 <CardContent className="p-4">
                   <ChatInterface 
                     careTeamGroup={careTeamGroup} 

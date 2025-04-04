@@ -21,7 +21,7 @@ const ChatPage = () => {
   return (
     <>
       <Navbar />
-      <div className="container mx-auto pt-20 pb-6 px-4 lg:px-6 max-w-7xl">
+      <div className="container mx-auto py-16 px-4 max-w-7xl">
         <UsersProvider>
           {({ assignedUsers, careTeamGroup, isLoading, error }) => (
             <ChatPageHeader 
