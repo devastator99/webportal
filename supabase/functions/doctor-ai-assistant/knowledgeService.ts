@@ -38,13 +38,15 @@ export async function fetchKnowledgeForQuery(
                          lastUserMessage.toLowerCase().includes('lab') ||
                          lastUserMessage.toLowerCase().includes('test') ||
                          lastUserMessage.toLowerCase().includes('analysis') ||
-                         lastUserMessage.toLowerCase().includes('diagnosis');
+                         lastUserMessage.toLowerCase().includes('diagnosis') ||
+                         lastUserMessage.toLowerCase().includes('medical record');
   
   // Check if query is related to prescriptions or health plans
   let isPrescriptionQuery = lastUserMessage.toLowerCase().includes('prescription') ||
                            lastUserMessage.toLowerCase().includes('medicine') ||
                            lastUserMessage.toLowerCase().includes('drug') ||
-                           lastUserMessage.toLowerCase().includes('medication');
+                           lastUserMessage.toLowerCase().includes('medication') ||
+                           lastUserMessage.toLowerCase().includes('treatment');
                           
   let isHealthPlanQuery = lastUserMessage.toLowerCase().includes('health plan') ||
                          lastUserMessage.toLowerCase().includes('plan') ||
@@ -52,7 +54,8 @@ export async function fetchKnowledgeForQuery(
                          lastUserMessage.toLowerCase().includes('exercise') ||
                          lastUserMessage.toLowerCase().includes('routine') ||
                          lastUserMessage.toLowerCase().includes('schedule') ||
-                         lastUserMessage.toLowerCase().includes('program');
+                         lastUserMessage.toLowerCase().includes('program') ||
+                         lastUserMessage.toLowerCase().includes('nutrition');
   
   // Check if query is about care team
   let isCareTeamQuery = lastUserMessage.toLowerCase().includes('care team') ||
@@ -60,6 +63,14 @@ export async function fetchKnowledgeForQuery(
                        lastUserMessage.toLowerCase().includes('my nutritionist') ||
                        lastUserMessage.toLowerCase().includes('who is my doctor') ||
                        lastUserMessage.toLowerCase().includes('who is my nutritionist');
+  
+  // Check if query is about appointments
+  let isAppointmentQuery = lastUserMessage.toLowerCase().includes('appointment') ||
+                           lastUserMessage.toLowerCase().includes('schedule') ||
+                           lastUserMessage.toLowerCase().includes('booking') ||
+                           lastUserMessage.toLowerCase().includes('visit') ||
+                           lastUserMessage.toLowerCase().includes('meeting') ||
+                           lastUserMessage.toLowerCase().includes('consultation');
   
   // Prepare knowledge context from database based on query
   let knowledgeContext = "";
@@ -92,6 +103,26 @@ export async function fetchKnowledgeForQuery(
       } catch (err) {
         console.error('Error processing care team query:', err);
       }
+    }
+    
+    // Fetch patient profile information
+    try {
+      const { data: patientProfile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .select('*')
+        .eq('id', patientId)
+        .single();
+        
+      if (profileError) {
+        console.error('Error fetching patient profile:', profileError);
+      } else if (patientProfile) {
+        knowledgeContext += "Your profile information:\n";
+        knowledgeContext += `Name: ${patientProfile.first_name || ''} ${patientProfile.last_name || ''}\n`;
+        if (patientProfile.phone) knowledgeContext += `Phone: ${patientProfile.phone}\n`;
+        knowledgeContext += "\n";
+      }
+    } catch (err) {
+      console.error('Error processing patient profile:', err);
     }
     
     // If prescription query, fetch patient's prescriptions
@@ -196,6 +227,39 @@ export async function fetchKnowledgeForQuery(
         console.error('Error processing health plan query:', err);
       }
     }
+    
+    // If appointment query, fetch patient's appointments
+    if (isAppointmentQuery) {
+      try {
+        const { data: appointments, error: appointmentError } = await supabaseAdmin.rpc(
+          'get_patient_appointments',
+          { p_patient_id: patientId }
+        );
+        
+        if (appointmentError) {
+          console.error('Error fetching appointments:', appointmentError);
+        } else if (appointments && appointments.length > 0) {
+          knowledgeContext += "Here are your upcoming appointments:\n\n";
+          
+          // Sort appointments by date (soonest first)
+          const sortedAppointments = appointments.sort((a, b) => 
+            new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
+          );
+          
+          for (const appt of sortedAppointments) {
+            const date = new Date(appt.scheduled_at).toLocaleDateString();
+            const time = new Date(appt.scheduled_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            knowledgeContext += `Date: ${date} at ${time}\n`;
+            knowledgeContext += `Doctor: Dr. ${appt.doctor_first_name} ${appt.doctor_last_name}\n`;
+            knowledgeContext += `Status: ${appt.status}\n\n`;
+          }
+        } else {
+          knowledgeContext += "You don't have any upcoming appointments scheduled.\n\n";
+        }
+      } catch (err) {
+        console.error('Error processing appointment query:', err);
+      }
+    }
   }
   
   // If document related query, search analyzed documents
@@ -235,7 +299,7 @@ export async function fetchKnowledgeForQuery(
   }
   
   if (isDoctorQuery) {
-    // Get doctor information from the database using the new RPC function
+    // Get doctor information from the database using the RPC function
     const { data: doctorsData, error: doctorsError } = await supabaseAdmin.rpc('get_doctors_for_chatbot');
     
     if (doctorsError) {

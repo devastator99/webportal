@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +21,19 @@ export const CareTeamAIChat = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+
+  // Add initial welcome message when component mounts
+  useEffect(() => {
+    if (messages.length === 0 && user?.id) {
+      setMessages([
+        {
+          role: 'assistant',
+          content: "Hello! I'm your AI care assistant. I have access to your health records, prescriptions, and care plan. How can I help you today?",
+          timestamp: new Date()
+        }
+      ]);
+    }
+  }, [user?.id, messages.length]);
 
   const handleSendMessage = async () => {
     if (!input.trim() || !user?.id) return;
@@ -84,7 +96,7 @@ export const CareTeamAIChat = () => {
       <ScrollArea className="flex-1 pr-4 mb-4">
         {messages.length === 0 ? (
           <div className="h-32 flex items-center justify-center text-muted-foreground">
-            <p className="text-sm">Ask me about your care plan, prescriptions, or any health questions!</p>
+            <p className="text-sm">Loading your AI care assistant...</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -120,7 +132,7 @@ export const CareTeamAIChat = () => {
       
       <div className="flex gap-2 mt-auto">
         <Textarea
-          placeholder="Ask the AI care assistant..."
+          placeholder="Ask about your health records, prescriptions, or care plan..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
           className="resize-none text-sm"
