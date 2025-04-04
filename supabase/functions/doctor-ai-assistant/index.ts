@@ -13,7 +13,14 @@ serve(async (req) => {
   }
 
   try {
-    const { messages, imageUrl, preferredLanguage = 'en', documentId } = await req.json();
+    const { 
+      messages, 
+      imageUrl, 
+      preferredLanguage = 'en', 
+      documentId,
+      patientId,
+      isCareTeamChat = false
+    } = await req.json();
 
     // Create a Supabase client with the Admin key to query the database
     const supabaseAdmin = createClient(
@@ -30,8 +37,12 @@ serve(async (req) => {
     // Get the last user message
     const lastUserMessage = messages[messages.length - 1].content;
     
-    // Fetch relevant knowledge based on the query
-    const knowledgeContext = await fetchKnowledgeForQuery(lastUserMessage, supabaseAdmin);
+    // Fetch relevant knowledge based on the query and patient ID if available
+    const knowledgeContext = await fetchKnowledgeForQuery(
+      lastUserMessage, 
+      supabaseAdmin, 
+      patientId
+    );
     
     // If a specific document ID was provided, add its content to the context
     let documentContext = "";
@@ -56,7 +67,8 @@ serve(async (req) => {
     // Build the system message with context
     const systemMessage = buildSystemMessage(
       preferredLanguage, 
-      knowledgeContext + documentContext
+      knowledgeContext + documentContext,
+      isCareTeamChat
     );
 
     // Prepare the messages array
@@ -80,7 +92,10 @@ serve(async (req) => {
     const data = await getAIResponse(formattedMessages);
     
     return new Response(
-      JSON.stringify({ response: data.choices[0].message.content }),
+      JSON.stringify({ 
+        response: data.choices[0].message.content,
+        readStatus: isCareTeamChat ? "read" : null // Add read status for care team chat
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

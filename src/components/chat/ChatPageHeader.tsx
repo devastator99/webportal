@@ -1,70 +1,133 @@
-
-import { ReactNode } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users } from "lucide-react";
-import { ChatInterface } from "@/components/chat/ChatInterface";
+import { useState, useEffect } from "react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { ChatInterface } from "./ChatInterface";
+import { UsersList } from "./UsersList";
 import { UserProfile, CareTeamGroup } from "./UsersProvider";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2, Users } from "lucide-react";
+import { CareTeamAIChat } from "./CareTeamAIChat";
 
 interface ChatPageHeaderProps {
   selectedTab: string;
   onTabChange: (value: string) => void;
-  assignedUsers?: UserProfile[];
-  careTeamGroup?: CareTeamGroup | null;
-  isLoading?: boolean;
-  error?: unknown;
+  assignedUsers: UserProfile[];
+  careTeamGroup: CareTeamGroup | null;
+  isLoading: boolean;
+  error: unknown;
 }
 
-export const ChatPageHeader = ({ 
-  selectedTab, 
+export const ChatPageHeader = ({
+  selectedTab,
   onTabChange,
-  assignedUsers = [],
-  careTeamGroup = null,
-  isLoading = false,
-  error = null
+  assignedUsers,
+  careTeamGroup,
+  isLoading,
+  error
 }: ChatPageHeaderProps) => {
-  // Helper to render the appropriate content based on loading state
-  const renderContent = () => {
-    if (isLoading) {
-      return (
-        <div className="space-y-6">
-          <Skeleton className="h-[600px] w-full rounded-lg" />
-        </div>
-      );
-    }
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
 
-    if (error) {
-      return (
-        <Alert>
-          <AlertDescription>
-            There was an error loading your contacts. Please refresh the page and try again.
-          </AlertDescription>
-        </Alert>
-      );
-    }
+  // Reset selected user when assigned users change
+  useEffect(() => {
+    setSelectedUser(null);
+  }, [assignedUsers]);
 
-    return null;
+  const handleUserSelect = (user: UserProfile) => {
+    setSelectedUser(user);
   };
 
-  return (
-    <Tabs value={selectedTab} onValueChange={onTabChange} className="w-full">
-      <TabsList className="w-full mb-4">
-        <TabsTrigger value="group" className="w-full">
-          <Users className="mr-2 h-4 w-4" />
-          Care Team
-        </TabsTrigger>
-      </TabsList>
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-      {renderContent()}
-      
-      <TabsContent value="group" className="space-y-4">
-        <ChatInterface 
-          assignedUsers={assignedUsers} 
-          careTeamGroup={careTeamGroup}
-          showGroupChat={true}
-        />
-      </TabsContent>
-    </Tabs>
+  if (error) {
+    return (
+      <div className="text-center py-12 text-red-500">
+        Error loading chat data. Please try again later.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <Tabs value={selectedTab} onValueChange={onTabChange} className="w-full">
+        <TabsList className="grid w-full max-w-md grid-cols-2 mx-auto">
+          <TabsTrigger value="direct">Direct Messages</TabsTrigger>
+          <TabsTrigger value="group">
+            <Users className="h-4 w-4 mr-2" />
+            Care Team
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="direct" className="mt-6">
+          <div className="grid md:grid-cols-4 gap-6">
+            <Card className="md:col-span-1">
+              <CardContent className="p-4">
+                <UsersList
+                  users={assignedUsers}
+                  selectedUser={selectedUser}
+                  onUserSelect={handleUserSelect}
+                />
+              </CardContent>
+            </Card>
+            <Card className="md:col-span-3">
+              <CardContent className="p-4">
+                {selectedUser ? (
+                  <ChatInterface selectedUser={selectedUser} />
+                ) : (
+                  <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+                    Select a user to start chatting
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="group" className="mt-6">
+          {careTeamGroup ? (
+            <div className="grid md:grid-cols-4 gap-6">
+              <Card className="md:col-span-1">
+                <CardContent className="p-4">
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-medium mb-2 flex items-center">
+                        <Users className="h-4 w-4 mr-2" />
+                        {careTeamGroup.groupName}
+                      </h3>
+                      <UsersList
+                        users={careTeamGroup.members}
+                        selectedUser={null}
+                        onUserSelect={() => {}}
+                        disableSelection
+                      />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="md:col-span-3">
+                <CardContent className="p-4">
+                  <div className="grid grid-cols-1 gap-6">
+                    <ChatInterface isGroupChat groupName={careTeamGroup.groupName} />
+                    <div className="border-t pt-4">
+                      <CareTeamAIChat />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          ) : (
+            <div className="text-center py-12 text-muted-foreground">
+              No care team is currently assigned to you.
+              <br />
+              Please contact the clinic to set up your care team.
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 };

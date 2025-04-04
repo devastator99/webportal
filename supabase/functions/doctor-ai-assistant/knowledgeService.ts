@@ -3,7 +3,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1';
 
 export async function fetchKnowledgeForQuery(
   lastUserMessage: string,
-  supabaseAdmin: ReturnType<typeof createClient>
+  supabaseAdmin: ReturnType<typeof createClient>,
+  patientId?: string
 ) {
   // Preprocess the user's last message to identify if they're asking about specific topics
   let isPackageQuery = lastUserMessage.toLowerCase().includes('package') || 
@@ -39,8 +40,163 @@ export async function fetchKnowledgeForQuery(
                          lastUserMessage.toLowerCase().includes('analysis') ||
                          lastUserMessage.toLowerCase().includes('diagnosis');
   
+  // Check if query is related to prescriptions or health plans
+  let isPrescriptionQuery = lastUserMessage.toLowerCase().includes('prescription') ||
+                           lastUserMessage.toLowerCase().includes('medicine') ||
+                           lastUserMessage.toLowerCase().includes('drug') ||
+                           lastUserMessage.toLowerCase().includes('medication');
+                          
+  let isHealthPlanQuery = lastUserMessage.toLowerCase().includes('health plan') ||
+                         lastUserMessage.toLowerCase().includes('plan') ||
+                         lastUserMessage.toLowerCase().includes('diet') ||
+                         lastUserMessage.toLowerCase().includes('exercise') ||
+                         lastUserMessage.toLowerCase().includes('routine') ||
+                         lastUserMessage.toLowerCase().includes('schedule') ||
+                         lastUserMessage.toLowerCase().includes('program');
+  
+  // Check if query is about care team
+  let isCareTeamQuery = lastUserMessage.toLowerCase().includes('care team') ||
+                       lastUserMessage.toLowerCase().includes('my doctor') ||
+                       lastUserMessage.toLowerCase().includes('my nutritionist') ||
+                       lastUserMessage.toLowerCase().includes('who is my doctor') ||
+                       lastUserMessage.toLowerCase().includes('who is my nutritionist');
+  
   // Prepare knowledge context from database based on query
   let knowledgeContext = "";
+  
+  // If a patient ID is provided, fetch patient-specific information
+  if (patientId) {
+    console.log("Fetching patient-specific information for patient ID:", patientId);
+    
+    // If care team query, fetch patient's assigned doctor and nutritionist
+    if (isCareTeamQuery) {
+      try {
+        // Call the get_patient_care_team function
+        const { data: careTeam, error: careTeamError } = await supabaseAdmin.rpc('get_patient_care_team', {
+          p_patient_id: patientId
+        });
+        
+        if (careTeamError) {
+          console.error('Error fetching care team:', careTeamError);
+        } else if (careTeam && careTeam.length > 0) {
+          knowledgeContext += "Here is information about your care team:\n\n";
+          
+          // Filter out AI bot from the response
+          const actualCareTeam = careTeam.filter(member => member.role !== 'aibot');
+          
+          for (const member of actualCareTeam) {
+            knowledgeContext += `${member.role.charAt(0).toUpperCase() + member.role.slice(1)}: Dr. ${member.first_name} ${member.last_name}\n`;
+          }
+          knowledgeContext += "\n";
+        }
+      } catch (err) {
+        console.error('Error processing care team query:', err);
+      }
+    }
+    
+    // If prescription query, fetch patient's prescriptions
+    if (isPrescriptionQuery) {
+      try {
+        // First we need to get the patient's doctor
+        const { data: doctorData, error: doctorError } = await supabaseAdmin
+          .from('patient_doctor_assignments')
+          .select('doctor_id')
+          .eq('patient_id', patientId)
+          .maybeSingle();
+        
+        if (doctorError) {
+          console.error('Error fetching patient doctor:', doctorError);
+        } else if (doctorData && doctorData.doctor_id) {
+          // Fetch prescriptions using the RPC function
+          const { data: prescriptions, error: prescriptionsError } = await supabaseAdmin.rpc(
+            'get_patient_prescriptions',
+            {
+              p_patient_id: patientId,
+              p_doctor_id: doctorData.doctor_id
+            }
+          );
+          
+          if (prescriptionsError) {
+            console.error('Error fetching prescriptions:', prescriptionsError);
+          } else if (prescriptions && prescriptions.length > 0) {
+            knowledgeContext += "Here are your recent prescriptions:\n\n";
+            
+            // Sort prescriptions by date (newest first)
+            const sortedPrescriptions = prescriptions.sort((a, b) => 
+              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            );
+            
+            // Take only the most recent 3 prescriptions to avoid information overload
+            const recentPrescriptions = sortedPrescriptions.slice(0, 3);
+            
+            for (const rx of recentPrescriptions) {
+              const date = new Date(rx.created_at).toLocaleDateString();
+              knowledgeContext += `Date: ${date}\n`;
+              knowledgeContext += `Diagnosis: ${rx.diagnosis || 'None provided'}\n`;
+              knowledgeContext += `Prescription: ${rx.prescription || 'None provided'}\n`;
+              knowledgeContext += `Notes: ${rx.notes || 'None provided'}\n\n`;
+            }
+          } else {
+            knowledgeContext += "You don't have any prescriptions recorded in our system yet.\n\n";
+          }
+        }
+      } catch (err) {
+        console.error('Error processing prescription query:', err);
+      }
+    }
+    
+    // If health plan query, fetch patient's health plan
+    if (isHealthPlanQuery) {
+      try {
+        // Fetch health plan items using the RPC function
+        const { data: healthPlanItems, error: healthPlanError } = await supabaseAdmin.rpc(
+          'get_patient_health_plan',
+          { p_patient_id: patientId }
+        );
+        
+        if (healthPlanError) {
+          console.error('Error fetching health plan:', healthPlanError);
+        } else if (healthPlanItems && healthPlanItems.length > 0) {
+          knowledgeContext += "Here is your current health plan:\n\n";
+          
+          // Group items by type
+          const foodItems = healthPlanItems.filter(item => item.type === 'food');
+          const exerciseItems = healthPlanItems.filter(item => item.type === 'exercise');
+          const medicationItems = healthPlanItems.filter(item => item.type === 'medication');
+          
+          if (foodItems.length > 0) {
+            knowledgeContext += "Diet Plan:\n";
+            for (const item of foodItems) {
+              knowledgeContext += `- ${item.scheduled_time}: ${item.description} (${item.frequency})\n`;
+            }
+            knowledgeContext += "\n";
+          }
+          
+          if (exerciseItems.length > 0) {
+            knowledgeContext += "Exercise Plan:\n";
+            for (const item of exerciseItems) {
+              knowledgeContext += `- ${item.description} (${item.frequency}`;
+              if (item.duration) knowledgeContext += `, Duration: ${item.duration}`;
+              knowledgeContext += ")\n";
+            }
+            knowledgeContext += "\n";
+          }
+          
+          if (medicationItems.length > 0) {
+            knowledgeContext += "Medication Schedule:\n";
+            for (const item of medicationItems) {
+              knowledgeContext += `- ${item.scheduled_time}: ${item.description} (${item.frequency})\n`;
+            }
+            knowledgeContext += "\n";
+          }
+        } else {
+          knowledgeContext += "You don't have any health plan items recorded in our system yet.\n\n";
+        }
+      } catch (err) {
+        console.error('Error processing health plan query:', err);
+      }
+    }
+  }
   
   // If document related query, search analyzed documents
   if (isDocumentQuery) {
@@ -147,4 +303,3 @@ export async function fetchKnowledgeForQuery(
 
   return knowledgeContext;
 }
-
