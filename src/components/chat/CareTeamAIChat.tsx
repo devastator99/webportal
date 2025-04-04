@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -101,23 +100,23 @@ export const CareTeamAIChat = () => {
         content: m.content
       }));
 
-      // First, check if this patient has a doctor assigned using the RPC function
-      const { data: doctorAssignment, error: doctorError } = await supabase.rpc(
+      // Use the RPC function to get patient's care team
+      const { data: careTeam, error: careTeamError } = await supabase.rpc(
         'get_patient_care_team',
         { p_patient_id: user.id }
       );
       
-      if (doctorError) {
-        console.error("Error checking doctor assignment:", doctorError);
+      if (careTeamError) {
+        console.error("Error checking care team:", careTeamError);
       }
 
       // Build patient context with verified information
       let patientContext: Record<string, any> = {};
       
       // If we found care team members, include them in the context
-      if (doctorAssignment && Array.isArray(doctorAssignment) && doctorAssignment.length > 0) {
+      if (careTeam && Array.isArray(careTeam) && careTeam.length > 0) {
         // Check for doctor in the care team
-        const doctorMember = doctorAssignment.find(member => member.role === 'doctor');
+        const doctorMember = careTeam.find(member => member.role === 'doctor');
         if (doctorMember) {
           patientContext.hasDoctorAssigned = true;
           patientContext.doctorName = `Dr. ${doctorMember.first_name} ${doctorMember.last_name}`;
@@ -129,11 +128,10 @@ export const CareTeamAIChat = () => {
       }
 
       // Get patient's profile info
-      const { data: patientProfile, error: profileError } = await supabase
-        .from('profiles')
-        .select('first_name, last_name')
-        .eq('id', user.id)
-        .maybeSingle();
+      const { data: patientProfile, error: profileError } = await supabase.rpc(
+        'get_user_profile',
+        { p_user_id: user.id }
+      ).maybeSingle();
         
       if (profileError) {
         console.error("Error fetching patient profile:", profileError);
