@@ -1,5 +1,7 @@
 
 export async function getAIResponse(formattedMessages: any[]) {
+  console.log("Sending request to OpenAI API with", formattedMessages.length, "messages");
+  
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -14,8 +16,12 @@ export async function getAIResponse(formattedMessages: any[]) {
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI API error: ${await response.text()}`);
+    const errorText = await response.text();
+    console.error("OpenAI API error response:", errorText);
+    throw new Error(`OpenAI API error: ${errorText}`);
   }
 
-  return await response.json();
+  const data = await response.json();
+  console.log("OpenAI response:", JSON.stringify(data.choices[0].message.content).substring(0, 100) + "...");
+  return data;
 }

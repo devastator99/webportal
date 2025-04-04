@@ -37,12 +37,17 @@ serve(async (req) => {
     // Get the last user message
     const lastUserMessage = messages[messages.length - 1].content;
     
+    // Log for debugging
+    console.log(`Processing message: "${lastUserMessage}" for patient ID: ${patientId}`);
+    
     // Fetch relevant knowledge based on the query and patient ID if available
     const knowledgeContext = await fetchKnowledgeForQuery(
       lastUserMessage, 
       supabaseAdmin, 
       patientId
     );
+
+    console.log(`Knowledge context length: ${knowledgeContext.length} chars`);
     
     // If a specific document ID was provided, add its content to the context
     let documentContext = "";
@@ -88,8 +93,12 @@ serve(async (req) => {
       }
     }
 
+    console.log("Sending request to OpenAI");
+    
     // Get AI response
     const data = await getAIResponse(formattedMessages);
+    
+    console.log("Got response from OpenAI");
     
     return new Response(
       JSON.stringify({ 

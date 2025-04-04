@@ -51,13 +51,16 @@ export const CareTeamAIChat = () => {
       setMessages(prev => [...prev, userMessage]);
       setInput("");
 
+      // Store all previous messages for context
+      const messageHistory = [...messages, userMessage].map(m => ({
+        role: m.role,
+        content: m.content
+      }));
+
       // Call the Supabase Edge Function for AI response
       const { data, error } = await supabase.functions.invoke('doctor-ai-assistant', {
         body: { 
-          messages: [...messages, userMessage].map(m => ({
-            role: m.role,
-            content: m.content
-          })),
+          messages: messageHistory,
           patientId: user.id,
           isCareTeamChat: true
         },
