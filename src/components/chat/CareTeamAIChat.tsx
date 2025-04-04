@@ -3,14 +3,13 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Brain, Loader2, Send, CheckCircle, ChevronDown, ChevronRight, Clock, ArrowDown } from "lucide-react";
+import { Brain, Loader2, Send, CheckCircle, ArrowDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Badge } from "@/components/ui/badge";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -18,24 +17,24 @@ interface Message {
   timestamp: Date;
 }
 
-// Define interfaces for our RPC function results
+// Define interfaces for our API responses
 interface CareTeamMember {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
   role: string;
-  first_name: string;
-  last_name: string;
 }
 
 interface UserProfile {
   id: string;
-  first_name: string;
-  last_name: string;
+  first_name: string | null;
+  last_name: string | null;
 }
 
 export const CareTeamAIChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
@@ -127,7 +126,7 @@ export const CareTeamAIChat = () => {
       let patientContext: Record<string, any> = {};
       
       // If we found care team members, include them in the context
-      if (careTeamData && Array.isArray(careTeamData) && careTeamData.length > 0) {
+      if (careTeamData && Array.isArray(careTeamData)) {
         // Check for doctor in the care team
         const doctorMember = careTeamData.find((member: CareTeamMember) => member.role === 'doctor');
         if (doctorMember) {
@@ -148,9 +147,10 @@ export const CareTeamAIChat = () => {
       if (profileError) {
         console.error("Error fetching patient profile:", profileError);
       } else if (profileData) {
+        const profile = profileData as UserProfile;
         patientContext = {
           ...patientContext,
-          patientName: `${profileData.first_name} ${profileData.last_name}`
+          patientName: `${profile.first_name} ${profile.last_name}`
         };
       }
 
@@ -219,7 +219,6 @@ export const CareTeamAIChat = () => {
             <AccordionItem value="history">
               <AccordionTrigger className="px-3 py-2 text-sm">
                 <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
                   <span>Previous messages ({historyMessages.length})</span>
                 </div>
               </AccordionTrigger>

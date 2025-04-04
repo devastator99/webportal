@@ -8,116 +8,106 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
-  // Handle preflight requests
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
   
   try {
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "", // Use service role key to bypass RLS
-      // Remove the Authorization header to prevent JWT token usage which causes recursion
-      { auth: { persistSession: false } }
-    );
-
-    const { action, patientId, doctorId, nutritionistId } = await req.json();
-
-    // Log the request for debugging
-    console.log(`Admin Care Team Assignment: ${action}`, { patientId, doctorId, nutritionistId });
+    const { patient_id, doctor_id, nutritionist_id, admin_id } = await req.json();
     
-    if (!patientId) {
+    if (!patient_id) {
       return new Response(
         JSON.stringify({ error: "Patient ID is required" }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    let result;
+    // Create a Supabase client with the auth context of the request
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      {
+        global: { headers: { Authorization: req.headers.get("Authorization")! } },
+      }
+    );
     
-    if (action === "assignDoctor" && doctorId) {
-      // Use RPC call to assign doctor to patient
-      console.log("Assigning doctor to patient via RPC:", { patientId, doctorId });
+    // Perform admin role check
+    const { data: adminRoleData, error: adminRoleError } = await supabaseClient
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", admin_id)
+      .eq("role", "administrator")
+      .single();
       
-      const { data, error } = await supabaseClient.rpc(
-        'assign_doctor_to_patient',
-        {
-          p_patient_id: patientId,
-          p_doctor_id: doctorId
-        }
-      );
-      
-      if (error) {
-        console.error("Error in doctor assignment RPC:", error);
-        throw error;
-      }
-      
-      console.log("Doctor assignment RPC response:", data);
-      
-      result = { success: true, data };
-    } 
-    else if (action === "assignNutritionist" && nutritionistId) {
-      // Assign nutritionist to patient
-      console.log("Assigning nutritionist to patient:", { patientId, nutritionistId });
-      
-      if (!doctorId) {
-        return new Response(
-          JSON.stringify({ error: "Doctor ID is required when assigning a nutritionist" }),
-          { 
-            status: 400, 
-            headers: { ...corsHeaders, "Content-Type": "application/json" } 
-          }
-        );
-      }
-      
-      // Use RPC call to assign nutritionist
-      const { data, error } = await supabaseClient.rpc(
-        'assign_patient_to_nutritionist',
-        {
-          p_patient_id: patientId,
-          p_nutritionist_id: nutritionistId,
-          p_doctor_id: doctorId
-        }
-      );
-      
-      if (error) {
-        console.error("Error in nutritionist assignment RPC:", error);
-        throw error;
-      }
-      
-      console.log("Nutritionist assignment RPC response:", data);
-      
-      result = { success: true, data };
-    } 
-    else {
+    if (adminRoleError || !adminRoleData) {
       return new Response(
-        JSON.stringify({ error: "Invalid action or missing required parameters" }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
+        JSON.stringify({ error: "Unauthorized: Only administrators can assign care team members" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    return new Response(
-      JSON.stringify(result),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+    // Transaction for updating assignments
+    const results: Record<string, any> = {};
+    
+    // Handle doctor assignment
+    if (doctor_id) {
+      // First, delete any existing doctor assignments for this patient
+      await supabaseClient
+        .from("patient_doctor_assignments")
+        .delete()
+        .eq("patient_id", patient_id);
+      
+      // Then, insert the new assignment
+      const { data: doctorAssignment, error: doctorError } = await supabaseClient
+        .from("patient_doctor_assignments")
+        .insert({ patient_id, doctor_id })
+        .select()
+        .single();
+      
+      if (doctorError) {
+        results.doctorError = doctorError.message;
+      } else {
+        results.doctorAssigned = true;
       }
-    );
-  } catch (error) {
-    console.error("Error in admin-assign-care-team function:", error);
+    }
+    
+    // Handle nutritionist assignment
+    if (nutritionist_id) {
+      // First, delete any existing nutritionist assignments for this patient
+      await supabaseClient
+        .from("patient_nutritionist_assignments")
+        .delete()
+        .eq("patient_id", patient_id);
+      
+      // Then, insert the new assignment
+      const { data: nutritionistAssignment, error: nutritionistError } = await supabaseClient
+        .from("patient_nutritionist_assignments")
+        .insert({ patient_id, nutritionist_id })
+        .select()
+        .single();
+      
+      if (nutritionistError) {
+        results.nutritionistError = nutritionistError.message;
+      } else {
+        results.nutritionistAssigned = true;
+      }
+    }
     
     return new Response(
-      JSON.stringify({ error: error.message || "An unknown error occurred" }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
-      }
+      JSON.stringify({ 
+        success: true,
+        message: "Care team updated successfully",
+        results 
+      }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+    
+  } catch (error) {
+    console.error("Error in admin-assign-care-team:", error);
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

@@ -1,33 +1,56 @@
 
-project_id = "hcaqodjylicmppxcbqbh"
+hcaqodjylicmppxcbqbh
 
-[api]
-enabled = true
-port = 54321
-schemas = ["public", "storage"]
+[functions.doctor-ai-assistant]
+verify_jwt = true
 
-[db]
-port = 54322
+[functions.get-assigned-patients]
+verify_jwt = true
 
-[studio]
-enabled = true
-port = 54323
-api_url = "http://localhost"
+[functions.get-chat-messages]
+verify_jwt = true
 
-[inbucket]
-enabled = true
-port = 54324
+[functions.get-doctor-for-patient]
+verify_jwt = true
 
-[storage]
-enabled = true
+[functions.get-nutritionist-for-patient]
+verify_jwt = true
 
-[auth]
-enabled = true
-site_url = "http://127.0.0.1:5173"
+[functions.get-medical-report-url]
+verify_jwt = true
 
-[analytics]
-enabled = false
+[functions.get-patient-care-team]
+verify_jwt = true
 
-# The experimental section needs to follow the correct format
-# Rather than having an 'enabled' key directly under experimental
-[experimental]
+[functions.get-patient-profile]
+verify_jwt = true
+
+[functions.mark-messages-as-read]
+verify_jwt = true
+
+[functions.send-chat-message]
+verify_jwt = true
+
+[functions.send-health-plan-notification]
+verify_jwt = true
+
+[functions.send-health-plan-reminders]
+verify_jwt = true
+
+[functions.send-whatsapp-notification]
+verify_jwt = true
+
+[functions.upsert-patient-details]
+verify_jwt = true
+
+[functions.upsert-user-role]
+verify_jwt = true
+
+[functions.admin-assign-care-team]
+verify_jwt = true
+
+[functions.admin-assign-doctor-to-patient]
+verify_jwt = true
+
+[functions.admin-assign-nutritionist-to-patient]
+verify_jwt = true
