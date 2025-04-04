@@ -1,13 +1,15 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Brain, Loader2, Send, CheckCircle } from "lucide-react";
+import { Brain, Loader2, Send, CheckCircle, ChevronDown, ChevronRight, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -19,8 +21,11 @@ export const CareTeamAIChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Add initial welcome message when component mounts
   useEffect(() => {
@@ -34,6 +39,13 @@ export const CareTeamAIChat = () => {
       ]);
     }
   }, [user?.id, messages.length]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
 
   const handleSendMessage = async () => {
     if (!input.trim() || !user?.id) return;
@@ -89,6 +101,10 @@ export const CareTeamAIChat = () => {
     }
   };
 
+  // Split messages into recent and history
+  const recentMessages = messages.length > 5 ? messages.slice(-5) : messages;
+  const historyMessages = messages.length > 5 ? messages.slice(0, -5) : [];
+
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 mb-4">
@@ -96,42 +112,92 @@ export const CareTeamAIChat = () => {
         <h3 className="font-medium">AI Care Assistant</h3>
       </div>
       
-      <ScrollArea className="flex-1 pr-4 mb-4">
-        {messages.length === 0 ? (
-          <div className="h-32 flex items-center justify-center text-muted-foreground">
-            <p className="text-sm">Loading your AI care assistant...</p>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {messages.map((message, index) => (
-              <div
-                key={index}
-                className={`flex ${
-                  message.role === 'user' ? "justify-end" : "justify-start"
-                }`}
-              >
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {historyMessages.length > 0 && (
+          <Collapsible
+            open={isHistoryOpen}
+            onOpenChange={setIsHistoryOpen}
+            className="mb-2 border rounded-md"
+          >
+            <CollapsibleTrigger className="flex w-full items-center justify-between p-2 text-sm hover:bg-muted/50">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span>Previous messages ({historyMessages.length})</span>
+              </div>
+              {isHistoryOpen ? (
+                <ChevronDown className="h-4 w-4" />
+              ) : (
+                <ChevronRight className="h-4 w-4" />
+              )}
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <ScrollArea className="max-h-48 overflow-y-auto p-2">
+                <div className="space-y-3">
+                  {historyMessages.map((message, index) => (
+                    <div
+                      key={`history-${index}`}
+                      className={`flex ${
+                        message.role === 'user' ? "justify-end" : "justify-start"
+                      }`}
+                    >
+                      <div
+                        className={`max-w-[80%] rounded-lg p-2 text-xs ${
+                          message.role === 'user'
+                            ? "bg-primary/80 text-primary-foreground"
+                            : "bg-muted/80"
+                        }`}
+                      >
+                        <p>{message.content}</p>
+                        <p className="text-xs opacity-70 mt-1">
+                          {format(message.timestamp, "p")}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
+        
+        <ScrollArea className="flex-1 pr-4 mb-4" ref={scrollAreaRef}>
+          {messages.length === 0 ? (
+            <div className="h-32 flex items-center justify-center text-muted-foreground">
+              <p className="text-sm">Loading your AI care assistant...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {recentMessages.map((message, index) => (
                 <div
-                  className={`max-w-[80%] rounded-lg p-3 ${
-                    message.role === 'user'
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
+                  key={index}
+                  className={`flex ${
+                    message.role === 'user' ? "justify-end" : "justify-start"
                   }`}
                 >
-                  {message.role === 'assistant' && (
-                    <div className="flex items-center gap-1 mb-1">
-                      <CheckCircle className="h-3 w-3 text-blue-500" />
-                    </div>
-                  )}
-                  <p className="text-sm">{message.content}</p>
-                  <p className="text-xs opacity-70 mt-1">
-                    {format(message.timestamp, "p")}
-                  </p>
+                  <div
+                    className={`max-w-[80%] rounded-lg p-3 ${
+                      message.role === 'user'
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted"
+                    }`}
+                  >
+                    {message.role === 'assistant' && (
+                      <div className="flex items-center gap-1 mb-1">
+                        <CheckCircle className="h-3 w-3 text-blue-500" />
+                      </div>
+                    )}
+                    <p className="text-sm">{message.content}</p>
+                    <p className="text-xs opacity-70 mt-1">
+                      {format(message.timestamp, "p")}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </ScrollArea>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+          )}
+        </ScrollArea>
+      </div>
       
       <div className="flex gap-2 mt-auto">
         <Textarea

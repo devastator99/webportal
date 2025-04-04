@@ -24,7 +24,7 @@ const ChatPage = () => {
       <Navbar />
       <div className="container mx-auto py-8 px-4 max-w-7xl h-[calc(100vh-70px)] flex flex-col">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-grow h-full overflow-hidden">
-          <div className="h-full">
+          <div className="h-full overflow-hidden">
             <UsersProvider>
               {({ careTeamGroup, isLoading, error }) => (
                 <ChatPageHeader 
@@ -36,8 +36,8 @@ const ChatPage = () => {
             </UsersProvider>
           </div>
           
-          <div className="h-full">
-            <Card className="h-full flex flex-col">
+          <div className="h-full overflow-hidden">
+            <Card className="h-full flex flex-col overflow-hidden">
               <CardContent className="p-4 h-full flex flex-col overflow-hidden">
                 <CareTeamAIChat />
               </CardContent>
