@@ -17,9 +17,8 @@ serve(async (req: Request) => {
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "", // Use service role key to bypass RLS
-      {
-        global: { headers: { Authorization: req.headers.get("Authorization")! } },
-      }
+      // Remove the Authorization header to prevent JWT token usage which causes recursion
+      { auth: { persistSession: false } }
     );
 
     const { action, patientId, doctorId, nutritionistId } = await req.json();
@@ -40,47 +39,25 @@ serve(async (req: Request) => {
     let result;
     
     if (action === "assignDoctor" && doctorId) {
-      // Assign doctor to patient
-      console.log("Assigning doctor to patient:", { patientId, doctorId });
+      // Use RPC call to assign doctor to patient
+      console.log("Assigning doctor to patient via RPC:", { patientId, doctorId });
       
-      // Check if the assignment already exists using a direct query
-      const { data: existingAssignment, error: existingError } = await supabaseClient
-        .from('patient_assignments')
-        .select('*')
-        .eq('patient_id', patientId)
-        .eq('doctor_id', doctorId)
-        .maybeSingle();
-      
-      if (existingError) {
-        console.error("Error checking existing doctor assignment:", existingError);
-        throw existingError;
-      }
-      
-      let assignmentData;
-      if (existingAssignment) {
-        console.log("Doctor assignment already exists:", existingAssignment);
-        assignmentData = existingAssignment;
-      } else {
-        // Create a new assignment with direct insert
-        const { data, error } = await supabaseClient
-          .from('patient_assignments')
-          .insert({ 
-            patient_id: patientId, 
-            doctor_id: doctorId 
-          })
-          .select()
-          .single();
-          
-        if (error) {
-          console.error("Error creating doctor assignment:", error);
-          throw error;
+      const { data, error } = await supabaseClient.rpc(
+        'assign_doctor_to_patient',
+        {
+          p_patient_id: patientId,
+          p_doctor_id: doctorId
         }
-        
-        console.log("New doctor assignment created:", data);
-        assignmentData = data;
+      );
+      
+      if (error) {
+        console.error("Error in doctor assignment RPC:", error);
+        throw error;
       }
       
-      result = { success: true, data: assignmentData };
+      console.log("Doctor assignment RPC response:", data);
+      
+      result = { success: true, data };
     } 
     else if (action === "assignNutritionist" && nutritionistId) {
       // Assign nutritionist to patient
@@ -96,58 +73,24 @@ serve(async (req: Request) => {
         );
       }
       
-      // Check if an assignment already exists with this doctor
-      const { data: existingAssignment, error: existingError } = await supabaseClient
-        .from('patient_assignments')
-        .select('*')
-        .eq('patient_id', patientId)
-        .eq('doctor_id', doctorId)
-        .maybeSingle();
+      // Use RPC call to assign nutritionist
+      const { data, error } = await supabaseClient.rpc(
+        'assign_patient_to_nutritionist',
+        {
+          p_patient_id: patientId,
+          p_nutritionist_id: nutritionistId,
+          p_doctor_id: doctorId
+        }
+      );
       
-      if (existingError) {
-        console.error("Error checking existing patient assignment:", existingError);
-        throw existingError;
+      if (error) {
+        console.error("Error in nutritionist assignment RPC:", error);
+        throw error;
       }
       
-      let assignmentData;
-      if (existingAssignment) {
-        // Update existing assignment with nutritionist using direct update
-        const { data, error } = await supabaseClient
-          .from('patient_assignments')
-          .update({ nutritionist_id: nutritionistId })
-          .eq('id', existingAssignment.id)
-          .select()
-          .single();
-          
-        if (error) {
-          console.error("Error updating nutritionist assignment:", error);
-          throw error;
-        }
-        
-        console.log("Updated nutritionist assignment:", data);
-        assignmentData = data;
-      } else {
-        // Create new assignment with both doctor and nutritionist using direct insert
-        const { data, error } = await supabaseClient
-          .from('patient_assignments')
-          .insert({ 
-            patient_id: patientId, 
-            doctor_id: doctorId,
-            nutritionist_id: nutritionistId
-          })
-          .select()
-          .single();
-          
-        if (error) {
-          console.error("Error creating doctor-nutritionist assignment:", error);
-          throw error;
-        }
-        
-        console.log("New doctor-nutritionist assignment created:", data);
-        assignmentData = data;
-      }
+      console.log("Nutritionist assignment RPC response:", data);
       
-      result = { success: true, data: assignmentData };
+      result = { success: true, data };
     } 
     else {
       return new Response(
