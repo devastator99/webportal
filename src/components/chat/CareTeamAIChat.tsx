@@ -101,39 +101,31 @@ export const CareTeamAIChat = () => {
         content: m.content
       }));
 
-      // First, verify if this patient has a doctor assigned
-      const { data: doctorAssignment, error: doctorError } = await supabase
-        .from('patient_doctor_assignments')
-        .select('doctor_id')
-        .eq('patient_id', user.id)
-        .maybeSingle();
+      // First, check if this patient has a doctor assigned using the RPC function
+      const { data: doctorAssignment, error: doctorError } = await supabase.rpc(
+        'get_patient_care_team',
+        { p_patient_id: user.id }
+      );
       
       if (doctorError) {
         console.error("Error checking doctor assignment:", doctorError);
       }
 
-      // If we found a doctor assignment, include that in the context
-      let patientContext = {};
-      if (doctorAssignment && doctorAssignment.doctor_id) {
-        // Get doctor details
-        const { data: doctorData, error: doctorDetailsError } = await supabase
-          .from('profiles')
-          .select('first_name, last_name')
-          .eq('id', doctorAssignment.doctor_id)
-          .maybeSingle();
-          
-        if (doctorDetailsError) {
-          console.error("Error fetching doctor details:", doctorDetailsError);
-        } else if (doctorData) {
-          patientContext = {
-            hasDoctorAssigned: true,
-            doctorName: `Dr. ${doctorData.first_name} ${doctorData.last_name}`
-          };
+      // Build patient context with verified information
+      let patientContext: Record<string, any> = {};
+      
+      // If we found care team members, include them in the context
+      if (doctorAssignment && Array.isArray(doctorAssignment) && doctorAssignment.length > 0) {
+        // Check for doctor in the care team
+        const doctorMember = doctorAssignment.find(member => member.role === 'doctor');
+        if (doctorMember) {
+          patientContext.hasDoctorAssigned = true;
+          patientContext.doctorName = `Dr. ${doctorMember.first_name} ${doctorMember.last_name}`;
+        } else {
+          patientContext.hasDoctorAssigned = false;
         }
       } else {
-        patientContext = {
-          hasDoctorAssigned: false
-        };
+        patientContext.hasDoctorAssigned = false;
       }
 
       // Get patient's profile info
