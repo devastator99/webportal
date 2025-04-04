@@ -2,13 +2,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-interface UserProfile {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  role?: string;
-}
-
 serve(async (req: Request) => {
   try {
     const { patient_id } = await req.json();
@@ -29,22 +22,27 @@ serve(async (req: Request) => {
       }
     );
     
-    // Use the get_patient_care_team RPC function to get care team members
-    const { data: careTeamData, error: careTeamError } = await supabaseClient.rpc(
-      'get_patient_care_team',
-      { p_patient_id: patient_id }
+    // Use the get_user_profile RPC function
+    const { data: profileData, error: profileError } = await supabaseClient.rpc(
+      'get_user_profile',
+      { p_user_id: patient_id }
     );
     
-    if (careTeamError) {
-      console.error("Error fetching care team:", careTeamError);
+    if (profileError) {
+      console.error("Error fetching user profile:", profileError);
       return new Response(
-        JSON.stringify({ error: careTeamError.message }),
+        JSON.stringify({ error: profileError.message }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
     
+    // Return only the first profile record (should be only one)
+    const profile = Array.isArray(profileData) && profileData.length > 0 
+      ? profileData[0] 
+      : null;
+    
     return new Response(
-      JSON.stringify(careTeamData),
+      JSON.stringify(profile),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
     

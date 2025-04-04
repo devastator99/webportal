@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +16,19 @@ interface Message {
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
+}
+
+// Define interfaces for our RPC function results
+interface CareTeamMember {
+  role: string;
+  first_name: string;
+  last_name: string;
+}
+
+interface UserProfile {
+  id: string;
+  first_name: string;
+  last_name: string;
 }
 
 export const CareTeamAIChat = () => {
@@ -100,11 +114,10 @@ export const CareTeamAIChat = () => {
         content: m.content
       }));
 
-      // Use the RPC function to get patient's care team
-      const { data: careTeam, error: careTeamError } = await supabase.rpc(
-        'get_patient_care_team',
-        { p_patient_id: user.id }
-      );
+      // Call the Edge Function to get patient's care team
+      const { data: careTeamData, error: careTeamError } = await supabase.functions.invoke('get-patient-care-team', {
+        body: { patient_id: user.id }
+      });
       
       if (careTeamError) {
         console.error("Error checking care team:", careTeamError);
@@ -114,9 +127,9 @@ export const CareTeamAIChat = () => {
       let patientContext: Record<string, any> = {};
       
       // If we found care team members, include them in the context
-      if (careTeam && Array.isArray(careTeam) && careTeam.length > 0) {
+      if (careTeamData && Array.isArray(careTeamData) && careTeamData.length > 0) {
         // Check for doctor in the care team
-        const doctorMember = careTeam.find(member => member.role === 'doctor');
+        const doctorMember = careTeamData.find((member: CareTeamMember) => member.role === 'doctor');
         if (doctorMember) {
           patientContext.hasDoctorAssigned = true;
           patientContext.doctorName = `Dr. ${doctorMember.first_name} ${doctorMember.last_name}`;
@@ -127,18 +140,17 @@ export const CareTeamAIChat = () => {
         patientContext.hasDoctorAssigned = false;
       }
 
-      // Get patient's profile info
-      const { data: patientProfile, error: profileError } = await supabase.rpc(
-        'get_user_profile',
-        { p_user_id: user.id }
-      ).maybeSingle();
+      // Get patient's profile info using Edge Function
+      const { data: profileData, error: profileError } = await supabase.functions.invoke('get-patient-profile', {
+        body: { patient_id: user.id }
+      });
         
       if (profileError) {
         console.error("Error fetching patient profile:", profileError);
-      } else if (patientProfile) {
+      } else if (profileData) {
         patientContext = {
           ...patientContext,
-          patientName: `${patientProfile.first_name} ${patientProfile.last_name}`
+          patientName: `${profileData.first_name} ${profileData.last_name}`
         };
       }
 
