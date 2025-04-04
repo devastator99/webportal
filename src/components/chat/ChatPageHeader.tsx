@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -76,7 +77,10 @@ export const ChatPageHeader = ({
             <Card className="md:col-span-3">
               <CardContent className="p-4">
                 {selectedUser ? (
-                  <ChatInterface selectedUser={selectedUser} />
+                  <ChatInterface 
+                    assignedUsers={[selectedUser]} 
+                    showGroupChat={false} 
+                  />
                 ) : (
                   <div className="flex items-center justify-center h-[400px] text-muted-foreground">
                     Select a user to start chatting
@@ -111,7 +115,10 @@ export const ChatPageHeader = ({
               <Card className="md:col-span-3">
                 <CardContent className="p-4">
                   <div className="grid grid-cols-1 gap-6">
-                    <ChatInterface isGroupChat groupName={careTeamGroup.groupName} />
+                    <ChatInterface 
+                      careTeamGroup={careTeamGroup} 
+                      showGroupChat={true} 
+                    />
                     <div className="border-t pt-4">
                       <CareTeamAIChat />
                     </div>
