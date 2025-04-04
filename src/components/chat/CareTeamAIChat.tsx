@@ -3,13 +3,14 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Brain, Loader2, Send, CheckCircle, ChevronDown, ChevronRight, Clock } from "lucide-react";
+import { Brain, Loader2, Send, CheckCircle, ChevronDown, ChevronRight, Clock, ArrowDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -22,10 +23,12 @@ export const CareTeamAIChat = () => {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const scrollViewportRef = useRef<HTMLDivElement>(null);
 
   // Add initial welcome message when component mounts
   useEffect(() => {
@@ -46,6 +49,35 @@ export const CareTeamAIChat = () => {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  // Handle scroll to detect when to show scroll-to-bottom button
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!scrollViewportRef.current) return;
+      
+      const { scrollTop, scrollHeight, clientHeight } = scrollViewportRef.current;
+      const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100;
+      
+      setShowScrollButton(isScrolledUp);
+    };
+
+    const scrollElement = scrollViewportRef.current;
+    if (scrollElement) {
+      scrollElement.addEventListener('scroll', handleScroll);
+    }
+
+    return () => {
+      if (scrollElement) {
+        scrollElement.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, []);
+
+  const scrollToBottom = () => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   const handleSendMessage = async () => {
     if (!input.trim() || !user?.id) return;
@@ -89,6 +121,10 @@ export const CareTeamAIChat = () => {
           timestamp: new Date() 
         }
       ]);
+      
+      // Ensure scroll to bottom after new message
+      setTimeout(scrollToBottom, 100);
+      
     } catch (error: any) {
       console.error("Error in AI care team chat:", error);
       toast({
@@ -101,9 +137,19 @@ export const CareTeamAIChat = () => {
     }
   };
 
-  // Split messages into recent and history
+  // Split messages into recent (last 5) and history
   const recentMessages = messages.length > 5 ? messages.slice(-5) : messages;
   const historyMessages = messages.length > 5 ? messages.slice(0, -5) : [];
+
+  // Group history messages by day for WhatsApp-style UI
+  const groupedHistoryMessages: Record<string, Message[]> = {};
+  historyMessages.forEach(message => {
+    const day = format(message.timestamp, "MMMM d, yyyy");
+    if (!groupedHistoryMessages[day]) {
+      groupedHistoryMessages[day] = [];
+    }
+    groupedHistoryMessages[day].push(message);
+  });
 
   return (
     <div className="flex flex-col h-full">
@@ -113,60 +159,66 @@ export const CareTeamAIChat = () => {
       </div>
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        {historyMessages.length > 0 && (
-          <Collapsible
-            open={isHistoryOpen}
-            onOpenChange={setIsHistoryOpen}
-            className="mb-2 border rounded-md"
-          >
-            <CollapsibleTrigger className="flex w-full items-center justify-between p-2 text-sm hover:bg-muted/50">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span>Previous messages ({historyMessages.length})</span>
-              </div>
-              {isHistoryOpen ? (
-                <ChevronDown className="h-4 w-4" />
-              ) : (
-                <ChevronRight className="h-4 w-4" />
-              )}
-            </CollapsibleTrigger>
-            <CollapsibleContent>
-              <ScrollArea className="max-h-48 overflow-y-auto p-2">
-                <div className="space-y-3">
-                  {historyMessages.map((message, index) => (
-                    <div
-                      key={`history-${index}`}
-                      className={`flex ${
-                        message.role === 'user' ? "justify-end" : "justify-start"
-                      }`}
-                    >
-                      <div
-                        className={`max-w-[80%] rounded-lg p-2 text-xs ${
-                          message.role === 'user'
-                            ? "bg-primary/80 text-primary-foreground"
-                            : "bg-muted/80"
-                        }`}
-                      >
-                        <p>{message.content}</p>
-                        <p className="text-xs opacity-70 mt-1">
-                          {format(message.timestamp, "p")}
-                        </p>
+        {/* History section - accordion style similar to WhatsApp */}
+        {Object.keys(groupedHistoryMessages).length > 0 && (
+          <Accordion type="single" collapsible className="mb-2 border rounded-md">
+            <AccordionItem value="history">
+              <AccordionTrigger className="px-3 py-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span>Previous messages ({historyMessages.length})</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <ScrollArea className="max-h-48 overflow-y-auto">
+                  {Object.entries(groupedHistoryMessages).map(([day, dayMessages]) => (
+                    <div key={day} className="mb-4">
+                      <div className="flex justify-center mb-2">
+                        <Badge variant="outline" className="text-xs bg-muted/50">
+                          {day}
+                        </Badge>
+                      </div>
+                      <div className="space-y-3 px-3">
+                        {dayMessages.map((message, index) => (
+                          <div
+                            key={`history-${day}-${index}`}
+                            className={`flex ${
+                              message.role === 'user' ? "justify-end" : "justify-start"
+                            }`}
+                          >
+                            <div
+                              className={`max-w-[80%] rounded-lg p-2 text-sm ${
+                                message.role === 'user'
+                                  ? "bg-primary/80 text-primary-foreground"
+                                  : "bg-muted/80"
+                              }`}
+                            >
+                              <p>{message.content}</p>
+                              <p className="text-xs opacity-70 mt-1">
+                                {format(message.timestamp, "p")}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   ))}
-                </div>
-              </ScrollArea>
-            </CollapsibleContent>
-          </Collapsible>
+                </ScrollArea>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         )}
         
-        <ScrollArea className="flex-1 pr-4 mb-4" ref={scrollAreaRef}>
-          {messages.length === 0 ? (
-            <div className="h-32 flex items-center justify-center text-muted-foreground">
-              <p className="text-sm">Loading your AI care assistant...</p>
-            </div>
-          ) : (
-            <div className="space-y-4">
+        {/* Recent messages - WhatsApp style */}
+        <div className="relative flex-1 h-full">
+          <ScrollArea 
+            className="h-full pr-3" 
+            ref={scrollAreaRef}
+          >
+            <div 
+              className="space-y-3 py-2"
+              ref={scrollViewportRef}
+            >
               {recentMessages.map((message, index) => (
                 <div
                   key={index}
@@ -195,17 +247,30 @@ export const CareTeamAIChat = () => {
               ))}
               <div ref={messagesEndRef} />
             </div>
+          </ScrollArea>
+          
+          {/* Scroll to bottom button - WhatsApp style */}
+          {showScrollButton && (
+            <Button
+              size="icon"
+              variant="secondary"
+              className="absolute bottom-2 right-2 h-9 w-9 rounded-full opacity-90 shadow-md"
+              onClick={scrollToBottom}
+            >
+              <ArrowDown className="h-5 w-5" />
+            </Button>
           )}
-        </ScrollArea>
+        </div>
       </div>
       
-      <div className="flex gap-2 mt-auto">
+      {/* Input area - WhatsApp style */}
+      <div className="flex gap-2 mt-4 bg-background border-t pt-3">
         <Textarea
-          placeholder="Ask about your health records, prescriptions, or care plan..."
+          placeholder="Type a message..."
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          className="resize-none text-sm"
-          rows={2}
+          className="resize-none text-sm min-h-[50px] max-h-[120px]"
+          rows={1}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
@@ -213,11 +278,16 @@ export const CareTeamAIChat = () => {
             }
           }}
         />
-        <Button size="sm" onClick={handleSendMessage} disabled={isLoading}>
+        <Button 
+          size="icon" 
+          onClick={handleSendMessage} 
+          disabled={isLoading}
+          className="rounded-full h-[50px] w-[50px] flex-shrink-0"
+        >
           {isLoading ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
-            <Send className="h-4 w-4" />
+            <Send className="h-5 w-5" />
           )}
         </Button>
       </div>

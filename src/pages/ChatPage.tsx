@@ -20,32 +20,32 @@ const ChatPage = () => {
   }, [user, navigate]);
 
   return (
-    <>
+    <div className="flex flex-col min-h-screen">
       <Navbar />
-      <div className="container mx-auto py-8 px-4 max-w-7xl h-[calc(100vh-70px)] flex flex-col">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 flex-grow h-full overflow-hidden">
-          <div className="h-full overflow-hidden">
-            <UsersProvider>
-              {({ careTeamGroup, isLoading, error }) => (
-                <ChatPageHeader 
-                  careTeamGroup={careTeamGroup}
-                  isLoading={isLoading}
-                  error={error}
-                />
-              )}
-            </UsersProvider>
-          </div>
+      <div className="container mx-auto py-4 px-4 max-w-7xl flex-1 flex flex-col h-[calc(100vh-70px)] overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full overflow-hidden">
+          <Card className="h-full flex flex-col overflow-hidden">
+            <CardContent className="p-0 h-full">
+              <UsersProvider>
+                {({ careTeamGroup, isLoading, error }) => (
+                  <ChatPageHeader 
+                    careTeamGroup={careTeamGroup}
+                    isLoading={isLoading}
+                    error={error}
+                  />
+                )}
+              </UsersProvider>
+            </CardContent>
+          </Card>
           
-          <div className="h-full overflow-hidden">
-            <Card className="h-full flex flex-col overflow-hidden">
-              <CardContent className="p-4 h-full flex flex-col overflow-hidden">
-                <CareTeamAIChat />
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="h-full flex flex-col overflow-hidden">
+            <CardContent className="p-4 h-full flex flex-col overflow-hidden">
+              <CareTeamAIChat />
+            </CardContent>
+          </Card>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

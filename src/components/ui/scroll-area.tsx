@@ -40,7 +40,7 @@ const ScrollBar = React.forwardRef<
     {...props}
   >
     <ScrollAreaPrimitive.ScrollAreaThumb 
-      className="relative flex-1 rounded-full bg-border" 
+      className="relative flex-1 rounded-full bg-border hover:bg-border/80" 
     />
   </ScrollAreaPrimitive.ScrollAreaScrollbar>
 ))
