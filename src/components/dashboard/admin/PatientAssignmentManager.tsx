@@ -23,7 +23,7 @@ export const PatientAssignmentManager = () => {
   const queryClient = useQueryClient();
   const [selectedPatient, setSelectedPatient] = useState<string>("");
   const [selectedDoctor, setSelectedDoctor] = useState<string>("");
-  const [selectedNutritionist, setSelectedNutritionist] = useState<string>("");
+  const [selectedNutritionist, setSelectedNutritionist] = useState<string | null>(null);
   const [isAssigning, setIsAssigning] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -151,7 +151,7 @@ export const PatientAssignmentManager = () => {
       console.log("Assigning care team to patient", { 
         patientId: selectedPatient, 
         doctorId: selectedDoctor, 
-        nutritionistId: selectedNutritionist || null,
+        nutritionistId: selectedNutritionist, 
         adminId: user?.id
       });
 
@@ -164,7 +164,7 @@ export const PatientAssignmentManager = () => {
         body: {
           patient_id: selectedPatient,
           doctor_id: selectedDoctor,
-          nutritionist_id: selectedNutritionist || null,
+          nutritionist_id: selectedNutritionist,
           admin_id: user.id
         }
       });
@@ -299,12 +299,15 @@ export const PatientAssignmentManager = () => {
             
             <div>
               <label className="block text-sm font-medium mb-1">Select Nutritionist (Optional)</label>
-              <Select value={selectedNutritionist} onValueChange={setSelectedNutritionist}>
+              <Select 
+                value={selectedNutritionist || "none"} 
+                onValueChange={(value) => setSelectedNutritionist(value === "none" ? null : value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a nutritionist" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None</SelectItem>
+                  <SelectItem value="none">None</SelectItem>
                   {nutritionists?.map(nutritionist => (
                     <SelectItem key={nutritionist.id} value={nutritionist.id}>
                       {formatName(nutritionist)}
