@@ -146,14 +146,12 @@ export const PatientAssignmentManager = () => {
       let response;
       
       if (useDirectAssignment) {
-        // Use direct RPC call as fallback
-        console.log("Using direct RPC assignment");
-        response = await supabase.rpc('direct_assign_doctor_to_patient', {
+        console.log("Using direct RPC assignment with assign_doctor_to_patient");
+        response = await supabase.rpc('assign_doctor_to_patient', {
           p_patient_id: selectedPatient,
           p_doctor_id: selectedDoctor
         });
       } else {
-        // Use the dedicated edge function for doctor assignment
         console.log("Using edge function assignment");
         response = await supabase.functions.invoke('admin-assign-doctor-to-patient', {
           body: {
@@ -188,7 +186,6 @@ export const PatientAssignmentManager = () => {
         description: successMsg
       });
       
-      // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["doctor_patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient_doctor"] });
       queryClient.invalidateQueries({ queryKey: ["patient_assignments_report"] });
@@ -197,7 +194,6 @@ export const PatientAssignmentManager = () => {
     } catch (error: any) {
       console.error("Error assigning doctor:", error);
       
-      // Set error message state
       setErrorMessage(error.message || "An error occurred while assigning the doctor");
       
       toast({
@@ -206,7 +202,6 @@ export const PatientAssignmentManager = () => {
         variant: "destructive"
       });
       
-      // If edge function fails, suggest using direct RPC instead
       if (!useDirectAssignment) {
         setUseDirectAssignment(true);
       }
@@ -233,7 +228,6 @@ export const PatientAssignmentManager = () => {
         doctorId: selectedDoctor 
       });
       
-      // Use the dedicated edge function for nutritionist assignment
       const { data, error } = await supabase.functions.invoke('admin-assign-nutritionist-to-patient', {
         body: {
           patient_id: selectedPatient,
@@ -260,7 +254,6 @@ export const PatientAssignmentManager = () => {
         description: successMsg
       });
       
-      // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["nutritionist_patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient_nutritionist"] });
       queryClient.invalidateQueries({ queryKey: ["patient_assignments_report"] });
