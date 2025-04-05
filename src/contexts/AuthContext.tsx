@@ -57,46 +57,64 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Fetch user role function
   const fetchUserRole = async (userId: string) => {
     try {
+      console.log("[AuthContext] Fetching role for user:", userId);
+      
       const { data, error } = await supabase
         .rpc('get_user_role', {
           lookup_user_id: userId
         });
 
+      console.log("[AuthContext] Role fetch response:", { data, error });
+
       if (error) {
+        console.error("[AuthContext] Error fetching user role:", error);
         return null;
       }
 
       if (!data || data.length === 0) {
+        console.warn("[AuthContext] No role data returned for user:", userId);
         return null;
       }
 
       const roleValue = data[0]?.role;
+      console.log("[AuthContext] Resolved role:", roleValue);
       return roleValue as UserRole;
     } catch (error) {
+      console.error("[AuthContext] Exception in fetchUserRole:", error);
       return null;
     }
   };
 
   const handleAuthStateChange = async (session: any) => {
+    console.log("[AuthContext] Auth state changed:", session ? "session exists" : "no session");
+    
     try {
       if (session?.user) {
+        console.log("[AuthContext] User in session:", session.user.id);
         setUser(session.user);
         
         try {
+          console.log("[AuthContext] Attempting to fetch role");
           const role = await fetchUserRole(session.user.id);
           
+          console.log("[AuthContext] Role after fetch:", role);
+          
           if (role) {
+            console.log("[AuthContext] Setting role to:", role);
             setUserRole(role);
           } else {
+            console.warn("[AuthContext] No role found, setting to null");
             setUserRole(null);
           }
         } catch (roleError) {
+          console.error("[AuthContext] Error in role fetching process:", roleError);
           setUserRole(null);
         }
         
         // Reset the inactivity timer when auth state changes to logged in
         resetInactivityTimer();
       } else {
+        console.log("[AuthContext] No user in session, clearing user and role");
         setUser(null);
         setUserRole(null);
         
@@ -107,30 +125,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
     } catch (error) {
+      console.error("[AuthContext] Error in handleAuthStateChange:", error);
       // Silent error handling
     } finally {
+      console.log("[AuthContext] Auth state change processing complete");
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
+    console.log("[AuthContext] Initializing auth context");
+    
     const checkSession = async () => {
+      console.log("[AuthContext] Checking session");
+      
       try {
         const timeoutPromise = new Promise<{data: {session: null}}>((resolve) => {
           setTimeout(() => {
+            console.log("[AuthContext] Session check timed out");
             resolve({data: {session: null}});
           }, 3000);
         });
         
+        console.log("[AuthContext] Awaiting session from Supabase");
         const { data: { session } } = await Promise.race([
           supabase.auth.getSession(),
           timeoutPromise
         ]);
         
+        console.log("[AuthContext] Session check result:", session ? "session exists" : "no session");
         await handleAuthStateChange(session);
       } catch (error) {
+        console.error("[AuthContext] Error checking session:", error);
         setIsLoading(false);
       } finally {
+        console.log("[AuthContext] Auth initialization complete");
         setAuthInitialized(true);
         setIsLoading(false);
       }
@@ -139,11 +168,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     checkSession();
 
     try {
+      console.log("[AuthContext] Setting up auth state change subscription");
+      
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        console.log("[AuthContext] Auth state change event:", _event);
         handleAuthStateChange(session);
       });
 
       return () => {
+        console.log("[AuthContext] Cleaning up auth subscription");
+        
         // Clean up the inactivity timer when the component unmounts
         if (inactivityTimerRef.current) {
           window.clearTimeout(inactivityTimerRef.current);
@@ -151,6 +185,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         subscription.unsubscribe();
       };
     } catch (error) {
+      console.error("[AuthContext] Error setting up auth subscription:", error);
       setIsLoading(false);
       setAuthInitialized(true);
       return () => {
@@ -204,6 +239,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     try {
+      console.log("[AuthContext] Sign out initiated");
       setIsLoading(true);
       
       setUser(null);
@@ -214,6 +250,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       navigate('/', { replace: true });
       
       if (error) {
+        console.error("[AuthContext] Error during sign out:", error);
         toast({
           variant: "destructive",
           title: "Warning",
@@ -227,8 +264,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         inactivityTimerRef.current = null;
       }
     } catch (error: any) {
+      console.error("[AuthContext] Exception during sign out:", error);
       navigate('/', { replace: true });
     } finally {
+      console.log("[AuthContext] Sign out complete");
       setIsLoading(false);
     }
   };
@@ -236,6 +275,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   // Add a more aggressive force sign out method
   const forceSignOut = async () => {
     try {
+      console.log("[AuthContext] Force sign out initiated");
       setUser(null);
       setUserRole(null);
       
@@ -251,7 +291,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       return Promise.resolve();
     } catch (error) {
-      console.error("Force sign out error:", error);
+      console.error("[AuthContext] Force sign out error:", error);
       
       // Even if there's an error, redirect to home
       window.location.href = '/';
@@ -261,12 +301,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   if (!authInitialized) {
+    console.log("[AuthContext] Auth not initialized yet, returning loading state");
     return (
       <AuthContext.Provider value={{ user: null, userRole: null, isLoading: true, signOut: async () => {}, resetInactivityTimer: () => {}, forceSignOut: async () => {} }}>
         {children}
       </AuthContext.Provider>
     );
   }
+
+  console.log("[AuthContext] Rendering provider with state:", { 
+    userId: user?.id, 
+    userRole, 
+    isLoading 
+  });
 
   return (
     <AuthContext.Provider value={{ user, userRole, isLoading, signOut, resetInactivityTimer, forceSignOut }}>
