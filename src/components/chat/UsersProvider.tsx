@@ -104,15 +104,15 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             });
           }
           
-          // Always get administrators for patients
-          const { data: admins, error: adminsError } = await supabase
-            .from("profiles")
-            .select("id, first_name, last_name, user_roles(role)")
-            .eq("user_roles.role", "administrator")
-            .not("id", "eq", user.id);
+          // Get administrators
+          // We query this differently to avoid recursion issues, not using joins
+          const { data: userRoles, error: userRolesError } = await supabase
+            .from("user_roles")
+            .select("user_id")
+            .eq("role", "administrator");
             
-          if (adminsError) {
-            console.error("Error fetching admins:", adminsError);
+          if (userRolesError) {
+            console.error("Error fetching admin roles:", userRolesError);
             toast({
               title: "Error",
               description: "Could not load administrators for chat",
@@ -120,13 +120,26 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             });
           }
           
-          // Format admin users
-          const formattedAdmins = (admins || []).map(admin => ({
-            id: admin.id,
-            first_name: admin.first_name,
-            last_name: admin.last_name,
-            role: "administrator"
-          }));
+          const adminIds = (userRoles || []).map(ur => ur.user_id).filter(id => id !== user.id);
+          let formattedAdmins: UserProfile[] = [];
+          
+          if (adminIds.length > 0) {
+            const { data: adminProfiles, error: adminProfilesError } = await supabase
+              .from("profiles")
+              .select("id, first_name, last_name")
+              .in("id", adminIds);
+              
+            if (adminProfilesError) {
+              console.error("Error fetching admin profiles:", adminProfilesError);
+            } else {
+              formattedAdmins = (adminProfiles || []).map(admin => ({
+                id: admin.id,
+                first_name: admin.first_name,
+                last_name: admin.last_name,
+                role: "administrator"
+              }));
+            }
+          }
           
           // Create care team group from assigned doctor, nutritionist and AI bot
           const careTeamMembers = careTeam.filter(member => 
@@ -171,23 +184,39 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             careTeamGroup: null
           };
         } else if (userRole === "administrator") {
-          // Admin can chat with everyone
-          const { data: allUsers, error: allUsersError } = await supabase
-            .from("profiles")
-            .select("id, first_name, last_name, user_roles!inner(role)")
-            .neq("id", user.id);
+          // Query user roles separately to avoid recursion
+          const { data: userRoles, error: userRolesError } = await supabase
+            .from("user_roles")
+            .select("user_id, role");
           
-          if (allUsersError) {
-            console.error("Error fetching all users:", allUsersError);
-            throw allUsersError;
+          if (userRolesError) {
+            console.error("Error fetching user roles:", userRolesError);
+            throw userRolesError;
           }
           
-          // Format users with their roles
-          const formattedUsers = (allUsers || []).map(u => ({
-            id: u.id,
-            first_name: u.first_name,
-            last_name: u.last_name,
-            role: u.user_roles?.role || "user"
+          // Create a map of user_id to role
+          const roleMap = new Map();
+          (userRoles || []).forEach(ur => {
+            roleMap.set(ur.user_id, ur.role);
+          });
+          
+          // Get all profiles except the current user
+          const { data: allProfiles, error: profilesError } = await supabase
+            .from("profiles")
+            .select("id, first_name, last_name")
+            .neq("id", user.id);
+          
+          if (profilesError) {
+            console.error("Error fetching profiles:", profilesError);
+            throw profilesError;
+          }
+          
+          // Format users with their roles from the map
+          const formattedUsers = (allProfiles || []).map(profile => ({
+            id: profile.id,
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+            role: roleMap.get(profile.id) || "user"
           }));
           
           return { 
