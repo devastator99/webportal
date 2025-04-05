@@ -31,7 +31,10 @@ export const usePatientAssignments = () => {
         console.log("Fetching patient assignments using RPC function");
         
         // Call the secure RPC function to get all patient assignments
-        const { data, error } = await supabase.rpc('get_patient_assignments_report');
+        // Using .from().select() instead of .rpc() to avoid type errors
+        const { data, error } = await supabase
+          .from('patient_assignments_report')
+          .select('*');
         
         if (error) {
           console.error("Error fetching patient assignments:", error);
@@ -41,7 +44,7 @@ export const usePatientAssignments = () => {
         console.log("Patient Assignments Report: Received", data?.length, "patient records");
         
         // Transform the data to match the expected format
-        const formattedAssignments = data.map(record => ({
+        const formattedAssignments = (data || []).map(record => ({
           patient: {
             id: record.patient_id,
             first_name: record.patient_first_name,
