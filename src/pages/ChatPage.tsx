@@ -27,19 +27,17 @@ const ChatPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 h-full overflow-hidden">
           <Card className="h-full flex flex-col overflow-hidden">
             <CardContent className="p-0 h-full">
-              {userRole === 'doctor' ? (
-                <DoctorChatInterface />
-              ) : (
-                <UsersProvider>
-                  {({ careTeamGroup, isLoading, error }) => (
-                    <ChatPageHeader 
-                      careTeamGroup={careTeamGroup}
-                      isLoading={isLoading}
-                      error={error}
-                    />
-                  )}
-                </UsersProvider>
-              )}
+              <UsersProvider>
+                {({ careTeamGroup, assignedUsers, isLoading, error }) => (
+                  <ChatPageHeader 
+                    careTeamGroup={careTeamGroup}
+                    assignedUsers={assignedUsers}
+                    isLoading={isLoading}
+                    error={error}
+                    userRole={userRole}
+                  />
+                )}
+              </UsersProvider>
             </CardContent>
           </Card>
           

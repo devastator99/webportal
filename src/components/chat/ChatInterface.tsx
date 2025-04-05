@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -54,10 +53,17 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
   const { toast } = useToast();
   const [newMessage, setNewMessage] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [isGroupChat, setIsGroupChat] = useState<boolean>(true);
+  const [isGroupChat, setIsGroupChat] = useState<boolean>(showGroupChat && !!careTeamGroup);
   const isOnline = useOnlineStatus();
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
   const [hasInitialAiMessage, setHasInitialAiMessage] = useState<boolean>(false);
+
+  // If doctor and has assigned patients, select first patient by default
+  useEffect(() => {
+    if (userRole === 'doctor' && assignedUsers?.length && !selectedUserId) {
+      setSelectedUserId(assignedUsers[0].id);
+    }
+  }, [userRole, assignedUsers, selectedUserId]);
 
   useEffect(() => {
     if (careTeamGroup && !hasInitialAiMessage && isOnline) {
@@ -134,155 +140,19 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
     syncOfflineMessages();
   }, [isOnline, user?.id, toast]);
 
-  const { data: allUsers, isLoading: usersLoading, error: usersError } = useQuery({
-    queryKey: ["available_chat_users", user?.id, userRole],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      
-      if (assignedUsers?.length > 0) {
-        return assignedUsers;
-      }
-      
-      try {
-        if (userRole === "patient") {
-          let careTeam: UserProfile[] = [];
-          let careTeamError = null;
-          
-          try {
-            const { data, error } = await supabase.functions.invoke('get-patient-care-team', {
-              body: { patient_id: user.id }
-            });
-            
-            if (!error && data) {
-              careTeam = data as UserProfile[];
-            } else {
-              careTeamError = error;
-              console.error("Error fetching care team:", error);
-            }
-          } catch (err) {
-            careTeamError = err;
-            console.error("Failed to call get_patient_care_team function:", err);
-          }
-          
-          if (careTeamError || (Array.isArray(careTeam) && careTeam.length === 0)) {
-            try {
-              const { data: doctorData } = await supabase.functions.invoke('get-doctor-for-patient', { 
-                body: { patient_id: user.id }
-              });
-              
-              const { data: nutritionistData } = await supabase.functions.invoke('get-nutritionist-for-patient', { 
-                body: { patient_id: user.id }
-              });
-              
-              if (doctorData && Array.isArray(doctorData) && doctorData.length > 0) {
-                const doctor = doctorData[0] as UserProfile;
-                careTeam.push({
-                  id: doctor.id,
-                  first_name: doctor.first_name,
-                  last_name: doctor.last_name,
-                  role: "doctor"
-                });
-              }
-              
-              if (nutritionistData && Array.isArray(nutritionistData) && nutritionistData.length > 0) {
-                const nutritionist = nutritionistData[0] as UserProfile;
-                careTeam.push({
-                  id: nutritionist.id,
-                  first_name: nutritionist.first_name,
-                  last_name: nutritionist.last_name,
-                  role: "nutritionist"
-                });
-              }
-              
-              careTeam.push({
-                id: '00000000-0000-0000-0000-000000000000',
-                first_name: 'AI',
-                last_name: 'Assistant',
-                role: 'aibot'
-              });
-            } catch (err) {
-              console.error("Error in fallback doctor/nutritionist fetch:", err);
-            }
-          }
-          
-          const { data: admins, error: adminsError } = await supabase
-            .from("profiles")
-            .select("id, first_name, last_name, user_role:user_roles(role)")
-            .eq("user_roles.role", "administrator");
-            
-          if (adminsError) throw adminsError;
-          
-          const formattedAdmins = (admins || []).map(admin => ({
-            id: admin.id,
-            first_name: admin.first_name,
-            last_name: admin.last_name,
-            role: "administrator"
-          }));
-          
-          return [...careTeam, ...formattedAdmins];
-        } 
-        else if (userRole === "doctor" || userRole === "nutritionist") {
-          const { data: patients } = await supabase.functions.invoke('get-assigned-patients', {
-            body: {
-              provider_id: user.id,
-              provider_role: userRole
-            }
-          });
-          
-          const { data: admins, error: adminsError } = await supabase
-            .from("profiles")
-            .select("id, first_name, last_name, user_role:user_roles(role)")
-            .eq("user_roles.role", "administrator");
-            
-          if (adminsError) throw adminsError;
-          
-          const formattedAdmins = (admins || []).map(admin => ({
-            id: admin.id,
-            first_name: admin.first_name,
-            last_name: admin.last_name,
-            role: "administrator"
-          }));
-          
-          return [...(patients as UserProfile[] || []), ...formattedAdmins];
-        } 
-        else if (userRole === "administrator") {
-          const { data, error } = await supabase
-            .from("profiles")
-            .select("id, first_name, last_name, user_role:user_roles(role)")
-            .neq("id", user.id);
-          
-          if (error) throw error;
-          
-          return (data || []).map(profile => ({
-            id: profile.id,
-            first_name: profile.first_name,
-            last_name: profile.last_name,
-            role: profile.user_role?.role || ""
-          }));
-        }
-        
-        return [];
-      } catch (error) {
-        console.error("Error fetching available users for chat:", error);
-        toast({
-          title: "Error loading contacts",
-          description: "Unable to load your chat contacts. Please try again later.",
-          variant: "destructive"
-        });
-        throw error;
-      }
-    },
-    enabled: !!user?.id && !!userRole,
-    retry: 2
-  });
+  // Get users list based on role
+  const availableUsers = userRole === 'doctor' ? assignedUsers : [];
 
-  useEffect(() => {
-    if (careTeamGroup) {
-      setIsGroupChat(true);
-    }
-  }, [careTeamGroup]);
+  // For doctors viewing patient messages in a care group
+  const handleUserSelect = (userId: string) => {
+    setSelectedUserId(userId);
+  };
 
   const getHeaderTitle = () => {
+    if (userRole === 'doctor') {
+      const selectedUser = availableUsers.find(u => u.id === selectedUserId);
+      return selectedUser ? `${selectedUser.first_name} ${selectedUser.last_name}` : "Select a patient";
+    }
     if (isGroupChat && careTeamGroup) {
       return (
         <div className="flex items-center gap-2">
@@ -293,34 +163,13 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
         </div>
       );
     }
-    if (usersLoading) return "Loading contacts...";
-    if (usersError) return "Error loading contacts";
     return "Care Team";
-  };
-
-  const getUserRole = (user: UserProfile) => {
-    if (user.role) return user.role;
-    if (user.user_role?.role) return user.user_role.role;
-    return "";
   };
 
   const getUserDisplayName = (user: UserProfile) => {
     const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-    const role = getUserRole(user);
+    const role = user.role || (user.user_role?.role || "");
     return role ? `${name} (${role})` : name;
-  };
-
-  const renderError = () => {
-    if (usersError) {
-      return (
-        <Alert>
-          <AlertDescription>
-            Unable to load contacts. Please refresh the page.
-          </AlertDescription>
-        </Alert>
-      );
-    }
-    return null;
   };
 
   const handleSendMessage = async () => {
@@ -336,6 +185,63 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
     }
 
     try {
+      // Doctor sending message to a patient
+      if (userRole === 'doctor' && selectedUserId) {
+        const timestamp = new Date().toISOString();
+        
+        const localMessage: LocalMessage = {
+          id: uuidv4(),
+          message: newMessage,
+          created_at: timestamp,
+          read: false,
+          sender: {
+            id: user.id,
+            first_name: user.user_metadata?.first_name || "",
+            last_name: user.user_metadata?.last_name || "",
+            role: userRole
+          },
+          synced: !isOnline
+        };
+        
+        setLocalMessages(prev => [...prev, localMessage]);
+        
+        if (!isOnline) {
+          await saveOfflineMessage({
+            id: uuidv4(),
+            sender_id: user.id,
+            receiver_id: selectedUserId,
+            message: newMessage,
+            message_type: "text",
+            created_at: timestamp,
+            synced: false
+          });
+          
+          toast({
+            title: "Message saved",
+            description: "Your message will be sent when you're back online.",
+          });
+          
+          setNewMessage("");
+          return;
+        }
+        
+        // Send message to the selected patient
+        await supabase.functions.invoke("send-chat-message", {
+          body: {
+            sender_id: user.id,
+            receiver_id: selectedUserId,
+            message: newMessage,
+            message_type: "text"
+          }
+        });
+        
+        setNewMessage("");
+        toast({
+          title: "Message sent",
+        });
+        return;
+      }
+      
       if (careTeamGroup) {
         const timestamp = new Date().toISOString();
         
@@ -463,10 +369,10 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
   };
 
   return (
-    <Card className="h-[600px] flex flex-col">
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
+          {userRole === 'doctor' ? <MessageSquare className="h-5 w-5" /> : <Users className="h-5 w-5" />}
           {getHeaderTitle()}
           {!isOnline && <WifiOff className="h-4 w-4 text-red-500 ml-2" />}
         </CardTitle>
@@ -477,22 +383,60 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
             </AlertDescription>
           </Alert>
         )}
-        {renderError()}
+        
+        {userRole === 'doctor' && (
+          <div className="mt-2">
+            <Label htmlFor="patientSelect">Select Patient</Label>
+            <Select 
+              value={selectedUserId || ''} 
+              onValueChange={handleUserSelect}
+            >
+              <SelectTrigger id="patientSelect" className="w-full">
+                <SelectValue placeholder="Select patient" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableUsers.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {getUserDisplayName(user)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">
-        <ChatMessagesList
-          isGroupChat={true}
-          careTeamGroup={careTeamGroup}
-          selectedUserId={null}
-          offlineMode={!isOnline}
-          localMessages={localMessages}
-        />
+        {userRole === 'doctor' ? (
+          // Doctor view with patient messages
+          <ChatMessagesList
+            selectedUserId={selectedUserId}
+            isGroupChat={false}
+            offlineMode={!isOnline}
+            localMessages={localMessages}
+          />
+        ) : (
+          // Standard care team view
+          <ChatMessagesList
+            isGroupChat={isGroupChat}
+            careTeamGroup={careTeamGroup}
+            selectedUserId={!isGroupChat ? selectedUserId : null}
+            offlineMode={!isOnline}
+            localMessages={localMessages}
+          />
+        )}
+        
         <ChatInput
           value={newMessage}
           onChange={setNewMessage}
           onSend={handleSendMessage}
-          disabled={!careTeamGroup}
-          placeholder={isOnline ? "Message your care team..." : "Message your care team (offline)..."}
+          disabled={userRole === 'doctor' ? !selectedUserId : !careTeamGroup}
+          placeholder={
+            userRole === 'doctor' 
+              ? "Message to patient..." 
+              : isOnline 
+                ? "Message your care team..." 
+                : "Message your care team (offline)..."
+          }
           offlineMode={!isOnline}
         />
       </CardContent>

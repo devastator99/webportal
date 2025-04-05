@@ -3,18 +3,22 @@ import { Loader2, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChatInterface } from "./ChatInterface";
 import { UsersList } from "./UsersList";
-import { CareTeamGroup } from "./UsersProvider";
+import { CareTeamGroup, UserProfile } from "./UsersProvider";
 
 interface ChatPageHeaderProps {
   careTeamGroup: CareTeamGroup | null;
+  assignedUsers: UserProfile[];
   isLoading: boolean;
   error: unknown;
+  userRole?: string;
 }
 
 export const ChatPageHeader = ({
   careTeamGroup,
+  assignedUsers,
   isLoading,
-  error
+  error,
+  userRole
 }: ChatPageHeaderProps) => {
   if (isLoading) {
     return (
@@ -32,11 +36,27 @@ export const ChatPageHeader = ({
     );
   }
 
+  let title = "Care Team Chat";
+  if (userRole === "doctor") {
+    title = "Patient Messages";
+  }
+
   return (
     <div className="space-y-6 w-full">
-      <h2 className="text-2xl font-bold text-center mb-6">Care Team Chat</h2>
+      <h2 className="text-2xl font-bold text-center mb-6">{title}</h2>
       
-      {careTeamGroup ? (
+      {userRole === "doctor" ? (
+        // Doctor view - show patient messages
+        <Card className="h-full">
+          <CardContent className="p-4">
+            <ChatInterface 
+              assignedUsers={assignedUsers}
+              showGroupChat={false}
+            />
+          </CardContent>
+        </Card>
+      ) : careTeamGroup ? (
+        // Patient or other role view - show care team chat
         <div className="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-1 gap-6">
           <Card className="lg:col-span-1 md:col-span-1 sm:col-span-1">
             <CardContent className="p-4">
@@ -67,9 +87,10 @@ export const ChatPageHeader = ({
         </div>
       ) : (
         <div className="text-center py-12 text-muted-foreground">
-          No care team is currently assigned to you.
-          <br />
-          Please contact the clinic to set up your care team.
+          {userRole === "doctor" ? 
+            "No patients are currently assigned to you." :
+            "No care team is currently assigned to you. Please contact the clinic to set up your care team."
+          }
         </div>
       )}
     </div>

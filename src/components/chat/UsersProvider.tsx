@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -100,7 +99,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             careTeamGroup: careTeamGroup
           };
         } 
-        else if (userRole === "doctor" || userRole === "nutritionist") {
+        else if (userRole === "doctor") {
           // Get assigned patients using edge function
           const { data: patientsData, error: patientsError } = await supabase.functions.invoke('get-assigned-patients', {
             body: { 
@@ -121,7 +120,46 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             role: "patient"
           }));
           
-          // Sort patients alphabetically by name for doctors and nutritionists
+          // Sort patients alphabetically by name for doctors
+          formattedPatients.sort((a: UserProfile, b: UserProfile) => {
+            const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
+            const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
+          
+          // Create a special care team group for doctor to see patient messages
+          const careTeamGroup = formattedPatients.length > 0 ? {
+            groupName: "My Patients",
+            members: formattedPatients
+          } : null;
+          
+          return { 
+            assignedUsers: formattedPatients,
+            careTeamGroup: careTeamGroup
+          };
+        } 
+        else if (userRole === "nutritionist") {
+          // Get assigned patients using edge function
+          const { data: patientsData, error: patientsError } = await supabase.functions.invoke('get-assigned-patients', {
+            body: { 
+              provider_id: user.id,
+              provider_role: userRole
+            }
+          });
+          
+          if (patientsError) {
+            console.error("Error fetching assigned patients:", patientsError);
+            throw patientsError;
+          }
+          
+          const formattedPatients = (patientsData || []).map((p: any) => ({
+            id: p.id,
+            first_name: p.first_name,
+            last_name: p.last_name,
+            role: "patient"
+          }));
+          
+          // Sort patients alphabetically by name for nutritionists
           formattedPatients.sort((a: UserProfile, b: UserProfile) => {
             const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
             const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
