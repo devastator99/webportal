@@ -36,28 +36,23 @@ export const ChatPageHeader = ({
     );
   }
 
-  let title = "Care Team Chat";
-  if (userRole === "doctor") {
-    title = "Patient Messages";
-  }
+  const title = userRole === "doctor" || userRole === "nutritionist" 
+    ? "Patient Messages" 
+    : "Care Team Chat";
 
   return (
-    <div className="space-y-6 w-full">
-      <h2 className="text-2xl font-bold text-center mb-6">{title}</h2>
+    <div className="space-y-6 w-full h-full">
+      <h2 className="text-2xl font-bold text-center p-4">{title}</h2>
       
-      {userRole === "doctor" ? (
-        // Doctor view - show patient messages
-        <Card className="h-full">
-          <CardContent className="p-4">
-            <ChatInterface 
-              assignedUsers={assignedUsers}
-              showGroupChat={false}
-            />
-          </CardContent>
-        </Card>
+      {userRole === "doctor" || userRole === "nutritionist" ? (
+        // Healthcare provider view - show all assigned patients in a chat interface
+        <ChatInterface 
+          assignedUsers={assignedUsers}
+          showGroupChat={false}
+        />
       ) : careTeamGroup ? (
-        // Patient or other role view - show care team chat
-        <div className="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-1 gap-6">
+        // Patient view - show care team chat
+        <div className="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-1 gap-6 h-full">
           <Card className="lg:col-span-1 md:col-span-1 sm:col-span-1">
             <CardContent className="p-4">
               <div className="space-y-4">
@@ -87,7 +82,7 @@ export const ChatPageHeader = ({
         </div>
       ) : (
         <div className="text-center py-12 text-muted-foreground">
-          {userRole === "doctor" ? 
+          {userRole === "doctor" || userRole === "nutritionist" ? 
             "No patients are currently assigned to you." :
             "No care team is currently assigned to you. Please contact the clinic to set up your care team."
           }
