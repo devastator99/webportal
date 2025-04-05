@@ -12,26 +12,13 @@ serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-  
+
   try {
-    console.log("Edge function received request");
+    const { patient_id, doctor_id, nutritionist_id, admin_id } = await req.json();
     
-    // Parse request body and log it for debugging
-    const requestBody = await req.json();
-    console.log("Request body:", JSON.stringify(requestBody));
+    console.log("Edge function received request:", { patient_id, doctor_id, nutritionist_id, admin_id });
     
-    const { patient_id, doctor_id, nutritionist_id, admin_id } = requestBody;
-    
-    console.log("Extracted parameters:", { 
-      patient_id, 
-      doctor_id, 
-      nutritionist_id: nutritionist_id || "Not provided", 
-      admin_id 
-    });
-    
-    // Input validation
     if (!patient_id) {
-      console.log("Error: Patient ID is required");
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -42,7 +29,6 @@ serve(async (req: Request) => {
     }
 
     if (!doctor_id) {
-      console.log("Error: Doctor ID is required");
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -53,19 +39,16 @@ serve(async (req: Request) => {
     }
 
     if (!admin_id) {
-      console.log("Error: Admin ID is required");
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "Admin ID is required" 
+          error: "Administrator ID is required" 
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log("Creating Supabase client");
-    
-    // Create a Supabase client with the auth context of the request
+    // Create a Supabase client with the auth context
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -73,103 +56,76 @@ serve(async (req: Request) => {
         global: { headers: { Authorization: req.headers.get("Authorization")! } },
       }
     );
+
+    // First, verify that the admin_id has the administrator role
+    const { data: adminRoleData, error: adminRoleError } = await supabaseClient.rpc(
+      'check_admin_role',
+      { user_id: admin_id }
+    );
     
-    console.log("Checking admin role");
-    
-    // Perform admin role check
-    const { data: adminRoleData, error: adminRoleError } = await supabaseClient
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", admin_id)
-      .eq("role", "administrator")
-      .single();
-      
-    if (adminRoleError) {
-      console.log("Admin role check error:", adminRoleError);
+    if (adminRoleError || !adminRoleData) {
+      console.error("Error checking admin role:", adminRoleError);
       return new Response(
         JSON.stringify({ 
-          success: false,
-          error: "Error verifying administrator role: " + adminRoleError.message 
+          success: false, 
+          error: "Unauthorized: Only administrators can assign care teams",
+          details: adminRoleError
         }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    console.log("Admin role verification passed");
+
+    // Use admin_assign_care_team RPC function to handle both assignments at once
+    console.log("Calling RPC function admin_assign_care_team");
     
-    if (!adminRoleData) {
-      console.log("Unauthorized: Not an admin");
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          error: "Unauthorized: Only administrators can assign care team members" 
-        }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const { data, error } = await supabaseClient.rpc(
+      'admin_assign_care_team',
+      { 
+        p_patient_id: patient_id,
+        p_doctor_id: doctor_id,
+        p_nutritionist_id: nutritionist_id, 
+        p_admin_id: admin_id
+      }
+    );
     
-    console.log("Admin role verified, proceeding with assignment");
+    console.log("RPC response:", { data, error });
     
-    // Delete any existing assignments for this patient
-    const { error: deleteError } = await supabaseClient
-      .from("patient_assignments")
-      .delete()
-      .eq("patient_id", patient_id);
-      
-    if (deleteError) {
-      console.log("Error deleting existing assignments:", deleteError);
+    if (error) {
+      console.error("Error calling admin_assign_care_team RPC:", error);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: "Error removing existing assignments: " + deleteError.message 
+          error: error.message,
+          details: error 
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    
-    console.log("Creating new assignment");
-    
-    // Create new assignment with doctor and nutritionist (if provided)
-    const assignmentData = {
-      patient_id: patient_id,
-      doctor_id: doctor_id,
-      nutritionist_id: nutritionist_id || null
-    };
-    
-    console.log("Assignment data:", assignmentData);
-    
-    const { data, error: assignmentError } = await supabaseClient
-      .from("patient_assignments")
-      .insert(assignmentData)
-      .select()
-      .single();
-    
-    if (assignmentError) {
-      console.log("Error creating assignment:", assignmentError);
+
+    // Check the result from the RPC function
+    if (data && !data.success) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Error creating assignment: " + assignmentError.message 
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify(data),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-    
-    console.log("Assignment created successfully:", data);
-    
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Care team assigned successfully",
-        data: data
+      JSON.stringify(data || { 
+        success: true, 
+        message: "Care team assigned to patient successfully" 
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-    
   } catch (error) {
-    console.error("Unhandled error in admin-assign-care-team:", error);
+    console.error("Error in admin-assign-care-team:", error);
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message || "Unknown error occurred"
+        error: error.message,
+        stack: error.stack 
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

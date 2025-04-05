@@ -27,7 +27,7 @@ export const PatientAssignmentManager = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
-  // Fetch patients data
+  // Fetch patients data using RPC
   const { data: patients, isLoading: patientsLoading, error: patientsError } = useQuery({
     queryKey: ["admin_patients"],
     queryFn: async () => {
@@ -37,7 +37,7 @@ export const PatientAssignmentManager = () => {
         if (error) throw error;
         
         return data as Profile[] || [];
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching patients:", error);
         toast({
           title: "Error fetching patients",
@@ -49,7 +49,7 @@ export const PatientAssignmentManager = () => {
     }
   });
   
-  // Fetch doctors data
+  // Fetch doctors data using RPC
   const { data: doctors, isLoading: doctorsLoading, error: doctorsError } = useQuery({
     queryKey: ["admin_doctors"],
     queryFn: async () => {
@@ -59,7 +59,7 @@ export const PatientAssignmentManager = () => {
         if (error) throw error;
         
         return data as Profile[] || [];
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching doctors:", error);
         toast({
           title: "Error fetching doctors",
@@ -71,7 +71,7 @@ export const PatientAssignmentManager = () => {
     }
   });
   
-  // Fetch nutritionists data
+  // Fetch nutritionists data using RPC
   const { data: nutritionists, isLoading: nutritionistsLoading, error: nutritionistsError } = useQuery({
     queryKey: ["admin_nutritionists"],
     queryFn: async () => {
@@ -81,7 +81,7 @@ export const PatientAssignmentManager = () => {
         if (error) throw error;
         
         return data as Profile[] || [];
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching nutritionists:", error);
         toast({
           title: "Error fetching nutritionists",
@@ -158,7 +158,7 @@ export const PatientAssignmentManager = () => {
         throw new Error("Administrator ID is missing. Please log in again.");
       }
 
-      // Call the edge function that handles both assignments
+      // Call the edge function that handles both assignments through RPC
       const response = await supabase.functions.invoke('admin-assign-care-team', {
         body: {
           patient_id: selectedPatient,
@@ -214,7 +214,7 @@ export const PatientAssignmentManager = () => {
       queryClient.invalidateQueries({ queryKey: ["patient_assignments_report"] });
       queryClient.invalidateQueries({ queryKey: ["assigned_users"] });
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error assigning care team:", error);
       
       setErrorMessage(error.message || "An error occurred while assigning the care team");
