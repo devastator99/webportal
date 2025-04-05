@@ -36,7 +36,7 @@ export const AlternativeDoctorDashboard = () => {
         <h1 className="text-xl font-bold mb-2 text-left">{greeting}</h1>
         <p className="text-sm text-gray-500 text-left mb-4">Welcome back to your dashboard</p>
         
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Button 
             className="rounded-full bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
             onClick={() => navigate("/patients")}
@@ -53,6 +53,14 @@ export const AlternativeDoctorDashboard = () => {
               Schedule
             </Button>
           </ScheduleAppointment>
+          
+          <Button
+            className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
+            onClick={() => setShowVoiceScheduler(true)}
+          >
+            <Mic className="mr-2 h-4 w-4" />
+            Voice
+          </Button>
         </div>
       </div>
       
@@ -107,16 +115,6 @@ export const AlternativeDoctorDashboard = () => {
             <VoiceScheduler onClose={() => setShowVoiceScheduler(false)} />
           </div>
         </div>
-      )}
-      
-      {/* Only show fixed FAB for voice scheduling on mobile */}
-      {isMobile && (
-        <Button
-          className="fixed right-6 bottom-20 z-40 rounded-full w-14 h-14 p-0 bg-[#9b87f5] hover:bg-[#7E69AB] shadow-lg"
-          onClick={() => setShowVoiceScheduler(true)}
-        >
-          <Mic className="h-6 w-6 text-white" />
-        </Button>
       )}
     </div>
   );
