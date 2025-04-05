@@ -30,7 +30,7 @@ serve(async (req: Request) => {
     
     // Get doctor assigned to this patient
     const { data, error } = await supabaseClient
-      .from('patient_doctor_assignments')
+      .from('patient_assignments')
       .select('doctor:doctor_id(id, first_name, last_name)')
       .eq('patient_id', patient_id)
       .maybeSingle();

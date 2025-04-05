@@ -33,7 +33,7 @@ serve(async (req: Request) => {
     if (provider_role === 'doctor') {
       // Get patients assigned to this doctor
       const { data, error } = await supabaseClient
-        .from('patient_doctor_assignments')
+        .from('patient_assignments')
         .select('patient:patient_id(id, first_name, last_name)')
         .eq('doctor_id', provider_id);
         
@@ -50,7 +50,7 @@ serve(async (req: Request) => {
     else if (provider_role === 'nutritionist') {
       // Get patients assigned to this nutritionist
       const { data, error } = await supabaseClient
-        .from('patient_nutritionist_assignments')
+        .from('patient_assignments')
         .select('patient:patient_id(id, first_name, last_name)')
         .eq('nutritionist_id', provider_id);
         

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,6 @@ export const PatientAssignmentManager = () => {
   const [isAssigning, setIsAssigning] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [useDirectAssignment, setUseDirectAssignment] = useState<boolean>(false);
   
   const { data: patients, isLoading: patientsLoading, error: patientsError } = useQuery({
     queryKey: ["admin_patients"],
@@ -139,28 +139,16 @@ export const PatientAssignmentManager = () => {
       console.log("Assigning doctor to patient", { 
         patientId: selectedPatient, 
         doctorId: selectedDoctor, 
-        adminId: user?.id,
-        useDirectAssignment
+        adminId: user?.id
       });
 
-      let response;
-      
-      if (useDirectAssignment) {
-        console.log("Using direct RPC assignment with assign_doctor_to_patient");
-        response = await supabase.rpc('assign_doctor_to_patient', {
-          p_patient_id: selectedPatient,
-          p_doctor_id: selectedDoctor
-        });
-      } else {
-        console.log("Using edge function assignment");
-        response = await supabase.functions.invoke('admin-assign-doctor-to-patient', {
-          body: {
-            patient_id: selectedPatient,
-            doctor_id: selectedDoctor,
-            admin_id: user?.id
-          }
-        });
-      }
+      const response = await supabase.functions.invoke('admin-assign-doctor-to-patient', {
+        body: {
+          patient_id: selectedPatient,
+          doctor_id: selectedDoctor,
+          admin_id: user?.id
+        }
+      });
       
       const { data, error } = response;
       
@@ -201,10 +189,6 @@ export const PatientAssignmentManager = () => {
         description: error.message || "An error occurred while assigning the doctor",
         variant: "destructive"
       });
-      
-      if (!useDirectAssignment) {
-        setUseDirectAssignment(true);
-      }
     } finally {
       setIsAssigning(false);
     }
@@ -307,15 +291,6 @@ export const PatientAssignmentManager = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {useDirectAssignment && (
-              <Alert className="bg-amber-50 border-amber-200 text-amber-800">
-                <AlertTriangle className="h-4 w-4 text-amber-600" />
-                <AlertDescription>
-                  Using direct database assignment as a fallback method.
-                </AlertDescription>
-              </Alert>
-            )}
-            
             <div>
               <label className="block text-sm font-medium mb-1">Select Patient</label>
               <Select value={selectedPatient} onValueChange={setSelectedPatient}>

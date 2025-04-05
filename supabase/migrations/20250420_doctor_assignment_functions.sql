@@ -2,7 +2,7 @@
 -- Drop existing function if any
 DROP FUNCTION IF EXISTS public.admin_assign_doctor_to_patient(uuid, uuid, uuid);
 
--- Create a security definer function for doctor assignment to avoid recursion issues
+-- Create a security definer function for doctor assignment
 CREATE OR REPLACE FUNCTION public.admin_assign_doctor_to_patient(
   p_doctor_id UUID,
   p_patient_id UUID,
@@ -17,34 +17,13 @@ DECLARE
   v_doctor_role TEXT;
   v_patient_role TEXT;
   v_admin_role TEXT;
-  v_result JSONB;
-  v_table_exists BOOLEAN;
-  v_doctor_exists BOOLEAN;
-  v_patient_exists BOOLEAN;
+  v_assignment_id UUID;
 BEGIN
   -- Check if admin_id is provided
   IF p_admin_id IS NULL THEN
     RETURN jsonb_build_object(
       'success', false,
       'error', 'Administrator ID is required'
-    );
-  END IF;
-
-  -- Check if the basic IDs exist
-  SELECT EXISTS (SELECT 1 FROM profiles WHERE id = p_doctor_id) INTO v_doctor_exists;
-  SELECT EXISTS (SELECT 1 FROM profiles WHERE id = p_patient_id) INTO v_patient_exists;
-  
-  IF NOT v_doctor_exists THEN
-    RETURN jsonb_build_object(
-      'success', false,
-      'error', 'Doctor profile not found'
-    );
-  END IF;
-  
-  IF NOT v_patient_exists THEN
-    RETURN jsonb_build_object(
-      'success', false,
-      'error', 'Patient profile not found'
     );
   END IF;
 
@@ -87,54 +66,19 @@ BEGIN
     );
   END IF;
 
-  -- Check if patient_assignments table exists
-  SELECT EXISTS (
-    SELECT FROM information_schema.tables 
-    WHERE table_schema = 'public' 
-    AND table_name = 'patient_assignments'
-  ) INTO v_table_exists;
+  -- Delete any existing assignments for this patient in patient_assignments
+  DELETE FROM patient_assignments
+  WHERE patient_id = p_patient_id;
   
-  IF v_table_exists THEN
-    -- Delete any existing assignments for this patient in patient_assignments
-    DELETE FROM patient_assignments
-    WHERE patient_id = p_patient_id;
-    
-    -- Create new assignment in patient_assignments
-    INSERT INTO patient_assignments (patient_id, doctor_id)
-    VALUES (p_patient_id, p_doctor_id);
-    
-    RETURN jsonb_build_object(
-      'success', true,
-      'message', 'Doctor assigned to patient successfully (using patient_assignments)'
-    );
-  END IF;
+  -- Create new assignment in patient_assignments
+  INSERT INTO patient_assignments (patient_id, doctor_id)
+  VALUES (p_patient_id, p_doctor_id)
+  RETURNING id INTO v_assignment_id;
   
-  -- If we get here, check if patient_doctor_assignments table exists
-  SELECT EXISTS (
-    SELECT FROM information_schema.tables 
-    WHERE table_schema = 'public' 
-    AND table_name = 'patient_doctor_assignments'
-  ) INTO v_table_exists;
-  
-  IF v_table_exists THEN
-    -- First, remove any existing doctor assignment for this patient in patient_doctor_assignments
-    DELETE FROM patient_doctor_assignments
-    WHERE patient_id = p_patient_id;
-    
-    -- Then, create the new assignment in patient_doctor_assignments
-    INSERT INTO patient_doctor_assignments (patient_id, doctor_id)
-    VALUES (p_patient_id, p_doctor_id);
-    
-    RETURN jsonb_build_object(
-      'success', true,
-      'message', 'Doctor assigned to patient successfully (using patient_doctor_assignments)'
-    );
-  END IF;
-  
-  -- If we get here, no appropriate tables exist
   RETURN jsonb_build_object(
-    'success', false,
-    'error', 'No assignment tables found in the database'
+    'success', true,
+    'message', 'Doctor assigned to patient successfully',
+    'id', v_assignment_id
   );
   
 EXCEPTION WHEN OTHERS THEN
@@ -149,9 +93,7 @@ $$;
 -- Grant execute permission to the function
 GRANT EXECUTE ON FUNCTION public.admin_assign_doctor_to_patient(UUID, UUID, UUID) TO authenticated;
 
--- Enhance the existing assign_doctor_to_patient function to match what we need for direct assignments
-DROP FUNCTION IF EXISTS public.assign_doctor_to_patient(UUID, UUID);
-
+-- Create simplified assign_doctor_to_patient function that only works with patient_assignments table
 CREATE OR REPLACE FUNCTION public.assign_doctor_to_patient(
   p_patient_id UUID,
   p_doctor_id UUID
@@ -163,7 +105,6 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
   v_assignment_id UUID;
-  v_table_exists BOOLEAN;
   v_doctor_exists BOOLEAN;
   v_patient_exists BOOLEAN;
 BEGIN
@@ -193,70 +134,25 @@ BEGIN
     );
   END IF;
   
-  -- Check if patient_assignments table exists (primary table)
-  SELECT EXISTS (
-    SELECT FROM information_schema.tables 
-    WHERE table_schema = 'public' 
-    AND table_name = 'patient_assignments'
-  ) INTO v_table_exists;
+  -- Delete any existing assignments for this patient
+  DELETE FROM patient_assignments
+  WHERE patient_id = p_patient_id;
   
-  IF v_table_exists THEN
-    -- Delete any existing assignments for this patient
-    DELETE FROM patient_assignments
-    WHERE patient_id = p_patient_id;
-    
-    -- Insert the assignment
-    INSERT INTO patient_assignments(
-      patient_id,
-      doctor_id
-    )
-    VALUES (
-      p_patient_id,
-      p_doctor_id
-    )
-    RETURNING id INTO v_assignment_id;
-    
-    RETURN jsonb_build_object(
-      'success', true,
-      'message', 'Doctor assigned to patient successfully (using patient_assignments)',
-      'id', v_assignment_id
-    );
-  END IF;
+  -- Insert the assignment
+  INSERT INTO patient_assignments(
+    patient_id,
+    doctor_id
+  )
+  VALUES (
+    p_patient_id,
+    p_doctor_id
+  )
+  RETURNING id INTO v_assignment_id;
   
-  -- If we get here, check if patient_doctor_assignments table exists
-  SELECT EXISTS (
-    SELECT FROM information_schema.tables 
-    WHERE table_schema = 'public' 
-    AND table_name = 'patient_doctor_assignments'
-  ) INTO v_table_exists;
-  
-  IF v_table_exists THEN
-    -- Delete any existing assignments for this patient
-    DELETE FROM patient_doctor_assignments
-    WHERE patient_id = p_patient_id;
-    
-    -- Insert the assignment
-    INSERT INTO patient_doctor_assignments(
-      patient_id,
-      doctor_id
-    )
-    VALUES (
-      p_patient_id,
-      p_doctor_id
-    );
-    
-    RETURN jsonb_build_object(
-      'success', true,
-      'message', 'Doctor assigned to patient successfully (using patient_doctor_assignments)',
-      'patient_id', p_patient_id,
-      'doctor_id', p_doctor_id
-    );
-  END IF;
-  
-  -- If we get here, no appropriate tables exist
   RETURN jsonb_build_object(
-    'success', false,
-    'error', 'No assignment tables found in the database'
+    'success', true,
+    'message', 'Doctor assigned to patient successfully',
+    'id', v_assignment_id
   );
   
 EXCEPTION WHEN OTHERS THEN
@@ -271,7 +167,7 @@ $$;
 -- Grant execute permission to the direct function
 GRANT EXECUTE ON FUNCTION public.assign_doctor_to_patient(UUID, UUID) TO authenticated;
 
--- Keep the direct_assign_doctor_to_patient function for compatibility
+-- Keep direct_assign_doctor_to_patient function for backward compatibility
 CREATE OR REPLACE FUNCTION public.direct_assign_doctor_to_patient(
   p_doctor_id UUID,
   p_patient_id UUID
