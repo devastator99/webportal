@@ -13,6 +13,8 @@ import { useNavigate } from "react-router-dom";
 import { featureFlags } from "@/config/features";
 import { ChatModule } from "@/modules/chat/ChatModule";
 import { DoctorVideoUploader } from "@/components/dashboard/doctor/DoctorVideoUploader";
+import { CareTeamAIChat } from "@/components/chat/CareTeamAIChat";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
@@ -59,9 +61,16 @@ export const DoctorDashboard = () => {
           </div>
           <AiAssistant />
           
-          {/* Only show chat if enabled */}
+          {/* Changed Patient Chat to Caregroup Chat */}
           {featureFlags.enableChat && featureFlags.doctorDashboardChat && (
-            <ChatModule showChatbotWidget={false} />
+            <Card>
+              <CardHeader>
+                <CardTitle>Caregroup Chat</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ChatModule showChatbotWidget={false} />
+              </CardContent>
+            </Card>
           )}
           
           {/* Only show video uploader if feature flag is enabled */}

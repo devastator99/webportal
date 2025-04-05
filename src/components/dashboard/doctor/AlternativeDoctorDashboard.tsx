@@ -1,85 +1,106 @@
-import React, { useState, Suspense, lazy } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { StatsCards } from "@/components/dashboard/doctor/StatsCards";
-import { ChatInterface } from "@/components/chat/ChatInterface";
 import { AiAssistant } from "@/components/dashboard/doctor/AiAssistant";
 import { DoctorAppointmentCalendar } from "@/components/dashboard/doctor/DoctorAppointmentCalendar";
 import { VideoUploader } from "@/components/videos/VideoUploader";
 import { VideoList } from "@/components/videos/VideoList";
 import { DocumentAnalyzer } from "@/components/dashboard/doctor/DocumentSummary";
 import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWriter";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Button } from "@/components/ui/button";
+import { Calendar, Users, Mic, MessageSquare } from "lucide-react";
+import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { Skeleton } from "@/components/ui/skeleton";
-import { featureFlags } from "@/config/features";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
-// Create lazy-loaded components
-const LazyDoctorAppointmentCalendar = lazy(() => 
-  import('@/components/dashboard/doctor/DoctorAppointmentCalendar').then(module => ({ 
-    default: module.DoctorAppointmentCalendar 
-  }))
-);
-
-const LazyDocumentAnalyzer = lazy(() => 
-  import('@/components/dashboard/doctor/DocumentSummary').then(module => ({ 
-    default: module.DocumentAnalyzer 
-  }))
-);
-
-const LazyPrescriptionWriter = lazy(() => 
-  import('@/components/dashboard/doctor/PrescriptionWriter').then(module => ({ 
-    default: module.PrescriptionWriter 
-  }))
-);
-
-const LazyAiAssistant = lazy(() => 
-  import('@/components/dashboard/doctor/AiAssistant').then(module => ({ 
-    default: module.AiAssistant 
-  }))
-);
-
-const LazyChatInterface = lazy(() => 
-  import('@/components/chat/ChatInterface').then(module => ({ 
-    default: module.ChatInterface 
-  }))
-);
-
-const LazyVideoUploader = lazy(() => 
-  import('@/components/videos/VideoUploader').then(module => ({ 
-    default: module.VideoUploader 
-  }))
-);
-
-const LazyVideoList = lazy(() => 
-  import('@/components/videos/VideoList').then(module => ({ 
-    default: module.VideoList 
-  }))
-);
-
-const LazyDoctorVideoUploader = lazy(() => 
-  import('@/components/dashboard/doctor/DoctorVideoUploader').then(module => ({ 
-    default: module.DoctorVideoUploader 
-  }))
-);
-
-// Loading fallback component
-const LoadingFallback = () => (
-  <div className="space-y-3 p-4">
-    <Skeleton className="h-12 w-full" />
-    <Skeleton className="h-24 w-full" />
-    <Skeleton className="h-12 w-3/4" />
-  </div>
-);
-
-export const AlternativeDoctorDashboard = () => {
+export const DoctorDashboard = () => {
   const { user } = useAuth();
+  const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const [showVoiceScheduler, setShowVoiceScheduler] = useState(false);
   
   return (
-    <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
-      <DashboardHeader />
+    <div className="animate-fade-up">
+      {/* Greeting and quick action buttons */}
+      <div className="mobile-card mb-4">
+        <h1 className="text-xl font-bold mb-2 text-left">Hello, Doctor 👋</h1>
+        <p className="text-sm text-gray-500 text-left mb-4">Welcome back to your dashboard</p>
+        
+        <div className="grid grid-cols-3 gap-2">
+          <Button 
+            className="rounded-full bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
+            onClick={() => navigate("/patients")}
+          >
+            <Users className="mr-2 h-4 w-4" />
+            Patients
+          </Button>
+          
+          <ScheduleAppointment callerRole="doctor">
+            <Button 
+              className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
+            >
+              <Calendar className="mr-2 h-4 w-4" />
+              Schedule
+            </Button>
+          </ScheduleAppointment>
+          
+          <Button
+            className="rounded-full bg-green-100 text-green-600 hover:bg-green-200"
+            onClick={() => navigate("/chat")}
+          >
+            <MessageSquare className="mr-2 h-4 w-4" />
+            Caregroup Chat
+          </Button>
+        </div>
+      </div>
+      
+      {/* Stats cards in a more compact design */}
+      <StatsCards />
+      
+      {/* Main content with collapsible sections for mobile */}
+      <ScrollArea className="mb-16">
+        <div className="space-y-4">
+          <CollapsibleSection 
+            title="Today's Appointments" 
+            defaultOpen={true}
+            className="mobile-card"
+          >
+            <DoctorAppointmentCalendar doctorId={user?.id || ""} />
+          </CollapsibleSection>
+          
+          <CollapsibleSection 
+            title="Document Analyzer" 
+            className="mobile-card"
+          >
+            <DocumentAnalyzer />
+          </CollapsibleSection>
+          
+          <CollapsibleSection 
+            title="Write Prescription" 
+            className="mobile-card"
+          >
+            <PrescriptionWriter />
+          </CollapsibleSection>
+          
+          <CollapsibleSection 
+            title="AI Assistant" 
+            className="mobile-card"
+          >
+            <AiAssistant />
+          </CollapsibleSection>
+          
+          <CollapsibleSection 
+            title="Knowledge Sharing" 
+            className="mobile-card"
+          >
+            <VideoUploader />
+            <VideoList />
+          </CollapsibleSection>
+        </div>
+      </ScrollArea>
       
       {showVoiceScheduler && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50">
@@ -89,52 +110,15 @@ export const AlternativeDoctorDashboard = () => {
         </div>
       )}
       
-      {/* Stats are always loaded since they're small and critical */}
-      <StatsCards />
-
-      <ScrollArea className="h-[calc(100vh-220px)]">
-        <div className="space-y-6 pr-4">
-          <CollapsibleSection title="Appointments Calendar" defaultOpen={false}>
-            <Suspense fallback={<LoadingFallback />}>
-              <LazyDoctorAppointmentCalendar doctorId={user?.id || ""} />
-            </Suspense>
-          </CollapsibleSection>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <CollapsibleSection title="Document Analyzer" defaultOpen={false}>
-              <Suspense fallback={<LoadingFallback />}>
-                <LazyDocumentAnalyzer />
-              </Suspense>
-            </CollapsibleSection>
-            
-            <CollapsibleSection title="Prescription Writer" defaultOpen={false}>
-              <Suspense fallback={<LoadingFallback />}>
-                <LazyPrescriptionWriter />
-              </Suspense>
-            </CollapsibleSection>
-          </div>
-          
-          <CollapsibleSection title="AI Assistant" defaultOpen={false}>
-            <Suspense fallback={<LoadingFallback />}>
-              <LazyAiAssistant />
-            </Suspense>
-          </CollapsibleSection>
-          
-          <CollapsibleSection title="Patient Chat" defaultOpen={false}>
-            <Suspense fallback={<LoadingFallback />}>
-              <LazyChatInterface />
-            </Suspense>
-          </CollapsibleSection>
-          
-          {featureFlags.enableDoctorVideoUploader && (
-            <CollapsibleSection title="Knowledge Sharing Videos" defaultOpen={false}>
-              <Suspense fallback={<LoadingFallback />}>
-                <LazyDoctorVideoUploader />
-              </Suspense>
-            </CollapsibleSection>
-          )}
-        </div>
-      </ScrollArea>
+      {/* Only show fixed FAB for voice scheduling on mobile */}
+      {isMobile && (
+        <Button
+          className="fixed right-6 bottom-20 z-40 rounded-full w-14 h-14 p-0 bg-[#9b87f5] hover:bg-[#7E69AB] shadow-lg"
+          onClick={() => setShowVoiceScheduler(true)}
+        >
+          <Mic className="h-6 w-6 text-white" />
+        </Button>
+      )}
     </div>
   );
 };

@@ -121,6 +121,13 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             role: "patient"
           }));
           
+          // Sort patients alphabetically by name for doctors and nutritionists
+          formattedPatients.sort((a: UserProfile, b: UserProfile) => {
+            const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
+            const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
+            return nameA.localeCompare(nameB);
+          });
+          
           return { 
             assignedUsers: formattedPatients,
             careTeamGroup: null
