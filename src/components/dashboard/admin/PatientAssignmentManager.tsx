@@ -137,6 +137,10 @@ export const PatientAssignmentManager = () => {
         throw error;
       }
       
+      if (data && !data.success) {
+        throw new Error(data.error || "Failed to assign doctor");
+      }
+      
       console.log("Doctor assignment response:", data);
       
       const patientName = patients?.find(p => p.id === selectedPatient);

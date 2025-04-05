@@ -8,6 +8,7 @@ const corsHeaders = {
 };
 
 serve(async (req: Request) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -31,21 +32,18 @@ serve(async (req: Request) => {
       }
     );
 
-    // First, remove any existing doctor assignment for this patient
-    await supabaseClient
-      .from("patient_doctor_assignments")
-      .delete()
-      .eq("patient_id", patient_id);
-    
-    // Then, create the new assignment
-    const { data, error } = await supabaseClient
-      .from("patient_doctor_assignments")
-      .insert({ patient_id, doctor_id })
-      .select()
-      .single();
+    // Use the security definer RPC function to avoid recursion issues
+    const { data, error } = await supabaseClient.rpc(
+      'admin_assign_doctor_to_patient',
+      { 
+        p_doctor_id: doctor_id,
+        p_patient_id: patient_id,
+        p_admin_id: admin_id || null
+      }
+    );
     
     if (error) {
-      console.error("Error in creating patient-doctor assignment:", error);
+      console.error("Error calling admin_assign_doctor_to_patient RPC:", error);
       return new Response(
         JSON.stringify({ 
           success: false, 
@@ -55,10 +53,17 @@ serve(async (req: Request) => {
       );
     }
 
+    // Check the result from the RPC function
+    if (data && !data.success) {
+      return new Response(
+        JSON.stringify(data),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify(data || { 
         success: true, 
-        data,
         message: "Doctor assigned to patient successfully" 
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
