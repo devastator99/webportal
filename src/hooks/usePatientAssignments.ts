@@ -21,6 +21,19 @@ export interface PatientAssignment {
   } | null;
 }
 
+// Define a type for the raw data returned from the view
+interface PatientAssignmentRow {
+  patient_id: string;
+  patient_first_name: string | null;
+  patient_last_name: string | null;
+  doctor_id: string | null;
+  doctor_first_name: string | null;
+  doctor_last_name: string | null;
+  nutritionist_id: string | null;
+  nutritionist_first_name: string | null;
+  nutritionist_last_name: string | null;
+}
+
 export const usePatientAssignments = () => {
   const { toast } = useToast();
   
@@ -30,21 +43,19 @@ export const usePatientAssignments = () => {
       try {
         console.log("Fetching patient assignments using RPC function");
         
-        // Call the secure RPC function to get all patient assignments
-        // Using .from().select() instead of .rpc() to avoid type errors
-        const { data, error } = await supabase
-          .from('patient_assignments_report')
-          .select('*');
+        // Call the secure RPC function directly to avoid typings issues
+        const { data, error } = await supabase.rpc('get_patient_assignments_report');
         
         if (error) {
           console.error("Error fetching patient assignments:", error);
           throw error;
         }
         
-        console.log("Patient Assignments Report: Received", data?.length, "patient records");
+        const typedData = data as PatientAssignmentRow[];
+        console.log("Patient Assignments Report: Received", typedData?.length, "patient records");
         
         // Transform the data to match the expected format
-        const formattedAssignments = (data || []).map(record => ({
+        const formattedAssignments = (typedData || []).map(record => ({
           patient: {
             id: record.patient_id,
             first_name: record.patient_first_name,
