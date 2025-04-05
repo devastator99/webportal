@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -41,65 +40,20 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
       try {
         if (userRole === "patient") {
           let careTeam: UserProfile[] = [];
-          let careTeamError = null;
           
-          // Try to fetch care team using RPC first (security definer function)
-          try {
-            const { data: careTeamData, error } = await supabase
-              .rpc('get_patient_care_team', { p_patient_id: user.id });
-            
-            if (!error && careTeamData) {
-              careTeam = careTeamData as UserProfile[];
-            } else {
-              careTeamError = error;
-              console.error("Error fetching care team:", error);
-            }
-          } catch (err) {
-            careTeamError = err;
-            console.error("Failed to call get_patient_care_team RPC:", err);
-          }
+          // Use RPC function to get care team (this is SECURITY DEFINER function)
+          const { data: careTeamData, error: careTeamError } = await supabase
+            .rpc('get_patient_care_team_members', { p_patient_id: user.id });
           
-          // If the RPC call fails, try to get doctor and nutritionist separately via edge functions
-          if (careTeamError || careTeam.length === 0) {
-            // Get doctor from edge function
-            try {
-              const { data: doctorData, error: doctorError } = await supabase.functions.invoke('get-doctor-for-patient', {
-                body: { patient_id: user.id }
-              });
-              
-              if (!doctorError && doctorData && doctorData.id) {
-                careTeam.push({
-                  ...doctorData,
-                  role: "doctor"
-                });
-              }
-            } catch (err) {
-              console.error("Error fetching doctor:", err);
-            }
-            
-            // Get nutritionist from edge function
-            try {
-              const { data: nutritionistData, error: nutritionistError } = await supabase.functions.invoke('get-nutritionist-for-patient', {
-                body: { patient_id: user.id }
-              });
-              
-              if (!nutritionistError && nutritionistData && nutritionistData.id) {
-                careTeam.push({
-                  ...nutritionistData,
-                  role: "nutritionist"
-                });
-              }
-            } catch (err) {
-              console.error("Error fetching nutritionist:", err);
-            }
-            
-            // Add AI bot manually if using fallback
-            careTeam.push({
-              id: '00000000-0000-0000-0000-000000000000',
-              first_name: 'AI',
-              last_name: 'Assistant',
-              role: 'aibot'
+          if (careTeamError) {
+            console.error("Error fetching care team with RPC:", careTeamError);
+            toast({
+              title: "Error",
+              description: "Could not load your care team. Please try again later.",
+              variant: "destructive"
             });
+          } else {
+            careTeam = (careTeamData as UserProfile[]) || [];
           }
           
           // Get administrators - Use security definer function 
@@ -140,7 +94,8 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             assignedUsers: allUsers,
             careTeamGroup: careTeamGroup
           };
-        } else if (userRole === "doctor" || userRole === "nutritionist") {
+        } 
+        else if (userRole === "doctor" || userRole === "nutritionist") {
           // Get assigned patients using edge function
           const { data: patientsData, error: patientsError } = await supabase.functions.invoke('get-assigned-patients', {
             body: { 
@@ -165,7 +120,8 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             assignedUsers: formattedPatients,
             careTeamGroup: null
           };
-        } else if (userRole === "administrator") {
+        } 
+        else if (userRole === "administrator") {
           // Use the RPC function with security definer to get all users with their roles
           const { data, error } = await supabase.rpc('get_users_with_roles');
           

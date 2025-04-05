@@ -71,9 +71,55 @@ serve(async (req) => {
       }
     }
     
-    // Add verified patient context to prevent AI from making up information
+    // If patientContext doesn't have enough information, try to fetch directly from the database
+    let enhancedContext = "";
+    
+    if (patientId && Object.keys(patientContext).length < 2) {
+      try {
+        // Get patient information
+        const { data: patientData, error: patientError } = await supabaseAdmin
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', patientId)
+          .single();
+          
+        if (!patientError && patientData) {
+          enhancedContext += `\nPatient Name: ${patientData.first_name} ${patientData.last_name}\n`;
+        }
+        
+        // Check if the patient has any care team assignments
+        const { data: assignmentData, error: assignmentError } = await supabaseAdmin
+          .from('patient_assignments')
+          .select(`
+            doctor_id,
+            doctor:doctor_id(first_name, last_name),
+            nutritionist_id,
+            nutritionist:nutritionist_id(first_name, last_name)
+          `)
+          .eq('patient_id', patientId)
+          .maybeSingle();
+          
+        if (!assignmentError && assignmentData) {
+          if (assignmentData.doctor) {
+            enhancedContext += `The patient is assigned to Dr. ${assignmentData.doctor.first_name} ${assignmentData.doctor.last_name}.\n`;
+          } else {
+            enhancedContext += `The patient is currently not assigned to any doctor.\n`;
+          }
+          
+          if (assignmentData.nutritionist) {
+            enhancedContext += `The patient is working with nutritionist ${assignmentData.nutritionist.first_name} ${assignmentData.nutritionist.last_name}.\n`;
+          }
+        } else {
+          enhancedContext += `The patient is currently not assigned to any care team members.\n`;
+        }
+      } catch (err) {
+        console.error('Error fetching additional patient context:', err);
+      }
+    }
+    
+    // Use verified context from patientContext or enhancedContext
     let verifiedContext = "";
-    if (patientContext) {
+    if (Object.keys(patientContext).length > 0) {
       if (patientContext.patientName) {
         verifiedContext += `\nPatient Name: ${patientContext.patientName}\n`;
       }
@@ -83,6 +129,8 @@ serve(async (req) => {
       } else {
         verifiedContext += `The patient is currently not assigned to any doctor.\n`;
       }
+    } else if (enhancedContext) {
+      verifiedContext = enhancedContext;
     }
     
     // Build the system message with context
