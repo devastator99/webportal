@@ -107,10 +107,9 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
           // Always get administrators for patients
           const { data: admins, error: adminsError } = await supabase
             .from("profiles")
-            .select("id, first_name, last_name")
+            .select("id, first_name, last_name, user_roles(role)")
             .eq("user_roles.role", "administrator")
-            .not("id", "eq", user.id)
-            .join("user_roles", "profiles.id = user_roles.user_id");
+            .not("id", "eq", user.id);
             
           if (adminsError) {
             console.error("Error fetching admins:", adminsError);
@@ -175,7 +174,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
           // Admin can chat with everyone
           const { data: allUsers, error: allUsersError } = await supabase
             .from("profiles")
-            .select("id, first_name, last_name")
+            .select("id, first_name, last_name, user_roles!inner(role)")
             .neq("id", user.id);
           
           if (allUsersError) {
@@ -183,27 +182,12 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             throw allUsersError;
           }
           
-          // Get user roles to label them correctly
-          const { data: userRoles, error: userRolesError } = await supabase
-            .from("user_roles")
-            .select("user_id, role");
-            
-          if (userRolesError) {
-            console.error("Error fetching user roles:", userRolesError);
-          }
-          
-          // Create a map of user_id to role
-          const roleMap = new Map();
-          (userRoles || []).forEach(ur => {
-            roleMap.set(ur.user_id, ur.role);
-          });
-          
           // Format users with their roles
           const formattedUsers = (allUsers || []).map(u => ({
             id: u.id,
             first_name: u.first_name,
             last_name: u.last_name,
-            role: roleMap.get(u.id) || "user"
+            role: u.user_roles?.role || "user"
           }));
           
           return { 
