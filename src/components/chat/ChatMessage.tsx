@@ -1,17 +1,17 @@
 
-import { formatDistanceToNow } from "date-fns";
-import { Check, Clock, User, Stethoscope, Apple, Bot } from "lucide-react";
+import { format } from "date-fns";
+import { Check, Clock } from "lucide-react";
 
 interface ChatMessageProps {
   message: {
     id: string;
     message: string;
     created_at: string;
-    read?: boolean;
+    read: boolean;
     sender: {
       id: string;
-      first_name: string | null;
-      last_name: string | null;
+      first_name: string;
+      last_name: string;
       role?: string;
     };
     synced?: boolean | string;
@@ -24,102 +24,55 @@ interface ChatMessageProps {
 export const ChatMessage = ({ 
   message, 
   isCurrentUser, 
-  showSender = false, 
+  showSender = false,
   offlineMode = false 
 }: ChatMessageProps) => {
-  const senderName = message.sender.first_name || message.sender.last_name 
-    ? `${message.sender.first_name || ''} ${message.sender.last_name || ''}`.trim()
-    : 'Unknown User';
+  // Format message timestamp
+  const messageTime = new Date(message.created_at);
+  const formattedTime = format(messageTime, "h:mm a");
 
-  const firstName = message.sender.first_name || '';
+  // Get sender full name
+  const senderFullName = `${message.sender.first_name} ${message.sender.last_name}`.trim();
   
-  // AI bot has a special ID and role
-  const isAiSender = message.sender.id === '00000000-0000-0000-0000-000000000000' || 
-                    message.sender.role === 'aibot';
-  
-  // Nutritionist/Dietician role check
-  const isDieticianSender = message.sender.role === 'nutritionist';
-  const isDoctorSender = message.sender.role === 'doctor';
-  const isPatientSender = message.sender.role === 'patient';
-
-  const renderSenderIcon = () => {
-    if (isAiSender) return <Bot className="h-4 w-4 mr-1" />;
-    if (isDoctorSender) return <Stethoscope className="h-4 w-4 mr-1" />;
-    if (isDieticianSender) return <Apple className="h-4 w-4 mr-1" />;
-    if (isPatientSender) return <User className="h-4 w-4 mr-1" />;
-    return <User className="h-4 w-4 mr-1" />;
-  };
-
-  const renderReadStatus = () => {
-    if (!isCurrentUser) {
-      // For AI bot and nutritionist, show specific indicators
-      if (isAiSender) {
-        return (
-          <span className="ml-1 text-blue-500">
-            <Check className="h-3 w-3" />
-          </span>
-        );
-      } else if (isDieticianSender) {
-        return (
-          <span className="ml-1 text-blue-500 inline-flex">
-            <Check className="h-3 w-3" />
-            <Check className="h-3 w-3 -ml-1" />
-          </span>
-        );
-      }
-      return null;
-    }
-    
-    if (offlineMode) {
-      return (
-        <span className="ml-1 text-yellow-500" title="Will be delivered when online">
-          <Clock className="h-3 w-3" />
-        </span>
-      );
-    } else if (message.read) {
-      return (
-        <span className="ml-1 inline-flex">
-          <Check className="h-3 w-3" />
-          <Check className="h-3 w-3 -ml-1" />
-        </span>
-      );
-    } else {
-      return (
-        <span className="ml-1">
-          <Check className="h-3 w-3" />
-        </span>
-      );
-    }
-  };
-
   return (
     <div
-      className={`flex mb-3 ${
-        isCurrentUser ? "justify-end" : "justify-start"
-      }`}
+      className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}
     >
       <div
-        className={`max-w-[80%] rounded-lg p-3 ${
+        className={`max-w-[75%] px-3 py-2 rounded-lg ${
           isCurrentUser
-            ? offlineMode 
-              ? "bg-yellow-200 text-yellow-900" 
-              : "bg-primary text-primary-foreground"
-            : "bg-muted"
+            ? "bg-primary text-primary-foreground rounded-tr-none"
+            : "bg-muted rounded-tl-none"
         }`}
       >
-        {(showSender || !isCurrentUser) && (
-          <p className="text-sm font-medium flex items-center mb-1">
-            {renderSenderIcon()}
-            {firstName}
-            {renderReadStatus()}
-          </p>
+        {showSender && !isCurrentUser && (
+          <span className="text-xs font-medium text-blue-600 dark:text-blue-400 block mb-1">
+            {senderFullName}
+            {message.sender.role && message.sender.role !== "patient" && (
+              <span className="ml-1 text-xs text-blue-500/80 dark:text-blue-300/80">
+                ({message.sender.role})
+              </span>
+            )}
+          </span>
         )}
+        
         <p className="text-sm whitespace-pre-wrap">{message.message}</p>
-        <p className="text-xs opacity-70 flex items-center mt-1">
-          {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
-          {isCurrentUser && renderReadStatus()}
-          {offlineMode && <span className="ml-1 text-xs font-medium"> (offline)</span>}
-        </p>
+        
+        <div className="flex items-center justify-end gap-1 mt-1">
+          <span className="text-xs opacity-70">{formattedTime}</span>
+          
+          {isCurrentUser && (
+            <>
+              {offlineMode || !message.synced ? (
+                <Clock className="h-3 w-3 opacity-70" />
+              ) : message.read ? (
+                <Check className="h-3 w-3 opacity-70 text-blue-400" />
+              ) : (
+                <Check className="h-3 w-3 opacity-70" />
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );
