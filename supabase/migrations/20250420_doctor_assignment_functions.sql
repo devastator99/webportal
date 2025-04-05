@@ -18,6 +18,7 @@ DECLARE
   v_patient_role TEXT;
   v_admin_role TEXT;
   v_result JSONB;
+  v_table_exists BOOLEAN;
 BEGIN
   -- Verify the admin has the administrator role
   SELECT role INTO v_admin_role 
@@ -58,13 +59,44 @@ BEGIN
     );
   END IF;
 
-  -- First, remove any existing doctor assignment for this patient
-  DELETE FROM patient_doctor_assignments
-  WHERE patient_id = p_patient_id;
+  -- Check if patient_doctor_assignments table exists
+  SELECT EXISTS (
+    SELECT FROM information_schema.tables 
+    WHERE table_schema = 'public' 
+    AND table_name = 'patient_doctor_assignments'
+  ) INTO v_table_exists;
   
-  -- Then, create the new assignment
-  INSERT INTO patient_doctor_assignments (patient_id, doctor_id)
-  VALUES (p_patient_id, p_doctor_id);
+  IF v_table_exists THEN
+    -- First, remove any existing doctor assignment for this patient in patient_doctor_assignments
+    DELETE FROM patient_doctor_assignments
+    WHERE patient_id = p_patient_id;
+    
+    -- Then, create the new assignment in patient_doctor_assignments
+    INSERT INTO patient_doctor_assignments (patient_id, doctor_id)
+    VALUES (p_patient_id, p_doctor_id);
+  ELSE
+    -- Check if patient_assignments table exists as an alternative
+    SELECT EXISTS (
+      SELECT FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_name = 'patient_assignments'
+    ) INTO v_table_exists;
+    
+    IF v_table_exists THEN
+      -- Delete any existing assignments for this patient in patient_assignments
+      DELETE FROM patient_assignments
+      WHERE patient_id = p_patient_id;
+      
+      -- Create new assignment in patient_assignments
+      INSERT INTO patient_assignments (patient_id, doctor_id)
+      VALUES (p_patient_id, p_doctor_id);
+    ELSE
+      RETURN jsonb_build_object(
+        'success', false,
+        'error', 'No assignment tables found in the database'
+      );
+    END IF;
+  END IF;
   
   RETURN jsonb_build_object(
     'success', true,

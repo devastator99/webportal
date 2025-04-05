@@ -121,7 +121,7 @@ export const PatientAssignmentManager = () => {
     
     try {
       setIsAssigning(true);
-      console.log("Assigning doctor to patient", { patientId: selectedPatient, doctorId: selectedDoctor });
+      console.log("Assigning doctor to patient", { patientId: selectedPatient, doctorId: selectedDoctor, adminId: user?.id });
 
       // Use the dedicated edge function for doctor assignment
       const { data, error } = await supabase.functions.invoke('admin-assign-doctor-to-patient', {
