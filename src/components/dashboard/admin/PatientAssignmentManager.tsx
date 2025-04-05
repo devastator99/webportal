@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -122,11 +123,12 @@ export const PatientAssignmentManager = () => {
       setIsAssigning(true);
       console.log("Assigning doctor to patient", { patientId: selectedPatient, doctorId: selectedDoctor });
 
-      const { data, error } = await supabase.functions.invoke('admin-assign-care-team', {
+      // Use the dedicated edge function for doctor assignment
+      const { data, error } = await supabase.functions.invoke('admin-assign-doctor-to-patient', {
         body: {
-          action: "assignDoctor",
-          patientId: selectedPatient,
-          doctorId: selectedDoctor
+          patient_id: selectedPatient,
+          doctor_id: selectedDoctor,
+          admin_id: user?.id
         }
       });
       
@@ -148,9 +150,11 @@ export const PatientAssignmentManager = () => {
         description: successMsg
       });
       
+      // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["doctor_patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient_doctor"] });
       queryClient.invalidateQueries({ queryKey: ["patient_assignments_report"] });
+      queryClient.invalidateQueries({ queryKey: ["assigned_users"] });
       
     } catch (error: any) {
       console.error("Error assigning doctor:", error);
@@ -182,12 +186,12 @@ export const PatientAssignmentManager = () => {
         doctorId: selectedDoctor 
       });
       
-      const { data, error } = await supabase.functions.invoke('admin-assign-care-team', {
+      // Use the dedicated edge function for nutritionist assignment
+      const { data, error } = await supabase.functions.invoke('admin-assign-nutritionist-to-patient', {
         body: {
-          action: "assignNutritionist",
-          patientId: selectedPatient,
-          doctorId: selectedDoctor,
-          nutritionistId: selectedNutritionist
+          patient_id: selectedPatient,
+          nutritionist_id: selectedNutritionist,
+          admin_id: user?.id
         }
       });
       
@@ -209,9 +213,11 @@ export const PatientAssignmentManager = () => {
         description: successMsg
       });
       
+      // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["nutritionist_patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient_nutritionist"] });
       queryClient.invalidateQueries({ queryKey: ["patient_assignments_report"] });
+      queryClient.invalidateQueries({ queryKey: ["assigned_users"] });
       
     } catch (error: any) {
       console.error("Error assigning nutritionist:", error);

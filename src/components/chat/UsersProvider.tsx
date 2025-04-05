@@ -63,65 +63,45 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
           
           // If the function call fails, try to get doctor and nutritionist separately
           if (careTeamError || careTeam.length === 0) {
+            // Get doctor from edge function
             try {
-              // Try to get doctor from the assignments table
-              const { data: doctorAssignmentData, error: doctorAssignmentError } = await supabase
-                .from("patient_doctor_assignments")
-                .select("doctor_id")
-                .eq("patient_id", user.id)
-                .single();
-                
-              if (!doctorAssignmentError && doctorAssignmentData?.doctor_id) {
-                const { data: doctorData, error: doctorError } = await supabase
-                  .from("profiles")
-                  .select("id, first_name, last_name")
-                  .eq("id", doctorAssignmentData.doctor_id)
-                  .single();
-                  
-                if (!doctorError && doctorData) {
-                  careTeam.push({
-                    id: doctorData.id,
-                    first_name: doctorData.first_name,
-                    last_name: doctorData.last_name,
-                    role: "doctor"
-                  });
-                }
-              }
-              
-              // Try to get nutritionist from the assignments table
-              const { data: nutritionistAssignmentData, error: nutritionistAssignmentError } = await supabase
-                .from("patient_nutritionist_assignments")
-                .select("nutritionist_id")
-                .eq("patient_id", user.id)
-                .single();
-                
-              if (!nutritionistAssignmentError && nutritionistAssignmentData?.nutritionist_id) {
-                const { data: nutritionistData, error: nutritionistError } = await supabase
-                  .from("profiles")
-                  .select("id, first_name, last_name")
-                  .eq("id", nutritionistAssignmentData.nutritionist_id)
-                  .single();
-                  
-                if (!nutritionistError && nutritionistData) {
-                  careTeam.push({
-                    id: nutritionistData.id,
-                    first_name: nutritionistData.first_name,
-                    last_name: nutritionistData.last_name,
-                    role: "nutritionist"
-                  });
-                }
-              }
-              
-              // Add AI bot manually if using fallback
-              careTeam.push({
-                id: '00000000-0000-0000-0000-000000000000',
-                first_name: 'AI',
-                last_name: 'Assistant',
-                role: 'aibot'
+              const { data: doctorData, error: doctorError } = await supabase.functions.invoke('get-doctor-for-patient', {
+                body: { patient_id: user.id }
               });
+              
+              if (!doctorError && doctorData && doctorData.id) {
+                careTeam.push({
+                  ...doctorData,
+                  role: "doctor"
+                });
+              }
             } catch (err) {
-              console.error("Error in fallback doctor/nutritionist fetch:", err);
+              console.error("Error fetching doctor:", err);
             }
+            
+            // Get nutritionist from edge function
+            try {
+              const { data: nutritionistData, error: nutritionistError } = await supabase.functions.invoke('get-nutritionist-for-patient', {
+                body: { patient_id: user.id }
+              });
+              
+              if (!nutritionistError && nutritionistData && nutritionistData.id) {
+                careTeam.push({
+                  ...nutritionistData,
+                  role: "nutritionist"
+                });
+              }
+            } catch (err) {
+              console.error("Error fetching nutritionist:", err);
+            }
+            
+            // Add AI bot manually if using fallback
+            careTeam.push({
+              id: '00000000-0000-0000-0000-000000000000',
+              first_name: 'AI',
+              last_name: 'Assistant',
+              role: 'aibot'
+            });
           }
           
           // Always get administrators for patients
@@ -167,43 +147,20 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             careTeamGroup: careTeamGroup
           };
         } else if (userRole === "doctor" || userRole === "nutritionist") {
-          // Get assigned patients for this doctor/nutritionist
-          const { data: assignedPatients, error: assignedPatientsError } = userRole === "doctor" 
-            ? await supabase
-                .from("patient_doctor_assignments")
-                .select("patient_id")
-                .eq("doctor_id", user.id)
-            : await supabase
-                .from("patient_nutritionist_assignments")
-                .select("patient_id")
-                .eq("nutritionist_id", user.id);
-                
-          if (assignedPatientsError) {
-            console.error("Error fetching assigned patients:", assignedPatientsError);
-            throw assignedPatientsError;
-          }
+          // Get assigned patients using edge function
+          const { data: patientsData, error: patientsError } = await supabase.functions.invoke('get-assigned-patients', {
+            body: { 
+              provider_id: user.id,
+              provider_role: userRole
+            }
+          });
           
-          const patientIds = (assignedPatients || []).map(p => p.patient_id);
-          
-          if (patientIds.length === 0) {
-            return { 
-              assignedUsers: [] as UserProfile[],
-              careTeamGroup: null
-            };
-          }
-          
-          // Get patient profiles
-          const { data: patientsData, error: patientsError } = await supabase
-            .from("profiles")
-            .select("id, first_name, last_name")
-            .in("id", patientIds);
-            
           if (patientsError) {
-            console.error("Error fetching patient profiles:", patientsError);
+            console.error("Error fetching assigned patients:", patientsError);
             throw patientsError;
           }
           
-          const formattedPatients = (patientsData || []).map(p => ({
+          const formattedPatients = (patientsData || []).map((p: any) => ({
             id: p.id,
             first_name: p.first_name,
             last_name: p.last_name,

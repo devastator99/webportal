@@ -2,27 +2,27 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-interface UserProfile {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  role?: string;
-}
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface UserProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  role: string;
+}
+
 serve(async (req: Request) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
-    // Handle CORS preflight requests
-    if (req.method === 'OPTIONS') {
-      return new Response(null, { headers: corsHeaders });
-    }
-    
     const { patient_id } = await req.json();
-    
+
     if (!patient_id) {
       return new Response(
         JSON.stringify({ error: "Patient ID is required" }),
@@ -30,7 +30,7 @@ serve(async (req: Request) => {
       );
     }
 
-    // Create a Supabase client with the auth context of the request
+    // Create a Supabase client with the auth context
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -38,60 +38,61 @@ serve(async (req: Request) => {
         global: { headers: { Authorization: req.headers.get("Authorization")! } },
       }
     );
-    
-    // First try to get doctor from patient_doctor_assignments
-    const { data: doctorData, error: doctorError } = await supabaseClient
+
+    const careTeam: UserProfile[] = [];
+
+    // Get doctor from patient_doctor_assignments table
+    const { data: doctorAssignments, error: doctorError } = await supabaseClient
       .from("patient_doctor_assignments")
       .select("doctor_id")
       .eq("patient_id", patient_id)
       .single();
-      
-    // Then try to get nutritionist from patient_nutritionist_assignments
-    const { data: nutritionistData, error: nutritionistError } = await supabaseClient
-      .from("patient_nutritionist_assignments")
-      .select("nutritionist_id")
-      .eq("patient_id", patient_id)
-      .single();
+
+    if (doctorError) {
+      console.error("Error fetching doctor assignment:", doctorError);
+    } 
     
-    // Array to collect care team members
-    const careTeam: UserProfile[] = [];
-    
-    // If doctor found, get their profile
-    if (doctorData && doctorData.doctor_id) {
-      const { data: doctorProfile, error: doctorProfileError } = await supabaseClient
+    if (doctorAssignments?.doctor_id) {
+      const { data: doctor, error: doctorProfileError } = await supabaseClient
         .from("profiles")
         .select("id, first_name, last_name")
-        .eq("id", doctorData.doctor_id)
+        .eq("id", doctorAssignments.doctor_id)
         .single();
-        
-      if (doctorProfile && !doctorProfileError) {
+
+      if (!doctorProfileError && doctor) {
         careTeam.push({
-          id: doctorProfile.id,
-          first_name: doctorProfile.first_name,
-          last_name: doctorProfile.last_name,
+          ...doctor,
           role: "doctor"
         });
       }
     }
+
+    // Get nutritionist from patient_nutritionist_assignments table
+    const { data: nutritionistAssignments, error: nutritionistError } = await supabaseClient
+      .from("patient_nutritionist_assignments")
+      .select("nutritionist_id")
+      .eq("patient_id", patient_id)
+      .single();
+
+    if (nutritionistError) {
+      console.error("Error fetching nutritionist assignment:", nutritionistError);
+    }
     
-    // If nutritionist found, get their profile
-    if (nutritionistData && nutritionistData.nutritionist_id) {
-      const { data: nutritionistProfile, error: nutritionistProfileError } = await supabaseClient
+    if (nutritionistAssignments?.nutritionist_id) {
+      const { data: nutritionist, error: nutritionistProfileError } = await supabaseClient
         .from("profiles")
         .select("id, first_name, last_name")
-        .eq("id", nutritionistData.nutritionist_id)
+        .eq("id", nutritionistAssignments.nutritionist_id)
         .single();
-        
-      if (nutritionistProfile && !nutritionistProfileError) {
+
+      if (!nutritionistProfileError && nutritionist) {
         careTeam.push({
-          id: nutritionistProfile.id,
-          first_name: nutritionistProfile.first_name,
-          last_name: nutritionistProfile.last_name,
+          ...nutritionist,
           role: "nutritionist"
         });
       }
     }
-    
+
     // Add AI bot to care team
     careTeam.push({
       id: '00000000-0000-0000-0000-000000000000',
@@ -99,12 +100,11 @@ serve(async (req: Request) => {
       last_name: 'Assistant',
       role: 'aibot'
     });
-    
+
     return new Response(
       JSON.stringify(careTeam),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-    
   } catch (error) {
     console.error("Error in get-patient-care-team:", error);
     return new Response(
