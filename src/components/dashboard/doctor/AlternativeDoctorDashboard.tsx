@@ -16,6 +16,7 @@ import { useState } from "react";
 import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { DoctorChatInterface } from "@/components/chat/DoctorChatInterface";
 
 export const AlternativeDoctorDashboard = () => {
   const { user } = useAuth();
@@ -70,6 +71,14 @@ export const AlternativeDoctorDashboard = () => {
             className="mobile-card"
           >
             <DoctorAppointmentCalendar doctorId={user?.id || ""} />
+          </CollapsibleSection>
+          
+          <CollapsibleSection 
+            title="Patient Messages" 
+            defaultOpen={true}
+            className="mobile-card"
+          >
+            <DoctorChatInterface />
           </CollapsibleSection>
           
           <CollapsibleSection 
