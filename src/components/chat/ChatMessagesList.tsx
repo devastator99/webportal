@@ -49,6 +49,14 @@ interface MessageData {
   synced?: boolean | string;
 }
 
+interface ChatMessagesResponse {
+  messages: MessageData[];
+  hasMore: boolean;
+  totalCount: number;
+  page: number;
+  perPage: number;
+}
+
 const MESSAGES_PER_PAGE = 50; // Number of messages to load per page
 
 export const ChatMessagesList = ({ 
@@ -135,7 +143,7 @@ export const ChatMessagesList = ({
     }
   }, [user?.id, offlineMode, careTeamGroup, userRole, localMessages.length]);
 
-  const fetchMessages = async () => {
+  const fetchMessages = async (): Promise<{ data: MessageData[], hasMore: boolean }> => {
     if (!user?.id) return { data: [], hasMore: false };
     
     try {
@@ -210,7 +218,7 @@ export const ChatMessagesList = ({
         return { data: allMessages, hasMore };
       } 
       else if (selectedUserId) {
-        const { data } = await supabase.functions.invoke('get-chat-messages', {
+        const result = await supabase.functions.invoke('get-chat-messages', {
           body: {
             user_id: user.id,
             other_user_id: selectedUserId,
@@ -219,8 +227,9 @@ export const ChatMessagesList = ({
           }
         });
 
-        const messages = data.messages || [];
-        const hasMore = data.hasMore || false;
+        const responseData = result.data as ChatMessagesResponse;
+        const messages = responseData.messages || [];
+        const hasMore = responseData.hasMore || false;
 
         if (messages && messages.length > 0) {
           const unreadMessages = messages.filter(
@@ -269,18 +278,18 @@ export const ChatMessagesList = ({
     queryKey,
     queryFn: fetchMessages,
     enabled: !!user?.id && (!!selectedUserId || (isGroupChat && !!careTeamGroup)) && !offlineMode,
-    refetchInterval: 3000,
-    select: (data) => ({
-      messages: data.data,
-      hasMore: data.hasMore
-    }),
-    onSuccess: (data) => {
-      setHasMoreMessages(data.hasMore);
-      setInitialLoad(false);
-    },
+    refetchInterval: 3000
   });
 
-  const onlineMessages = messagesData?.messages || [];
+  // Update state based on the query results
+  useEffect(() => {
+    if (messagesData) {
+      setHasMoreMessages(messagesData.hasMore);
+      setInitialLoad(false);
+    }
+  }, [messagesData]);
+
+  const onlineMessages = messagesData?.data || [];
 
   const loadMoreMessages = async () => {
     setIsLoadingMore(true);
