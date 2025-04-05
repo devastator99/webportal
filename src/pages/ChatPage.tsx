@@ -18,6 +18,11 @@ const ChatPage = () => {
     }
   }, [user, navigate]);
 
+  // Helper function to check if user is a healthcare provider
+  const isHealthcareProvider = () => {
+    return userRole === "doctor" || userRole === "nutritionist";
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -35,7 +40,7 @@ const ChatPage = () => {
                     <div className="text-center py-12 text-red-500">
                       Error loading chat data. Please try again later.
                     </div>
-                  ) : userRole === "doctor" || userRole === "nutritionist" ? (
+                  ) : isHealthcareProvider() ? (
                     <ChatInterface 
                       assignedUsers={assignedUsers}
                       showGroupChat={false}
@@ -48,7 +53,7 @@ const ChatPage = () => {
                     />
                   ) : (
                     <div className="text-center py-12 text-muted-foreground">
-                      {userRole === "doctor" || userRole === "nutritionist" ? 
+                      {isHealthcareProvider() ? 
                         "No patients are currently assigned to you." :
                         "No care team is currently assigned to you. Please contact the clinic to set up your care team."
                       }
