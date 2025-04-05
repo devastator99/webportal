@@ -51,7 +51,24 @@ export const ChatMessage = ({
   };
 
   const renderReadStatus = () => {
-    if (!isCurrentUser) return null;
+    if (!isCurrentUser) {
+      // For AI bot and nutritionist, show specific indicators
+      if (isAiSender) {
+        return (
+          <span className="ml-1 text-blue-500">
+            <Check className="h-3 w-3" />
+          </span>
+        );
+      } else if (isDieticianSender) {
+        return (
+          <span className="ml-1 text-blue-500 inline-flex">
+            <Check className="h-3 w-3" />
+            <Check className="h-3 w-3 -ml-1" />
+          </span>
+        );
+      }
+      return null;
+    }
     
     if (offlineMode) {
       return (

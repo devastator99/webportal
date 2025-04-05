@@ -43,12 +43,10 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
           let careTeam: UserProfile[] = [];
           let careTeamError = null;
           
-          // Try to fetch care team (including AI bot)
+          // Try to fetch care team using RPC first (security definer function)
           try {
-            // Use the edge function to get care team
-            const { data: careTeamData, error } = await supabase.functions.invoke('get-patient-care-team', {
-              body: { patient_id: user.id }
-            });
+            const { data: careTeamData, error } = await supabase
+              .rpc('get_patient_care_team', { p_patient_id: user.id });
             
             if (!error && careTeamData) {
               careTeam = careTeamData as UserProfile[];
@@ -58,10 +56,10 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             }
           } catch (err) {
             careTeamError = err;
-            console.error("Failed to call get-patient-care-team function:", err);
+            console.error("Failed to call get_patient_care_team RPC:", err);
           }
           
-          // If the function call fails, try to get doctor and nutritionist separately
+          // If the RPC call fails, try to get doctor and nutritionist separately via edge functions
           if (careTeamError || careTeam.length === 0) {
             // Get doctor from edge function
             try {

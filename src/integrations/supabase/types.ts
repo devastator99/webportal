@@ -918,9 +918,10 @@ export type Database = {
           p_patient_id: string
         }
         Returns: {
-          role: string
+          id: string
           first_name: string
           last_name: string
+          role: string
         }[]
       }
       get_patient_doctor_assignments: {
