@@ -1,6 +1,8 @@
 
--- Drop existing function if any
+-- Drop existing functions if any
 DROP FUNCTION IF EXISTS public.admin_assign_doctor_to_patient(uuid, uuid, uuid);
+DROP FUNCTION IF EXISTS public.assign_doctor_to_patient(uuid, uuid);
+DROP FUNCTION IF EXISTS public.direct_assign_doctor_to_patient(uuid, uuid);
 
 -- Create a security definer function for doctor assignment
 CREATE OR REPLACE FUNCTION public.admin_assign_doctor_to_patient(
