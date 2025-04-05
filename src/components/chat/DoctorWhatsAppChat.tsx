@@ -78,6 +78,7 @@ export const DoctorWhatsAppChat = () => {
       const tempMessage = {
         id: uuidv4(),
         message: newMessage,
+        message_type: "text",
         created_at: new Date().toISOString(),
         read: false,
         sender: {
@@ -86,9 +87,15 @@ export const DoctorWhatsAppChat = () => {
           last_name: user.user_metadata?.last_name || "",
           role: "doctor"
         },
+        receiver: {
+          id: selectedPatientId,
+          first_name: null,
+          last_name: null
+        },
         synced: true
       };
       
+      // Add to local messages array so it shows immediately
       setLocalMessages(prev => [...prev, tempMessage]);
       
       // Send message to selected patient
@@ -213,8 +220,8 @@ export const DoctorWhatsAppChat = () => {
                     selectedUserId={selectedPatientId}
                     isGroupChat={false}
                     localMessages={localMessages.filter(msg => 
-                      msg.sender.id === user?.id && 
-                      msg.receiver_id === selectedPatientId
+                      (msg.sender.id === user?.id && msg.receiver.id === selectedPatientId) || 
+                      (msg.sender.id === selectedPatientId && msg.receiver.id === user?.id)
                     )}
                   />
                   

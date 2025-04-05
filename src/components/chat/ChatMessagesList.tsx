@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -81,7 +80,6 @@ export const ChatMessagesList = ({
     : ["chat_messages", user?.id, selectedUserId, page];
 
   useEffect(() => {
-    // Reset pagination when chat partner changes
     if (!initialLoad) {
       setPage(1);
       setHasMoreMessages(false);
@@ -281,7 +279,6 @@ export const ChatMessagesList = ({
     refetchInterval: 3000
   });
 
-  // Update state based on the query results
   useEffect(() => {
     if (messagesData) {
       setHasMoreMessages(messagesData.hasMore);
@@ -302,10 +299,15 @@ export const ChatMessagesList = ({
     const offline = offlineMessages || [];
     const local = localMessages || [];
     
-    const allMessages = [...online, ...offline, ...local];
+    console.log("Local messages:", local);
+    console.log("Online messages:", online);
+    
+    const allMessages = [...online, ...local, ...offline];
     
     const uniqueIds = new Set();
     const uniqueMessages = allMessages.filter(msg => {
+      if (!msg || !msg.id) return false;
+      
       if (!uniqueIds.has(msg.id)) {
         uniqueIds.add(msg.id);
         return true;
@@ -319,8 +321,9 @@ export const ChatMessagesList = ({
   };
 
   const messages = combinedMessages();
+  
+  console.log("Combined messages:", messages);
 
-  // Scroll to bottom when messages change on first load or new messages
   useEffect(() => {
     if (messagesEndRef.current && !isLoadingMore) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
