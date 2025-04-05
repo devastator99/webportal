@@ -943,6 +943,20 @@ export type Database = {
           doctor_last_name: string
         }[]
       }
+      get_patient_assignments_report: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          patient_id: string
+          patient_first_name: string
+          patient_last_name: string
+          doctor_id: string
+          doctor_first_name: string
+          doctor_last_name: string
+          nutritionist_id: string
+          nutritionist_first_name: string
+          nutritionist_last_name: string
+        }[]
+      }
       get_patient_care_team: {
         Args: {
           p_patient_id: string
