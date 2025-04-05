@@ -122,7 +122,7 @@ export const PatientAssignmentManager = () => {
     }
   }, [errorMessage]);
   
-  // Unified function to assign both doctor and nutritionist at once
+  // Unified function to assign both doctor and nutritionist at once - only called when button is clicked
   const handleAssignCareTeam = async () => {
     if (!selectedPatient) {
       toast({
@@ -236,6 +236,11 @@ export const PatientAssignmentManager = () => {
 
   const isLoading = patientsLoading || doctorsLoading || nutritionistsLoading;
 
+  // Handle nutritionist selection change without triggering backend calls
+  const handleNutritionistChange = (value: string) => {
+    setSelectedNutritionist(value === "none" ? null : value);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -307,7 +312,7 @@ export const PatientAssignmentManager = () => {
               <label className="block text-sm font-medium mb-1">Select Nutritionist (Optional)</label>
               <Select 
                 value={selectedNutritionist || "none"} 
-                onValueChange={(value) => setSelectedNutritionist(value === "none" ? null : value)}
+                onValueChange={handleNutritionistChange}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a nutritionist" />
