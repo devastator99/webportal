@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +7,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserPlus, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Form, FormField, FormItem, FormControl, FormMessage } from "@/components/ui/form";
@@ -28,12 +28,12 @@ export const PatientAssignmentManager = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
+  // Fetch patients data
   const { data: patients, isLoading: patientsLoading, error: patientsError } = useQuery({
     queryKey: ["admin_patients"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase
-          .rpc('get_admin_patients');
+        const { data, error } = await supabase.rpc('get_admin_patients');
           
         if (error) throw error;
         
@@ -50,12 +50,12 @@ export const PatientAssignmentManager = () => {
     }
   });
   
+  // Fetch doctors data
   const { data: doctors, isLoading: doctorsLoading, error: doctorsError } = useQuery({
     queryKey: ["admin_doctors"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase
-          .rpc('get_admin_doctors');
+        const { data, error } = await supabase.rpc('get_admin_doctors');
           
         if (error) throw error;
         
@@ -72,12 +72,12 @@ export const PatientAssignmentManager = () => {
     }
   });
   
+  // Fetch nutritionists data
   const { data: nutritionists, isLoading: nutritionistsLoading, error: nutritionistsError } = useQuery({
     queryKey: ["admin_nutritionists"],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase
-          .rpc('get_admin_nutritionists');
+        const { data, error } = await supabase.rpc('get_admin_nutritionists');
           
         if (error) throw error;
         
@@ -94,12 +94,14 @@ export const PatientAssignmentManager = () => {
     }
   });
   
+  // Handle errors for data fetching
   useEffect(() => {
     if (patientsError || doctorsError || nutritionistsError) {
       console.error("Data fetch errors:", { patientsError, doctorsError, nutritionistsError });
     }
   }, [patientsError, doctorsError, nutritionistsError]);
 
+  // Clear success message after 5 seconds
   useEffect(() => {
     if (successMessage) {
       const timer = setTimeout(() => {
@@ -110,6 +112,7 @@ export const PatientAssignmentManager = () => {
     }
   }, [successMessage]);
   
+  // Clear error message after 5 seconds
   useEffect(() => {
     if (errorMessage) {
       const timer = setTimeout(() => {
@@ -120,11 +123,21 @@ export const PatientAssignmentManager = () => {
     }
   }, [errorMessage]);
   
-  const handleAssignDoctor = async () => {
-    if (!selectedPatient || !selectedDoctor) {
+  // Unified function to assign both doctor and nutritionist at once
+  const handleAssignCareTeam = async () => {
+    if (!selectedPatient) {
       toast({
         title: "Missing selection",
-        description: "Please select both a patient and a doctor",
+        description: "Please select a patient",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    if (!selectedDoctor) {
+      toast({
+        title: "Missing selection",
+        description: "A doctor must be selected for assignment",
         variant: "destructive"
       });
       return;
@@ -135,9 +148,10 @@ export const PatientAssignmentManager = () => {
     setSuccessMessage(null);
     
     try {
-      console.log("Assigning doctor to patient", { 
+      console.log("Assigning care team to patient", { 
         patientId: selectedPatient, 
         doctorId: selectedDoctor, 
+        nutritionistId: selectedNutritionist || null,
         adminId: user?.id
       });
 
@@ -145,10 +159,12 @@ export const PatientAssignmentManager = () => {
         throw new Error("Administrator ID is missing. Please log in again.");
       }
 
-      const response = await supabase.functions.invoke('admin-assign-doctor-to-patient', {
+      // Call the new edge function that handles both assignments
+      const response = await supabase.functions.invoke('admin-assign-care-team', {
         body: {
           patient_id: selectedPatient,
           doctor_id: selectedDoctor,
+          nutritionist_id: selectedNutritionist || null,
           admin_id: user.id
         }
       });
@@ -162,94 +178,44 @@ export const PatientAssignmentManager = () => {
       console.log("Assignment response:", data);
       
       if (data && !data.success) {
-        throw new Error(data.error || "Failed to assign doctor");
+        throw new Error(data.error || "Failed to assign care team");
       }
       
+      // Get names for success message
       const patientName = patients?.find(p => p.id === selectedPatient);
       const doctorName = doctors?.find(d => d.id === selectedDoctor);
+      const nutritionistName = selectedNutritionist ? 
+        nutritionists?.find(n => n.id === selectedNutritionist) : null;
       
-      const successMsg = `Dr. ${formatName(doctorName)} has been assigned to ${formatName(patientName)}`;
-      setSuccessMessage(successMsg);
-      
-      toast({
-        title: "Doctor assigned successfully",
-        description: successMsg
-      });
-      
-      queryClient.invalidateQueries({ queryKey: ["doctor_patients"] });
-      queryClient.invalidateQueries({ queryKey: ["patient_doctor"] });
-      queryClient.invalidateQueries({ queryKey: ["patient_assignments_report"] });
-      queryClient.invalidateQueries({ queryKey: ["assigned_users"] });
-      
-    } catch (error: any) {
-      console.error("Error assigning doctor:", error);
-      
-      setErrorMessage(error.message || "An error occurred while assigning the doctor");
-      
-      toast({
-        title: "Assignment failed",
-        description: error.message || "An error occurred while assigning the doctor",
-        variant: "destructive"
-      });
-    } finally {
-      setIsAssigning(false);
-    }
-  };
-  
-  const handleAssignNutritionist = async () => {
-    if (!selectedPatient || !selectedNutritionist || !selectedDoctor) {
-      toast({
-        title: "Missing selection",
-        description: "Please select a patient, nutritionist, and doctor",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    try {
-      setIsAssigning(true);
-      console.log("Assigning nutritionist to patient", { 
-        patientId: selectedPatient, 
-        nutritionistId: selectedNutritionist,
-        doctorId: selectedDoctor 
-      });
-      
-      const { data, error } = await supabase.functions.invoke('admin-assign-nutritionist-to-patient', {
-        body: {
-          patient_id: selectedPatient,
-          nutritionist_id: selectedNutritionist,
-          admin_id: user?.id
-        }
-      });
-      
-      if (error) {
-        console.error("Error in assign nutritionist response:", error);
-        throw error;
+      // Create success message
+      let successMsg = `Dr. ${formatName(doctorName)} has been assigned to ${formatName(patientName)}`;
+      if (nutritionistName) {
+        successMsg += ` along with nutritionist ${formatName(nutritionistName)}`;
       }
       
-      console.log("Nutritionist assignment response:", data);
-      
-      const patientName = patients?.find(p => p.id === selectedPatient);
-      const nutritionistName = nutritionists?.find(n => n.id === selectedNutritionist);
-      
-      const successMsg = `Nutritionist ${formatName(nutritionistName)} has been assigned to ${formatName(patientName)}`;
       setSuccessMessage(successMsg);
       
       toast({
-        title: "Nutritionist assigned successfully",
+        title: "Care team assigned successfully",
         description: successMsg
       });
       
+      // Invalidate relevant queries to refresh data
+      queryClient.invalidateQueries({ queryKey: ["doctor_patients"] });
+      queryClient.invalidateQueries({ queryKey: ["patient_doctor"] });
       queryClient.invalidateQueries({ queryKey: ["nutritionist_patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient_nutritionist"] });
       queryClient.invalidateQueries({ queryKey: ["patient_assignments_report"] });
       queryClient.invalidateQueries({ queryKey: ["assigned_users"] });
       
     } catch (error: any) {
-      console.error("Error assigning nutritionist:", error);
+      console.error("Error assigning care team:", error);
+      
+      setErrorMessage(error.message || "An error occurred while assigning the care team");
+      
       toast({
         title: "Assignment failed",
-        description: error.message || "An error occurred while assigning the nutritionist",
+        description: error.message || "An error occurred while assigning the care team",
         variant: "destructive"
       });
     } finally {
@@ -269,7 +235,7 @@ export const PatientAssignmentManager = () => {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <UserPlus className="h-5 w-5" />
-          Assign Care Providers
+          Assign Care Team
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -312,104 +278,59 @@ export const PatientAssignmentManager = () => {
               </Select>
             </div>
             
-            <Tabs defaultValue="doctor">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="doctor">Assign Doctor</TabsTrigger>
-                <TabsTrigger value="nutritionist">Assign Nutritionist</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="doctor" className="space-y-4 mt-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Select Doctor</label>
-                  <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a doctor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {doctors?.map(doctor => (
-                        <SelectItem key={doctor.id} value={doctor.id}>
-                          {formatName(doctor)}
-                        </SelectItem>
-                      ))}
-                      {!doctors?.length && (
-                        <SelectItem value="no-data" disabled>No doctors available</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <Button 
-                  onClick={handleAssignDoctor} 
-                  disabled={!selectedPatient || !selectedDoctor || isAssigning}
-                  className="w-full"
-                >
-                  {isAssigning ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Assigning...
-                    </>
-                  ) : (
-                    "Assign Doctor to Patient"
+            <div>
+              <label className="block text-sm font-medium mb-1">Select Doctor</label>
+              <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a doctor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {doctors?.map(doctor => (
+                    <SelectItem key={doctor.id} value={doctor.id}>
+                      {formatName(doctor)}
+                    </SelectItem>
+                  ))}
+                  {!doctors?.length && (
+                    <SelectItem value="no-data" disabled>No doctors available</SelectItem>
                   )}
-                </Button>
-              </TabsContent>
-              
-              <TabsContent value="nutritionist" className="space-y-4 mt-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Select Nutritionist</label>
-                  <Select value={selectedNutritionist} onValueChange={setSelectedNutritionist}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a nutritionist" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {nutritionists?.map(nutritionist => (
-                        <SelectItem key={nutritionist.id} value={nutritionist.id}>
-                          {formatName(nutritionist)}
-                        </SelectItem>
-                      ))}
-                      {!nutritionists?.length && (
-                        <SelectItem value="no-data" disabled>No nutritionists available</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium mb-1">Select Doctor</label>
-                  <Select value={selectedDoctor} onValueChange={setSelectedDoctor}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a doctor" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {doctors?.map(doctor => (
-                        <SelectItem key={doctor.id} value={doctor.id}>
-                          {formatName(doctor)}
-                        </SelectItem>
-                      ))}
-                      {!doctors?.length && (
-                        <SelectItem value="no-data" disabled>No doctors available</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-muted-foreground mt-1">A doctor must be assigned when assigning a nutritionist</p>
-                </div>
-                
-                <Button 
-                  onClick={handleAssignNutritionist} 
-                  disabled={!selectedPatient || !selectedNutritionist || !selectedDoctor || isAssigning}
-                  className="w-full"
-                >
-                  {isAssigning ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Assigning...
-                    </>
-                  ) : (
-                    "Assign Nutritionist to Patient"
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium mb-1">Select Nutritionist (Optional)</label>
+              <Select value={selectedNutritionist} onValueChange={setSelectedNutritionist}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a nutritionist" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">None</SelectItem>
+                  {nutritionists?.map(nutritionist => (
+                    <SelectItem key={nutritionist.id} value={nutritionist.id}>
+                      {formatName(nutritionist)}
+                    </SelectItem>
+                  ))}
+                  {!nutritionists?.length && (
+                    <SelectItem value="no-data" disabled>No nutritionists available</SelectItem>
                   )}
-                </Button>
-              </TabsContent>
-            </Tabs>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <Button 
+              onClick={handleAssignCareTeam} 
+              disabled={!selectedPatient || !selectedDoctor || isAssigning}
+              className="w-full"
+            >
+              {isAssigning ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Assigning...
+                </>
+              ) : (
+                "Assign Care Team to Patient"
+              )}
+            </Button>
           </div>
         )}
       </CardContent>
