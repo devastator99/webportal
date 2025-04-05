@@ -39,7 +39,7 @@ serve(async (req: Request) => {
 
     console.log("Calling RPC function admin_assign_doctor_to_patient");
     
-    // Use the security definer RPC function with the correct parameter order
+    // Call the function with parameters in the correct order: p_doctor_id, p_patient_id, p_admin_id
     const { data, error } = await supabaseClient.rpc(
       'admin_assign_doctor_to_patient',
       { 
