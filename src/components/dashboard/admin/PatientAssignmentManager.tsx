@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,10 +5,11 @@ import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UserPlus, Loader2, CheckCircle2 } from "lucide-react";
+import { UserPlus, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Form, FormField, FormItem, FormControl, FormMessage } from "@/components/ui/form";
 
 interface Profile {
   id: string;
@@ -26,6 +26,8 @@ export const PatientAssignmentManager = () => {
   const [selectedNutritionist, setSelectedNutritionist] = useState<string>("");
   const [isAssigning, setIsAssigning] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [useDirectAssignment, setUseDirectAssignment] = useState<boolean>(false);
   
   const { data: patients, isLoading: patientsLoading, error: patientsError } = useQuery({
     queryKey: ["admin_patients"],
@@ -109,6 +111,16 @@ export const PatientAssignmentManager = () => {
     }
   }, [successMessage]);
   
+  useEffect(() => {
+    if (errorMessage) {
+      const timer = setTimeout(() => {
+        setErrorMessage(null);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [errorMessage]);
+  
   const handleAssignDoctor = async () => {
     if (!selectedPatient || !selectedDoctor) {
       toast({
@@ -119,18 +131,42 @@ export const PatientAssignmentManager = () => {
       return;
     }
     
+    setIsAssigning(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    
     try {
-      setIsAssigning(true);
-      console.log("Assigning doctor to patient", { patientId: selectedPatient, doctorId: selectedDoctor, adminId: user?.id });
-
-      // Use the dedicated edge function for doctor assignment
-      const { data, error } = await supabase.functions.invoke('admin-assign-doctor-to-patient', {
-        body: {
-          patient_id: selectedPatient,
-          doctor_id: selectedDoctor,
-          admin_id: user?.id
-        }
+      console.log("Assigning doctor to patient", { 
+        patientId: selectedPatient, 
+        doctorId: selectedDoctor, 
+        adminId: user?.id,
+        useDirectAssignment
       });
+
+      let response;
+      
+      if (useDirectAssignment) {
+        // Use direct RPC call as fallback
+        console.log("Using direct RPC assignment");
+        response = await supabase.rpc('direct_assign_doctor_to_patient', {
+          p_patient_id: selectedPatient,
+          p_doctor_id: selectedDoctor
+        });
+      } else {
+        // Use the dedicated edge function for doctor assignment
+        console.log("Using edge function assignment");
+        response = await supabase.functions.invoke('admin-assign-doctor-to-patient', {
+          body: {
+            patient_id: selectedPatient,
+            doctor_id: selectedDoctor,
+            admin_id: user?.id
+          }
+        });
+      }
+      
+      const { data, error } = response;
+      
+      console.log("Assignment response:", { data, error });
       
       if (error) {
         console.error("Error in assign doctor response:", error);
@@ -140,8 +176,6 @@ export const PatientAssignmentManager = () => {
       if (data && !data.success) {
         throw new Error(data.error || "Failed to assign doctor");
       }
-      
-      console.log("Doctor assignment response:", data);
       
       const patientName = patients?.find(p => p.id === selectedPatient);
       const doctorName = doctors?.find(d => d.id === selectedDoctor);
@@ -162,11 +196,20 @@ export const PatientAssignmentManager = () => {
       
     } catch (error: any) {
       console.error("Error assigning doctor:", error);
+      
+      // Set error message state
+      setErrorMessage(error.message || "An error occurred while assigning the doctor");
+      
       toast({
         title: "Assignment failed",
         description: error.message || "An error occurred while assigning the doctor",
         variant: "destructive"
       });
+      
+      // If edge function fails, suggest using direct RPC instead
+      if (!useDirectAssignment) {
+        setUseDirectAssignment(true);
+      }
     } finally {
       setIsAssigning(false);
     }
@@ -258,12 +301,28 @@ export const PatientAssignmentManager = () => {
           </Alert>
         )}
         
+        {errorMessage && (
+          <Alert className="mb-4 bg-red-50 border-red-200 text-red-800">
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        )}
+        
         {isLoading ? (
           <div className="flex justify-center items-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : (
           <div className="space-y-4">
+            {useDirectAssignment && (
+              <Alert className="bg-amber-50 border-amber-200 text-amber-800">
+                <AlertTriangle className="h-4 w-4 text-amber-600" />
+                <AlertDescription>
+                  Using direct database assignment as a fallback method.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <div>
               <label className="block text-sm font-medium mb-1">Select Patient</label>
               <Select value={selectedPatient} onValueChange={setSelectedPatient}>

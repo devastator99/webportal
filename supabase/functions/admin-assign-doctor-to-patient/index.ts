@@ -16,9 +16,14 @@ serve(async (req: Request) => {
   try {
     const { patient_id, doctor_id, admin_id } = await req.json();
     
+    console.log("Edge function received request:", { patient_id, doctor_id, admin_id });
+    
     if (!patient_id || !doctor_id) {
       return new Response(
-        JSON.stringify({ error: "Patient ID and doctor ID are required" }),
+        JSON.stringify({ 
+          success: false, 
+          error: "Patient ID and doctor ID are required" 
+        }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -32,6 +37,8 @@ serve(async (req: Request) => {
       }
     );
 
+    console.log("Calling RPC function admin_assign_doctor_to_patient");
+    
     // Use the security definer RPC function to avoid recursion issues
     const { data, error } = await supabaseClient.rpc(
       'admin_assign_doctor_to_patient',
@@ -42,12 +49,15 @@ serve(async (req: Request) => {
       }
     );
     
+    console.log("RPC response:", { data, error });
+    
     if (error) {
       console.error("Error calling admin_assign_doctor_to_patient RPC:", error);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: error.message 
+          error: error.message,
+          details: error 
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -71,7 +81,11 @@ serve(async (req: Request) => {
   } catch (error) {
     console.error("Error in admin-assign-doctor-to-patient:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message,
+        stack: error.stack 
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
