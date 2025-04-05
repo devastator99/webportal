@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -178,7 +177,7 @@ export const PatientAssignmentManager = () => {
       const data = response.data;
       console.log("Assignment response data:", data);
       
-      if (!data || !data.success) {
+      if (!data || data.error || !data.success) {
         throw new Error((data && data.error) || "Failed to assign care team");
       }
       

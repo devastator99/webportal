@@ -14,10 +14,13 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { patient_id, doctor_id, nutritionist_id, admin_id } = await req.json();
+    // Parse request body
+    const body = await req.json();
+    const { patient_id, doctor_id, nutritionist_id, admin_id } = body;
     
     console.log("Edge function received request:", { patient_id, doctor_id, nutritionist_id, admin_id });
     
+    // Validate required parameters
     if (!patient_id) {
       return new Response(
         JSON.stringify({ 
@@ -78,7 +81,12 @@ serve(async (req: Request) => {
     console.log("Admin role verification passed");
 
     // Use admin_assign_care_team RPC function to handle both assignments at once
-    console.log("Calling RPC function admin_assign_care_team");
+    console.log("Calling RPC function admin_assign_care_team with params:", { 
+      p_patient_id: patient_id,
+      p_doctor_id: doctor_id,
+      p_nutritionist_id: nutritionist_id, 
+      p_admin_id: admin_id
+    });
     
     const { data, error } = await supabaseClient.rpc(
       'admin_assign_care_team',
@@ -97,7 +105,7 @@ serve(async (req: Request) => {
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: error.message,
+          error: error.message || "Error assigning care team",
           details: error 
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -124,7 +132,7 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message,
+        error: error.message || "An unexpected error occurred",
         stack: error.stack 
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
