@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -42,8 +43,12 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
           let careTeam: UserProfile[] = [];
           
           // Use RPC function to get care team (this is SECURITY DEFINER function)
+          // Using type assertion to handle the TypeScript error
           const { data: careTeamData, error: careTeamError } = await supabase
-            .rpc('get_patient_care_team_members', { p_patient_id: user.id });
+            .rpc('get_patient_care_team_members', { p_patient_id: user.id }) as unknown as {
+              data: UserProfile[] | null,
+              error: Error | null
+            };
           
           if (careTeamError) {
             console.error("Error fetching care team with RPC:", careTeamError);

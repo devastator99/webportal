@@ -118,14 +118,18 @@ export const CareTeamAIChat = () => {
       
       try {
         // Use RPC function to get care team members securely with SECURITY DEFINER
+        // Using type assertion to handle the TypeScript error
         const { data: careTeamData, error: careTeamError } = await supabase
-          .rpc('get_patient_care_team_members', { p_patient_id: user.id });
+          .rpc('get_patient_care_team_members', { p_patient_id: user.id }) as unknown as { 
+            data: CareTeamMember[] | null, 
+            error: Error | null 
+          };
         
         if (careTeamError) {
           console.error("Error checking care team with RPC:", careTeamError);
         } else if (careTeamData && Array.isArray(careTeamData)) {
           // Check for doctor in the care team
-          const doctorMember = (careTeamData as CareTeamMember[]).find(member => member.role === 'doctor');
+          const doctorMember = careTeamData.find(member => member.role === 'doctor');
           if (doctorMember) {
             patientContext.hasDoctorAssigned = true;
             patientContext.doctorName = `Dr. ${doctorMember.first_name} ${doctorMember.last_name}`;
