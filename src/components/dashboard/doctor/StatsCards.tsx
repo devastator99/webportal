@@ -12,11 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface DoctorStats {
   patients_count: number;
   medical_records_count: number;
-  appointments: {
-    id: string;
-    scheduled_at: string;
-    status: "scheduled" | "completed" | "cancelled";
-  }[];
+  todays_appointments: number;
+  upcoming_appointments: number;
 }
 
 export const StatsCards = () => {
@@ -26,10 +23,15 @@ export const StatsCards = () => {
   const { data: doctorStats, isLoading, isError } = useQuery({
     queryKey: ["doctor_dashboard_stats", user?.id],
     queryFn: async () => {
-      if (!user?.id) return { patients_count: 0, medical_records_count: 0, appointments: [] } as DoctorStats;
+      if (!user?.id) return { 
+        patients_count: 0, 
+        medical_records_count: 0, 
+        todays_appointments: 0, 
+        upcoming_appointments: 0 
+      } as DoctorStats;
       
       try {
-        // Use the existing RPC functions to fetch counts
+        // Get patients count from patient_assignments table
         const { data: patientsCount, error: patientsError } = await supabase.rpc(
           'get_doctor_patients_count', 
           { doctor_id: user.id }
@@ -37,8 +39,10 @@ export const StatsCards = () => {
 
         if (patientsError) {
           console.error("Error fetching patients count:", patientsError);
+          throw patientsError;
         }
 
+        // Get medical records count
         const { data: recordsCount, error: recordsError } = await supabase.rpc(
           'get_doctor_medical_records_count',
           { doctor_id: user.id }
@@ -46,53 +50,75 @@ export const StatsCards = () => {
 
         if (recordsError) {
           console.error("Error fetching medical records count:", recordsError);
+          throw recordsError;
         }
 
-        // Fetch appointments 
-        const { data: appointments, error: appointmentsError } = await supabase
+        // Get today's date in YYYY-MM-DD format for appointments
+        const today = format(new Date(), 'yyyy-MM-dd');
+        
+        // Fetch today's appointments
+        const { data: todayAppointments, error: todayApptsError } = await supabase.rpc(
+          'get_appointments_by_date',
+          { 
+            p_doctor_id: user.id,
+            p_date: today
+          }
+        );
+
+        if (todayApptsError) {
+          console.error("Error fetching today's appointments:", todayApptsError);
+          throw todayApptsError;
+        }
+
+        // Calculate upcoming appointments (excluding today)
+        const { data: allAppointments, error: allApptsError } = await supabase
           .from('appointments')
           .select('id, scheduled_at, status')
-          .eq('doctor_id', user.id);
-
-        if (appointmentsError) {
-          console.error("Error fetching appointments:", appointmentsError);
+          .eq('doctor_id', user.id)
+          .eq('status', 'scheduled')
+          .gte('scheduled_at', new Date().toISOString());
+          
+        if (allApptsError) {
+          console.error("Error fetching upcoming appointments:", allApptsError);
+          throw allApptsError;
         }
+        
+        // Filter out today's appointments to get future appointments
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(0, 0, 0, 0);
+        
+        const upcomingAppointments = allAppointments.filter(appt => 
+          new Date(appt.scheduled_at) >= tomorrow
+        );
         
         return {
           patients_count: patientsCount || 0,
           medical_records_count: recordsCount || 0,
-          appointments: appointments || []
+          todays_appointments: todayAppointments?.length || 0,
+          upcoming_appointments: upcomingAppointments.length || 0
         } as DoctorStats;
       } catch (error) {
         console.error("Error fetching doctor stats:", error);
+        toast({
+          title: "Error loading dashboard stats",
+          description: "There was a problem fetching your dashboard statistics.",
+          variant: "destructive",
+        });
+        
         return { 
           patients_count: 0, 
           medical_records_count: 0, 
-          appointments: [] 
+          todays_appointments: 0, 
+          upcoming_appointments: 0 
         } as DoctorStats;
       }
     },
     enabled: !!user?.id,
-    staleTime: 60000, // Cache for 1 minute to reduce frequent refetches
+    staleTime: 60000, // Cache for 1 minute
+    retry: 2,
   });
-
-  // Calculate today's appointments
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const todayAppointments = doctorStats?.appointments 
-    ? doctorStats.appointments.filter(apt => 
-        format(new Date(apt.scheduled_at), 'yyyy-MM-dd') === today && 
-        apt.status === 'scheduled'
-      )
-    : [];
-
-  // Calculate upcoming appointments (future appointments)
-  const now = new Date();
-  const upcomingAppointments = doctorStats?.appointments
-    ? doctorStats.appointments.filter(apt => 
-        new Date(apt.scheduled_at) > now && 
-        apt.status === 'scheduled'
-      )
-    : [];
 
   // Render loading skeleton if data is still loading
   if (isLoading) {
@@ -123,7 +149,7 @@ export const StatsCards = () => {
             <div className="bg-[#FDE1D3] p-3 rounded-full mb-2">
               <Calendar className="h-6 w-6 text-[#F97316]" />
             </div>
-            <span className="text-2xl font-bold">{isError ? "0" : todayAppointments.length}</span>
+            <span className="text-2xl font-bold">{isError ? "0" : doctorStats?.todays_appointments || 0}</span>
             <span className="text-xs text-gray-500 text-center">Today</span>
           </div>
           
@@ -139,7 +165,7 @@ export const StatsCards = () => {
             <div className="bg-[#F2FCE2] p-3 rounded-full mb-2">
               <Clock className="h-6 w-6 text-green-500" />
             </div>
-            <span className="text-2xl font-bold">{isError ? "0" : upcomingAppointments.length}</span>
+            <span className="text-2xl font-bold">{isError ? "0" : doctorStats?.upcoming_appointments || 0}</span>
             <span className="text-xs text-gray-500 text-center">Upcoming</span>
           </div>
         </div>

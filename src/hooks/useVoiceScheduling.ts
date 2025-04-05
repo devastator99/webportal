@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,10 +45,15 @@ export const useVoiceScheduling = () => {
       "Time:", selectedTime);
   }, [selectedPatient, selectedDate, selectedTime]);
 
+  // Use RPC function to get patients assigned to this doctor
   const { data: patients = [] } = useQuery({
-    queryKey: ["patients"],
+    queryKey: ["doctor-patients", user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc("get_patients");
+      if (!user?.id) return [];
+      
+      const { data, error } = await supabase.rpc("get_doctor_patients", {
+        p_doctor_id: user.id
+      });
 
       if (error) {
         console.error("Error fetching patients:", error);
@@ -56,8 +62,10 @@ export const useVoiceScheduling = () => {
 
       return data;
     },
+    enabled: !!user?.id,
   });
 
+  // Get all existing appointments for this doctor
   const { data: existingAppointments = [] } = useQuery({
     queryKey: ["doctor-appointments-all", user?.id],
     queryFn: async () => {
@@ -99,6 +107,7 @@ export const useVoiceScheduling = () => {
     });
   };
 
+  // Schedule an appointment using the create_appointment RPC function
   const scheduleAppointment = async (
     patientId: string,
     appointmentDate: Date,
@@ -169,9 +178,11 @@ export const useVoiceScheduling = () => {
         description: confirmationText,
       });
       
+      // Invalidate queries to refresh data across components
       queryClient.invalidateQueries({ queryKey: ["doctor-appointments"] });
       queryClient.invalidateQueries({ queryKey: ["doctor-appointments-all"] });
       queryClient.invalidateQueries({ queryKey: ["today-schedule"] });
+      queryClient.invalidateQueries({ queryKey: ["doctor_dashboard_stats"] });
       
       setIsScheduling(false);
       return { success: true, confirmationText };
