@@ -5,7 +5,6 @@ import { AiAssistant } from "@/components/dashboard/doctor/AiAssistant";
 import { DoctorAppointmentCalendar } from "@/components/dashboard/doctor/DoctorAppointmentCalendar";
 import { VideoUploader } from "@/components/videos/VideoUploader";
 import { VideoList } from "@/components/videos/VideoList";
-import { DocumentAnalyzer } from "@/components/dashboard/doctor/DocumentSummary";
 import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWriter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -23,11 +22,17 @@ export const AlternativeDoctorDashboard = () => {
   const navigate = useNavigate();
   const [showVoiceScheduler, setShowVoiceScheduler] = useState(false);
   
+  // Extract doctor's name from user metadata
+  const doctorFirstName = user?.user_metadata?.first_name || "";
+  const doctorLastName = user?.user_metadata?.last_name || "";
+  const doctorName = `${doctorFirstName} ${doctorLastName}`.trim();
+  const greeting = doctorName ? `Hello, Dr. ${doctorFirstName} 👋` : "Hello, Doctor 👋";
+  
   return (
     <div className="animate-fade-up">
       {/* Greeting and quick action buttons */}
       <div className="mobile-card mb-4">
-        <h1 className="text-xl font-bold mb-2 text-left">Hello, Doctor 👋</h1>
+        <h1 className="text-xl font-bold mb-2 text-left">{greeting}</h1>
         <p className="text-sm text-gray-500 text-left mb-4">Welcome back to your dashboard</p>
         
         <div className="grid grid-cols-2 gap-2">
@@ -62,13 +67,6 @@ export const AlternativeDoctorDashboard = () => {
             className="mobile-card"
           >
             <DoctorAppointmentCalendar doctorId={user?.id || ""} />
-          </CollapsibleSection>
-          
-          <CollapsibleSection 
-            title="Document Analyzer" 
-            className="mobile-card"
-          >
-            <DocumentAnalyzer />
           </CollapsibleSection>
           
           <CollapsibleSection 

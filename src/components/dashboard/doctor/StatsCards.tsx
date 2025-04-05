@@ -1,5 +1,5 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Users, Calendar, FileText, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -94,71 +94,56 @@ export const StatsCards = () => {
       )
     : [];
 
-  // Render loading skeletons if data is still loading
+  // Render loading skeleton if data is still loading
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {[...Array(4)].map((_, index) => (
-          <Card key={index}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-4 rounded-full" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-12 mb-1" />
-              <Skeleton className="h-4 w-32" />
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      <Card className="mb-4">
+        <CardContent className="p-4">
+          <div className="flex justify-between items-center">
+            <Skeleton className="h-16 w-full" />
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Patients</CardTitle>
-          <Users className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{isError ? "0" : doctorStats?.patients_count || 0}</div>
-          <p className="text-xs text-muted-foreground">Active patients under care</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Today's Appointments</CardTitle>
-          <Calendar className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{isError ? "0" : todayAppointments.length}</div>
-          <p className="text-xs text-muted-foreground">Scheduled for today</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Medical Records</CardTitle>
-          <FileText className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{isError ? "0" : doctorStats?.medical_records_count || 0}</div>
-          <p className="text-xs text-muted-foreground">Total records created</p>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Upcoming Consultations</CardTitle>
-          <Clock className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{isError ? "0" : upcomingAppointments.length}</div>
-          <p className="text-xs text-muted-foreground">Pending appointments</p>
-        </CardContent>
-      </Card>
-    </div>
+    <Card className="mb-4">
+      <CardContent className="p-4">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="flex flex-col items-center">
+            <div className="bg-[#E5DEFF] p-3 rounded-full mb-2">
+              <Users className="h-6 w-6 text-[#9b87f5]" />
+            </div>
+            <span className="text-2xl font-bold">{isError ? "0" : doctorStats?.patients_count || 0}</span>
+            <span className="text-xs text-gray-500 text-center">Patients</span>
+          </div>
+          
+          <div className="flex flex-col items-center">
+            <div className="bg-[#FDE1D3] p-3 rounded-full mb-2">
+              <Calendar className="h-6 w-6 text-[#F97316]" />
+            </div>
+            <span className="text-2xl font-bold">{isError ? "0" : todayAppointments.length}</span>
+            <span className="text-xs text-gray-500 text-center">Today</span>
+          </div>
+          
+          <div className="flex flex-col items-center">
+            <div className="bg-[#D3E4FD] p-3 rounded-full mb-2">
+              <FileText className="h-6 w-6 text-[#0EA5E9]" />
+            </div>
+            <span className="text-2xl font-bold">{isError ? "0" : doctorStats?.medical_records_count || 0}</span>
+            <span className="text-xs text-gray-500 text-center">Records</span>
+          </div>
+          
+          <div className="flex flex-col items-center">
+            <div className="bg-[#F2FCE2] p-3 rounded-full mb-2">
+              <Clock className="h-6 w-6 text-green-500" />
+            </div>
+            <span className="text-2xl font-bold">{isError ? "0" : upcomingAppointments.length}</span>
+            <span className="text-xs text-gray-500 text-center">Upcoming</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
 };
