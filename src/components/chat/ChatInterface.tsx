@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -67,6 +66,19 @@ export const ChatInterface = ({
 
   // If WhatsApp style and has assigned users, show all in a combined view
   const showWhatsAppStyle = whatsAppStyle && userRole === 'doctor' && assignedUsers.length > 0;
+
+  // Get header title based on role and chat type
+  const getHeaderTitle = () => {
+    if (userRole === 'doctor' || userRole === 'nutritionist') {
+      return "Patient Messages";
+    } else if (isGroupChat) {
+      return "Care Team Chat";
+    } else if (selectedUserId) {
+      const selectedUser = assignedUsers.find(u => u.id === selectedUserId);
+      return selectedUser ? `Chat with ${selectedUser.first_name} ${selectedUser.last_name}` : "Chat";
+    }
+    return "Chat";
+  };
 
   // Handle selecting a patient in WhatsApp style view
   const handleUserSelect = (userId: string) => {
