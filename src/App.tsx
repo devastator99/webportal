@@ -1,4 +1,3 @@
-
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -16,6 +15,7 @@ import { ChatModule } from './modules/chat/ChatModule';
 import React, { useEffect, useState } from 'react';
 import { MobileStatusBar } from './components/mobile/MobileStatusBar';
 import { MobileNavigation } from './components/mobile/MobileNavigation';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 function App() {
   // Initialize state with current feature flags
@@ -61,15 +61,17 @@ function App() {
         <Router>
           <AuthProvider>
             <div className="mobile-content">
-              <Routes>
-                <Route path="/" element={<LandingPage />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/dashboard/*" element={<Dashboard />} />
-                <Route path="/dashboard-alt" element={<AlternativeDashboard />} />
-                <Route path="/admin/*" element={<Admin />} />
-                <Route path="/patients" element={<PatientsView />} />
-                <Route path="/chat" element={<ChatPage />} />
-              </Routes>
+              <ErrorBoundary>
+                <Routes>
+                  <Route path="/" element={<LandingPage />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/dashboard/*" element={<Dashboard />} />
+                  <Route path="/dashboard-alt" element={<AlternativeDashboard />} />
+                  <Route path="/admin/*" element={<Admin />} />
+                  <Route path="/patients" element={<PatientsView />} />
+                  <Route path="/chat" element={<ChatPage />} />
+                </Routes>
+              </ErrorBoundary>
             </div>
             
             <MobileNavigation />
