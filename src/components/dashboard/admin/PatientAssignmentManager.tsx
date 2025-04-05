@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -142,22 +141,25 @@ export const PatientAssignmentManager = () => {
         adminId: user?.id
       });
 
+      if (!user?.id) {
+        throw new Error("Administrator ID is missing. Please log in again.");
+      }
+
       const response = await supabase.functions.invoke('admin-assign-doctor-to-patient', {
         body: {
           patient_id: selectedPatient,
           doctor_id: selectedDoctor,
-          admin_id: user?.id
+          admin_id: user.id
         }
       });
       
-      const { data, error } = response;
-      
-      console.log("Assignment response:", { data, error });
-      
-      if (error) {
-        console.error("Error in assign doctor response:", error);
-        throw error;
+      if (response.error) {
+        console.error("Error invoking edge function:", response.error);
+        throw new Error(response.error.message || "Error communicating with server");
       }
+      
+      const data = response.data;
+      console.log("Assignment response:", data);
       
       if (data && !data.success) {
         throw new Error(data.error || "Failed to assign doctor");

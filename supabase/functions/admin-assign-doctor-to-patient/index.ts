@@ -39,13 +39,13 @@ serve(async (req: Request) => {
 
     console.log("Calling RPC function admin_assign_doctor_to_patient");
     
-    // Call the function with parameters in the correct order: p_doctor_id, p_patient_id, p_admin_id
+    // Call the RPC function with parameters
     const { data, error } = await supabaseClient.rpc(
       'admin_assign_doctor_to_patient',
       { 
         p_doctor_id: doctor_id,
         p_patient_id: patient_id,
-        p_admin_id: admin_id || null
+        p_admin_id: admin_id 
       }
     );
     
