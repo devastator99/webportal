@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useCallback, Suspense, lazy } from "react";
+import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Hero } from "@/components/Hero";
 import { Navbar } from "@/components/Navbar";
 import { Features } from "@/components/Features";
