@@ -88,26 +88,21 @@ serve(async (req) => {
         }
         
         // Check if the patient has any care team assignments
-        const { data: assignmentData, error: assignmentError } = await supabaseAdmin
-          .from('patient_assignments')
-          .select(`
-            doctor_id,
-            doctor:doctor_id(first_name, last_name),
-            nutritionist_id,
-            nutritionist:nutritionist_id(first_name, last_name)
-          `)
-          .eq('patient_id', patientId)
-          .maybeSingle();
+        const { data: careTeamData, error: careTeamError } = await supabaseAdmin
+          .rpc('get_patient_care_team_members', { p_patient_id: patientId });
           
-        if (!assignmentError && assignmentData) {
-          if (assignmentData.doctor) {
-            enhancedContext += `The patient is assigned to Dr. ${assignmentData.doctor.first_name} ${assignmentData.doctor.last_name}.\n`;
+        if (!careTeamError && careTeamData && Array.isArray(careTeamData)) {
+          const doctorMember = careTeamData.find((member: any) => member.role === 'doctor');
+          
+          if (doctorMember) {
+            enhancedContext += `The patient is assigned to Dr. ${doctorMember.first_name} ${doctorMember.last_name}.\n`;
           } else {
             enhancedContext += `The patient is currently not assigned to any doctor.\n`;
           }
           
-          if (assignmentData.nutritionist) {
-            enhancedContext += `The patient is working with nutritionist ${assignmentData.nutritionist.first_name} ${assignmentData.nutritionist.last_name}.\n`;
+          const nutritionistMember = careTeamData.find((member: any) => member.role === 'nutritionist');
+          if (nutritionistMember) {
+            enhancedContext += `The patient is working with nutritionist ${nutritionistMember.first_name} ${nutritionistMember.last_name}.\n`;
           }
         } else {
           enhancedContext += `The patient is currently not assigned to any care team members.\n`;

@@ -968,6 +968,17 @@ export type Database = {
           role: string
         }[]
       }
+      get_patient_care_team_members: {
+        Args: {
+          p_patient_id: string
+        }
+        Returns: {
+          id: string
+          first_name: string
+          last_name: string
+          role: string
+        }[]
+      }
       get_patient_doctor_assignments: {
         Args: Record<PropertyKey, never>
         Returns: {

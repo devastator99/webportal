@@ -125,7 +125,7 @@ export const CareTeamAIChat = () => {
           console.error("Error checking care team with RPC:", careTeamError);
         } else if (careTeamData && Array.isArray(careTeamData)) {
           // Check for doctor in the care team
-          const doctorMember = careTeamData.find((member: CareTeamMember) => member.role === 'doctor');
+          const doctorMember = (careTeamData as CareTeamMember[]).find(member => member.role === 'doctor');
           if (doctorMember) {
             patientContext.hasDoctorAssigned = true;
             patientContext.doctorName = `Dr. ${doctorMember.first_name} ${doctorMember.last_name}`;
