@@ -1,6 +1,6 @@
 
 import './App.css';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from './contexts/ThemeProvider';
 import { AuthProvider } from './contexts/AuthContext';
@@ -64,11 +64,9 @@ function App() {
               <Routes>
                 <Route path="/" element={<LandingPage />} />
                 <Route path="/auth" element={<Auth />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/dashboard/*" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard/*" element={<Dashboard />} />
                 <Route path="/dashboard-alt" element={<AlternativeDashboard />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/admin/*" element={<Navigate to="/admin" replace />} />
+                <Route path="/admin/*" element={<Admin />} />
                 <Route path="/patients" element={<PatientsView />} />
                 <Route path="/chat" element={<ChatPage />} />
               </Routes>
