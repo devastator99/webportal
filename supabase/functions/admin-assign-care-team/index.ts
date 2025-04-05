@@ -95,42 +95,9 @@ serve(async (req: Request) => {
       );
     }
 
-    // Verify that the admin_id has the administrator role
-    let adminCheckResult;
-    try {
-      const { data: adminRoleData, error: adminRoleError } = await supabaseClient.rpc(
-        'check_admin_role',
-        { user_id: admin_id }
-      );
-      
-      adminCheckResult = { data: adminRoleData, error: adminRoleError };
-      console.log("Admin role check result:", adminCheckResult);
-      
-      if (adminRoleError) {
-        throw adminRoleError;
-      }
-      
-      if (!adminRoleData) {
-        return new Response(
-          JSON.stringify({ 
-            success: false, 
-            error: "Unauthorized: Only administrators can assign care teams"
-          }),
-          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-    } catch (adminCheckError) {
-      console.error("Error checking admin role:", adminCheckError);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: "Failed to verify administrator privileges",
-          details: adminCheckError.message || adminCheckError
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
+    // Skip admin verification - as requested, since the user is authenticated via the frontend
+    // and we're trusting the admin_id parameter
+    
     // Call the RPC function to assign care team
     let rpcResult;
     try {

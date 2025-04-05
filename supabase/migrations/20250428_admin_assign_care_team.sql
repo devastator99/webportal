@@ -17,7 +17,6 @@ AS $$
 DECLARE
   v_doctor_role TEXT;
   v_patient_role TEXT;
-  v_admin_role TEXT;
   v_nutritionist_role TEXT;
   v_assignment_id UUID;
 BEGIN
@@ -29,18 +28,8 @@ BEGIN
     );
   END IF;
 
-  -- Verify the admin has the administrator role
-  SELECT role INTO v_admin_role 
-  FROM user_roles 
-  WHERE user_id = p_admin_id 
-  LIMIT 1;
-  
-  IF v_admin_role IS NULL OR v_admin_role <> 'administrator' THEN
-    RETURN jsonb_build_object(
-      'success', false,
-      'error', 'Unauthorized: Only administrators can assign care teams'
-    );
-  END IF;
+  -- We're skipping admin role verification as requested by the user
+  -- We trust that the frontend has verified the user's role
   
   -- Verify the doctor has the doctor role
   SELECT role INTO v_doctor_role 
