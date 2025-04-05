@@ -159,7 +159,7 @@ export const PatientAssignmentManager = () => {
         throw new Error("Administrator ID is missing. Please log in again.");
       }
 
-      // Call the new edge function that handles both assignments
+      // Call the edge function that handles both assignments
       const response = await supabase.functions.invoke('admin-assign-care-team', {
         body: {
           patient_id: selectedPatient,
@@ -169,16 +169,18 @@ export const PatientAssignmentManager = () => {
         }
       });
       
+      console.log("Edge function response:", response);
+      
       if (response.error) {
         console.error("Error invoking edge function:", response.error);
         throw new Error(response.error.message || "Error communicating with server");
       }
       
       const data = response.data;
-      console.log("Assignment response:", data);
+      console.log("Assignment response data:", data);
       
-      if (data && !data.success) {
-        throw new Error(data.error || "Failed to assign care team");
+      if (!data || !data.success) {
+        throw new Error((data && data.error) || "Failed to assign care team");
       }
       
       // Get names for success message
@@ -200,6 +202,11 @@ export const PatientAssignmentManager = () => {
         description: successMsg
       });
       
+      // Reset form
+      setSelectedPatient("");
+      setSelectedDoctor("");
+      setSelectedNutritionist(null);
+      
       // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["doctor_patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient_doctor"] });
@@ -208,7 +215,7 @@ export const PatientAssignmentManager = () => {
       queryClient.invalidateQueries({ queryKey: ["patient_assignments_report"] });
       queryClient.invalidateQueries({ queryKey: ["assigned_users"] });
       
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error assigning care team:", error);
       
       setErrorMessage(error.message || "An error occurred while assigning the care team");
