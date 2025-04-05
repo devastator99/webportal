@@ -28,9 +28,9 @@ serve(async (req: Request) => {
       }
     );
     
-    // Get nutritionist assigned to this patient
+    // Get nutritionist assigned to this patient from patient_assignments table
     const { data, error } = await supabaseClient
-      .from('patient_nutritionist_assignments')
+      .from('patient_assignments')
       .select('nutritionist:nutritionist_id(id, first_name, last_name)')
       .eq('patient_id', patient_id)
       .maybeSingle();

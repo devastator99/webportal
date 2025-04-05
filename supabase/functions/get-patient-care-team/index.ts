@@ -41,22 +41,22 @@ serve(async (req: Request) => {
 
     const careTeam: UserProfile[] = [];
 
-    // Get doctor from patient_doctor_assignments table
-    const { data: doctorAssignments, error: doctorError } = await supabaseClient
-      .from("patient_doctor_assignments")
-      .select("doctor_id")
+    // Get doctor from patient_assignments table
+    const { data: assignment, error: assignmentError } = await supabaseClient
+      .from("patient_assignments")
+      .select("doctor_id, nutritionist_id")
       .eq("patient_id", patient_id)
       .single();
 
-    if (doctorError) {
-      console.error("Error fetching doctor assignment:", doctorError);
+    if (assignmentError && assignmentError.code !== 'PGRST116') { // PGRST116 is "no rows returned" error
+      console.error("Error fetching assignment:", assignmentError);
     } 
     
-    if (doctorAssignments?.doctor_id) {
+    if (assignment?.doctor_id) {
       const { data: doctor, error: doctorProfileError } = await supabaseClient
         .from("profiles")
         .select("id, first_name, last_name")
-        .eq("id", doctorAssignments.doctor_id)
+        .eq("id", assignment.doctor_id)
         .single();
 
       if (!doctorProfileError && doctor) {
@@ -67,22 +67,12 @@ serve(async (req: Request) => {
       }
     }
 
-    // Get nutritionist from patient_nutritionist_assignments table
-    const { data: nutritionistAssignments, error: nutritionistError } = await supabaseClient
-      .from("patient_nutritionist_assignments")
-      .select("nutritionist_id")
-      .eq("patient_id", patient_id)
-      .single();
-
-    if (nutritionistError) {
-      console.error("Error fetching nutritionist assignment:", nutritionistError);
-    }
-    
-    if (nutritionistAssignments?.nutritionist_id) {
+    // Get nutritionist from the same patient_assignments record
+    if (assignment?.nutritionist_id) {
       const { data: nutritionist, error: nutritionistProfileError } = await supabaseClient
         .from("profiles")
         .select("id, first_name, last_name")
-        .eq("id", nutritionistAssignments.nutritionist_id)
+        .eq("id", assignment.nutritionist_id)
         .single();
 
       if (!nutritionistProfileError && nutritionist) {

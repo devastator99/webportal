@@ -31,34 +31,43 @@ serve(async (req: Request) => {
       }
     );
 
-    // First, remove any existing nutritionist assignment for this patient
-    await supabaseClient
-      .from("patient_nutritionist_assignments")
-      .delete()
-      .eq("patient_id", patient_id);
+    console.log("Calling RPC function admin_assign_nutritionist_to_patient");
     
-    // Then, create the new assignment
-    const { data, error } = await supabaseClient
-      .from("patient_nutritionist_assignments")
-      .insert({ patient_id, nutritionist_id })
-      .select()
-      .single();
+    // Use the security definer RPC function
+    const { data, error } = await supabaseClient.rpc(
+      'admin_assign_nutritionist_to_patient',
+      { 
+        p_nutritionist_id: nutritionist_id,
+        p_patient_id: patient_id,
+        p_admin_id: admin_id || null
+      }
+    );
+    
+    console.log("RPC response:", { data, error });
     
     if (error) {
-      console.error("Error in creating patient-nutritionist assignment:", error);
+      console.error("Error calling admin_assign_nutritionist_to_patient RPC:", error);
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: error.message 
+          error: error.message,
+          details: error 
         }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
+    // Check the result from the RPC function
+    if (data && !data.success) {
+      return new Response(
+        JSON.stringify(data),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify(data || { 
         success: true, 
-        data,
         message: "Nutritionist assigned to patient successfully" 
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -66,7 +75,11 @@ serve(async (req: Request) => {
   } catch (error) {
     console.error("Error in admin-assign-nutritionist-to-patient:", error);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ 
+        success: false, 
+        error: error.message,
+        stack: error.stack 
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
