@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -8,12 +9,12 @@ import { useToast } from "@/hooks/use-toast";
 import { ChatInput } from "./ChatInput";
 import { ChatMessagesList } from "./ChatMessagesList";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { v4 as uuidv4 } from "uuid";
 import { useOnlineStatus } from "@/utils/networkStatus";
 import { saveOfflineMessage, getUnsyncedMessages, markMessageAsSynced, deleteOfflineMessage } from "@/utils/offlineStorage";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 type UserProfile = {
   id: string;
@@ -32,6 +33,7 @@ interface ChatInterfaceProps {
   assignedUsers?: UserProfile[];
   careTeamGroup?: CareTeamGroup | null;
   showGroupChat?: boolean;
+  whatsAppStyle?: boolean;
 }
 
 interface LocalMessage {
@@ -48,7 +50,12 @@ interface LocalMessage {
   synced?: boolean | string;
 }
 
-export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGroupChat = true }: ChatInterfaceProps) => {
+export const ChatInterface = ({ 
+  assignedUsers = [], 
+  careTeamGroup = null, 
+  showGroupChat = true,
+  whatsAppStyle = false
+}: ChatInterfaceProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   const [newMessage, setNewMessage] = useState("");
@@ -57,6 +64,19 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
   const isOnline = useOnlineStatus();
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
   const [hasInitialAiMessage, setHasInitialAiMessage] = useState<boolean>(false);
+
+  // If WhatsApp style and has assigned users, show all in a combined view
+  const showWhatsAppStyle = whatsAppStyle && userRole === 'doctor' && assignedUsers.length > 0;
+
+  // Handle selecting a patient in WhatsApp style view
+  const handleUserSelect = (userId: string) => {
+    setSelectedUserId(userId);
+  };
+
+  // Get initials for avatar
+  const getInitials = (firstName: string | null, lastName: string | null) => {
+    return `${(firstName || '').charAt(0)}${(lastName || '').charAt(0)}`.toUpperCase();
+  };
 
   // If doctor and has assigned patients, select first patient by default
   useEffect(() => {
@@ -142,35 +162,6 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
 
   // Get users list based on role
   const availableUsers = userRole === 'doctor' ? assignedUsers : [];
-
-  // For doctors viewing patient messages in a care group
-  const handleUserSelect = (userId: string) => {
-    setSelectedUserId(userId);
-  };
-
-  const getHeaderTitle = () => {
-    if (userRole === 'doctor') {
-      const selectedUser = availableUsers.find(u => u.id === selectedUserId);
-      return selectedUser ? `${selectedUser.first_name} ${selectedUser.last_name}` : "Select a patient";
-    }
-    if (isGroupChat && careTeamGroup) {
-      return (
-        <div className="flex items-center gap-2">
-          {careTeamGroup.groupName}
-          <span className="text-xs text-muted-foreground">
-            ({careTeamGroup.members.length} members)
-          </span>
-        </div>
-      );
-    }
-    return "Care Team";
-  };
-
-  const getUserDisplayName = (user: UserProfile) => {
-    const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
-    const role = user.role || (user.user_role?.role || "");
-    return role ? `${name} (${role})` : name;
-  };
 
   const handleSendMessage = async () => {
     if (!newMessage.trim()) return;
@@ -368,6 +359,93 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
     }
   };
 
+  // For WhatsApp style view (doctor's view of all patients)
+  if (showWhatsAppStyle) {
+    return (
+      <div className="h-full flex flex-col md:flex-row">
+        {/* Patient list sidebar */}
+        <div className="w-full md:w-1/3 border-r h-64 md:h-full overflow-y-auto">
+          <div className="p-2">
+            <div className="text-sm font-medium text-gray-500 px-2 py-1">
+              All Patients
+            </div>
+            {assignedUsers.map((patient) => (
+              <div 
+                key={patient.id}
+                className={`flex items-center gap-2 p-3 rounded-md cursor-pointer hover:bg-slate-100 transition-colors ${
+                  selectedUserId === patient.id ? 'bg-slate-100' : ''
+                }`}
+                onClick={() => handleUserSelect(patient.id)}
+              >
+                <Avatar className="h-10 w-10">
+                  <AvatarFallback className="bg-primary/20 text-primary">
+                    {getInitials(patient.first_name, patient.last_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="font-medium">
+                    {patient.first_name} {patient.last_name}
+                  </div>
+                  <div className="text-xs text-gray-500">
+                    Patient
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Chat area */}
+        <div className="flex-1 flex flex-col h-full">
+          {selectedUserId ? (
+            <>
+              {/* Selected patient header */}
+              <div className="p-3 border-b flex items-center gap-2 bg-slate-50">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback className="bg-primary/20 text-primary">
+                    {(() => {
+                      const patient = assignedUsers.find(u => u.id === selectedUserId);
+                      return patient ? getInitials(patient.first_name, patient.last_name) : "PT";
+                    })()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="font-medium">
+                  {(() => {
+                    const patient = assignedUsers.find(u => u.id === selectedUserId);
+                    return patient ? `${patient.first_name} ${patient.last_name}` : 'Loading...';
+                  })()}
+                </div>
+              </div>
+              
+              {/* Messages area */}
+              <div className="flex-1 flex flex-col overflow-hidden">
+                <ChatMessagesList
+                  selectedUserId={selectedUserId}
+                  isGroupChat={false}
+                  offlineMode={!isOnline}
+                  localMessages={localMessages}
+                />
+                
+                <ChatInput
+                  value={newMessage}
+                  onChange={setNewMessage}
+                  onSend={handleSendMessage}
+                  placeholder="Type a message..."
+                  disabled={!selectedUserId}
+                  offlineMode={!isOnline}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center text-muted-foreground">
+              Select a patient to view conversation
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
@@ -382,27 +460,6 @@ export const ChatInterface = ({ assignedUsers = [], careTeamGroup = null, showGr
               You're currently offline. Messages will be sent when your connection returns.
             </AlertDescription>
           </Alert>
-        )}
-        
-        {userRole === 'doctor' && (
-          <div className="mt-2">
-            <Label htmlFor="patientSelect">Select Patient</Label>
-            <Select 
-              value={selectedUserId || ''} 
-              onValueChange={handleUserSelect}
-            >
-              <SelectTrigger id="patientSelect" className="w-full">
-                <SelectValue placeholder="Select patient" />
-              </SelectTrigger>
-              <SelectContent>
-                {availableUsers.map((user) => (
-                  <SelectItem key={user.id} value={user.id}>
-                    {getUserDisplayName(user)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         )}
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">

@@ -45,11 +45,16 @@ export const ChatPageHeader = ({
       <h2 className="text-2xl font-bold text-center p-4">{title}</h2>
       
       {userRole === "doctor" || userRole === "nutritionist" ? (
-        // Healthcare provider view - show all assigned patients in a chat interface
-        <ChatInterface 
-          assignedUsers={assignedUsers}
-          showGroupChat={false}
-        />
+        // Healthcare provider view - WhatsApp-like interface showing all patient messages
+        <Card className="h-full">
+          <CardContent className="p-4 h-full">
+            <ChatInterface 
+              assignedUsers={assignedUsers}
+              showGroupChat={false}
+              whatsAppStyle={true}
+            />
+          </CardContent>
+        </Card>
       ) : careTeamGroup ? (
         // Patient view - show care team chat
         <div className="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-1 gap-6 h-full">

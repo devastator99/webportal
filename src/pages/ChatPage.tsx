@@ -5,7 +5,6 @@ import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { UsersProvider } from "@/components/chat/UsersProvider";
 import { ChatPageHeader } from "@/components/chat/ChatPageHeader";
-import { CareTeamAIChat } from "@/components/chat/CareTeamAIChat";
 import { Card, CardContent } from "@/components/ui/card";
 
 const ChatPage = () => {

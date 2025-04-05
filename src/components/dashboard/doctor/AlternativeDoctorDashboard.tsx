@@ -9,7 +9,7 @@ import { DocumentAnalyzer } from "@/components/dashboard/doctor/DocumentSummary"
 import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWriter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, Mic, MessageSquare } from "lucide-react";
+import { Calendar, Users, Mic } from "lucide-react";
 import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -30,7 +30,7 @@ export const AlternativeDoctorDashboard = () => {
         <h1 className="text-xl font-bold mb-2 text-left">Hello, Doctor 👋</h1>
         <p className="text-sm text-gray-500 text-left mb-4">Welcome back to your dashboard</p>
         
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2">
           <Button 
             className="rounded-full bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
             onClick={() => navigate("/patients")}
@@ -47,14 +47,6 @@ export const AlternativeDoctorDashboard = () => {
               Schedule
             </Button>
           </ScheduleAppointment>
-          
-          <Button
-            className="rounded-full bg-green-100 text-green-600 hover:bg-green-200"
-            onClick={() => navigate("/chat")}
-          >
-            <MessageSquare className="mr-2 h-4 w-4" />
-            Chat
-          </Button>
         </div>
       </div>
       
