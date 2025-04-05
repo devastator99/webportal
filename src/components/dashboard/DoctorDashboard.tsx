@@ -1,6 +1,4 @@
-
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
 import { StatsCards } from "@/components/dashboard/doctor/StatsCards";
 import { AiAssistant } from "@/components/dashboard/doctor/AiAssistant";
 import { DocumentAnalyzer } from "@/components/dashboard/doctor/DocumentSummary";
@@ -15,12 +13,16 @@ import { ChatModule } from "@/modules/chat/ChatModule";
 import { DoctorVideoUploader } from "@/components/dashboard/doctor/DoctorVideoUploader";
 import { CareTeamAIChat } from "@/components/chat/CareTeamAIChat";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlternativeDoctorDashboard } from "@/components/dashboard/doctor/AlternativeDoctorDashboard";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
-  const isMobile = useIsMobile();
   const navigate = useNavigate();
   
+  return <AlternativeDoctorDashboard />;
+  
+  // Original dashboard code commented out
+  /*
   // Create the action buttons to pass to the header
   const actionButtons = (
     <>
@@ -61,7 +63,6 @@ export const DoctorDashboard = () => {
           </div>
           <AiAssistant />
           
-          {/* Changed Patient Chat to Caregroup Chat */}
           {featureFlags.enableChat && featureFlags.doctorDashboardChat && (
             <Card>
               <CardHeader>
@@ -73,7 +74,6 @@ export const DoctorDashboard = () => {
             </Card>
           )}
           
-          {/* Only show video uploader if feature flag is enabled */}
           {featureFlags.enableDoctorVideoUploader && (
             <DoctorVideoUploader />
           )}
@@ -81,4 +81,5 @@ export const DoctorDashboard = () => {
       </div>
     </div>
   );
+  */
 };
