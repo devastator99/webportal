@@ -657,6 +657,15 @@ export type Database = {
       }
     }
     Functions: {
+      admin_assign_care_team: {
+        Args: {
+          p_patient_id: string
+          p_doctor_id: string
+          p_nutritionist_id: string
+          p_admin_id: string
+        }
+        Returns: Json
+      }
       admin_assign_nutritionist_to_patient: {
         Args: {
           p_nutritionist_id: string
@@ -690,6 +699,12 @@ export type Database = {
       can_insert_user_role: {
         Args: {
           checking_user_id: string
+        }
+        Returns: boolean
+      }
+      check_admin_role: {
+        Args: {
+          user_id: string
         }
         Returns: boolean
       }
