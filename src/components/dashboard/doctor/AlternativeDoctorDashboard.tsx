@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { StatsCards } from "@/components/dashboard/doctor/StatsCards";
 import { AiAssistant } from "@/components/dashboard/doctor/AiAssistant";
@@ -16,7 +17,7 @@ import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-export const DoctorDashboard = () => {
+export const AlternativeDoctorDashboard = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
