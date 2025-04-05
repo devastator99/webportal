@@ -10,52 +10,20 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { StandaloneVideoList } from "@/components/videos/VideoList";
 import { ChatbotWidget } from "@/components/chat/ChatbotWidget";
 import { featureFlags } from "@/config/features";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
-const LoadingSpinner = () => (
-  <div className="flex items-center justify-center p-4">
-    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[#9b87f5]"></div>
-  </div>
-);
+// Lazy-loaded components
+const Testimonials = React.lazy(() => import("@/components/Testimonials").then(module => ({
+  default: module.Testimonials
+})));
 
-// Lazy-loaded components with better suspense handling
-const Testimonials = () => {
-  const [Component, setComponent] = useState<React.ComponentType | null>(null);
+const Pricing = React.lazy(() => import("@/components/Pricing").then(module => ({
+  default: module.Pricing
+})));
 
-  useEffect(() => {
-    import("@/components/Testimonials").then((module) => {
-      setComponent(() => module.Testimonials);
-    });
-  }, []);
-
-  if (!Component) return <LoadingSpinner />;
-  return <Component />;
-};
-
-const Pricing = () => {
-  const [Component, setComponent] = useState<React.ComponentType | null>(null);
-
-  useEffect(() => {
-    import("@/components/Pricing").then((module) => {
-      setComponent(() => module.Pricing);
-    });
-  }, []);
-
-  if (!Component) return <LoadingSpinner />;
-  return <Component />;
-};
-
-const Footer = () => {
-  const [Component, setComponent] = useState<React.ComponentType | null>(null);
-
-  useEffect(() => {
-    import("@/components/Footer").then((module) => {
-      setComponent(() => module.Footer);
-    });
-  }, []);
-
-  if (!Component) return <LoadingSpinner />;
-  return <Component />;
-};
+const Footer = React.lazy(() => import("@/components/Footer").then(module => ({
+  default: module.Footer
+})));
 
 export const LandingPage = () => {
   const { user } = useAuth();
@@ -70,7 +38,11 @@ export const LandingPage = () => {
   });
   
   useEffect(() => {
+    // Immediately show features for better perceived performance
+    setVisibleSections(prev => ({ ...prev, features: true }));
+    
     if (typeof IntersectionObserver === 'undefined') {
+      // For browsers that don't support IntersectionObserver
       setVisibleSections({
         features: true,
         testimonials: true,
@@ -88,9 +60,6 @@ export const LandingPage = () => {
             const sectionId = entry.target.id;
             
             setVisibleSections(prev => {
-              if (sectionId === 'features-section' && !prev.features) {
-                return { ...prev, features: true };
-              } 
               if (sectionId === 'testimonials-section' && !prev.testimonials) {
                 return { ...prev, testimonials: true };
               }
@@ -116,25 +85,24 @@ export const LandingPage = () => {
       }
     );
     
-    const timer = setTimeout(() => {
-      const sections = [
-        'features-section', 
-        'testimonials-section', 
-        'pricing-section', 
-        'video-section', 
-        'footer-section'
-      ];
-      
-      sections.forEach(id => {
+    // Stagger the observation to improve initial load
+    const sections = [
+      'testimonials-section', 
+      'pricing-section', 
+      'video-section', 
+      'footer-section'
+    ];
+    
+    sections.forEach((id, index) => {
+      setTimeout(() => {
         const element = document.getElementById(id);
         if (element) {
           observer.observe(element);
         }
-      });
-    }, 50);
+      }, index * 100); // Stagger by 100ms
+    });
     
     return () => {
-      clearTimeout(timer);
       observer.disconnect();
     };
   }, []);
@@ -142,7 +110,6 @@ export const LandingPage = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
       <Navbar />
-      {/* Add padding-top to ensure content doesn't hide under navbar */}
       <div className="pt-16 md:pt-20">
         <Hero />
         
@@ -151,11 +118,19 @@ export const LandingPage = () => {
         </div>
         
         <div id="testimonials-section" className="min-h-[20px]">
-          {visibleSections.testimonials && <Testimonials />}
+          {visibleSections.testimonials && (
+            <Suspense fallback={<LoadingSpinner />}>
+              <Testimonials />
+            </Suspense>
+          )}
         </div>
         
         <div id="pricing-section" className="min-h-[20px]">
-          {visibleSections.pricing && <Pricing />}
+          {visibleSections.pricing && (
+            <Suspense fallback={<LoadingSpinner />}>
+              <Pricing />
+            </Suspense>
+          )}
         </div>
         
         <div id="video-section" className="container mx-auto px-4 py-6 min-h-[20px]">
@@ -174,7 +149,11 @@ export const LandingPage = () => {
         </div>
         
         <div id="footer-section" className="min-h-[20px]">
-          {visibleSections.footer && <Footer />}
+          {visibleSections.footer && (
+            <Suspense fallback={<LoadingSpinner />}>
+              <Footer />
+            </Suspense>
+          )}
         </div>
       </div>
       

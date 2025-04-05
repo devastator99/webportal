@@ -34,21 +34,49 @@ export const TodaySchedule = () => {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // Call RPC function to get today's appointments
-      const { data, error } = await supabase.rpc("get_appointments_by_date", {
-        p_doctor_id: user.id,
-        p_date: today,
-      });
+      try {
+        console.log("Fetching today's appointments for doctor:", user.id);
+        
+        // Call RPC function to get today's appointments
+        const { data, error } = await supabase.rpc("get_appointments_by_date", {
+          p_doctor_id: user.id,
+          p_date: today,
+        });
 
-      if (error) {
-        console.error("Error fetching today's appointments:", error);
-        throw error;
+        if (error) {
+          console.error("Error fetching today's appointments:", error);
+          throw error;
+        }
+
+        console.log("Today's appointments data:", data);
+        return data as AppointmentWithPatient[];
+      } catch (err) {
+        console.error("Exception in fetching today's appointments:", err);
+        throw err;
       }
-
-      return data as AppointmentWithPatient[];
     },
     enabled: !!user?.id,
+    staleTime: 60000, // Cache for 1 minute
   });
+
+  if (isLoading) {
+    return (
+      <Card className="shadow-md">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xl font-bold">Today's Schedule</CardTitle>
+          <CardDescription>
+            Your appointments for {format(new Date(), "MMMM d, yyyy")}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            <Skeleton className="h-16 w-full" />
+            <Skeleton className="h-16 w-full" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="shadow-md">
@@ -59,18 +87,12 @@ export const TodaySchedule = () => {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="space-y-3">
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-            <Skeleton className="h-16 w-full" />
-          </div>
-        ) : isError ? (
+        {isError ? (
           <div className="text-red-500">
             Error loading schedule: {(error as Error).message}
           </div>
         ) : appointments.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
+          <div className="text-center py-4 text-gray-500">
             No appointments scheduled for today
           </div>
         ) : (

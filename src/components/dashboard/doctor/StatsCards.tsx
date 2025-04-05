@@ -4,8 +4,6 @@ import { Users, Calendar, FileText, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { format } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 
 // Define TypeScript interface for the stats data
@@ -18,7 +16,6 @@ interface DoctorStats {
 
 export const StatsCards = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
 
   const { data: doctorStats, isLoading, isError } = useQuery({
     queryKey: ["doctor_dashboard_stats", user?.id],
@@ -31,7 +28,9 @@ export const StatsCards = () => {
       } as DoctorStats;
       
       try {
-        // Get patients count from patient_assignments table
+        console.log("Fetching dashboard stats for doctor:", user.id);
+        
+        // Get patients count
         const { data: patientsCount, error: patientsError } = await supabase.rpc(
           'get_doctor_patients_count', 
           { doctor_id: user.id }
@@ -53,60 +52,43 @@ export const StatsCards = () => {
           throw recordsError;
         }
 
-        // Get today's date in YYYY-MM-DD format for appointments
-        const today = format(new Date(), 'yyyy-MM-dd');
-        
-        // Fetch today's appointments
-        const { data: todayAppointments, error: todayApptsError } = await supabase.rpc(
-          'get_appointments_by_date',
-          { 
-            p_doctor_id: user.id,
-            p_date: today
-          }
+        // Get today's appointments count
+        const { data: todaysCount, error: todaysError } = await supabase.rpc(
+          'get_doctor_todays_appointments_count',
+          { doctor_id: user.id }
         );
 
-        if (todayApptsError) {
-          console.error("Error fetching today's appointments:", todayApptsError);
-          throw todayApptsError;
+        if (todaysError) {
+          console.error("Error fetching today's appointments count:", todaysError);
+          throw todaysError;
         }
 
-        // Calculate upcoming appointments (excluding today)
-        const { data: allAppointments, error: allApptsError } = await supabase
-          .from('appointments')
-          .select('id, scheduled_at, status')
-          .eq('doctor_id', user.id)
-          .eq('status', 'scheduled')
-          .gte('scheduled_at', new Date().toISOString());
-          
-        if (allApptsError) {
-          console.error("Error fetching upcoming appointments:", allApptsError);
-          throw allApptsError;
-        }
-        
-        // Filter out today's appointments to get future appointments
-        const now = new Date();
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(0, 0, 0, 0);
-        
-        const upcomingAppointments = allAppointments.filter(appt => 
-          new Date(appt.scheduled_at) >= tomorrow
+        // Get upcoming appointments count
+        const { data: upcomingCount, error: upcomingError } = await supabase.rpc(
+          'get_doctor_upcoming_appointments_count',
+          { doctor_id: user.id }
         );
+
+        if (upcomingError) {
+          console.error("Error fetching upcoming appointments count:", upcomingError);
+          throw upcomingError;
+        }
+
+        console.log("Dashboard stats fetched:", {
+          patients: patientsCount,
+          records: recordsCount,
+          today: todaysCount,
+          upcoming: upcomingCount
+        });
         
         return {
           patients_count: patientsCount || 0,
           medical_records_count: recordsCount || 0,
-          todays_appointments: todayAppointments?.length || 0,
-          upcoming_appointments: upcomingAppointments.length || 0
+          todays_appointments: todaysCount || 0,
+          upcoming_appointments: upcomingCount || 0
         } as DoctorStats;
       } catch (error) {
         console.error("Error fetching doctor stats:", error);
-        toast({
-          title: "Error loading dashboard stats",
-          description: "There was a problem fetching your dashboard statistics.",
-          variant: "destructive",
-        });
-        
         return { 
           patients_count: 0, 
           medical_records_count: 0, 
@@ -116,17 +98,23 @@ export const StatsCards = () => {
       }
     },
     enabled: !!user?.id,
-    staleTime: 60000, // Cache for 1 minute
-    retry: 2,
+    staleTime: 300000, // Cache for 5 minutes
+    retry: 1,
   });
 
-  // Render loading skeleton if data is still loading
+  // Simplified loading skeleton
   if (isLoading) {
     return (
       <Card className="mb-4">
         <CardContent className="p-4">
-          <div className="flex justify-between items-center">
-            <Skeleton className="h-16 w-full" />
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex flex-col items-center">
+                <Skeleton className="h-12 w-12 rounded-full mb-2" />
+                <Skeleton className="h-6 w-16" />
+                <Skeleton className="h-4 w-20 mt-1" />
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
