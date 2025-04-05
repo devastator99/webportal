@@ -1,5 +1,5 @@
 
-import { useEffect, useState, useCallback, Suspense } from "react";
+import { useEffect, useState, useCallback, Suspense, lazy } from "react";
 import { Hero } from "@/components/Hero";
 import { Navbar } from "@/components/Navbar";
 import { Features } from "@/components/Features";
@@ -13,15 +13,15 @@ import { featureFlags } from "@/config/features";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
 // Lazy-loaded components
-const Testimonials = React.lazy(() => import("@/components/Testimonials").then(module => ({
+const Testimonials = lazy(() => import("@/components/Testimonials").then(module => ({
   default: module.Testimonials
 })));
 
-const Pricing = React.lazy(() => import("@/components/Pricing").then(module => ({
+const Pricing = lazy(() => import("@/components/Pricing").then(module => ({
   default: module.Pricing
 })));
 
-const Footer = React.lazy(() => import("@/components/Footer").then(module => ({
+const Footer = lazy(() => import("@/components/Footer").then(module => ({
   default: module.Footer
 })));
 
