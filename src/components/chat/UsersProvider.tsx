@@ -104,15 +104,12 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             });
           }
           
-          // Get administrators
-          // We query this differently to avoid recursion issues, not using joins
-          const { data: userRoles, error: userRolesError } = await supabase
-            .from("user_roles")
-            .select("user_id")
-            .eq("role", "administrator");
+          // Get administrators using the new RPC function
+          const { data: admins, error: adminsError } = await supabase
+            .rpc('get_administrators');
             
-          if (userRolesError) {
-            console.error("Error fetching admin roles:", userRolesError);
+          if (adminsError) {
+            console.error("Error fetching admins:", adminsError);
             toast({
               title: "Error",
               description: "Could not load administrators for chat",
@@ -120,26 +117,13 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             });
           }
           
-          const adminIds = (userRoles || []).map(ur => ur.user_id).filter(id => id !== user.id);
-          let formattedAdmins: UserProfile[] = [];
-          
-          if (adminIds.length > 0) {
-            const { data: adminProfiles, error: adminProfilesError } = await supabase
-              .from("profiles")
-              .select("id, first_name, last_name")
-              .in("id", adminIds);
-              
-            if (adminProfilesError) {
-              console.error("Error fetching admin profiles:", adminProfilesError);
-            } else {
-              formattedAdmins = (adminProfiles || []).map(admin => ({
-                id: admin.id,
-                first_name: admin.first_name,
-                last_name: admin.last_name,
-                role: "administrator"
-              }));
-            }
-          }
+          // Format admin users
+          const formattedAdmins = (admins || []).map(admin => ({
+            id: admin.id,
+            first_name: admin.first_name,
+            last_name: admin.last_name,
+            role: "administrator"
+          }));
           
           // Create care team group from assigned doctor, nutritionist and AI bot
           const careTeamMembers = careTeam.filter(member => 
@@ -184,40 +168,23 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             careTeamGroup: null
           };
         } else if (userRole === "administrator") {
-          // Query user roles separately to avoid recursion
-          const { data: userRoles, error: userRolesError } = await supabase
-            .from("user_roles")
-            .select("user_id, role");
+          // Use the new RPC function to get all users with their roles
+          const { data, error } = await supabase.rpc('get_users_with_roles');
           
-          if (userRolesError) {
-            console.error("Error fetching user roles:", userRolesError);
-            throw userRolesError;
+          if (error) {
+            console.error("Error fetching all users:", error);
+            throw error;
           }
           
-          // Create a map of user_id to role
-          const roleMap = new Map();
-          (userRoles || []).forEach(ur => {
-            roleMap.set(ur.user_id, ur.role);
-          });
-          
-          // Get all profiles except the current user
-          const { data: allProfiles, error: profilesError } = await supabase
-            .from("profiles")
-            .select("id, first_name, last_name")
-            .neq("id", user.id);
-          
-          if (profilesError) {
-            console.error("Error fetching profiles:", profilesError);
-            throw profilesError;
-          }
-          
-          // Format users with their roles from the map
-          const formattedUsers = (allProfiles || []).map(profile => ({
-            id: profile.id,
-            first_name: profile.first_name,
-            last_name: profile.last_name,
-            role: roleMap.get(profile.id) || "user"
-          }));
+          // Filter out the current user
+          const formattedUsers = (data || [])
+            .filter(u => u.id !== user.id)
+            .map(u => ({
+              id: u.id,
+              first_name: u.first_name,
+              last_name: u.last_name,
+              role: u.role || "user"
+            }));
           
           return { 
             assignedUsers: formattedUsers,

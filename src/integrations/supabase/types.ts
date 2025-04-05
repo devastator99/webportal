@@ -753,6 +753,14 @@ export type Database = {
           last_name: string
         }[]
       }
+      get_administrators: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          first_name: string
+          last_name: string
+        }[]
+      }
       get_all_patients: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -1017,6 +1025,16 @@ export type Database = {
         }
         Returns: {
           user_id: string
+        }[]
+      }
+      get_users_with_roles: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          first_name: string
+          last_name: string
+          email: string
+          role: string
         }[]
       }
       has_role: {
