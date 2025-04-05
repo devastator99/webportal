@@ -22,7 +22,7 @@ interface MessageData {
 
 serve(async (req: Request) => {
   try {
-    const { user_id, other_user_id } = await req.json();
+    const { user_id, other_user_id, page = 1, per_page = 50 } = await req.json();
     
     if (!user_id || !other_user_id) {
       return new Response(
@@ -40,7 +40,26 @@ serve(async (req: Request) => {
       }
     );
     
-    // Get chat messages between the two users
+    // Calculate pagination
+    const pageNumber = parseInt(String(page));
+    const perPage = parseInt(String(per_page));
+    const offset = (pageNumber - 1) * perPage;
+    
+    // Get total count first to determine if there are more messages
+    const { count, error: countError } = await supabaseClient
+      .from('chat_messages')
+      .select('id', { count: 'exact', head: true })
+      .or(`and(sender_id.eq.${user_id},receiver_id.eq.${other_user_id}),and(sender_id.eq.${other_user_id},receiver_id.eq.${user_id})`);
+      
+    if (countError) {
+      console.error("Error counting chat messages:", countError);
+      return new Response(
+        JSON.stringify({ error: countError.message }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Get chat messages between the two users with pagination
     const { data, error } = await supabaseClient
       .from('chat_messages')
       .select(`
@@ -53,7 +72,8 @@ serve(async (req: Request) => {
         receiver:receiver_id(id, first_name, last_name)
       `)
       .or(`and(sender_id.eq.${user_id},receiver_id.eq.${other_user_id}),and(sender_id.eq.${other_user_id},receiver_id.eq.${user_id})`)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: true })
+      .range(offset, offset + perPage - 1);
       
     if (error) {
       console.error("Error fetching chat messages:", error);
@@ -63,8 +83,17 @@ serve(async (req: Request) => {
       );
     }
     
+    // Determine if there are more messages
+    const hasMore = count !== null && count > offset + data.length;
+    
     return new Response(
-      JSON.stringify(data),
+      JSON.stringify({
+        messages: data,
+        hasMore,
+        totalCount: count,
+        page: pageNumber,
+        perPage
+      }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
     

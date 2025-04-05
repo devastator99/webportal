@@ -7,6 +7,8 @@ import { useEffect, useRef, useState } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAllOfflineMessages } from "@/utils/offlineStorage";
+import { Button } from "@/components/ui/button";
+import { ArrowUp } from "lucide-react";
 
 interface CareTeamGroup {
   groupName: string;
@@ -47,6 +49,8 @@ interface MessageData {
   synced?: boolean | string;
 }
 
+const MESSAGES_PER_PAGE = 50; // Number of messages to load per page
+
 export const ChatMessagesList = ({ 
   selectedUserId, 
   isGroupChat = false, 
@@ -59,10 +63,22 @@ export const ChatMessagesList = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const [offlineMessages, setOfflineMessages] = useState<MessageData[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const queryKey = isGroupChat && careTeamGroup 
-    ? ["group_chat_messages", user?.id, careTeamGroup.members.map(m => m.id).join('_')]
-    : ["chat_messages", user?.id, selectedUserId];
+    ? ["group_chat_messages", user?.id, careTeamGroup.members.map(m => m.id).join('_'), page]
+    : ["chat_messages", user?.id, selectedUserId, page];
+
+  useEffect(() => {
+    // Reset pagination when chat partner changes
+    if (!initialLoad) {
+      setPage(1);
+      setHasMoreMessages(false);
+    }
+  }, [selectedUserId, careTeamGroup, initialLoad]);
 
   useEffect(() => {
     const loadOfflineMessages = async () => {
@@ -120,7 +136,7 @@ export const ChatMessagesList = ({
   }, [user?.id, offlineMode, careTeamGroup, userRole, localMessages.length]);
 
   const fetchMessages = async () => {
-    if (!user?.id) return [];
+    if (!user?.id) return { data: [], hasMore: false };
     
     try {
       if (isGroupChat && careTeamGroup?.members) {
@@ -132,17 +148,24 @@ export const ChatMessagesList = ({
           return supabase.functions.invoke('get-chat-messages', {
             body: {
               user_id: user.id,
-              other_user_id: member.id
+              other_user_id: member.id,
+              page: page,
+              per_page: MESSAGES_PER_PAGE
             }
           });
         }).filter(Boolean);
         
         const results = await Promise.all(promises);
         let allMessages: MessageData[] = [];
+        let hasMore = false;
         
         results.forEach(result => {
           if (result && result.data) {
-            const messagesData = result.data as MessageData[];
+            if (result.data.hasMore) {
+              hasMore = true;
+            }
+            
+            const messagesData = result.data.messages || [];
             const messagesWithRoles = messagesData.map((msg: MessageData) => {
               const senderMember = careTeamGroup.members.find(m => m.id === msg.sender.id);
               if (senderMember && senderMember.role) {
@@ -172,10 +195,8 @@ export const ChatMessagesList = ({
         );
         
         if (unreadMessagesGrouped.length > 0) {
-          const senderIds = [...new Set(unreadMessagesGrouped.map(msg => msg.sender?.id))];
-          
           await Promise.all(
-            senderIds.map(senderId => 
+            [...new Set(unreadMessagesGrouped.map(msg => msg.sender?.id))].map(senderId => 
               supabase.functions.invoke("mark-messages-as-read", {
                 body: {
                   user_id: user.id,
@@ -186,17 +207,20 @@ export const ChatMessagesList = ({
           );
         }
         
-        return allMessages;
+        return { data: allMessages, hasMore };
       } 
       else if (selectedUserId) {
         const { data } = await supabase.functions.invoke('get-chat-messages', {
           body: {
             user_id: user.id,
-            other_user_id: selectedUserId
+            other_user_id: selectedUserId,
+            page: page,
+            per_page: MESSAGES_PER_PAGE
           }
         });
 
-        const messages = data as MessageData[];
+        const messages = data.messages || [];
+        const hasMore = data.hasMore || false;
 
         if (messages && messages.length > 0) {
           const unreadMessages = messages.filter(
@@ -214,45 +238,60 @@ export const ChatMessagesList = ({
         }
         
         if (selectedUserId === '00000000-0000-0000-0000-000000000000') {
-          return messages.map((msg: MessageData) => {
-            if (msg.sender.id === selectedUserId) {
-              return {
-                ...msg,
-                sender: {
-                  ...msg.sender,
-                  role: 'aibot'
-                }
-              };
-            }
-            return msg;
-          });
+          return { 
+            data: messages.map((msg: MessageData) => {
+              if (msg.sender.id === selectedUserId) {
+                return {
+                  ...msg,
+                  sender: {
+                    ...msg.sender,
+                    role: 'aibot'
+                  }
+                };
+              }
+              return msg;
+            }),
+            hasMore
+          };
         }
         
-        return messages || [];
+        return { data: messages || [], hasMore };
       }
       
-      return [];
+      return { data: [], hasMore: false };
     } catch (error) {
       console.error("Error in chat messages query:", error);
-      return [];
+      return { data: [], hasMore: false };
     }
   };
 
-  const { data: onlineMessages, isLoading, error } = useQuery({
+  const { data: messagesData, isLoading, error } = useQuery({
     queryKey,
     queryFn: fetchMessages,
     enabled: !!user?.id && (!!selectedUserId || (isGroupChat && !!careTeamGroup)) && !offlineMode,
     refetchInterval: 3000,
+    select: (data) => ({
+      messages: data.data,
+      hasMore: data.hasMore
+    }),
+    onSuccess: (data) => {
+      setHasMoreMessages(data.hasMore);
+      setInitialLoad(false);
+    },
   });
+
+  const onlineMessages = messagesData?.messages || [];
+
+  const loadMoreMessages = async () => {
+    setIsLoadingMore(true);
+    setPage(prev => prev + 1);
+    setIsLoadingMore(false);
+  };
 
   const combinedMessages = () => {
     const online = offlineMode ? [] : (onlineMessages || []);
     const offline = offlineMessages || [];
     const local = localMessages || [];
-    
-    console.log("Online messages count:", online.length);
-    console.log("Offline messages count:", offline.length);
-    console.log("Local messages count:", local.length);
     
     const allMessages = [...online, ...offline, ...local];
     
@@ -272,12 +311,12 @@ export const ChatMessagesList = ({
 
   const messages = combinedMessages();
 
-  // Scroll to bottom when messages change
+  // Scroll to bottom when messages change on first load or new messages
   useEffect(() => {
-    if (messagesEndRef.current) {
+    if (messagesEndRef.current && !isLoadingMore) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages]);
+  }, [messages.length, isLoadingMore]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -302,7 +341,7 @@ export const ChatMessagesList = ({
             filter: `or(${filterConditions})`,
           },
           () => {
-            queryClient.invalidateQueries({ queryKey });
+            queryClient.invalidateQueries({ queryKey: queryKey.slice(0, -1) });
           }
         )
         .on(
@@ -314,7 +353,7 @@ export const ChatMessagesList = ({
             filter: `or(${filterConditions})`,
           },
           () => {
-            queryClient.invalidateQueries({ queryKey });
+            queryClient.invalidateQueries({ queryKey: queryKey.slice(0, -1) });
           }
         )
         .subscribe();
@@ -331,7 +370,7 @@ export const ChatMessagesList = ({
             filter: `or(and(sender_id=eq.${user.id},receiver_id=eq.${selectedUserId}),and(sender_id=eq.${selectedUserId},receiver_id=eq.${user.id}))`,
           },
           () => {
-            queryClient.invalidateQueries({ queryKey });
+            queryClient.invalidateQueries({ queryKey: queryKey.slice(0, -1) });
           }
         )
         .on(
@@ -343,7 +382,7 @@ export const ChatMessagesList = ({
             filter: `or(and(sender_id=eq.${user.id},receiver_id=eq.${selectedUserId}),and(sender_id=eq.${selectedUserId},receiver_id=eq.${user.id}))`,
           },
           () => {
-            queryClient.invalidateQueries({ queryKey });
+            queryClient.invalidateQueries({ queryKey: queryKey.slice(0, -1) });
           }
         )
         .subscribe();
@@ -407,6 +446,21 @@ export const ChatMessagesList = ({
 
   return (
     <ScrollArea className="flex-1 pr-4 h-full" ref={scrollAreaRef}>
+      {hasMoreMessages && (
+        <div className="flex justify-center my-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center gap-1"
+            onClick={loadMoreMessages}
+            disabled={isLoadingMore}
+          >
+            <ArrowUp className="h-4 w-4" /> 
+            {isLoadingMore ? "Loading..." : "Load older messages"}
+          </Button>
+        </div>
+      )}
+      
       <div className="space-y-4 pb-2">
         {messages.map((msg: MessageData) => {
           if (!msg || !msg.sender) return null;
