@@ -104,7 +104,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             });
           }
           
-          // Get administrators using the new RPC function
+          // Get administrators - Use security definer function 
           const { data: admins, error: adminsError } = await supabase
             .rpc('get_administrators');
             
@@ -118,12 +118,12 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
           }
           
           // Format admin users
-          const formattedAdmins = (admins || []).map(admin => ({
+          const formattedAdmins = Array.isArray(admins) ? admins.map(admin => ({
             id: admin.id,
             first_name: admin.first_name,
             last_name: admin.last_name,
             role: "administrator"
-          }));
+          })) : [];
           
           // Create care team group from assigned doctor, nutritionist and AI bot
           const careTeamMembers = careTeam.filter(member => 
@@ -168,7 +168,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             careTeamGroup: null
           };
         } else if (userRole === "administrator") {
-          // Use the new RPC function to get all users with their roles
+          // Use the RPC function with security definer to get all users with their roles
           const { data, error } = await supabase.rpc('get_users_with_roles');
           
           if (error) {
@@ -176,15 +176,17 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             throw error;
           }
           
-          // Filter out the current user
-          const formattedUsers = (data || [])
-            .filter(u => u.id !== user.id)
-            .map(u => ({
-              id: u.id,
-              first_name: u.first_name,
-              last_name: u.last_name,
-              role: u.role || "user"
-            }));
+          // Filter out the current user and ensure data is an array
+          const formattedUsers = Array.isArray(data) 
+            ? data
+                .filter(u => u.id !== user.id)
+                .map(u => ({
+                  id: u.id,
+                  first_name: u.first_name,
+                  last_name: u.last_name,
+                  role: u.role || "user"
+                }))
+            : [];
           
           return { 
             assignedUsers: formattedUsers,
