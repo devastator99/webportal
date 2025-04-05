@@ -131,3 +131,44 @@ export async function getDoctorPatients(doctorId: string): Promise<PatientProfil
     throw error;
   }
 }
+
+// New function to assign care team with better error handling
+export async function assignCareTeam(
+  patientId: string, 
+  doctorId: string, 
+  nutritionistId: string | null, 
+  adminId: string
+): Promise<any> {
+  try {
+    console.log("Calling assignCareTeam with:", {
+      patientId,
+      doctorId,
+      nutritionistId,
+      adminId
+    });
+    
+    const { data, error } = await supabase.functions.invoke('admin-assign-care-team', {
+      body: {
+        patient_id: patientId,
+        doctor_id: doctorId,
+        nutritionist_id: nutritionistId,
+        admin_id: adminId
+      }
+    });
+    
+    if (error) {
+      console.error('Edge function error in assignCareTeam:', error);
+      throw new Error(error.message || 'Failed to communicate with server');
+    }
+    
+    if (!data || (data.error && !data.success)) {
+      console.error('Data error in assignCareTeam:', data);
+      throw new Error(data?.error || 'Failed to assign care team');
+    }
+    
+    return data;
+  } catch (error: any) {
+    console.error('Exception in assignCareTeam:', error);
+    throw error;
+  }
+}
