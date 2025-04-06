@@ -13,7 +13,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Separator } from "@/components/ui/separator";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
-import { ChevronLeft, ChevronRight, Menu } from "lucide-react";
+import { ChevronLeft, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface UserProfile {
@@ -172,7 +172,7 @@ export const DoctorWhatsAppChat = () => {
           {(showSidebar || showSidebarOnly) && (
             <div className={`${showSidebarOnly ? 'w-full' : (isIPad ? 'w-2/5' : 'w-1/3')} border-r h-full bg-background relative`}>
               <div className="p-3 bg-muted/40 border-b flex justify-between items-center">
-                <h3 className="font-medium">Patient Conversations</h3>
+                <h3 className="font-medium">Patients</h3>
                 {isMobile && (
                   <Button variant="ghost" size="icon" onClick={toggleSidebar}>
                     <ChevronLeft className="h-5 w-5" />

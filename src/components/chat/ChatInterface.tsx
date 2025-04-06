@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -8,8 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import { ChatInput } from "./ChatInput";
 import { ChatMessagesList } from "./ChatMessagesList";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Label } from "@/components/ui/label";
-import { Skeleton } from "@/components/ui/skeleton";
 import { v4 as uuidv4 } from "uuid";
 import { useOnlineStatus } from "@/utils/networkStatus";
 import { saveOfflineMessage, getUnsyncedMessages, markMessageAsSynced, deleteOfflineMessage } from "@/utils/offlineStorage";
@@ -70,7 +69,7 @@ export const ChatInterface = ({
   // Get header title based on role and chat type
   const getHeaderTitle = () => {
     if (userRole === 'doctor' || userRole === 'nutritionist') {
-      return "Patient Messages";
+      return "Messages";
     } else if (isGroupChat) {
       return "Care Team Chat";
     } else if (selectedUserId) {
@@ -378,8 +377,10 @@ export const ChatInterface = ({
         {/* Patient list sidebar */}
         <div className="w-full md:w-1/3 border-r h-64 md:h-full overflow-y-auto">
           <div className="p-2">
-            <div className="text-sm font-medium text-gray-500 px-2 py-1">
-              All Patients
+            <div className="flex items-center justify-between gap-2 px-2 py-1">
+              <div className="text-sm font-medium text-gray-500">
+                All Patients
+              </div>
             </div>
             {assignedUsers.map((patient) => (
               <div 
