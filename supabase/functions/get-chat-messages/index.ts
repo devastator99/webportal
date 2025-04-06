@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -57,7 +56,7 @@ serve(async (req: Request) => {
         receiver:receiver_id(id, first_name, last_name)
       `);
       
-    // If including care team messages (for doctors viewing patient messages)
+    // All messages are now considered part of the care team conversation
     if (include_care_team) {
       // First get the care team members for this patient
       const { data: careTeamData, error: careTeamError } = await supabaseClient
@@ -75,35 +74,24 @@ serve(async (req: Request) => {
       // Add the current user and the patient to the list
       const relevantIds = [user_id, other_user_id, ...careTeamIds];
       
-      // Only show messages that involve the care team or between the doctor and patient
+      // We want to show ALL messages between ANY care team members and the patient
+      // This ensures a single unified conversation view
       let filterConditions = [];
       
-      // Direct messages between doctor and patient
-      filterConditions.push(`and(sender_id.eq.${user_id},receiver_id.eq.${other_user_id})`);
-      filterConditions.push(`and(sender_id.eq.${other_user_id},receiver_id.eq.${user_id})`);
-      
-      // Messages between care team members and patient
-      for (const id of careTeamIds) {
-        if (id !== user_id) {
-          filterConditions.push(`and(sender_id.eq.${id},receiver_id.eq.${other_user_id})`);
-          filterConditions.push(`and(sender_id.eq.${other_user_id},receiver_id.eq.${id})`);
-        }
-      }
-      
-      // Messages between care team members that might be about the patient
-      if (careTeamIds.length > 1) {
-        for (const senderId of relevantIds) {
-          for (const receiverId of relevantIds) {
-            if (senderId !== receiverId) {
-              filterConditions.push(`and(sender_id.eq.${senderId},receiver_id.eq.${receiverId})`);
-            }
+      // Messages where any care team member (including the current user) is involved 
+      // with the patient or other care team members
+      for (const id of relevantIds) {
+        for (const otherId of relevantIds) {
+          if (id !== otherId) { 
+            // Include all messages between any relevant members
+            filterConditions.push(`and(sender_id.eq.${id},receiver_id.eq.${otherId})`);
           }
         }
       }
       
       query = query.or(filterConditions.join(','));
     } else {
-      // Regular chat between two users
+      // This branch should not be used for care team chat, but keeping for compatibility
       query = query.or(`and(sender_id.eq.${user_id},receiver_id.eq.${other_user_id}),and(sender_id.eq.${other_user_id},receiver_id.eq.${user_id})`);
     }
     

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -140,6 +141,7 @@ export const DoctorWhatsAppChat = () => {
     if (!newMessage.trim() || !selectedPatientId || !user?.id) return;
     
     try {
+      // This message will be seen by everyone in the care team
       const tempMessage = {
         id: uuidv4(),
         message: newMessage,
@@ -162,7 +164,7 @@ export const DoctorWhatsAppChat = () => {
       
       setLocalMessages(prev => [...prev, tempMessage]);
       
-      // Send message to patient
+      // Send message to patient - this is the main record of the message
       const { data, error } = await supabase.rpc('send_chat_message', {
         p_sender_id: user.id,
         p_receiver_id: selectedPatientId,
@@ -174,15 +176,15 @@ export const DoctorWhatsAppChat = () => {
       
       // Forward the message to all care team members so everyone sees the communication
       if (careTeamMembers && careTeamMembers.length > 0) {
-        console.log("Forwarding doctor's message to care team members:", careTeamMembers.length);
+        console.log("Forwarding message to all care team members:", careTeamMembers.length);
         
         // Send the message to each care team member except self
         for (const member of careTeamMembers) {
-          if (member.id !== user.id && member.id !== '00000000-0000-0000-0000-000000000000') {
+          if (member.id !== user.id && member.id !== '00000000-0000-0000-0000-000000000000' && member.id !== selectedPatientId) {
             await supabase.rpc('send_chat_message', {
               p_sender_id: user.id,
               p_receiver_id: member.id,
-              p_message: `[To Patient] ${newMessage}`,
+              p_message: newMessage,
               p_message_type: 'text'
             });
           }
@@ -246,7 +248,7 @@ export const DoctorWhatsAppChat = () => {
             
             // Also make sure to send AI response to ALL care team members
             careTeamMembers.forEach(async (member) => {
-              if (member.id !== '00000000-0000-0000-0000-000000000000') {
+              if (member.id !== '00000000-0000-0000-0000-000000000000' && member.id !== selectedPatientId) {
                 await supabase.rpc('send_chat_message', {
                   p_sender_id: '00000000-0000-0000-0000-000000000000',
                   p_receiver_id: member.id,
@@ -312,42 +314,15 @@ export const DoctorWhatsAppChat = () => {
   const showChatOnly = isMobile && selectedPatientId && !showSidebar;
   const showSidebarOnly = isMobile && showSidebar;
 
+  // This function now shows ALL messages in the care team conversation
   const shouldShowMessage = (message) => {
     if (!selectedPatientId || !user?.id) return false;
     
-    // Direct messages between doctor and patient
-    if ((message.sender.id === user?.id && message.receiver.id === selectedPatientId) || 
-        (message.sender.id === selectedPatientId && message.receiver.id === user?.id)) {
-      return true;
-    }
+    // Get all relevant IDs for the care team conversation
+    const relevantIds = [selectedPatientId, user.id, ...careTeamMembers.map(m => m.id)];
     
-    // AI bot messages for this patient
-    if (message.sender.id === '00000000-0000-0000-0000-000000000000' && 
-        (message.receiver.id === selectedPatientId || message.receiver.id === user?.id)) {
-      return true;
-    }
-    
-    // Care team messages related to this patient
-    // Messages sent by care team members to the patient
-    if (message.receiver.id === selectedPatientId && 
-        careTeamMembers.some(member => member.id === message.sender.id)) {
-      return true;
-    }
-    
-    // Messages sent by the patient to care team members
-    if (message.sender.id === selectedPatientId && 
-        careTeamMembers.some(member => member.id === message.receiver.id)) {
-      return true;
-    }
-    
-    // Messages between care team members about the patient (containing "[To Patient]" marker)
-    if (careTeamMembers.some(member => member.id === message.sender.id) && 
-        careTeamMembers.some(member => member.id === message.receiver.id) &&
-        message.message && message.message.includes("[To Patient]")) {
-      return true;
-    }
-    
-    return false;
+    // If both sender and receiver are part of the care team, show the message
+    return relevantIds.includes(message.sender.id) && relevantIds.includes(message.receiver.id);
   };
 
   return (
@@ -363,7 +338,7 @@ export const DoctorWhatsAppChat = () => {
                     <ChevronLeft className="h-5 w-5" />
                   </Button>
                 )}
-                <span className="text-sm font-medium ml-2">Your Patients</span>
+                <span className="text-sm font-medium ml-2">Care Teams</span>
               </div>
               <ScrollArea className="h-[calc(100%-48px)]">
                 {isLoadingPatients ? (
@@ -403,7 +378,7 @@ export const DoctorWhatsAppChat = () => {
                               {patient.first_name} {patient.last_name}
                             </div>
                             <div className="text-xs text-muted-foreground truncate">
-                              Click to view conversation
+                              Click to view care group
                             </div>
                           </div>
                         </div>
@@ -434,10 +409,10 @@ export const DoctorWhatsAppChat = () => {
                     </Avatar>
                     <div>
                       <div className="font-medium">
-                        {selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : 'Loading...'}
+                        {selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name} - Care Group` : 'Loading...'}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {isLoadingCareTeam ? 'Loading care team...' : `Patient${careTeamMembers.length > 1 ? ' + ' + (careTeamMembers.length - 1) + ' care team members' : ''}`}
+                        {isLoadingCareTeam ? 'Loading care team...' : `${careTeamMembers.length} care team members`}
                       </div>
                     </div>
                   </div>
@@ -466,7 +441,7 @@ export const DoctorWhatsAppChat = () => {
                         value={newMessage}
                         onChange={setNewMessage}
                         onSend={handleSendMessage}
-                        placeholder="Type a message..."
+                        placeholder="Type a message to the care group..."
                         disabled={!selectedPatientId || isLoadingCareTeam}
                       />
                     </div>
@@ -476,12 +451,12 @@ export const DoctorWhatsAppChat = () => {
                 <div className="flex-1 flex items-center justify-center text-muted-foreground">
                   {error ? (
                     <div className="text-center p-6 text-destructive">
-                      <p>Error loading patient chats</p>
+                      <p>Error loading care groups</p>
                       <p className="text-sm mt-2">Please refresh the page or contact support</p>
                     </div>
                   ) : (
                     <div className="text-center">
-                      Select a patient to view conversation
+                      Select a patient to view care group messages
                     </div>
                   )}
                 </div>
