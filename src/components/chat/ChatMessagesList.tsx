@@ -77,7 +77,7 @@ export const ChatMessagesList = ({
         
         console.log("Care team IDs for group chat:", careTeamIds);
         
-        // Query raw database columns and manually construct the UserProfile objects
+        // Query messages with sender and receiver information
         const { data: allTeamMessages, error: allTeamError } = await supabase
           .from('chat_messages')
           .select(`
@@ -99,9 +99,26 @@ export const ChatMessagesList = ({
           throw allTeamError;
         }
         
+        // Get user roles separately
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('user_id, role')
+          .in('user_id', careTeamIds);
+          
+        if (rolesError) {
+          console.error("Error fetching user roles:", rolesError);
+          throw rolesError;
+        }
+        
+        // Create a lookup map for roles
+        const roleMap = new Map();
+        userRoles?.forEach(ur => {
+          roleMap.set(ur.user_id, ur.role);
+        });
+        
         console.log(`Retrieved ${allTeamMessages?.length || 0} total messages between care team members`);
         if (allTeamMessages) {
-          // Transform the data to include the role field that's missing from profiles
+          // Transform the data to include the role from our lookup map
           const transformedMessages = allTeamMessages.map(msg => ({
             id: msg.id,
             message: msg.message,
@@ -154,7 +171,24 @@ export const ChatMessagesList = ({
           
           console.log("All relevant IDs for message fetching:", allRelevantIds);
           
-          // Query raw columns for direct messages
+          // Get all roles first
+          const { data: userRoles, error: rolesError } = await supabase
+            .from('user_roles')
+            .select('user_id, role')
+            .in('user_id', allRelevantIds);
+            
+          if (rolesError) {
+            console.error("Error fetching user roles:", rolesError);
+            throw rolesError;
+          }
+          
+          // Create a lookup map for roles
+          const roleMap = new Map();
+          userRoles?.forEach(ur => {
+            roleMap.set(ur.user_id, ur.role);
+          });
+          
+          // Query direct messages
           const { data: directMessages, error: directError } = await supabase
             .from('chat_messages')
             .select(`
@@ -176,7 +210,7 @@ export const ChatMessagesList = ({
             throw directError;
           }
 
-          // Query raw columns for patient-care team messages
+          // Query patient-care team messages
           const { data: patientCareTeamMessages, error: careTeamError } = await supabase
             .from('chat_messages')
             .select(`
@@ -210,13 +244,13 @@ export const ChatMessagesList = ({
               id: msg.sender?.id || '', 
               first_name: msg.sender?.first_name || '',
               last_name: msg.sender?.last_name || '',
-              role: (msg.sender?.id === user.id) ? 'doctor' : 'patient' 
+              role: roleMap.get(msg.sender?.id) || (msg.sender?.id === user.id ? 'doctor' : 'patient')
             },
             receiver: { 
               id: msg.receiver?.id || '',
               first_name: msg.receiver?.first_name || '',
               last_name: msg.receiver?.last_name || '', 
-              role: (msg.receiver?.id === user.id) ? 'doctor' : 'patient'
+              role: roleMap.get(msg.receiver?.id) || (msg.receiver?.id === user.id ? 'doctor' : 'patient')
             }
           })) : [];
 
@@ -247,13 +281,13 @@ export const ChatMessagesList = ({
               id: msg.sender?.id || '',
               first_name: msg.sender?.first_name || '',
               last_name: msg.sender?.last_name || '', 
-              role: (msg.sender?.id === selectedUserId) ? 'patient' : 'care_team' 
+              role: roleMap.get(msg.sender?.id) || (msg.sender?.id === selectedUserId ? 'patient' : 'care_team')
             },
             receiver: { 
               id: msg.receiver?.id || '',
               first_name: msg.receiver?.first_name || '',
               last_name: msg.receiver?.last_name || '', 
-              role: (msg.receiver?.id === selectedUserId) ? 'patient' : 'care_team' 
+              role: roleMap.get(msg.receiver?.id) || (msg.receiver?.id === selectedUserId ? 'patient' : 'care_team')
             }
           })) : [];
           
@@ -273,6 +307,23 @@ export const ChatMessagesList = ({
           console.log(`Returning ${uniqueMessages.length} unique messages in total`);
           return uniqueMessages;
         } else {
+          // Get user roles first
+          const { data: userRoles, error: rolesError } = await supabase
+            .from('user_roles')
+            .select('user_id, role')
+            .in('user_id', [user.id, selectedUserId]);
+            
+          if (rolesError) {
+            console.error("Error fetching user roles:", rolesError);
+            throw rolesError;
+          }
+          
+          // Create a lookup map for roles
+          const roleMap = new Map();
+          userRoles?.forEach(ur => {
+            roleMap.set(ur.user_id, ur.role);
+          });
+          
           // Direct conversation query
           const { data, error } = await supabase
             .from('chat_messages')
@@ -294,7 +345,7 @@ export const ChatMessagesList = ({
           
           console.log(`Returning ${data?.length || 0} direct messages`);
           
-          // Transform data to match ChatMessageType with explicit role field added
+          // Transform data to match ChatMessageType with explicit role field added from roleMap
           const transformedData = data?.map(msg => ({
             id: msg.id,
             message: msg.message,
@@ -306,13 +357,13 @@ export const ChatMessagesList = ({
               id: msg.sender?.id || '',
               first_name: msg.sender?.first_name || '',
               last_name: msg.sender?.last_name || '',
-              role: msg.sender?.id === user.id ? 'current_user' : 'other'
+              role: roleMap.get(msg.sender?.id) || (msg.sender?.id === user.id ? 'current_user' : 'other')
             },
             receiver: {
               id: msg.receiver?.id || '',
               first_name: msg.receiver?.first_name || '',
               last_name: msg.receiver?.last_name || '',
-              role: msg.receiver?.id === user.id ? 'current_user' : 'other'
+              role: roleMap.get(msg.receiver?.id) || (msg.receiver?.id === user.id ? 'current_user' : 'other')
             }
           })) || [];
           
