@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
 interface UserItem {
   id: string;
@@ -40,7 +41,18 @@ export const UserManagement = () => {
       }
       
       console.log("Users data received:", data);
-      setUsers(data || []);
+      
+      // Ensure we have the expected structure
+      const formattedUsers: UserItem[] = Array.isArray(data) ? data.map(user => ({
+        id: user.id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email || 'No email',
+        role: user.role || 'No role'
+      })) : [];
+      
+      console.log("Formatted users:", formattedUsers);
+      setUsers(formattedUsers);
       
       toast.success("User data refreshed");
     } catch (error: any) {
@@ -101,39 +113,45 @@ export const UserManagement = () => {
       </div>
       
       <div className="bg-white dark:bg-gray-800 border rounded-md shadow-sm overflow-hidden">
-        <Table>
-          <TableCaption>
-            {loading ? "Loading users..." : `${filteredUsers.length} users found`}
-          </TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredUsers.length > 0 ? (
-              filteredUsers.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    {user.first_name || user.last_name 
-                      ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
-                      : 'Unknown'}
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell className="capitalize">{user.role}</TableCell>
-                </TableRow>
-              ))
-            ) : (
+        {loading ? (
+          <div className="py-10">
+            <LoadingSpinner size="md" />
+          </div>
+        ) : (
+          <Table>
+            <TableCaption>
+              {filteredUsers.length > 0 ? `${filteredUsers.length} users found` : "No users found"}
+            </TableCaption>
+            <TableHeader>
               <TableRow>
-                <TableCell colSpan={3} className="text-center">
-                  {loading ? "Loading..." : "No users found"}
-                </TableCell>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell>
+                      {user.first_name || user.last_name 
+                        ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
+                        : 'Unknown'}
+                    </TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell className="capitalize">{user.role}</TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={3} className="text-center py-8">
+                    No users found matching your criteria
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
       </div>
     </div>
   );
