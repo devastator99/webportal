@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -313,6 +312,44 @@ export const DoctorWhatsAppChat = () => {
   const showChatOnly = isMobile && selectedPatientId && !showSidebar;
   const showSidebarOnly = isMobile && showSidebar;
 
+  const shouldShowMessage = (message) => {
+    if (!selectedPatientId || !user?.id) return false;
+    
+    // Direct messages between doctor and patient
+    if ((message.sender.id === user?.id && message.receiver.id === selectedPatientId) || 
+        (message.sender.id === selectedPatientId && message.receiver.id === user?.id)) {
+      return true;
+    }
+    
+    // AI bot messages for this patient
+    if (message.sender.id === '00000000-0000-0000-0000-000000000000' && 
+        (message.receiver.id === selectedPatientId || message.receiver.id === user?.id)) {
+      return true;
+    }
+    
+    // Care team messages related to this patient
+    // Messages sent by care team members to the patient
+    if (message.receiver.id === selectedPatientId && 
+        careTeamMembers.some(member => member.id === message.sender.id)) {
+      return true;
+    }
+    
+    // Messages sent by the patient to care team members
+    if (message.sender.id === selectedPatientId && 
+        careTeamMembers.some(member => member.id === message.receiver.id)) {
+      return true;
+    }
+    
+    // Messages between care team members about the patient (containing "[To Patient]" marker)
+    if (careTeamMembers.some(member => member.id === message.sender.id) && 
+        careTeamMembers.some(member => member.id === message.receiver.id) &&
+        message.message && message.message.includes("[To Patient]")) {
+      return true;
+    }
+    
+    return false;
+  };
+
   return (
     <ErrorBoundary>
       <Card className="h-full flex flex-col">
@@ -419,13 +456,7 @@ export const DoctorWhatsAppChat = () => {
                         selectedUserId={selectedPatientId}
                         isGroupChat={false}
                         careTeamMembers={careTeamMembers}
-                        localMessages={localMessages.filter(msg => 
-                          (msg.sender.id === user?.id && msg.receiver.id === selectedPatientId) || 
-                          (msg.sender.id === selectedPatientId && msg.receiver.id === user?.id) ||
-                          (msg.sender.id === '00000000-0000-0000-0000-000000000000') ||
-                          (msg.sender.id === selectedPatientId && careTeamMembers.some(m => m.id === msg.receiver.id)) ||
-                          (msg.receiver.id === selectedPatientId && careTeamMembers.some(m => m.id === msg.sender.id))
-                        )}
+                        localMessages={localMessages.filter(msg => shouldShowMessage(msg))}
                         includeCareTeamMessages={true}
                       />
                     )}
