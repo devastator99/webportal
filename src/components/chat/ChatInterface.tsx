@@ -32,6 +32,7 @@ interface ChatInterfaceProps {
   showGroupChat?: boolean;
   whatsAppStyle?: boolean;
   includeAiBot?: boolean;
+  includeCareTeamMessages?: boolean;
 }
 
 interface LocalMessage {
@@ -53,7 +54,8 @@ export const ChatInterface = ({
   careTeamGroup = null, 
   showGroupChat = true,
   whatsAppStyle = false,
-  includeAiBot = false
+  includeAiBot = false,
+  includeCareTeamMessages = false
 }: ChatInterfaceProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
@@ -476,6 +478,7 @@ export const ChatInterface = ({
                   isGroupChat={false}
                   offlineMode={!isOnline}
                   localMessages={localMessages}
+                  includeCareTeamMessages={includeCareTeamMessages}
                 />
                 <ChatInput
                   value={newMessage}
@@ -520,6 +523,7 @@ export const ChatInterface = ({
             isGroupChat={false}
             offlineMode={!isOnline}
             localMessages={localMessages}
+            includeCareTeamMessages={includeCareTeamMessages}
           />
         ) : (
           <ChatMessagesList
@@ -528,6 +532,7 @@ export const ChatInterface = ({
             selectedUserId={!isGroupChat ? selectedUserId : null}
             offlineMode={!isOnline}
             localMessages={localMessages}
+            includeCareTeamMessages={includeCareTeamMessages}
           />
         )}
         
