@@ -44,17 +44,25 @@ export const DoctorWhatsAppChat = () => {
   };
 
   // Get assigned patients for doctor using the RPC function with security definer
-  const { data: assignedPatients, isLoading: isLoadingPatients, error } = useQuery({
+  const { data: assignedPatients = [], isLoading: isLoadingPatients, error } = useQuery({
     queryKey: ["doctor_patients", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       
       try {
+        console.log("Fetching patients assigned to doctor:", user.id);
+        
         // Use the get_doctor_patients RPC function with security definer
+        // This queries the patient_assignments table where the doctor is assigned
         const { data, error } = await supabase
           .rpc('get_doctor_patients', { p_doctor_id: user.id });
           
-        if (error) throw error;
+        if (error) {
+          console.error("Error in get_doctor_patients RPC:", error);
+          throw error;
+        }
+        
+        console.log("Patients retrieved:", data?.length || 0);
         
         // Sort by name
         const sortedPatients = [...(data || [])].sort((a, b) => {
@@ -80,7 +88,7 @@ export const DoctorWhatsAppChat = () => {
 
   // Select first patient by default if none selected
   useEffect(() => {
-    if (assignedPatients?.length && !selectedPatientId) {
+    if (assignedPatients.length > 0 && !selectedPatientId) {
       setSelectedPatientId(assignedPatients[0].id);
     }
   }, [assignedPatients, selectedPatientId]);
@@ -92,13 +100,21 @@ export const DoctorWhatsAppChat = () => {
       
       try {
         setIsLoadingCareTeam(true);
+        console.log("Fetching care team for patient:", selectedPatientId);
+        
         // Use RPC function to get care team members securely
+        // This also queries the patient_assignments table
         const { data, error } = await supabase
           .rpc('get_patient_care_team_members', {
             p_patient_id: selectedPatientId
           });
           
-        if (error) throw error;
+        if (error) {
+          console.error("Error in get_patient_care_team_members RPC:", error);
+          throw error;
+        }
+        
+        console.log("Care team members retrieved:", data?.length || 0);
         
         // Add the AI bot to the care team
         const updatedCareTeam = [...(data || [])];
@@ -267,7 +283,7 @@ export const DoctorWhatsAppChat = () => {
   };
 
   // Loading state for the patient list
-  if (isLoadingPatients && !assignedPatients?.length) {
+  if (isLoadingPatients && assignedPatients.length === 0) {
     return (
       <Card className="h-full flex flex-col">
         <CardContent className="p-4 flex flex-1 justify-center items-center">
@@ -283,7 +299,7 @@ export const DoctorWhatsAppChat = () => {
   }
 
   // If no patients assigned
-  if (assignedPatients?.length === 0 && !isLoadingPatients) {
+  if (assignedPatients.length === 0 && !isLoadingPatients) {
     return (
       <Card className="h-full flex items-center justify-center">
         <CardContent>
@@ -296,7 +312,7 @@ export const DoctorWhatsAppChat = () => {
   }
 
   // Find the selected patient safely with optional chaining
-  const selectedPatient = assignedPatients && selectedPatientId 
+  const selectedPatient = selectedPatientId 
     ? assignedPatients.find(p => p.id === selectedPatientId) 
     : undefined;
 
@@ -334,8 +350,7 @@ export const DoctorWhatsAppChat = () => {
                   </div>
                 ) : (
                   <div className="space-y-0">
-                    {/* Use optional chaining to safely access assignedPatients */}
-                    {assignedPatients?.map((patient) => (
+                    {assignedPatients.map((patient) => (
                       <div key={patient.id}>
                         <div 
                           className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/50 transition-colors ${
