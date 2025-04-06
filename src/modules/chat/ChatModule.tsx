@@ -49,7 +49,7 @@ export const ChatModule = ({
                 assignedUsers={assignedUsers}
                 careTeamGroup={careTeamGroup}
                 showGroupChat={userRole !== "doctor" && userRole !== "nutritionist"}
-                whatsAppStyle={true}
+                whatsAppStyle={userRole === "doctor" || userRole === "nutritionist"}
               />
             );
           }}

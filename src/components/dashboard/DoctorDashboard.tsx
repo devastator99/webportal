@@ -12,7 +12,6 @@ import { useNavigate } from "react-router-dom";
 import { featureFlags } from "@/config/features";
 import { ChatModule } from "@/modules/chat/ChatModule";
 import { DoctorVideoUploader } from "@/components/dashboard/doctor/DoctorVideoUploader";
-import { CareTeamAIChat } from "@/components/chat/CareTeamAIChat";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlternativeDoctorDashboard } from "@/components/dashboard/doctor/AlternativeDoctorDashboard";
 

@@ -5,8 +5,9 @@ import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { UsersProvider } from "@/components/chat/UsersProvider";
 import { ChatInterface } from "@/components/chat/ChatInterface";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { MessageSquare } from "lucide-react";
 
 const ChatPage = () => {
   const { user, userRole } = useAuth();
@@ -24,7 +25,13 @@ const ChatPage = () => {
       <Navbar />
       <div className="container mx-auto py-4 px-4 max-w-7xl flex-1 flex flex-col h-[calc(100vh-70px)] overflow-hidden">
         <Card className="h-full flex flex-col overflow-hidden">
-          <CardContent className="p-0 h-full">
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Care Team Chat
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="p-0 h-full flex-1 overflow-hidden">
             <ErrorBoundary>
               <UsersProvider>
                 {({ careTeamGroup, assignedUsers, isLoading, error }) => (
@@ -42,7 +49,7 @@ const ChatPage = () => {
                         assignedUsers={assignedUsers}
                         careTeamGroup={careTeamGroup}
                         showGroupChat={userRole !== "doctor" && userRole !== "nutritionist"}
-                        whatsAppStyle={true}
+                        whatsAppStyle={userRole === "doctor" || userRole === "nutritionist"}
                       />
                     )}
                   </div>
