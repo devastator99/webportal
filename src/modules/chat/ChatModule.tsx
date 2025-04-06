@@ -1,8 +1,10 @@
 
 import { useEffect } from "react";
+import { UsersProvider } from "@/components/chat/UsersProvider";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { ChatbotWidget } from "@/components/chat/ChatbotWidget";
 import { initOfflineDB } from "@/utils/offlineStorage";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ChatModuleProps {
   showChatInterface?: boolean;
@@ -17,6 +19,8 @@ export const ChatModule = ({
   showChatInterface = true, 
   showChatbotWidget = true 
 }: ChatModuleProps) => {
+  const { userRole } = useAuth();
+  
   // Initialize the offline database when the chat module loads
   useEffect(() => {
     const initDb = async () => {
@@ -31,9 +35,31 @@ export const ChatModule = ({
     initDb();
   }, []);
   
+  // Helper function to check if user is a healthcare provider
+  const isHealthcareProvider = () => {
+    return userRole === "doctor" || userRole === "nutritionist";
+  };
+  
   return (
     <>
-      {showChatInterface && <ChatInterface />}
+      {showChatInterface && (
+        <UsersProvider>
+          {({ careTeamGroup, assignedUsers, isLoading, error }) => {
+            if (isLoading || error || (!careTeamGroup && !assignedUsers.length)) {
+              return null; // Don't render anything if loading or error
+            }
+            
+            return (
+              <ChatInterface 
+                assignedUsers={assignedUsers}
+                careTeamGroup={careTeamGroup}
+                showGroupChat={!isHealthcareProvider()}
+                whatsAppStyle={true}
+              />
+            );
+          }}
+        </UsersProvider>
+      )}
       {showChatbotWidget && <ChatbotWidget />}
     </>
   );

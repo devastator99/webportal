@@ -1,10 +1,10 @@
+
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { UsersProvider } from "@/components/chat/UsersProvider";
 import { ChatInterface } from "@/components/chat/ChatInterface";
-import { DoctorWhatsAppChat } from "@/components/chat/DoctorWhatsAppChat";
 import { Card, CardContent } from "@/components/ui/card";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
@@ -31,45 +31,39 @@ const ChatPage = () => {
         <Card className="h-full flex flex-col overflow-hidden">
           <CardContent className="p-0 h-full">
             <ErrorBoundary>
-              {userRole === "doctor" ? (
-                // Doctor gets WhatsApp-style interface with all patients
-                <DoctorWhatsAppChat />
-              ) : (
-                // Other roles use the existing ChatInterface with UsersProvider
-                <UsersProvider>
-                  {({ careTeamGroup, assignedUsers, isLoading, error }) => (
-                    <div className="w-full h-full">
-                      {isLoading ? (
-                        <div className="flex items-center justify-center h-full">
-                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-                        </div>
-                      ) : error ? (
-                        <div className="text-center py-12 text-red-500">
-                          Error loading chat data. Please try again later.
-                        </div>
-                      ) : isHealthcareProvider() ? (
-                        <ChatInterface 
-                          assignedUsers={assignedUsers}
-                          showGroupChat={false}
-                          whatsAppStyle={true}
-                        />
-                      ) : careTeamGroup ? (
-                        <ChatInterface 
-                          careTeamGroup={careTeamGroup} 
-                          showGroupChat={true} 
-                        />
-                      ) : (
-                        <div className="text-center py-12 text-muted-foreground">
-                          {isHealthcareProvider() ? 
-                            "No patients are currently assigned to you." :
-                            "No care team is currently assigned to you. Please contact the clinic to set up your care team."
-                          }
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </UsersProvider>
-              )}
+              <UsersProvider>
+                {({ careTeamGroup, assignedUsers, isLoading, error }) => (
+                  <div className="w-full h-full">
+                    {isLoading ? (
+                      <div className="flex items-center justify-center h-full">
+                        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+                      </div>
+                    ) : error ? (
+                      <div className="text-center py-12 text-red-500">
+                        Error loading chat data. Please try again later.
+                      </div>
+                    ) : isHealthcareProvider() ? (
+                      <ChatInterface 
+                        assignedUsers={assignedUsers}
+                        showGroupChat={false}
+                        whatsAppStyle={true}
+                      />
+                    ) : careTeamGroup ? (
+                      <ChatInterface 
+                        careTeamGroup={careTeamGroup} 
+                        showGroupChat={true} 
+                      />
+                    ) : (
+                      <div className="text-center py-12 text-muted-foreground">
+                        {isHealthcareProvider() ? 
+                          "No patients are currently assigned to you." :
+                          "No care team is currently assigned to you. Please contact the clinic to set up your care team."
+                        }
+                      </div>
+                    )}
+                  </div>
+                )}
+              </UsersProvider>
             </ErrorBoundary>
           </CardContent>
         </Card>

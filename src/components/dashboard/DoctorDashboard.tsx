@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { StatsCards } from "@/components/dashboard/doctor/StatsCards";
 import { AiAssistant } from "@/components/dashboard/doctor/AiAssistant";
@@ -6,7 +7,7 @@ import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWr
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { Users, LayoutGrid } from "lucide-react";
+import { Users, LayoutGrid, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { featureFlags } from "@/config/features";
 import { ChatModule } from "@/modules/chat/ChatModule";
@@ -45,6 +46,15 @@ export const DoctorDashboard = () => {
       >
         <LayoutGrid className="h-4 w-4" />
         <span>Collapsible View</span>
+      </Button>
+      
+      <Button 
+        className="w-full justify-start bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md text-sm"
+        size="sm"
+        onClick={() => navigate("/chat")}
+      >
+        <MessageSquare className="h-4 w-4" />
+        <span>Chat</span>
       </Button>
     </>
   );
