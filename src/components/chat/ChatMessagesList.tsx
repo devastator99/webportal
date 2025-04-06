@@ -29,6 +29,17 @@ interface ChatMessagesListProps {
   includeCareTeamMessages?: boolean;
 }
 
+// Define proper types for the chat message
+interface ChatMessageType {
+  id: string;
+  message: string;
+  message_type: string;
+  created_at: string;
+  read: boolean;
+  sender: UserProfile;
+  receiver: UserProfile;
+}
+
 export const ChatMessagesList = ({ 
   selectedUserId, 
   isGroupChat = false, 
@@ -56,7 +67,7 @@ export const ChatMessagesList = ({
       });
 
       if (isGroupChat && careTeamGroup) {
-        const allMessages = [];
+        const allMessages: ChatMessageType[] = [];
         
         const careTeamIds = careTeamGroup.members.map(member => member.id);
         if (!careTeamIds.includes(user.id)) {
@@ -70,8 +81,8 @@ export const ChatMessagesList = ({
           .from('chat_messages')
           .select(`
             *,
-            sender:sender_id(id, first_name, last_name, role),
-            receiver:receiver_id(id, first_name, last_name, role)
+            sender:profiles!sender_id(id, first_name, last_name, role),
+            receiver:profiles!receiver_id(id, first_name, last_name, role)
           `)
           .or(`sender_id.in.(${careTeamIds.join(',')}),receiver_id.in.(${careTeamIds.join(',')})`)
           .order('created_at', { ascending: true });
@@ -120,8 +131,8 @@ export const ChatMessagesList = ({
             .from('chat_messages')
             .select(`
               *,
-              sender:sender_id(id, first_name, last_name, role),
-              receiver:receiver_id(id, first_name, last_name, role)
+              sender:profiles!sender_id(id, first_name, last_name, role),
+              receiver:profiles!receiver_id(id, first_name, last_name, role)
             `)
             .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`)
             .order('created_at', { ascending: true });
@@ -136,8 +147,8 @@ export const ChatMessagesList = ({
             .from('chat_messages')
             .select(`
               *,
-              sender:sender_id(id, first_name, last_name, role),
-              receiver:receiver_id(id, first_name, last_name, role)
+              sender:profiles!sender_id(id, first_name, last_name, role),
+              receiver:profiles!receiver_id(id, first_name, last_name, role)
             `)
             .or(`sender_id.eq.${selectedUserId},receiver_id.eq.${selectedUserId}`)
             .order('created_at', { ascending: true });
@@ -183,8 +194,8 @@ export const ChatMessagesList = ({
             .from('chat_messages')
             .select(`
               *,
-              sender:sender_id(id, first_name, last_name, role),
-              receiver:receiver_id(id, first_name, last_name, role)
+              sender:profiles!sender_id(id, first_name, last_name, role),
+              receiver:profiles!receiver_id(id, first_name, last_name, role)
             `)
             .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`)
             .order('created_at', { ascending: true });
