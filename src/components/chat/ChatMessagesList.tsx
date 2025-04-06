@@ -65,9 +65,14 @@ export const ChatMessagesList = ({
         
         console.log("Care team IDs for group chat:", careTeamIds);
         
+        // Fixed query with explicit column hints for the relationships
         const { data: allTeamMessages, error: allTeamError } = await supabase
           .from('chat_messages')
-          .select('*, sender:sender_id(id, first_name, last_name, role), receiver:receiver_id(id, first_name, last_name, role)')
+          .select(`
+            *,
+            sender:sender_id(id, first_name, last_name, role),
+            receiver:receiver_id(id, first_name, last_name, role)
+          `)
           .or(`sender_id.in.(${careTeamIds.join(',')}),receiver_id.in.(${careTeamIds.join(',')})`)
           .order('created_at', { ascending: true });
         
@@ -85,8 +90,9 @@ export const ChatMessagesList = ({
           new Map(allMessages.map(msg => [msg.id, msg])).values()
         );
         
-        // Only filter if we have valid messages
+        // Only filter if we have valid messages and valid sender/receiver objects
         const filteredMessages = uniqueMessages.filter(msg => {
+          if (!msg || !msg.sender || !msg.receiver) return false;
           // Check if both sender and receiver IDs are included in the careTeamIds
           return careTeamIds.includes(msg.sender.id) && careTeamIds.includes(msg.receiver.id);
         });
@@ -109,9 +115,14 @@ export const ChatMessagesList = ({
           
           console.log("All relevant IDs for message fetching:", allRelevantIds);
           
+          // Fixed direct messages query with explicit column hints
           const { data: directMessages, error: directError } = await supabase
             .from('chat_messages')
-            .select('*, sender:sender_id(id, first_name, last_name, role), receiver:receiver_id(id, first_name, last_name, role)')
+            .select(`
+              *,
+              sender:sender_id(id, first_name, last_name, role),
+              receiver:receiver_id(id, first_name, last_name, role)
+            `)
             .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`)
             .order('created_at', { ascending: true });
             
@@ -120,9 +131,14 @@ export const ChatMessagesList = ({
             throw directError;
           }
 
+          // Fixed patient care team messages query with explicit column hints
           const { data: patientCareTeamMessages, error: careTeamError } = await supabase
             .from('chat_messages')
-            .select('*, sender:sender_id(id, first_name, last_name, role), receiver:receiver_id(id, first_name, last_name, role)')
+            .select(`
+              *,
+              sender:sender_id(id, first_name, last_name, role),
+              receiver:receiver_id(id, first_name, last_name, role)
+            `)
             .or(`sender_id.eq.${selectedUserId},receiver_id.eq.${selectedUserId}`)
             .order('created_at', { ascending: true });
             
@@ -162,9 +178,14 @@ export const ChatMessagesList = ({
           console.log(`Returning ${uniqueMessages.length} unique messages in total`);
           return uniqueMessages;
         } else {
+          // Fixed direct conversation query with explicit column hints
           const { data, error } = await supabase
             .from('chat_messages')
-            .select('*, sender:sender_id(id, first_name, last_name, role), receiver:receiver_id(id, first_name, last_name, role)')
+            .select(`
+              *,
+              sender:sender_id(id, first_name, last_name, role),
+              receiver:receiver_id(id, first_name, last_name, role)
+            `)
             .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`)
             .order('created_at', { ascending: true });
 
