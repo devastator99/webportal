@@ -295,7 +295,10 @@ export const DoctorWhatsAppChat = () => {
     );
   }
 
-  const selectedPatient = assignedPatients?.find(p => p.id === selectedPatientId);
+  // Find the selected patient safely with optional chaining
+  const selectedPatient = assignedPatients && selectedPatientId 
+    ? assignedPatients.find(p => p.id === selectedPatientId) 
+    : undefined;
 
   // If it's a mobile device, only show one view at a time
   const showChatOnly = isMobile && selectedPatientId && !showSidebar;
@@ -331,6 +334,7 @@ export const DoctorWhatsAppChat = () => {
                   </div>
                 ) : (
                   <div className="space-y-0">
+                    {/* Use optional chaining to safely access assignedPatients */}
                     {assignedPatients?.map((patient) => (
                       <div key={patient.id}>
                         <div 
