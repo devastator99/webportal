@@ -58,10 +58,14 @@ export const UserManagement = () => {
       // Ensure we properly type the data as UserItem[]
       setUsers((data || []) as UserItem[]);
       
-      // Count unknown users
+      // Count unknown users - include null, empty string, or "unknown" first names
       const unknownUsers = data?.filter(
         (user: UserItem) => !user.first_name || user.first_name === '' || user.first_name === 'unknown'
       ) || [];
+      
+      console.log("Unknown users count:", unknownUsers.length);
+      console.log("Unknown users:", unknownUsers);
+      
       setUnknownUsersCount(unknownUsers.length);
       
       toast.success("User data refreshed");
@@ -189,7 +193,7 @@ export const UserManagement = () => {
             {loading ? "Refreshing..." : "Refresh"}
           </Button>
           
-          {unknownUsersCount > 0 && (
+          {unknownUsersCount > 0 ? (
             <Button 
               variant="destructive" 
               className="flex items-center gap-2"
@@ -199,7 +203,7 @@ export const UserManagement = () => {
               <Trash2 className="h-4 w-4" />
               {deleteLoading ? "Deleting..." : `Delete Unknown (${unknownUsersCount})`}
             </Button>
-          )}
+          ) : null}
         </div>
       </div>
       
