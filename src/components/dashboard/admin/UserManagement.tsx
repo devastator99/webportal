@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { adminDeleteUser, supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Table, 
@@ -13,10 +13,9 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Search, RefreshCw, Trash2 } from "lucide-react";
+import { Search, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface UserItem {
@@ -30,12 +29,9 @@ interface UserItem {
 export const UserManagement = () => {
   const { toast: uiToast } = useToast();
   const [loading, setLoading] = useState(true);
-  const [deleteLoading, setDeleteLoading] = useState(false);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [unknownUsersCount, setUnknownUsersCount] = useState(0);
-  const { user } = useAuth();
   
   useEffect(() => {
     fetchUsers();
@@ -58,16 +54,6 @@ export const UserManagement = () => {
       // Ensure we properly type the data as UserItem[]
       setUsers((data || []) as UserItem[]);
       
-      // Count unknown users - include null, empty string, or "unknown" first names
-      const unknownUsers = data?.filter(
-        (user: UserItem) => !user.first_name || user.first_name === '' || user.first_name === 'unknown'
-      ) || [];
-      
-      console.log("Unknown users count:", unknownUsers.length);
-      console.log("Unknown users:", unknownUsers);
-      
-      setUnknownUsersCount(unknownUsers.length);
-      
       toast.success("User data refreshed");
     } catch (error: any) {
       console.error("Error fetching users:", error);
@@ -78,71 +64,6 @@ export const UserManagement = () => {
       });
     } finally {
       setLoading(false);
-    }
-  };
-  
-  const deleteEmptyNameUsers = async () => {
-    if (!user?.id) {
-      toast.error("Admin ID is required");
-      return;
-    }
-
-    setDeleteLoading(true);
-    try {
-      // Filter users with empty first names
-      const emptyNameUsers = users.filter(
-        user => !user.first_name || user.first_name === '' || user.first_name === 'unknown'
-      );
-      
-      if (emptyNameUsers.length === 0) {
-        toast.info("No users with empty names to delete");
-        return;
-      }
-      
-      // Delete each user one by one
-      let successCount = 0;
-      let failCount = 0;
-      
-      for (const emptyUser of emptyNameUsers) {
-        try {
-          console.log(`Attempting to delete user ${emptyUser.id} with admin ${user.id}`);
-          const result = await adminDeleteUser(emptyUser.id, user.id);
-          
-          if (result.success) {
-            successCount++;
-          } else {
-            console.error(`Failed to delete user ${emptyUser.id}:`, result.error);
-            failCount++;
-          }
-        } catch (error) {
-          console.error(`Error deleting user ${emptyUser.id}:`, error);
-          failCount++;
-        }
-      }
-      
-      // Refresh the user list
-      await fetchUsers();
-      
-      if (successCount > 0) {
-        toast.success(`Successfully deleted ${successCount} users with empty names`);
-      }
-      
-      if (failCount > 0) {
-        uiToast({
-          title: "Some deletions failed",
-          description: `Failed to delete ${failCount} users. Check console for details.`,
-          variant: "destructive",
-        });
-      }
-    } catch (error: any) {
-      console.error("Error deleting users with empty names:", error);
-      uiToast({
-        title: "Error deleting users",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setDeleteLoading(false);
     }
   };
   
@@ -192,18 +113,6 @@ export const UserManagement = () => {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             {loading ? "Refreshing..." : "Refresh"}
           </Button>
-          
-          {unknownUsersCount > 0 ? (
-            <Button 
-              variant="destructive" 
-              className="flex items-center gap-2"
-              onClick={deleteEmptyNameUsers}
-              disabled={deleteLoading}
-            >
-              <Trash2 className="h-4 w-4" />
-              {deleteLoading ? "Deleting..." : `Delete Unknown (${unknownUsersCount})`}
-            </Button>
-          ) : null}
         </div>
       </div>
       
