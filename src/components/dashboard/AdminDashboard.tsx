@@ -42,13 +42,6 @@ export const AdminDashboard = () => {
 
         if (nutritionistsError) throw nutritionistsError;
 
-        // Get total appointments
-        const { count: appointmentsCount, error: appointmentsError } = await supabase
-          .from("appointments")
-          .select("*", { count: "exact", head: true });
-
-        if (appointmentsError) throw appointmentsError;
-
         // Get today's appointments
         const today = new Date().toISOString().split('T')[0];
         const { count: todayAppointmentsCount, error: todayAppointmentsError } = await supabase
@@ -63,7 +56,6 @@ export const AdminDashboard = () => {
           patients: patients?.[0]?.count || 0,
           doctors: doctors?.[0]?.count || 0,
           nutritionists: nutritionists?.[0]?.count || 0,
-          appointments: appointmentsCount || 0,
           todayAppointments: todayAppointmentsCount || 0
         });
 
@@ -71,7 +63,6 @@ export const AdminDashboard = () => {
           patients: patients?.[0]?.count || 0,
           doctors: doctors?.[0]?.count || 0,
           nutritionists: nutritionists?.[0]?.count || 0,
-          appointments: appointmentsCount || 0,
           todayAppointments: todayAppointmentsCount || 0
         };
       } catch (error) {
@@ -80,7 +71,6 @@ export const AdminDashboard = () => {
           patients: 0,
           doctors: 0,
           nutritionists: 0,
-          appointments: 0,
           todayAppointments: 0
         };
       }
@@ -91,7 +81,7 @@ export const AdminDashboard = () => {
     <div className="container mx-auto pt-20 pb-6 px-4 md:px-6 space-y-6">
       <DashboardHeader />
       
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Patients</CardTitle>
@@ -125,18 +115,6 @@ export const AdminDashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{isLoading ? "..." : userStats?.nutritionists || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Appointments</CardTitle>
-            <div className="bg-[#D3E4FD] p-2 rounded-full">
-              <Calendar className="h-4 w-4 text-[#0EA5E9]" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{isLoading ? "..." : userStats?.appointments || 0}</div>
           </CardContent>
         </Card>
 
