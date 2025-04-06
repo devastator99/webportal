@@ -43,8 +43,8 @@ export const usePatientAssignments = () => {
       try {
         console.log("Fetching patient assignments using RPC function");
         
-        // Call the secure RPC function directly to avoid typings issues
-        const { data, error } = await supabase.rpc('get_patient_assignments_report');
+        // Call the RPC function directly to get patient assignments report
+        const { data, error } = await supabase.from('patient_assignments_report').select('*');
         
         if (error) {
           console.error("Error fetching patient assignments:", error);
