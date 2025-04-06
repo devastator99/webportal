@@ -40,14 +40,14 @@ export const DoctorWhatsAppChat = () => {
     setShowSidebar(prev => !prev);
   };
 
-  // Get assigned patients for doctor
+  // Get assigned patients for doctor using the RPC function with security definer
   const { data: assignedPatients, isLoading, error } = useQuery({
     queryKey: ["doctor_patients", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       
       try {
-        // Use the get_doctor_patients function
+        // Use the get_doctor_patients RPC function with security definer
         const { data, error } = await supabase
           .rpc('get_doctor_patients', { p_doctor_id: user.id });
           
@@ -109,15 +109,15 @@ export const DoctorWhatsAppChat = () => {
       // Add to local messages array so it shows immediately
       setLocalMessages(prev => [...prev, tempMessage]);
       
-      // Send message to selected patient
-      await supabase.functions.invoke("send-chat-message", {
-        body: {
-          sender_id: user.id,
-          receiver_id: selectedPatientId,
-          message: newMessage,
-          message_type: "text"
-        }
+      // Send message to selected patient using secure RPC
+      const { data, error } = await supabase.rpc('send_chat_message', {
+        p_sender_id: user.id,
+        p_receiver_id: selectedPatientId,
+        p_message: newMessage,
+        p_message_type: 'text'
       });
+      
+      if (error) throw error;
       
       // Clear input after sending
       setNewMessage("");
@@ -131,6 +131,90 @@ export const DoctorWhatsAppChat = () => {
         title: "Message sent",
         duration: 2000,
       });
+      
+      // Check if we need to trigger an AI response for the care team
+      try {
+        // Get care team to check if AI bot is part of it
+        const { data: careTeam } = await supabase.rpc('get_patient_care_team_members', {
+          p_patient_id: selectedPatientId
+        });
+        
+        const hasAiBot = Array.isArray(careTeam) && careTeam.some(member => 
+          member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000'
+        );
+        
+        if (hasAiBot) {
+          // Get AI response
+          const { data: aiResponse } = await supabase.functions.invoke('doctor-ai-assistant', {
+            body: { 
+              messages: [{ role: "user", content: newMessage }],
+              preferredLanguage: 'en',
+              patientId: selectedPatientId,
+              isCareTeamChat: true
+            },
+          });
+          
+          if (aiResponse && aiResponse.response) {
+            setTimeout(() => {
+              // Create AI message
+              const aiMessage = {
+                id: uuidv4(),
+                message: aiResponse.response,
+                message_type: "text",
+                created_at: new Date().toISOString(),
+                read: false,
+                sender: {
+                  id: '00000000-0000-0000-0000-000000000000',
+                  first_name: 'AI',
+                  last_name: 'Assistant',
+                  role: 'aibot'
+                },
+                receiver: {
+                  id: user.id,
+                  first_name: null,
+                  last_name: null
+                },
+                synced: true
+              };
+              
+              // Add AI message to local messages
+              setLocalMessages(prev => [...prev, aiMessage]);
+              
+              // Also send AI's response to the patient and nutritionist
+              supabase.rpc('send_chat_message', {
+                p_sender_id: '00000000-0000-0000-0000-000000000000',
+                p_receiver_id: selectedPatientId,
+                p_message: aiResponse.response,
+                p_message_type: 'text'
+              });
+              
+              // Get nutritionist for this patient, if any
+              supabase.rpc('get_patient_care_team_members', {
+                p_patient_id: selectedPatientId
+              }).then(({ data: teamMembers }) => {
+                const nutritionist = teamMembers?.find(m => m.role === 'nutritionist');
+                if (nutritionist?.id) {
+                  // Send AI message to nutritionist too
+                  supabase.rpc('send_chat_message', {
+                    p_sender_id: '00000000-0000-0000-0000-000000000000',
+                    p_receiver_id: nutritionist.id,
+                    p_message: aiResponse.response,
+                    p_message_type: 'text'
+                  });
+                }
+              });
+              
+              // Invalidate queries to refresh messages
+              queryClient.invalidateQueries({ 
+                queryKey: ["chat_messages"] 
+              });
+            }, 1500);
+          }
+        }
+      } catch (aiError) {
+        console.error("Error getting AI response:", aiError);
+        // Don't fail the whole operation if AI response fails
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       toast({
@@ -172,7 +256,6 @@ export const DoctorWhatsAppChat = () => {
           {(showSidebar || showSidebarOnly) && (
             <div className={`${showSidebarOnly ? 'w-full' : (isIPad ? 'w-2/5' : 'w-1/3')} border-r h-full bg-background relative`}>
               <div className="p-3 bg-muted/40 border-b flex justify-between items-center">
-                <h3 className="font-medium">Patients</h3>
                 {isMobile && (
                   <Button variant="ghost" size="icon" onClick={toggleSidebar}>
                     <ChevronLeft className="h-5 w-5" />
@@ -254,7 +337,8 @@ export const DoctorWhatsAppChat = () => {
                       isGroupChat={false}
                       localMessages={localMessages.filter(msg => 
                         (msg.sender.id === user?.id && msg.receiver.id === selectedPatientId) || 
-                        (msg.sender.id === selectedPatientId && msg.receiver.id === user?.id)
+                        (msg.sender.id === selectedPatientId && msg.receiver.id === user?.id) ||
+                        (msg.sender.id === '00000000-0000-0000-0000-000000000000') // Include AI messages
                       )}
                     />
                     

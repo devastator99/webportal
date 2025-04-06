@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -144,14 +143,15 @@ export const ChatInterface = ({
 
           for (const message of unsyncedMessages) {
             try {
-              await supabase.functions.invoke("send-chat-message", {
-                body: {
-                  sender_id: message.sender_id,
-                  receiver_id: message.receiver_id,
-                  message: message.message,
-                  message_type: message.message_type
-                }
+              // Use RPC for sending chat messages
+              const { error } = await supabase.rpc('send_chat_message', {
+                p_sender_id: message.sender_id,
+                p_receiver_id: message.receiver_id,
+                p_message: message.message,
+                p_message_type: message.message_type
               });
+              
+              if (error) throw error;
               
               await markMessageAsSynced(message.id);
               await deleteOfflineMessage(message.id);
@@ -227,20 +227,89 @@ export const ChatInterface = ({
           return;
         }
         
-        // Send message to the selected patient
-        await supabase.functions.invoke("send-chat-message", {
-          body: {
-            sender_id: user.id,
-            receiver_id: selectedUserId,
-            message: newMessage,
-            message_type: "text"
-          }
+        // Send message to the selected patient using RPC
+        const { error } = await supabase.rpc('send_chat_message', {
+          p_sender_id: user.id,
+          p_receiver_id: selectedUserId,
+          p_message: newMessage,
+          p_message_type: 'text'
         });
+        
+        if (error) throw error;
         
         setNewMessage("");
         toast({
           title: "Message sent",
         });
+        
+        // Get AI response if needed
+        try {
+          // Get care team to check if AI bot is part of it
+          const { data: careTeamMembers } = await supabase.rpc('get_patient_care_team_members', {
+            p_patient_id: selectedUserId
+          });
+          
+          const hasAiBot = Array.isArray(careTeamMembers) && careTeamMembers.some(member => 
+            member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000'
+          );
+          
+          if (hasAiBot) {
+            // Get AI response
+            const { data: aiResponse } = await supabase.functions.invoke('doctor-ai-assistant', {
+              body: { 
+                messages: [{ role: "user", content: newMessage }],
+                preferredLanguage: 'en',
+                patientId: selectedUserId,
+                isCareTeamChat: true
+              },
+            });
+            
+            if (aiResponse && aiResponse.response) {
+              setTimeout(() => {
+                // Create AI message
+                const aiMessage: LocalMessage = {
+                  id: uuidv4(),
+                  message: aiResponse.response,
+                  created_at: new Date().toISOString(),
+                  read: false,
+                  sender: {
+                    id: '00000000-0000-0000-0000-000000000000',
+                    first_name: 'AI',
+                    last_name: 'Assistant',
+                    role: 'aibot'
+                  },
+                  synced: true
+                };
+                
+                // Add AI message to local messages
+                setLocalMessages(prev => [...prev, aiMessage]);
+                
+                // Also send AI's response to the patient and nutritionist
+                supabase.rpc('send_chat_message', {
+                  p_sender_id: '00000000-0000-0000-0000-000000000000',
+                  p_receiver_id: selectedUserId,
+                  p_message: aiResponse.response,
+                  p_message_type: 'text'
+                });
+                
+                // Find nutritionist in care team and send message to them too
+                const nutritionist = careTeamMembers?.find(m => m.role === 'nutritionist');
+                if (nutritionist?.id) {
+                  supabase.rpc('send_chat_message', {
+                    p_sender_id: '00000000-0000-0000-0000-000000000000',
+                    p_receiver_id: nutritionist.id,
+                    p_message: aiResponse.response,
+                    p_message_type: 'text'
+                  });
+                }
+              }, 1500);
+            }
+          }
+        } catch (aiError) {
+          console.error("Error getting AI response:", aiError);
+          // Don't fail the whole operation if AI response fails
+        }
+        
         return;
       }
       
@@ -287,24 +356,24 @@ export const ChatInterface = ({
           return;
         }
         
-        // Send message to all care team members
+        // Send message to all care team members using RPC
         const sendPromises = careTeamGroup.members.map(member => {
-          if (member.role === 'aibot') return Promise.resolve();
+          if (member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000') return Promise.resolve();
           
-          return supabase.functions.invoke("send-chat-message", {
-            body: {
-              sender_id: user.id,
-              receiver_id: member.id,
-              message: newMessage,
-              message_type: "text"
-            }
+          return supabase.rpc('send_chat_message', {
+            p_sender_id: user.id,
+            p_receiver_id: member.id,
+            p_message: newMessage,
+            p_message_type: 'text'
           });
         }).filter(Boolean);
 
         await Promise.all(sendPromises);
         
         // Get AI response if there's an AI bot in the care team
-        if (careTeamGroup.members.some(member => member.role === 'aibot')) {
+        if (careTeamGroup.members.some(member => 
+          member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000'
+        )) {
           try {
             const { data: aiResponse } = await supabase.functions.invoke('doctor-ai-assistant', {
               body: { 
@@ -337,13 +406,11 @@ export const ChatInterface = ({
                 const aiSendPromises = careTeamGroup.members
                   .filter(member => member.id !== '00000000-0000-0000-0000-000000000000')
                   .map(member => {
-                    return supabase.functions.invoke("send-chat-message", {
-                      body: {
-                        sender_id: '00000000-0000-0000-0000-000000000000',
-                        receiver_id: member.id,
-                        message: aiResponse.response,
-                        message_type: "text"
-                      }
+                    return supabase.rpc('send_chat_message', {
+                      p_sender_id: '00000000-0000-0000-0000-000000000000',
+                      p_receiver_id: member.id,
+                      p_message: aiResponse.response,
+                      p_message_type: 'text'
                     });
                   });
                 
@@ -377,11 +444,6 @@ export const ChatInterface = ({
         {/* Patient list sidebar */}
         <div className="w-full md:w-1/3 border-r h-64 md:h-full overflow-y-auto">
           <div className="p-2">
-            <div className="flex items-center justify-between gap-2 px-2 py-1">
-              <div className="text-sm font-medium text-gray-500">
-                All Patients
-              </div>
-            </div>
             {assignedUsers.map((patient) => (
               <div 
                 key={patient.id}
@@ -459,6 +521,7 @@ export const ChatInterface = ({
     );
   }
 
+  
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
