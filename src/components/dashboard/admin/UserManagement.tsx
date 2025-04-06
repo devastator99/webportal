@@ -48,8 +48,7 @@ export const UserManagement = () => {
         first_name: user.first_name,
         last_name: user.last_name,
         email: user.email || 'No email',
-        // Convert role from unknown or user_type to string safely
-        role: typeof user.role === 'string' ? user.role : String(user.role)
+        role: user.role || 'No role'
       })) : [];
       
       console.log("Formatted users:", formattedUsers);
