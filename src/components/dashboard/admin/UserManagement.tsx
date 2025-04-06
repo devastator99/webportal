@@ -13,10 +13,9 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Search, Users, RefreshCw, Trash2, AlertCircle, UserX } from "lucide-react";
+import { Search, Users, RefreshCw, Trash2, UserX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
@@ -35,7 +34,6 @@ export const UserManagement = () => {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [unknownUsersCount, setUnknownUsersCount] = useState(0);
   const { user } = useAuth();
   
@@ -79,7 +77,7 @@ export const UserManagement = () => {
     }
   };
   
-  const deleteUnknownUsers = async () => {
+  const deleteEmptyNameUsers = async () => {
     if (!user?.id) {
       toast.error("Admin ID is required");
       return;
@@ -87,34 +85,33 @@ export const UserManagement = () => {
 
     setDeleteLoading(true);
     try {
-      // Filter users with unknown or empty first names
-      const unknownUsers = users.filter(
-        user => user.first_name === 'unknown' || user.first_name === null || user.first_name === ''
+      // Filter users with empty first names
+      const emptyNameUsers = users.filter(
+        user => !user.first_name || user.first_name === '' || user.first_name === 'unknown'
       );
       
-      if (unknownUsers.length === 0) {
-        toast.info("No unknown users to delete");
-        setShowDeleteConfirmation(false);
+      if (emptyNameUsers.length === 0) {
+        toast.info("No users with empty names to delete");
         return;
       }
       
-      // Delete each user one by one using the adminDeleteUser function
+      // Delete each user one by one
       let successCount = 0;
       let failCount = 0;
       
-      for (const unknownUser of unknownUsers) {
+      for (const emptyUser of emptyNameUsers) {
         try {
-          console.log(`Attempting to delete user ${unknownUser.id} with admin ${user.id}`);
-          const result = await adminDeleteUser(unknownUser.id, user.id);
+          console.log(`Attempting to delete user ${emptyUser.id} with admin ${user.id}`);
+          const result = await adminDeleteUser(emptyUser.id, user.id);
           
           if (result.success) {
             successCount++;
           } else {
-            console.error(`Failed to delete user ${unknownUser.id}:`, result.error);
+            console.error(`Failed to delete user ${emptyUser.id}:`, result.error);
             failCount++;
           }
         } catch (error) {
-          console.error(`Error deleting user ${unknownUser.id}:`, error);
+          console.error(`Error deleting user ${emptyUser.id}:`, error);
           failCount++;
         }
       }
@@ -123,7 +120,7 @@ export const UserManagement = () => {
       await fetchUsers();
       
       if (successCount > 0) {
-        toast.success(`Successfully deleted ${successCount} unknown users`);
+        toast.success(`Successfully deleted ${successCount} users with empty names`);
       }
       
       if (failCount > 0) {
@@ -134,7 +131,7 @@ export const UserManagement = () => {
         });
       }
     } catch (error: any) {
-      console.error("Error deleting unknown users:", error);
+      console.error("Error deleting users with empty names:", error);
       uiToast({
         title: "Error deleting users",
         description: error.message,
@@ -142,7 +139,6 @@ export const UserManagement = () => {
       });
     } finally {
       setDeleteLoading(false);
-      setShowDeleteConfirmation(false);
     }
   };
   
@@ -197,10 +193,11 @@ export const UserManagement = () => {
             <Button 
               variant="destructive" 
               className="flex items-center gap-2"
-              onClick={() => setShowDeleteConfirmation(true)}
+              onClick={deleteEmptyNameUsers}
+              disabled={deleteLoading}
             >
-              <UserX className="h-4 w-4" />
-              Delete Unknown ({unknownUsersCount})
+              <Trash2 className="h-4 w-4" />
+              {deleteLoading ? "Deleting..." : `Delete Empty (${unknownUsersCount})`}
             </Button>
           )}
         </div>
@@ -241,49 +238,6 @@ export const UserManagement = () => {
           </TableBody>
         </Table>
       </div>
-      
-      {/* Confirmation Dialog for Deleting Unknown Users */}
-      <Dialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-destructive" />
-              Confirm Deletion
-            </DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete {unknownUsersCount} users with unknown or empty names? 
-              This action cannot be undone.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex justify-end gap-2 sm:space-x-0">
-            <Button
-              variant="outline"
-              onClick={() => setShowDeleteConfirmation(false)}
-              disabled={deleteLoading}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={deleteLoading ? undefined : deleteUnknownUsers}
-              disabled={deleteLoading}
-              className="flex items-center gap-2"
-            >
-              {deleteLoading ? (
-                <>
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="h-4 w-4" />
-                  Delete
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
