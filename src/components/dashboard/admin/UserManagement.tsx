@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, RefreshCw } from "lucide-react";
+import { Search, RefreshCw, UserPlus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -61,19 +61,24 @@ export const UserManagement = () => {
         throw rolesError;
       }
       
-      // Get emails from auth.users using the get_users_with_roles function
-      const { data: usersData, error: usersError } = await supabase
-        .rpc('get_users_with_roles');
+      // Instead of using the RPC function, get emails directly from auth.users 
+      // using the admin-provided Edge Function
+      const { data: authUsers, error: authUsersError } = await supabase.functions.invoke(
+        'admin-get-users',
+        { body: { userIds: profilesData.map(p => p.id) } }
+      );
       
-      if (usersError) {
-        console.error("Users RPC error:", usersError);
+      if (authUsersError) {
+        console.error("Auth users fetch error:", authUsersError);
         // Continue even if this fails, we'll just show without emails
       }
       
+      console.log("Auth users data:", authUsers);
+      
       // Create a map of user_id to email
       const emailMap = new Map();
-      if (usersData && Array.isArray(usersData)) {
-        usersData.forEach(user => {
+      if (authUsers && Array.isArray(authUsers.users)) {
+        authUsers.users.forEach(user => {
           if (user.id && user.email) {
             emailMap.set(user.id, user.email);
           }
