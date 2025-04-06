@@ -130,13 +130,13 @@ export const ChatMessagesList = ({
               id: msg.sender?.id || '',
               first_name: msg.sender?.first_name || '',
               last_name: msg.sender?.last_name || '',
-              role: careTeamIds.includes(msg.sender?.id) ? 'care_team' : 'other'
+              role: roleMap.get(msg.sender?.id) || 'unknown'
             },
             receiver: {
               id: msg.receiver?.id || '',
               first_name: msg.receiver?.first_name || '',
               last_name: msg.receiver?.last_name || '',
-              role: careTeamIds.includes(msg.receiver?.id) ? 'care_team' : 'other'
+              role: roleMap.get(msg.receiver?.id) || 'unknown'
             }
           }));
           allMessages.push(...transformedMessages);
@@ -244,13 +244,13 @@ export const ChatMessagesList = ({
               id: msg.sender?.id || '', 
               first_name: msg.sender?.first_name || '',
               last_name: msg.sender?.last_name || '',
-              role: roleMap.get(msg.sender?.id) || (msg.sender?.id === user.id ? 'doctor' : 'patient')
+              role: roleMap.get(msg.sender?.id) || 'unknown'
             },
             receiver: { 
               id: msg.receiver?.id || '',
               first_name: msg.receiver?.first_name || '',
               last_name: msg.receiver?.last_name || '', 
-              role: roleMap.get(msg.receiver?.id) || (msg.receiver?.id === user.id ? 'doctor' : 'patient')
+              role: roleMap.get(msg.receiver?.id) || 'unknown'
             }
           })) : [];
 
@@ -281,13 +281,13 @@ export const ChatMessagesList = ({
               id: msg.sender?.id || '',
               first_name: msg.sender?.first_name || '',
               last_name: msg.sender?.last_name || '', 
-              role: roleMap.get(msg.sender?.id) || (msg.sender?.id === selectedUserId ? 'patient' : 'care_team')
+              role: roleMap.get(msg.sender?.id) || 'unknown'
             },
             receiver: { 
               id: msg.receiver?.id || '',
               first_name: msg.receiver?.first_name || '',
               last_name: msg.receiver?.last_name || '', 
-              role: roleMap.get(msg.receiver?.id) || (msg.receiver?.id === selectedUserId ? 'patient' : 'care_team')
+              role: roleMap.get(msg.receiver?.id) || 'unknown'
             }
           })) : [];
           
@@ -357,13 +357,13 @@ export const ChatMessagesList = ({
               id: msg.sender?.id || '',
               first_name: msg.sender?.first_name || '',
               last_name: msg.sender?.last_name || '',
-              role: roleMap.get(msg.sender?.id) || (msg.sender?.id === user.id ? 'current_user' : 'other')
+              role: roleMap.get(msg.sender?.id) || 'unknown'
             },
             receiver: {
               id: msg.receiver?.id || '',
               first_name: msg.receiver?.first_name || '',
               last_name: msg.receiver?.last_name || '',
-              role: roleMap.get(msg.receiver?.id) || (msg.receiver?.id === user.id ? 'current_user' : 'other')
+              role: roleMap.get(msg.receiver?.id) || 'unknown'
             }
           })) || [];
           
@@ -409,6 +409,8 @@ export const ChatMessagesList = ({
             </div>
           ) : (
             allMessages.map((message, index) => {
+              if (!message) return null;
+              
               if (!isGroupChat && selectedUserId) {
                 const isLocal = localMessages.some(localMessage => localMessage.id === message.id);
                 const isCurrentUser = message.sender?.id === user?.id;
