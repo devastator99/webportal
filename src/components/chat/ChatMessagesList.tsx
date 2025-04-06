@@ -35,9 +35,10 @@ interface ChatMessageType {
   message: string;
   message_type: string;
   created_at: string;
-  read: boolean;
+  read?: boolean; // Make read optional since it's not in the query response
   sender: UserProfile;
   receiver: UserProfile;
+  file_url?: string | null;
 }
 
 export const ChatMessagesList = ({ 
@@ -80,9 +81,15 @@ export const ChatMessagesList = ({
         const { data: allTeamMessages, error: allTeamError } = await supabase
           .from('chat_messages')
           .select(`
-            *,
-            sender:profiles!sender_id(id, first_name, last_name, role),
-            receiver:profiles!receiver_id(id, first_name, last_name, role)
+            id,
+            message,
+            message_type,
+            created_at,
+            file_url,
+            sender_id,
+            receiver_id,
+            sender:profiles!sender_id(id, first_name, last_name),
+            receiver:profiles!receiver_id(id, first_name, last_name)
           `)
           .or(`sender_id.in.(${careTeamIds.join(',')}),receiver_id.in.(${careTeamIds.join(',')})`)
           .order('created_at', { ascending: true });
@@ -94,7 +101,20 @@ export const ChatMessagesList = ({
         
         console.log(`Retrieved ${allTeamMessages?.length || 0} total messages between care team members`);
         if (allTeamMessages) {
-          allMessages.push(...allTeamMessages);
+          // Transform data to match ChatMessageType
+          const transformedMessages = allTeamMessages.map(msg => ({
+            ...msg,
+            read: false, // Default value for read property
+            sender: {
+              ...msg.sender,
+              role: 'unknown' // Add role property
+            },
+            receiver: {
+              ...msg.receiver,
+              role: 'unknown' // Add role property
+            }
+          }));
+          allMessages.push(...transformedMessages);
         }
         
         const uniqueMessages = Array.from(
@@ -130,9 +150,15 @@ export const ChatMessagesList = ({
           const { data: directMessages, error: directError } = await supabase
             .from('chat_messages')
             .select(`
-              *,
-              sender:profiles!sender_id(id, first_name, last_name, role),
-              receiver:profiles!receiver_id(id, first_name, last_name, role)
+              id,
+              message,
+              message_type,
+              created_at,
+              file_url,
+              sender_id,
+              receiver_id,
+              sender:profiles!sender_id(id, first_name, last_name),
+              receiver:profiles!receiver_id(id, first_name, last_name)
             `)
             .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`)
             .order('created_at', { ascending: true });
@@ -146,9 +172,15 @@ export const ChatMessagesList = ({
           const { data: patientCareTeamMessages, error: careTeamError } = await supabase
             .from('chat_messages')
             .select(`
-              *,
-              sender:profiles!sender_id(id, first_name, last_name, role),
-              receiver:profiles!receiver_id(id, first_name, last_name, role)
+              id,
+              message,
+              message_type,
+              created_at,
+              file_url,
+              sender_id,
+              receiver_id,
+              sender:profiles!sender_id(id, first_name, last_name),
+              receiver:profiles!receiver_id(id, first_name, last_name)
             `)
             .or(`sender_id.eq.${selectedUserId},receiver_id.eq.${selectedUserId}`)
             .order('created_at', { ascending: true });
@@ -158,7 +190,14 @@ export const ChatMessagesList = ({
             throw careTeamError;
           }
           
-          // Safe filtering with null/undefined checks
+          // Safe filtering with null/undefined checks and transforming to match ChatMessageType
+          const transformDirectMessages = directMessages ? directMessages.map(msg => ({
+            ...msg,
+            read: false,
+            sender: { ...msg.sender, role: (msg.sender?.id === user.id) ? 'doctor' : 'patient' },
+            receiver: { ...msg.receiver, role: (msg.receiver?.id === user.id) ? 'doctor' : 'patient' }
+          })) : [];
+
           const filteredPatientMessages = patientCareTeamMessages ? patientCareTeamMessages.filter(msg => {
             if (!msg || !msg.sender || !msg.receiver) return false;
             
@@ -174,9 +213,14 @@ export const ChatMessagesList = ({
             }
             
             return false;
-          }) : [];
+          }).map(msg => ({
+            ...msg,
+            read: false,
+            sender: { ...msg.sender, role: (msg.sender?.id === selectedUserId) ? 'patient' : 'care_team' },
+            receiver: { ...msg.receiver, role: (msg.receiver?.id === selectedUserId) ? 'patient' : 'care_team' }
+          })) : [];
           
-          const allMessages = [...(directMessages || []), ...filteredPatientMessages];
+          const allMessages = [...transformDirectMessages, ...filteredPatientMessages];
           
           const uniqueMessages = Array.from(
             new Map(allMessages.map(msg => [msg.id, msg])).values()
@@ -193,9 +237,15 @@ export const ChatMessagesList = ({
           const { data, error } = await supabase
             .from('chat_messages')
             .select(`
-              *,
-              sender:profiles!sender_id(id, first_name, last_name, role),
-              receiver:profiles!receiver_id(id, first_name, last_name, role)
+              id,
+              message,
+              message_type,
+              created_at,
+              file_url,
+              sender_id,
+              receiver_id,
+              sender:profiles!sender_id(id, first_name, last_name),
+              receiver:profiles!receiver_id(id, first_name, last_name)
             `)
             .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`)
             .order('created_at', { ascending: true });
@@ -203,7 +253,22 @@ export const ChatMessagesList = ({
           if (error) throw error;
           
           console.log(`Returning ${data?.length || 0} direct messages`);
-          return data || [];
+          
+          // Transform data to match ChatMessageType
+          const transformedData = data?.map(msg => ({
+            ...msg,
+            read: false, // Add missing property
+            sender: {
+              ...msg.sender,
+              role: msg.sender?.id === user.id ? 'current_user' : 'other'
+            },
+            receiver: {
+              ...msg.receiver,
+              role: msg.receiver?.id === user.id ? 'current_user' : 'other'
+            }
+          })) || [];
+          
+          return transformedData;
         }
       }
 
