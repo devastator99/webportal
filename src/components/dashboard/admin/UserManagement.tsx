@@ -31,36 +31,16 @@ export const UserManagement = () => {
     try {
       console.log("Fetching users...");
       
-      // Direct query to get all users with their roles
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          first_name,
-          last_name,
-          user_roles!inner (role),
-          auth_users:id (email)
-        `)
-        .returns<any[]>();
+      // Call the RPC function to get users with roles
+      const { data, error } = await supabase.rpc('get_users_with_roles');
       
       if (error) {
-        console.error("Query error:", error);
+        console.error("RPC error:", error);
         throw error;
       }
       
-      console.log("Raw data received:", data);
-      
-      // Format the data to match the UserItem interface
-      const formattedUsers = data?.map(user => ({
-        id: user.id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.auth_users?.email,
-        role: user.user_roles?.role
-      })) || [];
-      
-      console.log("Formatted users:", formattedUsers);
-      setUsers(formattedUsers);
+      console.log("Users data received:", data);
+      setUsers(data || []);
       
       toast.success("User data refreshed");
     } catch (error: any) {
