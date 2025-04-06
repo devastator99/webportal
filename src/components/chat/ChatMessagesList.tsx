@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -76,13 +77,17 @@ export const ChatMessagesList = ({
         }
         
         console.log(`Retrieved ${allTeamMessages?.length || 0} total messages between care team members`);
-        allMessages.push(...(allTeamMessages || []));
+        if (allTeamMessages) {
+          allMessages.push(...allTeamMessages);
+        }
         
         const uniqueMessages = Array.from(
           new Map(allMessages.map(msg => [msg.id, msg])).values()
         );
         
+        // Only filter if we have valid messages
         const filteredMessages = uniqueMessages.filter(msg => {
+          // Check if both sender and receiver IDs are included in the careTeamIds
           return careTeamIds.includes(msg.sender.id) && careTeamIds.includes(msg.receiver.id);
         });
         
@@ -104,19 +109,32 @@ export const ChatMessagesList = ({
           
           console.log("All relevant IDs for message fetching:", allRelevantIds);
           
-          const directMessages = await supabase
+          const { data: directMessages, error: directError } = await supabase
             .from('chat_messages')
             .select('*, sender:sender_id(id, first_name, last_name, role), receiver:receiver_id(id, first_name, last_name, role)')
             .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`)
             .order('created_at', { ascending: true });
             
-          const patientCareTeamMessages = await supabase
+          if (directError) {
+            console.error("Error fetching direct messages:", directError);
+            throw directError;
+          }
+
+          const { data: patientCareTeamMessages, error: careTeamError } = await supabase
             .from('chat_messages')
             .select('*, sender:sender_id(id, first_name, last_name, role), receiver:receiver_id(id, first_name, last_name, role)')
             .or(`sender_id.eq.${selectedUserId},receiver_id.eq.${selectedUserId}`)
             .order('created_at', { ascending: true });
             
-          const filteredPatientMessages = patientCareTeamMessages?.filter(msg => {
+          if (careTeamError) {
+            console.error("Error fetching care team messages:", careTeamError);
+            throw careTeamError;
+          }
+          
+          // Safe filtering with null/undefined checks
+          const filteredPatientMessages = patientCareTeamMessages ? patientCareTeamMessages.filter(msg => {
+            if (!msg || !msg.sender || !msg.receiver) return false;
+            
             const isFromPatient = msg.sender.id === selectedUserId;
             const isToPatient = msg.receiver.id === selectedUserId;
             
@@ -129,7 +147,7 @@ export const ChatMessagesList = ({
             }
             
             return false;
-          }) || [];
+          }) : [];
           
           const allMessages = [...(directMessages || []), ...filteredPatientMessages];
           
@@ -171,7 +189,9 @@ export const ChatMessagesList = ({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  const allMessages = [...(messages || []), ...localMessages];
+  // Make sure we're working with arrays for both messages and localMessages
+  const serverMessages = Array.isArray(messages) ? messages : [];
+  const allMessages = [...serverMessages, ...localMessages];
   
   allMessages.sort((a, b) => (new Date(a.created_at)).getTime() - (new Date(b.created_at)).getTime());
 
