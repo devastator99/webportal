@@ -42,13 +42,14 @@ export const UserManagement = () => {
       
       console.log("Users data received:", data);
       
-      // Ensure we have the expected structure
+      // Ensure we have the expected structure and handle the type conversions
       const formattedUsers: UserItem[] = Array.isArray(data) ? data.map(user => ({
         id: user.id,
         first_name: user.first_name,
         last_name: user.last_name,
         email: user.email || 'No email',
-        role: user.role || 'No role'
+        // Convert role from unknown or user_type to string safely
+        role: typeof user.role === 'string' ? user.role : String(user.role)
       })) : [];
       
       console.log("Formatted users:", formattedUsers);

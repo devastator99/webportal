@@ -19,7 +19,7 @@ BEGIN
     auth.users.email,
     p.first_name,
     p.last_name,
-    ur.role
+    ur.role::TEXT
   FROM 
     profiles p
     JOIN auth.users ON p.id = auth.users.id
