@@ -53,14 +53,14 @@ serve(async (req) => {
       );
     }
     
-    // Verify the user is actually an admin
-    const { data: roleData, error: roleError } = await supabaseAdmin
+    // Verify the user is actually an admin by direct query - avoiding RLS recursion
+    const { data: adminRoleData, error: adminRoleError } = await supabaseAdmin
       .from('user_roles')
       .select('role')
       .eq('user_id', admin_id)
       .single();
       
-    if (roleError || !roleData || roleData.role !== 'administrator') {
+    if (adminRoleError || !adminRoleData || adminRoleData.role !== 'administrator') {
       return new Response(
         JSON.stringify({ error: "Only administrators can delete users" }),
         {
@@ -83,18 +83,41 @@ serve(async (req) => {
 
     console.log(`Admin ${admin_id} is deleting user ${user_id}`);
 
-    // Delete user from database tables first (RLS and cascades will handle related data)
-    const { error: dbError } = await supabaseAdmin.rpc('admin_delete_user', {
-      p_user_id: user_id,
-      p_admin_id: admin_id
-    });
+    // Delete user from database tables directly instead of using RPC
+    // Delete from user_roles first
+    const { error: userRolesError } = await supabaseAdmin
+      .from('user_roles')
+      .delete()
+      .eq('user_id', user_id);
 
-    if (dbError) {
-      console.error("Database deletion error:", dbError);
-      throw dbError;
+    if (userRolesError) {
+      console.error("Error deleting user roles:", userRolesError);
+      throw userRolesError;
     }
 
-    // Delete the user from auth.users
+    // Delete from patient_assignments if exists
+    const { error: assignmentsError } = await supabaseAdmin
+      .from('patient_assignments')
+      .delete()
+      .or(`patient_id.eq.${user_id},doctor_id.eq.${user_id},nutritionist_id.eq.${user_id}`);
+
+    if (assignmentsError) {
+      console.error("Error deleting patient assignments:", assignmentsError);
+      // Continue with deletion even if this fails
+    }
+
+    // Delete from profiles
+    const { error: profilesError } = await supabaseAdmin
+      .from('profiles')
+      .delete()
+      .eq('id', user_id);
+
+    if (profilesError) {
+      console.error("Error deleting profile:", profilesError);
+      throw profilesError;
+    }
+
+    // Finally delete the user from auth.users
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
 
     if (deleteError) {
