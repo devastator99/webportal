@@ -32,24 +32,44 @@ export const UserManagement = () => {
     try {
       console.log("Fetching users...");
       
-      // Call the RPC function to get users with roles
-      const { data, error } = await supabase.rpc('get_users_with_roles');
+      // Make a direct query to the profiles and user_roles tables instead of using RPC
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          auth.users!inner(email),
+          user_roles(role)
+        `)
+        .order('first_name');
       
-      if (error) {
-        console.error("RPC error:", error);
-        throw error;
+      if (profilesError) {
+        console.error("Query error:", profilesError);
+        throw profilesError;
       }
       
-      console.log("Users data received:", data);
+      console.log("Raw profiles data:", profilesData);
       
-      // Ensure we have the expected structure and handle the type conversions
-      const formattedUsers: UserItem[] = Array.isArray(data) ? data.map(user => ({
-        id: user.id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email || 'No email',
-        role: user.role || 'No role'
-      })) : [];
+      // Process the data to match our UserItem interface
+      const formattedUsers: UserItem[] = profilesData.map(profile => {
+        // Extract email from the nested auth.users object
+        const email = profile.auth?.users?.email || 'No email';
+        
+        // Extract role from the nested user_roles array
+        let role = 'No role';
+        if (profile.user_roles && profile.user_roles.length > 0 && profile.user_roles[0].role) {
+          role = profile.user_roles[0].role;
+        }
+        
+        return {
+          id: profile.id,
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          email: email,
+          role: role
+        };
+      });
       
       console.log("Formatted users:", formattedUsers);
       setUsers(formattedUsers);
