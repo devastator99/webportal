@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { adminDeleteUser, supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Table, 
   TableBody, 
@@ -19,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface UserItem {
   id: string;
@@ -169,7 +169,20 @@ export const UserManagement = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-3">
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Filter by role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="patient">Patients</SelectItem>
+              <SelectItem value="doctor">Doctors</SelectItem>
+              <SelectItem value="nutritionist">Nutritionists</SelectItem>
+              <SelectItem value="administrator">Admins</SelectItem>
+            </SelectContent>
+          </Select>
+          
           <Button 
             variant="outline" 
             onClick={fetchUsers}
@@ -193,53 +206,41 @@ export const UserManagement = () => {
         </div>
       </div>
       
-      <Tabs defaultValue="all" value={roleFilter} onValueChange={setRoleFilter}>
-        <div className="mb-4">
-          <TabsList className="w-full grid grid-cols-5 gap-1">
-            <TabsTrigger className="flex-1" value="all">All</TabsTrigger>
-            <TabsTrigger className="flex-1" value="patient">Patients</TabsTrigger>
-            <TabsTrigger className="flex-1" value="doctor">Doctors</TabsTrigger>
-            <TabsTrigger className="flex-1" value="nutritionist">Nutritionists</TabsTrigger>
-            <TabsTrigger className="flex-1" value="administrator">Admins</TabsTrigger>
-          </TabsList>
-        </div>
-        
-        <div className="bg-white dark:bg-gray-800 border rounded-md shadow-sm overflow-hidden">
-          <Table>
-            <TableCaption>
-              {loading ? "Loading users..." : `${filteredUsers.length} users found`}
-            </TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.length > 0 ? (
-                filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      {user.first_name || user.last_name 
-                        ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
-                        : 'Unknown'}
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell className="capitalize">{user.role}</TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={3} className="text-center">
-                    {loading ? "Loading..." : "No users found"}
+      <div className="bg-white dark:bg-gray-800 border rounded-md shadow-sm overflow-hidden">
+        <Table>
+          <TableCaption>
+            {loading ? "Loading users..." : `${filteredUsers.length} users found`}
+          </TableCaption>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Email</TableHead>
+              <TableHead>Role</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredUsers.length > 0 ? (
+              filteredUsers.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    {user.first_name || user.last_name 
+                      ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
+                      : 'Unknown'}
                   </TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell className="capitalize">{user.role}</TableCell>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </Tabs>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center">
+                  {loading ? "Loading..." : "No users found"}
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
       
       {/* Confirmation Dialog for Deleting Unknown Users */}
       <Dialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
