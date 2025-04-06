@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
 
 interface UserItem {
   id: string;
@@ -28,6 +29,8 @@ export const UserManagement = () => {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [deleting, setDeleting] = useState(false);
   const { user } = useAuth();
+  const isMobile = useIsMobile();
+  const isIPad = useIsIPad();
   
   useEffect(() => {
     fetchUsers();
@@ -192,9 +195,13 @@ export const UserManagement = () => {
     return matchesSearch && matchesRole;
   });
 
+  // Responsive layout adjustments
+  const isSmallScreen = isMobile || (isIPad && window.innerWidth < 768);
+
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+      {/* Controls section - stack on mobile/small screens, row on larger screens */}
+      <div className="flex flex-col md:flex-row md:items-center gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -204,9 +211,9 @@ export const UserManagement = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-3">
+        <div className={`flex ${isSmallScreen ? 'flex-col' : 'items-center'} gap-3`}>
           <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className={`${isSmallScreen ? 'w-full' : 'w-[150px]'}`}>
               <SelectValue placeholder="Filter by role" />
             </SelectTrigger>
             <SelectContent>
@@ -219,76 +226,81 @@ export const UserManagement = () => {
             </SelectContent>
           </Select>
           
-          <Button 
-            variant="outline" 
-            onClick={fetchUsers}
-            disabled={loading}
-            className="flex items-center gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            {loading ? "Refreshing..." : "Refresh"}
-          </Button>
-          
-          <Button 
-            variant="destructive" 
-            onClick={handleDeleteSelected}
-            disabled={deleting || selectedUsers.length === 0}
-            className="flex items-center gap-2"
-          >
-            <Trash2 className="h-4 w-4" />
-            Delete Selected
-          </Button>
+          <div className={`flex ${isSmallScreen ? 'flex-col w-full' : 'flex-row'} gap-2`}>
+            <Button 
+              variant="outline" 
+              onClick={fetchUsers}
+              disabled={loading}
+              className={`flex items-center gap-2 ${isSmallScreen ? 'w-full' : ''}`}
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              {loading ? "Refreshing..." : "Refresh"}
+            </Button>
+            
+            <Button 
+              variant="destructive" 
+              onClick={handleDeleteSelected}
+              disabled={deleting || selectedUsers.length === 0}
+              className={`flex items-center gap-2 ${isSmallScreen ? 'w-full' : ''}`}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Selected
+            </Button>
+          </div>
         </div>
       </div>
       
+      {/* Table section with responsive adjustments */}
       <div className="bg-white dark:bg-gray-800 border rounded-md shadow-sm overflow-hidden">
         {loading ? (
           <div className="py-10">
             <LoadingSpinner size="md" />
           </div>
         ) : (
-          <Table>
-            <TableCaption>
-              {filteredUsers.length > 0 ? `${filteredUsers.length} users found` : "No users found"}
-            </TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[50px]">Select</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredUsers.length > 0 ? (
-                filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedUsers.includes(user.id)}
-                        onCheckedChange={() => toggleUserSelection(user.id)}
-                        id={`select-${user.id}`}
-                        disabled={user.id === user?.id} // Prevent selecting current user
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {user.first_name || user.last_name 
-                        ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
-                        : 'Unknown'}
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell className="capitalize">{user.role}</TableCell>
-                  </TableRow>
-                ))
-              ) : (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableCaption>
+                {filteredUsers.length > 0 ? `${filteredUsers.length} users found` : "No users found"}
+              </TableCaption>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center py-8">
-                    No users found matching your criteria
-                  </TableCell>
+                  <TableHead className="w-[50px]">Select</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.length > 0 ? (
+                  filteredUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedUsers.includes(user.id)}
+                          onCheckedChange={() => toggleUserSelection(user.id)}
+                          id={`select-${user.id}`}
+                          disabled={user.id === user?.id} // Prevent selecting current user
+                        />
+                      </TableCell>
+                      <TableCell className="max-w-[150px] truncate">
+                        {user.first_name || user.last_name 
+                          ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
+                          : 'Unknown'}
+                      </TableCell>
+                      <TableCell className="max-w-[200px] truncate">{user.email}</TableCell>
+                      <TableCell className="capitalize">{user.role}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="text-center py-8">
+                      No users found matching your criteria
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
     </div>
