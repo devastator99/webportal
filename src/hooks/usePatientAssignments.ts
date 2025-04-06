@@ -21,7 +21,7 @@ export interface PatientAssignment {
   } | null;
 }
 
-// Define a type for the raw data returned from the view
+// Define a type for the raw data returned from the function
 interface PatientAssignmentRow {
   patient_id: string;
   patient_first_name: string | null;
@@ -43,8 +43,8 @@ export const usePatientAssignments = () => {
       try {
         console.log("Fetching patient assignments using RPC function");
         
-        // Call the RPC function directly to get patient assignments report
-        const { data, error } = await supabase.from('patient_assignments_report').select('*');
+        // Call the RPC function to get patient assignments report
+        const { data, error } = await supabase.rpc('get_patient_assignments_report');
         
         if (error) {
           console.error("Error fetching patient assignments:", error);

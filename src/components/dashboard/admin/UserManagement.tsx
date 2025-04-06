@@ -97,6 +97,7 @@ export const UserManagement = () => {
               <SelectItem value="doctor">Doctors</SelectItem>
               <SelectItem value="nutritionist">Nutritionists</SelectItem>
               <SelectItem value="administrator">Admins</SelectItem>
+              <SelectItem value="reception">Reception</SelectItem>
             </SelectContent>
           </Select>
           
