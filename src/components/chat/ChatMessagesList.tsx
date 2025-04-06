@@ -80,6 +80,7 @@ export const ChatMessagesList = ({
   const [initialLoad, setInitialLoad] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
+  // Update the query key to include relevant identifiers for the entire care team context
   const queryKey = isGroupChat && careTeamGroup 
     ? ["group_chat_messages", user?.id, careTeamGroup.members.map(m => m.id).join('_'), page]
     : ["chat_messages", user?.id, selectedUserId, page];
@@ -153,21 +154,64 @@ export const ChatMessagesList = ({
       if (isGroupChat && careTeamGroup?.members) {
         console.log("Fetching group chat messages for members:", careTeamGroup.members.map(m => m.id));
         
-        const promises = careTeamGroup.members.map(member => {
-          if (member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000') {
-            return Promise.resolve({ data: [] });
+        // Get all member IDs excluding the AI bot and special IDs
+        const memberIds = careTeamGroup.members
+          .filter(member => 
+            member.role !== 'aibot' && 
+            member.id !== '00000000-0000-0000-0000-000000000000'
+          )
+          .map(m => m.id);
+        
+        // Create all possible pair combinations for communication
+        let allPairs: Array<[string, string]> = [];
+        
+        // Add pairs between the current user and each care team member
+        for (const memberId of memberIds) {
+          if (memberId !== user.id) {
+            allPairs.push([user.id, memberId]);
           }
-          
-          // For each care team member, get messages between user and member
+        }
+        
+        // Add all possible communication pairs between care team members
+        // This ensures everyone can see all messages between any care team members
+        for (let i = 0; i < memberIds.length; i++) {
+          for (let j = i + 1; j < memberIds.length; j++) {
+            // Don't duplicate pairs with the current user
+            if (memberIds[i] !== user.id && memberIds[j] !== user.id) {
+              allPairs.push([memberIds[i], memberIds[j]]);
+            }
+          }
+        }
+        
+        console.log("Fetching messages for all pairs:", allPairs);
+        
+        // Fetch messages for all pairs
+        const promises = allPairs.map(([senderId, receiverId]) => {
           return supabase.functions.invoke('get-chat-messages', {
             body: {
-              user_id: user.id,
-              other_user_id: member.id,
+              user_id: senderId,
+              other_user_id: receiverId,
               page: page,
               per_page: MESSAGES_PER_PAGE
             }
           });
-        }).filter(Boolean);
+        });
+        
+        // Add AI bot messages if present in the care team
+        if (careTeamGroup.members.some(m => m.role === 'aibot' || m.id === '00000000-0000-0000-0000-000000000000')) {
+          for (const memberId of memberIds) {
+            promises.push(
+              supabase.functions.invoke('get-chat-messages', {
+                body: {
+                  user_id: memberId,
+                  other_user_id: '00000000-0000-0000-0000-000000000000',
+                  page: page,
+                  per_page: MESSAGES_PER_PAGE
+                }
+              })
+            );
+          }
+        }
         
         const results = await Promise.all(promises);
         let allMessages: MessageData[] = [];
@@ -181,93 +225,54 @@ export const ChatMessagesList = ({
             
             const messagesData = result.data.messages || [];
             const messagesWithRoles = messagesData.map((msg: MessageData) => {
+              // Assign roles to messages based on care team member roles
               const senderMember = careTeamGroup.members.find(m => m.id === msg.sender.id);
-              if (senderMember && senderMember.role) {
-                return {
-                  ...msg,
-                  sender: {
-                    ...msg.sender,
-                    role: senderMember.role
-                  }
-                };
-              }
-              return msg;
+              const receiverMember = careTeamGroup.members.find(m => m.id === msg.receiver.id);
+              
+              return {
+                ...msg,
+                sender: {
+                  ...msg.sender,
+                  role: senderMember?.role || "unknown"
+                },
+                receiver: {
+                  ...msg.receiver,
+                  role: receiverMember?.role || "unknown" 
+                }
+              };
             });
             
             allMessages = [...allMessages, ...messagesWithRoles];
           }
         });
         
-        // Get doctor-to-nutritionist and nutritionist-to-doctor messages too
-        // This is crucial for patients to see all team interactions
-        if (userRole === "patient") {
-          console.log("Patient fetching care team internal messages");
-          const doctorMembers = careTeamGroup.members.filter(m => m.role === "doctor");
-          const nutritionistMembers = careTeamGroup.members.filter(m => m.role === "nutritionist");
-          
-          // For each doctor-nutritionist pair, get their messages
-          for (const doctor of doctorMembers) {
-            for (const nutritionist of nutritionistMembers) {
-              if (doctor.id && nutritionist.id) {
-                console.log(`Fetching messages between doctor ${doctor.id} and nutritionist ${nutritionist.id}`);
-                const { data: teamMsgsResult } = await supabase.functions.invoke('get-chat-messages', {
-                  body: {
-                    user_id: doctor.id,
-                    other_user_id: nutritionist.id,
-                    page: 1,
-                    per_page: MESSAGES_PER_PAGE
-                  }
-                });
-                
-                if (teamMsgsResult && teamMsgsResult.messages) {
-                  const teamMessages = teamMsgsResult.messages.map((msg: MessageData) => {
-                    // Ensure roles are correctly set
-                    const doctorRole = {
-                      ...msg.sender,
-                      role: msg.sender.id === doctor.id ? "doctor" : "nutritionist"
-                    };
-                    const nutritionistRole = {
-                      ...msg.receiver,
-                      role: msg.receiver.id === nutritionist.id ? "nutritionist" : "doctor"
-                    };
-                    
-                    return {
-                      ...msg,
-                      sender: doctorRole,
-                      receiver: nutritionistRole
-                    };
-                  });
-                  
-                  console.log(`Retrieved ${teamMessages.length} messages between doctor and nutritionist`);
-                  allMessages = [...allMessages, ...teamMessages];
-                }
-              }
-            }
-          }
-        }
-        
+        // Sort all messages by timestamp
         allMessages.sort((a, b) => 
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
         
         console.log(`Total group chat messages: ${allMessages.length}`);
         
+        // Mark unread messages as read
         const unreadMessagesGrouped = allMessages.filter(
           (msg: MessageData) => 
-            careTeamGroup.members.some(member => member.id === msg.sender?.id) && 
+            msg.sender?.id !== user.id && 
             !msg.read
         );
         
         if (unreadMessagesGrouped.length > 0) {
           await Promise.all(
-            [...new Set(unreadMessagesGrouped.map(msg => msg.sender?.id))].map(senderId => 
-              supabase.functions.invoke("mark-messages-as-read", {
-                body: {
-                  user_id: user.id,
-                  sender_id: senderId
-                }
-              })
-            )
+            [...new Set(unreadMessagesGrouped.map(msg => msg.sender?.id))].map(senderId => {
+              if (senderId) {
+                return supabase.functions.invoke("mark-messages-as-read", {
+                  body: {
+                    user_id: user.id,
+                    sender_id: senderId
+                  }
+                });
+              }
+              return Promise.resolve();
+            })
           );
         }
         
@@ -293,6 +298,9 @@ export const ChatMessagesList = ({
         allMessages = [...directMessages];
         
         if (includeCareTeamMessages && careTeamMembers.length > 0) {
+          console.log("Including care team messages with selected user:", selectedUserId);
+          
+          // Get messages between all care team members and the selected user
           for (const member of careTeamMembers) {
             if (member.id === user.id) continue;
             
@@ -306,7 +314,63 @@ export const ChatMessagesList = ({
             });
             
             if (careTeamResult.data && careTeamResult.data.messages) {
-              allMessages = [...allMessages, ...careTeamResult.data.messages];
+              // Enhance messages with sender and receiver roles
+              const enhancedMessages = careTeamResult.data.messages.map((msg: MessageData) => {
+                const senderMember = careTeamMembers.find(m => m.id === msg.sender.id);
+                const receiverMember = careTeamMembers.find(m => m.id === msg.receiver.id);
+                
+                return {
+                  ...msg,
+                  sender: {
+                    ...msg.sender,
+                    role: senderMember?.role || (msg.sender.id === selectedUserId ? "patient" : "unknown")
+                  },
+                  receiver: {
+                    ...msg.receiver,
+                    role: receiverMember?.role || (msg.receiver.id === selectedUserId ? "patient" : "unknown")
+                  }
+                };
+              });
+              
+              allMessages = [...allMessages, ...enhancedMessages];
+            }
+          }
+          
+          // Also get messages between care team members about this patient
+          for (let i = 0; i < careTeamMembers.length; i++) {
+            for (let j = i + 1; j < careTeamMembers.length; j++) {
+              if (careTeamMembers[i].id !== user.id && careTeamMembers[j].id !== user.id) {
+                const internalResult = await supabase.functions.invoke('get-chat-messages', {
+                  body: {
+                    user_id: careTeamMembers[i].id,
+                    other_user_id: careTeamMembers[j].id,
+                    page: 1,
+                    per_page: 50
+                  }
+                });
+                
+                if (internalResult.data && internalResult.data.messages) {
+                  // Add internal care team messages
+                  const enhancedMessages = internalResult.data.messages.map((msg: MessageData) => {
+                    const senderMember = careTeamMembers.find(m => m.id === msg.sender.id);
+                    const receiverMember = careTeamMembers.find(m => m.id === msg.receiver.id);
+                    
+                    return {
+                      ...msg,
+                      sender: {
+                        ...msg.sender,
+                        role: senderMember?.role || "unknown"
+                      },
+                      receiver: {
+                        ...msg.receiver,
+                        role: receiverMember?.role || "unknown"
+                      }
+                    };
+                  });
+                  
+                  allMessages = [...allMessages, ...enhancedMessages];
+                }
+              }
             }
           }
         }
@@ -422,44 +486,41 @@ export const ChatMessagesList = ({
     let channel: any;
     
     if (isGroupChat && careTeamGroup?.members.length) {
-      const memberIds = careTeamGroup.members.map(m => m.id);
+      // Create a more comprehensive filter for the group chat subscription
+      // to catch all messages between care team members
+      const memberIds = careTeamGroup.members
+        .filter(member => 
+          member.role !== 'aibot' && 
+          member.id !== '00000000-0000-0000-0000-000000000000'
+        )
+        .map(m => m.id);
       
-      const filterConditions = memberIds.map(memberId => 
-        `or(and(sender_id=eq.${user.id},receiver_id=eq.${memberId}),and(sender_id=eq.${memberId},receiver_id=eq.${user.id}))`
-      ).join(',');
+      // Generate filter conditions for all possible communication pairs
+      let allPairConditions: string[] = [];
       
-      // For patients, also listen to doctor-nutritionist messages
-      let careTeamInternalConditions = '';
-      if (userRole === "patient") {
-        const doctorIds = careTeamGroup.members
-          .filter(m => m.role === "doctor")
-          .map(m => m.id);
-          
-        const nutritionistIds = careTeamGroup.members
-          .filter(m => m.role === "nutritionist")
-          .map(m => m.id);
-          
-        if (doctorIds.length > 0 && nutritionistIds.length > 0) {
-          const internalConditions = [];
-          for (const doctorId of doctorIds) {
-            for (const nutritionistId of nutritionistIds) {
-              internalConditions.push(
-                `or(and(sender_id=eq.${doctorId},receiver_id=eq.${nutritionistId}),and(sender_id=eq.${nutritionistId},receiver_id=eq.${doctorId}))`
-              );
-            }
-          }
-          
-          if (internalConditions.length > 0) {
-            careTeamInternalConditions = ',' + internalConditions.join(',');
-          }
+      // Create conditions for each pair of members
+      for (let i = 0; i < memberIds.length; i++) {
+        for (let j = i + 1; j < memberIds.length; j++) {
+          allPairConditions.push(
+            `or(and(sender_id=eq.${memberIds[i]},receiver_id=eq.${memberIds[j]}),and(sender_id=eq.${memberIds[j]},receiver_id=eq.${memberIds[i]}))`
+          );
         }
       }
       
-      const finalFilter = `or(${filterConditions}${careTeamInternalConditions})`;
-      console.log("Setting up realtime subscription with filter:", finalFilter);
+      // Add AI bot conditions if present
+      if (careTeamGroup.members.some(m => m.role === 'aibot' || m.id === '00000000-0000-0000-0000-000000000000')) {
+        for (const memberId of memberIds) {
+          allPairConditions.push(
+            `or(and(sender_id=eq.${memberId},receiver_id=eq.00000000-0000-0000-0000-000000000000),and(sender_id=eq.00000000-0000-0000-0000-000000000000,receiver_id=eq.${memberId}))`
+          );
+        }
+      }
+      
+      const finalFilter = `or(${allPairConditions.join(',')})`;
+      console.log("Setting up comprehensive realtime subscription with filter:", finalFilter);
       
       channel = supabase
-        .channel('group_chat_updates')
+        .channel('comprehensive_group_chat_updates')
         .on(
           'postgres_changes',
           {
@@ -488,30 +549,39 @@ export const ChatMessagesList = ({
         .subscribe();
     } 
     else if (selectedUserId) {
+      // For individual chat, also listen to all care team messages
       if (includeCareTeamMessages && careTeamMembers.length > 0) {
-        const filterConditions = [
-          `or(and(sender_id=eq.${user.id},receiver_id=eq.${selectedUserId}),and(sender_id=eq.${selectedUserId},receiver_id=eq.${user.id}))`,
-        ];
+        const memberIds = careTeamMembers.map(m => m.id);
+        memberIds.push(selectedUserId);
         
-        for (const member of careTeamMembers) {
-          if (member.id !== user.id) {
-            filterConditions.push(
-              `or(and(sender_id=eq.${member.id},receiver_id=eq.${selectedUserId}),and(sender_id=eq.${selectedUserId},receiver_id=eq.${member.id}))`
+        if (!memberIds.includes(user.id)) {
+          memberIds.push(user.id);
+        }
+        
+        // Generate filter conditions for all possible communication pairs
+        let allPairConditions: string[] = [];
+        
+        // Create conditions for each pair of members
+        for (let i = 0; i < memberIds.length; i++) {
+          for (let j = i + 1; j < memberIds.length; j++) {
+            allPairConditions.push(
+              `or(and(sender_id=eq.${memberIds[i]},receiver_id=eq.${memberIds[j]}),and(sender_id=eq.${memberIds[j]},receiver_id=eq.${memberIds[i]}))`
             );
           }
         }
         
-        const combinedFilter = filterConditions.join(',');
+        const finalFilter = `or(${allPairConditions.join(',')})`;
+        console.log("Setting up comprehensive individual chat with team updates:", finalFilter);
         
         channel = supabase
-          .channel('care_team_chat_updates')
+          .channel('comprehensive_care_team_updates')
           .on(
             'postgres_changes',
             {
               event: 'INSERT',
               schema: 'public',
               table: 'chat_messages',
-              filter: `or(${combinedFilter})`,
+              filter: finalFilter,
             },
             () => {
               queryClient.invalidateQueries({ queryKey: queryKey.slice(0, -1) });
@@ -523,7 +593,7 @@ export const ChatMessagesList = ({
               event: 'UPDATE',
               schema: 'public',
               table: 'chat_messages',
-              filter: `or(${combinedFilter})`,
+              filter: finalFilter,
             },
             () => {
               queryClient.invalidateQueries({ queryKey: queryKey.slice(0, -1) });
@@ -531,6 +601,7 @@ export const ChatMessagesList = ({
           )
           .subscribe();
       } else {
+        // Standard individual chat subscription
         channel = supabase
           .channel('chat_updates')
           .on(
