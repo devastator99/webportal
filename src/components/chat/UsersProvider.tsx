@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -38,16 +39,14 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
       if (!user?.id) return { assignedUsers: [], careTeamGroup: null };
       
       try {
+        console.log("Getting users for role:", userRole, "userId:", user.id);
+        
         if (userRole === "patient") {
           let careTeam: UserProfile[] = [];
           
           // Use RPC function to get care team (this is SECURITY DEFINER function)
-          // Using type assertion to handle the TypeScript error
           const { data: careTeamData, error: careTeamError } = await supabase
-            .rpc('get_patient_care_team_members', { p_patient_id: user.id }) as unknown as {
-              data: UserProfile[] | null,
-              error: Error | null
-            };
+            .rpc('get_patient_care_team_members', { p_patient_id: user.id });
           
           if (careTeamError) {
             console.error("Error fetching care team with RPC:", careTeamError);
@@ -58,6 +57,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             });
           } else {
             careTeam = (careTeamData as UserProfile[]) || [];
+            console.log("Retrieved care team members:", careTeam.length);
           }
           
           // Get administrators - Use security definer function 
@@ -100,13 +100,10 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
           };
         } 
         else if (userRole === "doctor") {
-          // Get assigned patients using edge function
-          const { data: patientsData, error: patientsError } = await supabase.functions.invoke('get-assigned-patients', {
-            body: { 
-              provider_id: user.id,
-              provider_role: userRole
-            }
-          });
+          console.log("Doctor: Getting assigned patients");
+          // Get assigned patients using the secure RPC function
+          const { data: patientsData, error: patientsError } = await supabase
+            .rpc('get_doctor_patients', { p_doctor_id: user.id });
           
           if (patientsError) {
             console.error("Error fetching assigned patients:", patientsError);
@@ -119,6 +116,8 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             last_name: p.last_name,
             role: "patient"
           }));
+          
+          console.log("Doctor's patients retrieved:", formattedPatients.length);
           
           // Sort patients alphabetically by name for doctors
           formattedPatients.sort((a: UserProfile, b: UserProfile) => {
@@ -139,27 +138,26 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
           };
         } 
         else if (userRole === "nutritionist") {
-          // Get assigned patients using edge function
-          const { data: patientsData, error: patientsError } = await supabase.functions.invoke('get-assigned-patients', {
-            body: { 
-              provider_id: user.id,
-              provider_role: userRole
-            }
-          });
+          console.log("Nutritionist: Getting assigned patients");
+          // Get patients assigned to this nutritionist using the RPC function
+          const { data: patientsData, error: patientsError } = await supabase
+            .rpc('get_nutritionist_patients', { p_nutritionist_id: user.id });
           
           if (patientsError) {
-            console.error("Error fetching assigned patients:", patientsError);
+            console.error("Error fetching nutritionist patients:", patientsError);
             throw patientsError;
           }
           
           const formattedPatients = (patientsData || []).map((p: any) => ({
-            id: p.id,
-            first_name: p.first_name,
-            last_name: p.last_name,
+            id: p.patient_id,
+            first_name: p.patient_first_name,
+            last_name: p.patient_last_name,
             role: "patient"
           }));
           
-          // Sort patients alphabetically by name for nutritionists
+          console.log("Nutritionist's patients retrieved:", formattedPatients.length);
+          
+          // Sort patients alphabetically by name
           formattedPatients.sort((a: UserProfile, b: UserProfile) => {
             const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
             const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
@@ -208,7 +206,8 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
         return { assignedUsers: [] as UserProfile[], careTeamGroup: null };
       }
     },
-    enabled: !!user?.id && !!userRole
+    enabled: !!user?.id && !!userRole,
+    staleTime: 30000 // Cache for 30 seconds
   });
 
   const assignedUsers = data?.assignedUsers || [];

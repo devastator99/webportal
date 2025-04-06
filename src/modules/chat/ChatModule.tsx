@@ -44,6 +44,8 @@ export const ChatModule = ({
               return null; // Don't render anything if loading or error
             }
             
+            // Control the chat interface based on user role
+            // All roles can access the chat, but with different views 
             return (
               <ChatInterface 
                 assignedUsers={assignedUsers}

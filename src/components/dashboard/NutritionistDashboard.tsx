@@ -1,6 +1,5 @@
-
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { getNutritionistPatients } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { useState } from "react";
 import { HealthPlanCreator } from "./nutritionist/HealthPlanCreator";
 import { HealthPlanPDF } from "./nutritionist/HealthPlanPDF";
 import { useToast } from "@/hooks/use-toast";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
 // Create a StatsCards component to keep the file size manageable
 const NutritionistStatsCards = ({ patientsCount }: { patientsCount: number }) => {
@@ -48,13 +48,11 @@ const NutritionistStatsCards = ({ patientsCount }: { patientsCount: number }) =>
   );
 };
 
-// Interface for patient assignment data
-interface PatientAssignment {
+// Interface for patient profile
+interface PatientProfile {
   id: string;
-  patient_id: string;
-  created_at: string;
-  patient_first_name: string;
-  patient_last_name: string;
+  first_name: string | null;
+  last_name: string | null;
 }
 
 export const NutritionistDashboard = () => {
@@ -63,29 +61,32 @@ export const NutritionistDashboard = () => {
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'create' | 'pdf'>('list');
 
-  const { data: patients, isLoading } = useQuery({
+  // Use the updated getNutritionistPatients function to get assigned patients
+  const { data: patients = [], isLoading } = useQuery({
     queryKey: ["nutritionist_patients", user?.id],
     queryFn: async () => {
-      console.log("Fetching patients for nutritionist:", user?.id);
+      if (!user?.id) return [] as PatientProfile[];
       
-      // Use the RPC function to get nutritionist's patients
-      const { data, error } = await supabase
-        .rpc('get_nutritionist_patients', { p_nutritionist_id: user?.id });
-
-      if (error) {
-        console.error("Error fetching patients for nutritionist:", error);
+      try {
+        console.log("Fetching patients for nutritionist:", user.id);
+        
+        // Use our helper function to get nutritionist's patients
+        const patientsData = await getNutritionistPatients(user.id);
+        console.log("Patients retrieved:", patientsData);
+        
+        return patientsData;
+      } catch (error) {
+        console.error("Error fetching nutritionist's patients:", error);
         toast({
           variant: "destructive",
           title: "Error",
           description: "Failed to load assigned patients."
         });
-        throw error;
+        return [] as PatientProfile[];
       }
-      
-      console.log("Fetched nutritionist patients:", data);
-      return data as PatientAssignment[] || [];
     },
     enabled: !!user?.id,
+    staleTime: 60000 // Cache for 1 minute
   });
 
   const handlePatientAction = (patientId: string, mode: 'create' | 'pdf') => {
@@ -125,32 +126,35 @@ export const NutritionistDashboard = () => {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <p className="text-muted-foreground">Loading patients...</p>
+              <div className="py-8 flex justify-center">
+                <LoadingSpinner size="md" />
+              </div>
             ) : patients?.length === 0 ? (
               <p className="text-muted-foreground">No patients assigned yet.</p>
             ) : (
               <div className="space-y-4">
-                {patients?.map((assignment) => (
-                  <div key={assignment.id} className="flex justify-between items-center border-b pb-2">
+                {patients.map((patient) => (
+                  <div key={patient.id} className="flex justify-between items-center border-b pb-2">
                     <div>
                       <p className="font-medium">
-                        {assignment.patient_first_name} {assignment.patient_last_name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Assigned: {new Date(assignment.created_at).toLocaleDateString()}
+                        {patient.first_name} {patient.last_name}
                       </p>
                     </div>
                     <div className="flex gap-2">
                       <Button 
-                        onClick={() => handlePatientAction(assignment.patient_id, 'pdf')} 
-                        size="sm"
+                        onClick={() => handlePatientAction(patient.id, 'pdf')}
                         variant="outline"
+                        size="sm"
                       >
-                        <FileText className="mr-2 h-4 w-4" />
+                        <FileText className="h-4 w-4 mr-1" />
                         View Plan
                       </Button>
-                      <Button onClick={() => handlePatientAction(assignment.patient_id, 'create')} size="sm">
-                        Create/Edit Plan <ArrowRight className="ml-2 h-4 w-4" />
+                      <Button
+                        onClick={() => handlePatientAction(patient.id, 'create')}
+                        size="sm"
+                      >
+                        <Salad className="h-4 w-4 mr-1" />
+                        Create Plan
                       </Button>
                     </div>
                   </div>
