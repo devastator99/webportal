@@ -42,7 +42,7 @@ export const ChatMessagesList = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: messages, isLoading, error } = useQuery({
-    queryKey: ["chat_messages", user?.id, selectedUserId, isGroupChat, includeCareTeamMessages, careTeamGroup?.members?.length],
+    queryKey: ["chat_messages", user?.id, selectedUserId, isGroupChat, includeCareTeamMessages, careTeamGroup?.groupName, careTeamMembers?.length],
     queryFn: async () => {
       if (!user?.id) return [];
 
@@ -52,7 +52,7 @@ export const ChatMessagesList = ({
         isGroupChat,
         includeCareTeamMessages,
         careTeamMembersCount: careTeamMembers?.length || 0,
-        careTeamGroupMembersCount: careTeamGroup?.members?.length || 0
+        careTeamGroupName: careTeamGroup?.groupName
       });
 
       if (isGroupChat && careTeamGroup) {
@@ -101,7 +101,7 @@ export const ChatMessagesList = ({
         const { data, error } = await supabase
           .from('chat_messages')
           .select('*, sender:sender_id(id, first_name, last_name, role), receiver:receiver_id(id, first_name, last_name, role)')
-          .or(`sender_id.eq.${user.id},and(receiver_id.eq.${selectedUserId}),sender_id.eq.${selectedUserId},and(receiver_id.eq.${user.id})`)
+          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`)
           .order('created_at', { ascending: true });
 
         if (error) throw error;
@@ -121,11 +121,15 @@ export const ChatMessagesList = ({
           
           console.log("Fetching care team messages with relevant IDs:", allRelevantIds);
           
-          // Get ALL messages that involve the selected user and ANY care team member
+          // Get ALL messages between ALL care team members and the patient
+          const careTeamQuery = allRelevantIds.map(id => {
+            return `or(sender_id.eq.${selectedUserId},and(receiver_id.eq.${id}),sender_id.eq.${id},and(receiver_id.eq.${selectedUserId}))`;
+          }).join(',');
+          
           const { data: careTeamData, error: careTeamError } = await supabase
             .from('chat_messages')
             .select('*, sender:sender_id(id, first_name, last_name, role), receiver:receiver_id(id, first_name, last_name, role)')
-            .or(`sender_id.eq.${selectedUserId},and(receiver_id.in.(${allRelevantIds.join(',')})),sender_id.in.(${allRelevantIds.join(',')}),and(receiver_id.eq.${selectedUserId})`)
+            .or(careTeamQuery)
             .order('created_at', { ascending: true });
             
           if (careTeamError) {
@@ -154,7 +158,7 @@ export const ChatMessagesList = ({
       return [];
     },
     enabled: !!user?.id && (!!selectedUserId || (isGroupChat && !!careTeamGroup)),
-    staleTime: 20000 // 20 seconds
+    staleTime: 5000 // Reduced to 5 seconds for more frequent updates
   });
 
   useEffect(() => {
@@ -181,40 +185,46 @@ export const ChatMessagesList = ({
     <div className="flex-1 overflow-hidden relative">
       <ScrollArea className="h-full w-full p-4">
         <div className="flex flex-col gap-2">
-          {allMessages.map((message, index) => {
-            if (!isGroupChat && selectedUserId) {
-              const isLocal = localMessages.some(localMessage => localMessage.id === message.id);
-              const isCurrentUser = message.sender?.id === user?.id;
-              const showAvatar = allMessages[index + 1]?.sender?.id !== message.sender?.id;
-              
-              return (
-                <ChatMessage
-                  key={message.id}
-                  message={message}
-                  isCurrentUser={isCurrentUser}
-                  showAvatar={showAvatar}
-                  offlineMode={offlineMode}
-                  isLocal={isLocal}
-                />
-              );
-            } else if (isGroupChat && careTeamGroup) {
-              const isLocal = localMessages.some(localMessage => localMessage.id === message.id);
-              const isCurrentUser = message.sender?.id === user?.id;
-              const showAvatar = allMessages[index + 1]?.sender?.id !== message.sender?.id;
-              
-              return (
-                <ChatMessage
-                  key={message.id}
-                  message={message}
-                  isCurrentUser={isCurrentUser}
-                  showAvatar={showAvatar}
-                  offlineMode={offlineMode}
-                  isLocal={isLocal}
-                />
-              );
-            }
-            return null;
-          })}
+          {allMessages.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No messages yet. Start a conversation!
+            </div>
+          ) : (
+            allMessages.map((message, index) => {
+              if (!isGroupChat && selectedUserId) {
+                const isLocal = localMessages.some(localMessage => localMessage.id === message.id);
+                const isCurrentUser = message.sender?.id === user?.id;
+                const showAvatar = allMessages[index + 1]?.sender?.id !== message.sender?.id;
+                
+                return (
+                  <ChatMessage
+                    key={message.id}
+                    message={message}
+                    isCurrentUser={isCurrentUser}
+                    showAvatar={showAvatar}
+                    offlineMode={offlineMode}
+                    isLocal={isLocal}
+                  />
+                );
+              } else if (isGroupChat && careTeamGroup) {
+                const isLocal = localMessages.some(localMessage => localMessage.id === message.id);
+                const isCurrentUser = message.sender?.id === user?.id;
+                const showAvatar = allMessages[index + 1]?.sender?.id !== message.sender?.id;
+                
+                return (
+                  <ChatMessage
+                    key={message.id}
+                    message={message}
+                    isCurrentUser={isCurrentUser}
+                    showAvatar={showAvatar}
+                    offlineMode={offlineMode}
+                    isLocal={isLocal}
+                  />
+                );
+              }
+              return null;
+            })
+          )}
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
