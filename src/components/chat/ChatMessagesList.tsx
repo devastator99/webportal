@@ -35,7 +35,7 @@ interface ChatMessageType {
   message: string;
   message_type: string;
   created_at: string;
-  read?: boolean; // Make read optional since it's not in the query response
+  read?: boolean; // Optional since it's not always in the query response
   sender: UserProfile;
   receiver: UserProfile;
   file_url?: string | null;
@@ -77,7 +77,7 @@ export const ChatMessagesList = ({
         
         console.log("Care team IDs for group chat:", careTeamIds);
         
-        // Fixed query with explicit column hints for the relationships
+        // Fixed query with explicit column selection
         const { data: allTeamMessages, error: allTeamError } = await supabase
           .from('chat_messages')
           .select(`
@@ -101,17 +101,17 @@ export const ChatMessagesList = ({
         
         console.log(`Retrieved ${allTeamMessages?.length || 0} total messages between care team members`);
         if (allTeamMessages) {
-          // Transform data to match ChatMessageType
+          // Transform data to match ChatMessageType with explicit role field added
           const transformedMessages = allTeamMessages.map(msg => ({
             ...msg,
             read: false, // Default value for read property
             sender: {
               ...msg.sender,
-              role: 'unknown' // Add role property
+              role: careTeamIds.includes(msg.sender?.id) ? 'care_team' : 'other' // Add role property
             },
             receiver: {
               ...msg.receiver,
-              role: 'unknown' // Add role property
+              role: careTeamIds.includes(msg.receiver?.id) ? 'care_team' : 'other' // Add role property
             }
           }));
           allMessages.push(...transformedMessages);
@@ -146,7 +146,7 @@ export const ChatMessagesList = ({
           
           console.log("All relevant IDs for message fetching:", allRelevantIds);
           
-          // Fixed direct messages query with explicit column hints
+          // Fixed direct messages query with explicit column selection
           const { data: directMessages, error: directError } = await supabase
             .from('chat_messages')
             .select(`
@@ -168,7 +168,7 @@ export const ChatMessagesList = ({
             throw directError;
           }
 
-          // Fixed patient care team messages query with explicit column hints
+          // Fixed patient care team messages query with explicit column selection
           const { data: patientCareTeamMessages, error: careTeamError } = await supabase
             .from('chat_messages')
             .select(`
@@ -194,8 +194,14 @@ export const ChatMessagesList = ({
           const transformDirectMessages = directMessages ? directMessages.map(msg => ({
             ...msg,
             read: false,
-            sender: { ...msg.sender, role: (msg.sender?.id === user.id) ? 'doctor' : 'patient' },
-            receiver: { ...msg.receiver, role: (msg.receiver?.id === user.id) ? 'doctor' : 'patient' }
+            sender: { 
+              ...msg.sender, 
+              role: (msg.sender?.id === user.id) ? 'doctor' : 'patient' 
+            },
+            receiver: { 
+              ...msg.receiver, 
+              role: (msg.receiver?.id === user.id) ? 'doctor' : 'patient' 
+            }
           })) : [];
 
           const filteredPatientMessages = patientCareTeamMessages ? patientCareTeamMessages.filter(msg => {
@@ -216,8 +222,14 @@ export const ChatMessagesList = ({
           }).map(msg => ({
             ...msg,
             read: false,
-            sender: { ...msg.sender, role: (msg.sender?.id === selectedUserId) ? 'patient' : 'care_team' },
-            receiver: { ...msg.receiver, role: (msg.receiver?.id === selectedUserId) ? 'patient' : 'care_team' }
+            sender: { 
+              ...msg.sender, 
+              role: (msg.sender?.id === selectedUserId) ? 'patient' : 'care_team' 
+            },
+            receiver: { 
+              ...msg.receiver, 
+              role: (msg.receiver?.id === selectedUserId) ? 'patient' : 'care_team' 
+            }
           })) : [];
           
           const allMessages = [...transformDirectMessages, ...filteredPatientMessages];
@@ -233,7 +245,7 @@ export const ChatMessagesList = ({
           console.log(`Returning ${uniqueMessages.length} unique messages in total`);
           return uniqueMessages;
         } else {
-          // Fixed direct conversation query with explicit column hints
+          // Fixed direct conversation query with explicit column selection
           const { data, error } = await supabase
             .from('chat_messages')
             .select(`
@@ -254,7 +266,7 @@ export const ChatMessagesList = ({
           
           console.log(`Returning ${data?.length || 0} direct messages`);
           
-          // Transform data to match ChatMessageType
+          // Transform data to match ChatMessageType with explicit role field added
           const transformedData = data?.map(msg => ({
             ...msg,
             read: false, // Add missing property
