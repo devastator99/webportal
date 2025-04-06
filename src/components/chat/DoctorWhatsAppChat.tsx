@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -162,6 +163,7 @@ export const DoctorWhatsAppChat = () => {
       
       setLocalMessages(prev => [...prev, tempMessage]);
       
+      // Send message to patient
       const { data, error } = await supabase.rpc('send_chat_message', {
         p_sender_id: user.id,
         p_receiver_id: selectedPatientId,
@@ -170,6 +172,23 @@ export const DoctorWhatsAppChat = () => {
       });
       
       if (error) throw error;
+      
+      // Forward the message to all care team members so everyone sees the communication
+      if (careTeamMembers && careTeamMembers.length > 0) {
+        console.log("Forwarding doctor's message to care team members:", careTeamMembers.length);
+        
+        // Send the message to each care team member except self
+        for (const member of careTeamMembers) {
+          if (member.id !== user.id && member.id !== '00000000-0000-0000-0000-000000000000') {
+            await supabase.rpc('send_chat_message', {
+              p_sender_id: user.id,
+              p_receiver_id: member.id,
+              p_message: `[To Patient] ${newMessage}`,
+              p_message_type: 'text'
+            });
+          }
+        }
+      }
       
       setNewMessage("");
       
@@ -218,6 +237,7 @@ export const DoctorWhatsAppChat = () => {
             
             setLocalMessages(prev => [...prev, aiMessage]);
             
+            // Send AI response to patient
             supabase.rpc('send_chat_message', {
               p_sender_id: '00000000-0000-0000-0000-000000000000',
               p_receiver_id: selectedPatientId,
@@ -225,9 +245,10 @@ export const DoctorWhatsAppChat = () => {
               p_message_type: 'text'
             });
             
-            careTeamMembers.forEach(member => {
-              if (member.id !== user.id && member.id !== '00000000-0000-0000-0000-000000000000') {
-                supabase.rpc('send_chat_message', {
+            // Also make sure to send AI response to ALL care team members
+            careTeamMembers.forEach(async (member) => {
+              if (member.id !== '00000000-0000-0000-0000-000000000000') {
+                await supabase.rpc('send_chat_message', {
                   p_sender_id: '00000000-0000-0000-0000-000000000000',
                   p_receiver_id: member.id,
                   p_message: aiResponse.response,
@@ -296,6 +317,7 @@ export const DoctorWhatsAppChat = () => {
     <ErrorBoundary>
       <Card className="h-full flex flex-col">
         <CardContent className="p-0 flex flex-1 overflow-hidden">
+          {/* Sidebar */}
           {(showSidebar || showSidebarOnly) && (
             <div className={`${showSidebarOnly ? 'w-full' : (isIPad ? 'w-2/5' : 'w-1/3')} border-r h-full bg-background relative`}>
               <div className="p-3 bg-muted/40 border-b flex justify-between items-center">
@@ -357,6 +379,7 @@ export const DoctorWhatsAppChat = () => {
             </div>
           )}
           
+          {/* Chat area */}
           {(!showSidebarOnly) && (
             <div className="flex-1 flex flex-col h-full relative">
               {selectedPatientId ? (

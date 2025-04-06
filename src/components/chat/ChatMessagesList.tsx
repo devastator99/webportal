@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -42,7 +41,7 @@ export const ChatMessagesList = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: messages, isLoading, error } = useQuery({
-    queryKey: ["chat_messages", user?.id, selectedUserId, isGroupChat, includeCareTeamMessages, careTeamGroup?.groupName, careTeamMembers?.length],
+    queryKey: ["chat_messages", user?.id, selectedUserId, isGroupChat, includeCareTeamMessages, careTeamGroup?.groupName, careTeamMembers?.length, careTeamMembers?.map(m => m.id).join('-')],
     queryFn: async () => {
       if (!user?.id) return [];
 
@@ -58,7 +57,6 @@ export const ChatMessagesList = ({
       if (isGroupChat && careTeamGroup) {
         const allMessages = [];
         
-        // Get all care team member IDs including the current user
         const careTeamIds = careTeamGroup.members.map(member => member.id);
         if (!careTeamIds.includes(user.id)) {
           careTeamIds.push(user.id);
@@ -66,7 +64,6 @@ export const ChatMessagesList = ({
         
         console.log("Care team IDs for group chat:", careTeamIds);
         
-        // Fetch ALL messages between ANY care team members
         const { data: allTeamMessages, error: allTeamError } = await supabase
           .from('chat_messages')
           .select('*, sender:sender_id(id, first_name, last_name, role), receiver:receiver_id(id, first_name, last_name, role)')
@@ -81,84 +78,89 @@ export const ChatMessagesList = ({
         console.log(`Retrieved ${allTeamMessages?.length || 0} total messages between care team members`);
         allMessages.push(...(allTeamMessages || []));
         
-        // Remove duplicate messages based on message ID
         const uniqueMessages = Array.from(
           new Map(allMessages.map(msg => [msg.id, msg])).values()
         );
         
-        // Filter to only include messages that involve care team members
         const filteredMessages = uniqueMessages.filter(msg => {
           return careTeamIds.includes(msg.sender.id) && careTeamIds.includes(msg.receiver.id);
         });
         
-        // Sort messages by created_at timestamp
         filteredMessages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
         
         console.log(`Returning ${filteredMessages.length} filtered unique care team messages`);
         return filteredMessages;
       } else if (selectedUserId && user?.id) {
-        // Direct conversation between two users
-        const { data, error } = await supabase
-          .from('chat_messages')
-          .select('*, sender:sender_id(id, first_name, last_name, role), receiver:receiver_id(id, first_name, last_name, role)')
-          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`)
-          .order('created_at', { ascending: true });
-
-        if (error) throw error;
-        
-        // If requested to include care team messages and care team members are provided
         if (includeCareTeamMessages && careTeamMembers && careTeamMembers.length > 0) {
-          const careTeamIds = careTeamMembers.map(member => member.id);
+          console.log("Doctor/care team view: Fetching all messages for patient:", selectedUserId);
           
-          // Include the selected user and current user in the care team IDs
-          const allRelevantIds = [...careTeamIds];
-          if (!allRelevantIds.includes(selectedUserId)) {
-            allRelevantIds.push(selectedUserId);
-          }
-          if (!allRelevantIds.includes(user.id)) {
-            allRelevantIds.push(user.id);
-          }
+          const allRelevantIds = [selectedUserId, user.id];
           
-          console.log("Fetching care team messages with relevant IDs:", allRelevantIds);
+          careTeamMembers.forEach(member => {
+            if (!allRelevantIds.includes(member.id)) {
+              allRelevantIds.push(member.id);
+            }
+          });
           
-          // Get ALL messages between ALL care team members and the patient
-          const careTeamQuery = allRelevantIds.map(id => {
-            return `or(sender_id.eq.${selectedUserId},and(receiver_id.eq.${id}),sender_id.eq.${id},and(receiver_id.eq.${selectedUserId}))`;
-          }).join(',');
+          console.log("All relevant IDs for message fetching:", allRelevantIds);
           
-          const { data: careTeamData, error: careTeamError } = await supabase
+          const directMessages = await supabase
             .from('chat_messages')
             .select('*, sender:sender_id(id, first_name, last_name, role), receiver:receiver_id(id, first_name, last_name, role)')
-            .or(careTeamQuery)
+            .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`)
             .order('created_at', { ascending: true });
             
-          if (careTeamError) {
-            console.error("Error fetching care team messages:", careTeamError);
-          } else {
-            console.log(`Retrieved ${careTeamData?.length || 0} care team related messages`);
+          const patientCareTeamMessages = await supabase
+            .from('chat_messages')
+            .select('*, sender:sender_id(id, first_name, last_name, role), receiver:receiver_id(id, first_name, last_name, role)')
+            .or(`sender_id.eq.${selectedUserId},receiver_id.eq.${selectedUserId}`)
+            .order('created_at', { ascending: true });
             
-            // Combine messages and remove duplicates
-            const allMessages = [...(data || []), ...(careTeamData || [])];
-            const uniqueMessages = Array.from(
-              new Map(allMessages.map(msg => [msg.id, msg])).values()
-            );
+          const filteredPatientMessages = patientCareTeamMessages?.filter(msg => {
+            const isFromPatient = msg.sender.id === selectedUserId;
+            const isToPatient = msg.receiver.id === selectedUserId;
             
-            // Sort messages by created_at timestamp
-            uniqueMessages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+            if (isFromPatient) {
+              return allRelevantIds.includes(msg.receiver.id);
+            }
             
-            console.log(`Returning ${uniqueMessages.length} unique messages after care team merging`);
-            return uniqueMessages;
-          }
+            if (isToPatient) {
+              return allRelevantIds.includes(msg.sender.id);
+            }
+            
+            return false;
+          }) || [];
+          
+          const allMessages = [...(directMessages || []), ...filteredPatientMessages];
+          
+          const uniqueMessages = Array.from(
+            new Map(allMessages.map(msg => [msg.id, msg])).values()
+          );
+          
+          uniqueMessages.sort((a, b) => 
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
+          
+          console.log(`Returning ${uniqueMessages.length} unique messages in total`);
+          return uniqueMessages;
+        } else {
+          const { data, error } = await supabase
+            .from('chat_messages')
+            .select('*, sender:sender_id(id, first_name, last_name, role), receiver:receiver_id(id, first_name, last_name, role)')
+            .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`)
+            .order('created_at', { ascending: true });
+
+          if (error) throw error;
+          
+          console.log(`Returning ${data?.length || 0} direct messages`);
+          return data || [];
         }
-        
-        console.log(`Returning ${data?.length || 0} direct messages`);
-        return data || [];
       }
 
       return [];
     },
     enabled: !!user?.id && (!!selectedUserId || (isGroupChat && !!careTeamGroup)),
-    staleTime: 5000 // Reduced to 5 seconds for more frequent updates
+    staleTime: 5000
   });
 
   useEffect(() => {
