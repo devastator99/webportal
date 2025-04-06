@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { adminDeleteUser, supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -14,10 +14,11 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Search, Users, RefreshCw, Trash2, AlertCircle } from "lucide-react";
+import { Search, Users, RefreshCw, Trash2, AlertCircle, UserX } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface UserItem {
   id: string;
@@ -36,6 +37,7 @@ export const UserManagement = () => {
   const [roleFilter, setRoleFilter] = useState("all");
   const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
   const [unknownUsersCount, setUnknownUsersCount] = useState(0);
+  const { user } = useAuth();
   
   useEffect(() => {
     fetchUsers();
@@ -78,6 +80,11 @@ export const UserManagement = () => {
   };
   
   const deleteUnknownUsers = async () => {
+    if (!user?.id) {
+      toast.error("Admin ID is required");
+      return;
+    }
+
     setDeleteLoading(true);
     try {
       // Filter users with unknown or empty first names
@@ -91,18 +98,24 @@ export const UserManagement = () => {
         return;
       }
       
-      // Delete each user one by one (for better error handling)
+      // Delete each user one by one using the adminDeleteUser function
       let successCount = 0;
       let failCount = 0;
       
-      for (const user of unknownUsers) {
-        const { error } = await supabase.auth.admin.deleteUser(user.id);
-        
-        if (error) {
-          console.error(`Failed to delete user ${user.id}:`, error);
+      for (const unknownUser of unknownUsers) {
+        try {
+          console.log(`Attempting to delete user ${unknownUser.id} with admin ${user.id}`);
+          const result = await adminDeleteUser(unknownUser.id, user.id);
+          
+          if (result.success) {
+            successCount++;
+          } else {
+            console.error(`Failed to delete user ${unknownUser.id}:`, result.error);
+            failCount++;
+          }
+        } catch (error) {
+          console.error(`Error deleting user ${unknownUser.id}:`, error);
           failCount++;
-        } else {
-          successCount++;
         }
       }
       
@@ -173,7 +186,7 @@ export const UserManagement = () => {
               className="flex items-center gap-2"
               onClick={() => setShowDeleteConfirmation(true)}
             >
-              <Trash2 className="h-4 w-4" />
+              <UserX className="h-4 w-4" />
               Delete Unknown ({unknownUsersCount})
             </Button>
           )}
@@ -273,4 +286,3 @@ export const UserManagement = () => {
     </div>
   );
 };
-
