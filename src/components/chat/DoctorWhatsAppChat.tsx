@@ -107,6 +107,7 @@ export const DoctorWhatsAppChat = () => {
         
         console.log("Care team members retrieved:", data?.length || 0);
         
+        // Make sure AI bot is in the care team
         const updatedCareTeam = [...(data || [])];
         const hasAiBot = updatedCareTeam.some(member => 
           member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000'
@@ -314,17 +315,6 @@ export const DoctorWhatsAppChat = () => {
   const showChatOnly = isMobile && selectedPatientId && !showSidebar;
   const showSidebarOnly = isMobile && showSidebar;
 
-  // This function now shows ALL messages in the care team conversation
-  const shouldShowMessage = (message) => {
-    if (!selectedPatientId || !user?.id) return false;
-    
-    // Get all relevant IDs for the care team conversation
-    const relevantIds = [selectedPatientId, user.id, ...careTeamMembers.map(m => m.id)];
-    
-    // If both sender and receiver are part of the care team, show the message
-    return relevantIds.includes(message.sender.id) && relevantIds.includes(message.receiver.id);
-  };
-
   return (
     <ErrorBoundary>
       <Card className="h-full flex flex-col">
@@ -431,7 +421,7 @@ export const DoctorWhatsAppChat = () => {
                         selectedUserId={selectedPatientId}
                         isGroupChat={false}
                         careTeamMembers={careTeamMembers}
-                        localMessages={localMessages.filter(msg => shouldShowMessage(msg))}
+                        localMessages={localMessages}
                         includeCareTeamMessages={true}
                       />
                     )}

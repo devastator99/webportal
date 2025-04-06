@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -66,8 +65,31 @@ export const ChatMessagesList = ({
         careTeamMembersCount: careTeamMembers?.length || 0,
         careTeamGroupName: careTeamGroup?.groupName
       });
+      
+      if (selectedUserId && includeCareTeamMessages) {
+        try {
+          // Use Edge Function to get all care team messages
+          console.log("Getting care team messages via edge function");
+          const { data, error } = await supabase.functions.invoke('get-chat-messages', {
+            body: {
+              user_id: user.id,
+              other_user_id: selectedUserId,
+              include_care_team: true
+            }
+          });
 
-      if (isGroupChat && careTeamGroup) {
+          if (error) {
+            console.error("Error invoking get-chat-messages:", error);
+            throw error;
+          }
+
+          console.log(`Retrieved ${data?.messages?.length || 0} care team messages via edge function`);
+          return data?.messages || [];
+        } catch (err) {
+          console.error("Error in care team messages retrieval:", err);
+          throw err;
+        }
+      } else if (isGroupChat && careTeamGroup) {
         const allMessages: ChatMessageType[] = [];
         
         const careTeamIds = careTeamGroup.members.map(member => member.id);
@@ -158,217 +180,67 @@ export const ChatMessagesList = ({
         console.log(`Returning ${filteredMessages.length} filtered unique care team messages`);
         return filteredMessages;
       } else if (selectedUserId && user?.id) {
-        if (includeCareTeamMessages && careTeamMembers && careTeamMembers.length > 0) {
-          console.log("Doctor/care team view: Fetching all messages for patient:", selectedUserId);
+        // Get user roles first
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('user_id, role')
+          .in('user_id', [user.id, selectedUserId]);
           
-          const allRelevantIds = [selectedUserId, user.id];
-          
-          careTeamMembers.forEach(member => {
-            if (!allRelevantIds.includes(member.id)) {
-              allRelevantIds.push(member.id);
-            }
-          });
-          
-          console.log("All relevant IDs for message fetching:", allRelevantIds);
-          
-          // Get all roles first
-          const { data: userRoles, error: rolesError } = await supabase
-            .from('user_roles')
-            .select('user_id, role')
-            .in('user_id', allRelevantIds);
-            
-          if (rolesError) {
-            console.error("Error fetching user roles:", rolesError);
-            throw rolesError;
-          }
-          
-          // Create a lookup map for roles
-          const roleMap = new Map();
-          userRoles?.forEach(ur => {
-            roleMap.set(ur.user_id, ur.role);
-          });
-          
-          // Query direct messages
-          const { data: directMessages, error: directError } = await supabase
-            .from('chat_messages')
-            .select(`
-              id,
-              message,
-              message_type,
-              created_at,
-              file_url,
-              sender_id,
-              receiver_id,
-              sender:profiles!sender_id(id, first_name, last_name),
-              receiver:profiles!receiver_id(id, first_name, last_name)
-            `)
-            .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`)
-            .order('created_at', { ascending: true });
-            
-          if (directError) {
-            console.error("Error fetching direct messages:", directError);
-            throw directError;
-          }
-
-          // Query patient-care team messages
-          const { data: patientCareTeamMessages, error: careTeamError } = await supabase
-            .from('chat_messages')
-            .select(`
-              id,
-              message,
-              message_type,
-              created_at,
-              file_url,
-              sender_id,
-              receiver_id,
-              sender:profiles!sender_id(id, first_name, last_name),
-              receiver:profiles!receiver_id(id, first_name, last_name)
-            `)
-            .or(`sender_id.eq.${selectedUserId},receiver_id.eq.${selectedUserId}`)
-            .order('created_at', { ascending: true });
-            
-          if (careTeamError) {
-            console.error("Error fetching care team messages:", careTeamError);
-            throw careTeamError;
-          }
-          
-          // Transform direct messages with proper structure including role field
-          const transformDirectMessages = directMessages ? directMessages.map(msg => ({
-            id: msg.id,
-            message: msg.message,
-            message_type: msg.message_type,
-            created_at: msg.created_at,
-            file_url: msg.file_url,
-            read: false,
-            sender: { 
-              id: msg.sender?.id || '', 
-              first_name: msg.sender?.first_name || '',
-              last_name: msg.sender?.last_name || '',
-              role: roleMap.get(msg.sender?.id) || 'unknown'
-            },
-            receiver: { 
-              id: msg.receiver?.id || '',
-              first_name: msg.receiver?.first_name || '',
-              last_name: msg.receiver?.last_name || '', 
-              role: roleMap.get(msg.receiver?.id) || 'unknown'
-            }
-          })) : [];
-
-          // Filter and transform patient-care team messages
-          const filteredPatientMessages = patientCareTeamMessages ? patientCareTeamMessages.filter(msg => {
-            if (!msg || !msg.sender || !msg.receiver) return false;
-            
-            const isFromPatient = msg.sender.id === selectedUserId;
-            const isToPatient = msg.receiver.id === selectedUserId;
-            
-            if (isFromPatient) {
-              return allRelevantIds.includes(msg.receiver.id);
-            }
-            
-            if (isToPatient) {
-              return allRelevantIds.includes(msg.sender.id);
-            }
-            
-            return false;
-          }).map(msg => ({
-            id: msg.id,
-            message: msg.message,
-            message_type: msg.message_type,
-            created_at: msg.created_at,
-            file_url: msg.file_url,
-            read: false,
-            sender: { 
-              id: msg.sender?.id || '',
-              first_name: msg.sender?.first_name || '',
-              last_name: msg.sender?.last_name || '', 
-              role: roleMap.get(msg.sender?.id) || 'unknown'
-            },
-            receiver: { 
-              id: msg.receiver?.id || '',
-              first_name: msg.receiver?.first_name || '',
-              last_name: msg.receiver?.last_name || '', 
-              role: roleMap.get(msg.receiver?.id) || 'unknown'
-            }
-          })) : [];
-          
-          // Combine all messages
-          const allMessages = [...transformDirectMessages, ...filteredPatientMessages];
-          
-          // Get unique messages by ID
-          const uniqueMessages = Array.from(
-            new Map(allMessages.map(msg => [msg.id, msg])).values()
-          );
-          
-          // Sort messages by timestamp
-          uniqueMessages.sort((a, b) => 
-            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-          );
-          
-          console.log(`Returning ${uniqueMessages.length} unique messages in total`);
-          return uniqueMessages;
-        } else {
-          // Get user roles first
-          const { data: userRoles, error: rolesError } = await supabase
-            .from('user_roles')
-            .select('user_id, role')
-            .in('user_id', [user.id, selectedUserId]);
-            
-          if (rolesError) {
-            console.error("Error fetching user roles:", rolesError);
-            throw rolesError;
-          }
-          
-          // Create a lookup map for roles
-          const roleMap = new Map();
-          userRoles?.forEach(ur => {
-            roleMap.set(ur.user_id, ur.role);
-          });
-          
-          // Direct conversation query
-          const { data, error } = await supabase
-            .from('chat_messages')
-            .select(`
-              id,
-              message,
-              message_type,
-              created_at,
-              file_url,
-              sender_id,
-              receiver_id,
-              sender:profiles!sender_id(id, first_name, last_name),
-              receiver:profiles!receiver_id(id, first_name, last_name)
-            `)
-            .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`)
-            .order('created_at', { ascending: true });
-
-          if (error) throw error;
-          
-          console.log(`Returning ${data?.length || 0} direct messages`);
-          
-          // Transform data to match ChatMessageType with explicit role field added from roleMap
-          const transformedData = data?.map(msg => ({
-            id: msg.id,
-            message: msg.message,
-            message_type: msg.message_type,
-            created_at: msg.created_at,
-            file_url: msg.file_url,
-            read: false, // Add missing property
-            sender: {
-              id: msg.sender?.id || '',
-              first_name: msg.sender?.first_name || '',
-              last_name: msg.sender?.last_name || '',
-              role: roleMap.get(msg.sender?.id) || 'unknown'
-            },
-            receiver: {
-              id: msg.receiver?.id || '',
-              first_name: msg.receiver?.first_name || '',
-              last_name: msg.receiver?.last_name || '',
-              role: roleMap.get(msg.receiver?.id) || 'unknown'
-            }
-          })) || [];
-          
-          return transformedData;
+        if (rolesError) {
+          console.error("Error fetching user roles:", rolesError);
+          throw rolesError;
         }
+        
+        // Create a lookup map for roles
+        const roleMap = new Map();
+        userRoles?.forEach(ur => {
+          roleMap.set(ur.user_id, ur.role);
+        });
+        
+        // Direct conversation query
+        const { data, error } = await supabase
+          .from('chat_messages')
+          .select(`
+            id,
+            message,
+            message_type,
+            created_at,
+            file_url,
+            sender_id,
+            receiver_id,
+            sender:profiles!sender_id(id, first_name, last_name),
+            receiver:profiles!receiver_id(id, first_name, last_name)
+          `)
+          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`)
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+        
+        console.log(`Returning ${data?.length || 0} direct messages`);
+        
+        // Transform data to match ChatMessageType with explicit role field added from roleMap
+        const transformedData = data?.map(msg => ({
+          id: msg.id,
+          message: msg.message,
+          message_type: msg.message_type,
+          created_at: msg.created_at,
+          file_url: msg.file_url,
+          read: false, // Add missing property
+          sender: {
+            id: msg.sender?.id || '',
+            first_name: msg.sender?.first_name || '',
+            last_name: msg.sender?.last_name || '',
+            role: roleMap.get(msg.sender?.id) || 'unknown'
+          },
+          receiver: {
+            id: msg.receiver?.id || '',
+            first_name: msg.receiver?.first_name || '',
+            last_name: msg.receiver?.last_name || '',
+            role: roleMap.get(msg.receiver?.id) || 'unknown'
+          }
+        })) || [];
+        
+        return transformedData;
       }
 
       return [];
@@ -396,7 +268,8 @@ export const ChatMessagesList = ({
   }
 
   if (error) {
-    return <div className="flex-1 flex items-center justify-center text-red-500">Error loading messages.</div>;
+    console.error("Error loading messages:", error);
+    return <div className="flex-1 flex items-center justify-center text-red-500">Error loading messages: {error.message || "Unknown error"}</div>;
   }
 
   return (
@@ -411,38 +284,20 @@ export const ChatMessagesList = ({
             allMessages.map((message, index) => {
               if (!message) return null;
               
-              if (!isGroupChat && selectedUserId) {
-                const isLocal = localMessages.some(localMessage => localMessage.id === message.id);
-                const isCurrentUser = message.sender?.id === user?.id;
-                const showAvatar = allMessages[index + 1]?.sender?.id !== message.sender?.id;
-                
-                return (
-                  <ChatMessage
-                    key={message.id}
-                    message={message}
-                    isCurrentUser={isCurrentUser}
-                    showAvatar={showAvatar}
-                    offlineMode={offlineMode}
-                    isLocal={isLocal}
-                  />
-                );
-              } else if (isGroupChat && careTeamGroup) {
-                const isLocal = localMessages.some(localMessage => localMessage.id === message.id);
-                const isCurrentUser = message.sender?.id === user?.id;
-                const showAvatar = allMessages[index + 1]?.sender?.id !== message.sender?.id;
-                
-                return (
-                  <ChatMessage
-                    key={message.id}
-                    message={message}
-                    isCurrentUser={isCurrentUser}
-                    showAvatar={showAvatar}
-                    offlineMode={offlineMode}
-                    isLocal={isLocal}
-                  />
-                );
-              }
-              return null;
+              const isLocal = localMessages.some(localMessage => localMessage.id === message.id);
+              const isCurrentUser = message.sender?.id === user?.id;
+              const showAvatar = allMessages[index + 1]?.sender?.id !== message.sender?.id;
+              
+              return (
+                <ChatMessage
+                  key={message.id}
+                  message={message}
+                  isCurrentUser={isCurrentUser}
+                  showAvatar={showAvatar}
+                  offlineMode={offlineMode}
+                  isLocal={isLocal}
+                />
+              );
             })
           )}
           <div ref={messagesEndRef} />
