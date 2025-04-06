@@ -13,7 +13,7 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Search, Users, RefreshCw, Trash2, UserX } from "lucide-react";
+import { Search, RefreshCw, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -60,7 +60,7 @@ export const UserManagement = () => {
       
       // Count unknown users
       const unknownUsers = data?.filter(
-        (user: UserItem) => user.first_name === 'unknown' || user.first_name === null || user.first_name === ''
+        (user: UserItem) => !user.first_name || user.first_name === '' || user.first_name === 'unknown'
       ) || [];
       setUnknownUsersCount(unknownUsers.length);
       
@@ -197,7 +197,7 @@ export const UserManagement = () => {
               disabled={deleteLoading}
             >
               <Trash2 className="h-4 w-4" />
-              {deleteLoading ? "Deleting..." : `Delete Empty (${unknownUsersCount})`}
+              {deleteLoading ? "Deleting..." : `Delete Unknown (${unknownUsersCount})`}
             </Button>
           )}
         </div>
