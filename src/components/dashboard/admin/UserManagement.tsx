@@ -38,27 +38,7 @@ export const UserManagement = () => {
     try {
       console.log("Fetching users...");
       
-      // Get all profiles first
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id, first_name, last_name');
-      
-      if (profilesError) {
-        console.error("Profiles query error:", profilesError);
-        throw profilesError;
-      }
-      
-      // Get user roles separately
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-        
-      if (rolesError) {
-        console.error("Roles query error:", rolesError);
-        throw rolesError;
-      }
-      
-      // Get emails using the admin edge function
+      // Get all auth users and their emails via the admin-get-users edge function
       const { data: authUsers, error: authUsersError } = await supabase.functions.invoke(
         'admin-get-users',
         { body: {} }
@@ -71,39 +51,69 @@ export const UserManagement = () => {
       
       console.log("Auth users data:", authUsers);
       
-      // Create a map of user_id to email
-      const emailMap = new Map();
-      if (authUsers && Array.isArray(authUsers.users)) {
-        authUsers.users.forEach(user => {
-          if (user.id && user.email) {
-            emailMap.set(user.id, user.email);
-          }
-        });
+      if (!authUsers || !Array.isArray(authUsers.users)) {
+        throw new Error("Invalid response from admin-get-users");
       }
       
-      // Create a map of user_id to role
-      const roleMap = new Map();
-      if (rolesData) {
-        rolesData.forEach(role => {
-          if (role.user_id && role.role) {
-            roleMap.set(role.user_id, role.role);
-          }
-        });
-      }
-      
-      // Combine the data
+      // Create a map of user profiles and roles
       const formattedUsers: UserItem[] = [];
       
+      // Get profiles directly - this should not have recursion issues
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name');
+      
+      if (profilesError) {
+        console.error("Profiles fetch error:", profilesError);
+        throw profilesError;
+      }
+      
+      // Create a map of profile data
+      const profileMap = new Map();
       if (profilesData) {
-        for (const profile of profilesData) {
-          formattedUsers.push({
-            id: profile.id,
-            first_name: profile.first_name,
-            last_name: profile.last_name,
-            email: emailMap.get(profile.id) || 'No email',
-            role: roleMap.get(profile.id) || 'No role'
-          });
-        }
+        profilesData.forEach(profile => {
+          if (profile.id) {
+            profileMap.set(profile.id, {
+              first_name: profile.first_name,
+              last_name: profile.last_name
+            });
+          }
+        });
+      }
+      
+      // Get roles from the edge function not directly
+      const { data: rolesData, error: rolesError } = await supabase.functions.invoke(
+        'admin-get-user-roles',
+        { body: {} }
+      );
+      
+      if (rolesError) {
+        console.error("Roles fetch error:", rolesError);
+        throw rolesError;
+      }
+      
+      // Create a map of user roles
+      const roleMap = new Map();
+      if (rolesData && Array.isArray(rolesData.roles)) {
+        rolesData.roles.forEach(roleInfo => {
+          if (roleInfo.user_id && roleInfo.role) {
+            roleMap.set(roleInfo.user_id, roleInfo.role);
+          }
+        });
+      }
+      
+      // Combine all the data
+      for (const authUser of authUsers.users) {
+        const userId = authUser.id;
+        const profile = profileMap.get(userId) || {};
+        
+        formattedUsers.push({
+          id: userId,
+          first_name: profile.first_name || '',
+          last_name: profile.last_name || '',
+          email: authUser.email || 'No email',
+          role: roleMap.get(userId) || 'No role'
+        });
       }
       
       console.log("Formatted users:", formattedUsers);
