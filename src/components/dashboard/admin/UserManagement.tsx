@@ -1,23 +1,12 @@
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { 
-  Table, 
-  TableBody, 
-  TableCaption, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { Search, RefreshCw, UserIcon } from "lucide-react";
+import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Search, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { toast } from "sonner";
 
 interface UserItem {
   id: string;
@@ -28,12 +17,10 @@ interface UserItem {
 }
 
 export const UserManagement = () => {
-  const { toast: uiToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const { user } = useAuth();
   
   useEffect(() => {
     fetchUsers();
@@ -42,27 +29,43 @@ export const UserManagement = () => {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      console.log("Fetching users with roles...");
+      console.log("Fetching users...");
       
-      // Simple direct call to the RPC function
-      const { data, error } = await supabase.rpc('get_users_with_roles');
+      // Direct query to get all users with their roles
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          user_roles!inner (role),
+          auth_users:id (email)
+        `)
+        .returns<any[]>();
       
       if (error) {
-        console.error("RPC error:", error);
+        console.error("Query error:", error);
         throw error;
       }
       
-      console.log("Users data received:", data);
-      setUsers(data || []);
+      console.log("Raw data received:", data);
+      
+      // Format the data to match the UserItem interface
+      const formattedUsers = data?.map(user => ({
+        id: user.id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.auth_users?.email,
+        role: user.user_roles?.role
+      })) || [];
+      
+      console.log("Formatted users:", formattedUsers);
+      setUsers(formattedUsers);
       
       toast.success("User data refreshed");
     } catch (error: any) {
       console.error("Error fetching users:", error);
-      uiToast({
-        title: "Error loading users",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.error(`Error loading users: ${error.message}`);
     } finally {
       setLoading(false);
     }
