@@ -17,15 +17,17 @@ interface ChatMessageProps {
     synced?: boolean | string;
   };
   isCurrentUser: boolean;
-  showSender?: boolean;
+  showAvatar?: boolean;
   offlineMode?: boolean;
+  isLocal?: boolean;
 }
 
 export const ChatMessage = ({ 
   message, 
   isCurrentUser, 
-  showSender = false,
-  offlineMode = false 
+  showAvatar = false,
+  offlineMode = false,
+  isLocal = false
 }: ChatMessageProps) => {
   // Format message timestamp
   const messageTime = new Date(message.created_at);
@@ -45,7 +47,7 @@ export const ChatMessage = ({
             : "bg-muted rounded-tl-none"
         }`}
       >
-        {showSender && !isCurrentUser && (
+        {showAvatar && !isCurrentUser && (
           <span className="text-xs font-medium text-blue-600 dark:text-blue-400 block mb-1">
             {senderFullName}
             {message.sender.role && message.sender.role !== "patient" && (
@@ -76,4 +78,4 @@ export const ChatMessage = ({
       </div>
     </div>
   );
-};
+}

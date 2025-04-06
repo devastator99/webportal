@@ -139,14 +139,14 @@ export const ChatMessagesList = ({
           {allMessages.map((message, index) => {
             if (!isGroupChat && selectedUserId) {
               const isLocal = localMessages.some(localMessage => localMessage.id === message.id);
-              const isOwnMessage = message.sender?.id === user?.id;
+              const isCurrentUser = message.sender?.id === user?.id;
               const showAvatar = allMessages[index + 1]?.sender?.id !== message.sender?.id;
               
               return (
                 <ChatMessage
                   key={message.id}
                   message={message}
-                  isOwnMessage={isOwnMessage}
+                  isCurrentUser={isCurrentUser}
                   showAvatar={showAvatar}
                   offlineMode={offlineMode}
                   isLocal={isLocal}
@@ -154,14 +154,14 @@ export const ChatMessagesList = ({
               );
             } else if (isGroupChat && careTeamGroup) {
               const isLocal = localMessages.some(localMessage => localMessage.id === message.id);
-              const isOwnMessage = message.sender?.id === user?.id;
+              const isCurrentUser = message.sender?.id === user?.id;
               const showAvatar = allMessages[index + 1]?.sender?.id !== message.sender?.id;
               
               return (
                 <ChatMessage
                   key={message.id}
                   message={message}
-                  isOwnMessage={isOwnMessage}
+                  isCurrentUser={isCurrentUser}
                   showAvatar={showAvatar}
                   offlineMode={offlineMode}
                   isLocal={isLocal}
