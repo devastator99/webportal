@@ -32,42 +32,72 @@ export const UserManagement = () => {
     try {
       console.log("Fetching users...");
       
-      // Make a direct query to the profiles and user_roles tables instead of using RPC
+      // Get all profiles first
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select(`
-          id,
-          first_name,
-          last_name,
-          auth.users!inner(email),
-          user_roles(role)
-        `)
+        .select('id, first_name, last_name')
         .order('first_name');
       
       if (profilesError) {
-        console.error("Query error:", profilesError);
+        console.error("Profiles query error:", profilesError);
         throw profilesError;
       }
       
-      console.log("Raw profiles data:", profilesData);
+      if (!profilesData || profilesData.length === 0) {
+        setUsers([]);
+        setLoading(false);
+        return;
+      }
       
-      // Process the data to match our UserItem interface
+      console.log("Profiles data:", profilesData);
+      
+      // Get user roles separately
+      const { data: rolesData, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('user_id, role');
+        
+      if (rolesError) {
+        console.error("Roles query error:", rolesError);
+        throw rolesError;
+      }
+      
+      // Get emails from auth.users using the get_users_with_roles function
+      const { data: usersData, error: usersError } = await supabase
+        .rpc('get_users_with_roles');
+      
+      if (usersError) {
+        console.error("Users RPC error:", usersError);
+        // Continue even if this fails, we'll just show without emails
+      }
+      
+      // Create a map of user_id to email
+      const emailMap = new Map();
+      if (usersData && Array.isArray(usersData)) {
+        usersData.forEach(user => {
+          if (user.id && user.email) {
+            emailMap.set(user.id, user.email);
+          }
+        });
+      }
+      
+      // Create a map of user_id to role
+      const roleMap = new Map();
+      if (rolesData) {
+        rolesData.forEach(role => {
+          if (role.user_id && role.role) {
+            roleMap.set(role.user_id, role.role);
+          }
+        });
+      }
+      
+      // Combine the data
       const formattedUsers: UserItem[] = profilesData.map(profile => {
-        // Extract email from the nested auth.users object
-        const email = profile.auth?.users?.email || 'No email';
-        
-        // Extract role from the nested user_roles array
-        let role = 'No role';
-        if (profile.user_roles && profile.user_roles.length > 0 && profile.user_roles[0].role) {
-          role = profile.user_roles[0].role;
-        }
-        
         return {
           id: profile.id,
           first_name: profile.first_name,
           last_name: profile.last_name,
-          email: email,
-          role: role
+          email: emailMap.get(profile.id) || 'No email',
+          role: roleMap.get(profile.id) || 'No role'
         };
       });
       
