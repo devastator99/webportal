@@ -7,6 +7,7 @@ import { UsersProvider } from "@/components/chat/UsersProvider";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { Card, CardContent } from "@/components/ui/card";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { DoctorWhatsAppChat } from "@/components/chat/DoctorWhatsAppChat";
 
 const ChatPage = () => {
   const { user, userRole } = useAuth();
@@ -42,6 +43,8 @@ const ChatPage = () => {
                       <div className="text-center py-12 text-red-500">
                         Error loading chat data. Please try again later.
                       </div>
+                    ) : userRole === "doctor" ? (
+                      <DoctorWhatsAppChat />
                     ) : isHealthcareProvider() ? (
                       <ChatInterface 
                         assignedUsers={assignedUsers}

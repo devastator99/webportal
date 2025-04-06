@@ -12,6 +12,9 @@ import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
 import { Separator } from "@/components/ui/separator";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
+import { ChevronLeft, ChevronRight, Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface UserProfile {
   id: string;
@@ -28,6 +31,14 @@ export const DoctorWhatsAppChat = () => {
   const [newMessage, setNewMessage] = useState("");
   const [localMessages, setLocalMessages] = useState<any[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const isMobile = useIsMobile();
+  const isIPad = useIsIPad();
+  const [showSidebar, setShowSidebar] = useState(!isMobile);
+
+  // Toggle sidebar visibility
+  const toggleSidebar = () => {
+    setShowSidebar(prev => !prev);
+  };
 
   // Get assigned patients for doctor
   const { data: assignedPatients, isLoading, error } = useQuery({
@@ -149,109 +160,132 @@ export const DoctorWhatsAppChat = () => {
 
   const selectedPatient = assignedPatients?.find(p => p.id === selectedPatientId);
 
+  // If it's a mobile device, only show one view at a time
+  const showChatOnly = isMobile && selectedPatientId && !showSidebar;
+  const showSidebarOnly = isMobile && showSidebar;
+
   return (
     <ErrorBoundary>
       <Card className="h-full flex flex-col">
         <CardContent className="p-0 flex flex-1 overflow-hidden">
           {/* Patient list sidebar - WhatsApp style */}
-          <div className="w-1/3 border-r h-full bg-background">
-            <div className="p-3 bg-muted/40 border-b">
-              <h3 className="font-medium">Patient Conversations</h3>
-            </div>
-            <ScrollArea className="h-[calc(100%-48px)]">
-              {isLoading ? (
-                <div className="py-2 px-4">Loading patients...</div>
-              ) : (
-                <div className="space-y-0">
-                  {assignedPatients?.map((patient) => (
-                    <div key={patient.id}>
-                      <div 
-                        className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/50 transition-colors ${
-                          selectedPatientId === patient.id ? 'bg-muted' : ''
-                        }`}
-                        onClick={() => setSelectedPatientId(patient.id)}
-                      >
-                        <Avatar className="h-10 w-10">
-                          <AvatarFallback className="bg-primary/10 text-primary">
-                            {getInitials(patient.first_name, patient.last_name)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">
-                            {patient.first_name} {patient.last_name}
-                          </div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            Click to view conversation
-                          </div>
-                        </div>
-                      </div>
-                      <Separator />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          </div>
-          
-          {/* Chat messages area - WhatsApp style */}
-          <div className="flex-1 flex flex-col h-full">
-            {selectedPatientId ? (
-              <>
-                {/* Chat header - WhatsApp style */}
-                <div className="p-3 bg-muted/40 border-b flex items-center gap-3">
-                  <Avatar className="h-9 w-9">
-                    <AvatarFallback className="bg-primary/10 text-primary">
-                      {selectedPatient ? getInitials(selectedPatient.first_name, selectedPatient.last_name) : "PT"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-medium">
-                      {selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : 'Loading...'}
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Patient
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Chat messages - WhatsApp style */}
-                <div className="flex-1 flex flex-col h-full bg-[#f0f2f5] dark:bg-slate-900">
-                  <ChatMessagesList
-                    selectedUserId={selectedPatientId}
-                    isGroupChat={false}
-                    localMessages={localMessages.filter(msg => 
-                      (msg.sender.id === user?.id && msg.receiver.id === selectedPatientId) || 
-                      (msg.sender.id === selectedPatientId && msg.receiver.id === user?.id)
-                    )}
-                  />
-                  
-                  {/* Chat input - WhatsApp style */}
-                  <div className="p-3 bg-background border-t">
-                    <ChatInput
-                      value={newMessage}
-                      onChange={setNewMessage}
-                      onSend={handleSendMessage}
-                      placeholder="Type a message..."
-                      disabled={!selectedPatientId}
-                    />
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                {error ? (
-                  <div className="text-center p-6 text-destructive">
-                    <p>Error loading patient chats</p>
-                    <p className="text-sm mt-2">Please refresh the page or contact support</p>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    Select a patient to view conversation
-                  </div>
+          {(showSidebar || showSidebarOnly) && (
+            <div className={`${showSidebarOnly ? 'w-full' : (isIPad ? 'w-2/5' : 'w-1/3')} border-r h-full bg-background relative`}>
+              <div className="p-3 bg-muted/40 border-b flex justify-between items-center">
+                <h3 className="font-medium">Patient Conversations</h3>
+                {isMobile && (
+                  <Button variant="ghost" size="icon" onClick={toggleSidebar}>
+                    <ChevronLeft className="h-5 w-5" />
+                  </Button>
                 )}
               </div>
-            )}
-          </div>
+              <ScrollArea className="h-[calc(100%-48px)]">
+                {isLoading ? (
+                  <div className="py-2 px-4">Loading patients...</div>
+                ) : (
+                  <div className="space-y-0">
+                    {assignedPatients?.map((patient) => (
+                      <div key={patient.id}>
+                        <div 
+                          className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/50 transition-colors ${
+                            selectedPatientId === patient.id ? 'bg-muted' : ''
+                          }`}
+                          onClick={() => {
+                            setSelectedPatientId(patient.id);
+                            if (isMobile) {
+                              setShowSidebar(false);
+                            }
+                          }}
+                        >
+                          <Avatar className="h-10 w-10">
+                            <AvatarFallback className="bg-primary/10 text-primary">
+                              {getInitials(patient.first_name, patient.last_name)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium truncate">
+                              {patient.first_name} {patient.last_name}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">
+                              Click to view conversation
+                            </div>
+                          </div>
+                        </div>
+                        <Separator />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </div>
+          )}
+          
+          {/* Chat messages area - WhatsApp style */}
+          {(!showSidebarOnly) && (
+            <div className="flex-1 flex flex-col h-full relative">
+              {selectedPatientId ? (
+                <>
+                  {/* Chat header - WhatsApp style */}
+                  <div className="p-3 bg-muted/40 border-b flex items-center gap-3">
+                    {(isMobile || isIPad) && !showSidebar && (
+                      <Button variant="ghost" size="icon" onClick={toggleSidebar} className="mr-1">
+                        <Menu className="h-5 w-5" />
+                      </Button>
+                    )}
+                    <Avatar className="h-9 w-9">
+                      <AvatarFallback className="bg-primary/10 text-primary">
+                        {selectedPatient ? getInitials(selectedPatient.first_name, selectedPatient.last_name) : "PT"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-medium">
+                        {selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : 'Loading...'}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        Patient
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Chat messages - WhatsApp style */}
+                  <div className="flex-1 flex flex-col h-full bg-[#f0f2f5] dark:bg-slate-900">
+                    <ChatMessagesList
+                      selectedUserId={selectedPatientId}
+                      isGroupChat={false}
+                      localMessages={localMessages.filter(msg => 
+                        (msg.sender.id === user?.id && msg.receiver.id === selectedPatientId) || 
+                        (msg.sender.id === selectedPatientId && msg.receiver.id === user?.id)
+                      )}
+                    />
+                    
+                    {/* Chat input - WhatsApp style */}
+                    <div className="p-3 bg-background border-t">
+                      <ChatInput
+                        value={newMessage}
+                        onChange={setNewMessage}
+                        onSend={handleSendMessage}
+                        placeholder="Type a message..."
+                        disabled={!selectedPatientId}
+                      />
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                  {error ? (
+                    <div className="text-center p-6 text-destructive">
+                      <p>Error loading patient chats</p>
+                      <p className="text-sm mt-2">Please refresh the page or contact support</p>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      Select a patient to view conversation
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </ErrorBoundary>

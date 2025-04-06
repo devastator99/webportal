@@ -23,7 +23,7 @@ export function useIsMobile() {
     return () => window.removeEventListener("resize", checkIfMobile)
   }, [])
 
-  return !!isMobile
+  return isMobile !== undefined ? isMobile : false
 }
 
 // iPad detection hook
@@ -37,11 +37,11 @@ export function useIsIPad() {
       const height = window.innerHeight
       
       // Better iPad detection using both dimensions and aspect ratio
-      const isTablet = 
+      const isTabletDevice = 
         (width >= 768 && width <= 1024) || 
         (height >= 768 && height <= 1024 && width / height < 1.2 && width / height > 0.6);
         
-      setIsIPad(isTablet)
+      setIsIPad(isTabletDevice)
     }
     
     checkIfIPad()
@@ -50,5 +50,5 @@ export function useIsIPad() {
     return () => window.removeEventListener("resize", checkIfIPad)
   }, [])
 
-  return !!isIPad
+  return isIPad !== undefined ? isIPad : false
 }
