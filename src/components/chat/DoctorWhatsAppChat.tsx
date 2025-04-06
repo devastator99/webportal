@@ -30,6 +30,7 @@ export const DoctorWhatsAppChat = () => {
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [localMessages, setLocalMessages] = useState<any[]>([]);
+  const [careTeamMembers, setCareTeamMembers] = useState<UserProfile[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const isIPad = useIsIPad();
@@ -80,6 +81,29 @@ export const DoctorWhatsAppChat = () => {
       setSelectedPatientId(assignedPatients[0].id);
     }
   }, [assignedPatients, selectedPatientId]);
+
+  // Fetch care team members when a patient is selected
+  useEffect(() => {
+    const fetchCareTeam = async () => {
+      if (!selectedPatientId) return;
+      
+      try {
+        // Use RPC function to get care team members securely
+        const { data, error } = await supabase
+          .rpc('get_patient_care_team_members', {
+            p_patient_id: selectedPatientId
+          });
+          
+        if (error) throw error;
+        
+        setCareTeamMembers(data || []);
+      } catch (error) {
+        console.error("Error fetching care team:", error);
+      }
+    };
+    
+    fetchCareTeam();
+  }, [selectedPatientId]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedPatientId || !user?.id) return;
@@ -134,12 +158,8 @@ export const DoctorWhatsAppChat = () => {
       
       // Check if we need to trigger an AI response for the care team
       try {
-        // Get care team to check if AI bot is part of it
-        const { data: careTeam } = await supabase.rpc('get_patient_care_team_members', {
-          p_patient_id: selectedPatientId
-        });
-        
-        const hasAiBot = Array.isArray(careTeam) && careTeam.some(member => 
+        // Check if AI bot is part of care team
+        const hasAiBot = careTeamMembers.some(member => 
           member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000'
         );
         
@@ -189,20 +209,16 @@ export const DoctorWhatsAppChat = () => {
               });
               
               // Get nutritionist for this patient, if any
-              supabase.rpc('get_patient_care_team_members', {
-                p_patient_id: selectedPatientId
-              }).then(({ data: teamMembers }) => {
-                const nutritionist = teamMembers?.find(m => m.role === 'nutritionist');
-                if (nutritionist?.id) {
-                  // Send AI message to nutritionist too
-                  supabase.rpc('send_chat_message', {
-                    p_sender_id: '00000000-0000-0000-0000-000000000000',
-                    p_receiver_id: nutritionist.id,
-                    p_message: aiResponse.response,
-                    p_message_type: 'text'
-                  });
-                }
-              });
+              const nutritionist = careTeamMembers.find(m => m.role === 'nutritionist');
+              if (nutritionist?.id) {
+                // Send AI message to nutritionist too
+                supabase.rpc('send_chat_message', {
+                  p_sender_id: '00000000-0000-0000-0000-000000000000',
+                  p_receiver_id: nutritionist.id,
+                  p_message: aiResponse.response,
+                  p_message_type: 'text'
+                });
+              }
               
               // Invalidate queries to refresh messages
               queryClient.invalidateQueries({ 
@@ -335,11 +351,13 @@ export const DoctorWhatsAppChat = () => {
                     <ChatMessagesList
                       selectedUserId={selectedPatientId}
                       isGroupChat={false}
+                      careTeamMembers={careTeamMembers}
                       localMessages={localMessages.filter(msg => 
                         (msg.sender.id === user?.id && msg.receiver.id === selectedPatientId) || 
                         (msg.sender.id === selectedPatientId && msg.receiver.id === user?.id) ||
                         (msg.sender.id === '00000000-0000-0000-0000-000000000000') // Include AI messages
                       )}
+                      includeCareTeamMessages={true} // Include all care team messages
                     />
                     
                     {/* Chat input - WhatsApp style */}

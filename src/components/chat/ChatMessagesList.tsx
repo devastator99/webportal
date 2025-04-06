@@ -26,8 +26,10 @@ interface ChatMessagesListProps {
   selectedUserId?: string | null;
   isGroupChat?: boolean;
   careTeamGroup?: CareTeamGroup | null;
+  careTeamMembers?: UserProfile[];
   offlineMode?: boolean;
   localMessages?: any[];
+  includeCareTeamMessages?: boolean;
 }
 
 interface ProfileInfo {
@@ -62,8 +64,10 @@ export const ChatMessagesList = ({
   selectedUserId, 
   isGroupChat = false, 
   careTeamGroup = null,
+  careTeamMembers = [],
   offlineMode = false,
-  localMessages = []
+  localMessages = [],
+  includeCareTeamMessages = false
 }: ChatMessagesListProps) => {
   const { user, userRole } = useAuth();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -216,7 +220,10 @@ export const ChatMessagesList = ({
         return { data: allMessages, hasMore };
       } 
       else if (selectedUserId) {
-        const result = await supabase.functions.invoke('get-chat-messages', {
+        let allMessages: MessageData[] = [];
+        let hasMore = false;
+        
+        const directResult = await supabase.functions.invoke('get-chat-messages', {
           body: {
             user_id: user.id,
             other_user_id: selectedUserId,
@@ -225,12 +232,33 @@ export const ChatMessagesList = ({
           }
         });
 
-        const responseData = result.data as ChatMessagesResponse;
-        const messages = responseData.messages || [];
-        const hasMore = responseData.hasMore || false;
-
-        if (messages && messages.length > 0) {
-          const unreadMessages = messages.filter(
+        const directResponseData = directResult.data as ChatMessagesResponse;
+        const directMessages = directResponseData.messages || [];
+        hasMore = directResponseData.hasMore || false;
+        
+        allMessages = [...directMessages];
+        
+        if (includeCareTeamMessages && careTeamMembers.length > 0) {
+          for (const member of careTeamMembers) {
+            if (member.id === user.id) continue;
+            
+            const careTeamResult = await supabase.functions.invoke('get-chat-messages', {
+              body: {
+                user_id: member.id,
+                other_user_id: selectedUserId,
+                page: 1,
+                per_page: 50
+              }
+            });
+            
+            if (careTeamResult.data && careTeamResult.data.messages) {
+              allMessages = [...allMessages, ...careTeamResult.data.messages];
+            }
+          }
+        }
+        
+        if (allMessages.length > 0) {
+          const unreadMessages = allMessages.filter(
             (msg: MessageData) => msg.sender?.id === selectedUserId && !msg.read
           );
           
@@ -244,9 +272,13 @@ export const ChatMessagesList = ({
           }
         }
         
+        allMessages.sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+        
         if (selectedUserId === '00000000-0000-0000-0000-000000000000') {
           return { 
-            data: messages.map((msg: MessageData) => {
+            data: allMessages.map((msg: MessageData) => {
               if (msg.sender.id === selectedUserId) {
                 return {
                   ...msg,
@@ -262,7 +294,7 @@ export const ChatMessagesList = ({
           };
         }
         
-        return { data: messages || [], hasMore };
+        return { data: allMessages || [], hasMore };
       }
       
       return { data: [], hasMore: false };
@@ -371,33 +403,77 @@ export const ChatMessagesList = ({
         .subscribe();
     } 
     else if (selectedUserId) {
-      channel = supabase
-        .channel('chat_updates')
-        .on(
-          'postgres_changes',
-          {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'chat_messages',
-            filter: `or(and(sender_id=eq.${user.id},receiver_id=eq.${selectedUserId}),and(sender_id=eq.${selectedUserId},receiver_id=eq.${user.id}))`,
-          },
-          () => {
-            queryClient.invalidateQueries({ queryKey: queryKey.slice(0, -1) });
+      if (includeCareTeamMessages && careTeamMembers.length > 0) {
+        const filterConditions = [
+          `or(and(sender_id=eq.${user.id},receiver_id=eq.${selectedUserId}),and(sender_id=eq.${selectedUserId},receiver_id=eq.${user.id}))`,
+        ];
+        
+        for (const member of careTeamMembers) {
+          if (member.id !== user.id) {
+            filterConditions.push(
+              `or(and(sender_id=eq.${member.id},receiver_id=eq.${selectedUserId}),and(sender_id=eq.${selectedUserId},receiver_id=eq.${member.id}))`
+            );
           }
-        )
-        .on(
-          'postgres_changes',
-          {
-            event: 'UPDATE',
-            schema: 'public',
-            table: 'chat_messages',
-            filter: `or(and(sender_id=eq.${user.id},receiver_id=eq.${selectedUserId}),and(sender_id=eq.${selectedUserId},receiver_id=eq.${user.id}))`,
-          },
-          () => {
-            queryClient.invalidateQueries({ queryKey: queryKey.slice(0, -1) });
-          }
-        )
-        .subscribe();
+        }
+        
+        const combinedFilter = filterConditions.join(',');
+        
+        channel = supabase
+          .channel('care_team_chat_updates')
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'chat_messages',
+              filter: `or(${combinedFilter})`,
+            },
+            () => {
+              queryClient.invalidateQueries({ queryKey: queryKey.slice(0, -1) });
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'chat_messages',
+              filter: `or(${combinedFilter})`,
+            },
+            () => {
+              queryClient.invalidateQueries({ queryKey: queryKey.slice(0, -1) });
+            }
+          )
+          .subscribe();
+      } else {
+        channel = supabase
+          .channel('chat_updates')
+          .on(
+            'postgres_changes',
+            {
+              event: 'INSERT',
+              schema: 'public',
+              table: 'chat_messages',
+              filter: `or(and(sender_id=eq.${user.id},receiver_id=eq.${selectedUserId}),and(sender_id=eq.${selectedUserId},receiver_id=eq.${user.id}))`,
+            },
+            () => {
+              queryClient.invalidateQueries({ queryKey: queryKey.slice(0, -1) });
+            }
+          )
+          .on(
+            'postgres_changes',
+            {
+              event: 'UPDATE',
+              schema: 'public',
+              table: 'chat_messages',
+              filter: `or(and(sender_id=eq.${user.id},receiver_id=eq.${selectedUserId}),and(sender_id=eq.${selectedUserId},receiver_id=eq.${user.id}))`,
+            },
+            () => {
+              queryClient.invalidateQueries({ queryKey: queryKey.slice(0, -1) });
+            }
+          )
+          .subscribe();
+      }
     }
 
     return () => {
@@ -405,7 +481,7 @@ export const ChatMessagesList = ({
         supabase.removeChannel(channel);
       }
     };
-  }, [user?.id, selectedUserId, isGroupChat, careTeamGroup, queryClient, queryKey]);
+  }, [user?.id, selectedUserId, isGroupChat, careTeamGroup, careTeamMembers, queryClient, queryKey]);
 
   if (isGroupChat && !careTeamGroup) {
     return (
@@ -494,7 +570,7 @@ export const ChatMessagesList = ({
                 synced: msg.synced
               }}
               isCurrentUser={msg.sender.id === user?.id}
-              showSender={isGroupChat}
+              showSender={isGroupChat || (includeCareTeamMessages && msg.sender.id !== user?.id && msg.sender.id !== selectedUserId)}
               offlineMode={offlineMode && msg.synced === false}
             />
           );
