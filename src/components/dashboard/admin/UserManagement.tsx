@@ -35,21 +35,12 @@ export const UserManagement = () => {
       // Get all profiles first
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name')
-        .order('first_name');
+        .select('id, first_name, last_name');
       
       if (profilesError) {
         console.error("Profiles query error:", profilesError);
         throw profilesError;
       }
-      
-      if (!profilesData || profilesData.length === 0) {
-        setUsers([]);
-        setLoading(false);
-        return;
-      }
-      
-      console.log("Profiles data:", profilesData);
       
       // Get user roles separately
       const { data: rolesData, error: rolesError } = await supabase
@@ -61,16 +52,15 @@ export const UserManagement = () => {
         throw rolesError;
       }
       
-      // Instead of using the RPC function, get emails directly from auth.users 
-      // using the admin-provided Edge Function
+      // Get emails using the admin edge function
       const { data: authUsers, error: authUsersError } = await supabase.functions.invoke(
         'admin-get-users',
-        { body: { userIds: profilesData.map(p => p.id) } }
+        { body: {} }
       );
       
       if (authUsersError) {
         console.error("Auth users fetch error:", authUsersError);
-        // Continue even if this fails, we'll just show without emails
+        throw authUsersError;
       }
       
       console.log("Auth users data:", authUsers);
@@ -96,15 +86,19 @@ export const UserManagement = () => {
       }
       
       // Combine the data
-      const formattedUsers: UserItem[] = profilesData.map(profile => {
-        return {
-          id: profile.id,
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          email: emailMap.get(profile.id) || 'No email',
-          role: roleMap.get(profile.id) || 'No role'
-        };
-      });
+      const formattedUsers: UserItem[] = [];
+      
+      if (profilesData) {
+        for (const profile of profilesData) {
+          formattedUsers.push({
+            id: profile.id,
+            first_name: profile.first_name,
+            last_name: profile.last_name,
+            email: emailMap.get(profile.id) || 'No email',
+            role: roleMap.get(profile.id) || 'No role'
+          });
+        }
+      }
       
       console.log("Formatted users:", formattedUsers);
       setUsers(formattedUsers);

@@ -26,9 +26,6 @@ serve(async (req) => {
       }
     );
 
-    // Get the request payload
-    const { userIds } = await req.json();
-
     // Verify if the request is from an admin user using RLS
     const authHeader = req.headers.get("Authorization")?.split(" ")[1] || "";
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(authHeader);
@@ -60,18 +57,15 @@ serve(async (req) => {
       );
     }
 
-    // Query a list of users by their IDs
+    // Query all users directly
     const { data: users, error } = await supabaseAdmin.auth.admin.listUsers();
 
     if (error) {
       throw error;
     }
 
-    // Filter users by the requested IDs
-    const filteredUsers = users.users.filter(u => userIds.includes(u.id));
-
     // Return only necessary information (id and email)
-    const safeUsers = filteredUsers.map(user => ({
+    const safeUsers = users.users.map(user => ({
       id: user.id,
       email: user.email
     }));
