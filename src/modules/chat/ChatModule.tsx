@@ -5,6 +5,7 @@ import { ChatInterface } from "@/components/chat/ChatInterface";
 import { ChatbotWidget } from "@/components/chat/ChatbotWidget";
 import { initOfflineDB } from "@/utils/offlineStorage";
 import { useAuth } from "@/contexts/AuthContext";
+import { DoctorWhatsAppChat } from "@/components/chat/DoctorWhatsAppChat";
 
 interface ChatModuleProps {
   showChatInterface?: boolean;
@@ -38,24 +39,30 @@ export const ChatModule = ({
   return (
     <>
       {showChatInterface && (
-        <UsersProvider>
-          {({ careTeamGroup, assignedUsers, isLoading, error }) => {
-            if (isLoading || error) {
-              return null; // Don't render anything if loading or error
-            }
-            
-            // Control the chat interface based on user role
-            // All roles can access the chat, but with different views 
-            return (
-              <ChatInterface 
-                assignedUsers={assignedUsers}
-                careTeamGroup={careTeamGroup}
-                showGroupChat={userRole !== "doctor" && userRole !== "nutritionist"}
-                whatsAppStyle={userRole === "doctor" || userRole === "nutritionist"}
-              />
-            );
-          }}
-        </UsersProvider>
+        <>
+          {userRole === "doctor" ? (
+            <DoctorWhatsAppChat />
+          ) : (
+            <UsersProvider>
+              {({ careTeamGroup, assignedUsers, isLoading, error }) => {
+                if (isLoading || error) {
+                  return null; // Don't render anything if loading or error
+                }
+                
+                // Control the chat interface based on user role
+                // All roles can access the chat, but with different views 
+                return (
+                  <ChatInterface 
+                    assignedUsers={assignedUsers}
+                    careTeamGroup={careTeamGroup}
+                    showGroupChat={userRole !== "nutritionist"}
+                    whatsAppStyle={userRole === "nutritionist"}
+                  />
+                );
+              }}
+            </UsersProvider>
+          )}
+        </>
       )}
       {showChatbotWidget && <ChatbotWidget />}
     </>

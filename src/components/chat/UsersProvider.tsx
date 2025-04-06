@@ -50,11 +50,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
           
           if (careTeamError) {
             console.error("Error fetching care team with RPC:", careTeamError);
-            toast({
-              title: "Error",
-              description: "Could not load your care team. Please try again later.",
-              variant: "destructive"
-            });
+            throw careTeamError;
           } else {
             careTeam = (careTeamData as UserProfile[]) || [];
             console.log("Retrieved care team members:", careTeam.length);
@@ -66,11 +62,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             
           if (adminsError) {
             console.error("Error fetching admins:", adminsError);
-            toast({
-              title: "Error",
-              description: "Could not load administrators for chat",
-              variant: "destructive"
-            });
+            throw adminsError;
           }
           
           // Format admin users
@@ -164,9 +156,15 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             return nameA.localeCompare(nameB);
           });
           
+          // Create a care team group for nutritionist to see patient messages
+          const careTeamGroup = formattedPatients.length > 0 ? {
+            groupName: "My Patients",
+            members: formattedPatients
+          } : null;
+          
           return { 
             assignedUsers: formattedPatients,
-            careTeamGroup: null
+            careTeamGroup: careTeamGroup
           };
         } 
         else if (userRole === "administrator") {

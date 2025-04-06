@@ -22,14 +22,12 @@ serve(async (req: Request) => {
       }
     );
     
-    // Mark messages as read
-    const { data, error } = await supabaseClient
-      .from('chat_messages')
-      .update({ read: true })
-      .eq('receiver_id', user_id)
-      .eq('sender_id', sender_id)
-      .eq('read', false);
-      
+    // Use the mark_messages_as_read RPC function
+    const { data, error } = await supabaseClient.rpc('mark_messages_as_read', {
+      p_user_id: user_id,
+      p_sender_id: sender_id
+    });
+    
     if (error) {
       console.error("Error marking messages as read:", error);
       return new Response(
@@ -39,7 +37,7 @@ serve(async (req: Request) => {
     }
     
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, result: data }),
       { status: 200, headers: { "Content-Type": "application/json" } }
     );
     
