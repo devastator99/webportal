@@ -2,7 +2,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Stethoscope, Heart, Settings, Calendar, FileText, ChefHat, Shield } from "lucide-react";
+import { Users, Stethoscope, Heart, Calendar, FileText, ChefHat, Shield } from "lucide-react";
 import { VideoUploader } from "@/components/videos/VideoUploader";
 import { VideoList } from "@/components/videos/VideoList";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";

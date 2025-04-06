@@ -726,6 +726,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      check_user_exists: {
+        Args: {
+          p_email: string
+        }
+        Returns: boolean
+      }
       check_user_role_access: {
         Args: Record<PropertyKey, never>
         Returns: boolean
