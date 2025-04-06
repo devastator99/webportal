@@ -14,11 +14,10 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Search, RefreshCw, Edit, Trash } from "lucide-react";
+import { Search, RefreshCw, UserIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface UserItem {
   id: string;
@@ -34,9 +33,6 @@ export const UserManagement = () => {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserItem | null>(null);
-  const [actionInProgress, setActionInProgress] = useState(false);
   const { user } = useAuth();
   
   useEffect(() => {
@@ -48,7 +44,7 @@ export const UserManagement = () => {
     try {
       console.log("Fetching users with roles...");
       
-      // Make sure to call the RPC function correctly
+      // Simple direct call to the RPC function
       const { data, error } = await supabase.rpc('get_users_with_roles');
       
       if (error) {
@@ -70,51 +66,6 @@ export const UserManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
-  
-  const deleteUser = async (userId: string) => {
-    if (!user?.id) {
-      toast.error("You must be logged in to perform this action");
-      return;
-    }
-    
-    setActionInProgress(true);
-    try {
-      // Call edge function to delete user
-      const { data, error } = await supabase.functions.invoke('admin-delete-user', {
-        body: { 
-          user_id: userId,
-          admin_id: user.id
-        }
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      
-      // Refresh user list
-      await fetchUsers();
-      toast.success("User successfully deleted");
-    } catch (error: any) {
-      console.error("Error deleting user:", error);
-      uiToast({
-        title: "Error deleting user",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setActionInProgress(false);
-      setDeleteDialogOpen(false);
-    }
-  };
-  
-  const handleDeleteClick = (user: UserItem) => {
-    setSelectedUser(user);
-    setDeleteDialogOpen(true);
   };
   
   const filteredUsers = users.filter(user => {
@@ -176,7 +127,6 @@ export const UserManagement = () => {
               <TableHead>Name</TableHead>
               <TableHead>Email</TableHead>
               <TableHead>Role</TableHead>
-              <TableHead className="w-[100px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -190,22 +140,11 @@ export const UserManagement = () => {
                   </TableCell>
                   <TableCell>{user.email}</TableCell>
                   <TableCell className="capitalize">{user.role}</TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteClick(user)}
-                      >
-                        <Trash className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </TableCell>
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={4} className="text-center">
+                <TableCell colSpan={3} className="text-center">
                   {loading ? "Loading..." : "No users found"}
                 </TableCell>
               </TableRow>
@@ -213,36 +152,6 @@ export const UserManagement = () => {
           </TableBody>
         </Table>
       </div>
-      
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirm Delete User</DialogTitle>
-          </DialogHeader>
-          <p>
-            Are you sure you want to delete user 
-            <span className="font-medium"> {selectedUser?.email}</span>?
-            This action cannot be undone.
-          </p>
-          <DialogFooter>
-            <Button 
-              variant="outline" 
-              onClick={() => setDeleteDialogOpen(false)}
-              disabled={actionInProgress}
-            >
-              Cancel
-            </Button>
-            <Button 
-              variant="destructive"
-              onClick={() => selectedUser && deleteUser(selectedUser.id)}
-              disabled={actionInProgress}
-            >
-              {actionInProgress ? "Deleting..." : "Delete User"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
