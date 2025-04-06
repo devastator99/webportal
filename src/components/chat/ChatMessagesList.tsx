@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -150,11 +151,14 @@ export const ChatMessagesList = ({
     
     try {
       if (isGroupChat && careTeamGroup?.members) {
+        console.log("Fetching group chat messages for members:", careTeamGroup.members.map(m => m.id));
+        
         const promises = careTeamGroup.members.map(member => {
           if (member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000') {
             return Promise.resolve({ data: [] });
           }
           
+          // For each care team member, get messages between user and member
           return supabase.functions.invoke('get-chat-messages', {
             body: {
               user_id: user.id,
@@ -194,9 +198,59 @@ export const ChatMessagesList = ({
           }
         });
         
+        // Get doctor-to-nutritionist and nutritionist-to-doctor messages too
+        // This is crucial for patients to see all team interactions
+        if (userRole === "patient") {
+          console.log("Patient fetching care team internal messages");
+          const doctorMembers = careTeamGroup.members.filter(m => m.role === "doctor");
+          const nutritionistMembers = careTeamGroup.members.filter(m => m.role === "nutritionist");
+          
+          // For each doctor-nutritionist pair, get their messages
+          for (const doctor of doctorMembers) {
+            for (const nutritionist of nutritionistMembers) {
+              if (doctor.id && nutritionist.id) {
+                console.log(`Fetching messages between doctor ${doctor.id} and nutritionist ${nutritionist.id}`);
+                const { data: teamMsgsResult } = await supabase.functions.invoke('get-chat-messages', {
+                  body: {
+                    user_id: doctor.id,
+                    other_user_id: nutritionist.id,
+                    page: 1,
+                    per_page: MESSAGES_PER_PAGE
+                  }
+                });
+                
+                if (teamMsgsResult && teamMsgsResult.messages) {
+                  const teamMessages = teamMsgsResult.messages.map((msg: MessageData) => {
+                    // Ensure roles are correctly set
+                    const doctorRole = {
+                      ...msg.sender,
+                      role: msg.sender.id === doctor.id ? "doctor" : "nutritionist"
+                    };
+                    const nutritionistRole = {
+                      ...msg.receiver,
+                      role: msg.receiver.id === nutritionist.id ? "nutritionist" : "doctor"
+                    };
+                    
+                    return {
+                      ...msg,
+                      sender: doctorRole,
+                      receiver: nutritionistRole
+                    };
+                  });
+                  
+                  console.log(`Retrieved ${teamMessages.length} messages between doctor and nutritionist`);
+                  allMessages = [...allMessages, ...teamMessages];
+                }
+              }
+            }
+          }
+        }
+        
         allMessages.sort((a, b) => 
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
+        
+        console.log(`Total group chat messages: ${allMessages.length}`);
         
         const unreadMessagesGrouped = allMessages.filter(
           (msg: MessageData) => 
@@ -374,6 +428,36 @@ export const ChatMessagesList = ({
         `or(and(sender_id=eq.${user.id},receiver_id=eq.${memberId}),and(sender_id=eq.${memberId},receiver_id=eq.${user.id}))`
       ).join(',');
       
+      // For patients, also listen to doctor-nutritionist messages
+      let careTeamInternalConditions = '';
+      if (userRole === "patient") {
+        const doctorIds = careTeamGroup.members
+          .filter(m => m.role === "doctor")
+          .map(m => m.id);
+          
+        const nutritionistIds = careTeamGroup.members
+          .filter(m => m.role === "nutritionist")
+          .map(m => m.id);
+          
+        if (doctorIds.length > 0 && nutritionistIds.length > 0) {
+          const internalConditions = [];
+          for (const doctorId of doctorIds) {
+            for (const nutritionistId of nutritionistIds) {
+              internalConditions.push(
+                `or(and(sender_id=eq.${doctorId},receiver_id=eq.${nutritionistId}),and(sender_id=eq.${nutritionistId},receiver_id=eq.${doctorId}))`
+              );
+            }
+          }
+          
+          if (internalConditions.length > 0) {
+            careTeamInternalConditions = ',' + internalConditions.join(',');
+          }
+        }
+      }
+      
+      const finalFilter = `or(${filterConditions}${careTeamInternalConditions})`;
+      console.log("Setting up realtime subscription with filter:", finalFilter);
+      
       channel = supabase
         .channel('group_chat_updates')
         .on(
@@ -382,9 +466,10 @@ export const ChatMessagesList = ({
             event: 'INSERT',
             schema: 'public',
             table: 'chat_messages',
-            filter: `or(${filterConditions})`,
+            filter: finalFilter,
           },
           () => {
+            console.log("New message detected in group chat, invalidating query");
             queryClient.invalidateQueries({ queryKey: queryKey.slice(0, -1) });
           }
         )
@@ -394,7 +479,7 @@ export const ChatMessagesList = ({
             event: 'UPDATE',
             schema: 'public',
             table: 'chat_messages',
-            filter: `or(${filterConditions})`,
+            filter: finalFilter,
           },
           () => {
             queryClient.invalidateQueries({ queryKey: queryKey.slice(0, -1) });
@@ -481,7 +566,7 @@ export const ChatMessagesList = ({
         supabase.removeChannel(channel);
       }
     };
-  }, [user?.id, selectedUserId, isGroupChat, careTeamGroup, careTeamMembers, queryClient, queryKey]);
+  }, [user?.id, selectedUserId, isGroupChat, careTeamGroup, careTeamMembers, queryClient, queryKey, userRole]);
 
   if (isGroupChat && !careTeamGroup) {
     return (
