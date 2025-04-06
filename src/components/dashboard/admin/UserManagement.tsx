@@ -14,9 +14,10 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Search, Users, RefreshCw } from "lucide-react";
+import { Search, Users, RefreshCw, Trash2, AlertCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface UserItem {
   id: string;
@@ -29,9 +30,12 @@ interface UserItem {
 export const UserManagement = () => {
   const { toast: uiToast } = useToast();
   const [loading, setLoading] = useState(true);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [showDeleteConfirmation, setShowDeleteConfirmation] = useState(false);
+  const [unknownUsersCount, setUnknownUsersCount] = useState(0);
   
   useEffect(() => {
     fetchUsers();
@@ -53,6 +57,13 @@ export const UserManagement = () => {
       console.log("Users data received:", data);
       // Ensure we properly type the data as UserItem[]
       setUsers((data || []) as UserItem[]);
+      
+      // Count unknown users
+      const unknownUsers = data?.filter(
+        (user: UserItem) => user.first_name === 'unknown' || user.first_name === null || user.first_name === ''
+      ) || [];
+      setUnknownUsersCount(unknownUsers.length);
+      
       toast.success("User data refreshed");
     } catch (error: any) {
       console.error("Error fetching users:", error);
@@ -63,6 +74,62 @@ export const UserManagement = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const deleteUnknownUsers = async () => {
+    setDeleteLoading(true);
+    try {
+      // Filter users with unknown or empty first names
+      const unknownUsers = users.filter(
+        user => user.first_name === 'unknown' || user.first_name === null || user.first_name === ''
+      );
+      
+      if (unknownUsers.length === 0) {
+        toast.info("No unknown users to delete");
+        setShowDeleteConfirmation(false);
+        return;
+      }
+      
+      // Delete each user one by one (for better error handling)
+      let successCount = 0;
+      let failCount = 0;
+      
+      for (const user of unknownUsers) {
+        const { error } = await supabase.auth.admin.deleteUser(user.id);
+        
+        if (error) {
+          console.error(`Failed to delete user ${user.id}:`, error);
+          failCount++;
+        } else {
+          successCount++;
+        }
+      }
+      
+      // Refresh the user list
+      await fetchUsers();
+      
+      if (successCount > 0) {
+        toast.success(`Successfully deleted ${successCount} unknown users`);
+      }
+      
+      if (failCount > 0) {
+        uiToast({
+          title: "Some deletions failed",
+          description: `Failed to delete ${failCount} users. Check console for details.`,
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Error deleting unknown users:", error);
+      uiToast({
+        title: "Error deleting users",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setDeleteLoading(false);
+      setShowDeleteConfirmation(false);
     }
   };
   
@@ -99,6 +166,17 @@ export const UserManagement = () => {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             {loading ? "Refreshing..." : "Refresh"}
           </Button>
+          
+          {unknownUsersCount > 0 && (
+            <Button 
+              variant="destructive" 
+              className="flex items-center gap-2"
+              onClick={() => setShowDeleteConfirmation(true)}
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete Unknown ({unknownUsersCount})
+            </Button>
+          )}
         </div>
       </div>
       
@@ -149,6 +227,50 @@ export const UserManagement = () => {
           </Table>
         </div>
       </Tabs>
+      
+      {/* Confirmation Dialog for Deleting Unknown Users */}
+      <Dialog open={showDeleteConfirmation} onOpenChange={setShowDeleteConfirmation}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertCircle className="h-5 w-5 text-destructive" />
+              Confirm Deletion
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete {unknownUsersCount} users with unknown or empty names? 
+              This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex justify-end gap-2 sm:space-x-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowDeleteConfirmation(false)}
+              disabled={deleteLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={deleteLoading ? undefined : deleteUnknownUsers}
+              disabled={deleteLoading}
+              className="flex items-center gap-2"
+            >
+              {deleteLoading ? (
+                <>
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4" />
+                  Delete
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
+
