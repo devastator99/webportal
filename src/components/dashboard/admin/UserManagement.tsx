@@ -2,12 +2,14 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Table, TableBody, TableCaption, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Search, RefreshCw, UserPlus } from "lucide-react";
+import { Search, RefreshCw, UserPlus, Trash2, Edit } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface UserItem {
   id: string;
@@ -15,6 +17,7 @@ interface UserItem {
   last_name: string | null;
   email: string;
   role: string;
+  selected?: boolean;
 }
 
 export const UserManagement = () => {
@@ -22,6 +25,9 @@ export const UserManagement = () => {
   const [users, setUsers] = useState<UserItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
+  const { user } = useAuth();
   
   useEffect(() => {
     fetchUsers();
@@ -102,6 +108,7 @@ export const UserManagement = () => {
       
       console.log("Formatted users:", formattedUsers);
       setUsers(formattedUsers);
+      setSelectedUsers([]);
       
       toast.success("User data refreshed");
     } catch (error: any) {
@@ -109,6 +116,58 @@ export const UserManagement = () => {
       toast.error(`Error loading users: ${error.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const toggleUserSelection = (userId: string) => {
+    setSelectedUsers(prev => {
+      if (prev.includes(userId)) {
+        return prev.filter(id => id !== userId);
+      } else {
+        return [...prev, userId];
+      }
+    });
+  };
+  
+  const handleDeleteSelected = async () => {
+    if (!selectedUsers.length) {
+      toast.error("No users selected");
+      return;
+    }
+    
+    if (!window.confirm(`Are you sure you want to delete ${selectedUsers.length} selected user(s)?`)) {
+      return;
+    }
+    
+    setDeleting(true);
+    try {
+      for (const userId of selectedUsers) {
+        // Skip current user
+        if (userId === user?.id) {
+          toast.error("Cannot delete your own account");
+          continue;
+        }
+        
+        const { data, error } = await supabase.functions.invoke('admin-delete-user', { 
+          body: { 
+            user_id: userId,
+            admin_id: user?.id
+          } 
+        });
+        
+        if (error) {
+          console.error("Error deleting user:", error);
+          toast.error(`Failed to delete user: ${error.message}`);
+        }
+      }
+      
+      toast.success("Successfully deleted selected users");
+      fetchUsers(); // Refresh the list
+    } catch (error: any) {
+      console.error("Error in delete operation:", error);
+      toast.error(`Error: ${error.message}`);
+    } finally {
+      setDeleting(false);
     }
   };
   
@@ -159,6 +218,16 @@ export const UserManagement = () => {
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             {loading ? "Refreshing..." : "Refresh"}
           </Button>
+          
+          <Button 
+            variant="destructive" 
+            onClick={handleDeleteSelected}
+            disabled={deleting || selectedUsers.length === 0}
+            className="flex items-center gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete Selected
+          </Button>
         </div>
       </div>
       
@@ -174,6 +243,7 @@ export const UserManagement = () => {
             </TableCaption>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-[50px]">Select</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
@@ -183,6 +253,14 @@ export const UserManagement = () => {
               {filteredUsers.length > 0 ? (
                 filteredUsers.map((user) => (
                   <TableRow key={user.id}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selectedUsers.includes(user.id)}
+                        onCheckedChange={() => toggleUserSelection(user.id)}
+                        id={`select-${user.id}`}
+                        disabled={user.id === user?.id} // Prevent selecting current user
+                      />
+                    </TableCell>
                     <TableCell>
                       {user.first_name || user.last_name 
                         ? `${user.first_name || ''} ${user.last_name || ''}`.trim()
@@ -194,7 +272,7 @@ export const UserManagement = () => {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center py-8">
+                  <TableCell colSpan={4} className="text-center py-8">
                     No users found matching your criteria
                   </TableCell>
                 </TableRow>
