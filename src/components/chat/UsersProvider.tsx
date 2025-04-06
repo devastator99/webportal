@@ -41,6 +41,14 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
       try {
         console.log("Getting users for role:", userRole, "userId:", user.id);
         
+        // AI bot definition - will be added to appropriate groups based on role
+        const aiBot: UserProfile = {
+          id: '00000000-0000-0000-0000-000000000000',
+          first_name: 'AI',
+          last_name: 'Assistant',
+          role: 'aibot'
+        };
+        
         if (userRole === "patient") {
           let careTeam: UserProfile[] = [];
           
@@ -72,6 +80,11 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             last_name: admin.last_name,
             role: "administrator"
           })) : [];
+          
+          // Ensure AI bot is in the careTeam list if not already present
+          if (!careTeam.some(member => member.role === 'aibot')) {
+            careTeam.push(aiBot);
+          }
           
           // Create care team group from assigned doctor, nutritionist and AI bot
           const careTeamMembers = careTeam.filter(member => 
@@ -118,6 +131,11 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             return nameA.localeCompare(nameB);
           });
           
+          // Always add AI bot to doctor's patient care teams
+          if (!formattedPatients.some(p => p.role === 'aibot')) {
+            formattedPatients.push(aiBot);
+          }
+          
           // Create a special care team group for doctor to see patient messages
           const careTeamGroup = formattedPatients.length > 0 ? {
             groupName: "My Patients",
@@ -156,6 +174,11 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             return nameA.localeCompare(nameB);
           });
           
+          // Add AI bot to nutritionist's patient list if not already present
+          if (!formattedPatients.some(p => p.role === 'aibot')) {
+            formattedPatients.push(aiBot);
+          }
+          
           // Create a care team group for nutritionist to see patient messages
           const careTeamGroup = formattedPatients.length > 0 ? {
             groupName: "My Patients",
@@ -187,6 +210,11 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
                   role: u.role || "user"
                 }))
             : [];
+          
+          // Always add AI bot to admin's contact list
+          if (!formattedUsers.some(u => u.role === 'aibot')) {
+            formattedUsers.push(aiBot);
+          }
           
           return { 
             assignedUsers: formattedUsers,

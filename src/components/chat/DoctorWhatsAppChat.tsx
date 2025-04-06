@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -116,7 +115,7 @@ export const DoctorWhatsAppChat = () => {
         
         console.log("Care team members retrieved:", data?.length || 0);
         
-        // Add the AI bot to the care team
+        // Always ensure the AI bot is part of the care team
         const updatedCareTeam = [...(data || [])];
         const hasAiBot = updatedCareTeam.some(member => 
           member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000'
@@ -193,76 +192,76 @@ export const DoctorWhatsAppChat = () => {
         queryKey: ["chat_messages", user.id, selectedPatientId] 
       });
       
-      // Check if we need to trigger an AI response for the care team
+      // Always trigger AI response for the care team
       try {
-        // Check if AI bot is part of care team
-        const hasAiBot = careTeamMembers.some(member => 
-          member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000'
-        );
+        console.log("Getting AI response for care team chat");
         
-        if (hasAiBot) {
-          // Get AI response
-          const { data: aiResponse } = await supabase.functions.invoke('doctor-ai-assistant', {
-            body: { 
-              messages: [{ role: "user", content: newMessage }],
-              preferredLanguage: 'en',
-              patientId: selectedPatientId,
-              isCareTeamChat: true
-            },
-          });
-          
-          if (aiResponse && aiResponse.response) {
-            setTimeout(() => {
-              // Create AI message
-              const aiMessage = {
-                id: uuidv4(),
-                message: aiResponse.response,
-                message_type: "text",
-                created_at: new Date().toISOString(),
-                read: false,
-                sender: {
-                  id: '00000000-0000-0000-0000-000000000000',
-                  first_name: 'AI',
-                  last_name: 'Assistant',
-                  role: 'aibot'
-                },
-                receiver: {
-                  id: user.id,
-                  first_name: null,
-                  last_name: null
-                },
-                synced: true
-              };
-              
-              // Add AI message to local messages
-              setLocalMessages(prev => [...prev, aiMessage]);
-              
-              // Also send AI's response to the patient and nutritionist
+        // Get AI response
+        const { data: aiResponse, error: aiError } = await supabase.functions.invoke('doctor-ai-assistant', {
+          body: { 
+            messages: [{ role: "user", content: newMessage }],
+            preferredLanguage: 'en',
+            patientId: selectedPatientId,
+            isCareTeamChat: true
+          },
+        });
+        
+        if (aiError) {
+          console.error("Error getting AI response:", aiError);
+          return;
+        }
+        
+        if (aiResponse && aiResponse.response) {
+          setTimeout(() => {
+            // Create AI message
+            const aiMessage = {
+              id: uuidv4(),
+              message: aiResponse.response,
+              message_type: "text",
+              created_at: new Date().toISOString(),
+              read: false,
+              sender: {
+                id: '00000000-0000-0000-0000-000000000000',
+                first_name: 'AI',
+                last_name: 'Assistant',
+                role: 'aibot'
+              },
+              receiver: {
+                id: user.id,
+                first_name: null,
+                last_name: null
+              },
+              synced: true
+            };
+            
+            // Add AI message to local messages
+            setLocalMessages(prev => [...prev, aiMessage]);
+            
+            // Also send AI's response to the patient and nutritionist
+            supabase.rpc('send_chat_message', {
+              p_sender_id: '00000000-0000-0000-0000-000000000000',
+              p_receiver_id: selectedPatientId,
+              p_message: aiResponse.response,
+              p_message_type: 'text'
+            });
+            
+            // Get nutritionist for this patient, if any
+            const nutritionist = careTeamMembers.find(m => m.role === 'nutritionist');
+            if (nutritionist?.id) {
+              // Send AI message to nutritionist too
               supabase.rpc('send_chat_message', {
                 p_sender_id: '00000000-0000-0000-0000-000000000000',
-                p_receiver_id: selectedPatientId,
+                p_receiver_id: nutritionist.id,
                 p_message: aiResponse.response,
                 p_message_type: 'text'
               });
-              
-              // Get nutritionist for this patient, if any
-              const nutritionist = careTeamMembers.find(m => m.role === 'nutritionist');
-              if (nutritionist?.id) {
-                // Send AI message to nutritionist too
-                supabase.rpc('send_chat_message', {
-                  p_sender_id: '00000000-0000-0000-0000-000000000000',
-                  p_receiver_id: nutritionist.id,
-                  p_message: aiResponse.response,
-                  p_message_type: 'text'
-                });
-              }
-              
-              // Invalidate queries to refresh messages
-              queryClient.invalidateQueries({ 
-                queryKey: ["chat_messages"] 
-              });
-            }, 1500);
-          }
+            }
+            
+            // Invalidate queries to refresh messages
+            queryClient.invalidateQueries({ 
+              queryKey: ["chat_messages"] 
+            });
+          }, 1500);
         }
       } catch (aiError) {
         console.error("Error getting AI response:", aiError);
