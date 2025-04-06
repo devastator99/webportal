@@ -115,6 +115,7 @@ export async function fetchPatientPrescriptions(patientId: string, doctorId: str
 // Function to get doctor patients
 export async function getDoctorPatients(doctorId: string): Promise<PatientProfile[]> {
   try {
+    console.log("Calling get_doctor_patients RPC with doctor ID:", doctorId);
     const { data, error } = await supabase.rpc('get_doctor_patients', {
       p_doctor_id: doctorId
     });
@@ -124,6 +125,7 @@ export async function getDoctorPatients(doctorId: string): Promise<PatientProfil
       throw error;
     }
     
+    console.log(`Retrieved ${data?.length || 0} patients for doctor ${doctorId}`);
     return data as PatientProfile[] || [];
   } catch (error: any) {
     console.error('Exception in getDoctorPatients:', error);

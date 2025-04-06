@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase, fetchPatientPrescriptions, getDoctorPatients, PatientProfile } from "@/integrations/supabase/client";
@@ -7,8 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
-import { Users, FileText, ClipboardList } from "lucide-react";
+import { Users, FileText, ClipboardList, RefreshCw } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
 interface Prescription {
   id: string;
@@ -30,17 +32,19 @@ export const AllPatientsList = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPatient, setSelectedPatient] = useState<PatientProfile | null>(null);
   const [activeTab, setActiveTab] = useState<"prescriptions" | "reports">("prescriptions");
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Fetch all patients using our new RPC helper function
-  const { data: patients, isLoading: isLoadingPatients } = useQuery({
+  // Fetch all patients using our RPC helper function with proper caching
+  const { data: patients = [], isLoading: isLoadingPatients, refetch: refetchPatients } = useQuery({
     queryKey: ["patients_for_doctor", user?.id],
     queryFn: async () => {
       if (!user?.id) return [] as PatientProfile[];
       
       try {
         console.log("Fetching patients for doctor:", user.id);
-        // Use our RPC helper function instead of direct query
+        // Use our RPC helper function which uses the get_doctor_patients security definer function
         const result = await getDoctorPatients(user.id);
+        console.log("Retrieved patients:", result.length);
         return result;
       } catch (error) {
         console.error("Error fetching patients:", error);
@@ -53,10 +57,11 @@ export const AllPatientsList = () => {
       }
     },
     enabled: !!user?.id,
+    staleTime: 60000, // Cache patient list for 1 minute
   });
 
   // Fetch patient prescriptions using the helper function
-  const { data: prescriptions, isLoading: isLoadingPrescriptions } = useQuery({
+  const { data: prescriptions = [], isLoading: isLoadingPrescriptions } = useQuery({
     queryKey: ["patient_prescriptions_view", selectedPatient?.id, user?.id],
     queryFn: async () => {
       if (!selectedPatient?.id || !user?.id) return [] as Prescription[];
@@ -79,7 +84,7 @@ export const AllPatientsList = () => {
   });
 
   // Fetch patient medical reports
-  const { data: medicalReports, isLoading: isLoadingReports } = useQuery({
+  const { data: medicalReports = [], isLoading: isLoadingReports } = useQuery({
     queryKey: ["patient_medical_reports", selectedPatient?.id],
     queryFn: async () => {
       if (!selectedPatient?.id) return [] as MedicalReport[];
@@ -110,12 +115,33 @@ export const AllPatientsList = () => {
     },
     enabled: !!selectedPatient?.id,
   });
+  
+  // Function to manually refresh patient list
+  const handleRefreshPatients = async () => {
+    try {
+      setIsRefreshing(true);
+      await refetchPatients();
+      toast({
+        title: "Patient list refreshed",
+        description: "Latest assigned patients have been loaded"
+      });
+    } catch (error) {
+      console.error("Error refreshing patient list:", error);
+      toast({
+        title: "Error refreshing",
+        description: "Could not refresh patient list",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Filter patients based on search term
-  const filteredPatients = patients ? patients.filter(patient => {
+  const filteredPatients = patients.filter(patient => {
     const fullName = `${patient.first_name || ''} ${patient.last_name || ''}`.toLowerCase();
     return fullName.includes(searchTerm.toLowerCase());
-  }) : [];
+  });
 
   // Handle opening medical report
   const handleViewReport = async (reportId: string) => {
@@ -162,9 +188,21 @@ export const AllPatientsList = () => {
     <div className="container mx-auto space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />
-            <CardTitle>All Patients</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users className="h-5 w-5 text-primary" />
+              <CardTitle>All Patients</CardTitle>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefreshPatients}
+              disabled={isRefreshing || isLoadingPatients}
+              className="gap-1"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
           </div>
           <CardDescription>
             View and manage your patient list, prescriptions, and medical reports
@@ -183,7 +221,9 @@ export const AllPatientsList = () => {
               
               <div className="border rounded-md divide-y max-h-[60vh] overflow-y-auto">
                 {isLoadingPatients ? (
-                  <div className="p-4 text-center">Loading patients...</div>
+                  <div className="p-4 flex justify-center">
+                    <LoadingSpinner size="md" />
+                  </div>
                 ) : filteredPatients.length === 0 ? (
                   <div className="p-4 text-center text-muted-foreground">
                     {searchTerm ? "No matching patients found" : "No patients assigned yet"}
