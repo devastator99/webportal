@@ -76,7 +76,10 @@ export const DoctorDashboard = () => {
           {featureFlags.enableChat && featureFlags.doctorDashboardChat && (
             <Card>
               <CardHeader>
-                <CardTitle>Caregroup Chat</CardTitle>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Care Team Chat
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <ChatModule showChatbotWidget={false} />

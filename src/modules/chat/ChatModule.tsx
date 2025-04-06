@@ -35,17 +35,12 @@ export const ChatModule = ({
     initDb();
   }, []);
   
-  // Helper function to check if user is a healthcare provider
-  const isHealthcareProvider = () => {
-    return userRole === "doctor" || userRole === "nutritionist";
-  };
-  
   return (
     <>
       {showChatInterface && (
         <UsersProvider>
           {({ careTeamGroup, assignedUsers, isLoading, error }) => {
-            if (isLoading || error || (!careTeamGroup && !assignedUsers.length)) {
+            if (isLoading || error) {
               return null; // Don't render anything if loading or error
             }
             
@@ -53,7 +48,7 @@ export const ChatModule = ({
               <ChatInterface 
                 assignedUsers={assignedUsers}
                 careTeamGroup={careTeamGroup}
-                showGroupChat={!isHealthcareProvider()}
+                showGroupChat={userRole !== "doctor" && userRole !== "nutritionist"}
                 whatsAppStyle={true}
               />
             );
