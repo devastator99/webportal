@@ -11,13 +11,12 @@ import { ForceLogoutButton } from "@/components/navbar/ForceLogoutButton";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState as useHookState } from "react";
 
 export const Navbar = () => {
   const { user, isLoading, resetInactivityTimer } = useAuth();
   const location = useLocation();
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useHookState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   const isIPad = useIsIPad();
   
@@ -26,9 +25,7 @@ export const Navbar = () => {
   const isAlternativeDashboard = location.pathname === '/dashboard-alt';
 
   // Enhanced navbar styling with improved visibility and spacing
-  const navbarClass = (isDashboardPage || isAlternativeDashboard)
-    ? "fixed top-0 w-full bg-white dark:bg-gray-900 z-50 border-b border-[#D6BCFA] shadow-lg mb-16" 
-    : "fixed top-0 w-full bg-white dark:bg-gray-900 z-50 border-b border-[#D6BCFA] shadow-lg";
+  const navbarClass = "fixed top-0 w-full bg-white dark:bg-gray-900 z-50 border-b border-[#D6BCFA] shadow-lg";
 
   useEffect(() => {
     resetInactivityTimer();
@@ -37,7 +34,7 @@ export const Navbar = () => {
   // Close mobile menu when changing routes
   useEffect(() => {
     setMobileMenuOpen(false);
-  }, [location.pathname, setMobileMenuOpen]);
+  }, [location.pathname]);
 
   // Use either mobile or iPad display logic
   const useResponsiveDisplay = isMobile || isIPad;
