@@ -54,9 +54,10 @@ export const ChatModule = ({
                   <ChatInterface 
                     assignedUsers={assignedUsers}
                     careTeamGroup={careTeamGroup}
-                    showGroupChat={userRole !== "nutritionist"}
+                    showGroupChat={true} // Enable group chat for all users
                     whatsAppStyle={userRole === "nutritionist"}
-                    includeAiBot={true} // Now this prop is properly typed
+                    includeAiBot={true}
+                    includeCareTeamMessages={true} // Always include care team messages
                   />
                 );
               }}

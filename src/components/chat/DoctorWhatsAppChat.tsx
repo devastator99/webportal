@@ -37,12 +37,10 @@ export const DoctorWhatsAppChat = () => {
   const [showSidebar, setShowSidebar] = useState(!isMobile);
   const [isLoadingCareTeam, setIsLoadingCareTeam] = useState(false);
 
-  // Toggle sidebar visibility
   const toggleSidebar = () => {
     setShowSidebar(prev => !prev);
   };
 
-  // Get assigned patients for doctor using the RPC function with security definer
   const { data: assignedPatients = [], isLoading: isLoadingPatients, error } = useQuery({
     queryKey: ["doctor_patients", user?.id],
     queryFn: async () => {
@@ -51,8 +49,6 @@ export const DoctorWhatsAppChat = () => {
       try {
         console.log("Fetching patients assigned to doctor:", user.id);
         
-        // Use the get_doctor_patients RPC function with security definer
-        // This queries the patient_assignments table where the doctor is assigned
         const { data, error } = await supabase
           .rpc('get_doctor_patients', { p_doctor_id: user.id });
           
@@ -63,7 +59,6 @@ export const DoctorWhatsAppChat = () => {
         
         console.log("Patients retrieved:", data?.length || 0);
         
-        // Sort by name
         const sortedPatients = [...(data || [])].sort((a, b) => {
           const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
           const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
@@ -82,17 +77,15 @@ export const DoctorWhatsAppChat = () => {
       }
     },
     enabled: !!user?.id,
-    staleTime: 60000 // Cache patient list for 1 minute
+    staleTime: 60000
   });
 
-  // Select first patient by default if none selected
   useEffect(() => {
     if (assignedPatients.length > 0 && !selectedPatientId) {
       setSelectedPatientId(assignedPatients[0].id);
     }
   }, [assignedPatients, selectedPatientId]);
 
-  // Fetch care team members when a patient is selected
   useEffect(() => {
     const fetchCareTeam = async () => {
       if (!selectedPatientId) return;
@@ -101,8 +94,6 @@ export const DoctorWhatsAppChat = () => {
         setIsLoadingCareTeam(true);
         console.log("Fetching care team for patient:", selectedPatientId);
         
-        // Use RPC function to get care team members securely
-        // This also queries the patient_assignments table
         const { data, error } = await supabase
           .rpc('get_patient_care_team_members', {
             p_patient_id: selectedPatientId
@@ -115,7 +106,6 @@ export const DoctorWhatsAppChat = () => {
         
         console.log("Care team members retrieved:", data?.length || 0);
         
-        // Always ensure the AI bot is part of the care team
         const updatedCareTeam = [...(data || [])];
         const hasAiBot = updatedCareTeam.some(member => 
           member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000'
@@ -150,7 +140,6 @@ export const DoctorWhatsAppChat = () => {
     if (!newMessage.trim() || !selectedPatientId || !user?.id) return;
     
     try {
-      // Create temporary message for immediate display
       const tempMessage = {
         id: uuidv4(),
         message: newMessage,
@@ -171,10 +160,8 @@ export const DoctorWhatsAppChat = () => {
         synced: true
       };
       
-      // Add to local messages array so it shows immediately
       setLocalMessages(prev => [...prev, tempMessage]);
       
-      // Send message to selected patient using secure RPC
       const { data, error } = await supabase.rpc('send_chat_message', {
         p_sender_id: user.id,
         p_receiver_id: selectedPatientId,
@@ -184,19 +171,15 @@ export const DoctorWhatsAppChat = () => {
       
       if (error) throw error;
       
-      // Clear input after sending
       setNewMessage("");
       
-      // Invalidate the query to refresh messages
       queryClient.invalidateQueries({ 
         queryKey: ["chat_messages", user.id, selectedPatientId] 
       });
       
-      // Always trigger AI response for the care team
       try {
         console.log("Getting AI response for care team chat");
         
-        // Get AI response
         const { data: aiResponse, error: aiError } = await supabase.functions.invoke('doctor-ai-assistant', {
           body: { 
             messages: [{ role: "user", content: newMessage }],
@@ -213,7 +196,6 @@ export const DoctorWhatsAppChat = () => {
         
         if (aiResponse && aiResponse.response) {
           setTimeout(() => {
-            // Create AI message
             const aiMessage = {
               id: uuidv4(),
               message: aiResponse.response,
@@ -234,10 +216,8 @@ export const DoctorWhatsAppChat = () => {
               synced: true
             };
             
-            // Add AI message to local messages
             setLocalMessages(prev => [...prev, aiMessage]);
             
-            // Also send AI's response to the patient and nutritionist
             supabase.rpc('send_chat_message', {
               p_sender_id: '00000000-0000-0000-0000-000000000000',
               p_receiver_id: selectedPatientId,
@@ -245,10 +225,8 @@ export const DoctorWhatsAppChat = () => {
               p_message_type: 'text'
             });
             
-            // Get nutritionist for this patient, if any
             const nutritionist = careTeamMembers.find(m => m.role === 'nutritionist');
             if (nutritionist?.id) {
-              // Send AI message to nutritionist too
               supabase.rpc('send_chat_message', {
                 p_sender_id: '00000000-0000-0000-0000-000000000000',
                 p_receiver_id: nutritionist.id,
@@ -257,7 +235,6 @@ export const DoctorWhatsAppChat = () => {
               });
             }
             
-            // Invalidate queries to refresh messages
             queryClient.invalidateQueries({ 
               queryKey: ["chat_messages"] 
             });
@@ -265,7 +242,6 @@ export const DoctorWhatsAppChat = () => {
         }
       } catch (aiError) {
         console.error("Error getting AI response:", aiError);
-        // Don't fail the whole operation if AI response fails
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -281,7 +257,6 @@ export const DoctorWhatsAppChat = () => {
     return `${(firstName || '').charAt(0)}${(lastName || '').charAt(0)}`.toUpperCase();
   };
 
-  // Loading state for the patient list
   if (isLoadingPatients && assignedPatients.length === 0) {
     return (
       <Card className="h-full flex flex-col">
@@ -297,7 +272,6 @@ export const DoctorWhatsAppChat = () => {
     );
   }
 
-  // If no patients assigned
   if (assignedPatients.length === 0 && !isLoadingPatients) {
     return (
       <Card className="h-full flex items-center justify-center">
@@ -310,12 +284,10 @@ export const DoctorWhatsAppChat = () => {
     );
   }
 
-  // Find the selected patient safely with optional chaining
   const selectedPatient = selectedPatientId 
     ? assignedPatients.find(p => p.id === selectedPatientId) 
     : undefined;
 
-  // If it's a mobile device, only show one view at a time
   const showChatOnly = isMobile && selectedPatientId && !showSidebar;
   const showSidebarOnly = isMobile && showSidebar;
 
@@ -323,7 +295,6 @@ export const DoctorWhatsAppChat = () => {
     <ErrorBoundary>
       <Card className="h-full flex flex-col">
         <CardContent className="p-0 flex flex-1 overflow-hidden">
-          {/* Patient list sidebar - WhatsApp style */}
           {(showSidebar || showSidebarOnly) && (
             <div className={`${showSidebarOnly ? 'w-full' : (isIPad ? 'w-2/5' : 'w-1/3')} border-r h-full bg-background relative`}>
               <div className="p-3 bg-muted/40 border-b flex justify-between items-center">
@@ -385,12 +356,10 @@ export const DoctorWhatsAppChat = () => {
             </div>
           )}
           
-          {/* Chat messages area - WhatsApp style */}
           {(!showSidebarOnly) && (
             <div className="flex-1 flex flex-col h-full relative">
               {selectedPatientId ? (
                 <>
-                  {/* Chat header - WhatsApp style */}
                   <div className="p-3 bg-muted/40 border-b flex items-center gap-3">
                     {(isMobile || isIPad) && !showSidebar && (
                       <Button variant="ghost" size="icon" onClick={toggleSidebar} className="mr-1">
@@ -412,7 +381,6 @@ export const DoctorWhatsAppChat = () => {
                     </div>
                   </div>
                   
-                  {/* Chat messages - WhatsApp style */}
                   <div className="flex-1 flex flex-col h-full bg-[#f0f2f5] dark:bg-slate-900">
                     {isLoadingCareTeam ? (
                       <div className="flex-1 space-y-4 p-4">
@@ -430,13 +398,14 @@ export const DoctorWhatsAppChat = () => {
                         localMessages={localMessages.filter(msg => 
                           (msg.sender.id === user?.id && msg.receiver.id === selectedPatientId) || 
                           (msg.sender.id === selectedPatientId && msg.receiver.id === user?.id) ||
-                          (msg.sender.id === '00000000-0000-0000-0000-000000000000') // Include AI messages
+                          (msg.sender.id === '00000000-0000-0000-0000-000000000000') ||
+                          (msg.sender.id === selectedPatientId && careTeamMembers.some(m => m.id === msg.receiver.id)) ||
+                          (msg.receiver.id === selectedPatientId && careTeamMembers.some(m => m.id === msg.sender.id))
                         )}
-                        includeCareTeamMessages={true} // Include all care team messages
+                        includeCareTeamMessages={true}
                       />
                     )}
                     
-                    {/* Chat input - WhatsApp style */}
                     <div className="p-3 bg-background border-t">
                       <ChatInput
                         value={newMessage}

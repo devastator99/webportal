@@ -165,28 +165,25 @@ export const ChatMessagesList = ({
         // Create all possible pair combinations for communication
         let allPairs: Array<[string, string]> = [];
         
-        // Add pairs between the current user and each care team member
-        for (const memberId of memberIds) {
-          if (memberId !== user.id) {
-            allPairs.push([user.id, memberId]);
-          }
-        }
-        
-        // Add all possible communication pairs between care team members
-        // This ensures everyone can see all messages between any care team members
+        // Add pairs between all team members for complete visibility
         for (let i = 0; i < memberIds.length; i++) {
           for (let j = i + 1; j < memberIds.length; j++) {
-            // Don't duplicate pairs with the current user
-            if (memberIds[i] !== user.id && memberIds[j] !== user.id) {
-              allPairs.push([memberIds[i], memberIds[j]]);
-            }
+            allPairs.push([memberIds[i], memberIds[j]]);
+            // Also add the reverse to make sure we capture messages in both directions
+            allPairs.push([memberIds[j], memberIds[i]]);
           }
         }
         
         console.log("Fetching messages for all pairs:", allPairs);
         
-        // Fetch messages for all pairs
-        const promises = allPairs.map(([senderId, receiverId]) => {
+        // Fetch messages for all pairs using a set to prevent duplicated pairs
+        const uniquePairsSet = new Set(allPairs.map(pair => pair.sort().join('-')));
+        const uniquePairs = Array.from(uniquePairsSet).map(pairString => {
+          const [id1, id2] = pairString.split('-');
+          return [id1, id2];
+        });
+        
+        const promises = uniquePairs.map(([senderId, receiverId]) => {
           return supabase.functions.invoke('get-chat-messages', {
             body: {
               user_id: senderId,
@@ -246,15 +243,20 @@ export const ChatMessagesList = ({
           }
         });
         
+        // Remove duplicate messages (same id)
+        const uniqueMessages = Array.from(
+          new Map(allMessages.map(msg => [msg.id, msg])).values()
+        );
+        
         // Sort all messages by timestamp
-        allMessages.sort((a, b) => 
+        uniqueMessages.sort((a, b) => 
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
         
-        console.log(`Total group chat messages: ${allMessages.length}`);
+        console.log(`Total group chat messages: ${uniqueMessages.length}`);
         
         // Mark unread messages as read
-        const unreadMessagesGrouped = allMessages.filter(
+        const unreadMessagesGrouped = uniqueMessages.filter(
           (msg: MessageData) => 
             msg.sender?.id !== user.id && 
             !msg.read
@@ -276,127 +278,156 @@ export const ChatMessagesList = ({
           );
         }
         
-        return { data: allMessages, hasMore };
+        return { data: uniqueMessages, hasMore };
       } 
       else if (selectedUserId) {
         let allMessages: MessageData[] = [];
         let hasMore = false;
         
-        const directResult = await supabase.functions.invoke('get-chat-messages', {
-          body: {
-            user_id: user.id,
-            other_user_id: selectedUserId,
-            page: page,
-            per_page: MESSAGES_PER_PAGE
-          }
-        });
-
-        const directResponseData = directResult.data as ChatMessagesResponse;
-        const directMessages = directResponseData.messages || [];
-        hasMore = directResponseData.hasMore || false;
-        
-        allMessages = [...directMessages];
-        
-        if (includeCareTeamMessages && careTeamMembers.length > 0) {
-          console.log("Including care team messages with selected user:", selectedUserId);
+        // If the user is a doctor, we need special handling to see all patient messages
+        if (userRole === 'doctor') {
+          console.log("Doctor retrieving messages with patient:", selectedUserId);
           
-          // Get messages between all care team members and the selected user
-          for (const member of careTeamMembers) {
-            if (member.id === user.id) continue;
+          // Get direct messages between doctor and patient
+          const directResult = await supabase.functions.invoke('get-chat-messages', {
+            body: {
+              user_id: user.id,
+              other_user_id: selectedUserId,
+              page: page,
+              per_page: MESSAGES_PER_PAGE
+            }
+          });
+          
+          if (directResult.data) {
+            const directResponseData = directResult.data as ChatMessagesResponse;
+            allMessages = [...allMessages, ...(directResponseData.messages || [])];
+            hasMore = directResponseData.hasMore || hasMore;
+          }
+          
+          // Get messages between patient and AI bot
+          const aiResult = await supabase.functions.invoke('get-chat-messages', {
+            body: {
+              user_id: selectedUserId,
+              other_user_id: '00000000-0000-0000-0000-000000000000',
+              page: 1,
+              per_page: 50
+            }
+          });
+          
+          if (aiResult.data && aiResult.data.messages) {
+            allMessages = [...allMessages, ...aiResult.data.messages];
+          }
+          
+          // Get all other care team messages with this patient
+          if (careTeamMembers.length > 0) {
+            console.log("Fetching care team messages with patient");
             
-            const careTeamResult = await supabase.functions.invoke('get-chat-messages', {
-              body: {
-                user_id: member.id,
-                other_user_id: selectedUserId,
-                page: 1,
-                per_page: 50
-              }
-            });
-            
-            if (careTeamResult.data && careTeamResult.data.messages) {
-              // Enhance messages with sender and receiver roles
-              const enhancedMessages = careTeamResult.data.messages.map((msg: MessageData) => {
-                const senderMember = careTeamMembers.find(m => m.id === msg.sender.id);
-                const receiverMember = careTeamMembers.find(m => m.id === msg.receiver.id);
-                
-                return {
-                  ...msg,
-                  sender: {
-                    ...msg.sender,
-                    role: senderMember?.role || (msg.sender.id === selectedUserId ? "patient" : "unknown")
-                  },
-                  receiver: {
-                    ...msg.receiver,
-                    role: receiverMember?.role || (msg.receiver.id === selectedUserId ? "patient" : "unknown")
-                  }
-                };
+            // Get messages between all care team members and the patient
+            for (const member of careTeamMembers) {
+              if (member.id === user.id) continue;
+              
+              const careTeamResult = await supabase.functions.invoke('get-chat-messages', {
+                body: {
+                  user_id: member.id,
+                  other_user_id: selectedUserId,
+                  page: 1,
+                  per_page: 50
+                }
               });
               
-              allMessages = [...allMessages, ...enhancedMessages];
+              if (careTeamResult.data && careTeamResult.data.messages) {
+                allMessages = [...allMessages, ...careTeamResult.data.messages];
+              }
             }
           }
+        } else {
+          // Standard message fetching for non-doctor roles
+          const directResult = await supabase.functions.invoke('get-chat-messages', {
+            body: {
+              user_id: user.id,
+              other_user_id: selectedUserId,
+              page: page,
+              per_page: MESSAGES_PER_PAGE
+            }
+          });
+
+          const directResponseData = directResult.data as ChatMessagesResponse;
+          const directMessages = directResponseData.messages || [];
+          hasMore = directResponseData.hasMore || false;
           
-          // Also get messages between care team members about this patient
-          for (let i = 0; i < careTeamMembers.length; i++) {
-            for (let j = i + 1; j < careTeamMembers.length; j++) {
-              if (careTeamMembers[i].id !== user.id && careTeamMembers[j].id !== user.id) {
-                const internalResult = await supabase.functions.invoke('get-chat-messages', {
-                  body: {
-                    user_id: careTeamMembers[i].id,
-                    other_user_id: careTeamMembers[j].id,
-                    page: 1,
-                    per_page: 50
-                  }
-                });
-                
-                if (internalResult.data && internalResult.data.messages) {
-                  // Add internal care team messages
-                  const enhancedMessages = internalResult.data.messages.map((msg: MessageData) => {
-                    const senderMember = careTeamMembers.find(m => m.id === msg.sender.id);
-                    const receiverMember = careTeamMembers.find(m => m.id === msg.receiver.id);
-                    
-                    return {
-                      ...msg,
-                      sender: {
-                        ...msg.sender,
-                        role: senderMember?.role || "unknown"
-                      },
-                      receiver: {
-                        ...msg.receiver,
-                        role: receiverMember?.role || "unknown"
-                      }
-                    };
+          allMessages = [...directMessages];
+          
+          if (includeCareTeamMessages && careTeamMembers.length > 0) {
+            console.log("Including care team messages with selected user:", selectedUserId);
+            
+            // Get messages between all care team members and the selected user
+            for (const member of careTeamMembers) {
+              if (member.id === user.id) continue;
+              
+              const careTeamResult = await supabase.functions.invoke('get-chat-messages', {
+                body: {
+                  user_id: member.id,
+                  other_user_id: selectedUserId,
+                  page: 1,
+                  per_page: 50
+                }
+              });
+              
+              if (careTeamResult.data && careTeamResult.data.messages) {
+                allMessages = [...allMessages, ...careTeamResult.data.messages];
+              }
+            }
+            
+            // Also get messages between care team members about this patient
+            for (let i = 0; i < careTeamMembers.length; i++) {
+              for (let j = i + 1; j < careTeamMembers.length; j++) {
+                if (careTeamMembers[i].id !== user.id && careTeamMembers[j].id !== user.id) {
+                  const internalResult = await supabase.functions.invoke('get-chat-messages', {
+                    body: {
+                      user_id: careTeamMembers[i].id,
+                      other_user_id: careTeamMembers[j].id,
+                      page: 1,
+                      per_page: 50
+                    }
                   });
                   
-                  allMessages = [...allMessages, ...enhancedMessages];
+                  if (internalResult.data && internalResult.data.messages) {
+                    allMessages = [...allMessages, ...internalResult.data.messages];
+                  }
                 }
               }
             }
           }
         }
         
-        if (allMessages.length > 0) {
-          const unreadMessages = allMessages.filter(
-            (msg: MessageData) => msg.sender?.id === selectedUserId && !msg.read
-          );
-          
-          if (unreadMessages.length > 0) {
-            await supabase.functions.invoke("mark-messages-as-read", {
-              body: {
-                user_id: user.id,
-                sender_id: selectedUserId
-              }
-            });
-          }
-        }
+        // Remove duplicate messages
+        const uniqueMessages = Array.from(
+          new Map(allMessages.map(msg => [msg.id, msg])).values()
+        );
         
-        allMessages.sort((a, b) => 
+        // Sort by timestamp
+        uniqueMessages.sort((a, b) => 
           new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
         );
         
+        // Mark unread messages as read
+        const unreadMessages = uniqueMessages.filter(
+          (msg: MessageData) => msg.sender?.id === selectedUserId && !msg.read
+        );
+        
+        if (unreadMessages.length > 0) {
+          await supabase.functions.invoke("mark-messages-as-read", {
+            body: {
+              user_id: user.id,
+              sender_id: selectedUserId
+            }
+          });
+        }
+        
+        // Enhance AI bot messages
         if (selectedUserId === '00000000-0000-0000-0000-000000000000') {
           return { 
-            data: allMessages.map((msg: MessageData) => {
+            data: uniqueMessages.map((msg: MessageData) => {
               if (msg.sender.id === selectedUserId) {
                 return {
                   ...msg,
@@ -412,7 +443,7 @@ export const ChatMessagesList = ({
           };
         }
         
-        return { data: allMessages || [], hasMore };
+        return { data: uniqueMessages || [], hasMore };
       }
       
       return { data: [], hasMore: false };
@@ -549,32 +580,35 @@ export const ChatMessagesList = ({
         .subscribe();
     } 
     else if (selectedUserId) {
-      // For individual chat, also listen to all care team messages
-      if (includeCareTeamMessages && careTeamMembers.length > 0) {
-        const memberIds = careTeamMembers.map(m => m.id);
-        memberIds.push(selectedUserId);
-        
-        if (!memberIds.includes(user.id)) {
-          memberIds.push(user.id);
-        }
-        
-        // Generate filter conditions for all possible communication pairs
+      // For individual chat between doctor and patient, enhance subscription
+      if (userRole === 'doctor' && careTeamMembers.length > 0) {
+        // Create a comprehensive filter for doctor-patient chat
         let allPairConditions: string[] = [];
         
-        // Create conditions for each pair of members
-        for (let i = 0; i < memberIds.length; i++) {
-          for (let j = i + 1; j < memberIds.length; j++) {
-            allPairConditions.push(
-              `or(and(sender_id=eq.${memberIds[i]},receiver_id=eq.${memberIds[j]}),and(sender_id=eq.${memberIds[j]},receiver_id=eq.${memberIds[i]}))`
-            );
-          }
+        // Add direct doctor-patient pair
+        allPairConditions.push(
+          `or(and(sender_id=eq.${user.id},receiver_id=eq.${selectedUserId}),and(sender_id=eq.${selectedUserId},receiver_id=eq.${user.id}))`
+        );
+        
+        // Add AI bot condition
+        allPairConditions.push(
+          `or(and(sender_id=eq.${selectedUserId},receiver_id=eq.00000000-0000-0000-0000-000000000000),and(sender_id=eq.00000000-0000-0000-0000-000000000000,receiver_id=eq.${selectedUserId}))`
+        );
+        
+        // Add other care team members' conversations with this patient
+        for (const member of careTeamMembers) {
+          if (member.id === user.id) continue;
+          
+          allPairConditions.push(
+            `or(and(sender_id=eq.${member.id},receiver_id=eq.${selectedUserId}),and(sender_id=eq.${selectedUserId},receiver_id=eq.${member.id}))`
+          );
         }
         
         const finalFilter = `or(${allPairConditions.join(',')})`;
-        console.log("Setting up comprehensive individual chat with team updates:", finalFilter);
+        console.log("Setting up comprehensive doctor-patient chat subscription with filter:", finalFilter);
         
         channel = supabase
-          .channel('comprehensive_care_team_updates')
+          .channel('doctor_patient_chat_updates')
           .on(
             'postgres_changes',
             {
@@ -584,6 +618,7 @@ export const ChatMessagesList = ({
               filter: finalFilter,
             },
             () => {
+              console.log("New doctor-patient message detected, invalidating query");
               queryClient.invalidateQueries({ queryKey: queryKey.slice(0, -1) });
             }
           )
