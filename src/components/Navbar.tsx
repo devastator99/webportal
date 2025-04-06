@@ -56,17 +56,24 @@ export const Navbar = () => {
         
         {/* Mobile/iPad menu button */}
         {useResponsiveDisplay && (
-          <Button
-            variant="ghost"
-            className="md:hidden"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
-          >
-            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Always show login button for mobile/iPad when menu is closed and user is not logged in */}
+            {!user && (
+              <div className="flex-shrink-0 mr-2">
+                <LoginDialog />
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          </div>
         )}
         
-        {/* Desktop navigation - increased visibility */}
+        {/* Desktop navigation */}
         <div className={`${useResponsiveDisplay ? 'hidden' : 'flex'} items-center gap-4`}>
           {user && <DashboardButton />}
           {user && <DoctorActions />}
@@ -79,27 +86,15 @@ export const Navbar = () => {
           {user && <SignOutButton />}
         </div>
         
-        {/* Mobile/iPad navigation - improved layout */}
+        {/* Mobile/iPad navigation */}
         {useResponsiveDisplay && mobileMenuOpen && (
           <div className="absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-b border-[#D6BCFA] shadow-lg z-50 py-4 px-4">
             <div className="flex flex-col gap-3">
               {user && <DashboardButton />}
               {user && <DoctorActions />}
               {user && isAdminPage && <ForceLogoutButton />}
-              {!user && (
-                <div className="flex justify-start my-2">
-                  <LoginDialog />
-                </div>
-              )}
               {user && <SignOutButton />}
             </div>
-          </div>
-        )}
-        
-        {/* Always show login button for mobile/iPad when menu is closed */}
-        {useResponsiveDisplay && !mobileMenuOpen && !user && (
-          <div className="flex-shrink-0">
-            <LoginDialog />
           </div>
         )}
       </div>
