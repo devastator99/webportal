@@ -1,3 +1,4 @@
+
 import { useState, memo, useCallback, useEffect } from "react";
 import { useQuery, QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,6 +13,7 @@ import {
   PaginationPrevious 
 } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Progress } from "@/components/ui/progress";
 
 interface Video {
   id: string;
@@ -31,19 +33,45 @@ const getYoutubeVideoId = (url: string): string | null => {
   return match && match[2].length === 11 ? match[2] : null;
 };
 
-const VideoCard = memo(({ video }: { video: Video }) => {
+const VideoCard = memo(({ video, onLoadStart, onLoadComplete }: { 
+  video: Video; 
+  onLoadStart?: () => void;
+  onLoadComplete?: () => void;
+}) => {
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const handleLoadStart = () => {
+    setIsLoading(true);
+    onLoadStart?.();
+  };
+  
+  const handleLoadComplete = () => {
+    setIsLoading(false);
+    onLoadComplete?.();
+  };
+
   if (video.is_youtube || video.video_path.includes('youtube.com') || video.video_path.includes('youtu.be')) {
     const videoId = getYoutubeVideoId(video.video_path);
     
     return (
       <Card key={video.id} className="overflow-hidden">
-        <div className="w-full aspect-video">
+        <div className="w-full aspect-video relative">
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+              <div className="w-3/4">
+                <Progress value={50} className="h-2" />
+                <p className="text-xs text-center mt-2">Loading YouTube video...</p>
+              </div>
+            </div>
+          )}
           <iframe
             className="w-full h-full"
             src={`https://www.youtube.com/embed/${videoId}`}
             title={video.title}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
+            onLoad={handleLoadComplete}
+            onLoadStart={handleLoadStart}
           ></iframe>
         </div>
         <CardHeader>
@@ -66,12 +94,24 @@ const VideoCard = memo(({ video }: { video: Video }) => {
     
     return (
       <Card key={video.id} className="overflow-hidden">
-        <video
-          className="w-full aspect-video object-cover"
-          controls
-          src={videoUrl}
-          preload="none"
-        />
+        <div className="w-full aspect-video relative">
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800">
+              <div className="w-3/4">
+                <Progress value={50} className="h-2" />
+                <p className="text-xs text-center mt-2">Loading video...</p>
+              </div>
+            </div>
+          )}
+          <video
+            className="w-full aspect-video object-cover"
+            controls
+            src={videoUrl}
+            preload="metadata"
+            onLoadStart={handleLoadStart}
+            onCanPlay={handleLoadComplete}
+          />
+        </div>
         <CardHeader>
           <CardTitle>{video.title}</CardTitle>
           <CardDescription>
@@ -146,6 +186,7 @@ const sampleVideos: Video[] = [
 export const VideoList = () => {
   const [shouldFetch, setShouldFetch] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [loadingVideos, setLoadingVideos] = useState(0);
   const itemsPerPage = 2; // Show only 2 videos per page initially for faster loading
   
   useEffect(() => {
@@ -201,20 +242,36 @@ export const VideoList = () => {
       goToPage(currentPage - 1);
     }
   }, [currentPage, goToPage]);
-
-  if (!shouldFetch) {
-    return <LoadingSkeleton />;
-  }
   
-  if (isLoading) {
+  const handleVideoLoadStart = useCallback(() => {
+    setLoadingVideos(prev => prev + 1);
+  }, []);
+  
+  const handleVideoLoadComplete = useCallback(() => {
+    setLoadingVideos(prev => Math.max(0, prev - 1));
+  }, []);
+
+  if (!shouldFetch || isLoading) {
     return <LoadingSkeleton />;
   }
 
   return (
     <div className="space-y-6">
+      {loadingVideos > 0 && (
+        <div className="bg-white dark:bg-gray-900 py-2 px-4 rounded-md shadow mb-4 flex items-center gap-2">
+          <Progress value={75} className="h-2 flex-1" />
+          <span className="text-sm">Loading videos...</span>
+        </div>
+      )}
+      
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {displayVideos.map((video) => (
-          <VideoCard key={video.id} video={video} />
+          <VideoCard 
+            key={video.id} 
+            video={video} 
+            onLoadStart={handleVideoLoadStart}
+            onLoadComplete={handleVideoLoadComplete}
+          />
         ))}
       </div>
       

@@ -15,6 +15,7 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
 import { ChevronLeft, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface UserProfile {
   id: string;
@@ -35,6 +36,7 @@ export const DoctorWhatsAppChat = () => {
   const isMobile = useIsMobile();
   const isIPad = useIsIPad();
   const [showSidebar, setShowSidebar] = useState(!isMobile);
+  const [isLoadingCareTeam, setIsLoadingCareTeam] = useState(false);
 
   // Toggle sidebar visibility
   const toggleSidebar = () => {
@@ -42,7 +44,7 @@ export const DoctorWhatsAppChat = () => {
   };
 
   // Get assigned patients for doctor using the RPC function with security definer
-  const { data: assignedPatients, isLoading, error } = useQuery({
+  const { data: assignedPatients, isLoading: isLoadingPatients, error } = useQuery({
     queryKey: ["doctor_patients", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -72,7 +74,8 @@ export const DoctorWhatsAppChat = () => {
         return [];
       }
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
+    staleTime: 60000 // Cache patient list for 1 minute
   });
 
   // Select first patient by default if none selected
@@ -88,6 +91,7 @@ export const DoctorWhatsAppChat = () => {
       if (!selectedPatientId) return;
       
       try {
+        setIsLoadingCareTeam(true);
         // Use RPC function to get care team members securely
         const { data, error } = await supabase
           .rpc('get_patient_care_team_members', {
@@ -96,14 +100,36 @@ export const DoctorWhatsAppChat = () => {
           
         if (error) throw error;
         
-        setCareTeamMembers(data || []);
+        // Add the AI bot to the care team
+        const updatedCareTeam = [...(data || [])];
+        const hasAiBot = updatedCareTeam.some(member => 
+          member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000'
+        );
+        
+        if (!hasAiBot) {
+          updatedCareTeam.push({
+            id: '00000000-0000-0000-0000-000000000000',
+            first_name: 'AI',
+            last_name: 'Assistant',
+            role: 'aibot'
+          });
+        }
+        
+        setCareTeamMembers(updatedCareTeam);
       } catch (error) {
         console.error("Error fetching care team:", error);
+        toast({
+          title: "Error",
+          description: "Could not load care team members",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoadingCareTeam(false);
       }
     };
     
     fetchCareTeam();
-  }, [selectedPatientId]);
+  }, [selectedPatientId, toast]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedPatientId || !user?.id) return;
@@ -149,11 +175,6 @@ export const DoctorWhatsAppChat = () => {
       // Invalidate the query to refresh messages
       queryClient.invalidateQueries({ 
         queryKey: ["chat_messages", user.id, selectedPatientId] 
-      });
-      
-      toast({
-        title: "Message sent",
-        duration: 2000,
       });
       
       // Check if we need to trigger an AI response for the care team
@@ -245,8 +266,24 @@ export const DoctorWhatsAppChat = () => {
     return `${(firstName || '').charAt(0)}${(lastName || '').charAt(0)}`.toUpperCase();
   };
 
+  // Loading state for the patient list
+  if (isLoadingPatients && !assignedPatients?.length) {
+    return (
+      <Card className="h-full flex flex-col">
+        <CardContent className="p-4 flex flex-1 justify-center items-center">
+          <div className="space-y-4 w-full max-w-md">
+            <Skeleton className="h-10 w-full rounded-full" />
+            <Skeleton className="h-24 w-full rounded-lg" />
+            <Skeleton className="h-10 w-full rounded-full" />
+            <Skeleton className="h-24 w-full rounded-lg" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   // If no patients assigned
-  if (assignedPatients?.length === 0 && !isLoading) {
+  if (assignedPatients?.length === 0 && !isLoadingPatients) {
     return (
       <Card className="h-full flex items-center justify-center">
         <CardContent>
@@ -277,10 +314,21 @@ export const DoctorWhatsAppChat = () => {
                     <ChevronLeft className="h-5 w-5" />
                   </Button>
                 )}
+                <span className="text-sm font-medium ml-2">Your Patients</span>
               </div>
               <ScrollArea className="h-[calc(100%-48px)]">
-                {isLoading ? (
-                  <div className="py-2 px-4">Loading patients...</div>
+                {isLoadingPatients ? (
+                  <div className="space-y-3 p-3">
+                    {[...Array(3)].map((_, i) => (
+                      <div key={i} className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded-full" />
+                        <div className="space-y-2 flex-1">
+                          <Skeleton className="h-4 w-2/3" />
+                          <Skeleton className="h-3 w-1/2" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 ) : (
                   <div className="space-y-0">
                     {assignedPatients?.map((patient) => (
@@ -341,24 +389,34 @@ export const DoctorWhatsAppChat = () => {
                         {selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : 'Loading...'}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        Patient
+                        {isLoadingCareTeam ? 'Loading care team...' : `Patient${careTeamMembers.length > 1 ? ' + ' + (careTeamMembers.length - 1) + ' care team members' : ''}`}
                       </div>
                     </div>
                   </div>
                   
                   {/* Chat messages - WhatsApp style */}
                   <div className="flex-1 flex flex-col h-full bg-[#f0f2f5] dark:bg-slate-900">
-                    <ChatMessagesList
-                      selectedUserId={selectedPatientId}
-                      isGroupChat={false}
-                      careTeamMembers={careTeamMembers}
-                      localMessages={localMessages.filter(msg => 
-                        (msg.sender.id === user?.id && msg.receiver.id === selectedPatientId) || 
-                        (msg.sender.id === selectedPatientId && msg.receiver.id === user?.id) ||
-                        (msg.sender.id === '00000000-0000-0000-0000-000000000000') // Include AI messages
-                      )}
-                      includeCareTeamMessages={true} // Include all care team messages
-                    />
+                    {isLoadingCareTeam ? (
+                      <div className="flex-1 space-y-4 p-4">
+                        {[...Array(4)].map((_, i) => (
+                          <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+                            <Skeleton className={`h-16 w-3/4 rounded-lg ${i % 2 === 0 ? 'bg-primary/5' : 'bg-muted'}`} />
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <ChatMessagesList
+                        selectedUserId={selectedPatientId}
+                        isGroupChat={false}
+                        careTeamMembers={careTeamMembers}
+                        localMessages={localMessages.filter(msg => 
+                          (msg.sender.id === user?.id && msg.receiver.id === selectedPatientId) || 
+                          (msg.sender.id === selectedPatientId && msg.receiver.id === user?.id) ||
+                          (msg.sender.id === '00000000-0000-0000-0000-000000000000') // Include AI messages
+                        )}
+                        includeCareTeamMessages={true} // Include all care team messages
+                      />
+                    )}
                     
                     {/* Chat input - WhatsApp style */}
                     <div className="p-3 bg-background border-t">
@@ -367,7 +425,7 @@ export const DoctorWhatsAppChat = () => {
                         onChange={setNewMessage}
                         onSend={handleSendMessage}
                         placeholder="Type a message..."
-                        disabled={!selectedPatientId}
+                        disabled={!selectedPatientId || isLoadingCareTeam}
                       />
                     </div>
                   </div>
