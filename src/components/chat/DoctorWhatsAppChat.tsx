@@ -174,7 +174,7 @@ export const DoctorWhatsAppChat = () => {
       setNewMessage("");
       
       queryClient.invalidateQueries({ 
-        queryKey: ["chat_messages", user.id, selectedPatientId] 
+        queryKey: ["chat_messages"] 
       });
       
       try {
@@ -209,7 +209,7 @@ export const DoctorWhatsAppChat = () => {
                 role: 'aibot'
               },
               receiver: {
-                id: user.id,
+                id: selectedPatientId,
                 first_name: null,
                 last_name: null
               },
@@ -225,15 +225,16 @@ export const DoctorWhatsAppChat = () => {
               p_message_type: 'text'
             });
             
-            const nutritionist = careTeamMembers.find(m => m.role === 'nutritionist');
-            if (nutritionist?.id) {
-              supabase.rpc('send_chat_message', {
-                p_sender_id: '00000000-0000-0000-0000-000000000000',
-                p_receiver_id: nutritionist.id,
-                p_message: aiResponse.response,
-                p_message_type: 'text'
-              });
-            }
+            careTeamMembers.forEach(member => {
+              if (member.id !== user.id && member.id !== '00000000-0000-0000-0000-000000000000') {
+                supabase.rpc('send_chat_message', {
+                  p_sender_id: '00000000-0000-0000-0000-000000000000',
+                  p_receiver_id: member.id,
+                  p_message: aiResponse.response,
+                  p_message_type: 'text'
+                });
+              }
+            });
             
             queryClient.invalidateQueries({ 
               queryKey: ["chat_messages"] 

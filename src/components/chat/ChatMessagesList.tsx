@@ -42,9 +42,18 @@ export const ChatMessagesList = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: messages, isLoading, error } = useQuery({
-    queryKey: ["chat_messages", user?.id, selectedUserId, isGroupChat, includeCareTeamMessages],
+    queryKey: ["chat_messages", user?.id, selectedUserId, isGroupChat, includeCareTeamMessages, careTeamGroup?.members?.length],
     queryFn: async () => {
       if (!user?.id) return [];
+
+      console.log("Fetching messages with params:", {
+        userId: user?.id,
+        selectedUserId,
+        isGroupChat,
+        includeCareTeamMessages,
+        careTeamMembersCount: careTeamMembers?.length || 0,
+        careTeamGroupMembersCount: careTeamGroup?.members?.length || 0
+      });
 
       if (isGroupChat && careTeamGroup) {
         const allMessages = [];
@@ -55,67 +64,38 @@ export const ChatMessagesList = ({
           careTeamIds.push(user.id);
         }
         
-        // Fetch messages between all care team members
-        for (const memberId of careTeamIds) {
-          // Skip AI bot as sender since we'll query it separately
-          if (memberId === '00000000-0000-0000-0000-000000000000') continue;
-          
-          for (const receiverId of careTeamIds) {
-            // Don't query messages sent to self
-            if (memberId === receiverId) continue;
-            
-            const { data, error } = await supabase
-              .from('chat_messages')
-              .select('*, sender:sender_id(id, first_name, last_name, role), receiver:receiver_id(id, first_name, last_name, role)')
-              .or(`sender_id.eq.${memberId},and(receiver_id.eq.${receiverId})`)
-              .order('created_at', { ascending: true });
-
-            if (error) {
-              console.error(`Error fetching messages between ${memberId} and ${receiverId}:`, error);
-              continue;
-            }
-            
-            allMessages.push(...(data || []));
-          }
-        }
+        console.log("Care team IDs for group chat:", careTeamIds);
         
-        // Fetch AI bot messages sent to any care team member
-        const { data: aiMessages, error: aiError } = await supabase
+        // Fetch ALL messages between ANY care team members
+        const { data: allTeamMessages, error: allTeamError } = await supabase
           .from('chat_messages')
           .select('*, sender:sender_id(id, first_name, last_name, role), receiver:receiver_id(id, first_name, last_name, role)')
-          .eq('sender_id', '00000000-0000-0000-0000-000000000000')
-          .in('receiver_id', careTeamIds)
+          .or(`sender_id.in.(${careTeamIds.join(',')}),receiver_id.in.(${careTeamIds.join(',')})`)
           .order('created_at', { ascending: true });
         
-        if (aiError) {
-          console.error("Error fetching AI messages:", aiError);
-        } else {
-          allMessages.push(...(aiMessages || []));
+        if (allTeamError) {
+          console.error("Error fetching all team messages:", allTeamError);
+          throw allTeamError;
         }
         
-        // Also fetch messages sent by any care team member to the AI bot
-        const { data: messagesToAI, error: messagesToAIError } = await supabase
-          .from('chat_messages')
-          .select('*, sender:sender_id(id, first_name, last_name, role), receiver:receiver_id(id, first_name, last_name, role)')
-          .eq('receiver_id', '00000000-0000-0000-0000-000000000000')
-          .in('sender_id', careTeamIds)
-          .order('created_at', { ascending: true });
+        console.log(`Retrieved ${allTeamMessages?.length || 0} total messages between care team members`);
+        allMessages.push(...(allTeamMessages || []));
         
-        if (messagesToAIError) {
-          console.error("Error fetching messages to AI:", messagesToAIError);
-        } else {
-          allMessages.push(...(messagesToAI || []));
-        }
-
         // Remove duplicate messages based on message ID
         const uniqueMessages = Array.from(
           new Map(allMessages.map(msg => [msg.id, msg])).values()
         );
         
-        // Sort messages by created_at timestamp
-        uniqueMessages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        // Filter to only include messages that involve care team members
+        const filteredMessages = uniqueMessages.filter(msg => {
+          return careTeamIds.includes(msg.sender.id) && careTeamIds.includes(msg.receiver.id);
+        });
         
-        return uniqueMessages;
+        // Sort messages by created_at timestamp
+        filteredMessages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+        
+        console.log(`Returning ${filteredMessages.length} filtered unique care team messages`);
+        return filteredMessages;
       } else if (selectedUserId && user?.id) {
         // Direct conversation between two users
         const { data, error } = await supabase
@@ -130,16 +110,29 @@ export const ChatMessagesList = ({
         if (includeCareTeamMessages && careTeamMembers && careTeamMembers.length > 0) {
           const careTeamIds = careTeamMembers.map(member => member.id);
           
-          // Get messages between the selected user and all care team members
+          // Include the selected user and current user in the care team IDs
+          const allRelevantIds = [...careTeamIds];
+          if (!allRelevantIds.includes(selectedUserId)) {
+            allRelevantIds.push(selectedUserId);
+          }
+          if (!allRelevantIds.includes(user.id)) {
+            allRelevantIds.push(user.id);
+          }
+          
+          console.log("Fetching care team messages with relevant IDs:", allRelevantIds);
+          
+          // Get ALL messages that involve the selected user and ANY care team member
           const { data: careTeamData, error: careTeamError } = await supabase
             .from('chat_messages')
             .select('*, sender:sender_id(id, first_name, last_name, role), receiver:receiver_id(id, first_name, last_name, role)')
-            .or(`sender_id.eq.${selectedUserId},and(receiver_id.in.(${careTeamIds.join(',')})),sender_id.in.(${careTeamIds.join(',')}),and(receiver_id.eq.${selectedUserId})`)
+            .or(`sender_id.eq.${selectedUserId},and(receiver_id.in.(${allRelevantIds.join(',')})),sender_id.in.(${allRelevantIds.join(',')}),and(receiver_id.eq.${selectedUserId})`)
             .order('created_at', { ascending: true });
             
           if (careTeamError) {
             console.error("Error fetching care team messages:", careTeamError);
           } else {
+            console.log(`Retrieved ${careTeamData?.length || 0} care team related messages`);
+            
             // Combine messages and remove duplicates
             const allMessages = [...(data || []), ...(careTeamData || [])];
             const uniqueMessages = Array.from(
@@ -149,10 +142,12 @@ export const ChatMessagesList = ({
             // Sort messages by created_at timestamp
             uniqueMessages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
             
+            console.log(`Returning ${uniqueMessages.length} unique messages after care team merging`);
             return uniqueMessages;
           }
         }
         
+        console.log(`Returning ${data?.length || 0} direct messages`);
         return data || [];
       }
 
