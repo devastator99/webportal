@@ -9,7 +9,7 @@ export interface UserProfile {
   id: string;
   first_name: string | null;
   last_name: string | null;
-  role?: string;
+  role: string; // Changed from optional to required
   user_role?: { role: string } | null;
 }
 
@@ -60,7 +60,13 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             console.error("Error fetching care team with RPC:", careTeamError);
             throw careTeamError;
           } else {
-            careTeam = (careTeamData as UserProfile[]) || [];
+            // Ensure all returned team members have a role property
+            careTeam = Array.isArray(careTeamData) ? careTeamData.map(member => ({
+              id: member.id,
+              first_name: member.first_name,
+              last_name: member.last_name,
+              role: member.role || "unknown" // Ensure role is always defined
+            })) : [];
             console.log("Retrieved care team members:", careTeam.length);
           }
           
@@ -119,7 +125,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             id: p.id,
             first_name: p.first_name,
             last_name: p.last_name,
-            role: "patient"
+            role: "patient" // Ensure role is always defined
           }));
           
           console.log("Doctor's patients retrieved:", formattedPatients.length);
@@ -162,7 +168,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             id: p.patient_id,
             first_name: p.patient_first_name,
             last_name: p.patient_last_name,
-            role: "patient"
+            role: "patient" // Ensure role is always defined
           }));
           
           console.log("Nutritionist's patients retrieved:", formattedPatients.length);
@@ -207,7 +213,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
                   id: u.id,
                   first_name: u.first_name,
                   last_name: u.last_name,
-                  role: u.role || "user"
+                  role: u.role || "user" // Ensure role is always defined
                 }))
             : [];
           

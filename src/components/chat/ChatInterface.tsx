@@ -31,6 +31,7 @@ interface ChatInterfaceProps {
   careTeamGroup?: CareTeamGroup | null;
   showGroupChat?: boolean;
   whatsAppStyle?: boolean;
+  includeAiBot?: boolean;
 }
 
 interface LocalMessage {
@@ -51,7 +52,8 @@ export const ChatInterface = ({
   assignedUsers = [], 
   careTeamGroup = null, 
   showGroupChat = true,
-  whatsAppStyle = false
+  whatsAppStyle = false,
+  includeAiBot = false
 }: ChatInterfaceProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
@@ -62,10 +64,8 @@ export const ChatInterface = ({
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
   const [hasInitialAiMessage, setHasInitialAiMessage] = useState<boolean>(false);
 
-  // If WhatsApp style and has assigned users, show all in a combined view
   const showWhatsAppStyle = whatsAppStyle && userRole === 'doctor' && assignedUsers.length > 0;
 
-  // Get header title based on role and chat type
   const getHeaderTitle = () => {
     if (userRole === 'doctor' || userRole === 'nutritionist') {
       return "Messages";
@@ -78,17 +78,14 @@ export const ChatInterface = ({
     return "Chat";
   };
 
-  // Handle selecting a patient in WhatsApp style view
   const handleUserSelect = (userId: string) => {
     setSelectedUserId(userId);
   };
 
-  // Get initials for avatar
   const getInitials = (firstName: string | null, lastName: string | null) => {
     return `${(firstName || '').charAt(0)}${(lastName || '').charAt(0)}`.toUpperCase();
   };
 
-  // If doctor and has assigned patients, select first patient by default
   useEffect(() => {
     if (userRole === 'doctor' && assignedUsers?.length && !selectedUserId) {
       setSelectedUserId(assignedUsers[0].id);
@@ -143,7 +140,6 @@ export const ChatInterface = ({
 
           for (const message of unsyncedMessages) {
             try {
-              // Use RPC for sending chat messages
               const { error } = await supabase.rpc('send_chat_message', {
                 p_sender_id: message.sender_id,
                 p_receiver_id: message.receiver_id,
@@ -171,7 +167,6 @@ export const ChatInterface = ({
     syncOfflineMessages();
   }, [isOnline, user?.id, toast]);
 
-  // Get users list based on role
   const availableUsers = userRole === 'doctor' ? assignedUsers : [];
 
   const handleSendMessage = async () => {
@@ -187,7 +182,6 @@ export const ChatInterface = ({
     }
 
     try {
-      // Doctor sending message to a patient
       if (userRole === 'doctor' && selectedUserId) {
         const timestamp = new Date().toISOString();
         
@@ -227,7 +221,6 @@ export const ChatInterface = ({
           return;
         }
         
-        // Send message to the selected patient using RPC
         const { error } = await supabase.rpc('send_chat_message', {
           p_sender_id: user.id,
           p_receiver_id: selectedUserId,
@@ -242,72 +235,66 @@ export const ChatInterface = ({
           title: "Message sent",
         });
         
-        // Get AI response if needed
-        try {
-          // Get care team to check if AI bot is part of it
-          const { data: careTeamMembers } = await supabase.rpc('get_patient_care_team_members', {
-            p_patient_id: selectedUserId
-          });
-          
-          const hasAiBot = Array.isArray(careTeamMembers) && careTeamMembers.some(member => 
-            member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000'
-          );
-          
-          if (hasAiBot) {
-            // Get AI response
-            const { data: aiResponse } = await supabase.functions.invoke('doctor-ai-assistant', {
-              body: { 
-                messages: [{ role: "user", content: newMessage }],
-                preferredLanguage: 'en',
-                patientId: selectedUserId,
-                isCareTeamChat: true
-              },
+        if (includeAiBot) {
+          try {
+            const { data: careTeamMembers } = await supabase.rpc('get_patient_care_team_members', {
+              p_patient_id: selectedUserId
             });
             
-            if (aiResponse && aiResponse.response) {
-              setTimeout(() => {
-                // Create AI message
-                const aiMessage: LocalMessage = {
-                  id: uuidv4(),
-                  message: aiResponse.response,
-                  created_at: new Date().toISOString(),
-                  read: false,
-                  sender: {
-                    id: '00000000-0000-0000-0000-000000000000',
-                    first_name: 'AI',
-                    last_name: 'Assistant',
-                    role: 'aibot'
-                  },
-                  synced: true
-                };
-                
-                // Add AI message to local messages
-                setLocalMessages(prev => [...prev, aiMessage]);
-                
-                // Also send AI's response to the patient and nutritionist
-                supabase.rpc('send_chat_message', {
-                  p_sender_id: '00000000-0000-0000-0000-000000000000',
-                  p_receiver_id: selectedUserId,
-                  p_message: aiResponse.response,
-                  p_message_type: 'text'
-                });
-                
-                // Find nutritionist in care team and send message to them too
-                const nutritionist = careTeamMembers?.find(m => m.role === 'nutritionist');
-                if (nutritionist?.id) {
+            const hasAiBot = Array.isArray(careTeamMembers) && careTeamMembers.some(member => 
+              member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000'
+            );
+            
+            if (hasAiBot) {
+              const { data: aiResponse } = await supabase.functions.invoke('doctor-ai-assistant', {
+                body: { 
+                  messages: [{ role: "user", content: newMessage }],
+                  preferredLanguage: 'en',
+                  patientId: selectedUserId,
+                  isCareTeamChat: true
+                },
+              });
+              
+              if (aiResponse && aiResponse.response) {
+                setTimeout(() => {
+                  const aiMessage: LocalMessage = {
+                    id: uuidv4(),
+                    message: aiResponse.response,
+                    created_at: new Date().toISOString(),
+                    read: false,
+                    sender: {
+                      id: '00000000-0000-0000-0000-000000000000',
+                      first_name: 'AI',
+                      last_name: 'Assistant',
+                      role: 'aibot'
+                    },
+                    synced: true
+                  };
+                  
+                  setLocalMessages(prev => [...prev, aiMessage]);
+                  
                   supabase.rpc('send_chat_message', {
                     p_sender_id: '00000000-0000-0000-0000-000000000000',
-                    p_receiver_id: nutritionist.id,
+                    p_receiver_id: selectedUserId,
                     p_message: aiResponse.response,
                     p_message_type: 'text'
                   });
-                }
-              }, 1500);
+                  
+                  const nutritionist = careTeamMembers?.find(m => m.role === 'nutritionist');
+                  if (nutritionist?.id) {
+                    supabase.rpc('send_chat_message', {
+                      p_sender_id: '00000000-0000-0000-0000-000000000000',
+                      p_receiver_id: nutritionist.id,
+                      p_message: aiResponse.response,
+                      p_message_type: 'text'
+                    });
+                  }
+                }, 1500);
+              }
             }
+          } catch (aiError) {
+            console.error("Error getting AI response:", aiError);
           }
-        } catch (aiError) {
-          console.error("Error getting AI response:", aiError);
-          // Don't fail the whole operation if AI response fails
         }
         
         return;
@@ -356,7 +343,6 @@ export const ChatInterface = ({
           return;
         }
         
-        // Send message to all care team members using RPC
         const sendPromises = careTeamGroup.members.map(member => {
           if (member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000') return Promise.resolve();
           
@@ -370,7 +356,6 @@ export const ChatInterface = ({
 
         await Promise.all(sendPromises);
         
-        // Get AI response if there's an AI bot in the care team
         if (careTeamGroup.members.some(member => 
           member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000'
         )) {
@@ -402,7 +387,6 @@ export const ChatInterface = ({
                 
                 setLocalMessages(prev => [...prev, aiMessage]);
                 
-                // Send AI's response to all human care team members
                 const aiSendPromises = careTeamGroup.members
                   .filter(member => member.id !== '00000000-0000-0000-0000-000000000000')
                   .map(member => {
@@ -437,11 +421,9 @@ export const ChatInterface = ({
     }
   };
 
-  // For WhatsApp style view (doctor's view of all patients)
   if (showWhatsAppStyle) {
     return (
       <div className="h-full flex flex-col md:flex-row">
-        {/* Patient list sidebar */}
         <div className="w-full md:w-1/3 border-r h-64 md:h-full overflow-y-auto">
           <div className="p-2">
             {assignedUsers.map((patient) => (
@@ -469,12 +451,9 @@ export const ChatInterface = ({
             ))}
           </div>
         </div>
-        
-        {/* Chat area */}
         <div className="flex-1 flex flex-col h-full">
           {selectedUserId ? (
             <>
-              {/* Selected patient header */}
               <div className="p-3 border-b flex items-center gap-2 bg-slate-50">
                 <Avatar className="h-8 w-8">
                   <AvatarFallback className="bg-primary/20 text-primary">
@@ -491,8 +470,6 @@ export const ChatInterface = ({
                   })()}
                 </div>
               </div>
-              
-              {/* Messages area */}
               <div className="flex-1 flex flex-col overflow-hidden">
                 <ChatMessagesList
                   selectedUserId={selectedUserId}
@@ -500,7 +477,6 @@ export const ChatInterface = ({
                   offlineMode={!isOnline}
                   localMessages={localMessages}
                 />
-                
                 <ChatInput
                   value={newMessage}
                   onChange={setNewMessage}
@@ -521,7 +497,6 @@ export const ChatInterface = ({
     );
   }
 
-  
   return (
     <Card className="h-full flex flex-col">
       <CardHeader>
@@ -540,7 +515,6 @@ export const ChatInterface = ({
       </CardHeader>
       <CardContent className="flex-1 flex flex-col">
         {userRole === 'doctor' ? (
-          // Doctor view with patient messages
           <ChatMessagesList
             selectedUserId={selectedUserId}
             isGroupChat={false}
@@ -548,7 +522,6 @@ export const ChatInterface = ({
             localMessages={localMessages}
           />
         ) : (
-          // Standard care team view
           <ChatMessagesList
             isGroupChat={isGroupChat}
             careTeamGroup={careTeamGroup}

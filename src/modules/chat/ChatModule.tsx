@@ -57,7 +57,7 @@ export const ChatModule = ({
                     careTeamGroup={careTeamGroup}
                     showGroupChat={userRole !== "nutritionist"}
                     whatsAppStyle={userRole === "nutritionist"}
-                    includeAiBot={true} // Always include AI bot in all chats
+                    includeAiBot={true} // Now this prop is properly typed
                   />
                 );
               }}
