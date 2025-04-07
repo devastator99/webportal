@@ -10,6 +10,7 @@ import { format, isToday, isYesterday } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 interface CareTeamRoom {
   room_id: string;
@@ -29,6 +30,7 @@ interface CareTeamRoomsSelectorProps {
 
 export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeamRoomsSelectorProps) => {
   const { user, userRole } = useAuth();
+  const { toast } = useToast();
   
   // Check if the current user is a provider (doctor or nutritionist)
   const isProvider = userRole === 'doctor' || userRole === 'nutritionist';
@@ -42,114 +44,107 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       try {
         console.log("Fetching care team rooms for user:", user.id, "with role:", userRole);
         
-        // For doctors and nutritionists, get all patients assigned to them first
+        // For doctors and nutritionists, get all patients assigned to them
         if (isProvider) {
           // Get assigned patient IDs based on user role
-          let assignedPatientIds: string[] = [];
+          let patientsData = [];
           
+          // Query the appropriate function based on role
           if (userRole === 'doctor') {
-            console.log("Getting patients assigned to doctor:", user.id);
-            const { data: assignments, error: assignmentError } = await supabase
-              .from('patient_assignments')
-              .select('patient_id')
-              .eq('doctor_id', user.id);
-              
-            if (assignmentError) {
-              console.error("Error fetching doctor's patient assignments:", assignmentError);
-              throw assignmentError;
+            const { data, error } = await supabase.rpc('get_doctor_patients', { 
+              p_doctor_id: user.id 
+            });
+            
+            if (error) {
+              console.error("Error fetching doctor's patients:", error);
+              throw error;
             }
             
-            assignedPatientIds = assignments.map(a => a.patient_id);
-            console.log("Doctor has", assignedPatientIds.length, "assigned patients:", assignedPatientIds);
+            patientsData = data || [];
           } 
           else if (userRole === 'nutritionist') {
-            console.log("Getting patients assigned to nutritionist:", user.id);
-            const { data: assignments, error: assignmentError } = await supabase
-              .from('patient_assignments')
-              .select('patient_id')
-              .eq('nutritionist_id', user.id);
-              
-            if (assignmentError) {
-              console.error("Error fetching nutritionist's patient assignments:", assignmentError);
-              throw assignmentError;
+            const { data, error } = await supabase.rpc('get_nutritionist_patients', { 
+              p_nutritionist_id: user.id 
+            });
+            
+            if (error) {
+              console.error("Error fetching nutritionist's patients:", error);
+              throw error;
             }
             
-            assignedPatientIds = assignments.map(a => a.patient_id);
-            console.log("Nutritionist has", assignedPatientIds.length, "assigned patients:", assignedPatientIds);
+            // Format nutritionist's patients to match doctor's patients format
+            patientsData = (data || []).map(p => ({
+              id: p.patient_id,
+              first_name: p.patient_first_name,
+              last_name: p.patient_last_name
+            }));
           }
           
-          if (assignedPatientIds.length === 0) {
-            console.log("No assigned patients found for this provider");
+          console.log(`Provider has ${patientsData.length} assigned patients`);
+          
+          if (patientsData.length === 0) {
             return [];
           }
           
-          // Get care team rooms for these patients
+          // Extract just the patient IDs
+          const patientIds = patientsData.map(p => p.id);
+          
+          // Process each patient to get or create their care team room
           const roomsWithDetails: CareTeamRoom[] = [];
           
-          // First get all the care team rooms for these patients
-          const { data: roomsData, error: roomsError } = await supabase
-            .from('chat_rooms')
-            .select('id, name, description, room_type, patient_id, created_at')
-            .in('patient_id', assignedPatientIds)
-            .eq('is_active', true)
-            .eq('room_type', 'care_team');
-            
-          if (roomsError) {
-            console.error("Error fetching rooms for patients:", roomsError);
-            throw roomsError;
-          }
-          
-          if (!roomsData || roomsData.length === 0) {
-            console.log("No care team rooms found for assigned patients, creating them now...");
-            
-            // No existing rooms, so let's create them for each patient
-            for (const patientId of assignedPatientIds) {
-              try {
-                console.log("Creating care team room for patient:", patientId);
+          for (const patient of patientsData) {
+            try {
+              // First, check if a care team room already exists for this patient
+              const { data: existingRooms, error: roomError } = await supabase
+                .from('chat_rooms')
+                .select('*')
+                .eq('patient_id', patient.id)
+                .eq('room_type', 'care_team')
+                .eq('is_active', true);
                 
-                // Get patient name first
-                const { data: patientData, error: patientError } = await supabase
-                  .from('profiles')
-                  .select('first_name, last_name')
-                  .eq('id', patientId)
-                  .single();
-                  
-                if (patientError) {
-                  console.error("Error fetching patient profile:", patientError);
-                  continue;
-                }
-                
-                const patientName = `${patientData.first_name || ''} ${patientData.last_name || ''}`.trim();
-                const roomName = `${patientName} - Care Team`;
+              if (roomError) {
+                console.error("Error checking for existing room:", roomError);
+                continue;
+              }
+              
+              let roomId: string;
+              let roomName = `${patient.first_name} ${patient.last_name} - Care Team`;
+              let roomDescription = `Care team for ${patient.first_name} ${patient.last_name}`;
+              
+              // If no room exists, create one
+              if (!existingRooms || existingRooms.length === 0) {
+                console.log(`Creating new care team room for patient: ${patient.first_name} ${patient.last_name}`);
                 
                 // Create the room
-                const { data: newRoom, error: createRoomError } = await supabase
+                const { data: newRoom, error: createError } = await supabase
                   .from('chat_rooms')
                   .insert({
                     name: roomName,
-                    description: `Care team chat for ${patientName}`,
+                    description: roomDescription,
                     room_type: 'care_team',
-                    patient_id: patientId,
+                    patient_id: patient.id,
                     is_active: true
                   })
                   .select('id')
                   .single();
                   
-                if (createRoomError) {
-                  console.error("Error creating room:", createRoomError);
+                if (createError) {
+                  console.error("Error creating care team room:", createError);
                   continue;
                 }
                 
-                // Add the provider as member
+                roomId = newRoom.id;
+                
+                // Add the provider as member if they're not already a member
                 const { error: memberError } = await supabase
                   .from('room_members')
                   .insert({
-                    room_id: newRoom.id,
+                    room_id: roomId,
                     user_id: user.id,
                     role: userRole
                   });
                   
-                if (memberError) {
+                if (memberError && !memberError.message.includes('duplicate key')) {
                   console.error("Error adding provider to room:", memberError);
                 }
                 
@@ -157,88 +152,57 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
                 const { error: patientMemberError } = await supabase
                   .from('room_members')
                   .insert({
-                    room_id: newRoom.id,
-                    user_id: patientId,
+                    room_id: roomId,
+                    user_id: patient.id,
                     role: 'patient'
                   });
                   
-                if (patientMemberError) {
+                if (patientMemberError && !patientMemberError.message.includes('duplicate key')) {
                   console.error("Error adding patient to room:", patientMemberError);
                 }
                 
-                // Add welcome message
-                const { error: messageError } = await supabase
+                // Add the welcome message
+                await supabase
                   .from('room_messages')
                   .insert({
-                    room_id: newRoom.id,
+                    room_id: roomId,
                     sender_id: user.id,
-                    message: `Care team chat created for ${patientName}`,
+                    message: `Care team chat created for ${patient.first_name} ${patient.last_name}`,
                     is_system_message: true
                   });
-                  
-                if (messageError) {
-                  console.error("Error adding welcome message:", messageError);
-                }
+              } 
+              else {
+                // Room exists, make sure provider is a member
+                roomId = existingRooms[0].id;
+                roomName = existingRooms[0].name;
+                roomDescription = existingRooms[0].description || roomDescription;
                 
-                // Add this room to our results
-                roomsWithDetails.push({
-                  room_id: newRoom.id,
-                  room_name: roomName,
-                  room_description: `Care team chat for ${patientName}`,
-                  patient_id: patientId,
-                  patient_name: patientName,
-                  member_count: 2, // Provider and patient
-                  last_message: `Care team chat created for ${patientName}`,
-                  last_message_time: new Date().toISOString()
-                });
-              } catch (err) {
-                console.error("Error creating care team room:", err);
-              }
-            }
-          } else {
-            // Process existing rooms to get additional details
-            console.log(`Found ${roomsData.length} existing care team rooms`);
-            
-            for (const room of roomsData) {
-              // First check if provider is already a member of this room
-              const { data: membershipData, error: membershipError } = await supabase
-                .from('room_members')
-                .select('id')
-                .eq('room_id', room.id)
-                .eq('user_id', user.id);
-                
-              if (membershipError) {
-                console.error("Error checking room membership:", membershipError);
-                continue;
-              }
-              
-              // If provider is not a member of this room, add them
-              if (!membershipData || membershipData.length === 0) {
-                console.log("Adding provider to existing room:", room.id);
-                const { error: addMemberError } = await supabase
+                // Check if provider is already a member
+                const { data: membershipData, error: membershipError } = await supabase
                   .from('room_members')
-                  .insert({
-                    room_id: room.id,
-                    user_id: user.id,
-                    role: userRole
-                  });
+                  .select('id')
+                  .eq('room_id', roomId)
+                  .eq('user_id', user.id);
                   
-                if (addMemberError) {
-                  console.error("Error adding provider to room:", addMemberError);
+                if (membershipError) {
+                  console.error("Error checking room membership:", membershipError);
+                  continue;
                 }
-              }
-              
-              // Get patient name
-              let patientName = 'Patient';
-              if (room.patient_id) {
-                const { data: patientData, error: patientError } = await supabase
-                  .from('profiles')
-                  .select('first_name, last_name')
-                  .eq('id', room.patient_id)
-                  .single();
-                  
-                if (!patientError && patientData) {
-                  patientName = `${patientData.first_name || ''} ${patientData.last_name || ''}`.trim();
+                
+                // If provider is not a member, add them
+                if (!membershipData || membershipData.length === 0) {
+                  console.log(`Adding provider to existing room: ${roomId}`);
+                  const { error: addMemberError } = await supabase
+                    .from('room_members')
+                    .insert({
+                      room_id: roomId,
+                      user_id: user.id,
+                      role: userRole
+                    });
+                    
+                  if (addMemberError && !addMemberError.message.includes('duplicate key')) {
+                    console.error("Error adding provider to room:", addMemberError);
+                  }
                 }
               }
               
@@ -246,27 +210,29 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
               const { count: memberCount } = await supabase
                 .from('room_members')
                 .select('*', { count: 'exact', head: true })
-                .eq('room_id', room.id);
+                .eq('room_id', roomId);
                 
               // Get latest message
               const { data: latestMessageData } = await supabase
                 .from('room_messages')
                 .select('message, created_at')
-                .eq('room_id', room.id)
+                .eq('room_id', roomId)
                 .order('created_at', { ascending: false })
                 .limit(1)
                 .single();
                 
               roomsWithDetails.push({
-                room_id: room.id,
-                room_name: room.name,
-                room_description: room.description,
-                patient_id: room.patient_id,
-                patient_name: patientName,
+                room_id: roomId,
+                room_name: roomName,
+                room_description: roomDescription,
+                patient_id: patient.id,
+                patient_name: `${patient.first_name} ${patient.last_name}`,
                 member_count: memberCount || 0,
                 last_message: latestMessageData?.message || '',
-                last_message_time: latestMessageData?.created_at || room.created_at
+                last_message_time: latestMessageData?.created_at || new Date().toISOString()
               });
+            } catch (err) {
+              console.error(`Error processing patient ${patient.id}:`, err);
             }
           }
           
@@ -276,77 +242,84 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
           });
         }
         
-        // For other roles, just get the rooms where user is a member
-        const { data: memberships, error: membershipError } = await supabase
+        // For patients and other roles, get the rooms they are members of
+        const { data: userRooms, error: roomsError } = await supabase
           .from('room_members')
           .select('room_id')
           .eq('user_id', user.id);
           
-        if (membershipError) {
-          console.error("Error fetching room memberships:", membershipError);
-          throw membershipError;
-        }
-        
-        const roomIds = memberships.map(m => m.room_id);
-        
-        if (roomIds.length === 0) {
-          return [];
-        }
-        
-        // Get room details
-        const { data: roomsData, error: roomsError } = await supabase
-          .from('chat_rooms')
-          .select('id, name, description, room_type, patient_id, created_at')
-          .in('id', roomIds)
-          .eq('is_active', true);
-          
         if (roomsError) {
-          console.error("Error fetching rooms data:", roomsError);
+          console.error("Error fetching user's room memberships:", roomsError);
           throw roomsError;
         }
         
+        if (!userRooms || userRooms.length === 0) {
+          return [];
+        }
+        
+        const roomIds = userRooms.map(r => r.room_id);
+        
+        // Get room details
+        const { data: rooms, error: roomDetailsError } = await supabase
+          .from('chat_rooms')
+          .select('*')
+          .in('id', roomIds)
+          .eq('is_active', true)
+          .eq('room_type', 'care_team');
+          
+        if (roomDetailsError) {
+          console.error("Error fetching room details:", roomDetailsError);
+          throw roomDetailsError;
+        }
+        
+        // Process each room to get additional details
         const roomsWithDetails: CareTeamRoom[] = [];
         
-        for (const room of roomsData) {
-          // Get patient name
-          let patientName = 'Patient';
-          if (room.patient_id) {
-            const { data: patientData, error: patientError } = await supabase
-              .from('profiles')
-              .select('first_name, last_name')
-              .eq('id', room.patient_id)
+        for (const room of rooms || []) {
+          try {
+            // Get patient name
+            let patientName = 'Patient';
+            
+            if (room.patient_id) {
+              const { data: patientData, error: patientError } = await supabase
+                .from('profiles')
+                .select('first_name, last_name')
+                .eq('id', room.patient_id)
+                .single();
+                
+              if (!patientError && patientData) {
+                patientName = `${patientData.first_name || ''} ${patientData.last_name || ''}`.trim();
+              }
+            }
+            
+            // Get member count
+            const { count: memberCount } = await supabase
+              .from('room_members')
+              .select('*', { count: 'exact', head: true })
+              .eq('room_id', room.id);
+              
+            // Get latest message
+            const { data: latestMessageData } = await supabase
+              .from('room_messages')
+              .select('message, created_at')
+              .eq('room_id', room.id)
+              .order('created_at', { ascending: false })
+              .limit(1)
               .single();
               
-            if (!patientError && patientData) {
-              patientName = `${patientData.first_name || ''} ${patientData.last_name || ''}`.trim();
-            }
+            roomsWithDetails.push({
+              room_id: room.id,
+              room_name: room.name,
+              room_description: room.description || '',
+              patient_id: room.patient_id || '',
+              patient_name: patientName,
+              member_count: memberCount || 0,
+              last_message: latestMessageData?.message || '',
+              last_message_time: latestMessageData?.created_at || room.created_at
+            });
+          } catch (err) {
+            console.error(`Error processing room ${room.id}:`, err);
           }
-          
-          // Get member count
-          const { count: memberCount } = await supabase
-            .from('room_members')
-            .select('*', { count: 'exact', head: true })
-            .eq('room_id', room.id);
-            
-          // Get latest message
-          const { data: latestMessageData } = await supabase
-            .from('room_messages')
-            .select('message, created_at')
-            .eq('room_id', room.id)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .single();
-            
-          roomsWithDetails.push({
-            room_id: room.id,
-            room_name: room.name,
-            room_description: room.description,
-            patient_id: room.patient_id,
-            patient_name: patientName,
-            member_count: memberCount || 0,
-            last_message: latestMessageData?.message || '',
-            last_message_time: latestMessageData?.created_at || room.created_at
-          });
         }
         
         // Sort rooms by latest message
@@ -355,6 +328,11 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
         });
       } catch (error) {
         console.error("Error fetching care team rooms:", error);
+        toast({
+          title: "Error",
+          description: "Could not load care team rooms",
+          variant: "destructive"
+        });
         return [];
       }
     },
@@ -395,15 +373,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       return 'Yesterday';
     } else {
       return format(date, 'MMM d');
-    }
-  };
-
-  // Determine the avatar icon based on user role
-  const getRoleIcon = (patient: CareTeamRoom) => {
-    if (userRole === 'doctor' || userRole === 'nutritionist') {
-      return <User className="h-4 w-4" />;
-    } else {
-      return <Users className="h-4 w-4" />;
     }
   };
 
