@@ -13,7 +13,6 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
 
 interface ChatRoom {
   room_id: string;
@@ -33,11 +32,10 @@ export const ChatRoomInterface = () => {
   const { toast } = useToast();
   const isMobile = useMediaQuery("(max-width: 640px)");
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
   const [showRoomsList, setShowRoomsList] = useState(true);
 
   // Get user's care team rooms
-  const { data: rooms, isLoading } = useQuery({
+  const { data: rooms, isLoading, refetch } = useQuery({
     queryKey: ["care_team_rooms", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -56,6 +54,7 @@ export const ChatRoomInterface = () => {
             is_active
           `)
           .eq('is_active', true)
+          .eq('room_type', 'care_team')
           // For non-patients, we need to get all rooms where they are a member
           .or(userRole === 'patient' ? `patient_id.eq.${user.id}` : '');
         
@@ -141,11 +140,6 @@ export const ChatRoomInterface = () => {
     refetchInterval: 30000 // 30 seconds
   });
 
-  const filteredRooms = rooms?.filter(room => 
-    room.room_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    room.patient_name.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
-
   const handleRoomSelect = (roomId: string) => {
     setSelectedRoomId(roomId);
     if (isMobile) {
@@ -175,13 +169,8 @@ export const ChatRoomInterface = () => {
       {/* Rooms list - show on desktop or when not in chat view on mobile */}
       {(!isMobile || showRoomsList) && (
         <div className={`${isMobile ? 'w-full' : 'w-80'} border-r flex flex-col`}>
-          <div className="p-3 border-b">
-            <Input
-              placeholder="Search rooms..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full"
-            />
+          <div className="p-3 border-b bg-muted/30">
+            <h3 className="font-semibold">Care Team Rooms</h3>
           </div>
           
           <ScrollArea className="flex-1">
@@ -189,13 +178,13 @@ export const ChatRoomInterface = () => {
               <div className="flex items-center justify-center h-32">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
-            ) : filteredRooms.length === 0 ? (
+            ) : rooms?.length === 0 ? (
               <div className="p-4 text-center text-muted-foreground">
-                {searchQuery ? "No rooms match your search" : "No care team rooms found"}
+                No care team rooms found
               </div>
             ) : (
               <div className="space-y-1 p-2">
-                {filteredRooms.map((room) => (
+                {rooms.map((room) => (
                   <Button
                     key={room.room_id}
                     variant={selectedRoomId === room.room_id ? "secondary" : "ghost"}
