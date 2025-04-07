@@ -49,7 +49,7 @@ const ChatPage = () => {
                       <ChatInterface 
                         assignedUsers={assignedUsers}
                         careTeamGroup={careTeamGroup}
-                        showGroupChat={!isDoctorRole} // Enable group chat for everyone except doctors
+                        showGroupChat={true} // Enable group chat for everyone to ensure access to all messages
                         whatsAppStyle={isDoctorRole || isNutritionistRole}
                         includeAiBot={true} // Ensure AI bot is included for all users
                       />

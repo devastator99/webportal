@@ -39,76 +39,141 @@ serve(async (req: Request) => {
     
     console.log("Fetching messages for user:", user_id, "and other user:", other_user_id);
     
-    // First, get the user's role to help with debugging
+    // First, check if the other_user_id is a patient
+    const { data: otherUserData, error: otherUserError } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', other_user_id)
+      .single();
+      
+    // Get the user's role to help with determining access
     const { data: userRoleData, error: userRoleError } = await supabaseClient
       .from('user_roles')
       .select('role')
       .eq('user_id', user_id)
       .single();
-      
-    if (userRoleError) {
-      console.error("Error fetching user role:", userRoleError);
-    } else {
-      console.log("User role:", userRoleData?.role || "unknown");
+    
+    const userRole = userRoleData?.role || "unknown";
+    const otherUserRole = otherUserData?.role || "unknown";
+    console.log("User role:", userRole, "Other user role:", otherUserRole);
+    
+    let isPatientCareTeamChat = false;
+    let patientId = null;
+    
+    // Determine if this is a patient care team chat
+    if (otherUserRole === 'patient') {
+      // If other user is a patient, we're in a care team chat for this patient
+      isPatientCareTeamChat = true;
+      patientId = other_user_id;
+    } else if (userRole === 'patient') {
+      // If current user is a patient, we're in a care team chat for this patient
+      isPatientCareTeamChat = true;
+      patientId = user_id;
     }
     
-    // First, check if get_care_team_messages_count exists
     try {
-      console.log("Getting count of messages");
-      const { data: count, error: countError } = await supabaseClient.rpc('get_care_team_messages_count', {
-        p_user_id: user_id,
-        p_patient_id: other_user_id
-      });
-      
-      if (countError) {
-        console.error("Error getting message count:", countError);
-        throw countError;
-      }
-      
-      // Use the get_care_team_messages RPC function
-      console.log("Using get_care_team_messages RPC function");
-      const { data: messages, error: messagesError } = await supabaseClient.rpc('get_care_team_messages', {
-        p_user_id: user_id,
-        p_patient_id: other_user_id,
-        p_offset: offset,
-        p_limit: perPage
-      });
-      
-      if (messagesError) {
-        console.error("Error fetching care team messages:", messagesError);
-        throw messagesError;
-      }
-      
-      console.log(`Retrieved ${messages?.length || 0} messages out of ${count || 0} total`);
-      
-      // Determine if there are more messages
-      const hasMore = count != null && count > offset + (messages?.length || 0);
-      
-      return new Response(
-        JSON.stringify({
-          messages: messages || [],
-          hasMore,
-          totalCount: count,
-          page: pageNumber,
-          perPage
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    } catch (fnError) {
-      console.error("Error with RPC function:", fnError);
-      
-      // Get the care team members for debugging
-      const { data: careTeam, error: careTeamError } = await supabaseClient
-        .rpc('get_patient_care_team_members', { p_patient_id: other_user_id });
+      if (isPatientCareTeamChat && patientId) {
+        console.log("Getting care team messages for patient:", patientId);
+        // Always use get_care_team_messages for all roles when we're in a patient's care group context
+        const { data: count, error: countError } = await supabaseClient.rpc('get_care_team_messages_count', {
+          p_user_id: user_id,
+          p_patient_id: patientId
+        });
         
-      if (careTeamError) {
-        console.error("Error fetching care team members:", careTeamError);
+        if (countError) {
+          console.error("Error getting message count:", countError);
+          throw countError;
+        }
+        
+        // Use the get_care_team_messages RPC function with the patient ID
+        console.log("Using get_care_team_messages RPC function");
+        const { data: messages, error: messagesError } = await supabaseClient.rpc('get_care_team_messages', {
+          p_user_id: user_id,
+          p_patient_id: patientId,
+          p_offset: offset,
+          p_limit: perPage
+        });
+        
+        if (messagesError) {
+          console.error("Error fetching care team messages:", messagesError);
+          throw messagesError;
+        }
+        
+        console.log(`Retrieved ${messages?.length || 0} messages out of ${count || 0} total`);
+        
+        // Determine if there are more messages
+        const hasMore = count != null && count > offset + (messages?.length || 0);
+        
+        return new Response(
+          JSON.stringify({
+            messages: messages || [],
+            hasMore,
+            totalCount: count,
+            page: pageNumber,
+            perPage
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       } else {
-        console.log("Care team members:", careTeam);
+        // Regular one-to-one chat
+        console.log("Getting direct messages between:", user_id, "and", other_user_id);
+        
+        // Use the get_user_chat_messages RPC function for direct messages
+        const { data: directCount } = await supabaseClient
+          .from('chat_messages')
+          .count()
+          .or(`sender_id.eq.${user_id},receiver_id.eq.${user_id}`)
+          .or(`sender_id.eq.${other_user_id},receiver_id.eq.${other_user_id}`);
+        
+        const count = directCount && directCount[0] ? parseInt(directCount[0].count) : 0;
+        
+        const { data: directMessages, error: directError } = await supabaseClient
+          .rpc('get_user_chat_messages', {
+            p_user_id: user_id,
+            p_other_user_id: other_user_id,
+            p_offset: offset,
+            p_limit: perPage
+          });
+        
+        if (directError) {
+          console.error("Error getting direct messages:", directError);
+          throw directError;
+        }
+        
+        console.log(`Retrieved ${directMessages?.length || 0} direct messages`);
+        
+        const hasMore = count > offset + (directMessages?.length || 0);
+        
+        return new Response(
+          JSON.stringify({
+            messages: directMessages || [],
+            hasMore,
+            totalCount: count,
+            page: pageNumber,
+            perPage
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } catch (fnError) {
+      console.error("Error in primary message function:", fnError);
+      
+      // Enhanced fallback with improved logging
+      console.log("Falling back to direct message querying");
+      
+      // Try to get the care team members for this patient for debugging
+      if (patientId) {
+        const { data: careTeam, error: careTeamError } = await supabaseClient
+          .rpc('get_patient_care_team_members', { p_patient_id: patientId });
+          
+        if (careTeamError) {
+          console.error("Error fetching care team members:", careTeamError);
+        } else {
+          console.log("Care team members:", careTeam);
+        }
       }
       
-      // Fallback to direct querying if RPC functions fail
-      console.log("Falling back to direct message querying");
+      // Fallback query that tries to get all relevant messages
       const { data: directMessages, error: directError } = await supabaseClient
         .from('chat_messages')
         .select(`
