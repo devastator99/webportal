@@ -57,6 +57,15 @@ export const ChatMessagesList = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [errorRetries, setErrorRetries] = useState(0);
 
+  // Console log to debug what props are being passed
+  console.log("ChatMessagesList render with:", {
+    selectedUserId,
+    isGroupChat,
+    careTeamMembers: careTeamMembers?.length,
+    userRole,
+    localMessages: localMessages?.length
+  });
+
   const {
     data: messages,
     isLoading,
@@ -118,7 +127,7 @@ export const ChatMessagesList = ({
       return [];
     },
     enabled: !!user?.id && (!!selectedUserId || (isGroupChat && !!careTeamGroup)),
-    staleTime: 5000,
+    staleTime: 5000, // Keep data fresh for 5 seconds
     refetchInterval: 10000, // Add polling to refresh messages automatically every 10 seconds
     retry: 2,
     refetchOnWindowFocus: true

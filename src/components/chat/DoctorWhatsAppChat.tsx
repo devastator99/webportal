@@ -119,7 +119,7 @@ export const DoctorWhatsAppChat = () => {
           throw error;
         }
         
-        console.log("Care team members retrieved:", data?.length || 0);
+        console.log("Care team members retrieved:", data?.length || 0, data);
         
         // Make sure AI bot is in the care team
         const updatedCareTeam = [...(data || [])];
@@ -161,6 +161,7 @@ export const DoctorWhatsAppChat = () => {
           }
         }
         
+        console.log("Final care team members:", updatedCareTeam);
         setCareTeamMembers(updatedCareTeam);
       } catch (error) {
         console.error("Error fetching care team:", error);

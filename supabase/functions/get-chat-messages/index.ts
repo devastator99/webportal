@@ -64,10 +64,12 @@ serve(async (req: Request) => {
       // If other user is a patient, we're in a care team chat for this patient
       isPatientCareTeamChat = true;
       patientId = other_user_id;
+      console.log("This is a care team chat for patient:", patientId);
     } else if (userRole === 'patient') {
       // If current user is a patient, we're in a care team chat for this patient
       isPatientCareTeamChat = true;
       patientId = user_id;
+      console.log("This is a care team chat for patient (user is patient):", patientId);
     }
     
     try {
