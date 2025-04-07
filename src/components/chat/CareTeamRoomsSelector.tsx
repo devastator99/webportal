@@ -5,8 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Input } from "@/components/ui/input";
-import { Search, MessageCircle, User, Stethoscope, Utensils, Users, Clock } from "lucide-react";
+import { MessageCircle, User, Stethoscope, Utensils, Users, Clock } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -30,7 +29,6 @@ interface CareTeamRoomsSelectorProps {
 
 export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeamRoomsSelectorProps) => {
   const { user, userRole } = useAuth();
-  const [searchTerm, setSearchTerm] = useState("");
   
   // Check if the current user is a provider (doctor or nutritionist)
   const isProvider = userRole === 'doctor' || userRole === 'nutritionist';
@@ -291,16 +289,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
   // Ensure rooms is always an array
   const rooms: CareTeamRoom[] = Array.isArray(roomsData) ? roomsData : [];
 
-  // Filter rooms based on search term - only if not a provider
-  const filteredRooms = !isProvider && searchTerm 
-    ? rooms.filter(room => {
-        const roomName = room.room_name?.toLowerCase() || '';
-        const patientName = room.patient_name?.toLowerCase() || '';
-        const search = searchTerm.toLowerCase();
-        return roomName.includes(search) || patientName.includes(search);
-      })
-    : rooms;
-
   // Function to group rooms by patient
   const groupRoomsByPatient = (rooms: CareTeamRoom[]) => {
     const groupedRooms: Record<string, CareTeamRoom[]> = {};
@@ -318,7 +306,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
 
   // Group rooms by patients (useful for doctor and nutritionist views)
   const roomsByPatient = isProvider 
-    ? groupRoomsByPatient(filteredRooms)
+    ? groupRoomsByPatient(rooms)
     : null;
 
   // Format relative time for messages
@@ -360,19 +348,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
            userRole === 'nutritionist' ? 'Nutrition Care Teams' : 
            'Care Team Chats'}
         </div>
-        
-        {/* Only show search for non-provider roles */}
-        {!isProvider && (
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search chats..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-8"
-            />
-          </div>
-        )}
       </div>
       
       {/* Room list */}
@@ -390,9 +365,9 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
                 </div>
               ))}
             </div>
-          ) : filteredRooms.length === 0 ? (
+          ) : rooms.length === 0 ? (
             <div className="p-6 text-center text-muted-foreground">
-              {!isProvider && searchTerm ? 'No matching rooms found' : 'No care team chats available'}
+              {isProvider ? 'No patient care teams available' : 'No care team chats available'}
             </div>
           ) : isProvider ? (
             // Display rooms grouped by patient for doctors and nutritionists
@@ -419,7 +394,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
             })
           ) : (
             // Standard flat list for other users
-            filteredRooms.map((room) => (
+            rooms.map((room) => (
               <RoomListItem 
                 key={room.room_id}
                 room={room}
