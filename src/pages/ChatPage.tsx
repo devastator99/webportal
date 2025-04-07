@@ -29,7 +29,7 @@ const ChatPage = () => {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5" />
-              Care Team Chat
+              {isNutritionistRole ? "Patient Care Chat" : "Care Team Chat"}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0 h-full flex-1 overflow-hidden">
@@ -49,8 +49,9 @@ const ChatPage = () => {
                       <ChatInterface 
                         assignedUsers={assignedUsers}
                         careTeamGroup={careTeamGroup}
-                        showGroupChat={!isDoctorRole} // Enable group chat for all users except doctors
+                        showGroupChat={!isDoctorRole} // Enable group chat for everyone except doctors
                         whatsAppStyle={isDoctorRole || isNutritionistRole}
+                        includeAiBot={true} // Ensure AI bot is included
                       />
                     )}
                   </div>

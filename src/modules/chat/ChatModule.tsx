@@ -58,7 +58,7 @@ export const ChatModule = ({
                   <ChatInterface 
                     assignedUsers={assignedUsers}
                     careTeamGroup={careTeamGroup}
-                    showGroupChat={!isDoctorRole} // Enable group chat for all users except doctors (who use DoctorWhatsAppChat)
+                    showGroupChat={!isDoctorRole} // Enable group chat for all users except doctors
                     whatsAppStyle={isNutritionistRole || isDoctorRole}
                     includeAiBot={true}
                   />
