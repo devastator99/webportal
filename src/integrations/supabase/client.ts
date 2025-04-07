@@ -171,27 +171,25 @@ export async function assignCareTeam(
   adminId: string
 ): Promise<any> {
   try {
-    console.log("Calling assignCareTeam with:", {
+    console.log("Calling admin_assign_care_team RPC with:", {
       patientId,
       doctorId,
       nutritionistId,
       adminId
     });
     
-    const { data, error } = await supabase.functions.invoke('admin-assign-care-team', {
-      body: {
-        patient_id: patientId,
-        doctor_id: doctorId,
-        nutritionist_id: nutritionistId,
-        admin_id: adminId
-      }
+    const { data, error } = await supabase.rpc('admin_assign_care_team', {
+      p_patient_id: patientId,
+      p_doctor_id: doctorId,
+      p_nutritionist_id: nutritionistId,
+      p_admin_id: adminId
     });
     
-    console.log("Edge function response:", { data, error });
+    console.log("RPC response:", { data, error });
     
     if (error) {
-      console.error('Error invoking edge function:', error);
-      throw new Error('Failed to communicate with server. Please try again.');
+      console.error('Error in admin_assign_care_team RPC:', error);
+      throw new Error(error.message || 'Failed to assign care team');
     }
     
     // Handle case where the function returned data but with error status
@@ -239,92 +237,6 @@ export async function adminDeleteUser(
     return data;
   } catch (error: any) {
     console.error('Exception in adminDeleteUser:', error);
-    throw error;
-  }
-}
-
-// Function to allow administrators to sync all care team rooms
-export async function syncAllCareTeamRooms(): Promise<any> {
-  try {
-    console.log("Starting syncAllCareTeamRooms client function");
-    
-    // First check if there are any patient assignments
-    const { data: assignments, error: assignmentsError } = await supabase
-      .from('patient_assignments')
-      .select('id, patient_id, doctor_id, nutritionist_id')
-      .limit(100);
-      
-    if (assignmentsError) {
-      console.error('Error checking patient assignments:', assignmentsError);
-      throw new Error(`Failed to check patient assignments: ${assignmentsError.message}`);
-    } else {
-      console.log(`Found ${assignments?.length || 0} patient assignments before sync`);
-      if (assignments && assignments.length > 0) {
-        console.log("Sample assignments:", assignments.slice(0, 5));
-      } else {
-        console.error("No patient assignments found - this is likely why no care teams are being created!");
-        throw new Error("No patient assignments found. Please create patient assignments first.");
-      }
-    }
-    
-    console.log("Calling sync-care-team-rooms edge function");
-    
-    const { data, error } = await supabase.functions.invoke('sync-care-team-rooms');
-    
-    console.log("Edge function response:", { data, error });
-    
-    if (error) {
-      console.error('Error invoking edge function:', error);
-      throw new Error(`Failed to communicate with server: ${error.message}`);
-    }
-    
-    // Handle case where the function returned data but with error status
-    if (data && data.error) {
-      console.error('Error returned from edge function:', data.error);
-      throw new Error(data.error);
-    }
-    
-    // Log success details
-    if (data && data.rooms) {
-      console.log(`Successfully synced ${data.rooms.length} care team rooms`);
-      console.log("Room IDs:", data.rooms);
-      
-      // Verify rooms exist in the database
-      if (data.rooms.length > 0) {
-        const { data: rooms, error: roomsError } = await supabase
-          .from('chat_rooms')
-          .select('id, name, room_type, patient_id')
-          .in('id', data.rooms);
-          
-        if (roomsError) {
-          console.error('Error fetching synced rooms:', roomsError);
-        } else {
-          console.log(`Verified ${rooms?.length || 0} rooms exist in database`);
-          console.log("Room details:", JSON.stringify(rooms?.slice(0, 3)));
-          
-          // Verify room members exist
-          if (rooms && rooms.length > 0) {
-            const roomId = rooms[0].id;
-            const { data: members, error: membersError } = await supabase
-              .from('room_members')
-              .select('user_id, role')
-              .eq('room_id', roomId);
-              
-            if (membersError) {
-              console.error(`Error fetching members for room ${roomId}:`, membersError);
-            } else {
-              console.log(`Room ${roomId} has ${members?.length || 0} members:`, members);
-            }
-          }
-        }
-      }
-    } else {
-      console.warn("No rooms were returned from the sync operation");
-    }
-    
-    return data;
-  } catch (error: any) {
-    console.error('Exception in syncAllCareTeamRooms:', error);
     throw error;
   }
 }

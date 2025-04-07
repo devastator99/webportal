@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -150,31 +151,30 @@ export const PatientAssignmentManager = () => {
         throw new Error("Administrator ID is missing. Please log in again.");
       }
 
-      const response = await supabase.functions.invoke('admin-assign-care-team', {
-        body: {
-          patient_id: selectedPatient,
-          doctor_id: selectedDoctor,
-          nutritionist_id: selectedNutritionist,
-          admin_id: user.id
+      // Call the admin_assign_care_team RPC directly instead of using the edge function
+      const { data: assignmentData, error: assignmentError } = await supabase.rpc(
+        'admin_assign_care_team',
+        {
+          p_patient_id: selectedPatient,
+          p_doctor_id: selectedDoctor,
+          p_nutritionist_id: selectedNutritionist,
+          p_admin_id: user.id
         }
-      });
+      );
       
-      console.log("Edge function response:", response);
+      console.log("RPC response for assignment:", { assignmentData, assignmentError });
       
-      if (response.error) {
-        console.error("Error invoking edge function:", response.error);
-        throw new Error(response.error.message || "Error communicating with server");
+      if (assignmentError) {
+        console.error("Error in admin_assign_care_team RPC:", assignmentError);
+        throw new Error(assignmentError.message || "Error assigning care team");
       }
       
-      const data = response.data;
-      console.log("Assignment response data:", data);
-      
-      if (!data || data.error || !data.success) {
-        throw new Error((data && data.error) || "Failed to assign care team");
+      if (!assignmentData || !assignmentData.success) {
+        throw new Error((assignmentData && assignmentData.error) || "Failed to assign care team");
       }
       
       console.log("Now creating care team room for patient");
-      const roomResponse = await supabase.rpc(
+      const { data: roomData, error: roomError } = await supabase.rpc(
         'create_care_team_room',
         {
           p_patient_id: selectedPatient,
@@ -183,10 +183,11 @@ export const PatientAssignmentManager = () => {
         }
       );
       
-      if (roomResponse.error) {
-        console.warn("Warning creating care team room:", roomResponse.error);
+      if (roomError) {
+        console.warn("Warning creating care team room:", roomError);
+        // Continue despite room creation error, as assignment was successful
       } else {
-        console.log("Care team room created with ID:", roomResponse.data);
+        console.log("Care team room created with ID:", roomData);
       }
       
       const patientName = patients?.find(p => p.id === selectedPatient);
@@ -211,12 +212,14 @@ export const PatientAssignmentManager = () => {
       setSelectedDoctor("");
       setSelectedNutritionist(null);
       
+      // Invalidate all related queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["doctor_patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient_doctor"] });
       queryClient.invalidateQueries({ queryKey: ["nutritionist_patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient_nutritionist"] });
       queryClient.invalidateQueries({ queryKey: ["patient_assignments_report"] });
       queryClient.invalidateQueries({ queryKey: ["assigned_users"] });
+      queryClient.invalidateQueries({ queryKey: ["user_care_team_rooms"] });
       
     } catch (error: any) {
       console.error("Error assigning care team:", error);
