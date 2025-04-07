@@ -258,7 +258,22 @@ export async function syncAllCareTeamRooms(): Promise<any> {
       console.error('Error checking patient assignments:', assignmentsError);
     } else {
       console.log(`Found ${assignments?.length || 0} patient assignments before sync`);
-      console.log("Sample assignments:", assignments?.slice(0, 5));
+      if (assignments && assignments.length > 0) {
+        console.log("Sample assignments:", assignments.slice(0, 5));
+      } else {
+        console.error("No patient assignments found - this is likely why no care teams are being created!");
+        
+        // If no assignments exist, check if we can view the patient_assignments table
+        const { count, error: countError } = await supabase
+          .from('patient_assignments')
+          .select('*', { count: 'exact', head: true });
+          
+        if (countError) {
+          console.error('Error checking patient_assignments table:', countError);
+        } else {
+          console.log(`Total patient assignments in database: ${count}`);
+        }
+      }
     }
     
     console.log("Calling sync-care-team-rooms edge function");
@@ -282,6 +297,22 @@ export async function syncAllCareTeamRooms(): Promise<any> {
     if (data && data.rooms) {
       console.log(`Successfully synced ${data.rooms.length} care team rooms`);
       console.log("Room IDs:", data.rooms);
+      
+      // Verify rooms exist in the database
+      if (data.rooms.length > 0) {
+        const { data: rooms, error: roomsError } = await supabase
+          .from('chat_rooms')
+          .select('id, name, room_type')
+          .in('id', data.rooms);
+          
+        if (roomsError) {
+          console.error('Error fetching synced rooms:', roomsError);
+        } else {
+          console.log(`Verified ${rooms?.length || 0} rooms exist in database`);
+        }
+      }
+    } else {
+      console.warn("No rooms were returned from the sync operation");
     }
     
     return data;

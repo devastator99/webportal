@@ -57,9 +57,8 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log("Fetching all patient assignments...");
-    
     // Log current patient assignments before syncing
+    console.log("Fetching all patient assignments...");
     const { data: patientAssignments, error: paError } = await supabaseClient
       .from('patient_assignments')
       .select('patient_id, doctor_id, nutritionist_id');
@@ -68,7 +67,24 @@ serve(async (req: Request) => {
       console.error("Error fetching patient assignments:", paError);
     } else {
       console.log(`Found ${patientAssignments?.length || 0} patient assignments`);
-      console.log("Patient assignments:", JSON.stringify(patientAssignments));
+      if (patientAssignments && patientAssignments.length > 0) {
+        console.log("Sample assignments:", JSON.stringify(patientAssignments.slice(0, 5)));
+      } else {
+        console.log("No patient assignments found - this is likely the issue!");
+      }
+    }
+
+    // Check if we can access the profiles table
+    const { data: profiles, error: profilesError } = await supabaseClient
+      .from('profiles')
+      .select('id, first_name, last_name')
+      .limit(5);
+      
+    if (profilesError) {
+      console.error("Error fetching profiles:", profilesError);
+    } else {
+      console.log(`Found ${profiles?.length || 0} profiles`);
+      console.log("Sample profiles:", JSON.stringify(profiles));
     }
 
     // Call the RPC function to sync all care team rooms
@@ -81,7 +97,25 @@ serve(async (req: Request) => {
     }
 
     console.log(`Sync completed, created/updated ${data?.length || 0} rooms`);
-    console.log("Room IDs:", JSON.stringify(data));
+    if (data && data.length > 0) {
+      console.log("Room IDs:", JSON.stringify(data));
+    } else {
+      console.log("No rooms were created or updated - check the SQL function execution");
+    }
+
+    // Try to fetch the created rooms to confirm they exist
+    if (data && data.length > 0) {
+      const { data: roomsData, error: roomsError } = await supabaseClient
+        .from('chat_rooms')
+        .select('id, name, room_type, patient_id')
+        .in('id', data);
+        
+      if (roomsError) {
+        console.error("Error fetching created rooms:", roomsError);
+      } else {
+        console.log(`Verified ${roomsData?.length || 0} rooms exist:`, JSON.stringify(roomsData));
+      }
+    }
 
     return new Response(
       JSON.stringify({ 

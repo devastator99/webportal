@@ -6,9 +6,9 @@ import { UserManagement } from "@/components/dashboard/admin/UserManagement";
 import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAssignmentManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Database, BarChart4, RefreshCw } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { syncAllCareTeamRooms } from "@/integrations/supabase/client";
+import { syncAllCareTeamRooms, supabase } from "@/integrations/supabase/client";
 
 // Placeholder for AnalyticsPanel until it's implemented
 const AnalyticsPanel = () => {
@@ -22,29 +22,72 @@ const AnalyticsPanel = () => {
 
 export const AdminDashboard = () => {
   const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState("");
+  const [patientAssignmentsCount, setPatientAssignmentsCount] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Check for patient assignments on component mount
+  useEffect(() => {
+    const checkPatientAssignments = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('patient_assignments')
+          .select('*', { count: 'exact', head: true });
+          
+        if (error) {
+          console.error("Error checking patient assignments:", error);
+        } else {
+          console.log(`Found ${count} total patient assignments`);
+          setPatientAssignmentsCount(count || 0);
+        }
+      } catch (error) {
+        console.error("Error in checkPatientAssignments:", error);
+      }
+    };
+    
+    checkPatientAssignments();
+  }, []);
 
   const handleSyncCareTeams = async () => {
     try {
       setIsSyncing(true);
+      setSyncStatus("Starting sync process...");
+      
       toast({
         title: "Syncing care team rooms...",
         description: "This may take a moment",
       });
       
       console.log("Starting care team rooms sync from AdminDashboard");
+      
+      // Check patient assignments before sync
+      const { data: assignments, error: assignmentsError } = await supabase
+        .from('patient_assignments')
+        .select('patient_id, doctor_id, nutritionist_id');
+        
+      if (assignmentsError) {
+        console.error("Error fetching patient assignments:", assignmentsError);
+        setSyncStatus("Error fetching patient assignments");
+      } else {
+        console.log(`Found ${assignments?.length || 0} patient assignments before sync`);
+        setSyncStatus(`Found ${assignments?.length || 0} patient assignments, starting sync...`);
+      }
+      
+      // Run the sync function
       const result = await syncAllCareTeamRooms();
       console.log("Sync result:", result);
       
       // Check if result contains expected data
       if (!result || !result.rooms) {
         console.warn("Sync completed but returned unexpected data format:", result);
+        setSyncStatus("Sync completed with unexpected data format");
         toast({
           title: "Sync completed",
           description: "Sync process completed but returned unexpected data",
         });
       } else {
+        setSyncStatus(`Successfully synced ${result.rooms.length || 0} care team rooms`);
         toast({
           title: "Sync completed",
           description: `Successfully synced ${result.rooms.length || 0} care team rooms`,
@@ -58,6 +101,7 @@ export const AdminDashboard = () => {
       
     } catch (error: any) {
       console.error("Error in handleSyncCareTeams:", error);
+      setSyncStatus(`Error: ${error.message}`);
       toast({
         title: "Sync failed",
         description: error.message || "Could not sync care team rooms",
@@ -72,14 +116,24 @@ export const AdminDashboard = () => {
     <div className="space-y-4 animate-fade-up">
       <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
-        <Button 
-          onClick={handleSyncCareTeams} 
-          disabled={isSyncing}
-          className="gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
-          Sync Care Teams
-        </Button>
+        <div className="flex flex-col items-end gap-1">
+          {patientAssignmentsCount > 0 && (
+            <span className="text-sm text-muted-foreground">
+              {patientAssignmentsCount} patient assignments in database
+            </span>
+          )}
+          <Button 
+            onClick={handleSyncCareTeams} 
+            disabled={isSyncing}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            Sync Care Teams
+          </Button>
+          {syncStatus && (
+            <span className="text-xs text-muted-foreground mt-1">{syncStatus}</span>
+          )}
+        </div>
       </div>
       
       <Tabs defaultValue="users" className="space-y-4">
