@@ -53,14 +53,15 @@ export const ChatModule = ({
                   return null; // Don't render anything if loading or error
                 }
                 
-                // Control the chat interface based on user role
+                // All users should use the same storage backend for chats,
+                // but we customize the interface based on role
                 return (
                   <ChatInterface 
                     assignedUsers={assignedUsers}
                     careTeamGroup={careTeamGroup}
-                    showGroupChat={!isDoctorRole} // Enable group chat for all users except doctors
+                    showGroupChat={!isDoctorRole} // Enable group chat for everyone except doctors
                     whatsAppStyle={isNutritionistRole || isDoctorRole}
-                    includeAiBot={true}
+                    includeAiBot={true} // Ensure AI bot is always available
                   />
                 );
               }}

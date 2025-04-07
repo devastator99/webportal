@@ -51,7 +51,7 @@ const ChatPage = () => {
                         careTeamGroup={careTeamGroup}
                         showGroupChat={!isDoctorRole} // Enable group chat for everyone except doctors
                         whatsAppStyle={isDoctorRole || isNutritionistRole}
-                        includeAiBot={true} // Ensure AI bot is included
+                        includeAiBot={true} // Ensure AI bot is included for all users
                       />
                     )}
                   </div>
