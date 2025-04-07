@@ -32,58 +32,59 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
   const [searchTerm, setSearchTerm] = useState("");
   
   // Query to get user's care team rooms
-  const { data: roomsData = [], isLoading } = useQuery({
+  const { data: rooms = [], isLoading } = useQuery({
     queryKey: ["care_team_rooms", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       
-      const { data, error } = await supabase
-        .from('chat_rooms')
+      // Get rooms where user is a member
+      const { data: roomsData, error } = await supabase
+        .from('room_members')
         .select(`
-          room_id:id,
-          room_name:name,
-          room_description:description,
-          room_type,
-          created_at,
-          patient_id,
-          patient:profiles!chat_rooms_patient_id_fkey(
-            patient_name:first_name
-          ),
-          room_members!inner(id)
+          room:chat_rooms!inner(
+            id,
+            name,
+            description,
+            room_type,
+            created_at,
+            patient_id,
+            patient:profiles(first_name)
+          )
         `)
-        .eq('room_members.user_id', user.id)
-        .eq('is_active', true);
+        .eq('user_id', user.id)
+        .eq('room:chat_rooms.is_active', true);
         
       if (error) {
         console.error("Error fetching care team rooms:", error);
         throw error;
       }
       
-      // Get the latest message for each room
-      const roomsWithMessages: CareTeamRoom[] = [];
+      const roomsWithDetails: CareTeamRoom[] = [];
       
-      for (const room of data || []) {
+      for (const roomMember of roomsData || []) {
+        const room = roomMember.room;
+        
         // Get member count
         const { count: memberCount } = await supabase
           .from('room_members')
           .select('*', { count: 'exact', head: true })
-          .eq('room_id', room.room_id);
+          .eq('room_id', room.id);
           
         // Get latest message
         const { data: latestMessageData } = await supabase
           .from('room_messages')
           .select('message, created_at')
-          .eq('room_id', room.room_id)
+          .eq('room_id', room.id)
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
           
-        roomsWithMessages.push({
-          room_id: room.room_id,
-          room_name: room.room_name,
-          room_description: room.room_description,
+        roomsWithDetails.push({
+          room_id: room.id,
+          room_name: room.name,
+          room_description: room.description,
           patient_id: room.patient_id,
-          patient_name: room.patient?.patient_name || 'Patient',
+          patient_name: room.patient?.first_name || 'Patient',
           member_count: memberCount || 0,
           last_message: latestMessageData?.message || '',
           last_message_time: latestMessageData?.created_at || room.created_at
@@ -91,15 +92,13 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       }
       
       // Sort rooms by latest message
-      return roomsWithMessages.sort((a, b) => {
+      return roomsWithDetails.sort((a, b) => {
         return new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime();
       });
     },
     enabled: !!user?.id,
     refetchInterval: 10000
   });
-
-  const rooms = roomsData || [];
 
   // Filter rooms based on search term
   const filteredRooms = searchTerm 

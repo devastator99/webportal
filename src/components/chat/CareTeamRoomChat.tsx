@@ -60,24 +60,23 @@ export const CareTeamRoomChat = ({
     queryFn: async () => {
       if (!selectedRoomId || !user?.id) return null;
       
-      const { data, error } = await supabase
+      // Get the room details
+      const { data: roomData, error: roomError } = await supabase
         .from('chat_rooms')
         .select(`
-          id:room_id,
-          name:room_name,
-          description:room_description,
+          id,
+          name,
+          description,
           room_type,
           patient_id,
-          patients:profiles!chat_rooms_patient_id_fkey(
-            patient_name:first_name
-          )
+          profiles:profiles(first_name)
         `)
         .eq('id', selectedRoomId)
         .single();
         
-      if (error) {
-        console.error("Error fetching room details:", error);
-        throw error;
+      if (roomError) {
+        console.error("Error fetching room details:", roomError);
+        throw roomError;
       }
       
       // Get member count
@@ -91,11 +90,11 @@ export const CareTeamRoomChat = ({
       }
       
       return {
-        room_id: data?.id,
-        room_name: data?.name,
-        room_description: data?.description,
-        patient_id: data?.patient_id,
-        patient_name: data?.patients?.patient_name || 'Patient',
+        room_id: roomData?.id,
+        room_name: roomData?.name,
+        room_description: roomData?.description,
+        patient_id: roomData?.patient_id,
+        patient_name: roomData?.profiles?.first_name || 'Patient',
         member_count: count || 0
       } as CareTeamRoom;
     },
@@ -113,23 +112,38 @@ export const CareTeamRoomChat = ({
         .select(`
           id,
           sender_id,
-          sender:profiles!room_messages_sender_id_fkey(
-            first_name,
-            last_name
-          ),
-          sender_role:user_roles!inner(role),
+          sender:profiles(first_name, last_name),
           message,
           is_system_message,
           is_ai_message,
           created_at
         `)
         .eq('room_id', selectedRoomId)
-        .order('created_at', { ascending: true })
-        .limit(50);
+        .order('created_at', { ascending: true });
         
       if (error) {
         console.error("Error fetching messages:", error);
         throw error;
+      }
+      
+      // Get user roles for senders
+      const userIds = data.map(msg => msg.sender_id).filter((id, index, self) => 
+        self.indexOf(id) === index && id !== '00000000-0000-0000-0000-000000000000'
+      );
+      
+      let userRoles: Record<string, string> = {};
+      if (userIds.length > 0) {
+        const { data: rolesData } = await supabase
+          .from('user_roles')
+          .select('user_id, role')
+          .in('user_id', userIds);
+          
+        if (rolesData) {
+          userRoles = rolesData.reduce((acc, item) => {
+            acc[item.user_id] = item.role;
+            return acc;
+          }, {} as Record<string, string>);
+        }
       }
       
       // Format messages to match our interface
@@ -139,12 +153,23 @@ export const CareTeamRoomChat = ({
         sender_name: msg.sender_id === '00000000-0000-0000-0000-000000000000' 
           ? 'AI Assistant' 
           : `${msg.sender?.first_name || ''} ${msg.sender?.last_name || ''}`.trim(),
-        sender_role: msg.sender_role?.[0]?.role || 'unknown',
+        sender_role: msg.sender_id === '00000000-0000-0000-0000-000000000000'
+          ? 'aibot'
+          : userRoles[msg.sender_id] || 'unknown',
         message: msg.message,
         is_system_message: msg.is_system_message || false,
         is_ai_message: msg.is_ai_message || false,
         created_at: msg.created_at
       }));
+      
+      // Mark messages as read
+      if (data.length > 0) {
+        await supabase
+          .from('room_messages')
+          .update({ read_by: supabase.sql`array_append(read_by, ${user?.id})` })
+          .eq('room_id', selectedRoomId)
+          .neq('sender_id', user?.id);
+      }
       
       return formattedMessages;
     },
