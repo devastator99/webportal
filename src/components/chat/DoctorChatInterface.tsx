@@ -144,7 +144,7 @@ export const DoctorChatInterface = () => {
   return (
     <Card className="h-[500px] flex flex-col">
       <CardHeader className="pb-2">
-        <CardTitle>Patient Messages</CardTitle>
+        <CardTitle>Care Team Messages</CardTitle>
       </CardHeader>
       <CardContent className="p-0 flex flex-1 overflow-hidden">
         {/* Patient list sidebar */}
@@ -188,27 +188,26 @@ export const DoctorChatInterface = () => {
                   </AvatarFallback>
                 </Avatar>
                 <div className="font-medium">
-                  {selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : 'Loading...'}
+                  {selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}'s Care Team` : 'Loading...'}
                 </div>
               </div>
               <div className="flex-1 flex flex-col h-full p-2">
                 <ChatMessagesList
                   selectedUserId={selectedPatientId}
-                  isGroupChat={false}
                   localMessages={localMessages}
                 />
                 <ChatInput
                   value={newMessage}
                   onChange={setNewMessage}
                   onSend={handleSendMessage}
-                  placeholder="Type a message..."
+                  placeholder="Type a message to the care team..."
                   disabled={!selectedPatientId}
                 />
               </div>
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center text-muted-foreground">
-              Select a patient to view conversation
+              Select a patient to view care team conversation
             </div>
           )}
         </div>

@@ -28,6 +28,8 @@ interface ChatMessagesListProps {
   careTeamMembers?: UserProfile[];
   offlineMode?: boolean;
   localMessages?: any[];
+  isGroupChat?: boolean; // Add this missing property
+  includeCareTeamMessages?: boolean; // Add this property which is also being passed
 }
 
 // Define proper types for the chat message
@@ -47,7 +49,9 @@ export const ChatMessagesList = ({
   careTeamGroup = null,
   careTeamMembers = [],
   offlineMode = false,
-  localMessages = []
+  localMessages = [],
+  isGroupChat = false, // Set a default value
+  includeCareTeamMessages = false // Set a default value
 }: ChatMessagesListProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
@@ -60,7 +64,9 @@ export const ChatMessagesList = ({
     careTeamGroup: careTeamGroup?.members?.length,
     careTeamMembers: careTeamMembers?.length,
     userRole,
-    localMessages: localMessages?.length
+    localMessages: localMessages?.length,
+    isGroupChat,
+    includeCareTeamMessages
   });
 
   const {
@@ -72,7 +78,10 @@ export const ChatMessagesList = ({
   } = useQuery({
     queryKey: ["chat_messages", user?.id, selectedUserId, 
       careTeamGroup?.groupName, 
-      careTeamMembers?.map(m => m.id).join('-')],
+      careTeamMembers?.map(m => m.id).join('-'),
+      isGroupChat, // Add isGroupChat to query key to refetch when it changes
+      includeCareTeamMessages // Add includeCareTeamMessages to query key to refetch when it changes
+    ],
     queryFn: async () => {
       if (!user?.id) return [];
 
@@ -81,7 +90,9 @@ export const ChatMessagesList = ({
         selectedUserId,
         careTeamMembersCount: careTeamMembers?.length || 0,
         careTeamGroupName: careTeamGroup?.groupName,
-        userRole
+        userRole,
+        isGroupChat,
+        includeCareTeamMessages
       });
       
       if (selectedUserId) {
@@ -92,8 +103,9 @@ export const ChatMessagesList = ({
             body: {
               user_id: user.id,
               other_user_id: selectedUserId,
-              is_group_chat: true,
-              care_team_members: careTeamMembers
+              is_group_chat: isGroupChat, // Pass isGroupChat to the edge function
+              care_team_members: careTeamMembers,
+              include_care_team_messages: includeCareTeamMessages // Pass includeCareTeamMessages to the edge function
             }
           });
 

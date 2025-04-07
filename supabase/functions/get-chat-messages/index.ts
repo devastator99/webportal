@@ -14,7 +14,15 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { user_id, other_user_id, is_group_chat = true, care_team_members = [], page = 1, per_page = 50 } = await req.json();
+    const { 
+      user_id, 
+      other_user_id, 
+      is_group_chat = true, 
+      care_team_members = [], 
+      include_care_team_messages = false,
+      page = 1, 
+      per_page = 50 
+    } = await req.json();
     
     if (!user_id) {
       return new Response(
