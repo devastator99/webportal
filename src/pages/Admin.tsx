@@ -3,18 +3,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
-import { Navbar } from "@/components/Navbar";
 
 const Admin = () => {
   const { user, userRole, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <>
-        <Navbar />
-        <DashboardSkeleton />
-      </>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (!user) {
@@ -26,10 +20,9 @@ const Admin = () => {
   }
 
   return (
-    <>
-      <Navbar />
+    <div className="pt-16 md:pt-20">
       <AdminDashboard />
-    </>
+    </div>
   );
 };
 

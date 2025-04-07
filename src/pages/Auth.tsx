@@ -64,7 +64,7 @@ const Auth = () => {
   // Show loading state while checking auth
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center pt-16 md:pt-20">
         <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
       </div>
     );
@@ -72,7 +72,11 @@ const Auth = () => {
 
   // If user is a doctor who needs to complete profile, show the doctor profile form
   if (user && shouldShowDoctorForm) {
-    return <DoctorProfileForm />;
+    return (
+      <div className="pt-16 md:pt-20">
+        <DoctorProfileForm />
+      </div>
+    );
   }
 
   // If user is logged in, useEffect will handle redirect (or has already shown doctor form)
@@ -126,7 +130,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <motion.div
           initial={{ opacity: 0, y: 20 }}

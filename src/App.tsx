@@ -1,8 +1,10 @@
+
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from './contexts/ThemeProvider';
 import { AuthProvider } from './contexts/AuthContext';
+import { Navbar } from './components/Navbar';
 import LandingPage from './pages/LandingPage';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
@@ -60,6 +62,8 @@ function App() {
         <MobileStatusBar />
         <Router>
           <AuthProvider>
+            {/* Move Navbar here to ensure it's available on all routes */}
+            <Navbar />
             <div className="mobile-content">
               <ErrorBoundary>
                 <Routes>

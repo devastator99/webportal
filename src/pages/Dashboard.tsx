@@ -10,7 +10,6 @@ import { ReceptionDashboard } from "@/components/dashboard/ReceptionDashboard";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { Navbar } from "@/components/Navbar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 
@@ -43,44 +42,36 @@ const Dashboard = () => {
   // Render error state
   if (dashboardError) {
     return (
-      <>
-        <Navbar />
-        <div className="container mx-auto px-4 py-8 mt-20">
-          <Alert variant="destructive" className="mb-8">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>
-              {dashboardError}
-            </AlertDescription>
-          </Alert>
-          <div className="flex justify-center mt-8">
-            <button 
-              onClick={() => window.location.reload()}
-              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 mr-4"
-            >
-              Retry
-            </button>
-            <button 
-              onClick={() => signOut()}
-              className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
-            >
-              Sign Out
-            </button>
-          </div>
+      <div className="container mx-auto px-4 py-8 mt-20">
+        <Alert variant="destructive" className="mb-8">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            {dashboardError}
+          </AlertDescription>
+        </Alert>
+        <div className="flex justify-center mt-8">
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 mr-4"
+          >
+            Retry
+          </button>
+          <button 
+            onClick={() => signOut()}
+            className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+          >
+            Sign Out
+          </button>
         </div>
-      </>
+      </div>
     );
   }
 
   // Show loading state
   if (isLoading) {
     console.log("[Dashboard] Showing loading skeleton");
-    return (
-      <>
-        <Navbar />
-        <DashboardSkeleton />
-      </>
-    );
+    return <DashboardSkeleton />;
   }
 
   // After loading, if no user is found, useEffect will handle redirect
@@ -92,20 +83,14 @@ const Dashboard = () => {
   // Handle no role case
   if (!userRole) {
     console.log("[Dashboard] No role assigned, showing NoRoleWarning");
-    return (
-      <>
-        <Navbar />
-        <NoRoleWarning onSignOut={signOut} />
-      </>
-    );
+    return <NoRoleWarning onSignOut={signOut} />;
   }
 
   console.log(`[Dashboard] Attempting to render ${userRole} dashboard`);
   
   // Render appropriate dashboard based on role with Navbar
   return (
-    <>
-      <Navbar />
+    <div className="pt-16 md:pt-20">
       {(() => {
         try {
           switch (userRole) {
@@ -139,7 +124,7 @@ const Dashboard = () => {
           return null;
         }
       })()}
-    </>
+    </div>
   );
 };
 

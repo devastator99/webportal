@@ -23,6 +23,7 @@ export const Navbar = () => {
   const isDashboardPage = location.pathname === '/dashboard';
   const isAdminPage = location.pathname === '/admin';
   const isAlternativeDashboard = location.pathname === '/dashboard-alt';
+  const isAuthPage = location.pathname === '/auth';
 
   // Enhanced navbar styling with improved visibility and spacing
   const navbarClass = "fixed top-0 w-full bg-white dark:bg-gray-900 z-50 border-b border-[#D6BCFA] shadow-lg";
@@ -39,7 +40,8 @@ export const Navbar = () => {
   // Use either mobile or iPad display logic
   const useResponsiveDisplay = isMobile || isIPad;
 
-  if (isLoading && !isSigningOut && location.pathname !== '/') {
+  // Simplified loading state
+  if (isLoading && !isSigningOut) {
     return (
       <nav className={navbarClass}>
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
@@ -83,7 +85,7 @@ export const Navbar = () => {
               <LoginDialog />
             </div>
           )}
-          {user && <SignOutButton />}
+          {user && <SignOutButton onSignOutStart={() => setIsSigningOut(true)} onSignOutEnd={() => setIsSigningOut(false)} />}
         </div>
         
         {/* Mobile/iPad navigation */}
@@ -93,7 +95,7 @@ export const Navbar = () => {
               {user && <DashboardButton />}
               {user && <DoctorActions />}
               {user && isAdminPage && <ForceLogoutButton />}
-              {user && <SignOutButton />}
+              {user && <SignOutButton onSignOutStart={() => setIsSigningOut(true)} onSignOutEnd={() => setIsSigningOut(false)} />}
             </div>
           </div>
         )}

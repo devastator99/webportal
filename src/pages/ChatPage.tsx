@@ -2,7 +2,6 @@
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { Navbar } from "@/components/Navbar";
 import { UsersProvider } from "@/components/chat/UsersProvider";
 import { ChatInterface } from "@/components/chat/ChatInterface";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,8 +20,7 @@ const ChatPage = () => {
   }, [user, navigate]);
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <Navbar />
+    <div className="flex flex-col min-h-screen pt-16 md:pt-20">
       <div className="container mx-auto py-4 px-4 max-w-7xl flex-1 flex flex-col h-[calc(100vh-70px)] overflow-hidden">
         <Card className="h-full flex flex-col overflow-hidden">
           <CardHeader className="pb-2">

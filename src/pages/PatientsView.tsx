@@ -4,7 +4,6 @@ import { Navigate } from "react-router-dom";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { AllPatientsList } from "@/components/dashboard/doctor/AllPatientsList";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -14,12 +13,7 @@ const PatientsView = () => {
   const navigate = useNavigate();
 
   if (isLoading) {
-    return (
-      <>
-        <Navbar />
-        <DashboardSkeleton />
-      </>
-    );
+    return <DashboardSkeleton />;
   }
 
   if (!user) {
@@ -33,9 +27,8 @@ const PatientsView = () => {
   console.log("Rendering PatientsView component");
 
   return (
-    <>
-      <Navbar />
-      <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
+    <div className="pt-16 md:pt-20">
+      <div className="container mx-auto pb-6 px-6 space-y-6">
         <DashboardHeader 
           actionButton={
             <Button
@@ -51,7 +44,7 @@ const PatientsView = () => {
         />
         <AllPatientsList />
       </div>
-    </>
+    </div>
   );
 };
 

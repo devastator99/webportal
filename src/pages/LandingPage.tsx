@@ -1,7 +1,6 @@
 
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Hero } from "@/components/Hero";
-import { Navbar } from "@/components/Navbar";
 import { Features } from "@/components/Features";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -109,7 +108,6 @@ export const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900">
-      <Navbar />
       <div className="pt-16 md:pt-20">
         <Hero />
         

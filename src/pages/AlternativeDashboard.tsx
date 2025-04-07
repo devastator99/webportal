@@ -10,7 +10,6 @@ import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { ReceptionDashboard } from "@/components/dashboard/ReceptionDashboard";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Navbar } from "@/components/Navbar";
 
 const AlternativeDashboard = () => {
   const { user, userRole, isLoading, signOut } = useAuth();
@@ -24,12 +23,7 @@ const AlternativeDashboard = () => {
 
   // Show loading state
   if (isLoading) {
-    return (
-      <>
-        <Navbar />
-        <DashboardSkeleton />
-      </>
-    );
+    return <DashboardSkeleton />;
   }
 
   // After loading, if no user is found, useEffect will handle redirect
@@ -39,18 +33,12 @@ const AlternativeDashboard = () => {
 
   // Handle no role case
   if (!userRole) {
-    return (
-      <>
-        <Navbar />
-        <NoRoleWarning onSignOut={signOut} />
-      </>
-    );
+    return <NoRoleWarning onSignOut={signOut} />;
   }
   
   // Render appropriate dashboard based on role with Navbar
   return (
-    <>
-      <Navbar />
+    <div className="pt-16 md:pt-20">
       {(() => {
         switch (userRole) {
           case "doctor":
@@ -67,7 +55,7 @@ const AlternativeDashboard = () => {
             return <NoRoleWarning onSignOut={signOut} />;
         }
       })()}
-    </>
+    </div>
   );
 };
 
