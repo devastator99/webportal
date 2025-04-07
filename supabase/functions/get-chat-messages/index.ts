@@ -5,6 +5,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
 serve(async (req: Request) => {
@@ -60,11 +61,27 @@ serve(async (req: Request) => {
       .eq('user_id', user_id)
       .maybeSingle();
       
-    const { data: otherUserRoleData, error: otherUserRoleError } = await supabaseClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', other_user_id)
-      .maybeSingle();
+    if (userRoleError) {
+      console.error("Error fetching user role:", userRoleError);
+    }
+    
+    let otherUserRoleData = null;
+    let otherUserRoleError = null;
+    
+    if (other_user_id) {
+      const result = await supabaseClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', other_user_id)
+        .maybeSingle();
+        
+      otherUserRoleData = result.data;
+      otherUserRoleError = result.error;
+      
+      if (otherUserRoleError) {
+        console.error("Error fetching other user role:", otherUserRoleError);
+      }
+    }
     
     const userRole = userRoleData?.role || "unknown";
     const otherUserRole = otherUserRoleData?.role || "unknown";
@@ -90,14 +107,31 @@ serve(async (req: Request) => {
     }
     
     try {
-      // Always use get_care_team_messages for all messaging scenarios
-      // We've removed the one-to-one message functionality
+      if (!patientId && other_user_id) {
+        patientId = other_user_id;
+        console.log("Using other_user_id as fallback patient_id:", patientId);
+      }
+      
+      if (!patientId) {
+        console.error("Could not determine patient ID");
+        return new Response(
+          JSON.stringify({ 
+            error: "Could not determine patient ID", 
+            messages: [], 
+            hasMore: false, 
+            page: pageNumber, 
+            perPage 
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
       console.log("Getting care team messages for patient:", patientId);
       
       // Use the get_care_team_messages RPC function for all messages
       const { data: messages, error: messagesError } = await supabaseClient.rpc('get_care_team_messages', {
         p_user_id: user_id,
-        p_patient_id: patientId || other_user_id, // Fallback to other_user_id if patientId is null
+        p_patient_id: patientId,
         p_offset: offset,
         p_limit: perPage
       });
@@ -122,12 +156,16 @@ serve(async (req: Request) => {
           
           // Mark messages as read for each sender
           for (const senderId of senderIds) {
-            await supabaseClient.functions.invoke('mark-messages-as-read', {
+            const { error: markError } = await supabaseClient.functions.invoke('mark-messages-as-read', {
               body: { 
                 user_id: user_id, 
                 sender_id: senderId 
               }
             });
+            
+            if (markError) {
+              console.warn("Error marking messages as read:", markError);
+            }
           }
         } catch (markError) {
           console.warn("Error marking messages as read:", markError);
