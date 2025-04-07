@@ -1,56 +1,151 @@
 
-hcaqodjylicmppxcbqbh
+project_id = "hcaqodjylicmppxcbqbh"
 
-[functions.doctor-ai-assistant]
-verify_jwt = true
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
 
-[functions.get-assigned-patients]
-verify_jwt = true
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
 
-[functions.get-chat-messages]
-verify_jwt = true
+[studio]
+enabled = true
+port = 54323
+api_url = "http://localhost"
 
-[functions.get-doctor-for-patient]
-verify_jwt = true
+[inbucket]
+enabled = true
+port = 54324
 
-[functions.get-nutritionist-for-patient]
-verify_jwt = true
+[storage]
+enabled = true
+file_size_limit = "50MiB"
 
-[functions.get-medical-report-url]
-verify_jwt = true
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_expiry = 43200
+enable_signup = true
 
-[functions.get-patient-care-team]
-verify_jwt = true
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
 
-[functions.get-patient-profile]
-verify_jwt = true
+[auth.external.apple]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
 
-[functions.mark-messages-as-read]
-verify_jwt = true
+[auth.external.azure]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
 
-[functions.send-chat-message]
-verify_jwt = true
+[auth.external.bitbucket]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
 
-[functions.send-health-plan-notification]
-verify_jwt = true
+[auth.external.discord]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
 
-[functions.send-health-plan-reminders]
-verify_jwt = true
+[auth.external.facebook]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
 
-[functions.send-whatsapp-notification]
-verify_jwt = true
+[auth.external.github]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
 
-[functions.upsert-patient-details]
-verify_jwt = true
+[auth.external.gitlab]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
 
-[functions.upsert-user-role]
-verify_jwt = true
+[auth.external.google]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
 
-[functions.admin-assign-care-team]
-verify_jwt = true
+[auth.external.keycloak]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
 
-[functions.admin-assign-doctor-to-patient]
-verify_jwt = true
+[auth.external.linkedin]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
 
-[functions.admin-assign-nutritionist-to-patient]
+[auth.external.notion]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
+
+[auth.external.twitch]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
+
+[auth.external.twitter]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
+
+[auth.external.slack]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
+
+[auth.external.spotify]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
+
+[auth.external.workos]
+enabled = false
+client_id = ""
+secret = ""
+redirect_uri = ""
+
+[analytics]
+enabled = false
+port = 54327
+vector_port = 54328
+backend = "postgres"
+
+[experimental]
+pubsub = false
+graphql_plan_cache = false
+
+[functions]
+[functions.care-team-ai-chat]
 verify_jwt = true

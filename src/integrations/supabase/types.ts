@@ -158,6 +158,39 @@ export type Database = {
           },
         ]
       }
+      chat_rooms: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          patient_id: string | null
+          room_type: Database["public"]["Enums"]["chat_room_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          patient_id?: string | null
+          room_type?: Database["public"]["Enums"]["chat_room_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          patient_id?: string | null
+          room_type?: Database["public"]["Enums"]["chat_room_type"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chatbot_knowledge: {
         Row: {
           content: Json
@@ -610,6 +643,85 @@ export type Database = {
         }
         Relationships: []
       }
+      room_members: {
+        Row: {
+          id: string
+          is_admin: boolean | null
+          joined_at: string
+          role: string | null
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_admin?: boolean | null
+          joined_at?: string
+          role?: string | null
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_admin?: boolean | null
+          joined_at?: string
+          role?: string | null
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_members_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      room_messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_ai_message: boolean | null
+          is_system_message: boolean | null
+          message: string
+          message_type: string | null
+          read_by: Json | null
+          room_id: string
+          sender_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_ai_message?: boolean | null
+          is_system_message?: boolean | null
+          message: string
+          message_type?: string | null
+          read_by?: Json | null
+          room_id: string
+          sender_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_ai_message?: boolean | null
+          is_system_message?: boolean | null
+          message?: string
+          message_type?: string | null
+          read_by?: Json | null
+          room_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_messages_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "chat_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -735,6 +847,14 @@ export type Database = {
           scheduled_at: string
           status: Database["public"]["Enums"]["appointment_status"]
         }[]
+      }
+      create_care_team_room: {
+        Args: {
+          p_patient_id: string
+          p_doctor_id: string
+          p_nutritionist_id?: string
+        }
+        Returns: string
       }
       create_medical_record: {
         Args: {
@@ -1030,9 +1150,37 @@ export type Database = {
           last_name: string
         }[]
       }
+      get_room_messages: {
+        Args: { p_room_id: string; p_limit?: number; p_offset?: number }
+        Returns: {
+          id: string
+          sender_id: string
+          sender_name: string
+          sender_role: string
+          message: string
+          is_system_message: boolean
+          is_ai_message: boolean
+          created_at: string
+        }[]
+      }
       get_signed_medical_report_url: {
         Args: { p_report_id: string }
         Returns: string
+      }
+      get_user_care_team_rooms: {
+        Args: { p_user_id: string }
+        Returns: {
+          room_id: string
+          room_name: string
+          room_description: string
+          room_type: Database["public"]["Enums"]["chat_room_type"]
+          created_at: string
+          patient_id: string
+          patient_name: string
+          member_count: number
+          last_message: string
+          last_message_time: string
+        }[]
       }
       get_user_chat_messages: {
         Args: {
@@ -1126,6 +1274,15 @@ export type Database = {
         }
         Returns: string
       }
+      send_room_message: {
+        Args: {
+          p_room_id: string
+          p_message: string
+          p_is_system_message?: boolean
+          p_is_ai_message?: boolean
+        }
+        Returns: string
+      }
       validate_appointment_date: {
         Args: { p_doctor_id: string; p_scheduled_date: string }
         Returns: boolean
@@ -1133,6 +1290,7 @@ export type Database = {
     }
     Enums: {
       appointment_status: "scheduled" | "completed" | "cancelled"
+      chat_room_type: "care_team" | "direct" | "group"
       message_type: "text" | "file" | "video"
       payment_status: "pending" | "completed" | "failed"
       user_type:
@@ -1257,6 +1415,7 @@ export const Constants = {
   public: {
     Enums: {
       appointment_status: ["scheduled", "completed", "cancelled"],
+      chat_room_type: ["care_team", "direct", "group"],
       message_type: ["text", "file", "video"],
       payment_status: ["pending", "completed", "failed"],
       user_type: [
