@@ -61,6 +61,7 @@ export const ChatMessagesList = ({
   console.log("ChatMessagesList render with:", {
     selectedUserId,
     isGroupChat,
+    careTeamGroup: careTeamGroup?.members?.length,
     careTeamMembers: careTeamMembers?.length,
     userRole,
     localMessages: localMessages?.length
@@ -96,7 +97,9 @@ export const ChatMessagesList = ({
           const { data, error } = await supabase.functions.invoke('get-chat-messages', {
             body: {
               user_id: user.id,
-              other_user_id: selectedUserId
+              other_user_id: selectedUserId,
+              is_group_chat: isGroupChat,
+              care_team_members: isGroupChat ? careTeamMembers : undefined
             }
           });
 

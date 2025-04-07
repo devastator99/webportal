@@ -14,7 +14,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { user_id, other_user_id, page = 1, per_page = 50 } = await req.json();
+    const { user_id, other_user_id, is_group_chat = false, care_team_members = [], page = 1, per_page = 50 } = await req.json();
     
     if (!user_id || !other_user_id) {
       return new Response(
@@ -37,20 +37,20 @@ serve(async (req: Request) => {
     const perPage = parseInt(String(per_page));
     const offset = (pageNumber - 1) * perPage;
     
-    console.log("Fetching messages for user:", user_id, "and other user:", other_user_id);
+    console.log("Fetching messages for user:", user_id, "and other user:", other_user_id, "isGroupChat:", is_group_chat);
     
     // Get the roles of both users to determine context
     const { data: otherUserData, error: otherUserError } = await supabaseClient
       .from('user_roles')
       .select('role')
       .eq('user_id', other_user_id)
-      .single();
+      .maybeSingle();
       
     const { data: userRoleData, error: userRoleError } = await supabaseClient
       .from('user_roles')
       .select('role')
       .eq('user_id', user_id)
-      .single();
+      .maybeSingle();
     
     const userRole = userRoleData?.role || "unknown";
     const otherUserRole = otherUserData?.role || "unknown";
@@ -60,16 +60,32 @@ serve(async (req: Request) => {
     let patientId = null;
     
     // Determine if this is a patient care team chat
-    if (otherUserRole === 'patient') {
-      // If other user is a patient, we're in a care team chat for this patient
-      isPatientCareTeamChat = true;
-      patientId = other_user_id;
-      console.log("This is a care team chat for patient:", patientId);
-    } else if (userRole === 'patient') {
-      // If current user is a patient, we're in a care team chat for this patient
-      isPatientCareTeamChat = true;
-      patientId = user_id;
-      console.log("This is a care team chat for patient (user is patient):", patientId);
+    if (is_group_chat) {
+      console.log("This is explicitly a group chat");
+      if (userRole === 'patient') {
+        // If current user is a patient, we're in a care team chat for this patient
+        isPatientCareTeamChat = true;
+        patientId = user_id;
+        console.log("This is a care team chat for patient (user is patient):", patientId);
+      } else if (otherUserRole === 'patient') {
+        // If other user is a patient, we're in a care team chat for this patient
+        isPatientCareTeamChat = true;
+        patientId = other_user_id;
+        console.log("This is a care team chat for patient:", patientId);
+      }
+    } else {
+      // For backward compatibility - detect based on role
+      if (otherUserRole === 'patient') {
+        // If other user is a patient, we're in a care team chat for this patient
+        isPatientCareTeamChat = true;
+        patientId = other_user_id;
+        console.log("This is a care team chat for patient (auto-detected):", patientId);
+      } else if (userRole === 'patient') {
+        // If current user is a patient, we're in a care team chat for this patient
+        isPatientCareTeamChat = true;
+        patientId = user_id;
+        console.log("This is a care team chat for patient (user is patient, auto-detected):", patientId);
+      }
     }
     
     try {

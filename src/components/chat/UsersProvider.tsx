@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -67,7 +66,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
               last_name: member.last_name,
               role: member.role || "unknown" // Ensure role is always defined
             })) : [];
-            console.log("Retrieved care team members:", careTeam.length);
+            console.log("Retrieved care team members:", careTeam.length, careTeam);
           }
           
           // Get administrators - Use security definer function 
@@ -92,18 +91,32 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             careTeam.push(aiBot);
           }
           
+          // Make sure to add the patient themselves to the care team group
+          const patientSelf: UserProfile = {
+            id: user.id,
+            first_name: user.user_metadata?.first_name,
+            last_name: user.user_metadata?.last_name,
+            role: "patient"
+          };
+          
           // Create care team group from assigned doctor, nutritionist and AI bot
-          const careTeamMembers = careTeam.filter(member => 
-            member.role === "doctor" || member.role === "nutritionist" || member.role === "aibot"
-          );
+          // Include the patient themselves in the members list so they see all messages
+          const careTeamMembers = [
+            ...careTeam.filter(member => 
+              member.role === "doctor" || member.role === "nutritionist" || member.role === "aibot"
+            ),
+            patientSelf
+          ];
           
           const careTeamGroup = careTeamMembers.length > 0 ? {
             groupName: "Care Team",
-            members: [...careTeamMembers]
+            members: careTeamMembers
           } : null;
           
           // Combine providers, AI bot and admins, ensuring admins are always included
           const allUsers = [...careTeam, ...formattedAdmins];
+          
+          console.log("Patient's care team group:", careTeamGroup);
           
           return { 
             assignedUsers: allUsers,
