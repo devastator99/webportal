@@ -2,9 +2,12 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ChatMessage } from "./ChatMessage";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 
 interface UserProfile {
   id: string;
@@ -50,9 +53,17 @@ export const ChatMessagesList = ({
   localMessages = []
 }: ChatMessagesListProps) => {
   const { user, userRole } = useAuth();
+  const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [errorRetries, setErrorRetries] = useState(0);
 
-  const { data: messages, isLoading, error } = useQuery({
+  const {
+    data: messages,
+    isLoading,
+    error,
+    refetch,
+    isRefetching
+  } = useQuery({
     queryKey: ["chat_messages", user?.id, selectedUserId, isGroupChat, 
       careTeamGroup?.groupName, 
       careTeamMembers?.length, 
@@ -89,6 +100,17 @@ export const ChatMessagesList = ({
           return data?.messages || [];
         } catch (err) {
           console.error("Error in messages retrieval:", err);
+          
+          // After multiple retries with the same error, show a user-friendly message
+          if (errorRetries > 2) {
+            toast({
+              title: "Trouble loading messages",
+              description: "We're having trouble connecting to the message service. Please try again later.",
+              variant: "destructive"
+            });
+          }
+          
+          setErrorRetries(prev => prev + 1);
           throw err;
         }
       }
@@ -97,7 +119,9 @@ export const ChatMessagesList = ({
     },
     enabled: !!user?.id && (!!selectedUserId || (isGroupChat && !!careTeamGroup)),
     staleTime: 5000,
-    refetchInterval: 10000 // Add polling to refresh messages automatically every 10 seconds
+    refetchInterval: 10000, // Add polling to refresh messages automatically every 10 seconds
+    retry: 2,
+    refetchOnWindowFocus: true
   });
 
   useEffect(() => {
@@ -106,6 +130,11 @@ export const ChatMessagesList = ({
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleManualRefresh = () => {
+    setErrorRetries(0);
+    refetch();
   };
 
   // Make sure we're working with arrays for both messages and localMessages
@@ -119,16 +148,31 @@ export const ChatMessagesList = ({
     return <div className="flex-1 flex items-center justify-center">Loading messages...</div>;
   }
 
-  if (error) {
-    console.error("Error loading messages:", error);
-    return <div className="flex-1 flex items-center justify-center text-red-500">Error loading messages: {error.message || "Unknown error"}</div>;
-  }
-
   return (
     <div className="flex-1 overflow-hidden relative">
+      {error && (
+        <div className="absolute top-2 right-2 z-50">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleManualRefresh}
+            disabled={isRefetching}
+            className="flex items-center gap-1"
+          >
+            <RefreshCw className={`h-3 w-3 ${isRefetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
+      )}
+      
       <ScrollArea className="h-full w-full p-4">
         <div className="flex flex-col gap-2">
-          {allMessages.length === 0 ? (
+          {error && allMessages.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p className="text-destructive mb-2">Error loading messages</p>
+              <p className="text-sm">Try refreshing or check your connection</p>
+            </div>
+          ) : allMessages.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No messages yet. Start a conversation!
             </div>
