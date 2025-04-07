@@ -40,7 +40,7 @@ serve(async (req: Request) => {
     let data, error, count = 0;
     
     if (include_care_team) {
-      // Use the new secure RPC function for care team messages
+      // Use the secure RPC function for care team messages
       console.log("Using get_care_team_messages RPC function");
       const result = await supabaseClient.rpc('get_care_team_messages', {
         p_user_id: user_id,
@@ -60,7 +60,7 @@ serve(async (req: Request) => {
       
       count = countResult.count;
     } else {
-      // Direct messages between two users using the new secure RPC function
+      // Direct messages between two users using the secure RPC function
       console.log("Using get_user_chat_messages RPC function");
       const result = await supabaseClient.rpc('get_user_chat_messages', {
         p_user_id: user_id,
