@@ -66,22 +66,21 @@ serve(async (req: Request) => {
       );
     }
 
-    // Log current patient assignments before syncing
-    console.log("Fetching all patient assignments...");
-    const { data: patientAssignments, error: paError } = await supabaseClient
-      .from('patient_assignments')
-      .select('id, patient_id, doctor_id, nutritionist_id');
+    // Use the patient_assignments_report RPC to get assignments with patient names
+    console.log("Fetching patient assignments report...");
+    const { data: patientAssignmentsReport, error: parError } = await supabaseClient
+      .rpc('get_patient_assignments_report');
       
-    if (paError) {
-      console.error("Error fetching patient assignments:", paError);
+    if (parError) {
+      console.error("Error fetching patient assignments report:", parError);
       return new Response(
-        JSON.stringify({ error: `Failed to fetch patient assignments: ${paError.message}` }),
+        JSON.stringify({ error: `Failed to fetch patient assignments report: ${parError.message}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    if (!patientAssignments || patientAssignments.length === 0) {
-      console.log("No patient assignments found");
+    if (!patientAssignmentsReport || patientAssignmentsReport.length === 0) {
+      console.log("No patient assignments found in report");
       return new Response(
         JSON.stringify({ 
           success: true, 
@@ -93,8 +92,8 @@ serve(async (req: Request) => {
       );
     }
     
-    console.log(`Found ${patientAssignments.length} patient assignments`);
-    console.log("Sample assignments:", JSON.stringify(patientAssignments.slice(0, 5)));
+    console.log(`Found ${patientAssignmentsReport.length} patient assignments in report`);
+    console.log("Sample assignments from report:", JSON.stringify(patientAssignmentsReport.slice(0, 3)));
 
     // Fetch all existing care team rooms for reference
     const { data: existingRooms, error: existingRoomsError } = await supabaseClient
@@ -123,36 +122,31 @@ serve(async (req: Request) => {
     const createdRooms = [];
     const results = [];
     
-    for (const assignment of patientAssignments) {
+    for (const assignment of patientAssignmentsReport) {
       try {
-        if (!assignment.patient_id || !assignment.doctor_id) {
-          console.log("Skipping invalid assignment:", assignment);
+        // Skip patients without an ID
+        if (!assignment.patient_id) {
+          console.log("Skipping invalid assignment: Missing patient_id");
+          results.push({
+            status: "skipped",
+            reason: "Missing patient_id"
+          });
+          continue;
+        }
+        
+        // Skip if no doctor assigned (required for care team)
+        if (!assignment.doctor_id) {
+          console.log(`Skipping patient ${assignment.patient_id}: No doctor assigned`);
           results.push({
             patient_id: assignment.patient_id,
             status: "skipped",
-            reason: "Missing patient_id or doctor_id"
+            reason: "No doctor assigned"
           });
           continue;
         }
-        
-        // Get patient name
-        const { data: patientData, error: patientError } = await supabaseClient
-          .from('profiles')
-          .select('first_name, last_name')
-          .eq('id', assignment.patient_id)
-          .maybeSingle();
-          
-        if (patientError || !patientData) {
-          console.error(`Error fetching patient ${assignment.patient_id}:`, patientError || "No data returned");
-          results.push({
-            patient_id: assignment.patient_id,
-            status: "error",
-            reason: patientError ? `Error fetching patient data: ${patientError.message}` : "No patient profile found"
-          });
-          continue;
-        }
-        
-        const patientName = `${patientData.first_name || ''} ${patientData.last_name || ''}`.trim();
+
+        // Check if patient has a name
+        const patientName = `${assignment.patient_first_name || ''} ${assignment.patient_last_name || ''}`.trim();
         if (!patientName) {
           console.log(`Skipping patient with empty name: ${assignment.patient_id}`);
           results.push({
@@ -197,16 +191,20 @@ serve(async (req: Request) => {
         createdRooms.push(roomData);
         results.push({
           patient_id: assignment.patient_id,
+          patient_name: patientName,
           room_id: roomData,
           status: existingRoomsByPatient.has(assignment.patient_id) ? "updated" : "created",
           doctor_id: assignment.doctor_id,
-          nutritionist_id: assignment.nutritionist_id
+          doctor_name: `${assignment.doctor_first_name || ''} ${assignment.doctor_last_name || ''}`.trim(),
+          nutritionist_id: assignment.nutritionist_id,
+          nutritionist_name: assignment.nutritionist_id ? 
+            `${assignment.nutritionist_first_name || ''} ${assignment.nutritionist_last_name || ''}`.trim() : 
+            null
         });
-        console.log(`Room ${roomData} ${existingRoomsByPatient.has(assignment.patient_id) ? "updated" : "created"} for patient: ${assignment.patient_id}`);
+        console.log(`Room ${roomData} ${existingRoomsByPatient.has(assignment.patient_id) ? "updated" : "created"} for patient: ${patientName}`);
       } catch (assignmentError) {
-        console.error(`Error processing assignment for patient ${assignment.patient_id}:`, assignmentError);
+        console.error(`Error processing assignment:`, assignmentError);
         results.push({
-          patient_id: assignment.patient_id,
           status: "error",
           reason: assignmentError instanceof Error ? assignmentError.message : String(assignmentError)
         });
