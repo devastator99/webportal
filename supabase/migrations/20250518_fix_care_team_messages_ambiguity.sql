@@ -38,6 +38,7 @@ END;
 $$;
 
 -- Fix the get_care_team_messages function to avoid ambiguous columns
+-- and ensure it properly includes all care team members including nutritionists
 CREATE OR REPLACE FUNCTION public.get_care_team_messages(
   p_user_id UUID,
   p_patient_id UUID,

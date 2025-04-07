@@ -675,17 +675,11 @@ export type Database = {
         Returns: Json
       }
       assign_doctor_to_patient: {
-        Args: {
-          p_patient_id: string
-          p_doctor_id: string
-        }
+        Args: { p_patient_id: string; p_doctor_id: string }
         Returns: string
       }
       assign_nutritionist_to_patient: {
-        Args: {
-          p_patient_id: string
-          p_nutritionist_id: string
-        }
+        Args: { p_patient_id: string; p_nutritionist_id: string }
         Returns: Json
       }
       assign_patient_to_nutritionist: {
@@ -697,39 +691,27 @@ export type Database = {
         Returns: string
       }
       can_insert_user_role: {
-        Args: {
-          checking_user_id: string
-        }
+        Args: { checking_user_id: string }
         Returns: boolean
       }
       check_admin_role: {
-        Args: {
-          user_id: string
-        }
+        Args: { user_id: string }
         Returns: boolean
       }
       check_appointment_access: {
-        Args: {
-          checking_appointment_id: string
-        }
+        Args: { checking_appointment_id: string }
         Returns: boolean
       }
       check_medical_document_access: {
-        Args: {
-          document_id: string
-        }
+        Args: { document_id: string }
         Returns: boolean
       }
       check_patient_medical_access: {
-        Args: {
-          checking_patient_id: string
-        }
+        Args: { checking_patient_id: string }
         Returns: boolean
       }
       check_user_exists: {
-        Args: {
-          p_email: string
-        }
+        Args: { p_email: string }
         Returns: boolean
       }
       check_user_role_access: {
@@ -806,10 +788,7 @@ export type Database = {
         }[]
       }
       get_appointments_by_date: {
-        Args: {
-          p_doctor_id: string
-          p_date: string
-        }
+        Args: { p_doctor_id: string; p_date: string }
         Returns: {
           id: string
           scheduled_at: string
@@ -835,9 +814,7 @@ export type Database = {
         }[]
       }
       get_chatbot_knowledge: {
-        Args: {
-          topic_filter?: string
-        }
+        Args: { topic_filter?: string }
         Returns: {
           id: string
           topic: string
@@ -847,9 +824,7 @@ export type Database = {
         }[]
       }
       get_doctor_appointments: {
-        Args: {
-          doctor_id: string
-        }
+        Args: { doctor_id: string }
         Returns: {
           id: string
           scheduled_at: string
@@ -857,10 +832,7 @@ export type Database = {
         }[]
       }
       get_doctor_appointments_with_patients: {
-        Args: {
-          doctor_id: string
-          date_filter: string
-        }
+        Args: { doctor_id: string; date_filter: string }
         Returns: {
           id: string
           scheduled_at: string
@@ -869,16 +841,11 @@ export type Database = {
         }[]
       }
       get_doctor_medical_records_count: {
-        Args: {
-          doctor_id: string
-        }
+        Args: { doctor_id: string }
         Returns: number
       }
       get_doctor_patient_records: {
-        Args: {
-          p_doctor_id: string
-          p_patient_id: string
-        }
+        Args: { p_doctor_id: string; p_patient_id: string }
         Returns: {
           id: string
           created_at: string
@@ -889,9 +856,7 @@ export type Database = {
         }[]
       }
       get_doctor_patients: {
-        Args: {
-          p_doctor_id: string
-        }
+        Args: { p_doctor_id: string }
         Returns: {
           id: string
           first_name: string
@@ -899,9 +864,7 @@ export type Database = {
         }[]
       }
       get_doctor_patients_count: {
-        Args: {
-          doctor_id: string
-        }
+        Args: { doctor_id: string }
         Returns: number
       }
       get_doctor_profiles: {
@@ -929,15 +892,11 @@ export type Database = {
         Returns: Json
       }
       get_medical_report_url: {
-        Args: {
-          p_report_id: string
-        }
+        Args: { p_report_id: string }
         Returns: string
       }
       get_nutritionist_patients: {
-        Args: {
-          p_nutritionist_id: string
-        }
+        Args: { p_nutritionist_id: string }
         Returns: {
           id: string
           patient_id: string
@@ -955,9 +914,7 @@ export type Database = {
         }[]
       }
       get_patient_appointments: {
-        Args: {
-          p_patient_id: string
-        }
+        Args: { p_patient_id: string }
         Returns: {
           id: string
           scheduled_at: string
@@ -981,9 +938,7 @@ export type Database = {
         }[]
       }
       get_patient_care_team: {
-        Args: {
-          p_patient_id: string
-        }
+        Args: { p_patient_id: string }
         Returns: {
           id: string
           first_name: string
@@ -992,9 +947,7 @@ export type Database = {
         }[]
       }
       get_patient_care_team_members: {
-        Args: {
-          p_patient_id: string
-        }
+        Args: { p_patient_id: string }
         Returns: {
           id: string
           first_name: string
@@ -1010,9 +963,7 @@ export type Database = {
         }[]
       }
       get_patient_health_plan: {
-        Args: {
-          p_patient_id: string
-        }
+        Args: { p_patient_id: string }
         Returns: {
           id: string
           type: string
@@ -1023,10 +974,7 @@ export type Database = {
         }[]
       }
       get_patient_medical_records: {
-        Args: {
-          p_patient_id: string
-          p_doctor_id: string
-        }
+        Args: { p_patient_id: string; p_doctor_id: string }
         Returns: {
           id: string
           created_at: string
@@ -1040,9 +988,7 @@ export type Database = {
         }[]
       }
       get_patient_medical_reports: {
-        Args: {
-          p_patient_id: string
-        }
+        Args: { p_patient_id: string }
         Returns: {
           id: string
           file_name: string
@@ -1058,10 +1004,7 @@ export type Database = {
         }[]
       }
       get_patient_prescriptions: {
-        Args: {
-          p_patient_id: string
-          p_doctor_id: string
-        }
+        Args: { p_patient_id: string; p_doctor_id: string }
         Returns: {
           id: string
           created_at: string
@@ -1085,9 +1028,7 @@ export type Database = {
         }[]
       }
       get_signed_medical_report_url: {
-        Args: {
-          p_report_id: string
-        }
+        Args: { p_report_id: string }
         Returns: string
       }
       get_user_chat_messages: {
@@ -1108,17 +1049,13 @@ export type Database = {
         }[]
       }
       get_user_role: {
-        Args: {
-          lookup_user_id: string
-        }
+        Args: { lookup_user_id: string }
         Returns: {
           role: Database["public"]["Enums"]["user_type"]
         }[]
       }
       get_users_by_role: {
-        Args: {
-          role_name: Database["public"]["Enums"]["user_type"]
-        }
+        Args: { role_name: Database["public"]["Enums"]["user_type"] }
         Returns: {
           user_id: string
         }[]
@@ -1134,35 +1071,23 @@ export type Database = {
         }[]
       }
       has_role: {
-        Args: {
-          role_to_check: Database["public"]["Enums"]["user_type"]
-        }
+        Args: { role_to_check: Database["public"]["Enums"]["user_type"] }
         Returns: boolean
       }
       is_admin: {
-        Args: {
-          user_id: string
-        }
+        Args: { user_id: string }
         Returns: boolean
       }
       is_doctor: {
-        Args: {
-          user_id: string
-        }
+        Args: { user_id: string }
         Returns: boolean
       }
       is_reception: {
-        Args: {
-          user_id: string
-        }
+        Args: { user_id: string }
         Returns: boolean
       }
       save_health_plan_items: {
-        Args: {
-          p_patient_id: string
-          p_nutritionist_id: string
-          p_items: Json
-        }
+        Args: { p_patient_id: string; p_nutritionist_id: string; p_items: Json }
         Returns: string[]
       }
       save_prescription: {
@@ -1176,9 +1101,7 @@ export type Database = {
         Returns: string
       }
       search_chatbot_knowledge: {
-        Args: {
-          search_term: string
-        }
+        Args: { search_term: string }
         Returns: {
           id: string
           topic: string
@@ -1197,10 +1120,7 @@ export type Database = {
         Returns: string
       }
       validate_appointment_date: {
-        Args: {
-          p_doctor_id: string
-          p_scheduled_date: string
-        }
+        Args: { p_doctor_id: string; p_scheduled_date: string }
         Returns: boolean
       }
     }
@@ -1221,27 +1141,29 @@ export type Database = {
   }
 }
 
-type PublicSchema = Database[Extract<keyof Database, "public">]
+type DefaultSchema = Database[Extract<keyof Database, "public">]
 
 export type Tables<
-  PublicTableNameOrOptions extends
-    | keyof (PublicSchema["Tables"] & PublicSchema["Views"])
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-        Database[PublicTableNameOrOptions["schema"]]["Views"])
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? (Database[PublicTableNameOrOptions["schema"]]["Tables"] &
-      Database[PublicTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? (Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      Database[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
     ? R
     : never
-  : PublicTableNameOrOptions extends keyof (PublicSchema["Tables"] &
-        PublicSchema["Views"])
-    ? (PublicSchema["Tables"] &
-        PublicSchema["Views"])[PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
         Row: infer R
       }
       ? R
@@ -1249,20 +1171,22 @@ export type Tables<
     : never
 
 export type TablesInsert<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Insert: infer I
     }
     ? I
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Insert: infer I
       }
       ? I
@@ -1270,20 +1194,22 @@ export type TablesInsert<
     : never
 
 export type TablesUpdate<
-  PublicTableNameOrOptions extends
-    | keyof PublicSchema["Tables"]
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
     | { schema: keyof Database },
-  TableName extends PublicTableNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicTableNameOrOptions["schema"]]["Tables"]
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never = never,
-> = PublicTableNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+> = DefaultSchemaTableNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
       Update: infer U
     }
     ? U
     : never
-  : PublicTableNameOrOptions extends keyof PublicSchema["Tables"]
-    ? PublicSchema["Tables"][PublicTableNameOrOptions] extends {
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
         Update: infer U
       }
       ? U
@@ -1291,21 +1217,23 @@ export type TablesUpdate<
     : never
 
 export type Enums<
-  PublicEnumNameOrOptions extends
-    | keyof PublicSchema["Enums"]
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
     | { schema: keyof Database },
-  EnumName extends PublicEnumNameOrOptions extends { schema: keyof Database }
-    ? keyof Database[PublicEnumNameOrOptions["schema"]]["Enums"]
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof Database
+  }
+    ? keyof Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never = never,
-> = PublicEnumNameOrOptions extends { schema: keyof Database }
-  ? Database[PublicEnumNameOrOptions["schema"]]["Enums"][EnumName]
-  : PublicEnumNameOrOptions extends keyof PublicSchema["Enums"]
-    ? PublicSchema["Enums"][PublicEnumNameOrOptions]
+> = DefaultSchemaEnumNameOrOptions extends { schema: keyof Database }
+  ? Database[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof PublicSchema["CompositeTypes"]
+    | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof Database },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof Database
@@ -1314,6 +1242,23 @@ export type CompositeTypes<
     : never = never,
 > = PublicCompositeTypeNameOrOptions extends { schema: keyof Database }
   ? Database[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
-  : PublicCompositeTypeNameOrOptions extends keyof PublicSchema["CompositeTypes"]
-    ? PublicSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      appointment_status: ["scheduled", "completed", "cancelled"],
+      message_type: ["text", "file", "video"],
+      payment_status: ["pending", "completed", "failed"],
+      user_type: [
+        "patient",
+        "doctor",
+        "nutritionist",
+        "administrator",
+        "reception",
+      ],
+    },
+  },
+} as const

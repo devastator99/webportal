@@ -39,6 +39,19 @@ serve(async (req: Request) => {
     
     console.log("Fetching messages for user:", user_id, "and other user:", other_user_id);
     
+    // First, get the user's role to help with debugging
+    const { data: userRoleData, error: userRoleError } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user_id)
+      .single();
+      
+    if (userRoleError) {
+      console.error("Error fetching user role:", userRoleError);
+    } else {
+      console.log("User role:", userRoleData?.role || "unknown");
+    }
+    
     // First, check if get_care_team_messages_count exists
     try {
       console.log("Getting count of messages");
@@ -83,6 +96,16 @@ serve(async (req: Request) => {
       );
     } catch (fnError) {
       console.error("Error with RPC function:", fnError);
+      
+      // Get the care team members for debugging
+      const { data: careTeam, error: careTeamError } = await supabaseClient
+        .rpc('get_patient_care_team_members', { p_patient_id: other_user_id });
+        
+      if (careTeamError) {
+        console.error("Error fetching care team members:", careTeamError);
+      } else {
+        console.log("Care team members:", careTeam);
+      }
       
       // Fallback to direct querying if RPC functions fail
       console.log("Falling back to direct message querying");
