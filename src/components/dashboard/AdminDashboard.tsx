@@ -33,18 +33,31 @@ export const AdminDashboard = () => {
         description: "This may take a moment",
       });
       
+      console.log("Starting care team rooms sync from AdminDashboard");
       const result = await syncAllCareTeamRooms();
+      console.log("Sync result:", result);
       
-      toast({
-        title: "Sync completed",
-        description: `Successfully synced ${result?.rooms?.length || 0} care team rooms`,
-      });
+      // Check if result contains expected data
+      if (!result || !result.rooms) {
+        console.warn("Sync completed but returned unexpected data format:", result);
+        toast({
+          title: "Sync completed",
+          description: "Sync process completed but returned unexpected data",
+        });
+      } else {
+        toast({
+          title: "Sync completed",
+          description: `Successfully synced ${result.rooms.length || 0} care team rooms`,
+        });
+      }
       
       // Invalidate any patient assignments or chat rooms queries
+      console.log("Invalidating related queries");
       queryClient.invalidateQueries({ queryKey: ["patient_assignments_report"] });
       queryClient.invalidateQueries({ queryKey: ["care_team_rooms"] });
       
     } catch (error: any) {
+      console.error("Error in handleSyncCareTeams:", error);
       toast({
         title: "Sync failed",
         description: error.message || "Could not sync care team rooms",

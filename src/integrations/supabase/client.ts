@@ -246,6 +246,21 @@ export async function adminDeleteUser(
 // Function to allow administrators to sync all care team rooms
 export async function syncAllCareTeamRooms(): Promise<any> {
   try {
+    console.log("Starting syncAllCareTeamRooms client function");
+    
+    // First check if there are any patient assignments
+    const { data: assignments, error: assignmentsError } = await supabase
+      .from('patient_assignments')
+      .select('patient_id, doctor_id, nutritionist_id')
+      .limit(100);
+      
+    if (assignmentsError) {
+      console.error('Error checking patient assignments:', assignmentsError);
+    } else {
+      console.log(`Found ${assignments?.length || 0} patient assignments before sync`);
+      console.log("Sample assignments:", assignments?.slice(0, 5));
+    }
+    
     console.log("Calling sync-care-team-rooms edge function");
     
     const { data, error } = await supabase.functions.invoke('sync-care-team-rooms');
@@ -259,7 +274,14 @@ export async function syncAllCareTeamRooms(): Promise<any> {
     
     // Handle case where the function returned data but with error status
     if (data && data.error) {
+      console.error('Error returned from edge function:', data.error);
       throw new Error(data.error);
+    }
+    
+    // Log success details
+    if (data && data.rooms) {
+      console.log(`Successfully synced ${data.rooms.length} care team rooms`);
+      console.log("Room IDs:", data.rooms);
     }
     
     return data;

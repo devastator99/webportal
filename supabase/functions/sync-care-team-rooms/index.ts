@@ -15,6 +15,8 @@ serve(async (req: Request) => {
   }
 
   try {
+    console.log("Starting sync-care-team-rooms edge function");
+    
     // Create a Supabase client with the auth context
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -27,8 +29,11 @@ serve(async (req: Request) => {
     // Get admin status
     const { data: userData, error: userError } = await supabaseClient.auth.getUser();
     if (userError) {
+      console.error("Error getting user:", userError);
       throw userError;
     }
+    
+    console.log("User authenticated:", userData.user.id);
 
     // Check if user has admin role
     const { data: roleData, error: roleError } = await supabaseClient
@@ -38,8 +43,11 @@ serve(async (req: Request) => {
       .single();
 
     if (roleError) {
+      console.error("Error getting user role:", roleError);
       throw roleError;
     }
+    
+    console.log("User role:", roleData.role);
 
     // Only allow administrators to run this function
     if (roleData.role !== 'administrator') {
@@ -49,12 +57,31 @@ serve(async (req: Request) => {
       );
     }
 
+    console.log("Fetching all patient assignments...");
+    
+    // Log current patient assignments before syncing
+    const { data: patientAssignments, error: paError } = await supabaseClient
+      .from('patient_assignments')
+      .select('patient_id, doctor_id, nutritionist_id');
+      
+    if (paError) {
+      console.error("Error fetching patient assignments:", paError);
+    } else {
+      console.log(`Found ${patientAssignments?.length || 0} patient assignments`);
+      console.log("Patient assignments:", JSON.stringify(patientAssignments));
+    }
+
     // Call the RPC function to sync all care team rooms
+    console.log("Calling sync_all_care_team_rooms RPC function");
     const { data, error } = await supabaseClient.rpc('sync_all_care_team_rooms');
     
     if (error) {
+      console.error("Error calling sync_all_care_team_rooms:", error);
       throw error;
     }
+
+    console.log(`Sync completed, created/updated ${data?.length || 0} rooms`);
+    console.log("Room IDs:", JSON.stringify(data));
 
     return new Response(
       JSON.stringify({ 
@@ -65,7 +92,7 @@ serve(async (req: Request) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error:", error);
+    console.error("Error in sync-care-team-rooms:", error);
     
     return new Response(
       JSON.stringify({ error: error.message }),

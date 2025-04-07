@@ -9,13 +9,23 @@ AS $$
 DECLARE
   v_assignment RECORD;
   v_room_id UUID;
+  v_count INTEGER := 0;
 BEGIN
+  RAISE NOTICE 'Starting sync_all_care_team_rooms function';
+  
   -- Iterate through all patient assignments
   FOR v_assignment IN 
-    SELECT patient_id, doctor_id, nutritionist_id
-    FROM patient_assignments
-    WHERE doctor_id IS NOT NULL
+    SELECT pa.patient_id, pa.doctor_id, pa.nutritionist_id,
+           p.first_name || ' ' || p.last_name AS patient_name
+    FROM patient_assignments pa
+    JOIN profiles p ON pa.patient_id = p.id
+    WHERE pa.doctor_id IS NOT NULL
   LOOP
+    RAISE NOTICE 'Processing patient: %, doctor: %, nutritionist: %', 
+                v_assignment.patient_name, 
+                v_assignment.doctor_id, 
+                v_assignment.nutritionist_id;
+    
     -- Create or ensure care team room exists
     v_room_id := public.create_care_team_room(
       v_assignment.patient_id,
@@ -23,12 +33,18 @@ BEGIN
       v_assignment.nutritionist_id
     );
     
-    -- Return the room ID
+    -- Return the room ID if successful
     IF v_room_id IS NOT NULL THEN
+      RAISE NOTICE 'Created/updated room with ID: % for patient: %', 
+                  v_room_id, v_assignment.patient_name;
+      v_count := v_count + 1;
       RETURN NEXT v_room_id;
+    ELSE
+      RAISE NOTICE 'Failed to create room for patient: %', v_assignment.patient_name;
     END IF;
   END LOOP;
   
+  RAISE NOTICE 'Completed sync_all_care_team_rooms, processed % rooms', v_count;
   RETURN;
 END;
 $$;
