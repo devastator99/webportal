@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, AdminOperationResponse } from "@/integrations/supabase/client";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { UserPlus, Loader2, CheckCircle2, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,14 +14,6 @@ interface Profile {
   id: string;
   first_name: string | null;
   last_name: string | null;
-}
-
-// Define the expected RPC response type
-interface CareTeamAssignmentResponse {
-  success: boolean;
-  message?: string;
-  error?: string;
-  id?: string;
 }
 
 export const PatientAssignmentManager = () => {
@@ -177,10 +169,18 @@ export const PatientAssignmentManager = () => {
         throw new Error(assignmentError.message || "Error assigning care team");
       }
       
-      // Type guard check for the response structure
-      const responseData = assignmentData as CareTeamAssignmentResponse;
+      // Type cast and validation
+      if (!assignmentData) {
+        throw new Error("Failed to receive response from server");
+      }
+      
+      // Safely cast to expected response type with validation
+      const responseData = assignmentData as unknown as AdminOperationResponse;
       if (!responseData || !responseData.success) {
-        throw new Error((responseData && responseData.error) || "Failed to assign care team");
+        throw new Error(
+          (responseData && typeof responseData === 'object' && 'error' in responseData && responseData.error) 
+          || "Failed to assign care team"
+        );
       }
       
       console.log("Now creating care team room for patient");

@@ -200,13 +200,18 @@ export async function assignCareTeam(
       throw new Error(error.message || 'Failed to assign care team');
     }
     
-    // Type guard and validation
-    const responseData = data as AdminOperationResponse;
-    if (responseData && typeof responseData === 'object' && 'error' in responseData && responseData.error) {
+    // Type guard and validation for safety
+    if (!data) {
+      throw new Error('Empty response received from server');
+    }
+    
+    // Safely cast to our expected response type with validation
+    const responseData = data as unknown as AdminOperationResponse;
+    if (typeof responseData === 'object' && 'error' in responseData && responseData.error) {
       throw new Error(responseData.error);
     }
     
-    return responseData as AdminOperationResponse;
+    return responseData;
   } catch (error: any) {
     console.error('Exception in assignCareTeam:', error);
     throw error;
@@ -238,9 +243,14 @@ export async function adminDeleteUser(
       throw new Error('Failed to communicate with server. Please try again.');
     }
     
+    // Safely handle response data
+    if (!data) {
+      throw new Error('Empty response received from server');
+    }
+    
     // Handle case where the function returned data but with error status
-    const responseData = data as { error?: string };
-    if (responseData && typeof responseData === 'object' && 'error' in responseData && responseData.error) {
+    const responseData = data as unknown as { error?: string };
+    if (typeof responseData === 'object' && 'error' in responseData && responseData.error) {
       throw new Error(responseData.error);
     }
     
