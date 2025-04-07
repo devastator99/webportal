@@ -24,12 +24,10 @@ interface CareTeamGroup {
 
 interface ChatMessagesListProps {
   selectedUserId?: string | null;
-  isGroupChat?: boolean;
   careTeamGroup?: CareTeamGroup | null;
   careTeamMembers?: UserProfile[];
   offlineMode?: boolean;
   localMessages?: any[];
-  includeCareTeamMessages?: boolean;
 }
 
 // Define proper types for the chat message
@@ -38,7 +36,7 @@ interface ChatMessageType {
   message: string;
   message_type: string;
   created_at: string;
-  read?: boolean; // Optional since it's not always in the query response
+  read?: boolean;
   sender: UserProfile;
   receiver: UserProfile;
   file_url?: string | null;
@@ -46,7 +44,6 @@ interface ChatMessageType {
 
 export const ChatMessagesList = ({ 
   selectedUserId, 
-  isGroupChat = false, 
   careTeamGroup = null,
   careTeamMembers = [],
   offlineMode = false,
@@ -60,7 +57,6 @@ export const ChatMessagesList = ({
   // Console log to debug what props are being passed
   console.log("ChatMessagesList render with:", {
     selectedUserId,
-    isGroupChat,
     careTeamGroup: careTeamGroup?.members?.length,
     careTeamMembers: careTeamMembers?.length,
     userRole,
@@ -74,9 +70,8 @@ export const ChatMessagesList = ({
     refetch,
     isRefetching
   } = useQuery({
-    queryKey: ["chat_messages", user?.id, selectedUserId, isGroupChat, 
+    queryKey: ["chat_messages", user?.id, selectedUserId, 
       careTeamGroup?.groupName, 
-      careTeamMembers?.length, 
       careTeamMembers?.map(m => m.id).join('-')],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -84,7 +79,6 @@ export const ChatMessagesList = ({
       console.log("Fetching messages with params:", {
         userId: user?.id,
         selectedUserId,
-        isGroupChat,
         careTeamMembersCount: careTeamMembers?.length || 0,
         careTeamGroupName: careTeamGroup?.groupName,
         userRole
@@ -93,13 +87,13 @@ export const ChatMessagesList = ({
       if (selectedUserId) {
         try {
           // Always use the edge function for consistency
-          console.log("Getting messages via edge function");
+          console.log("Getting care team messages via edge function");
           const { data, error } = await supabase.functions.invoke('get-chat-messages', {
             body: {
               user_id: user.id,
               other_user_id: selectedUserId,
-              is_group_chat: isGroupChat,
-              care_team_members: isGroupChat ? careTeamMembers : undefined
+              is_group_chat: true,
+              care_team_members: careTeamMembers
             }
           });
 
@@ -129,7 +123,7 @@ export const ChatMessagesList = ({
 
       return [];
     },
-    enabled: !!user?.id && (!!selectedUserId || (isGroupChat && !!careTeamGroup)),
+    enabled: !!user?.id && !!selectedUserId,
     staleTime: 5000, // Keep data fresh for 5 seconds
     refetchInterval: 10000, // Add polling to refresh messages automatically every 10 seconds
     retry: 2,

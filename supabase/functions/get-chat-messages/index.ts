@@ -14,11 +14,11 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { user_id, other_user_id, is_group_chat = false, care_team_members = [], page = 1, per_page = 50 } = await req.json();
+    const { user_id, other_user_id, is_group_chat = true, care_team_members = [], page = 1, per_page = 50 } = await req.json();
     
-    if (!user_id || !other_user_id) {
+    if (!user_id) {
       return new Response(
-        JSON.stringify({ error: "User ID and other user ID are required" }),
+        JSON.stringify({ error: "User ID is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -37,7 +37,7 @@ serve(async (req: Request) => {
     const perPage = parseInt(String(per_page));
     const offset = (pageNumber - 1) * perPage;
     
-    console.log("Fetching messages for user:", user_id, "and other user:", other_user_id, "isGroupChat:", is_group_chat);
+    console.log("Fetching messages for user:", user_id, "and patient:", other_user_id, "isGroupChat:", is_group_chat);
     
     // Get the roles of both users to determine context
     const { data: otherUserData, error: otherUserError } = await supabaseClient
@@ -56,40 +56,21 @@ serve(async (req: Request) => {
     const otherUserRole = otherUserData?.role || "unknown";
     console.log("User role:", userRole, "Other user role:", otherUserRole);
     
-    let isPatientCareTeamChat = false;
     let patientId = null;
     
-    // Determine if this is a patient care team chat
-    if (is_group_chat) {
-      console.log("This is explicitly a group chat");
-      if (userRole === 'patient') {
-        // If current user is a patient, we're in a care team chat for this patient
-        isPatientCareTeamChat = true;
-        patientId = user_id;
-        console.log("This is a care team chat for patient (user is patient):", patientId);
-      } else if (otherUserRole === 'patient') {
-        // If other user is a patient, we're in a care team chat for this patient
-        isPatientCareTeamChat = true;
-        patientId = other_user_id;
-        console.log("This is a care team chat for patient:", patientId);
-      }
-    } else {
-      // For backward compatibility - detect based on role
-      if (otherUserRole === 'patient') {
-        // If other user is a patient, we're in a care team chat for this patient
-        isPatientCareTeamChat = true;
-        patientId = other_user_id;
-        console.log("This is a care team chat for patient (auto-detected):", patientId);
-      } else if (userRole === 'patient') {
-        // If current user is a patient, we're in a care team chat for this patient
-        isPatientCareTeamChat = true;
-        patientId = user_id;
-        console.log("This is a care team chat for patient (user is patient, auto-detected):", patientId);
-      }
+    // Determine which user is the patient
+    if (userRole === 'patient') {
+      // If current user is a patient, we're in a care team chat for this patient
+      patientId = user_id;
+      console.log("This is a care team chat for patient (user is patient):", patientId);
+    } else if (otherUserRole === 'patient') {
+      // If other user is a patient, we're in a care team chat for this patient
+      patientId = other_user_id;
+      console.log("This is a care team chat for patient:", patientId);
     }
     
     try {
-      if (isPatientCareTeamChat && patientId) {
+      if (patientId) {
         console.log("Getting care team messages for patient:", patientId);
         
         // Use the get_care_team_messages RPC function for care team messages
@@ -143,44 +124,13 @@ serve(async (req: Request) => {
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } else {
-        // Regular one-to-one chat
-        console.log("Getting direct messages between:", user_id, "and", other_user_id);
-        
-        // Use the get_user_chat_messages RPC function for direct messages
-        const { data: directMessages, error: directError } = await supabaseClient
-          .rpc('get_user_chat_messages', {
-            p_user_id: user_id,
-            p_other_user_id: other_user_id,
-            p_offset: offset,
-            p_limit: perPage
-          });
-        
-        if (directError) {
-          console.error("Error getting direct messages:", directError);
-          throw directError;
-        }
-        
-        console.log(`Retrieved ${directMessages?.length || 0} direct messages`);
-        
-        // Mark messages as read if the current user is the recipient
-        if (directMessages && directMessages.length > 0) {
-          try {
-            await supabaseClient.functions.invoke('mark-messages-as-read', {
-              body: { 
-                user_id: user_id, 
-                sender_id: other_user_id 
-              }
-            });
-          } catch (markError) {
-            console.warn("Error marking messages as read:", markError);
-            // Continue processing even if marking as read fails
-          }
-        }
+        // If no patient is identified, return an empty array
+        console.log("No patient identified, returning empty messages array");
         
         return new Response(
           JSON.stringify({
-            messages: directMessages || [],
-            hasMore: directMessages && directMessages.length === perPage,
+            messages: [],
+            hasMore: false,
             page: pageNumber,
             perPage
           }),
@@ -190,54 +140,13 @@ serve(async (req: Request) => {
     } catch (fnError) {
       console.error("Error in primary message function:", fnError);
       
-      // Simplified fallback query that properly handles the read column
-      const query = supabaseClient
-        .from('chat_messages')
-        .select(`
-          id,
-          message,
-          message_type,
-          created_at,
-          read,
-          sender:profiles!chat_messages_sender_id_fkey(id, first_name, last_name),
-          receiver:profiles!chat_messages_receiver_id_fkey(id, first_name, last_name)
-        `);
-        
-      // Determine which users to include in the query based on context
-      if (patientId) {
-        // For care team chat, get messages involving the patient and current user
-        query.or(`sender_id.eq.${patientId},sender_id.eq.${user_id},receiver_id.eq.${patientId},receiver_id.eq.${user_id}`);
-      } else {
-        // For direct chat, just get messages between the two users
-        query.or(`and(sender_id.eq.${user_id},receiver_id.eq.${other_user_id}),and(sender_id.eq.${other_user_id},receiver_id.eq.${user_id})`);
-      }
-      
-      const { data: fallbackMessages, error: fallbackError } = await query
-        .order('created_at', { ascending: true })
-        .range(offset, offset + perPage - 1);
-      
-      if (fallbackError) {
-        console.error("Error in fallback query:", fallbackError);
-        throw fallbackError;
-      }
-      
-      console.log(`Retrieved ${fallbackMessages?.length || 0} messages using fallback method`);
-      
-      // Format the messages to match expected structure
-      const formattedMessages = fallbackMessages?.map(msg => ({
-        ...msg,
-        message_type: msg.message_type || "text",
-        read: msg.read !== null ? msg.read : false
-      })) || [];
-      
+      // Return a proper error response
       return new Response(
-        JSON.stringify({
-          messages: formattedMessages,
-          hasMore: fallbackMessages && fallbackMessages.length === perPage,
-          page: pageNumber,
-          perPage
+        JSON.stringify({ 
+          error: "Error processing messages", 
+          details: fnError.message 
         }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     

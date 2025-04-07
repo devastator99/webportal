@@ -182,7 +182,7 @@ export const DoctorWhatsAppChat = () => {
     if (!newMessage.trim() || !selectedPatientId || !user?.id) return;
     
     try {
-      // This message will be seen by everyone in the care team
+      // This message will be sent in the care team context
       const tempMessage = {
         id: uuidv4(),
         message: newMessage,
@@ -215,7 +215,7 @@ export const DoctorWhatsAppChat = () => {
       
       if (error) throw error;
       
-      // Forward the message to all care team members so everyone sees the communication
+      // Forward the message to all care team members so everyone sees the care team communication
       if (careTeamMembers && careTeamMembers.length > 0) {
         console.log("Forwarding message to all care team members:", careTeamMembers.length);
         
@@ -275,13 +275,11 @@ export const DoctorWhatsAppChat = () => {
   const showChatOnly = isMobile && selectedPatientId && !showSidebar;
   const showSidebarOnly = isMobile && showSidebar;
 
-  const providerTypeText = userRole === "doctor" ? "Doctor" : "Nutritionist";
-
   return (
     <ErrorBoundary>
       <Card className="h-full flex flex-col">
         <CardContent className="p-0 flex flex-1 overflow-hidden">
-          {/* Sidebar */}
+          {/* Sidebar with Patients */}
           {(showSidebar || showSidebarOnly) && (
             <div className={`${showSidebarOnly ? 'w-full' : (isIPad ? 'w-2/5' : 'w-1/3')} border-r h-full bg-background relative`}>
               <div className="p-3 bg-muted/40 border-b flex justify-between items-center">
@@ -330,7 +328,7 @@ export const DoctorWhatsAppChat = () => {
                               {patient.first_name} {patient.last_name}
                             </div>
                             <div className="text-xs text-muted-foreground truncate">
-                              Click to view care group
+                              Click to view care team chat
                             </div>
                           </div>
                         </div>
@@ -343,7 +341,7 @@ export const DoctorWhatsAppChat = () => {
             </div>
           )}
           
-          {/* Chat area */}
+          {/* Care Team Chat Area */}
           {(!showSidebarOnly) && (
             <div className="flex-1 flex flex-col h-full relative">
               {selectedPatientId ? (
@@ -381,7 +379,6 @@ export const DoctorWhatsAppChat = () => {
                     ) : (
                       <ChatMessagesList
                         selectedUserId={selectedPatientId}
-                        isGroupChat={true}
                         careTeamMembers={careTeamMembers}
                         localMessages={localMessages}
                       />
@@ -392,7 +389,7 @@ export const DoctorWhatsAppChat = () => {
                         value={newMessage}
                         onChange={setNewMessage}
                         onSend={handleSendMessage}
-                        placeholder="Type a message to the care group..."
+                        placeholder="Type a message to the care team..."
                         disabled={!selectedPatientId || isLoadingCareTeam}
                       />
                     </div>
@@ -407,7 +404,7 @@ export const DoctorWhatsAppChat = () => {
                     </div>
                   ) : (
                     <div className="text-center">
-                      Select a patient to view care group messages
+                      Select a patient to view care team messages
                     </div>
                   )}
                 </div>
