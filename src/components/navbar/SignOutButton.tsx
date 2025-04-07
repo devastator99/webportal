@@ -5,7 +5,12 @@ import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
-export const SignOutButton = () => {
+interface SignOutButtonProps {
+  onSignOutStart?: () => void;
+  onSignOutEnd?: () => void;
+}
+
+export const SignOutButton = ({ onSignOutStart, onSignOutEnd }: SignOutButtonProps = {}) => {
   const { signOut, resetInactivityTimer } = useAuth();
   const { toast } = useToast();
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -13,7 +18,10 @@ export const SignOutButton = () => {
   const handleSignOut = async () => {
     try {
       setIsSigningOut(true);
+      if (onSignOutStart) onSignOutStart();
+      
       await signOut();
+      
       toast({
         title: "Successfully signed out",
         description: "You have been signed out of your account",
@@ -26,6 +34,7 @@ export const SignOutButton = () => {
       });
     } finally {
       setIsSigningOut(false);
+      if (onSignOutEnd) onSignOutEnd();
     }
   };
 

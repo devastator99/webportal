@@ -85,7 +85,10 @@ export const Navbar = () => {
               <LoginDialog />
             </div>
           )}
-          {user && <SignOutButton onSignOutStart={() => setIsSigningOut(true)} onSignOutEnd={() => setIsSigningOut(false)} />}
+          {user && <SignOutButton 
+            onSignOutStart={() => setIsSigningOut(true)} 
+            onSignOutEnd={() => setIsSigningOut(false)} 
+          />}
         </div>
         
         {/* Mobile/iPad navigation */}
@@ -95,7 +98,10 @@ export const Navbar = () => {
               {user && <DashboardButton />}
               {user && <DoctorActions />}
               {user && isAdminPage && <ForceLogoutButton />}
-              {user && <SignOutButton onSignOutStart={() => setIsSigningOut(true)} onSignOutEnd={() => setIsSigningOut(false)} />}
+              {user && <SignOutButton 
+                onSignOutStart={() => setIsSigningOut(true)} 
+                onSignOutEnd={() => setIsSigningOut(false)} 
+              />}
             </div>
           </div>
         )}
