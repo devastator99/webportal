@@ -47,7 +47,7 @@ serve(async (req: Request) => {
     }
 
     // Get request body
-    const { roomId, message, patientContext } = await req.json();
+    const { roomId, message } = await req.json();
 
     if (!roomId || !message) {
       return new Response(
@@ -77,71 +77,42 @@ serve(async (req: Request) => {
       );
     }
 
-    // Get the patient information for the room
-    const { data: roomData, error: roomDataError } = await supabaseClient
-      .from('chat_rooms')
-      .select('patient_id')
-      .eq('id', roomId)
-      .single();
-
-    if (roomDataError || !roomData) {
-      return new Response(
-        JSON.stringify({ error: 'Room not found' }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Save the user's message to the room
-    const { data: userMessage, error: messageError } = await supabaseClient.rpc(
-      'send_room_message',
-      {
-        p_room_id: roomId,
-        p_message: message
-      }
-    );
-
-    if (messageError) {
-      console.error("Error saving user message:", messageError);
-    }
-
     // Get room message history for context
-    const { data: messageHistory, error: historyError } = await supabaseClient.rpc(
-      'get_room_messages',
-      {
-        p_room_id: roomId,
-        p_limit: 10
-      }
-    );
+    const { data: messageHistory, error: historyError } = await supabaseClient
+      .from('room_messages')
+      .select(`
+        id,
+        sender_id,
+        sender:profiles!room_messages_sender_id_fkey(
+          first_name,
+          last_name
+        ),
+        sender_role:user_roles!inner(role),
+        message,
+        is_system_message,
+        is_ai_message,
+        created_at
+      `)
+      .eq('room_id', roomId)
+      .order('created_at', { ascending: true })
+      .limit(10);
 
     if (historyError) {
       console.error("Error fetching message history:", historyError);
     }
 
-    // Get patient profile information
-    let patientInfo = patientContext || {};
-    if (roomData.patient_id && !patientContext) {
-      const { data: patientData } = await supabaseClient
-        .from('profiles')
-        .select('*')
-        .eq('id', roomData.patient_id)
-        .single();
-
-      if (patientData) {
-        patientInfo = {
-          name: `${patientData.first_name || ''} ${patientData.last_name || ''}`.trim(),
-          ...patientData
-        };
-      }
-    }
-
     // Format message history for OpenAI
-    const formattedHistory = messageHistory ? messageHistory.map(msg => ({
-      role: msg.is_ai_message ? "assistant" : "user",
-      content: `${msg.is_ai_message ? '' : `${msg.sender_name} (${msg.sender_role}): `}${msg.message}`
-    })) : [];
+    const formattedHistory = messageHistory ? messageHistory.map(msg => {
+      const senderName = msg.sender_id === '00000000-0000-0000-0000-000000000000' 
+        ? 'AI Assistant' 
+        : `${msg.sender?.first_name || ''} ${msg.sender?.last_name || ''}`.trim();
+      const senderRole = msg.sender_role?.[0]?.role || 'unknown';
+      
+      return {
+        role: msg.is_ai_message ? "assistant" : "user",
+        content: `${msg.is_ai_message ? '' : `${senderName} (${senderRole}): `}${msg.message}`
+      };
+    }) : [];
 
     // Prepare AI chat request
     const aiMessages = [
@@ -149,8 +120,6 @@ serve(async (req: Request) => {
         role: "system",
         content: `You are an AI healthcare assistant in a care team chat for a patient. 
         Your goal is to provide helpful, accurate, and supportive information to both the patient and healthcare providers.
-        
-        ${patientInfo ? `Patient information: ${JSON.stringify(patientInfo, null, 2)}` : ''}
         
         Guidelines:
         - Be professional and compassionate
@@ -207,15 +176,17 @@ serve(async (req: Request) => {
     const aiResponseText = openAIData.choices[0].message.content.trim();
 
     // Save AI response to the room
-    const { data: aiMessageData, error: aiMessageError } = await supabaseClient.rpc(
-      'send_room_message',
-      {
-        p_room_id: roomId,
-        p_message: aiResponseText,
-        p_is_system_message: false,
-        p_is_ai_message: true
-      }
-    );
+    const { data: aiMessageData, error: aiMessageError } = await supabaseClient
+      .from('room_messages')
+      .insert({
+        room_id: roomId,
+        sender_id: '00000000-0000-0000-0000-000000000000', // AI bot ID
+        message: aiResponseText,
+        is_system_message: false,
+        is_ai_message: true
+      })
+      .select()
+      .single();
 
     if (aiMessageError) {
       console.error("Error saving AI message:", aiMessageError);
@@ -232,7 +203,7 @@ serve(async (req: Request) => {
       JSON.stringify({ 
         success: true, 
         response: aiResponseText,
-        messageId: aiMessageData 
+        messageId: aiMessageData.id 
       }),
       { 
         status: 200, 

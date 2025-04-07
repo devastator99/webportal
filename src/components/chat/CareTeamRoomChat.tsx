@@ -61,41 +61,98 @@ export const CareTeamRoomChat = ({
       if (!selectedRoomId || !user?.id) return null;
       
       const { data, error } = await supabase
-        .rpc('get_user_care_team_rooms', { p_user_id: user.id });
+        .from('chat_rooms')
+        .select(`
+          id:room_id,
+          name:room_name,
+          description:room_description,
+          room_type,
+          patient_id,
+          patients:profiles!chat_rooms_patient_id_fkey(
+            patient_name:first_name
+          )
+        `)
+        .eq('id', selectedRoomId)
+        .single();
         
       if (error) {
         console.error("Error fetching room details:", error);
         throw error;
       }
       
-      return data.find((room: CareTeamRoom) => room.room_id === selectedRoomId) || null;
+      // Get member count
+      const { count, error: countError } = await supabase
+        .from('room_members')
+        .select('*', { count: 'exact', head: true })
+        .eq('room_id', selectedRoomId);
+        
+      if (countError) {
+        console.error("Error fetching member count:", countError);
+      }
+      
+      return {
+        room_id: data?.id,
+        room_name: data?.name,
+        room_description: data?.description,
+        patient_id: data?.patient_id,
+        patient_name: data?.patients?.patient_name || 'Patient',
+        member_count: count || 0
+      } as CareTeamRoom;
     },
     enabled: !!selectedRoomId && !!user?.id
   });
 
   // Query to get room messages
-  const { data: messages, isLoading: messagesLoading } = useQuery({
+  const { data: messagesData, isLoading: messagesLoading } = useQuery({
     queryKey: ["room_messages", selectedRoomId],
     queryFn: async () => {
       if (!selectedRoomId) return [];
       
       const { data, error } = await supabase
-        .rpc('get_room_messages', { 
-          p_room_id: selectedRoomId,
-          p_limit: 50,
-          p_offset: 0
-        });
+        .from('room_messages')
+        .select(`
+          id,
+          sender_id,
+          sender:profiles!room_messages_sender_id_fkey(
+            first_name,
+            last_name
+          ),
+          sender_role:user_roles!inner(role),
+          message,
+          is_system_message,
+          is_ai_message,
+          created_at
+        `)
+        .eq('room_id', selectedRoomId)
+        .order('created_at', { ascending: true })
+        .limit(50);
         
       if (error) {
         console.error("Error fetching messages:", error);
         throw error;
       }
       
-      return data || [];
+      // Format messages to match our interface
+      const formattedMessages: RoomMessage[] = data.map(msg => ({
+        id: msg.id,
+        sender_id: msg.sender_id,
+        sender_name: msg.sender_id === '00000000-0000-0000-0000-000000000000' 
+          ? 'AI Assistant' 
+          : `${msg.sender?.first_name || ''} ${msg.sender?.last_name || ''}`.trim(),
+        sender_role: msg.sender_role?.[0]?.role || 'unknown',
+        message: msg.message,
+        is_system_message: msg.is_system_message || false,
+        is_ai_message: msg.is_ai_message || false,
+        created_at: msg.created_at
+      }));
+      
+      return formattedMessages;
     },
     enabled: !!selectedRoomId,
     refetchInterval: 5000
   });
+
+  const messages = messagesData || [];
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -137,11 +194,19 @@ export const CareTeamRoomChat = ({
     try {
       setIsLoading(true);
       
-      // Send message using the RPC function
-      const { data, error } = await supabase.rpc('send_room_message', {
-        p_room_id: selectedRoomId,
-        p_message: message
-      });
+      // Send message using Supabase insert
+      const { data, error } = await supabase
+        .from('room_messages')
+        .insert({
+          room_id: selectedRoomId,
+          sender_id: user.id,
+          message: message.trim(),
+          is_system_message: false,
+          is_ai_message: false,
+          read_by: [user.id]
+        })
+        .select()
+        .single();
       
       if (error) throw error;
       
@@ -270,13 +335,16 @@ export const CareTeamRoomChat = ({
       
       {/* Messages area */}
       <div className="flex-1 bg-[#f0f2f5] dark:bg-slate-900 overflow-hidden relative">
-        <ScrollArea className="h-full" viewportRef={scrollViewportRef}>
-          <div className="p-4 space-y-6">
+        <ScrollArea className="h-full">
+          <div 
+            className="p-4 space-y-6"
+            ref={scrollViewportRef}
+          >
             {messagesLoading ? (
               <div className="flex justify-center pt-4">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
-            ) : messages?.length === 0 ? (
+            ) : messages.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 No messages yet. Start the conversation!
               </div>
