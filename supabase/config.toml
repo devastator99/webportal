@@ -149,3 +149,6 @@ graphql_plan_cache = false
 [functions]
 [functions.care-team-ai-chat]
 verify_jwt = true
+
+[functions.sync-care-team-rooms]
+verify_jwt = true

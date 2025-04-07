@@ -267,18 +267,6 @@ export async function syncAllCareTeamRooms(): Promise<any> {
       }
     }
     
-    // Check if the get_patient_assignments_report function exists
-    try {
-      const { data: reportTest, error: reportError } = await supabase.rpc('get_patient_assignments_report');
-      if (reportError) {
-        console.error('Error testing get_patient_assignments_report function:', reportError);
-      } else {
-        console.log('get_patient_assignments_report function exists and returned', reportTest?.length || 0, 'records');
-      }
-    } catch (error) {
-      console.error('Exception testing get_patient_assignments_report function:', error);
-    }
-    
     console.log("Calling sync-care-team-rooms edge function");
     
     const { data, error } = await supabase.functions.invoke('sync-care-team-rooms');

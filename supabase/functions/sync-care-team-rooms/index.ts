@@ -27,32 +27,39 @@ serve(async (req: Request) => {
     );
 
     // Get authenticated user
-    const { data: userData, error: userError } = await supabaseClient.auth.getUser();
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
     if (userError) {
       console.error("Error getting user:", userError);
-      throw new Error(`Authentication error: ${userError.message}`);
+      return new Response(
+        JSON.stringify({ error: `Authentication error: ${userError.message}` }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
     
-    console.log("User authenticated:", userData.user.id);
+    if (!user) {
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    console.log("User authenticated:", user.id);
 
-    // Check if user has admin permission using a direct query instead of RPC
-    const { data: adminRoleData, error: adminRoleError } = await supabaseClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userData.user.id)
-      .eq('role', 'administrator')
-      .maybeSingle();
-      
-    if (adminRoleError) {
-      console.error("Error checking admin role:", adminRoleError);
-      throw new Error(`Admin role check failed: ${adminRoleError.message}`);
+    // Check if user has admin permission using the user_can_sync_rooms function
+    const { data: canSyncRooms, error: permissionError } = await supabaseClient.rpc('user_can_sync_rooms');
+    
+    if (permissionError) {
+      console.error("Error checking permission:", permissionError);
+      return new Response(
+        JSON.stringify({ error: `Permission check failed: ${permissionError.message}` }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
     
-    const isAdmin = !!adminRoleData;
-    console.log("User admin status:", isAdmin);
+    console.log("User sync permission:", canSyncRooms);
 
     // Only allow administrators to run this function
-    if (!isAdmin) {
+    if (!canSyncRooms) {
       return new Response(
         JSON.stringify({ error: "Only administrators can sync care team rooms" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -67,22 +74,27 @@ serve(async (req: Request) => {
       
     if (paError) {
       console.error("Error fetching patient assignments:", paError);
-      throw new Error(`Failed to fetch patient assignments: ${paError.message}`);
-    } else {
-      console.log(`Found ${patientAssignments?.length || 0} patient assignments`);
-      if (patientAssignments && patientAssignments.length > 0) {
-        console.log("Sample assignments:", JSON.stringify(patientAssignments.slice(0, 5)));
-      } else {
-        console.log("No patient assignments found - this is likely the issue!");
-        // Return more helpful error message if no assignments exist
-        return new Response(
-          JSON.stringify({ 
-            error: "No patient assignments found. Please create patient assignments first." 
-          }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
+      return new Response(
+        JSON.stringify({ error: `Failed to fetch patient assignments: ${paError.message}` }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+    
+    if (!patientAssignments || patientAssignments.length === 0) {
+      console.log("No patient assignments found");
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: "No patient assignments found to sync", 
+          rooms: [],
+          results: []
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    console.log(`Found ${patientAssignments.length} patient assignments`);
+    console.log("Sample assignments:", JSON.stringify(patientAssignments.slice(0, 5)));
 
     // Fetch all existing care team rooms for reference
     const { data: existingRooms, error: existingRoomsError } = await supabaseClient
@@ -92,6 +104,7 @@ serve(async (req: Request) => {
       
     if (existingRoomsError) {
       console.error("Error fetching existing care team rooms:", existingRoomsError);
+      // Continue with the process despite the error
     }
     
     console.log(`Found ${existingRooms?.length || 0} existing care team rooms`);
@@ -110,34 +123,14 @@ serve(async (req: Request) => {
     const createdRooms = [];
     const results = [];
     
-    for (const assignment of patientAssignments || []) {
-      if (!assignment.patient_id || !assignment.doctor_id) {
-        console.log("Skipping invalid assignment:", assignment);
-        results.push({
-          patient_id: assignment.patient_id,
-          status: "skipped",
-          reason: "Missing patient_id or doctor_id"
-        });
-        continue;
-      }
-      
+    for (const assignment of patientAssignments) {
       try {
-        // Check if room already exists using our map
-        const existingRoomId = existingRoomsByPatient.get(assignment.patient_id);
-          
-        if (existingRoomId) {
-          console.log(`Room already exists for patient: ${assignment.patient_id}, room ID: ${existingRoomId}`);
-          
-          // Update room members to ensure all care team members are included
-          await updateRoomMembers(supabaseClient, existingRoomId, assignment);
-          
-          createdRooms.push(existingRoomId);
+        if (!assignment.patient_id || !assignment.doctor_id) {
+          console.log("Skipping invalid assignment:", assignment);
           results.push({
             patient_id: assignment.patient_id,
-            room_id: existingRoomId,
-            status: "updated",
-            doctor_id: assignment.doctor_id,
-            nutritionist_id: assignment.nutritionist_id
+            status: "skipped",
+            reason: "Missing patient_id or doctor_id"
           });
           continue;
         }
@@ -149,22 +142,12 @@ serve(async (req: Request) => {
           .eq('id', assignment.patient_id)
           .maybeSingle();
           
-        if (patientError) {
-          console.error(`Error fetching patient ${assignment.patient_id}:`, patientError);
+        if (patientError || !patientData) {
+          console.error(`Error fetching patient ${assignment.patient_id}:`, patientError || "No data returned");
           results.push({
             patient_id: assignment.patient_id,
             status: "error",
-            reason: `Error fetching patient data: ${patientError.message}`
-          });
-          continue;
-        }
-        
-        if (!patientData) {
-          console.error(`No profile found for patient with ID ${assignment.patient_id}`);
-          results.push({
-            patient_id: assignment.patient_id,
-            status: "error",
-            reason: "No patient profile found"
+            reason: patientError ? `Error fetching patient data: ${patientError.message}` : "No patient profile found"
           });
           continue;
         }
@@ -180,20 +163,17 @@ serve(async (req: Request) => {
           continue;
         }
         
-        // Create room
-        console.log(`Creating new room for patient: ${patientName} (${assignment.patient_id})`);
-        const { data: roomData, error: roomError } = await supabaseClient
-          .from('chat_rooms')
-          .insert({
-            name: `${patientName} - Care Team`,
-            description: `Care team chat for ${patientName}`,
-            room_type: 'care_team',
-            patient_id: assignment.patient_id,
-            is_active: true
-          })
-          .select('id')
-          .single();
-          
+        // Call create_care_team_room RPC function
+        console.log(`Creating/updating room for patient: ${patientName} (${assignment.patient_id})`);
+        const { data: roomData, error: roomError } = await supabaseClient.rpc(
+          'create_care_team_room',
+          {
+            p_patient_id: assignment.patient_id,
+            p_doctor_id: assignment.doctor_id,
+            p_nutritionist_id: assignment.nutritionist_id
+          }
+        );
+        
         if (roomError) {
           console.error(`Error creating room for patient ${assignment.patient_id}:`, roomError);
           results.push({
@@ -204,29 +184,25 @@ serve(async (req: Request) => {
           continue;
         }
         
-        // Add room members
-        await updateRoomMembers(supabaseClient, roomData.id, assignment);
-        
-        // Add welcome message from AI assistant
-        await supabaseClient
-          .from('room_messages')
-          .insert({
-            room_id: roomData.id,
-            sender_id: '00000000-0000-0000-0000-000000000000',
-            message: `Welcome to the care team chat for ${patientName}. This is a shared space for the patient, doctor, nutritionist, and AI assistant to communicate.`,
-            is_system_message: true,
-            is_ai_message: true
+        if (!roomData) {
+          console.error(`Failed to get room ID for patient ${assignment.patient_id}`);
+          results.push({
+            patient_id: assignment.patient_id,
+            status: "error",
+            reason: "No room ID returned"
           });
+          continue;
+        }
         
-        createdRooms.push(roomData.id);
+        createdRooms.push(roomData);
         results.push({
           patient_id: assignment.patient_id,
-          room_id: roomData.id,
-          status: "created",
+          room_id: roomData,
+          status: existingRoomsByPatient.has(assignment.patient_id) ? "updated" : "created",
           doctor_id: assignment.doctor_id,
           nutritionist_id: assignment.nutritionist_id
         });
-        console.log(`Created new room: ${roomData.id} for patient: ${assignment.patient_id}`);
+        console.log(`Room ${roomData} ${existingRoomsByPatient.has(assignment.patient_id) ? "updated" : "created"} for patient: ${assignment.patient_id}`);
       } catch (assignmentError) {
         console.error(`Error processing assignment for patient ${assignment.patient_id}:`, assignmentError);
         results.push({
@@ -238,7 +214,6 @@ serve(async (req: Request) => {
     }
     
     console.log(`Successfully processed ${createdRooms.length} care team rooms`);
-    console.log(`Results summary: ${results.length} assignments processed`);
     
     // Count results by status
     const statusCounts = results.reduce((acc, result) => {
@@ -267,60 +242,3 @@ serve(async (req: Request) => {
     );
   }
 });
-
-// Helper function to ensure all care team members are in the room
-async function updateRoomMembers(supabase, roomId, assignment) {
-  try {
-    console.log(`Updating members for room ${roomId}:`, {
-      patient_id: assignment.patient_id,
-      doctor_id: assignment.doctor_id,
-      nutritionist_id: assignment.nutritionist_id
-    });
-    
-    // Add patient
-    await supabase
-      .from('room_members')
-      .upsert({
-        room_id: roomId,
-        user_id: assignment.patient_id,
-        role: 'patient'
-      }, { onConflict: 'room_id,user_id' });
-    
-    // Add doctor
-    if (assignment.doctor_id) {
-      await supabase
-        .from('room_members')
-        .upsert({
-          room_id: roomId,
-          user_id: assignment.doctor_id,
-          role: 'doctor'
-        }, { onConflict: 'room_id,user_id' });
-    }
-    
-    // Add nutritionist if assigned
-    if (assignment.nutritionist_id) {
-      await supabase
-        .from('room_members')
-        .upsert({
-          room_id: roomId,
-          user_id: assignment.nutritionist_id,
-          role: 'nutritionist'
-        }, { onConflict: 'room_id,user_id' });
-    }
-    
-    // Add AI bot
-    await supabase
-      .from('room_members')
-      .upsert({
-        room_id: roomId,
-        user_id: '00000000-0000-0000-0000-000000000000',
-        role: 'aibot'
-      }, { onConflict: 'room_id,user_id' });
-    
-    console.log(`Successfully updated members for room: ${roomId}`);
-    return true;
-  } catch (error) {
-    console.error(`Error updating room members for room ${roomId}:`, error);
-    return false;
-  }
-}
