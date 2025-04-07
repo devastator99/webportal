@@ -55,7 +55,7 @@ export const ChatModule = ({
                     assignedUsers={assignedUsers}
                     careTeamGroup={careTeamGroup}
                     showGroupChat={true} // Enable group chat for all users
-                    whatsAppStyle={userRole === "nutritionist"}
+                    whatsAppStyle={userRole === "nutritionist" || userRole === "doctor"}
                     includeAiBot={true}
                   />
                 );

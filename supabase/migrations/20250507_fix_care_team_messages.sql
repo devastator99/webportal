@@ -11,21 +11,27 @@ LANGUAGE plpgsql
 AS $$
 DECLARE
   v_count INTEGER;
+  care_team_ids UUID[];
 BEGIN
-  -- Get care team members for the patient
-  WITH care_team AS (
-    SELECT pct.id
-    FROM get_patient_care_team(p_patient_id) pct
-    UNION
-    SELECT p_patient_id
-    UNION
-    SELECT p_user_id
-  )
+  -- Get care team members for the patient (including the user)
+  SELECT array_agg(id) INTO care_team_ids 
+  FROM get_patient_care_team_members(p_patient_id);
+  
+  -- Add the current user's ID if not already in the care team
+  IF NOT p_user_id = ANY(care_team_ids) THEN
+    care_team_ids := array_append(care_team_ids, p_user_id);
+  END IF;
+  
+  -- Add the patient ID if not already in the list
+  IF NOT p_patient_id = ANY(care_team_ids) THEN
+    care_team_ids := array_append(care_team_ids, p_patient_id);
+  END IF;
+
+  -- Count messages that were exchanged between care team members
   SELECT COUNT(*)
   INTO v_count
   FROM chat_messages cm
-  WHERE (cm.sender_id IN (SELECT id FROM care_team) 
-        AND cm.receiver_id IN (SELECT id FROM care_team));
+  WHERE (cm.sender_id = ANY(care_team_ids) AND cm.receiver_id = ANY(care_team_ids));
   
   RETURN v_count;
 END;
@@ -51,17 +57,25 @@ SECURITY DEFINER
 SET search_path = public
 LANGUAGE plpgsql
 AS $$
+DECLARE
+  care_team_ids UUID[];
 BEGIN
-  -- Get care team members for the patient
+  -- Get care team members for the patient (including the user)
+  SELECT array_agg(id) INTO care_team_ids 
+  FROM get_patient_care_team_members(p_patient_id);
+  
+  -- Add the current user's ID if not already in the care team
+  IF NOT p_user_id = ANY(care_team_ids) THEN
+    care_team_ids := array_append(care_team_ids, p_user_id);
+  END IF;
+  
+  -- Add the patient ID if not already in the list
+  IF NOT p_patient_id = ANY(care_team_ids) THEN
+    care_team_ids := array_append(care_team_ids, p_patient_id);
+  END IF;
+  
+  -- Return messages where both sender and receiver are in the care team
   RETURN QUERY
-  WITH care_team AS (
-    SELECT pct.id
-    FROM get_patient_care_team(p_patient_id) pct
-    UNION
-    SELECT p_patient_id
-    UNION
-    SELECT p_user_id
-  )
   SELECT 
     cm.id,
     cm.message,
@@ -85,8 +99,7 @@ BEGIN
   JOIN profiles receiver ON cm.receiver_id = receiver.id
   LEFT JOIN user_roles sender_role ON sender.id = sender_role.user_id
   LEFT JOIN user_roles receiver_role ON receiver.id = receiver_role.user_id
-  WHERE (cm.sender_id IN (SELECT id FROM care_team) 
-        AND cm.receiver_id IN (SELECT id FROM care_team))
+  WHERE (cm.sender_id = ANY(care_team_ids) AND cm.receiver_id = ANY(care_team_ids))
   ORDER BY cm.created_at DESC
   OFFSET p_offset
   LIMIT p_limit;

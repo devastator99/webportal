@@ -175,14 +175,36 @@ export const CareTeamAIChat = () => {
       if (error) throw error;
 
       // Add AI response to the chat
-      setMessages(prev => [
-        ...prev, 
-        { 
-          role: 'assistant', 
-          content: data.response, 
-          timestamp: new Date() 
+      const aiResponse = { 
+        role: 'assistant' as const, 
+        content: data.response, 
+        timestamp: new Date() 
+      };
+      
+      setMessages(prev => [...prev, aiResponse]);
+      
+      // Forward the AI's response to the care team chat
+      try {
+        // First get the care team members
+        const { data: careTeamData } = await supabase
+          .rpc('get_patient_care_team_members', { p_patient_id: user.id });
+          
+        if (careTeamData && Array.isArray(careTeamData)) {
+          // Send AI message to patient's care team
+          for (const member of careTeamData) {
+            if (member.id !== '00000000-0000-0000-0000-000000000000') { // Skip sending to AI itself
+              await supabase.rpc('send_chat_message', {
+                p_sender_id: '00000000-0000-0000-0000-000000000000', // AI bot ID
+                p_receiver_id: member.id,
+                p_message: data.response,
+                p_message_type: 'text'
+              });
+            }
+          }
         }
-      ]);
+      } catch (err) {
+        console.error("Error forwarding AI message to care team:", err);
+      }
       
       // Ensure scroll to bottom after new message
       setTimeout(scrollToBottom, 100);
@@ -297,6 +319,7 @@ export const CareTeamAIChat = () => {
                     {message.role === 'assistant' && (
                       <div className="flex items-center gap-1 mb-1">
                         <CheckCircle className="h-3 w-3 text-blue-500" />
+                        <span className="text-xs font-medium text-blue-500">AI Assistant</span>
                       </div>
                     )}
                     <p className="text-sm">{message.content}</p>

@@ -348,7 +348,7 @@ export const DoctorWhatsAppChat = () => {
                     ) : (
                       <ChatMessagesList
                         selectedUserId={selectedPatientId}
-                        isGroupChat={false}
+                        isGroupChat={true}
                         careTeamMembers={careTeamMembers}
                         localMessages={localMessages}
                       />

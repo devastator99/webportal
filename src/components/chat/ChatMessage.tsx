@@ -1,6 +1,6 @@
 
 import { format } from "date-fns";
-import { Check, Clock } from "lucide-react";
+import { Check, CheckCheck, Clock, Bot } from "lucide-react";
 
 interface ChatMessageProps {
   message: {
@@ -36,6 +36,12 @@ export const ChatMessage = ({
   // Get sender full name
   const senderFullName = `${message.sender.first_name} ${message.sender.last_name}`.trim();
   
+  // Determine if the sender is an AI bot
+  const isAiBot = message.sender.role === 'aibot' || message.sender.id === '00000000-0000-0000-0000-000000000000';
+  
+  // Determine if sender is a nutritionist
+  const isNutritionist = message.sender.role === 'nutritionist';
+  
   return (
     <div
       className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}
@@ -67,12 +73,19 @@ export const ChatMessage = ({
             <>
               {offlineMode || !message.synced ? (
                 <Clock className="h-3 w-3 opacity-70" />
+              ) : isNutritionist ? (
+                <CheckCheck className="h-3 w-3 opacity-70 text-blue-400" />
               ) : message.read ? (
                 <Check className="h-3 w-3 opacity-70 text-blue-400" />
               ) : (
                 <Check className="h-3 w-3 opacity-70" />
               )}
             </>
+          )}
+          
+          {/* Show bot icon for AI messages */}
+          {isAiBot && (
+            <Bot className="h-3 w-3 text-blue-400 ml-1" />
           )}
         </div>
       </div>

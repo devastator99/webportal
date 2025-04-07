@@ -132,7 +132,7 @@ export const ChatMessagesList = ({
               
               const isLocal = localMessages.some(localMessage => localMessage.id === message.id);
               const isCurrentUser = message.sender?.id === user?.id;
-              const showAvatar = allMessages[index + 1]?.sender?.id !== message.sender?.id;
+              const showAvatar = index === 0 || allMessages[index - 1]?.sender?.id !== message.sender?.id;
               
               return (
                 <ChatMessage
