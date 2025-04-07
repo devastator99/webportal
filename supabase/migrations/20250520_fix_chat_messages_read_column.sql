@@ -75,8 +75,7 @@ BEGIN
   LEFT JOIN user_roles receiver_role ON receiver.id = receiver_role.user_id
   WHERE (cm.sender_id = ANY(care_team_ids) AND cm.receiver_id = ANY(care_team_ids))
   ORDER BY cm.created_at ASC
-  LIMIT p_limit
-  OFFSET p_offset;
+  LIMIT p_limit OFFSET p_offset;
 END;
 $$;
 
