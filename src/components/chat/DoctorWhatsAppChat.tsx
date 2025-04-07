@@ -52,8 +52,8 @@ export const DoctorWhatsAppChat = () => {
         console.log(`Fetching patients assigned to ${userRole}:`, user.id);
         
         const { data, error } = userRole === "nutritionist" 
-          ? await supabase.rpc('get_nutritionist_patients', { p_nutritionist_id: user.id })
-          : await supabase.rpc('get_doctor_patients', { p_doctor_id: user.id });
+          ? await supabase.functions.invoke('get-nutritionist-patients', { body: { nutritionist_id: user.id } })
+          : await supabase.functions.invoke('get-doctor-patients', { body: { doctor_id: user.id } });
           
         if (error) {
           console.error(`Error in get_${userRole}_patients RPC:`, error);
