@@ -60,43 +60,57 @@ export const CareTeamRoomChat = ({
     queryFn: async () => {
       if (!selectedRoomId || !user?.id) return null;
       
-      // Get the room details
-      const { data: roomData, error: roomError } = await supabase
-        .from('chat_rooms')
-        .select(`
-          id,
-          name,
-          description,
-          room_type,
-          patient_id,
-          profiles:profiles(first_name)
-        `)
-        .eq('id', selectedRoomId)
-        .single();
+      try {
+        // Get the room details
+        const { data: roomData, error: roomError } = await supabase
+          .from('chat_rooms')
+          .select('id, name, description, room_type, patient_id, created_at')
+          .eq('id', selectedRoomId)
+          .single();
+          
+        if (roomError) {
+          console.error("Error fetching room details:", roomError);
+          throw roomError;
+        }
         
-      if (roomError) {
-        console.error("Error fetching room details:", roomError);
-        throw roomError;
-      }
-      
-      // Get member count
-      const { count, error: countError } = await supabase
-        .from('room_members')
-        .select('*', { count: 'exact', head: true })
-        .eq('room_id', selectedRoomId);
+        // Get patient name separately
+        let patientName = 'Patient';
+        if (roomData.patient_id) {
+          const { data: patientData, error: patientError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('id', roomData.patient_id)
+            .single();
+            
+          if (!patientError && patientData) {
+            patientName = `${patientData.first_name || ''} ${patientData.last_name || ''}`.trim();
+          }
+        }
         
-      if (countError) {
-        console.error("Error fetching member count:", countError);
+        // Get member count
+        const { count, error: countError } = await supabase
+          .from('room_members')
+          .select('*', { count: 'exact', head: true })
+          .eq('room_id', selectedRoomId);
+          
+        if (countError) {
+          console.error("Error fetching member count:", countError);
+        }
+        
+        return {
+          room_id: roomData.id,
+          room_name: roomData.name,
+          room_description: roomData.description,
+          patient_id: roomData.patient_id,
+          patient_name: patientName,
+          member_count: count || 0,
+          last_message: '',
+          last_message_time: roomData.created_at
+        } as CareTeamRoom;
+      } catch (error) {
+        console.error("Error in room details query:", error);
+        return null;
       }
-      
-      return {
-        room_id: roomData?.id,
-        room_name: roomData?.name,
-        room_description: roomData?.description,
-        patient_id: roomData?.patient_id,
-        patient_name: roomData?.profiles?.first_name || 'Patient',
-        member_count: count || 0
-      } as CareTeamRoom;
     },
     enabled: !!selectedRoomId && !!user?.id
   });
@@ -107,71 +121,97 @@ export const CareTeamRoomChat = ({
     queryFn: async () => {
       if (!selectedRoomId) return [];
       
-      const { data, error } = await supabase
-        .from('room_messages')
-        .select(`
-          id,
-          sender_id,
-          sender:profiles(first_name, last_name),
-          message,
-          is_system_message,
-          is_ai_message,
-          created_at
-        `)
-        .eq('room_id', selectedRoomId)
-        .order('created_at', { ascending: true });
-        
-      if (error) {
-        console.error("Error fetching messages:", error);
-        throw error;
-      }
-      
-      // Get user roles for senders
-      const userIds = data.map(msg => msg.sender_id).filter((id, index, self) => 
-        self.indexOf(id) === index && id !== '00000000-0000-0000-0000-000000000000'
-      );
-      
-      let userRoles: Record<string, string> = {};
-      if (userIds.length > 0) {
-        const { data: rolesData } = await supabase
-          .from('user_roles')
-          .select('user_id, role')
-          .in('user_id', userIds);
-          
-        if (rolesData) {
-          userRoles = rolesData.reduce((acc, item) => {
-            acc[item.user_id] = item.role;
-            return acc;
-          }, {} as Record<string, string>);
-        }
-      }
-      
-      // Format messages to match our interface
-      const formattedMessages: RoomMessage[] = data.map(msg => ({
-        id: msg.id,
-        sender_id: msg.sender_id,
-        sender_name: msg.sender_id === '00000000-0000-0000-0000-000000000000' 
-          ? 'AI Assistant' 
-          : `${msg.sender?.first_name || ''} ${msg.sender?.last_name || ''}`.trim(),
-        sender_role: msg.sender_id === '00000000-0000-0000-0000-000000000000'
-          ? 'aibot'
-          : userRoles[msg.sender_id] || 'unknown',
-        message: msg.message,
-        is_system_message: msg.is_system_message || false,
-        is_ai_message: msg.is_ai_message || false,
-        created_at: msg.created_at
-      }));
-      
-      // Mark messages as read
-      if (data.length > 0) {
-        await supabase
+      try {
+        const { data: messageData, error } = await supabase
           .from('room_messages')
-          .update({ read_by: supabase.sql`array_append(read_by, ${user?.id})` })
+          .select('id, sender_id, message, is_system_message, is_ai_message, created_at')
           .eq('room_id', selectedRoomId)
-          .neq('sender_id', user?.id);
+          .order('created_at', { ascending: true });
+          
+        if (error) {
+          console.error("Error fetching messages:", error);
+          throw error;
+        }
+        
+        // Format messages with sender info
+        const formattedMessages: RoomMessage[] = [];
+        
+        for (const msg of messageData) {
+          let senderName = 'Unknown';
+          let senderRole = 'unknown';
+          
+          if (msg.sender_id === '00000000-0000-0000-0000-000000000000') {
+            senderName = 'AI Assistant';
+            senderRole = 'aibot';
+          } else {
+            // Get sender info
+            const { data: senderData, error: senderError } = await supabase
+              .from('profiles')
+              .select('first_name, last_name')
+              .eq('id', msg.sender_id)
+              .single();
+              
+            if (!senderError && senderData) {
+              senderName = `${senderData.first_name || ''} ${senderData.last_name || ''}`.trim();
+            }
+            
+            // Get role
+            const { data: roleData, error: roleError } = await supabase
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', msg.sender_id)
+              .single();
+              
+            if (!roleError && roleData) {
+              senderRole = roleData.role;
+            }
+          }
+          
+          formattedMessages.push({
+            id: msg.id,
+            sender_id: msg.sender_id,
+            sender_name: senderName,
+            sender_role: senderRole,
+            message: msg.message,
+            is_system_message: msg.is_system_message || false,
+            is_ai_message: msg.is_ai_message || false,
+            created_at: msg.created_at
+          });
+        }
+        
+        // Mark messages as read
+        if (messageData.length > 0) {
+          // We'll use a direct update approach instead of supabase.sql
+          for (const msg of messageData) {
+            // Read the current read_by value first
+            const { data: currentReadBy } = await supabase
+              .from('room_messages')
+              .select('read_by')
+              .eq('id', msg.id)
+              .single();
+            
+            if (currentReadBy) {
+              // Check if current user is already in read_by
+              const readByArray = currentReadBy.read_by || [];
+              if (!readByArray.includes(user?.id)) {
+                // Add user to read_by array
+                const updatedReadBy = [...readByArray, user?.id];
+                
+                // Update the read_by field
+                await supabase
+                  .from('room_messages')
+                  .update({ read_by: updatedReadBy })
+                  .eq('id', msg.id);
+              }
+            }
+          }
+        }
+        
+        return formattedMessages;
+      } catch (error) {
+        console.error("Error in messages query:", error);
+        return [];
       }
-      
-      return formattedMessages;
     },
     enabled: !!selectedRoomId,
     refetchInterval: 5000
@@ -219,7 +259,7 @@ export const CareTeamRoomChat = ({
     try {
       setIsLoading(true);
       
-      // Send message using Supabase insert
+      // Send message using direct insert
       const { data, error } = await supabase
         .from('room_messages')
         .insert({
@@ -228,7 +268,7 @@ export const CareTeamRoomChat = ({
           message: message.trim(),
           is_system_message: false,
           is_ai_message: false,
-          read_by: [user.id]
+          read_by: [user.id] // Mark as read by sender
         })
         .select()
         .single();

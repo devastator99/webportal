@@ -37,64 +37,88 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
     queryFn: async () => {
       if (!user?.id) return [];
       
-      // Get rooms where user is a member
-      const { data: roomsData, error } = await supabase
-        .from('room_members')
-        .select(`
-          room:chat_rooms!inner(
-            id,
-            name,
-            description,
-            room_type,
-            created_at,
-            patient_id,
-            patient:profiles(first_name)
-          )
-        `)
-        .eq('user_id', user.id)
-        .eq('room:chat_rooms.is_active', true);
-        
-      if (error) {
-        console.error("Error fetching care team rooms:", error);
-        throw error;
-      }
-      
-      const roomsWithDetails: CareTeamRoom[] = [];
-      
-      for (const roomMember of roomsData || []) {
-        const room = roomMember.room;
-        
-        // Get member count
-        const { count: memberCount } = await supabase
+      try {
+        // Get rooms where user is a member
+        const { data: memberships, error: membershipError } = await supabase
           .from('room_members')
-          .select('*', { count: 'exact', head: true })
-          .eq('room_id', room.id);
+          .select('room_id')
+          .eq('user_id', user.id);
           
-        // Get latest message
-        const { data: latestMessageData } = await supabase
-          .from('room_messages')
-          .select('message, created_at')
-          .eq('room_id', room.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
+        if (membershipError) {
+          console.error("Error fetching room memberships:", membershipError);
+          throw membershipError;
+        }
+        
+        const roomIds = memberships.map(m => m.room_id);
+        
+        if (roomIds.length === 0) {
+          return [];
+        }
+        
+        // Get room details
+        const { data: roomsData, error: roomsError } = await supabase
+          .from('chat_rooms')
+          .select('id, name, description, room_type, patient_id, created_at')
+          .in('id', roomIds)
+          .eq('is_active', true);
           
-        roomsWithDetails.push({
-          room_id: room.id,
-          room_name: room.name,
-          room_description: room.description,
-          patient_id: room.patient_id,
-          patient_name: room.patient?.first_name || 'Patient',
-          member_count: memberCount || 0,
-          last_message: latestMessageData?.message || '',
-          last_message_time: latestMessageData?.created_at || room.created_at
+        if (roomsError) {
+          console.error("Error fetching rooms data:", roomsError);
+          throw roomsError;
+        }
+        
+        const roomsWithDetails: CareTeamRoom[] = [];
+        
+        for (const room of roomsData) {
+          // Get patient name
+          let patientName = 'Patient';
+          if (room.patient_id) {
+            const { data: patientData, error: patientError } = await supabase
+              .from('profiles')
+              .select('first_name, last_name')
+              .eq('id', room.patient_id)
+              .single();
+              
+            if (!patientError && patientData) {
+              patientName = `${patientData.first_name || ''} ${patientData.last_name || ''}`.trim();
+            }
+          }
+          
+          // Get member count
+          const { count: memberCount } = await supabase
+            .from('room_members')
+            .select('*', { count: 'exact', head: true })
+            .eq('room_id', room.id);
+            
+          // Get latest message
+          const { data: latestMessageData } = await supabase
+            .from('room_messages')
+            .select('message, created_at')
+            .eq('room_id', room.id)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .single();
+            
+          roomsWithDetails.push({
+            room_id: room.id,
+            room_name: room.name,
+            room_description: room.description,
+            patient_id: room.patient_id,
+            patient_name: patientName,
+            member_count: memberCount || 0,
+            last_message: latestMessageData?.message || '',
+            last_message_time: latestMessageData?.created_at || room.created_at
+          });
+        }
+        
+        // Sort rooms by latest message
+        return roomsWithDetails.sort((a, b) => {
+          return new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime();
         });
+      } catch (error) {
+        console.error("Error fetching care team rooms:", error);
+        return [];
       }
-      
-      // Sort rooms by latest message
-      return roomsWithDetails.sort((a, b) => {
-        return new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime();
-      });
     },
     enabled: !!user?.id,
     refetchInterval: 10000
