@@ -32,6 +32,9 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
   const { user, userRole } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   
+  // Check if the current user is a provider (doctor or nutritionist)
+  const isProvider = userRole === 'doctor' || userRole === 'nutritionist';
+  
   // Query to get user's care team rooms
   const { data: roomsData = [], isLoading } = useQuery({
     queryKey: ["care_team_rooms", user?.id, userRole],
@@ -280,8 +283,8 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
   // Ensure rooms is always an array
   const rooms: CareTeamRoom[] = Array.isArray(roomsData) ? roomsData : [];
 
-  // Filter rooms based on search term
-  const filteredRooms = searchTerm 
+  // Filter rooms based on search term - only if not a provider
+  const filteredRooms = !isProvider && searchTerm 
     ? rooms.filter(room => {
         const roomName = room.room_name?.toLowerCase() || '';
         const patientName = room.patient_name?.toLowerCase() || '';
@@ -306,7 +309,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
   };
 
   // Group rooms by patients (useful for doctor and nutritionist views)
-  const roomsByPatient = userRole === 'doctor' || userRole === 'nutritionist' 
+  const roomsByPatient = isProvider 
     ? groupRoomsByPatient(filteredRooms)
     : null;
 
@@ -349,15 +352,19 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
            userRole === 'nutritionist' ? 'Nutrition Care Teams' : 
            'Care Team Chats'}
         </div>
-        <div className="relative">
-          <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder={`Search ${userRole === 'doctor' || userRole === 'nutritionist' ? 'patients' : 'chats'}...`}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8"
-          />
-        </div>
+        
+        {/* Only show search for non-provider roles */}
+        {!isProvider && (
+          <div className="relative">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search chats..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8"
+            />
+          </div>
+        )}
       </div>
       
       {/* Room list */}
@@ -377,9 +384,9 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
             </div>
           ) : filteredRooms.length === 0 ? (
             <div className="p-6 text-center text-muted-foreground">
-              {searchTerm ? 'No matching rooms found' : 'No care team chats available'}
+              {!isProvider && searchTerm ? 'No matching rooms found' : 'No care team chats available'}
             </div>
-          ) : userRole === 'doctor' || userRole === 'nutritionist' ? (
+          ) : isProvider ? (
             // Display rooms grouped by patient for doctors and nutritionists
             Object.entries(roomsByPatient || {}).map(([patientId, patientRooms]) => {
               const patientName = patientRooms[0]?.patient_name || 'Unknown Patient';
