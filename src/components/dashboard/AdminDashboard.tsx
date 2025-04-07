@@ -44,26 +44,15 @@ export const AdminDashboard = () => {
     setSyncError(null);
 
     try {
-      // Check if user has permission to sync rooms
-      const { data: canSync, error: permissionError } = await supabase.rpc('user_can_sync_rooms');
-      
-      if (permissionError) {
-        throw new Error(`Permission check failed: ${permissionError.message}`);
-      }
-      
-      if (!canSync) {
-        throw new Error("You don't have permission to sync care team rooms");
-      }
-
-      // Call the function to sync all care team rooms
-      const { data, error } = await supabase.rpc('sync_all_care_team_rooms');
+      // Use the Edge Function to sync care team rooms instead of direct RPC
+      const { data, error } = await supabase.functions.invoke('sync-care-team-rooms');
       
       if (error) {
-        throw error;
+        throw new Error(`Failed to sync care teams: ${error.message}`);
       }
       
       // Count the number of room IDs returned
-      const roomCount = Array.isArray(data) ? data.length : 0;
+      const roomCount = data?.rooms?.length || 0;
       setSyncSuccess(`Successfully synced ${roomCount} care team rooms`);
       
       toast({
