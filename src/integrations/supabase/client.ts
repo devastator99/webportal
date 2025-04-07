@@ -242,3 +242,29 @@ export async function adminDeleteUser(
     throw error;
   }
 }
+
+// Function to allow administrators to sync all care team rooms
+export async function syncAllCareTeamRooms(): Promise<any> {
+  try {
+    console.log("Calling sync-care-team-rooms edge function");
+    
+    const { data, error } = await supabase.functions.invoke('sync-care-team-rooms');
+    
+    console.log("Edge function response:", { data, error });
+    
+    if (error) {
+      console.error('Error invoking edge function:', error);
+      throw new Error('Failed to sync care team rooms. Please try again.');
+    }
+    
+    // Handle case where the function returned data but with error status
+    if (data && data.error) {
+      throw new Error(data.error);
+    }
+    
+    return data;
+  } catch (error: any) {
+    console.error('Exception in syncAllCareTeamRooms:', error);
+    throw error;
+  }
+}
