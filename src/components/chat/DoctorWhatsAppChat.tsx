@@ -42,7 +42,7 @@ export const DoctorWhatsAppChat = () => {
     setShowSidebar(prev => !prev);
   };
 
-  // Use the proper RPC function based on the user role
+  // Use the proper edge function based on the user role
   const { data: assignedPatients = [], isLoading: isLoadingPatients, error } = useQuery({
     queryKey: ["provider_patients", user?.id, userRole],
     queryFn: async () => {
