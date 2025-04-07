@@ -42,6 +42,8 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       if (!user?.id) return [];
       
       try {
+        console.log("Fetching care team rooms for user:", user.id, "with role:", userRole);
+        
         // For doctors and nutritionists, automatically get rooms where they are assigned
         if (userRole === 'doctor' || userRole === 'nutritionist') {
           const assignedPatientIds = await getAssignedPatientIds(user.id, userRole);
@@ -143,6 +145,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
   // Helper function to get patient IDs assigned to this provider
   const getAssignedPatientIds = async (providerId: string, role: string): Promise<string[]> => {
     try {
+      console.log(`Getting patients assigned to ${role}:`, providerId);
       let query;
       
       if (role === 'doctor') {
@@ -168,6 +171,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
         return [];
       }
       
+      console.log(`Found ${data.length} assigned patients for ${role}:`, data);
       return data.map(record => record.patient_id);
     } catch (error) {
       console.error("Error in getAssignedPatientIds:", error);
@@ -179,6 +183,8 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
   const getCareTeamRoomsForPatients = async (patientIds: string[], providerId: string): Promise<CareTeamRoom[]> => {
     try {
       if (patientIds.length === 0) return [];
+      
+      console.log("Getting care team rooms for patients:", patientIds);
       
       // Get care team rooms for these patients
       const { data: roomsData, error: roomsError } = await supabase
@@ -197,6 +203,8 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
         console.log("No care team rooms found for assigned patients");
         return [];
       }
+      
+      console.log(`Found ${roomsData.length} care team rooms for patients`);
       
       const roomsWithDetails: CareTeamRoom[] = [];
       
