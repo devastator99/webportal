@@ -37,46 +37,48 @@ serve(async (req: Request) => {
     const perPage = parseInt(String(per_page));
     const offset = (pageNumber - 1) * perPage;
     
+    console.log("Fetching messages for user:", user_id, "and other user:", other_user_id);
+    
     // Use the get_care_team_messages RPC function
     console.log("Using get_care_team_messages RPC function");
-    const result = await supabaseClient.rpc('get_care_team_messages', {
+    const { data: messages, error: messagesError } = await supabaseClient.rpc('get_care_team_messages', {
       p_user_id: user_id,
       p_patient_id: other_user_id,
       p_offset: offset,
       p_limit: perPage
     });
     
-    if (result.error) {
-      console.error("Error fetching chat messages:", result.error);
+    if (messagesError) {
+      console.error("Error fetching care team messages:", messagesError);
       return new Response(
-        JSON.stringify({ error: result.error.message }),
+        JSON.stringify({ error: messagesError.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
     // Get count for pagination
-    const countResult = await supabaseClient.rpc('get_care_team_messages_count', {
+    console.log("Getting count of messages");
+    const { data: count, error: countError } = await supabaseClient.rpc('get_care_team_messages_count', {
       p_user_id: user_id,
       p_patient_id: other_user_id
     });
     
-    if (countResult.error) {
-      console.error("Error getting message count:", countResult.error);
+    if (countError) {
+      console.error("Error getting message count:", countError);
       return new Response(
-        JSON.stringify({ error: countResult.error.message }),
+        JSON.stringify({ error: countError.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    const count = countResult.data;
-    const data = result.data;
+    console.log(`Retrieved ${messages?.length || 0} messages out of ${count || 0} total`);
     
     // Determine if there are more messages
-    const hasMore = count != null && count > offset + (data?.length || 0);
+    const hasMore = count != null && count > offset + (messages?.length || 0);
     
     return new Response(
       JSON.stringify({
-        messages: data || [],
+        messages: messages || [],
         hasMore,
         totalCount: count,
         page: pageNumber,
