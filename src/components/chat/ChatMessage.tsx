@@ -73,14 +73,26 @@ export const ChatMessage = ({
             <>
               {offlineMode || !message.synced ? (
                 <Clock className="h-3 w-3 opacity-70" />
+              ) : isAiBot ? (
+                <Check className="h-3 w-3 text-blue-500" />
               ) : isNutritionist ? (
-                <CheckCheck className="h-3 w-3 opacity-70 text-blue-400" />
+                <CheckCheck className="h-3 w-3 text-blue-500" />
               ) : message.read ? (
-                <Check className="h-3 w-3 opacity-70 text-blue-400" />
+                <CheckCheck className="h-3 w-3 opacity-70 text-blue-400" />
               ) : (
                 <Check className="h-3 w-3 opacity-70" />
               )}
             </>
+          )}
+          
+          {/* Add blue tick for AI messages */}
+          {!isCurrentUser && isAiBot && (
+            <Check className="h-3 w-3 text-blue-500 ml-1" />
+          )}
+          
+          {/* Add double blue ticks for nutritionist messages */}
+          {!isCurrentUser && isNutritionist && (
+            <CheckCheck className="h-3 w-3 text-blue-500 ml-1" />
           )}
           
           {/* Show bot icon for AI messages */}
