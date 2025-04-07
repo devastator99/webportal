@@ -49,11 +49,14 @@ export const ChatMessagesList = ({
   offlineMode = false,
   localMessages = []
 }: ChatMessagesListProps) => {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: messages, isLoading, error } = useQuery({
-    queryKey: ["chat_messages", user?.id, selectedUserId, isGroupChat, careTeamGroup?.groupName, careTeamMembers?.length, careTeamMembers?.map(m => m.id).join('-')],
+    queryKey: ["chat_messages", user?.id, selectedUserId, isGroupChat, 
+      careTeamGroup?.groupName, 
+      careTeamMembers?.length, 
+      careTeamMembers?.map(m => m.id).join('-')],
     queryFn: async () => {
       if (!user?.id) return [];
 
@@ -62,7 +65,8 @@ export const ChatMessagesList = ({
         selectedUserId,
         isGroupChat,
         careTeamMembersCount: careTeamMembers?.length || 0,
-        careTeamGroupName: careTeamGroup?.groupName
+        careTeamGroupName: careTeamGroup?.groupName,
+        userRole
       });
       
       if (selectedUserId) {
@@ -92,7 +96,8 @@ export const ChatMessagesList = ({
       return [];
     },
     enabled: !!user?.id && (!!selectedUserId || (isGroupChat && !!careTeamGroup)),
-    staleTime: 5000
+    staleTime: 5000,
+    refetchInterval: 10000 // Add polling to refresh messages automatically every 10 seconds
   });
 
   useEffect(() => {
@@ -107,6 +112,7 @@ export const ChatMessagesList = ({
   const serverMessages = Array.isArray(messages) ? messages : [];
   const allMessages = [...serverMessages, ...localMessages];
   
+  // Sort messages by timestamp
   allMessages.sort((a, b) => (new Date(a.created_at)).getTime() - (new Date(b.created_at)).getTime());
 
   if (isLoading) {

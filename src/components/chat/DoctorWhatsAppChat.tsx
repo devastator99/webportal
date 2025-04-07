@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -132,6 +133,20 @@ export const DoctorWhatsAppChat = () => {
           });
         }
         
+        // Also make sure to include the patient in the care team
+        const hasPatient = updatedCareTeam.some(member => member.id === selectedPatientId);
+        if (!hasPatient) {
+          const selectedPatient = assignedPatients.find(p => p.id === selectedPatientId);
+          if (selectedPatient) {
+            updatedCareTeam.push({
+              id: selectedPatientId,
+              first_name: selectedPatient.first_name,
+              last_name: selectedPatient.last_name,
+              role: "patient"
+            });
+          }
+        }
+        
         setCareTeamMembers(updatedCareTeam);
       } catch (error) {
         console.error("Error fetching care team:", error);
@@ -146,7 +161,7 @@ export const DoctorWhatsAppChat = () => {
     };
     
     fetchCareTeam();
-  }, [selectedPatientId, user, toast]);
+  }, [selectedPatientId, user, toast, assignedPatients]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedPatientId || !user?.id) return;
