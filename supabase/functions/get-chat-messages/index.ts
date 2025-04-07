@@ -18,6 +18,7 @@ serve(async (req: Request) => {
     const { 
       user_id, 
       other_user_id, 
+      email = null,  // Add email parameter for specific user lookup
       is_group_chat = false, 
       care_team_members = [], 
       include_care_team_messages = false,
@@ -49,10 +50,30 @@ serve(async (req: Request) => {
     console.log("Fetching messages with params:", {
       user_id, 
       other_user_id, 
+      email,
       is_group_chat, 
       include_care_team_messages,
       care_team_members: care_team_members?.length || 0
     });
+    
+    // Look up user by email if provided (e.g., prakash@test.com)
+    let specificUserId = other_user_id;
+    
+    if (email) {
+      console.log("Looking up user by email:", email);
+      const { data: userData, error: userError } = await supabaseClient
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+        
+      if (userError) {
+        console.error("Error looking up user by email:", userError);
+      } else if (userData) {
+        specificUserId = userData.id;
+        console.log("Found user ID for email:", specificUserId);
+      }
+    }
     
     // Get the roles of both users to determine context
     const { data: userRoleData, error: userRoleError } = await supabaseClient
@@ -68,11 +89,11 @@ serve(async (req: Request) => {
     let otherUserRoleData = null;
     let otherUserRoleError = null;
     
-    if (other_user_id) {
+    if (specificUserId) {
       const result = await supabaseClient
         .from('user_roles')
         .select('role')
-        .eq('user_id', other_user_id)
+        .eq('user_id', specificUserId)
         .maybeSingle();
         
       otherUserRoleData = result.data;
@@ -97,20 +118,20 @@ serve(async (req: Request) => {
         console.log("Patient is current user:", patientId);
       } else if (otherUserRole === 'patient') {
         // If other user is a patient, we're in a care team chat for this patient
-        patientId = other_user_id;
+        patientId = specificUserId;
         console.log("Patient is other user:", patientId);
       } else if (userRole === 'doctor' || userRole === 'nutritionist') {
         // If provider is looking at a specific patient
-        patientId = other_user_id;
+        patientId = specificUserId;
         console.log("Provider viewing patient:", patientId);
       }
     }
     
     try {
       // Always make sure we have a patient ID to use for the care team
-      if (!patientId && other_user_id) {
-        patientId = other_user_id;
-        console.log("Using other_user_id as fallback patient_id:", patientId);
+      if (!patientId && specificUserId) {
+        patientId = specificUserId;
+        console.log("Using specificUserId as fallback patient_id:", patientId);
       }
       
       // If user is a patient and viewing their own care team, always use their ID
@@ -135,20 +156,54 @@ serve(async (req: Request) => {
       
       console.log("Getting care team messages for patient:", patientId);
       
-      // Use the get_care_team_messages RPC function for all messages
-      const { data: messages, error: messagesError } = await supabaseClient.rpc('get_care_team_messages', {
-        p_user_id: user_id,
-        p_patient_id: patientId,
-        p_offset: offset,
-        p_limit: perPage
-      });
+      // For specific user lookup by email, we might want to get direct messages or all messages
+      let messagesQuery;
+      
+      if (email && specificUserId) {
+        // If looking for messages from a specific user by email
+        console.log("Looking for messages from specific user:", specificUserId);
+        
+        // Get both direct messages and care team messages where this user is the sender
+        const { data: specificMessages, error: specificError } = await supabaseClient
+          .from('chat_messages')
+          .select(`
+            id,
+            message,
+            message_type,
+            created_at,
+            read,
+            sender:sender_id (id, first_name, last_name),
+            receiver:receiver_id (id, first_name, last_name)
+          `)
+          .eq('sender_id', specificUserId)
+          .order('created_at', { ascending: true })
+          .limit(perPage)
+          .offset(offset);
+          
+        if (specificError) {
+          console.error("Error fetching specific user messages:", specificError);
+          throw specificError;
+        }
+        
+        messagesQuery = { data: specificMessages, error: null };
+      } else {
+        // Use the standard get_care_team_messages RPC function for all messages
+        messagesQuery = await supabaseClient.rpc('get_care_team_messages', {
+          p_user_id: user_id,
+          p_patient_id: patientId,
+          p_offset: offset,
+          p_limit: perPage
+        });
+      }
+      
+      const { data: messages, error: messagesError } = messagesQuery;
       
       if (messagesError) {
-        console.error("Error fetching care team messages:", messagesError);
+        console.error("Error fetching messages:", messagesError);
         throw messagesError;
       }
       
-      console.log(`Retrieved ${messages?.length || 0} care team messages`);
+      console.log(`Retrieved ${messages?.length || 0} messages`);
       
       // Mark any unread messages as read if the current user is the recipient
       if (messages && messages.length > 0) {

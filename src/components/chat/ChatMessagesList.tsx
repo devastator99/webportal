@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -30,9 +29,9 @@ export interface ChatMessagesListProps {
   localMessages?: any[];
   isGroupChat?: boolean; 
   includeCareTeamMessages?: boolean;
+  specificEmail?: string;
 }
 
-// Define proper types for the chat message
 interface ChatMessageType {
   id: string;
   message: string;
@@ -51,14 +50,14 @@ export const ChatMessagesList = ({
   offlineMode = false,
   localMessages = [],
   isGroupChat = false,
-  includeCareTeamMessages = false
+  includeCareTeamMessages = false,
+  specificEmail = null
 }: ChatMessagesListProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [errorRetries, setErrorRetries] = useState(0);
 
-  // Debug what props are being passed
   console.log("ChatMessagesList render with:", {
     selectedUserId,
     careTeamGroup: careTeamGroup?.members?.length,
@@ -66,7 +65,8 @@ export const ChatMessagesList = ({
     userRole,
     localMessages: localMessages?.length,
     isGroupChat,
-    includeCareTeamMessages
+    includeCareTeamMessages,
+    specificEmail
   });
 
   const {
@@ -80,7 +80,8 @@ export const ChatMessagesList = ({
       careTeamGroup?.groupName, 
       careTeamMembers?.map(m => m.id).join('-'),
       isGroupChat,
-      includeCareTeamMessages
+      includeCareTeamMessages,
+      specificEmail
     ],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -92,17 +93,18 @@ export const ChatMessagesList = ({
         careTeamGroupName: careTeamGroup?.groupName,
         userRole,
         isGroupChat,
-        includeCareTeamMessages
+        includeCareTeamMessages,
+        specificEmail
       });
       
-      if (selectedUserId) {
+      if (selectedUserId || specificEmail) {
         try {
-          // Always use the edge function for consistency
           console.log("Getting care team messages via edge function");
           const { data, error } = await supabase.functions.invoke('get-chat-messages', {
             body: {
               user_id: user.id,
               other_user_id: selectedUserId,
+              email: specificEmail,
               is_group_chat: isGroupChat || userRole === 'patient',
               care_team_members: careTeamMembers,
               include_care_team_messages: includeCareTeamMessages || userRole === 'patient'
@@ -119,7 +121,6 @@ export const ChatMessagesList = ({
         } catch (err) {
           console.error("Error in messages retrieval:", err);
           
-          // After multiple retries with the same error, show a user-friendly message
           if (errorRetries > 2) {
             toast({
               title: "Trouble loading messages",
@@ -135,9 +136,9 @@ export const ChatMessagesList = ({
 
       return [];
     },
-    enabled: !!user?.id && !!selectedUserId,
-    staleTime: 5000, // Keep data fresh for 5 seconds
-    refetchInterval: 10000, // Add polling to refresh messages automatically every 10 seconds
+    enabled: !!user?.id && (!!selectedUserId || !!specificEmail),
+    staleTime: 5000,
+    refetchInterval: 10000,
     retry: 2,
     refetchOnWindowFocus: true
   });
@@ -155,11 +156,9 @@ export const ChatMessagesList = ({
     refetch();
   };
 
-  // Make sure we're working with arrays for both messages and localMessages
   const serverMessages = Array.isArray(messages) ? messages : [];
   const allMessages = [...serverMessages, ...localMessages];
   
-  // Sort messages by timestamp
   allMessages.sort((a, b) => (new Date(a.created_at)).getTime() - (new Date(b.created_at)).getTime());
 
   if (isLoading) {
