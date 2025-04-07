@@ -48,8 +48,9 @@ export const ChatPageHeader = ({
           <CardContent className="p-4 h-full">
             <ChatInterface 
               assignedUsers={assignedUsers}
-              showGroupChat={false}
+              showGroupChat={true}
               whatsAppStyle={true}
+              careTeamGroup={careTeamGroup}
             />
           </CardContent>
         </Card>

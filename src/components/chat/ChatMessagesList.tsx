@@ -174,7 +174,7 @@ export const ChatMessagesList = ({
             </div>
           ) : allMessages.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No messages yet. Start a conversation!
+              No messages yet. Start a conversation in the Care Team Chat!
             </div>
           ) : (
             allMessages.map((message, index) => {

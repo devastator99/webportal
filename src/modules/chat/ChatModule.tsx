@@ -40,7 +40,7 @@ export const ChatModule = ({
     <>
       {showChatInterface && (
         <>
-          {userRole === "doctor" ? (
+          {userRole === "doctor" || userRole === "nutritionist" ? (
             <DoctorWhatsAppChat />
           ) : (
             <UsersProvider>
