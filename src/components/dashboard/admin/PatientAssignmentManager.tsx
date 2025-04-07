@@ -151,7 +151,7 @@ export const PatientAssignmentManager = () => {
         throw new Error("Administrator ID is missing. Please log in again.");
       }
 
-      // Call the admin_assign_care_team RPC directly instead of using the edge function
+      // Call the admin_assign_care_team RPC
       const { data: assignmentData, error: assignmentError } = await supabase.rpc(
         'admin_assign_care_team',
         {
@@ -184,20 +184,28 @@ export const PatientAssignmentManager = () => {
       }
       
       console.log("Now creating care team room for patient");
-      const { data: roomData, error: roomError } = await supabase.rpc(
-        'create_care_team_room',
-        {
-          p_patient_id: selectedPatient,
-          p_doctor_id: selectedDoctor,
-          p_nutritionist_id: selectedNutritionist
-        }
-      );
       
-      if (roomError) {
-        console.warn("Warning creating care team room:", roomError);
-        // Continue despite room creation error, as assignment was successful
-      } else {
-        console.log("Care team room created with ID:", roomData);
+      // Try to create care team room separately with error handling
+      try {
+        const { data: roomData, error: roomError } = await supabase.rpc(
+          'create_care_team_room',
+          {
+            p_patient_id: selectedPatient,
+            p_doctor_id: selectedDoctor,
+            p_nutritionist_id: selectedNutritionist
+          }
+        );
+        
+        if (roomError) {
+          console.warn("Warning creating care team room:", roomError);
+          // Continue despite room creation error, as assignment was successful
+        } else {
+          console.log("Care team room created with ID:", roomData);
+        }
+      } catch (roomError: any) {
+        // Just log the error but don't fail the whole operation
+        console.warn("Exception creating care team room:", roomError);
+        // Continue with success message as the assignment was successful
       }
       
       const patientName = patients?.find(p => p.id === selectedPatient);

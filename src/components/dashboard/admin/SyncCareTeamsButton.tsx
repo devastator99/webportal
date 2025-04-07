@@ -60,31 +60,37 @@ export const SyncCareTeamsButton = () => {
               continue;
             }
             
-            // Create/update care team room
-            const { data: roomId, error: roomError } = await supabase.rpc(
-              'create_care_team_room',
-              {
-                p_patient_id: assignment.patient_id,
-                p_doctor_id: assignment.doctor_id,
-                p_nutritionist_id: assignment.nutritionist_id
+            // Create/update care team room with improved error handling
+            try {
+              const { data: roomId, error: roomError } = await supabase.rpc(
+                'create_care_team_room',
+                {
+                  p_patient_id: assignment.patient_id,
+                  p_doctor_id: assignment.doctor_id,
+                  p_nutritionist_id: assignment.nutritionist_id
+                }
+              );
+              
+              if (roomError) {
+                console.error(`Error creating room:`, roomError);
+                statusCounts.error++;
+                continue;
               }
-            );
-            
-            if (roomError) {
-              console.error(`Error creating room:`, roomError);
+              
+              if (roomId) {
+                createdRooms.push(roomId);
+                console.log(`Room ${roomId} created/updated for patient: ${assignment.patient_first_name} ${assignment.patient_last_name}`);
+                statusCounts.created++;
+              } else {
+                statusCounts.skipped++;
+              }
+            } catch (roomCreationError: any) {
+              console.error(`Exception creating room:`, roomCreationError);
               statusCounts.error++;
               continue;
             }
-            
-            if (roomId) {
-              createdRooms.push(roomId);
-              console.log(`Room ${roomId} created/updated for patient: ${assignment.patient_first_name} ${assignment.patient_last_name}`);
-              statusCounts.created++;
-            } else {
-              statusCounts.skipped++;
-            }
-          } catch (err) {
-            console.error("Error processing assignment:", err);
+          } catch (assignmentError) {
+            console.error("Error processing assignment:", assignmentError);
             statusCounts.error++;
           }
         }
@@ -102,7 +108,7 @@ export const SyncCareTeamsButton = () => {
         } else {
           console.log(`Verified ${rooms?.length || 0} rooms exist in database`);
           
-          // Check room members
+          // Check room members for the first room as a sample
           if (rooms && rooms.length > 0) {
             const roomId = rooms[0].id;
             const { data: members, error: membersError } = await supabase
