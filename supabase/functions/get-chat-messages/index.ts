@@ -2,24 +2,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-interface MessageData {
-  id: string;
-  message: string | null;
-  message_type: string | null;
-  created_at: string;
-  read: boolean;
-  sender: {
-    id: string;
-    first_name: string | null;
-    last_name: string | null;
-  };
-  receiver: {
-    id: string;
-    first_name: string | null;
-    last_name: string | null;
-  };
-}
-
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -55,70 +37,49 @@ serve(async (req: Request) => {
     const perPage = parseInt(String(per_page));
     const offset = (pageNumber - 1) * perPage;
     
-    let query = supabaseClient
-      .from('chat_messages')
-      .select(`
-        id,
-        message,
-        message_type,
-        created_at,
-        read,
-        sender:sender_id(id, first_name, last_name),
-        receiver:receiver_id(id, first_name, last_name)
-      `);
-      
+    let data, error, count = 0;
+    
     if (include_care_team) {
-      // First get the care team members for this patient
-      const { data: careTeamData, error: careTeamError } = await supabaseClient
-        .rpc('get_patient_care_team_members', { p_patient_id: other_user_id });
+      // Use the new secure RPC function for care team messages
+      console.log("Using get_care_team_messages RPC function");
+      const result = await supabaseClient.rpc('get_care_team_messages', {
+        p_user_id: user_id,
+        p_patient_id: other_user_id,
+        p_offset: offset,
+        p_limit: perPage
+      });
       
-      if (careTeamError) {
-        console.error("Error fetching care team members:", careTeamError);
-        return new Response(
-          JSON.stringify({ error: careTeamError.message }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-
-      const careTeamIds = careTeamData ? careTeamData.map(member => member.id) : [];
+      data = result.data;
+      error = result.error;
       
-      // Add the current user and the patient to the list
-      const relevantIds = [user_id, other_user_id, ...careTeamIds];
+      // Get count for pagination
+      const countResult = await supabaseClient.rpc('get_care_team_messages', {
+        p_user_id: user_id,
+        p_patient_id: other_user_id
+      }).select('id', { count: 'exact', head: true });
       
-      // We want messages where any care team member (including the current user) 
-      // is communicating with the patient or other care team members
-      let filterConditions = [];
-      
-      // Include all messages between any relevant members
-      for (const id of relevantIds) {
-        for (const otherId of relevantIds) {
-          if (id !== otherId) { 
-            filterConditions.push(`and(sender_id.eq.${id},receiver_id.eq.${otherId})`);
-          }
-        }
-      }
-      
-      query = query.or(filterConditions.join(','));
+      count = countResult.count;
     } else {
-      // Direct messages between two users
-      query = query.or(`and(sender_id.eq.${user_id},receiver_id.eq.${other_user_id}),and(sender_id.eq.${other_user_id},receiver_id.eq.${user_id})`);
-    }
-    
-    // Get total count first to determine if there are more messages
-    const { count, error: countError } = await query.count('id', { head: true });
+      // Direct messages between two users using the new secure RPC function
+      console.log("Using get_user_chat_messages RPC function");
+      const result = await supabaseClient.rpc('get_user_chat_messages', {
+        p_user_id: user_id,
+        p_other_user_id: other_user_id,
+        p_offset: offset,
+        p_limit: perPage
+      });
       
-    if (countError) {
-      console.error("Error counting chat messages:", countError);
-      return new Response(
-        JSON.stringify({ error: countError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      data = result.data;
+      error = result.error;
+      
+      // Get count for pagination
+      const countResult = await supabaseClient.rpc('get_user_chat_messages', {
+        p_user_id: user_id,
+        p_other_user_id: other_user_id
+      }).select('id', { count: 'exact', head: true });
+      
+      count = countResult.count;
     }
-    
-    // Get actual messages with pagination
-    const { data, error } = await query
-      .order('created_at', { ascending: true })
-      .range(offset, offset + perPage - 1);
       
     if (error) {
       console.error("Error fetching chat messages:", error);
@@ -129,11 +90,11 @@ serve(async (req: Request) => {
     }
     
     // Determine if there are more messages
-    const hasMore = count !== null && count > offset + data.length;
+    const hasMore = count !== null && count > offset + (data?.length || 0);
     
     return new Response(
       JSON.stringify({
-        messages: data,
+        messages: data || [],
         hasMore,
         totalCount: count,
         page: pageNumber,

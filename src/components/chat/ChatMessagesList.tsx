@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -90,157 +91,58 @@ export const ChatMessagesList = ({
           throw err;
         }
       } else if (isGroupChat && careTeamGroup) {
-        const allMessages: ChatMessageType[] = [];
-        
-        const careTeamIds = careTeamGroup.members.map(member => member.id);
-        if (!careTeamIds.includes(user.id)) {
-          careTeamIds.push(user.id);
-        }
-        
-        console.log("Care team IDs for group chat:", careTeamIds);
-        
-        // Query messages with sender and receiver information
-        const { data: allTeamMessages, error: allTeamError } = await supabase
-          .from('chat_messages')
-          .select(`
-            id,
-            message,
-            message_type,
-            created_at,
-            file_url,
-            sender_id,
-            receiver_id,
-            sender:profiles!sender_id(id, first_name, last_name),
-            receiver:profiles!receiver_id(id, first_name, last_name)
-          `)
-          .or(`sender_id.in.(${careTeamIds.join(',')}),receiver_id.in.(${careTeamIds.join(',')})`)
-          .order('created_at', { ascending: true });
-        
-        if (allTeamError) {
-          console.error("Error fetching all team messages:", allTeamError);
-          throw allTeamError;
-        }
-        
-        // Get user roles separately
-        const { data: userRoles, error: rolesError } = await supabase
-          .from('user_roles')
-          .select('user_id, role')
-          .in('user_id', careTeamIds);
+        // Use RPC function for care team group chat
+        try {
+          console.log("Using RPC for care team group chat");
+          const careTeamIds = careTeamGroup.members.map(member => member.id);
           
-        if (rolesError) {
-          console.error("Error fetching user roles:", rolesError);
-          throw rolesError;
-        }
-        
-        // Create a lookup map for roles
-        const roleMap = new Map();
-        userRoles?.forEach(ur => {
-          roleMap.set(ur.user_id, ur.role);
-        });
-        
-        console.log(`Retrieved ${allTeamMessages?.length || 0} total messages between care team members`);
-        if (allTeamMessages) {
-          // Transform the data to include the role from our lookup map
-          const transformedMessages = allTeamMessages.map(msg => ({
-            id: msg.id,
-            message: msg.message,
-            message_type: msg.message_type,
-            created_at: msg.created_at,
-            file_url: msg.file_url,
-            read: false, // Default value
-            sender: {
-              id: msg.sender?.id || '',
-              first_name: msg.sender?.first_name || '',
-              last_name: msg.sender?.last_name || '',
-              role: roleMap.get(msg.sender?.id) || 'unknown'
-            },
-            receiver: {
-              id: msg.receiver?.id || '',
-              first_name: msg.receiver?.first_name || '',
-              last_name: msg.receiver?.last_name || '',
-              role: roleMap.get(msg.receiver?.id) || 'unknown'
-            }
-          }));
-          allMessages.push(...transformedMessages);
-        }
-        
-        const uniqueMessages = Array.from(
-          new Map(allMessages.map(msg => [msg.id, msg])).values()
-        );
-        
-        // Only filter if we have valid messages and valid sender/receiver objects
-        const filteredMessages = uniqueMessages.filter(msg => {
-          if (!msg || !msg.sender || !msg.receiver) return false;
-          // Check if both sender and receiver IDs are included in the careTeamIds
-          return careTeamIds.includes(msg.sender.id) && careTeamIds.includes(msg.receiver.id);
-        });
-        
-        filteredMessages.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-        
-        console.log(`Returning ${filteredMessages.length} filtered unique care team messages`);
-        return filteredMessages;
-      } else if (selectedUserId && user?.id) {
-        // Get user roles first
-        const { data: userRoles, error: rolesError } = await supabase
-          .from('user_roles')
-          .select('user_id, role')
-          .in('user_id', [user.id, selectedUserId]);
-          
-        if (rolesError) {
-          console.error("Error fetching user roles:", rolesError);
-          throw rolesError;
-        }
-        
-        // Create a lookup map for roles
-        const roleMap = new Map();
-        userRoles?.forEach(ur => {
-          roleMap.set(ur.user_id, ur.role);
-        });
-        
-        // Direct conversation query
-        const { data, error } = await supabase
-          .from('chat_messages')
-          .select(`
-            id,
-            message,
-            message_type,
-            created_at,
-            file_url,
-            sender_id,
-            receiver_id,
-            sender:profiles!sender_id(id, first_name, last_name),
-            receiver:profiles!receiver_id(id, first_name, last_name)
-          `)
-          .or(`and(sender_id.eq.${user.id},receiver_id.eq.${selectedUserId}),and(sender_id.eq.${selectedUserId},receiver_id.eq.${user.id})`)
-          .order('created_at', { ascending: true });
-
-        if (error) throw error;
-        
-        console.log(`Returning ${data?.length || 0} direct messages`);
-        
-        // Transform data to match ChatMessageType with explicit role field added from roleMap
-        const transformedData = data?.map(msg => ({
-          id: msg.id,
-          message: msg.message,
-          message_type: msg.message_type,
-          created_at: msg.created_at,
-          file_url: msg.file_url,
-          read: false, // Add missing property
-          sender: {
-            id: msg.sender?.id || '',
-            first_name: msg.sender?.first_name || '',
-            last_name: msg.sender?.last_name || '',
-            role: roleMap.get(msg.sender?.id) || 'unknown'
-          },
-          receiver: {
-            id: msg.receiver?.id || '',
-            first_name: msg.receiver?.first_name || '',
-            last_name: msg.receiver?.last_name || '',
-            role: roleMap.get(msg.receiver?.id) || 'unknown'
+          // Make sure current user is included
+          if (!careTeamIds.includes(user.id)) {
+            careTeamIds.push(user.id);
           }
-        })) || [];
-        
-        return transformedData;
+          
+          // Get one representative patient ID to use as the focus of the care team
+          const patientId = careTeamGroup.members.find(m => 
+            m.role === 'patient')?.id || careTeamIds[0];
+            
+          const { data, error } = await supabase.rpc('get_care_team_messages', {
+            p_user_id: user.id,
+            p_patient_id: patientId,
+            p_limit: 100
+          });
+          
+          if (error) {
+            console.error("Error using get_care_team_messages RPC:", error);
+            throw error;
+          }
+          
+          console.log(`Retrieved ${data?.length || 0} care team messages via RPC`);
+          return data || [];
+        } catch (err) {
+          console.error("Error in RPC care team messages retrieval:", err);
+          throw err;
+        }
+      } else if (selectedUserId && user?.id) {
+        // Use the direct messages RPC function
+        try {
+          console.log("Using RPC for direct messages");
+          const { data, error } = await supabase.rpc('get_user_chat_messages', {
+            p_user_id: user.id,
+            p_other_user_id: selectedUserId,
+            p_limit: 100
+          });
+          
+          if (error) {
+            console.error("Error using get_user_chat_messages RPC:", error);
+            throw error;
+          }
+          
+          console.log(`Retrieved ${data?.length || 0} direct messages via RPC`);
+          return data || [];
+        } catch (err) {
+          console.error("Error in direct messages retrieval:", err);
+          throw err;
+        }
       }
 
       return [];

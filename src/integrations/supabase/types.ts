@@ -817,6 +817,23 @@ export type Database = {
           patient_json: Json
         }[]
       }
+      get_care_team_messages: {
+        Args: {
+          p_user_id: string
+          p_patient_id: string
+          p_offset?: number
+          p_limit?: number
+        }
+        Returns: {
+          id: string
+          message: string
+          message_type: string
+          created_at: string
+          read: boolean
+          sender: Json
+          receiver: Json
+        }[]
+      }
       get_chatbot_knowledge: {
         Args: {
           topic_filter?: string
@@ -1072,6 +1089,23 @@ export type Database = {
           p_report_id: string
         }
         Returns: string
+      }
+      get_user_chat_messages: {
+        Args: {
+          p_user_id: string
+          p_other_user_id: string
+          p_offset?: number
+          p_limit?: number
+        }
+        Returns: {
+          id: string
+          message: string
+          message_type: string
+          created_at: string
+          read: boolean
+          sender: Json
+          receiver: Json
+        }[]
       }
       get_user_role: {
         Args: {
