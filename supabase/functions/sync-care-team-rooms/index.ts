@@ -62,12 +62,20 @@ serve(async (req: Request) => {
       
     if (paError) {
       console.error("Error fetching patient assignments:", paError);
+      throw new Error(`Failed to fetch patient assignments: ${paError.message}`);
     } else {
       console.log(`Found ${patientAssignments?.length || 0} patient assignments`);
       if (patientAssignments && patientAssignments.length > 0) {
         console.log("Sample assignments:", JSON.stringify(patientAssignments.slice(0, 5)));
       } else {
         console.log("No patient assignments found - this is likely the issue!");
+        // Return more helpful error message if no assignments exist
+        return new Response(
+          JSON.stringify({ 
+            error: "No patient assignments found. Please create patient assignments first." 
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
     }
 
@@ -79,6 +87,7 @@ serve(async (req: Request) => {
       
     if (profilesError) {
       console.error("Error fetching profiles:", profilesError);
+      throw new Error(`Failed to access profiles table: ${profilesError.message}`);
     } else {
       console.log(`Found ${profiles?.length || 0} profiles`);
       console.log("Sample profiles:", JSON.stringify(profiles));
@@ -90,7 +99,7 @@ serve(async (req: Request) => {
     
     if (error) {
       console.error("Error calling sync_all_care_team_rooms:", error);
-      throw error;
+      throw new Error(`Failed to sync care team rooms: ${error.message}`);
     }
 
     console.log(`Sync completed, created/updated ${data?.length || 0} rooms`);

@@ -9,6 +9,7 @@ import { Users, Database, BarChart4, RefreshCw } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { syncAllCareTeamRooms, supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 // Placeholder for AnalyticsPanel until it's implemented
 const AnalyticsPanel = () => {
@@ -23,6 +24,7 @@ const AnalyticsPanel = () => {
 export const AdminDashboard = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncStatus, setSyncStatus] = useState("");
+  const [syncError, setSyncError] = useState<string | null>(null);
   const [patientAssignmentsCount, setPatientAssignmentsCount] = useState(0);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -53,6 +55,7 @@ export const AdminDashboard = () => {
     try {
       setIsSyncing(true);
       setSyncStatus("Starting sync process...");
+      setSyncError(null);
       
       toast({
         title: "Syncing care team rooms...",
@@ -62,16 +65,15 @@ export const AdminDashboard = () => {
       console.log("Starting care team rooms sync from AdminDashboard");
       
       // Check patient assignments before sync
-      const { data: assignments, error: assignmentsError } = await supabase
-        .from('patient_assignments')
-        .select('patient_id, doctor_id, nutritionist_id');
-        
-      if (assignmentsError) {
-        console.error("Error fetching patient assignments:", assignmentsError);
-        setSyncStatus("Error fetching patient assignments");
-      } else {
-        console.log(`Found ${assignments?.length || 0} patient assignments before sync`);
-        setSyncStatus(`Found ${assignments?.length || 0} patient assignments, starting sync...`);
+      if (patientAssignmentsCount === 0) {
+        setSyncStatus("No patient assignments found");
+        setSyncError("No patient assignments exist. Please create patient assignments first.");
+        toast({
+          title: "Sync failed",
+          description: "No patient assignments exist. Please create patient assignments first.",
+          variant: "destructive",
+        });
+        return;
       }
       
       // Run the sync function
@@ -102,6 +104,7 @@ export const AdminDashboard = () => {
     } catch (error: any) {
       console.error("Error in handleSyncCareTeams:", error);
       setSyncStatus(`Error: ${error.message}`);
+      setSyncError(error.message);
       toast({
         title: "Sync failed",
         description: error.message || "Could not sync care team rooms",
@@ -135,6 +138,12 @@ export const AdminDashboard = () => {
           )}
         </div>
       </div>
+      
+      {syncError && (
+        <Alert variant="destructive" className="mb-2">
+          <AlertDescription>{syncError}</AlertDescription>
+        </Alert>
+      )}
       
       <Tabs defaultValue="users" className="space-y-4">
         <TabsList>

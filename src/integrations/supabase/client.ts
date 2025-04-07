@@ -256,23 +256,14 @@ export async function syncAllCareTeamRooms(): Promise<any> {
       
     if (assignmentsError) {
       console.error('Error checking patient assignments:', assignmentsError);
+      throw new Error(`Failed to check patient assignments: ${assignmentsError.message}`);
     } else {
       console.log(`Found ${assignments?.length || 0} patient assignments before sync`);
       if (assignments && assignments.length > 0) {
         console.log("Sample assignments:", assignments.slice(0, 5));
       } else {
         console.error("No patient assignments found - this is likely why no care teams are being created!");
-        
-        // If no assignments exist, check if we can view the patient_assignments table
-        const { count, error: countError } = await supabase
-          .from('patient_assignments')
-          .select('*', { count: 'exact', head: true });
-          
-        if (countError) {
-          console.error('Error checking patient_assignments table:', countError);
-        } else {
-          console.log(`Total patient assignments in database: ${count}`);
-        }
+        throw new Error("No patient assignments found. Please create patient assignments first.");
       }
     }
     
@@ -284,7 +275,7 @@ export async function syncAllCareTeamRooms(): Promise<any> {
     
     if (error) {
       console.error('Error invoking edge function:', error);
-      throw new Error('Failed to sync care team rooms. Please try again.');
+      throw new Error('Failed to communicate with server. Please try again.');
     }
     
     // Handle case where the function returned data but with error status
