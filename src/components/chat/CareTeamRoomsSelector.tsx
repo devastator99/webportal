@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -32,7 +32,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
   const [searchTerm, setSearchTerm] = useState("");
   
   // Query to get user's care team rooms
-  const { data: rooms = [], isLoading } = useQuery({
+  const { data: roomsData = [], isLoading } = useQuery({
     queryKey: ["care_team_rooms", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -123,6 +123,9 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
     enabled: !!user?.id,
     refetchInterval: 10000
   });
+
+  // Ensure rooms is always an array
+  const rooms: CareTeamRoom[] = Array.isArray(roomsData) ? roomsData : [];
 
   // Filter rooms based on search term
   const filteredRooms = searchTerm 

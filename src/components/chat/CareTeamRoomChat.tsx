@@ -21,6 +21,7 @@ interface RoomMessage {
   is_system_message: boolean;
   is_ai_message: boolean;
   created_at: string;
+  read_by?: string[] | null;
 }
 
 interface CareTeamRoom {
@@ -124,7 +125,7 @@ export const CareTeamRoomChat = ({
       try {
         const { data: messageData, error } = await supabase
           .from('room_messages')
-          .select('id, sender_id, message, is_system_message, is_ai_message, created_at')
+          .select('id, sender_id, message, is_system_message, is_ai_message, created_at, read_by')
           .eq('room_id', selectedRoomId)
           .order('created_at', { ascending: true });
           
@@ -175,34 +176,39 @@ export const CareTeamRoomChat = ({
             message: msg.message,
             is_system_message: msg.is_system_message || false,
             is_ai_message: msg.is_ai_message || false,
-            created_at: msg.created_at
+            created_at: msg.created_at,
+            read_by: Array.isArray(msg.read_by) ? msg.read_by : []
           });
         }
         
         // Mark messages as read
         if (messageData.length > 0) {
-          // We'll use a direct update approach instead of supabase.sql
+          // Process each message to mark as read by current user
           for (const msg of messageData) {
-            // Read the current read_by value first
-            const { data: currentReadBy } = await supabase
-              .from('room_messages')
-              .select('read_by')
-              .eq('id', msg.id)
-              .single();
+            // Check if read_by is an array and if user is not already in it
+            let currentReadBy: string[] = [];
             
-            if (currentReadBy) {
-              // Check if current user is already in read_by
-              const readByArray = currentReadBy.read_by || [];
-              if (!readByArray.includes(user?.id)) {
-                // Add user to read_by array
-                const updatedReadBy = [...readByArray, user?.id];
-                
-                // Update the read_by field
-                await supabase
-                  .from('room_messages')
-                  .update({ read_by: updatedReadBy })
-                  .eq('id', msg.id);
+            if (msg.read_by && Array.isArray(msg.read_by)) {
+              currentReadBy = msg.read_by as string[];
+            } else if (typeof msg.read_by === 'object' && msg.read_by !== null) {
+              // Handle case where read_by might be a JSON object that needs parsing
+              try {
+                currentReadBy = Array.isArray(msg.read_by) ? msg.read_by : [];
+              } catch (e) {
+                console.warn("Could not parse read_by field:", e);
+                currentReadBy = [];
               }
+            }
+            
+            // If user is not in read_by, add them
+            if (user?.id && !currentReadBy.includes(user.id)) {
+              const updatedReadBy = [...currentReadBy, user.id];
+              
+              // Update the read_by field
+              await supabase
+                .from('room_messages')
+                .update({ read_by: updatedReadBy })
+                .eq('id', msg.id);
             }
           }
         }
@@ -217,7 +223,8 @@ export const CareTeamRoomChat = ({
     refetchInterval: 5000
   });
 
-  const messages = messagesData || [];
+  // Handle safe type checking for messages array
+  const messages: RoomMessage[] = Array.isArray(messagesData) ? messagesData : [];
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -347,7 +354,7 @@ export const CareTeamRoomChat = ({
   const groupMessagesByDay = (messages: RoomMessage[]) => {
     const groups: Record<string, RoomMessage[]> = {};
     
-    messages?.forEach(msg => {
+    messages.forEach(msg => {
       const date = new Date(msg.created_at);
       const day = format(date, 'yyyy-MM-dd');
       
@@ -361,7 +368,7 @@ export const CareTeamRoomChat = ({
     return groups;
   };
 
-  const messageGroups = groupMessagesByDay(messages || []);
+  const messageGroups = groupMessagesByDay(messages);
 
   if (!selectedRoomId) {
     return (
@@ -400,11 +407,8 @@ export const CareTeamRoomChat = ({
       
       {/* Messages area */}
       <div className="flex-1 bg-[#f0f2f5] dark:bg-slate-900 overflow-hidden relative">
-        <ScrollArea className="h-full">
-          <div 
-            className="p-4 space-y-6"
-            ref={scrollViewportRef}
-          >
+        <ScrollArea className="h-full" viewportRef={scrollViewportRef}>
+          <div className="p-4 space-y-6">
             {messagesLoading ? (
               <div className="flex justify-center pt-4">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
