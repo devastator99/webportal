@@ -82,7 +82,7 @@ export const ChatMessagesList = ({
       
       if (selectedUserId) {
         try {
-          // Always use the care team approach for consistency
+          // Always use the edge function for consistency
           console.log("Getting messages via edge function");
           const { data, error } = await supabase.functions.invoke('get-chat-messages', {
             body: {

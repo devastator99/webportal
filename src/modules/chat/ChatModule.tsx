@@ -36,7 +36,7 @@ export const ChatModule = ({
     initDb();
   }, []);
   
-  // Check if the user is a doctor to render the appropriate chat interface
+  // Check if the user is a doctor or nutritionist to render the appropriate chat interface
   const isDoctorRole = userRole === "doctor";
   const isNutritionistRole = userRole === "nutritionist";
   
