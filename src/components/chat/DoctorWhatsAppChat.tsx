@@ -89,7 +89,7 @@ export const DoctorWhatsAppChat = () => {
 
   useEffect(() => {
     const fetchCareTeam = async () => {
-      if (!selectedPatientId) return;
+      if (!selectedPatientId || !user?.id) return;
       
       try {
         setIsLoadingCareTeam(true);
@@ -122,6 +122,17 @@ export const DoctorWhatsAppChat = () => {
           });
         }
         
+        // Make sure the current user (doctor) is included in the care team list
+        const hasDoctorSelf = updatedCareTeam.some(member => member.id === user.id);
+        if (!hasDoctorSelf) {
+          updatedCareTeam.push({
+            id: user.id,
+            first_name: user.user_metadata?.first_name || "Doctor",
+            last_name: user.user_metadata?.last_name || "",
+            role: "doctor"
+          });
+        }
+        
         setCareTeamMembers(updatedCareTeam);
       } catch (error) {
         console.error("Error fetching care team:", error);
@@ -136,7 +147,7 @@ export const DoctorWhatsAppChat = () => {
     };
     
     fetchCareTeam();
-  }, [selectedPatientId, toast]);
+  }, [selectedPatientId, user, toast]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedPatientId || !user?.id) return;
@@ -282,18 +293,7 @@ export const DoctorWhatsAppChat = () => {
   };
 
   if (isLoadingPatients && assignedPatients.length === 0) {
-    return (
-      <Card className="h-full flex flex-col">
-        <CardContent className="p-4 flex flex-1 justify-center items-center">
-          <div className="space-y-4 w-full max-w-md">
-            <Skeleton className="h-10 w-full rounded-full" />
-            <Skeleton className="h-24 w-full rounded-lg" />
-            <Skeleton className="h-10 w-full rounded-full" />
-            <Skeleton className="h-24 w-full rounded-lg" />
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <div className="h-full flex items-center justify-center"><Skeleton className="h-40 w-full" /></div>;
   }
 
   if (assignedPatients.length === 0 && !isLoadingPatients) {

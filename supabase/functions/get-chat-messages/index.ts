@@ -20,14 +20,24 @@ interface MessageData {
   };
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
 serve(async (req: Request) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
   try {
     const { user_id, other_user_id, page = 1, per_page = 50, include_care_team = false } = await req.json();
     
     if (!user_id || !other_user_id) {
       return new Response(
         JSON.stringify({ error: "User ID and other user ID are required" }),
-        { status: 400, headers: { "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -66,7 +76,7 @@ serve(async (req: Request) => {
         console.error("Error fetching care team members:", careTeamError);
         return new Response(
           JSON.stringify({ error: careTeamError.message }),
-          { status: 500, headers: { "Content-Type": "application/json" } }
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
@@ -101,7 +111,7 @@ serve(async (req: Request) => {
       console.error("Error counting chat messages:", countError);
       return new Response(
         JSON.stringify({ error: countError.message }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
@@ -114,7 +124,7 @@ serve(async (req: Request) => {
       console.error("Error fetching chat messages:", error);
       return new Response(
         JSON.stringify({ error: error.message }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
@@ -129,14 +139,14 @@ serve(async (req: Request) => {
         page: pageNumber,
         perPage
       }),
-      { status: 200, headers: { "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
     
   } catch (error) {
     console.error("Exception in get-chat-messages:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500, headers: { "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
