@@ -28,8 +28,8 @@ interface ChatMessagesListProps {
   careTeamMembers?: UserProfile[];
   offlineMode?: boolean;
   localMessages?: any[];
-  isGroupChat?: boolean; // Add this missing property
-  includeCareTeamMessages?: boolean; // Add this property which is also being passed
+  isGroupChat?: boolean; 
+  includeCareTeamMessages?: boolean;
 }
 
 // Define proper types for the chat message
@@ -50,8 +50,8 @@ export const ChatMessagesList = ({
   careTeamMembers = [],
   offlineMode = false,
   localMessages = [],
-  isGroupChat = false, // Set a default value
-  includeCareTeamMessages = false // Set a default value
+  isGroupChat = false,
+  includeCareTeamMessages = false
 }: ChatMessagesListProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
@@ -79,8 +79,8 @@ export const ChatMessagesList = ({
     queryKey: ["chat_messages", user?.id, selectedUserId, 
       careTeamGroup?.groupName, 
       careTeamMembers?.map(m => m.id).join('-'),
-      isGroupChat, // Add isGroupChat to query key to refetch when it changes
-      includeCareTeamMessages // Add includeCareTeamMessages to query key to refetch when it changes
+      isGroupChat,
+      includeCareTeamMessages
     ],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -103,9 +103,9 @@ export const ChatMessagesList = ({
             body: {
               user_id: user.id,
               other_user_id: selectedUserId,
-              is_group_chat: isGroupChat, // Pass isGroupChat to the edge function
+              is_group_chat: isGroupChat,
               care_team_members: careTeamMembers,
-              include_care_team_messages: includeCareTeamMessages // Pass includeCareTeamMessages to the edge function
+              include_care_team_messages: includeCareTeamMessages
             }
           });
 
