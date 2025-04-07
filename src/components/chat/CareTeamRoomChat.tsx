@@ -21,7 +21,7 @@ interface RoomMessage {
   is_system_message: boolean;
   is_ai_message: boolean;
   created_at: string;
-  read_by?: string[] | null;
+  read_by: string[] | null;
 }
 
 interface CareTeamRoom {
@@ -168,6 +168,23 @@ export const CareTeamRoomChat = ({
             }
           }
           
+          // Ensure read_by is always properly typed as string[]
+          let readByArray: string[] = [];
+          
+          if (msg.read_by) {
+            // Convert read_by to string[] safely
+            if (Array.isArray(msg.read_by)) {
+              readByArray = msg.read_by.map(item => String(item));
+            } else if (typeof msg.read_by === 'object') {
+              try {
+                const parsedArray = Array.isArray(msg.read_by) ? msg.read_by : [];
+                readByArray = parsedArray.map(item => String(item));
+              } catch (e) {
+                console.warn("Could not parse read_by field:", e);
+              }
+            }
+          }
+          
           formattedMessages.push({
             id: msg.id,
             sender_id: msg.sender_id,
@@ -177,31 +194,24 @@ export const CareTeamRoomChat = ({
             is_system_message: msg.is_system_message || false,
             is_ai_message: msg.is_ai_message || false,
             created_at: msg.created_at,
-            read_by: Array.isArray(msg.read_by) ? msg.read_by : []
+            read_by: readByArray
           });
         }
         
         // Mark messages as read
-        if (messageData.length > 0) {
+        if (messageData.length > 0 && user?.id) {
           // Process each message to mark as read by current user
           for (const msg of messageData) {
             // Check if read_by is an array and if user is not already in it
             let currentReadBy: string[] = [];
             
             if (msg.read_by && Array.isArray(msg.read_by)) {
-              currentReadBy = msg.read_by as string[];
-            } else if (typeof msg.read_by === 'object' && msg.read_by !== null) {
-              // Handle case where read_by might be a JSON object that needs parsing
-              try {
-                currentReadBy = Array.isArray(msg.read_by) ? msg.read_by : [];
-              } catch (e) {
-                console.warn("Could not parse read_by field:", e);
-                currentReadBy = [];
-              }
+              // Convert all items to strings to ensure type consistency
+              currentReadBy = msg.read_by.map(item => String(item));
             }
             
             // If user is not in read_by, add them
-            if (user?.id && !currentReadBy.includes(user.id)) {
+            if (user.id && !currentReadBy.includes(user.id)) {
               const updatedReadBy = [...currentReadBy, user.id];
               
               // Update the read_by field
@@ -407,8 +417,11 @@ export const CareTeamRoomChat = ({
       
       {/* Messages area */}
       <div className="flex-1 bg-[#f0f2f5] dark:bg-slate-900 overflow-hidden relative">
-        <ScrollArea className="h-full" viewportRef={scrollViewportRef}>
-          <div className="p-4 space-y-6">
+        <ScrollArea className="h-full">
+          <div 
+            className="p-4 space-y-6"
+            ref={scrollViewportRef}
+          >
             {messagesLoading ? (
               <div className="flex justify-center pt-4">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
