@@ -90,86 +90,60 @@ serve(async (req: Request) => {
     }
     
     try {
-      if ((is_group_chat || include_care_team_messages) && patientId) {
-        console.log("Getting care team messages for patient:", patientId);
-        
-        // Use the get_care_team_messages RPC function for care team messages
-        const { data: messages, error: messagesError } = await supabaseClient.rpc('get_care_team_messages', {
-          p_user_id: user_id,
-          p_patient_id: patientId,
-          p_offset: offset,
-          p_limit: perPage
-        });
-        
-        if (messagesError) {
-          console.error("Error fetching care team messages:", messagesError);
-          throw messagesError;
-        }
-        
-        console.log(`Retrieved ${messages?.length || 0} care team messages`);
-        
-        // Mark any unread messages as read if the current user is the recipient
-        if (messages && messages.length > 0) {
-          try {
-            // Group messages by sender_id to efficiently mark them as read
-            const senderIds = new Set<string>();
-            messages.forEach(msg => {
-              if (msg.sender && msg.sender.id !== user_id && !msg.read) {
-                senderIds.add(msg.sender.id);
+      // Always use get_care_team_messages for all messaging scenarios
+      // We've removed the one-to-one message functionality
+      console.log("Getting care team messages for patient:", patientId);
+      
+      // Use the get_care_team_messages RPC function for all messages
+      const { data: messages, error: messagesError } = await supabaseClient.rpc('get_care_team_messages', {
+        p_user_id: user_id,
+        p_patient_id: patientId || other_user_id, // Fallback to other_user_id if patientId is null
+        p_offset: offset,
+        p_limit: perPage
+      });
+      
+      if (messagesError) {
+        console.error("Error fetching care team messages:", messagesError);
+        throw messagesError;
+      }
+      
+      console.log(`Retrieved ${messages?.length || 0} care team messages`);
+      
+      // Mark any unread messages as read if the current user is the recipient
+      if (messages && messages.length > 0) {
+        try {
+          // Group messages by sender_id to efficiently mark them as read
+          const senderIds = new Set<string>();
+          messages.forEach(msg => {
+            if (msg.sender && msg.sender.id !== user_id && !msg.read) {
+              senderIds.add(msg.sender.id);
+            }
+          });
+          
+          // Mark messages as read for each sender
+          for (const senderId of senderIds) {
+            await supabaseClient.functions.invoke('mark-messages-as-read', {
+              body: { 
+                user_id: user_id, 
+                sender_id: senderId 
               }
             });
-            
-            // Mark messages as read for each sender
-            for (const senderId of senderIds) {
-              await supabaseClient.functions.invoke('mark-messages-as-read', {
-                body: { 
-                  user_id: user_id, 
-                  sender_id: senderId 
-                }
-              });
-            }
-          } catch (markError) {
-            console.warn("Error marking messages as read:", markError);
-            // Continue processing even if marking as read fails
           }
+        } catch (markError) {
+          console.warn("Error marking messages as read:", markError);
+          // Continue processing even if marking as read fails
         }
-        
-        return new Response(
-          JSON.stringify({
-            messages: messages || [],
-            hasMore: messages && messages.length === perPage,
-            page: pageNumber,
-            perPage
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      } else {
-        // Handle one-to-one chat messages (fallback case, not used in this app)
-        console.log("Getting one-to-one messages (fallback)");
-        const { data: messages, error: messagesError } = await supabaseClient.rpc('get_user_chat_messages', {
-          p_user_id: user_id,
-          p_other_user_id: other_user_id,
-          p_offset: offset,
-          p_limit: perPage
-        });
-        
-        if (messagesError) {
-          console.error("Error fetching one-to-one messages:", messagesError);
-          throw messagesError;
-        }
-        
-        console.log(`Retrieved ${messages?.length || 0} one-to-one messages`);
-        
-        return new Response(
-          JSON.stringify({
-            messages: messages || [],
-            hasMore: messages && messages.length === perPage,
-            page: pageNumber,
-            perPage
-          }),
-          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
       }
+      
+      return new Response(
+        JSON.stringify({
+          messages: messages || [],
+          hasMore: messages && messages.length === perPage,
+          page: pageNumber,
+          perPage
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     } catch (fnError) {
       console.error("Error in primary message function:", fnError);
       
