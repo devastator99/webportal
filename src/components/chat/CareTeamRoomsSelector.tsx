@@ -6,10 +6,11 @@ import { useQuery } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
-import { Search, MessageCircle, User } from "lucide-react";
-import { format } from "date-fns";
+import { Search, MessageCircle, User, Stethoscope, Utensils, Users, Clock } from "lucide-react";
+import { format, isToday, isYesterday } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 interface CareTeamRoom {
   room_id: string;
@@ -28,7 +29,7 @@ interface CareTeamRoomsSelectorProps {
 }
 
 export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeamRoomsSelectorProps) => {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   
   // Query to get user's care team rooms
@@ -137,18 +138,69 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       })
     : rooms;
 
+  // Function to group rooms by patient
+  const groupRoomsByPatient = (rooms: CareTeamRoom[]) => {
+    const groupedRooms: Record<string, CareTeamRoom[]> = {};
+    
+    rooms.forEach(room => {
+      const patientId = room.patient_id || 'unknown';
+      if (!groupedRooms[patientId]) {
+        groupedRooms[patientId] = [];
+      }
+      groupedRooms[patientId].push(room);
+    });
+    
+    return groupedRooms;
+  };
+
+  // Group rooms by patients (useful for doctor and nutritionist views)
+  const roomsByPatient = userRole === 'doctor' || userRole === 'nutritionist' 
+    ? groupRoomsByPatient(filteredRooms)
+    : null;
+
+  // Format relative time for messages
+  const formatMessageTime = (timeString: string) => {
+    const date = new Date(timeString);
+    
+    if (isToday(date)) {
+      return format(date, 'h:mm a');
+    } else if (isYesterday(date)) {
+      return 'Yesterday';
+    } else {
+      return format(date, 'MMM d');
+    }
+  };
+
+  // Determine the avatar icon based on user role
+  const getRoleIcon = (patient: CareTeamRoom) => {
+    if (userRole === 'doctor' || userRole === 'nutritionist') {
+      return <User className="h-4 w-4" />;
+    } else {
+      return <Users className="h-4 w-4" />;
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="p-3 bg-muted/40 border-b">
         <div className="font-medium mb-2 flex items-center gap-2">
-          <MessageCircle className="h-4 w-4" />
-          Care Team Chats
+          {userRole === 'doctor' ? (
+            <Stethoscope className="h-4 w-4 text-blue-500" />
+          ) : userRole === 'nutritionist' ? (
+            <Utensils className="h-4 w-4 text-green-500" />
+          ) : (
+            <MessageCircle className="h-4 w-4" />
+          )}
+          
+          {userRole === 'doctor' ? 'Patient Care Teams' : 
+           userRole === 'nutritionist' ? 'Nutrition Care Teams' : 
+           'Care Team Chats'}
         </div>
         <div className="relative">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search chats..."
+            placeholder={`Search ${userRole === 'doctor' || userRole === 'nutritionist' ? 'patients' : 'chats'}...`}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-8"
@@ -175,59 +227,129 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
             <div className="p-6 text-center text-muted-foreground">
               {searchTerm ? 'No matching rooms found' : 'No care team chats available'}
             </div>
-          ) : (
-            filteredRooms.map((room) => {
-              const hasLastMessage = !!room.last_message;
-              const lastMessageTime = room.last_message_time 
-                ? format(new Date(room.last_message_time), 'MMM d')
-                : '';
+          ) : userRole === 'doctor' || userRole === 'nutritionist' ? (
+            // Display rooms grouped by patient for doctors and nutritionists
+            Object.entries(roomsByPatient || {}).map(([patientId, patientRooms]) => {
+              const patientName = patientRooms[0]?.patient_name || 'Unknown Patient';
               
               return (
-                <div key={room.room_id}>
-                  <div 
-                    className={`p-3 flex gap-3 cursor-pointer hover:bg-muted/50 transition
-                      ${selectedRoomId === room.room_id ? 'bg-muted' : ''}`}
-                    onClick={() => onSelectRoom(room.room_id)}
-                  >
-                    <Avatar className="h-12 w-12">
-                      <AvatarFallback className="bg-primary/10">
-                        {room.patient_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between">
-                        <div className="font-medium text-sm truncate">
-                          {room.room_name}
-                        </div>
-                        {hasLastMessage && (
-                          <div className="text-xs text-muted-foreground flex-shrink-0">
-                            {lastMessageTime}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center text-xs text-muted-foreground mt-1">
-                        <User className="h-3 w-3 mr-1" />
-                        <div className="truncate">
-                          {room.patient_name} • {room.member_count} members
-                        </div>
-                      </div>
-                      
-                      {hasLastMessage && (
-                        <div className="text-xs truncate mt-1 text-muted-foreground">
-                          {room.last_message}
-                        </div>
-                      )}
-                    </div>
+                <div key={patientId} className="mb-2">
+                  <div className="px-3 py-2 text-sm font-medium text-muted-foreground bg-muted/30">
+                    {patientName}
                   </div>
-                  <Separator />
+                  {patientRooms.map((room) => (
+                    <RoomListItem 
+                      key={room.room_id}
+                      room={room}
+                      selectedRoomId={selectedRoomId}
+                      onSelectRoom={onSelectRoom}
+                      userRole={userRole || ''}
+                      formatMessageTime={formatMessageTime}
+                    />
+                  ))}
                 </div>
               );
             })
+          ) : (
+            // Standard flat list for other users
+            filteredRooms.map((room) => (
+              <RoomListItem 
+                key={room.room_id}
+                room={room}
+                selectedRoomId={selectedRoomId}
+                onSelectRoom={onSelectRoom}
+                userRole={userRole || ''}
+                formatMessageTime={formatMessageTime}
+              />
+            ))
           )}
         </div>
       </ScrollArea>
+    </div>
+  );
+};
+
+// Extracted room list item component for reusability
+interface RoomListItemProps {
+  room: CareTeamRoom;
+  selectedRoomId: string | null;
+  onSelectRoom: (roomId: string) => void;
+  userRole: string;
+  formatMessageTime: (timeString: string) => string;
+}
+
+const RoomListItem = ({ 
+  room, 
+  selectedRoomId, 
+  onSelectRoom,
+  userRole,
+  formatMessageTime
+}: RoomListItemProps) => {
+  const hasLastMessage = !!room.last_message;
+  const lastMessageTime = room.last_message_time 
+    ? formatMessageTime(room.last_message_time)
+    : '';
+  
+  // Get the appropriate avatar fallback color based on user role
+  const getAvatarClass = () => {
+    if (userRole === 'doctor') {
+      return 'bg-blue-100 text-blue-800';
+    } else if (userRole === 'nutritionist') {
+      return 'bg-green-100 text-green-800';
+    }
+    return 'bg-primary/10';
+  };
+
+  return (
+    <div key={room.room_id}>
+      <div 
+        className={`p-3 flex gap-3 cursor-pointer hover:bg-muted/50 transition
+          ${selectedRoomId === room.room_id ? 'bg-muted' : ''}`}
+        onClick={() => onSelectRoom(room.room_id)}
+      >
+        <Avatar className="h-12 w-12">
+          <AvatarFallback className={getAvatarClass()}>
+            {room.patient_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+          </AvatarFallback>
+        </Avatar>
+        
+        <div className="flex-1 min-w-0">
+          <div className="flex justify-between">
+            <div className="font-medium text-sm truncate">
+              {room.room_name}
+            </div>
+            {hasLastMessage && (
+              <div className="text-xs text-muted-foreground flex items-center gap-1 flex-shrink-0">
+                {isToday(new Date(room.last_message_time)) && <Clock className="h-3 w-3" />}
+                {lastMessageTime}
+              </div>
+            )}
+          </div>
+          
+          <div className="flex items-center text-xs text-muted-foreground mt-1">
+            {userRole === 'doctor' ? (
+              <Stethoscope className="h-3 w-3 mr-1 text-blue-500" />
+            ) : userRole === 'nutritionist' ? (
+              <Utensils className="h-3 w-3 mr-1 text-green-500" />
+            ) : (
+              <User className="h-3 w-3 mr-1" />
+            )}
+            <div className="truncate">
+              {room.patient_name}
+              <Badge variant="outline" className="ml-1 text-[10px] px-1 h-4">
+                {room.member_count} members
+              </Badge>
+            </div>
+          </div>
+          
+          {hasLastMessage && (
+            <div className="text-xs truncate mt-1 text-muted-foreground">
+              {room.last_message}
+            </div>
+          )}
+        </div>
+      </div>
+      <Separator />
     </div>
   );
 };
