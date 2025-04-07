@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChatMessagesList } from "@/components/chat/ChatMessagesList";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { Separator } from "@/components/ui/separator";
@@ -84,6 +83,12 @@ export const DoctorChatInterface = () => {
           first_name: user.user_metadata?.first_name || "Doctor",
           last_name: user.user_metadata?.last_name || "",
           role: "doctor"
+        },
+        receiver: {
+          id: selectedPatientId,
+          first_name: null,
+          last_name: null,
+          role: "patient"
         },
         synced: true
       };

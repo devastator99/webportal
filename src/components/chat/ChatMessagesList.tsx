@@ -22,7 +22,7 @@ interface CareTeamGroup {
   members: UserProfile[];
 }
 
-interface ChatMessagesListProps {
+export interface ChatMessagesListProps {
   selectedUserId?: string | null;
   careTeamGroup?: CareTeamGroup | null;
   careTeamMembers?: UserProfile[];
@@ -58,7 +58,7 @@ export const ChatMessagesList = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [errorRetries, setErrorRetries] = useState(0);
 
-  // Console log to debug what props are being passed
+  // Debug what props are being passed
   console.log("ChatMessagesList render with:", {
     selectedUserId,
     careTeamGroup: careTeamGroup?.members?.length,

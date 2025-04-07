@@ -17,7 +17,7 @@ serve(async (req: Request) => {
     const { 
       user_id, 
       other_user_id, 
-      is_group_chat = true, 
+      is_group_chat = false, 
       care_team_members = [], 
       include_care_team_messages = false,
       page = 1, 
@@ -45,40 +45,52 @@ serve(async (req: Request) => {
     const perPage = parseInt(String(per_page));
     const offset = (pageNumber - 1) * perPage;
     
-    console.log("Fetching messages for user:", user_id, "and patient:", other_user_id, "isGroupChat:", is_group_chat);
+    console.log("Fetching messages with params:", {
+      user_id, 
+      other_user_id, 
+      is_group_chat, 
+      include_care_team_messages,
+      care_team_members: care_team_members?.length || 0
+    });
     
     // Get the roles of both users to determine context
-    const { data: otherUserData, error: otherUserError } = await supabaseClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', other_user_id)
-      .maybeSingle();
-      
     const { data: userRoleData, error: userRoleError } = await supabaseClient
       .from('user_roles')
       .select('role')
       .eq('user_id', user_id)
       .maybeSingle();
+      
+    const { data: otherUserRoleData, error: otherUserRoleError } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', other_user_id)
+      .maybeSingle();
     
     const userRole = userRoleData?.role || "unknown";
-    const otherUserRole = otherUserData?.role || "unknown";
+    const otherUserRole = otherUserRoleData?.role || "unknown";
     console.log("User role:", userRole, "Other user role:", otherUserRole);
     
     let patientId = null;
     
-    // Determine which user is the patient
-    if (userRole === 'patient') {
-      // If current user is a patient, we're in a care team chat for this patient
-      patientId = user_id;
-      console.log("This is a care team chat for patient (user is patient):", patientId);
-    } else if (otherUserRole === 'patient') {
-      // If other user is a patient, we're in a care team chat for this patient
-      patientId = other_user_id;
-      console.log("This is a care team chat for patient:", patientId);
+    // Determine which user is the patient for care team context
+    if (is_group_chat || include_care_team_messages) {
+      if (userRole === 'patient') {
+        // If current user is a patient, we're in a care team chat for this patient
+        patientId = user_id;
+        console.log("Patient is current user:", patientId);
+      } else if (otherUserRole === 'patient') {
+        // If other user is a patient, we're in a care team chat for this patient
+        patientId = other_user_id;
+        console.log("Patient is other user:", patientId);
+      } else if (userRole === 'doctor' || userRole === 'nutritionist') {
+        // If provider is looking at a specific patient
+        patientId = other_user_id;
+        console.log("Provider viewing patient:", patientId);
+      }
     }
     
     try {
-      if (patientId) {
+      if ((is_group_chat || include_care_team_messages) && patientId) {
         console.log("Getting care team messages for patient:", patientId);
         
         // Use the get_care_team_messages RPC function for care team messages
@@ -132,13 +144,26 @@ serve(async (req: Request) => {
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       } else {
-        // If no patient is identified, return an empty array
-        console.log("No patient identified, returning empty messages array");
+        // Handle one-to-one chat messages (fallback case, not used in this app)
+        console.log("Getting one-to-one messages (fallback)");
+        const { data: messages, error: messagesError } = await supabaseClient.rpc('get_user_chat_messages', {
+          p_user_id: user_id,
+          p_other_user_id: other_user_id,
+          p_offset: offset,
+          p_limit: perPage
+        });
+        
+        if (messagesError) {
+          console.error("Error fetching one-to-one messages:", messagesError);
+          throw messagesError;
+        }
+        
+        console.log(`Retrieved ${messages?.length || 0} one-to-one messages`);
         
         return new Response(
           JSON.stringify({
-            messages: [],
-            hasMore: false,
+            messages: messages || [],
+            hasMore: messages && messages.length === perPage,
             page: pageNumber,
             perPage
           }),
