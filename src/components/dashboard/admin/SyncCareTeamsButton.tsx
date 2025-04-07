@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { syncAllCareTeamRooms } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
 
 export const SyncCareTeamsButton = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [isSyncing, setIsSyncing] = useState(false);
 
   const handleSync = async () => {
@@ -22,6 +24,9 @@ export const SyncCareTeamsButton = () => {
         const updatedCount = result.statusCounts?.updated || 0;
         const errorCount = result.statusCounts?.error || 0;
         const totalRooms = result.rooms?.length || 0;
+        
+        // Invalidate queries to refresh care team rooms data in the UI
+        queryClient.invalidateQueries({ queryKey: ["user_care_team_rooms"] });
         
         toast({
           title: "Care teams synced successfully",

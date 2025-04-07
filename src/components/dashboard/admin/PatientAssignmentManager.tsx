@@ -26,7 +26,6 @@ export const PatientAssignmentManager = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
-  // Fetch patients data using RPC
   const { data: patients, isLoading: patientsLoading, error: patientsError } = useQuery({
     queryKey: ["admin_patients"],
     queryFn: async () => {
@@ -48,7 +47,6 @@ export const PatientAssignmentManager = () => {
     }
   });
   
-  // Fetch doctors data using RPC
   const { data: doctors, isLoading: doctorsLoading, error: doctorsError } = useQuery({
     queryKey: ["admin_doctors"],
     queryFn: async () => {
@@ -70,7 +68,6 @@ export const PatientAssignmentManager = () => {
     }
   });
   
-  // Fetch nutritionists data using RPC
   const { data: nutritionists, isLoading: nutritionistsLoading, error: nutritionistsError } = useQuery({
     queryKey: ["admin_nutritionists"],
     queryFn: async () => {
@@ -92,14 +89,12 @@ export const PatientAssignmentManager = () => {
     }
   });
   
-  // Handle errors for data fetching
   useEffect(() => {
     if (patientsError || doctorsError || nutritionistsError) {
       console.error("Data fetch errors:", { patientsError, doctorsError, nutritionistsError });
     }
   }, [patientsError, doctorsError, nutritionistsError]);
 
-  // Clear success message after 5 seconds
   useEffect(() => {
     if (successMessage) {
       const timer = setTimeout(() => {
@@ -110,7 +105,6 @@ export const PatientAssignmentManager = () => {
     }
   }, [successMessage]);
   
-  // Clear error message after 5 seconds
   useEffect(() => {
     if (errorMessage) {
       const timer = setTimeout(() => {
@@ -121,7 +115,6 @@ export const PatientAssignmentManager = () => {
     }
   }, [errorMessage]);
   
-  // Unified function to assign both doctor and nutritionist at once - only called when button is clicked
   const handleAssignCareTeam = async () => {
     if (!selectedPatient) {
       toast({
@@ -157,7 +150,6 @@ export const PatientAssignmentManager = () => {
         throw new Error("Administrator ID is missing. Please log in again.");
       }
 
-      // Call the edge function that handles both assignments through RPC
       const response = await supabase.functions.invoke('admin-assign-care-team', {
         body: {
           patient_id: selectedPatient,
@@ -181,17 +173,32 @@ export const PatientAssignmentManager = () => {
         throw new Error((data && data.error) || "Failed to assign care team");
       }
       
-      // Get names for success message
+      console.log("Now creating care team room for patient");
+      const roomResponse = await supabase.rpc(
+        'create_care_team_room',
+        {
+          p_patient_id: selectedPatient,
+          p_doctor_id: selectedDoctor,
+          p_nutritionist_id: selectedNutritionist
+        }
+      );
+      
+      if (roomResponse.error) {
+        console.warn("Warning creating care team room:", roomResponse.error);
+      } else {
+        console.log("Care team room created with ID:", roomResponse.data);
+      }
+      
       const patientName = patients?.find(p => p.id === selectedPatient);
       const doctorName = doctors?.find(d => d.id === selectedDoctor);
       const nutritionistName = selectedNutritionist ? 
         nutritionists?.find(n => n.id === selectedNutritionist) : null;
       
-      // Create success message
       let successMsg = `Dr. ${formatName(doctorName)} has been assigned to ${formatName(patientName)}`;
       if (nutritionistName) {
         successMsg += ` along with nutritionist ${formatName(nutritionistName)}`;
       }
+      successMsg += ". Care team room has been created.";
       
       setSuccessMessage(successMsg);
       
@@ -200,12 +207,10 @@ export const PatientAssignmentManager = () => {
         description: successMsg
       });
       
-      // Reset form
       setSelectedPatient("");
       setSelectedDoctor("");
       setSelectedNutritionist(null);
       
-      // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["doctor_patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient_doctor"] });
       queryClient.invalidateQueries({ queryKey: ["nutritionist_patients"] });
@@ -235,7 +240,6 @@ export const PatientAssignmentManager = () => {
 
   const isLoading = patientsLoading || doctorsLoading || nutritionistsLoading;
 
-  // Handle nutritionist selection change without triggering backend calls
   const handleNutritionistChange = (value: string) => {
     setSelectedNutritionist(value === "none" ? null : value);
   };
@@ -341,7 +345,7 @@ export const PatientAssignmentManager = () => {
                   Assigning...
                 </>
               ) : (
-                "Assign Care Team to Patient"
+                "Assign Care Team and Room to Patient"
               )}
             </Button>
           </div>
