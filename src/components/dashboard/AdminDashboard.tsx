@@ -11,23 +11,24 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
 
-// Simple system settings component
+// Updated system settings component that imports and uses AdminSettings
 const SystemSettings = () => {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Settings className="h-5 w-5" />
-          System Settings
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-muted-foreground">
-          System settings and configuration options will be available soon.
-        </p>
-      </CardContent>
-    </Card>
+    <div>
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            System Settings
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AdminSettings />
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
