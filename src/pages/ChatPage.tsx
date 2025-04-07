@@ -29,7 +29,7 @@ const ChatPage = () => {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5" />
-              {isNutritionistRole ? "Patient Care Chat" : "Care Team Chat"}
+              {isDoctorRole || isNutritionistRole ? "Patient Care Chat" : "Care Team Chat"}
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0 h-full flex-1 overflow-hidden">
