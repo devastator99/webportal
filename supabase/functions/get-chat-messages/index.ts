@@ -14,7 +14,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { user_id, other_user_id, page = 1, per_page = 50, include_care_team = false } = await req.json();
+    const { user_id, other_user_id, page = 1, per_page = 50 } = await req.json();
     
     if (!user_id || !other_user_id) {
       return new Response(
@@ -37,49 +37,25 @@ serve(async (req: Request) => {
     const perPage = parseInt(String(per_page));
     const offset = (pageNumber - 1) * perPage;
     
-    let data, error, count = 0;
+    // Always use the care team messages function for consistency
+    console.log("Using get_care_team_messages RPC function");
+    const result = await supabaseClient.rpc('get_care_team_messages', {
+      p_user_id: user_id,
+      p_patient_id: other_user_id,
+      p_offset: offset,
+      p_limit: perPage
+    });
     
-    if (include_care_team) {
-      // Use the secure RPC function for care team messages
-      console.log("Using get_care_team_messages RPC function");
-      const result = await supabaseClient.rpc('get_care_team_messages', {
-        p_user_id: user_id,
-        p_patient_id: other_user_id,
-        p_offset: offset,
-        p_limit: perPage
-      });
-      
-      data = result.data;
-      error = result.error;
-      
-      // Get count for pagination
-      const countResult = await supabaseClient.rpc('get_care_team_messages', {
-        p_user_id: user_id,
-        p_patient_id: other_user_id
-      }).select('id', { count: 'exact', head: true });
-      
-      count = countResult.count;
-    } else {
-      // Direct messages between two users using the secure RPC function
-      console.log("Using get_user_chat_messages RPC function");
-      const result = await supabaseClient.rpc('get_user_chat_messages', {
-        p_user_id: user_id,
-        p_other_user_id: other_user_id,
-        p_offset: offset,
-        p_limit: perPage
-      });
-      
-      data = result.data;
-      error = result.error;
-      
-      // Get count for pagination
-      const countResult = await supabaseClient.rpc('get_user_chat_messages', {
-        p_user_id: user_id,
-        p_other_user_id: other_user_id
-      }).select('id', { count: 'exact', head: true });
-      
-      count = countResult.count;
-    }
+    const data = result.data;
+    const error = result.error;
+    
+    // Get count for pagination
+    const countResult = await supabaseClient.rpc('get_care_team_messages', {
+      p_user_id: user_id,
+      p_patient_id: other_user_id
+    }).select('id', { count: 'exact', head: true });
+    
+    const count = countResult.count;
       
     if (error) {
       console.error("Error fetching chat messages:", error);

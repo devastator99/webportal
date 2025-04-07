@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -208,76 +207,6 @@ export const DoctorWhatsAppChat = () => {
       queryClient.invalidateQueries({ 
         queryKey: ["chat_messages"] 
       });
-      
-      try {
-        console.log("Getting AI response for care team chat");
-        
-        const { data: aiResponse, error: aiError } = await supabase.functions.invoke('doctor-ai-assistant', {
-          body: { 
-            messages: [{ role: "user", content: newMessage }],
-            preferredLanguage: 'en',
-            patientId: selectedPatientId,
-            isCareTeamChat: true
-          },
-        });
-        
-        if (aiError) {
-          console.error("Error getting AI response:", aiError);
-          return;
-        }
-        
-        if (aiResponse && aiResponse.response) {
-          setTimeout(() => {
-            const aiMessage = {
-              id: uuidv4(),
-              message: aiResponse.response,
-              message_type: "text",
-              created_at: new Date().toISOString(),
-              read: false,
-              sender: {
-                id: '00000000-0000-0000-0000-000000000000',
-                first_name: 'AI',
-                last_name: 'Assistant',
-                role: 'aibot'
-              },
-              receiver: {
-                id: selectedPatientId,
-                first_name: null,
-                last_name: null
-              },
-              synced: true
-            };
-            
-            setLocalMessages(prev => [...prev, aiMessage]);
-            
-            // Send AI response to patient
-            supabase.rpc('send_chat_message', {
-              p_sender_id: '00000000-0000-0000-0000-000000000000',
-              p_receiver_id: selectedPatientId,
-              p_message: aiResponse.response,
-              p_message_type: 'text'
-            });
-            
-            // Also make sure to send AI response to ALL care team members
-            careTeamMembers.forEach(async (member) => {
-              if (member.id !== '00000000-0000-0000-0000-000000000000' && member.id !== selectedPatientId) {
-                await supabase.rpc('send_chat_message', {
-                  p_sender_id: '00000000-0000-0000-0000-000000000000',
-                  p_receiver_id: member.id,
-                  p_message: aiResponse.response,
-                  p_message_type: 'text'
-                });
-              }
-            });
-            
-            queryClient.invalidateQueries({ 
-              queryKey: ["chat_messages"] 
-            });
-          }, 1500);
-        }
-      } catch (aiError) {
-        console.error("Error getting AI response:", aiError);
-      }
     } catch (error) {
       console.error("Error sending message:", error);
       toast({
@@ -422,7 +351,6 @@ export const DoctorWhatsAppChat = () => {
                         isGroupChat={false}
                         careTeamMembers={careTeamMembers}
                         localMessages={localMessages}
-                        includeCareTeamMessages={true}
                       />
                     )}
                     

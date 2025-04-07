@@ -47,14 +47,13 @@ export const ChatMessagesList = ({
   careTeamGroup = null,
   careTeamMembers = [],
   offlineMode = false,
-  localMessages = [],
-  includeCareTeamMessages = false
+  localMessages = []
 }: ChatMessagesListProps) => {
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const { data: messages, isLoading, error } = useQuery({
-    queryKey: ["chat_messages", user?.id, selectedUserId, isGroupChat, includeCareTeamMessages, careTeamGroup?.groupName, careTeamMembers?.length, careTeamMembers?.map(m => m.id).join('-')],
+    queryKey: ["chat_messages", user?.id, selectedUserId, isGroupChat, careTeamGroup?.groupName, careTeamMembers?.length, careTeamMembers?.map(m => m.id).join('-')],
     queryFn: async () => {
       if (!user?.id) return [];
 
@@ -62,20 +61,18 @@ export const ChatMessagesList = ({
         userId: user?.id,
         selectedUserId,
         isGroupChat,
-        includeCareTeamMessages,
         careTeamMembersCount: careTeamMembers?.length || 0,
         careTeamGroupName: careTeamGroup?.groupName
       });
       
-      if (selectedUserId && includeCareTeamMessages) {
+      if (selectedUserId) {
         try {
-          // Use Edge Function to get all care team messages
-          console.log("Getting care team messages via edge function");
+          // Always use the care team approach for consistency
+          console.log("Getting messages via edge function");
           const { data, error } = await supabase.functions.invoke('get-chat-messages', {
             body: {
               user_id: user.id,
-              other_user_id: selectedUserId,
-              include_care_team: true
+              other_user_id: selectedUserId
             }
           });
 
@@ -84,67 +81,10 @@ export const ChatMessagesList = ({
             throw error;
           }
 
-          console.log(`Retrieved ${data?.messages?.length || 0} care team messages via edge function`);
+          console.log(`Retrieved ${data?.messages?.length || 0} messages via edge function`);
           return data?.messages || [];
         } catch (err) {
-          console.error("Error in care team messages retrieval:", err);
-          throw err;
-        }
-      } else if (isGroupChat && careTeamGroup) {
-        // Use Edge Function for care team group chat
-        try {
-          console.log("Using Edge Function for care team group chat");
-          const careTeamIds = careTeamGroup.members.map(member => member.id);
-          
-          // Make sure current user is included
-          if (!careTeamIds.includes(user.id)) {
-            careTeamIds.push(user.id);
-          }
-          
-          // Get one representative patient ID to use as the focus of the care team
-          const patientId = careTeamGroup.members.find(m => 
-            m.role === 'patient')?.id || careTeamIds[0];
-            
-          const { data, error } = await supabase.functions.invoke('get-chat-messages', {
-            body: {
-              user_id: user.id,
-              other_user_id: patientId,
-              include_care_team: true
-            }
-          });
-          
-          if (error) {
-            console.error("Error using Edge Function for care team messages:", error);
-            throw error;
-          }
-          
-          console.log(`Retrieved ${data?.messages?.length || 0} care team messages via Edge Function`);
-          return data?.messages || [];
-        } catch (err) {
-          console.error("Error in Edge Function care team messages retrieval:", err);
-          throw err;
-        }
-      } else if (selectedUserId && user?.id) {
-        // Use the direct messages Edge Function
-        try {
-          console.log("Using Edge Function for direct messages");
-          const { data, error } = await supabase.functions.invoke('get-chat-messages', {
-            body: {
-              user_id: user.id,
-              other_user_id: selectedUserId,
-              include_care_team: false
-            }
-          });
-          
-          if (error) {
-            console.error("Error in get-chat-messages Edge Function:", error);
-            throw error;
-          }
-          
-          console.log(`Retrieved ${data?.messages?.length || 0} direct messages via Edge Function`);
-          return data?.messages || [];
-        } catch (err) {
-          console.error("Error in direct messages retrieval:", err);
+          console.error("Error in messages retrieval:", err);
           throw err;
         }
       }

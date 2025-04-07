@@ -57,7 +57,6 @@ export const ChatModule = ({
                     showGroupChat={true} // Enable group chat for all users
                     whatsAppStyle={userRole === "nutritionist"}
                     includeAiBot={true}
-                    includeCareTeamMessages={true} // Always include care team messages
                   />
                 );
               }}
