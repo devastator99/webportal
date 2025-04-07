@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,7 +25,7 @@ interface UserProfile {
 }
 
 export const DoctorWhatsAppChat = () => {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
@@ -41,25 +42,34 @@ export const DoctorWhatsAppChat = () => {
     setShowSidebar(prev => !prev);
   };
 
+  // Use the proper RPC function based on the user role
   const { data: assignedPatients = [], isLoading: isLoadingPatients, error } = useQuery({
-    queryKey: ["doctor_patients", user?.id],
+    queryKey: ["provider_patients", user?.id, userRole],
     queryFn: async () => {
       if (!user?.id) return [];
       
       try {
-        console.log("Fetching patients assigned to doctor:", user.id);
+        console.log(`Fetching patients assigned to ${userRole}:`, user.id);
         
-        const { data, error } = await supabase
-          .rpc('get_doctor_patients', { p_doctor_id: user.id });
+        const { data, error } = userRole === "nutritionist" 
+          ? await supabase.rpc('get_nutritionist_patients', { p_nutritionist_id: user.id })
+          : await supabase.rpc('get_doctor_patients', { p_doctor_id: user.id });
           
         if (error) {
-          console.error("Error in get_doctor_patients RPC:", error);
+          console.error(`Error in get_${userRole}_patients RPC:`, error);
           throw error;
         }
         
-        console.log("Patients retrieved:", data?.length || 0);
+        // Format patient data to be consistent regardless of the source function
+        const formattedPatients = data?.map(p => ({
+          id: p.patient_id || p.id,
+          first_name: p.patient_first_name || p.first_name,
+          last_name: p.patient_last_name || p.last_name
+        })) || [];
         
-        const sortedPatients = [...(data || [])].sort((a, b) => {
+        console.log("Patients retrieved:", formattedPatients.length);
+        
+        const sortedPatients = [...formattedPatients].sort((a, b) => {
           const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
           const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
           return nameA.localeCompare(nameB);
@@ -67,7 +77,7 @@ export const DoctorWhatsAppChat = () => {
         
         return sortedPatients;
       } catch (error) {
-        console.error("Error fetching doctor's patients:", error);
+        console.error(`Error fetching ${userRole}'s patients:`, error);
         toast({
           title: "Error",
           description: "Could not load patient list",
@@ -121,14 +131,14 @@ export const DoctorWhatsAppChat = () => {
           });
         }
         
-        // Make sure the current user (doctor) is included in the care team list
-        const hasDoctorSelf = updatedCareTeam.some(member => member.id === user.id);
-        if (!hasDoctorSelf) {
+        // Make sure the current user (healthcare provider) is included in the care team list
+        const hasProviderSelf = updatedCareTeam.some(member => member.id === user.id);
+        if (!hasProviderSelf) {
           updatedCareTeam.push({
             id: user.id,
-            first_name: user.user_metadata?.first_name || "Doctor",
+            first_name: user.user_metadata?.first_name || (userRole === "doctor" ? "Doctor" : "Nutritionist"),
             last_name: user.user_metadata?.last_name || "",
-            role: "doctor"
+            role: userRole
           });
         }
         
@@ -160,7 +170,7 @@ export const DoctorWhatsAppChat = () => {
     };
     
     fetchCareTeam();
-  }, [selectedPatientId, user, toast, assignedPatients]);
+  }, [selectedPatientId, user, toast, assignedPatients, userRole]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedPatientId || !user?.id) return;
@@ -175,9 +185,9 @@ export const DoctorWhatsAppChat = () => {
         read: false,
         sender: {
           id: user.id,
-          first_name: user.user_metadata?.first_name || "Doctor",
+          first_name: user.user_metadata?.first_name || (userRole === "doctor" ? "Doctor" : "Nutritionist"),
           last_name: user.user_metadata?.last_name || "",
-          role: "doctor"
+          role: userRole
         },
         receiver: {
           id: selectedPatientId,
@@ -257,6 +267,8 @@ export const DoctorWhatsAppChat = () => {
 
   const showChatOnly = isMobile && selectedPatientId && !showSidebar;
   const showSidebarOnly = isMobile && showSidebar;
+
+  const providerTypeText = userRole === "doctor" ? "Doctor" : "Nutritionist";
 
   return (
     <ErrorBoundary>

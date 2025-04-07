@@ -87,7 +87,7 @@ serve(async (req: Request) => {
           throw messagesError;
         }
         
-        console.log(`Retrieved ${messages?.length || 0} messages`);
+        console.log(`Retrieved ${messages?.length || 0} care team messages`);
         
         // Mark any unread messages as read if the current user is the recipient
         if (messages && messages.length > 0) {
