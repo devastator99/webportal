@@ -30,7 +30,7 @@ serve(async (req: Request) => {
     const { data: userData, error: userError } = await supabaseClient.auth.getUser();
     if (userError) {
       console.error("Error getting user:", userError);
-      throw userError;
+      throw new Error(`Authentication error: ${userError.message}`);
     }
     
     console.log("User authenticated:", userData.user.id);
@@ -41,7 +41,7 @@ serve(async (req: Request) => {
 
     if (adminCheckError) {
       console.error("Error checking admin permission:", adminCheckError);
-      throw adminCheckError;
+      throw new Error(`Admin permission check failed: ${adminCheckError.message}`);
     }
     
     console.log("User admin status:", isAdmin);
@@ -58,7 +58,7 @@ serve(async (req: Request) => {
     console.log("Fetching all patient assignments...");
     const { data: patientAssignments, error: paError } = await supabaseClient
       .from('patient_assignments')
-      .select('patient_id, doctor_id, nutritionist_id');
+      .select('id, patient_id, doctor_id, nutritionist_id');
       
     if (paError) {
       console.error("Error fetching patient assignments:", paError);
@@ -106,7 +106,7 @@ serve(async (req: Request) => {
     if (data && data.length > 0) {
       console.log("Room IDs:", JSON.stringify(data));
     } else {
-      console.log("No rooms were created or updated - check the SQL function execution");
+      console.log("No rooms were created or updated - check if the SQL function executed correctly");
     }
 
     // Try to fetch the created rooms to confirm they exist
@@ -135,7 +135,7 @@ serve(async (req: Request) => {
     console.error("Error in sync-care-team-rooms:", error);
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

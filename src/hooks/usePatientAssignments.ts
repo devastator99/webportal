@@ -47,12 +47,16 @@ export const usePatientAssignments = () => {
         const { data, error } = await supabase.rpc('get_patient_assignments_report');
         
         if (error) {
-          console.error("Error fetching patient assignments:", error);
-          throw error;
+          console.error("Error details from patient assignments query:", error);
+          throw new Error(`Failed to fetch patient assignments: ${error.message}`);
         }
         
         const typedData = data as PatientAssignmentRow[];
         console.log("Patient Assignments Report: Received", typedData?.length, "patient records");
+        
+        if (!typedData || typedData.length === 0) {
+          console.warn("No patient assignments found - this may cause care team sync to fail");
+        }
         
         // Transform the data to match the expected format
         const formattedAssignments = (typedData || []).map(record => ({
@@ -76,13 +80,13 @@ export const usePatientAssignments = () => {
         console.log("Patient Assignments Report: Processed", formattedAssignments.length, "assignments");
         return formattedAssignments as PatientAssignment[];
       } catch (error: any) {
+        console.error("Error in patient assignments report:", error);
         toast({
           title: "Error loading assignments",
           description: error.message || "Failed to load patient assignments",
           variant: "destructive"
         });
-        console.error("Error in patient assignments report:", error);
-        return [];
+        throw error; // Re-throw error for better error handling in the UI
       }
     }
   });

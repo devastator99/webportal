@@ -251,7 +251,7 @@ export async function syncAllCareTeamRooms(): Promise<any> {
     // First check if there are any patient assignments
     const { data: assignments, error: assignmentsError } = await supabase
       .from('patient_assignments')
-      .select('patient_id, doctor_id, nutritionist_id')
+      .select('id, patient_id, doctor_id, nutritionist_id')
       .limit(100);
       
     if (assignmentsError) {
@@ -267,6 +267,18 @@ export async function syncAllCareTeamRooms(): Promise<any> {
       }
     }
     
+    // Check if the get_patient_assignments_report function exists
+    try {
+      const { data: reportTest, error: reportError } = await supabase.rpc('get_patient_assignments_report');
+      if (reportError) {
+        console.error('Error testing get_patient_assignments_report function:', reportError);
+      } else {
+        console.log('get_patient_assignments_report function exists and returned', reportTest?.length || 0, 'records');
+      }
+    } catch (error) {
+      console.error('Exception testing get_patient_assignments_report function:', error);
+    }
+    
     console.log("Calling sync-care-team-rooms edge function");
     
     const { data, error } = await supabase.functions.invoke('sync-care-team-rooms');
@@ -275,7 +287,7 @@ export async function syncAllCareTeamRooms(): Promise<any> {
     
     if (error) {
       console.error('Error invoking edge function:', error);
-      throw new Error('Failed to communicate with server. Please try again.');
+      throw new Error(`Failed to communicate with server: ${error.message}`);
     }
     
     // Handle case where the function returned data but with error status
