@@ -74,7 +74,7 @@ serve(async (req: Request) => {
       if (isPatientCareTeamChat && patientId) {
         console.log("Getting care team messages for patient:", patientId);
         
-        // Simple query to directly fetch messages without using the count function
+        // Use the get_care_team_messages RPC function for care team messages
         const { data: messages, error: messagesError } = await supabaseClient.rpc('get_care_team_messages', {
           p_user_id: user_id,
           p_patient_id: patientId,
@@ -89,13 +89,36 @@ serve(async (req: Request) => {
         
         console.log(`Retrieved ${messages?.length || 0} messages`);
         
-        // We can't determine total count reliably, so set hasMore to false
-        const hasMore = false;
+        // Mark any unread messages as read if the current user is the recipient
+        if (messages && messages.length > 0) {
+          try {
+            // Group messages by sender_id to efficiently mark them as read
+            const senderIds = new Set<string>();
+            messages.forEach(msg => {
+              if (msg.sender && msg.sender.id !== user_id && !msg.read) {
+                senderIds.add(msg.sender.id);
+              }
+            });
+            
+            // Mark messages as read for each sender
+            for (const senderId of senderIds) {
+              await supabaseClient.functions.invoke('mark-messages-as-read', {
+                body: { 
+                  user_id: user_id, 
+                  sender_id: senderId 
+                }
+              });
+            }
+          } catch (markError) {
+            console.warn("Error marking messages as read:", markError);
+            // Continue processing even if marking as read fails
+          }
+        }
         
         return new Response(
           JSON.stringify({
             messages: messages || [],
-            hasMore,
+            hasMore: false,
             page: pageNumber,
             perPage
           }),
@@ -121,6 +144,21 @@ serve(async (req: Request) => {
         
         console.log(`Retrieved ${directMessages?.length || 0} direct messages`);
         
+        // Mark messages as read if the current user is the recipient
+        if (directMessages && directMessages.length > 0) {
+          try {
+            await supabaseClient.functions.invoke('mark-messages-as-read', {
+              body: { 
+                user_id: user_id, 
+                sender_id: other_user_id 
+              }
+            });
+          } catch (markError) {
+            console.warn("Error marking messages as read:", markError);
+            // Continue processing even if marking as read fails
+          }
+        }
+        
         return new Response(
           JSON.stringify({
             messages: directMessages || [],
@@ -134,7 +172,7 @@ serve(async (req: Request) => {
     } catch (fnError) {
       console.error("Error in primary message function:", fnError);
       
-      // Simplified fallback query without using the read column
+      // Simplified fallback query that properly handles the read column
       const query = supabaseClient
         .from('chat_messages')
         .select(`
@@ -142,8 +180,9 @@ serve(async (req: Request) => {
           message,
           message_type,
           created_at,
-          sender:sender_id(id, first_name, last_name),
-          receiver:receiver_id(id, first_name, last_name)
+          read,
+          sender:profiles!chat_messages_sender_id_fkey(id, first_name, last_name),
+          receiver:profiles!chat_messages_receiver_id_fkey(id, first_name, last_name)
         `);
         
       // Determine which users to include in the query based on context
@@ -152,7 +191,7 @@ serve(async (req: Request) => {
         query.or(`sender_id.eq.${patientId},sender_id.eq.${user_id},receiver_id.eq.${patientId},receiver_id.eq.${user_id}`);
       } else {
         // For direct chat, just get messages between the two users
-        query.or(`sender_id.eq.${user_id},receiver_id.eq.${user_id}`).or(`sender_id.eq.${other_user_id},receiver_id.eq.${other_user_id}`);
+        query.or(`and(sender_id.eq.${user_id},receiver_id.eq.${other_user_id}),and(sender_id.eq.${other_user_id},receiver_id.eq.${user_id})`);
       }
       
       const { data: fallbackMessages, error: fallbackError } = await query
@@ -170,7 +209,7 @@ serve(async (req: Request) => {
       const formattedMessages = fallbackMessages?.map(msg => ({
         ...msg,
         message_type: msg.message_type || "text",
-        read: true // Default all messages to read since we can't determine read status
+        read: msg.read !== null ? msg.read : false
       })) || [];
       
       return new Response(

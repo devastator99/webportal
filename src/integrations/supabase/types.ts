@@ -117,6 +117,7 @@ export type Database = {
           id: string
           message: string | null
           message_type: Database["public"]["Enums"]["message_type"] | null
+          read: boolean | null
           receiver_id: string
           sender_id: string
         }
@@ -126,6 +127,7 @@ export type Database = {
           id?: string
           message?: string | null
           message_type?: Database["public"]["Enums"]["message_type"] | null
+          read?: boolean | null
           receiver_id: string
           sender_id: string
         }
@@ -135,6 +137,7 @@ export type Database = {
           id?: string
           message?: string | null
           message_type?: Database["public"]["Enums"]["message_type"] | null
+          read?: boolean | null
           receiver_id?: string
           sender_id?: string
         }
@@ -1084,6 +1087,10 @@ export type Database = {
       }
       is_reception: {
         Args: { user_id: string }
+        Returns: boolean
+      }
+      mark_messages_as_read: {
+        Args: { p_user_id: string; p_sender_id: string }
         Returns: boolean
       }
       save_health_plan_items: {
