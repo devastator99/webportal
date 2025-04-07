@@ -37,7 +37,7 @@ serve(async (req: Request) => {
     const perPage = parseInt(String(per_page));
     const offset = (pageNumber - 1) * perPage;
     
-    // Always use the care team messages function for consistency
+    // Use the get_care_team_messages RPC function
     console.log("Using get_care_team_messages RPC function");
     const result = await supabaseClient.rpc('get_care_team_messages', {
       p_user_id: user_id,
@@ -46,27 +46,33 @@ serve(async (req: Request) => {
       p_limit: perPage
     });
     
-    const data = result.data;
-    const error = result.error;
-    
-    // Get count for pagination
-    const countResult = await supabaseClient.rpc('get_care_team_messages', {
-      p_user_id: user_id,
-      p_patient_id: other_user_id
-    }).select('id', { count: 'exact', head: true });
-    
-    const count = countResult.count;
-      
-    if (error) {
-      console.error("Error fetching chat messages:", error);
+    if (result.error) {
+      console.error("Error fetching chat messages:", result.error);
       return new Response(
-        JSON.stringify({ error: error.message }),
+        JSON.stringify({ error: result.error.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
+    // Get count for pagination
+    const countResult = await supabaseClient.rpc('get_care_team_messages_count', {
+      p_user_id: user_id,
+      p_patient_id: other_user_id
+    });
+    
+    if (countResult.error) {
+      console.error("Error getting message count:", countResult.error);
+      return new Response(
+        JSON.stringify({ error: countResult.error.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    const count = countResult.data;
+    const data = result.data;
+    
     // Determine if there are more messages
-    const hasMore = count !== null && count > offset + (data?.length || 0);
+    const hasMore = count != null && count > offset + (data?.length || 0);
     
     return new Response(
       JSON.stringify({
