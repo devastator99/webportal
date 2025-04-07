@@ -105,7 +105,7 @@ serve(async (req: Request) => {
     // Fetch all existing care team rooms for reference
     const { data: existingRooms, error: existingRoomsError } = await supabaseClient
       .from('chat_rooms')
-      .select('id, patient_id')
+      .select('id, patient_id, name')
       .eq('room_type', 'care_team');
       
     if (existingRoomsError) {
@@ -196,11 +196,71 @@ serve(async (req: Request) => {
         }
         
         createdRooms.push(roomData);
+        
+        // Check if this is a new room or an existing one
+        const isNewRoom = !existingRoomsByPatient.has(assignment.patient_id);
+        
+        // Ensure the doctor is a member of the room
+        if (assignment.doctor_id) {
+          const { error: memberError } = await supabaseClient
+            .from('room_members')
+            .upsert({
+              room_id: roomData,
+              user_id: assignment.doctor_id,
+              role: 'doctor'
+            });
+            
+          if (memberError && !memberError.message.includes('duplicate key')) {
+            console.error(`Error adding doctor to room ${roomData}:`, memberError);
+          }
+        }
+        
+        // Ensure the nutritionist is a member of the room if assigned
+        if (assignment.nutritionist_id) {
+          const { error: memberError } = await supabaseClient
+            .from('room_members')
+            .upsert({
+              room_id: roomData,
+              user_id: assignment.nutritionist_id,
+              role: 'nutritionist'
+            });
+            
+          if (memberError && !memberError.message.includes('duplicate key')) {
+            console.error(`Error adding nutritionist to room ${roomData}:`, memberError);
+          }
+        }
+        
+        // Ensure the patient is a member of the room
+        const { error: patientMemberError } = await supabaseClient
+          .from('room_members')
+          .upsert({
+            room_id: roomData,
+            user_id: assignment.patient_id,
+            role: 'patient'
+          });
+          
+        if (patientMemberError && !patientMemberError.message.includes('duplicate key')) {
+          console.error(`Error adding patient to room ${roomData}:`, patientMemberError);
+        }
+        
+        // Ensure AI bot is a member of the room
+        const { error: botMemberError } = await supabaseClient
+          .from('room_members')
+          .upsert({
+            room_id: roomData,
+            user_id: '00000000-0000-0000-0000-000000000000',
+            role: 'aibot'
+          });
+          
+        if (botMemberError && !botMemberError.message.includes('duplicate key')) {
+          console.error(`Error adding AI bot to room ${roomData}:`, botMemberError);
+        }
+        
         results.push({
           patient_id: assignment.patient_id,
           patient_name: patientName,
           room_id: roomData,
-          status: existingRoomsByPatient.has(assignment.patient_id) ? "updated" : "created",
+          status: isNewRoom ? "created" : "updated",
           doctor_id: assignment.doctor_id,
           doctor_name: `${assignment.doctor_first_name || ''} ${assignment.doctor_last_name || ''}`.trim(),
           nutritionist_id: assignment.nutritionist_id,
@@ -208,7 +268,7 @@ serve(async (req: Request) => {
             `${assignment.nutritionist_first_name || ''} ${assignment.nutritionist_last_name || ''}`.trim() : 
             null
         });
-        console.log(`Room ${roomData} ${existingRoomsByPatient.has(assignment.patient_id) ? "updated" : "created"} for patient: ${patientName}`);
+        console.log(`Room ${roomData} ${isNewRoom ? "created" : "updated"} for patient: ${patientName}`);
       } catch (assignmentError) {
         console.error(`Error processing assignment:`, assignmentError);
         results.push({

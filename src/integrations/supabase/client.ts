@@ -293,13 +293,29 @@ export async function syncAllCareTeamRooms(): Promise<any> {
       if (data.rooms.length > 0) {
         const { data: rooms, error: roomsError } = await supabase
           .from('chat_rooms')
-          .select('id, name, room_type')
+          .select('id, name, room_type, patient_id')
           .in('id', data.rooms);
           
         if (roomsError) {
           console.error('Error fetching synced rooms:', roomsError);
         } else {
           console.log(`Verified ${rooms?.length || 0} rooms exist in database`);
+          console.log("Room details:", JSON.stringify(rooms?.slice(0, 3)));
+          
+          // Verify room members exist
+          if (rooms && rooms.length > 0) {
+            const roomId = rooms[0].id;
+            const { data: members, error: membersError } = await supabase
+              .from('room_members')
+              .select('user_id, role')
+              .eq('room_id', roomId);
+              
+            if (membersError) {
+              console.error(`Error fetching members for room ${roomId}:`, membersError);
+            } else {
+              console.log(`Room ${roomId} has ${members?.length || 0} members:`, members);
+            }
+          }
         }
       }
     } else {
