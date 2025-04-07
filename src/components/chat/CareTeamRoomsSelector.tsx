@@ -49,35 +49,14 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
           // Get assigned patient IDs based on user role
           let patientsData = [];
           
-          // Query the appropriate function based on role
+          // Call the client functions instead of direct RPC to avoid recursion
           if (userRole === 'doctor') {
-            const { data, error } = await supabase.rpc('get_doctor_patients', { 
-              p_doctor_id: user.id 
-            });
-            
-            if (error) {
-              console.error("Error fetching doctor's patients:", error);
-              throw error;
-            }
-            
-            patientsData = data || [];
+            // Use the client function which wraps the RPC
+            patientsData = await getDoctorPatients();
           } 
           else if (userRole === 'nutritionist') {
-            const { data, error } = await supabase.rpc('get_nutritionist_patients', { 
-              p_nutritionist_id: user.id 
-            });
-            
-            if (error) {
-              console.error("Error fetching nutritionist's patients:", error);
-              throw error;
-            }
-            
-            // Format nutritionist's patients to match doctor's patients format
-            patientsData = (data || []).map(p => ({
-              id: p.patient_id,
-              first_name: p.patient_first_name,
-              last_name: p.patient_last_name
-            }));
+            // Use the client function which wraps the RPC
+            patientsData = await getNutritionistPatients();
           }
           
           console.log(`Provider has ${patientsData.length} assigned patients`);
@@ -339,6 +318,43 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
     enabled: !!user?.id,
     refetchInterval: 10000
   });
+
+  // Helper functions to get patients instead of direct RPC calls
+  const getDoctorPatients = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('get-doctor-patients', {
+        body: { doctor_id: user?.id }
+      });
+      
+      if (error) {
+        console.error("Error fetching doctor's patients:", error);
+        throw error;
+      }
+      
+      return data || [];
+    } catch (err) {
+      console.error("Error in getDoctorPatients:", err);
+      return [];
+    }
+  };
+  
+  const getNutritionistPatients = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('get-nutritionist-patients', {
+        body: { nutritionist_id: user?.id }
+      });
+      
+      if (error) {
+        console.error("Error fetching nutritionist's patients:", error);
+        throw error;
+      }
+      
+      return data || [];
+    } catch (err) {
+      console.error("Error in getNutritionistPatients:", err);
+      return [];
+    }
+  };
 
   // Ensure rooms is always an array
   const rooms: CareTeamRoom[] = Array.isArray(roomsData) ? roomsData : [];
