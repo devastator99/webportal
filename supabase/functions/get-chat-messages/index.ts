@@ -74,19 +74,7 @@ serve(async (req: Request) => {
       if (isPatientCareTeamChat && patientId) {
         console.log("Getting care team messages for patient:", patientId);
         
-        // Count the total number of messages in the care team
-        const { data: count, error: countError } = await supabaseClient.rpc('get_care_team_messages_count', {
-          p_user_id: user_id,
-          p_patient_id: patientId
-        });
-        
-        if (countError) {
-          console.error("Error getting message count:", countError);
-          throw countError;
-        }
-        
-        // Use the get_care_team_messages RPC function with the patient ID
-        console.log("Using get_care_team_messages RPC function");
+        // Simple query to directly fetch messages without using the count function
         const { data: messages, error: messagesError } = await supabaseClient.rpc('get_care_team_messages', {
           p_user_id: user_id,
           p_patient_id: patientId,
@@ -99,16 +87,15 @@ serve(async (req: Request) => {
           throw messagesError;
         }
         
-        console.log(`Retrieved ${messages?.length || 0} messages out of ${count || 0} total`);
+        console.log(`Retrieved ${messages?.length || 0} messages`);
         
-        // Determine if there are more messages
-        const hasMore = count != null && count > offset + (messages?.length || 0);
+        // We can't determine total count reliably, so set hasMore to false
+        const hasMore = false;
         
         return new Response(
           JSON.stringify({
             messages: messages || [],
             hasMore,
-            totalCount: count,
             page: pageNumber,
             perPage
           }),
@@ -119,14 +106,6 @@ serve(async (req: Request) => {
         console.log("Getting direct messages between:", user_id, "and", other_user_id);
         
         // Use the get_user_chat_messages RPC function for direct messages
-        const { data: directCount } = await supabaseClient
-          .from('chat_messages')
-          .count()
-          .or(`sender_id.eq.${user_id},receiver_id.eq.${user_id}`)
-          .or(`sender_id.eq.${other_user_id},receiver_id.eq.${other_user_id}`);
-        
-        const count = directCount && directCount[0] ? parseInt(directCount[0].count) : 0;
-        
         const { data: directMessages, error: directError } = await supabaseClient
           .rpc('get_user_chat_messages', {
             p_user_id: user_id,
@@ -142,13 +121,10 @@ serve(async (req: Request) => {
         
         console.log(`Retrieved ${directMessages?.length || 0} direct messages`);
         
-        const hasMore = count > offset + (directMessages?.length || 0);
-        
         return new Response(
           JSON.stringify({
             messages: directMessages || [],
-            hasMore,
-            totalCount: count,
+            hasMore: false,
             page: pageNumber,
             perPage
           }),
@@ -158,80 +134,49 @@ serve(async (req: Request) => {
     } catch (fnError) {
       console.error("Error in primary message function:", fnError);
       
-      // Enhanced fallback with improved logging
-      console.log("Falling back to direct message querying");
-      
-      // Try to get the care team members for this patient for debugging
-      if (patientId) {
-        const { data: careTeam, error: careTeamError } = await supabaseClient
-          .rpc('get_patient_care_team_members', { p_patient_id: patientId });
-          
-        if (careTeamError) {
-          console.error("Error fetching care team members:", careTeamError);
-        } else {
-          console.log("Care team members:", careTeam);
-        }
-      }
-      
-      // Fallback query that tries to get all messages the user should see
-      let query = supabaseClient
+      // Simplified fallback query without using the read column
+      const query = supabaseClient
         .from('chat_messages')
         .select(`
           id,
           message,
           message_type,
           created_at,
-          read,
-          sender:sender_id(id, first_name, last_name, user_roles!inner(role)),
-          receiver:receiver_id(id, first_name, last_name, user_roles!inner(role))
+          sender:sender_id(id, first_name, last_name),
+          receiver:receiver_id(id, first_name, last_name)
         `);
         
+      // Determine which users to include in the query based on context
       if (patientId) {
-        // For care team chat, get messages involving the patient and the care team
-        const { data: careTeam } = await supabaseClient
-          .rpc('get_patient_care_team_members', { p_patient_id: patientId });
-          
-        if (careTeam && Array.isArray(careTeam) && careTeam.length > 0) {
-          // Extract just the IDs from the care team
-          const careTeamIds = careTeam.map(member => member.id);
-          
-          // Add the patient ID and current user ID
-          const relevantIds = [...careTeamIds, patientId, user_id];
-          const uniqueIds = [...new Set(relevantIds)].filter(id => id);
-          
-          // Build a more comprehensive filter for care team chat
-          query = query
-            .or(uniqueIds.map(id => `sender_id.eq.${id}`).join(','))
-            .or(uniqueIds.map(id => `receiver_id.eq.${id}`).join(','));
-        } else {
-          // If can't get care team, fall back to patient + current user
-          query = query
-            .or(`sender_id.eq.${patientId},receiver_id.eq.${patientId}`)
-            .or(`sender_id.eq.${user_id},receiver_id.eq.${user_id}`);
-        }
+        // For care team chat, get messages involving the patient and current user
+        query.or(`sender_id.eq.${patientId},sender_id.eq.${user_id},receiver_id.eq.${patientId},receiver_id.eq.${user_id}`);
       } else {
         // For direct chat, just get messages between the two users
-        query = query
-          .or(`sender_id.eq.${user_id},receiver_id.eq.${user_id}`)
-          .or(`sender_id.eq.${other_user_id},receiver_id.eq.${other_user_id}`);
+        query.or(`sender_id.eq.${user_id},receiver_id.eq.${user_id}`).or(`sender_id.eq.${other_user_id},receiver_id.eq.${other_user_id}`);
       }
       
-      const { data: directMessages, error: directError } = await query
+      const { data: fallbackMessages, error: fallbackError } = await query
         .order('created_at', { ascending: true })
         .range(offset, offset + perPage - 1);
       
-      if (directError) {
-        console.error("Error in fallback query:", directError);
-        throw directError;
+      if (fallbackError) {
+        console.error("Error in fallback query:", fallbackError);
+        throw fallbackError;
       }
       
-      console.log(`Retrieved ${directMessages?.length || 0} messages using fallback method`);
+      console.log(`Retrieved ${fallbackMessages?.length || 0} messages using fallback method`);
+      
+      // Format the messages to match expected structure
+      const formattedMessages = fallbackMessages?.map(msg => ({
+        ...msg,
+        message_type: msg.message_type || "text",
+        read: true // Default all messages to read since we can't determine read status
+      })) || [];
       
       return new Response(
         JSON.stringify({
-          messages: directMessages || [],
-          hasMore: false, // Cannot determine with this method
-          totalCount: directMessages?.length || 0,
+          messages: formattedMessages,
+          hasMore: false,
           page: pageNumber,
           perPage
         }),
