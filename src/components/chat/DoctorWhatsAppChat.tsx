@@ -90,6 +90,11 @@ export const DoctorWhatsAppChat = () => {
     staleTime: 60000
   });
 
+  // When a new patient is selected, clear the local messages
+  useEffect(() => {
+    setLocalMessages([]);
+  }, [selectedPatientId]);
+
   useEffect(() => {
     if (assignedPatients.length > 0 && !selectedPatientId) {
       setSelectedPatientId(assignedPatients[0].id);
@@ -228,8 +233,9 @@ export const DoctorWhatsAppChat = () => {
       
       setNewMessage("");
       
+      // Invalidate ALL chat messages for the selected patient to refresh the view
       queryClient.invalidateQueries({ 
-        queryKey: ["chat_messages"] 
+        queryKey: ["chat_messages", user.id, selectedPatientId] 
       });
     } catch (error) {
       console.error("Error sending message:", error);
