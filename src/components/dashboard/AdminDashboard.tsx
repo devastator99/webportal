@@ -2,14 +2,23 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { UserManagement } from "@/components/admin/UserManagement";
-import { PatientAssignmentManager } from "@/components/admin/PatientAssignmentManager";
+import { UserManagement } from "@/components/dashboard/admin/UserManagement";
+import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAssignmentManager";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AnalyticsPanel } from "@/components/admin/AnalyticsPanel";
+import { Users, Database, BarChart4, RefreshCw } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { Users, Database, BarChart4, RefreshCw } from "lucide-react";
 import { syncAllCareTeamRooms } from "@/integrations/supabase/client";
+
+// Placeholder for AnalyticsPanel until it's implemented
+const AnalyticsPanel = () => {
+  return (
+    <div className="p-4">
+      <h3 className="text-lg font-medium mb-2">Analytics Dashboard</h3>
+      <p className="text-gray-500">Analytics features will be available soon.</p>
+    </div>
+  );
+};
 
 export const AdminDashboard = () => {
   const [isSyncing, setIsSyncing] = useState(false);
