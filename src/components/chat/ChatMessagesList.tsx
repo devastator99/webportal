@@ -103,9 +103,9 @@ export const ChatMessagesList = ({
             body: {
               user_id: user.id,
               other_user_id: selectedUserId,
-              is_group_chat: isGroupChat,
+              is_group_chat: isGroupChat || userRole === 'patient',
               care_team_members: careTeamMembers,
-              include_care_team_messages: includeCareTeamMessages
+              include_care_team_messages: includeCareTeamMessages || userRole === 'patient'
             }
           });
 

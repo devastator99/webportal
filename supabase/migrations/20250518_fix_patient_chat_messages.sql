@@ -27,12 +27,12 @@ BEGIN
   FROM get_patient_care_team_members(p_patient_id);
   
   -- Add the current user's ID if not already in the care team
-  IF NOT p_user_id = ANY(care_team_ids) THEN
+  IF NOT p_user_id = ANY(care_team_ids) AND p_user_id IS NOT NULL THEN
     care_team_ids := array_append(care_team_ids, p_user_id);
   END IF;
   
   -- Add the patient ID if not already in the list
-  IF NOT p_patient_id = ANY(care_team_ids) THEN
+  IF NOT p_patient_id = ANY(care_team_ids) AND p_patient_id IS NOT NULL THEN
     care_team_ids := array_append(care_team_ids, p_patient_id);
   END IF;
   
