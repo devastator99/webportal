@@ -107,9 +107,16 @@ serve(async (req: Request) => {
     }
     
     try {
+      // Always make sure we have a patient ID to use for the care team
       if (!patientId && other_user_id) {
         patientId = other_user_id;
         console.log("Using other_user_id as fallback patient_id:", patientId);
+      }
+      
+      // If user is a patient and viewing their own care team, always use their ID
+      if (userRole === 'patient' && !patientId) {
+        patientId = user_id;
+        console.log("Patient viewing their own messages, using own ID:", patientId);
       }
       
       if (!patientId) {
