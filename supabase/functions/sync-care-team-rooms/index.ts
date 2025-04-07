@@ -26,7 +26,7 @@ serve(async (req: Request) => {
       }
     );
 
-    // Get admin status
+    // Get authenticated user
     const { data: userData, error: userError } = await supabaseClient.auth.getUser();
     if (userError) {
       console.error("Error getting user:", userError);
@@ -35,22 +35,19 @@ serve(async (req: Request) => {
     
     console.log("User authenticated:", userData.user.id);
 
-    // Check if user has admin role
-    const { data: roleData, error: roleError } = await supabaseClient
-      .from('user_roles')
-      .select('role')
-      .eq('user_id', userData.user.id)
-      .single();
+    // Check if user has admin permission using our security definer function
+    const { data: isAdmin, error: adminCheckError } = await supabaseClient
+      .rpc('user_can_sync_rooms');
 
-    if (roleError) {
-      console.error("Error getting user role:", roleError);
-      throw roleError;
+    if (adminCheckError) {
+      console.error("Error checking admin permission:", adminCheckError);
+      throw adminCheckError;
     }
     
-    console.log("User role:", roleData.role);
+    console.log("User admin status:", isAdmin);
 
     // Only allow administrators to run this function
-    if (roleData.role !== 'administrator') {
+    if (!isAdmin) {
       return new Response(
         JSON.stringify({ error: "Only administrators can sync care team rooms" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
