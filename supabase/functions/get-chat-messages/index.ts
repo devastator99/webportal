@@ -18,10 +18,11 @@ serve(async (req: Request) => {
     const { 
       user_id, 
       other_user_id, 
-      email = null,  // Add email parameter for specific user lookup
+      email = null,
       is_group_chat = false, 
       care_team_members = [], 
       include_care_team_messages = false,
+      is_patient = false, // New parameter to explicitly indicate if the user is a patient
       page = 1, 
       per_page = 50 
     } = await req.json();
@@ -53,6 +54,7 @@ serve(async (req: Request) => {
       email,
       is_group_chat, 
       include_care_team_messages,
+      is_patient,
       care_team_members: care_team_members?.length || 0
     });
     
@@ -112,7 +114,7 @@ serve(async (req: Request) => {
     
     // Determine which user is the patient for care team context
     if (is_group_chat || include_care_team_messages) {
-      if (userRole === 'patient') {
+      if (userRole === 'patient' || is_patient) {
         // If current user is a patient, we're in a care team chat for this patient
         patientId = user_id;
         console.log("Patient is current user:", patientId);
@@ -135,11 +137,17 @@ serve(async (req: Request) => {
       }
       
       // If user is a patient and viewing their own care team, always use their ID
-      if (userRole === 'patient' && !patientId) {
+      if ((userRole === 'patient' || is_patient) && !patientId) {
         patientId = user_id;
         console.log("Patient viewing their own messages, using own ID:", patientId);
       }
       
+      if (!patientId && (userRole === 'patient' || is_patient)) {
+        // For patients without a specific patientId, use their own ID
+        patientId = user_id;
+        console.log("Default to using patient's own ID:", patientId);
+      }
+
       if (!patientId) {
         console.error("Could not determine patient ID");
         return new Response(
@@ -186,6 +194,25 @@ serve(async (req: Request) => {
         }
         
         messagesQuery = { data: specificMessages, error: null };
+      } else if (userRole === 'patient' || is_patient) {
+        // Special handling for patients to ensure they always see their messages
+        console.log("Using patient-specific query to ensure all messages are retrieved");
+        
+        // Get all messages where the patient is either sender or receiver
+        const { data: patientMessages, error: patientError } = await supabaseClient
+          .rpc('get_care_team_messages', {
+            p_user_id: user_id,
+            p_patient_id: patientId,
+            p_offset: offset,
+            p_limit: perPage
+          });
+        
+        if (patientError) {
+          console.error("Error fetching patient messages:", patientError);
+          throw patientError;
+        }
+        
+        messagesQuery = { data: patientMessages, error: null };
       } else {
         // Use the standard get_care_team_messages RPC function for all messages
         messagesQuery = await supabaseClient.rpc('get_care_team_messages', {

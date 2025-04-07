@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -81,7 +82,8 @@ export const ChatMessagesList = ({
       careTeamMembers?.map(m => m.id).join('-'),
       isGroupChat,
       includeCareTeamMessages,
-      specificEmail
+      specificEmail,
+      userRole // Add userRole to query key to ensure refetch when role changes
     ],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -97,7 +99,7 @@ export const ChatMessagesList = ({
         specificEmail
       });
       
-      if (selectedUserId || specificEmail) {
+      if (selectedUserId || specificEmail || userRole === 'patient') {
         try {
           console.log("Getting care team messages via edge function");
           const { data, error } = await supabase.functions.invoke('get-chat-messages', {
@@ -107,7 +109,8 @@ export const ChatMessagesList = ({
               email: specificEmail,
               is_group_chat: isGroupChat || userRole === 'patient',
               care_team_members: careTeamMembers,
-              include_care_team_messages: includeCareTeamMessages || userRole === 'patient'
+              include_care_team_messages: includeCareTeamMessages || userRole === 'patient',
+              is_patient: userRole === 'patient' // Explicitly indicate if the user is a patient
             }
           });
 
@@ -136,7 +139,7 @@ export const ChatMessagesList = ({
 
       return [];
     },
-    enabled: !!user?.id && (!!selectedUserId || !!specificEmail),
+    enabled: !!user?.id && (!!selectedUserId || !!specificEmail || userRole === 'patient'),
     staleTime: 5000,
     refetchInterval: 10000,
     retry: 2,
