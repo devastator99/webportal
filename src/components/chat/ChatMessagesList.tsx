@@ -91,9 +91,9 @@ export const ChatMessagesList = ({
           throw err;
         }
       } else if (isGroupChat && careTeamGroup) {
-        // Use RPC function for care team group chat
+        // Use Edge Function for care team group chat
         try {
-          console.log("Using RPC for care team group chat");
+          console.log("Using Edge Function for care team group chat");
           const careTeamIds = careTeamGroup.members.map(member => member.id);
           
           // Make sure current user is included
@@ -105,40 +105,44 @@ export const ChatMessagesList = ({
           const patientId = careTeamGroup.members.find(m => 
             m.role === 'patient')?.id || careTeamIds[0];
             
-          const { data, error } = await supabase.rpc('get_care_team_messages', {
-            p_user_id: user.id,
-            p_patient_id: patientId,
-            p_limit: 100
+          const { data, error } = await supabase.functions.invoke('get-chat-messages', {
+            body: {
+              user_id: user.id,
+              other_user_id: patientId,
+              include_care_team: true
+            }
           });
           
           if (error) {
-            console.error("Error using get_care_team_messages RPC:", error);
+            console.error("Error using Edge Function for care team messages:", error);
             throw error;
           }
           
-          console.log(`Retrieved ${data?.length || 0} care team messages via RPC`);
-          return data || [];
+          console.log(`Retrieved ${data?.messages?.length || 0} care team messages via Edge Function`);
+          return data?.messages || [];
         } catch (err) {
-          console.error("Error in RPC care team messages retrieval:", err);
+          console.error("Error in Edge Function care team messages retrieval:", err);
           throw err;
         }
       } else if (selectedUserId && user?.id) {
-        // Use the direct messages RPC function
+        // Use the direct messages Edge Function
         try {
-          console.log("Using RPC for direct messages");
-          const { data, error } = await supabase.rpc('get_user_chat_messages', {
-            p_user_id: user.id,
-            p_other_user_id: selectedUserId,
-            p_limit: 100
+          console.log("Using Edge Function for direct messages");
+          const { data, error } = await supabase.functions.invoke('get-chat-messages', {
+            body: {
+              user_id: user.id,
+              other_user_id: selectedUserId,
+              include_care_team: false
+            }
           });
           
           if (error) {
-            console.error("Error using get_user_chat_messages RPC:", error);
+            console.error("Error in get-chat-messages Edge Function:", error);
             throw error;
           }
           
-          console.log(`Retrieved ${data?.length || 0} direct messages via RPC`);
-          return data || [];
+          console.log(`Retrieved ${data?.messages?.length || 0} direct messages via Edge Function`);
+          return data?.messages || [];
         } catch (err) {
           console.error("Error in direct messages retrieval:", err);
           throw err;
