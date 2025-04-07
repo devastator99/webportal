@@ -343,7 +343,7 @@ export const DoctorWhatsAppChat = () => {
                     </Avatar>
                     <div>
                       <div className="font-medium">
-                        {selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name} - Care Group` : 'Loading...'}
+                        {selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name} - Care Team Chat` : 'Loading...'}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {isLoadingCareTeam ? 'Loading care team...' : `${careTeamMembers.length} care team members`}

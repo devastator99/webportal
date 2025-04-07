@@ -61,14 +61,15 @@ serve(async (req: Request) => {
         .update({ read: true })
         .eq('receiver_id', user_id)
         .eq('sender_id', sender_id)
-        .eq('read', false);
+        .eq('read', false)
+        .select();
       
       if (error) {
         console.error("Error with direct update fallback:", error);
         throw error;
       }
       
-      console.log("Successfully marked messages as read via direct update");
+      console.log(`Successfully marked ${data?.length || 0} messages as read via direct update`);
       
       return new Response(
         JSON.stringify({ success: true, result: data }),

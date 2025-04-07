@@ -118,7 +118,7 @@ serve(async (req: Request) => {
         return new Response(
           JSON.stringify({
             messages: messages || [],
-            hasMore: false,
+            hasMore: messages && messages.length === perPage,
             page: pageNumber,
             perPage
           }),
@@ -162,7 +162,7 @@ serve(async (req: Request) => {
         return new Response(
           JSON.stringify({
             messages: directMessages || [],
-            hasMore: false,
+            hasMore: directMessages && directMessages.length === perPage,
             page: pageNumber,
             perPage
           }),
@@ -215,7 +215,7 @@ serve(async (req: Request) => {
       return new Response(
         JSON.stringify({
           messages: formattedMessages,
-          hasMore: false,
+          hasMore: fallbackMessages && fallbackMessages.length === perPage,
           page: pageNumber,
           perPage
         }),

@@ -36,15 +36,11 @@ export const ChatModule = ({
     initDb();
   }, []);
   
-  // Check if the user is a doctor or nutritionist to render the appropriate chat interface
-  const isDoctorRole = userRole === "doctor";
-  const isNutritionistRole = userRole === "nutritionist";
-  
   return (
     <>
       {showChatInterface && (
         <>
-          {isDoctorRole ? (
+          {userRole === "doctor" ? (
             <DoctorWhatsAppChat />
           ) : (
             <UsersProvider>
@@ -60,7 +56,7 @@ export const ChatModule = ({
                     assignedUsers={assignedUsers}
                     careTeamGroup={careTeamGroup}
                     showGroupChat={true} // Enable group chat for everyone to ensure full access to historical messages
-                    whatsAppStyle={isNutritionistRole || isDoctorRole}
+                    whatsAppStyle={userRole === "nutritionist" || userRole === "doctor"}
                     includeAiBot={true} // Ensure AI bot is always available
                   />
                 );

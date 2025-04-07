@@ -19,9 +19,6 @@ const ChatPage = () => {
     }
   }, [user, navigate]);
 
-  const isDoctorRole = userRole === "doctor";
-  const isNutritionistRole = userRole === "nutritionist";
-
   return (
     <div className="flex flex-col min-h-screen pt-16 md:pt-20">
       <div className="container mx-auto py-4 px-4 max-w-7xl flex-1 flex flex-col h-[calc(100vh-70px)] overflow-hidden">
@@ -29,7 +26,7 @@ const ChatPage = () => {
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center gap-2">
               <MessageSquare className="h-5 w-5" />
-              {isDoctorRole || isNutritionistRole ? "Patient Care Chat" : "Care Team Chat"}
+              Care Team Chat
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0 h-full flex-1 overflow-hidden">
@@ -50,7 +47,7 @@ const ChatPage = () => {
                         assignedUsers={assignedUsers}
                         careTeamGroup={careTeamGroup}
                         showGroupChat={true} // Enable group chat for everyone to ensure access to all messages
-                        whatsAppStyle={isDoctorRole || isNutritionistRole}
+                        whatsAppStyle={userRole === "doctor" || userRole === "nutritionist"}
                         includeAiBot={true} // Ensure AI bot is included for all users
                       />
                     )}

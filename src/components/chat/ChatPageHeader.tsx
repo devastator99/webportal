@@ -36,9 +36,7 @@ export const ChatPageHeader = ({
     );
   }
 
-  const title = userRole === "doctor" || userRole === "nutritionist" 
-    ? "Patient Messages" 
-    : "Care Team Chat";
+  const title = "Care Team Chat";
 
   return (
     <div className="space-y-6 w-full h-full">
