@@ -27,6 +27,14 @@ export interface PatientProfile {
   currentMedicalConditions?: string;
 }
 
+// Interface for RPC responses
+export interface AdminOperationResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  id?: string;
+}
+
 // Function to create or update a user role
 export async function createUserRole(userId: string, role: string): Promise<any> {
   try {
@@ -169,7 +177,7 @@ export async function assignCareTeam(
   doctorId: string, 
   nutritionistId: string | null, 
   adminId: string
-): Promise<any> {
+): Promise<AdminOperationResponse> {
   try {
     console.log("Calling admin_assign_care_team RPC with:", {
       patientId,
@@ -192,12 +200,13 @@ export async function assignCareTeam(
       throw new Error(error.message || 'Failed to assign care team');
     }
     
-    // Handle case where the function returned data but with error status
-    if (data && data.error) {
-      throw new Error(data.error);
+    // Type guard and validation
+    const responseData = data as AdminOperationResponse;
+    if (responseData && typeof responseData === 'object' && 'error' in responseData && responseData.error) {
+      throw new Error(responseData.error);
     }
     
-    return data;
+    return responseData as AdminOperationResponse;
   } catch (error: any) {
     console.error('Exception in assignCareTeam:', error);
     throw error;
@@ -230,8 +239,9 @@ export async function adminDeleteUser(
     }
     
     // Handle case where the function returned data but with error status
-    if (data && data.error) {
-      throw new Error(data.error);
+    const responseData = data as { error?: string };
+    if (responseData && typeof responseData === 'object' && 'error' in responseData && responseData.error) {
+      throw new Error(responseData.error);
     }
     
     return data;

@@ -16,6 +16,14 @@ interface Profile {
   last_name: string | null;
 }
 
+// Define the expected RPC response type
+interface CareTeamAssignmentResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  id?: string;
+}
+
 export const PatientAssignmentManager = () => {
   const { toast } = useToast();
   const { user } = useAuth();
@@ -169,8 +177,10 @@ export const PatientAssignmentManager = () => {
         throw new Error(assignmentError.message || "Error assigning care team");
       }
       
-      if (!assignmentData || !assignmentData.success) {
-        throw new Error((assignmentData && assignmentData.error) || "Failed to assign care team");
+      // Type guard check for the response structure
+      const responseData = assignmentData as CareTeamAssignmentResponse;
+      if (!responseData || !responseData.success) {
+        throw new Error((responseData && responseData.error) || "Failed to assign care team");
       }
       
       console.log("Now creating care team room for patient");
