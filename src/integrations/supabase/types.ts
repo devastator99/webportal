@@ -1283,6 +1283,10 @@ export type Database = {
         }
         Returns: string
       }
+      user_can_sync_rooms: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       validate_appointment_date: {
         Args: { p_doctor_id: string; p_scheduled_date: string }
         Returns: boolean
