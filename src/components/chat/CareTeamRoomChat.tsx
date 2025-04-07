@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,14 +54,12 @@ export const CareTeamRoomChat = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
 
-  // Query to get room details
   const { data: roomDetails } = useQuery({
     queryKey: ["care_team_room", selectedRoomId],
     queryFn: async () => {
       if (!selectedRoomId || !user?.id) return null;
       
       try {
-        // Get the room details
         const { data: roomData, error: roomError } = await supabase
           .from('chat_rooms')
           .select('id, name, description, room_type, patient_id, created_at')
@@ -74,7 +71,6 @@ export const CareTeamRoomChat = ({
           throw roomError;
         }
         
-        // Get patient name separately
         let patientName = 'Patient';
         if (roomData.patient_id) {
           const { data: patientData, error: patientError } = await supabase
@@ -88,7 +84,6 @@ export const CareTeamRoomChat = ({
           }
         }
         
-        // Get member count
         const { count, error: countError } = await supabase
           .from('room_members')
           .select('*', { count: 'exact', head: true })
@@ -116,7 +111,6 @@ export const CareTeamRoomChat = ({
     enabled: !!selectedRoomId && !!user?.id
   });
 
-  // Query to get room messages
   const { data: messagesData, isLoading: messagesLoading } = useQuery({
     queryKey: ["room_messages", selectedRoomId],
     queryFn: async () => {
@@ -134,7 +128,6 @@ export const CareTeamRoomChat = ({
           throw error;
         }
         
-        // Format messages with sender info
         const formattedMessages: RoomMessage[] = [];
         
         for (const msg of messageData) {
@@ -145,7 +138,6 @@ export const CareTeamRoomChat = ({
             senderName = 'AI Assistant';
             senderRole = 'aibot';
           } else {
-            // Get sender info
             const { data: senderData, error: senderError } = await supabase
               .from('profiles')
               .select('first_name, last_name')
@@ -156,7 +148,6 @@ export const CareTeamRoomChat = ({
               senderName = `${senderData.first_name || ''} ${senderData.last_name || ''}`.trim();
             }
             
-            // Get role
             const { data: roleData, error: roleError } = await supabase
               .from('user_roles')
               .select('role')
@@ -168,11 +159,9 @@ export const CareTeamRoomChat = ({
             }
           }
           
-          // Ensure read_by is always properly typed as string[]
           let readByArray: string[] = [];
           
           if (msg.read_by) {
-            // Convert read_by to string[] safely
             if (Array.isArray(msg.read_by)) {
               readByArray = msg.read_by.map(item => String(item));
             } else if (typeof msg.read_by === 'object') {
@@ -198,23 +187,17 @@ export const CareTeamRoomChat = ({
           });
         }
         
-        // Mark messages as read
         if (messageData.length > 0 && user?.id) {
-          // Process each message to mark as read by current user
           for (const msg of messageData) {
-            // Check if read_by is an array and if user is not already in it
             let currentReadBy: string[] = [];
             
             if (msg.read_by && Array.isArray(msg.read_by)) {
-              // Convert all items to strings to ensure type consistency
               currentReadBy = msg.read_by.map(item => String(item));
             }
             
-            // If user is not in read_by, add them
             if (user.id && !currentReadBy.includes(user.id)) {
               const updatedReadBy = [...currentReadBy, user.id];
               
-              // Update the read_by field
               await supabase
                 .from('room_messages')
                 .update({ read_by: updatedReadBy })
@@ -233,17 +216,14 @@ export const CareTeamRoomChat = ({
     refetchInterval: 5000
   });
 
-  // Handle safe type checking for messages array
   const messages: RoomMessage[] = Array.isArray(messagesData) ? messagesData : [];
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
-  // Handle scroll to show/hide scroll-to-bottom button
   useEffect(() => {
     const handleScroll = () => {
       if (!scrollViewportRef.current) return;
@@ -276,7 +256,6 @@ export const CareTeamRoomChat = ({
     try {
       setIsLoading(true);
       
-      // Send message using direct insert
       const { data, error } = await supabase
         .from('room_messages')
         .insert({
@@ -285,20 +264,17 @@ export const CareTeamRoomChat = ({
           message: message.trim(),
           is_system_message: false,
           is_ai_message: false,
-          read_by: [user.id] // Mark as read by sender
+          read_by: [user.id]
         })
         .select()
         .single();
       
       if (error) throw error;
       
-      // Clear the input
       setMessage("");
       
-      // Invalidate the messages query to refresh
       queryClient.invalidateQueries({ queryKey: ["room_messages", selectedRoomId] });
       
-      // Check if we should trigger an AI response
       if (message.toLowerCase().includes('@ai') || message.toLowerCase().includes('@assistant')) {
         try {
           const { data: aiResponse, error: aiError } = await supabase.functions.invoke(
@@ -312,11 +288,9 @@ export const CareTeamRoomChat = ({
             console.error("AI chat error:", aiError);
           }
           
-          // Refresh messages to show AI response
           setTimeout(() => {
             queryClient.invalidateQueries({ queryKey: ["room_messages", selectedRoomId] });
           }, 1000);
-          
         } catch (aiErr) {
           console.error("Error invoking AI chat:", aiErr);
         }
@@ -333,7 +307,6 @@ export const CareTeamRoomChat = ({
     }
   };
 
-  // Get initial letters for avatar
   const getInitials = (name: string) => {
     return name
       .split(' ')
@@ -343,7 +316,6 @@ export const CareTeamRoomChat = ({
       .substring(0, 2);
   };
 
-  // Get avatar color based on role
   const getAvatarColorClass = (role: string) => {
     switch (role.toLowerCase()) {
       case 'doctor':
@@ -360,7 +332,6 @@ export const CareTeamRoomChat = ({
     }
   };
 
-  // Group messages by day
   const groupMessagesByDay = (messages: RoomMessage[]) => {
     const groups: Record<string, RoomMessage[]> = {};
     
@@ -390,7 +361,6 @@ export const CareTeamRoomChat = ({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="p-3 bg-muted/40 border-b flex items-center">
         {isMobileView && onBack && (
           <Button variant="ghost" size="icon" onClick={onBack} className="mr-2">
@@ -415,7 +385,6 @@ export const CareTeamRoomChat = ({
         </div>
       </div>
       
-      {/* Messages area */}
       <div className="flex-1 bg-[#f0f2f5] dark:bg-slate-900 overflow-hidden relative">
         <ScrollArea className="h-full">
           <div 
@@ -497,7 +466,6 @@ export const CareTeamRoomChat = ({
           </div>
         </ScrollArea>
         
-        {/* Scroll to bottom button */}
         {showScrollButton && (
           <Button
             size="icon"
@@ -510,7 +478,6 @@ export const CareTeamRoomChat = ({
         )}
       </div>
       
-      {/* Message input */}
       <div className="p-3 bg-background border-t">
         <div className="flex gap-2">
           <Textarea

@@ -77,17 +77,47 @@ serve(async (req: Request) => {
       );
     }
 
+    // Get user's role and name for better context
+    const { data: userData, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('id', user.id)
+      .single();
+      
+    const userName = userData ? 
+      `${userData.first_name || ''} ${userData.last_name || ''}`.trim() : 
+      'User';
+
+    // Get room details and patient info
+    const { data: roomData, error: roomDetailsError } = await supabaseClient
+      .from('chat_rooms')
+      .select('patient_id, name')
+      .eq('id', roomId)
+      .single();
+      
+    if (roomDetailsError) {
+      console.error("Error fetching room details:", roomDetailsError);
+    }
+    
+    let patientName = "the patient";
+    if (roomData?.patient_id) {
+      const { data: patientData } = await supabaseClient
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('id', roomData.patient_id)
+        .single();
+        
+      if (patientData) {
+        patientName = `${patientData.first_name || ''} ${patientData.last_name || ''}`.trim();
+      }
+    }
+
     // Get room message history for context
     const { data: messageHistory, error: historyError } = await supabaseClient
       .from('room_messages')
       .select(`
         id,
         sender_id,
-        sender:profiles!room_messages_sender_id_fkey(
-          first_name,
-          last_name
-        ),
-        sender_role:user_roles!inner(role),
         message,
         is_system_message,
         is_ai_message,
@@ -101,38 +131,69 @@ serve(async (req: Request) => {
       console.error("Error fetching message history:", historyError);
     }
 
-    // Format message history for OpenAI
-    const formattedHistory = messageHistory ? messageHistory.map(msg => {
-      const senderName = msg.sender_id === '00000000-0000-0000-0000-000000000000' 
-        ? 'AI Assistant' 
-        : `${msg.sender?.first_name || ''} ${msg.sender?.last_name || ''}`.trim();
-      const senderRole = msg.sender_role?.[0]?.role || 'unknown';
-      
-      return {
-        role: msg.is_ai_message ? "assistant" : "user",
-        content: `${msg.is_ai_message ? '' : `${senderName} (${senderRole}): `}${msg.message}`
-      };
-    }) : [];
+    // Build conversation history with sender information
+    const conversationHistory = [];
+    
+    if (messageHistory && messageHistory.length > 0) {
+      for (const msg of messageHistory) {
+        let senderName = "Unknown";
+        let senderRole = "unknown";
+        
+        if (msg.sender_id === '00000000-0000-0000-0000-000000000000') {
+          senderName = "AI Assistant";
+          senderRole = "aibot";
+        } else {
+          // Get sender profile
+          const { data: sender } = await supabaseClient
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('id', msg.sender_id)
+            .single();
+            
+          if (sender) {
+            senderName = `${sender.first_name || ''} ${sender.last_name || ''}`.trim();
+          }
+          
+          // Get sender role
+          const { data: roleData } = await supabaseClient
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', msg.sender_id)
+            .single();
+            
+          if (roleData) {
+            senderRole = roleData.role;
+          }
+        }
+        
+        conversationHistory.push({
+          role: msg.is_ai_message ? "assistant" : "user",
+          content: `${msg.is_ai_message ? '' : `${senderName} (${senderRole}): `}${msg.message}`
+        });
+      }
+    }
 
     // Prepare AI chat request
     const aiMessages = [
       {
         role: "system",
-        content: `You are an AI healthcare assistant in a care team chat for a patient. 
+        content: `You are an AI healthcare assistant in a care team chat for ${patientName}. 
         Your goal is to provide helpful, accurate, and supportive information to both the patient and healthcare providers.
         
         Guidelines:
         - Be professional and compassionate
+        - Be concise but thorough
         - Do not diagnose but help clarify medical information
         - When medical questions arise, suggest consulting with the doctor
         - Support both patients and healthcare providers in the conversation
         - For nutrition questions, refer to the nutritionist when possible
-        - Always maintain a helpful and supportive tone`
+        - Always maintain a helpful and supportive tone
+        - When appropriate, suggest questions the patient might want to ask their doctor or nutritionist`
       },
-      ...formattedHistory,
+      ...conversationHistory,
       {
         role: "user",
-        content: `${roomMember.role || 'User'}: ${message}`
+        content: `${userName} (${roomMember.role}): ${message}`
       }
     ];
 
@@ -147,6 +208,8 @@ serve(async (req: Request) => {
       );
     }
 
+    console.log("Sending request to OpenAI with", aiMessages.length, "messages in context");
+    
     const openAIResponse = await fetch(OPENAI_API_URL, {
       method: 'POST',
       headers: {
@@ -154,7 +217,7 @@ serve(async (req: Request) => {
         'Authorization': `Bearer ${OPENAI_API_KEY}`
       },
       body: JSON.stringify({
-        model: 'gpt-4',
+        model: 'gpt-4o-mini', // Using the more efficient model
         messages: aiMessages,
         max_tokens: 1000,
         temperature: 0.7
@@ -164,6 +227,7 @@ serve(async (req: Request) => {
     const openAIData = await openAIResponse.json();
     
     if (!openAIData.choices || !openAIData.choices[0]) {
+      console.error("OpenAI error:", openAIData);
       return new Response(
         JSON.stringify({ error: 'Failed to get AI response', details: openAIData }),
         { 
@@ -174,6 +238,7 @@ serve(async (req: Request) => {
     }
 
     const aiResponseText = openAIData.choices[0].message.content.trim();
+    console.log("AI response:", aiResponseText.substring(0, 100) + "...");
 
     // Save AI response to the room
     const { data: aiMessageData, error: aiMessageError } = await supabaseClient
@@ -183,7 +248,8 @@ serve(async (req: Request) => {
         sender_id: '00000000-0000-0000-0000-000000000000', // AI bot ID
         message: aiResponseText,
         is_system_message: false,
-        is_ai_message: true
+        is_ai_message: true,
+        read_by: [user.id] // Mark as read by the user who triggered it
       })
       .select()
       .single();

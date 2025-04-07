@@ -61,9 +61,10 @@ const ChatPage = () => {
                           <ChatInterface 
                             assignedUsers={assignedUsers}
                             careTeamGroup={careTeamGroup}
-                            showGroupChat={true} // Enable group chat for everyone to ensure access to all messages
+                            showGroupChat={true} 
                             whatsAppStyle={userRole === "doctor" || userRole === "nutritionist"}
-                            includeAiBot={true} // Ensure AI bot is included for all users
+                            includeAiBot={true}
+                            includeCareTeamMessages={true}
                           />
                         )}
                       </div>
