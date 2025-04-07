@@ -19,6 +19,9 @@ const ChatPage = () => {
     }
   }, [user, navigate]);
 
+  const isDoctorRole = userRole === "doctor";
+  const isNutritionistRole = userRole === "nutritionist";
+
   return (
     <div className="flex flex-col min-h-screen pt-16 md:pt-20">
       <div className="container mx-auto py-4 px-4 max-w-7xl flex-1 flex flex-col h-[calc(100vh-70px)] overflow-hidden">
@@ -46,8 +49,8 @@ const ChatPage = () => {
                       <ChatInterface 
                         assignedUsers={assignedUsers}
                         careTeamGroup={careTeamGroup}
-                        showGroupChat={userRole !== "doctor" && userRole !== "nutritionist"}
-                        whatsAppStyle={userRole === "doctor" || userRole === "nutritionist"}
+                        showGroupChat={!isDoctorRole} // Enable group chat for all users except doctors
+                        whatsAppStyle={isDoctorRole || isNutritionistRole}
                       />
                     )}
                   </div>
