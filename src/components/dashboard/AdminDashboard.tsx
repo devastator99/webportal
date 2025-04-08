@@ -6,7 +6,7 @@ import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAs
 import { PatientAssignmentsReport } from "@/components/dashboard/admin/PatientAssignmentsReport";
 import { UserRegistration } from "@/components/dashboard/admin/UserRegistration";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { Settings, Users, FileChart } from "lucide-react";
+import { Settings, Users, FileText } from "lucide-react";
 import { SyncCareTeamsButton } from "@/components/dashboard/admin/SyncCareTeamsButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
@@ -74,7 +74,7 @@ export const AdminDashboard = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <FileChart className="h-5 w-5" />
+                <FileText className="h-5 w-5" />
                 Patient Care Team Assignments
               </CardTitle>
             </CardHeader>

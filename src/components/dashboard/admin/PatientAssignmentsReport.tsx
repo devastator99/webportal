@@ -8,11 +8,13 @@ import { usePatientAssignments } from "@/hooks/usePatientAssignments";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useIsIPad } from "@/hooks/use-mobile";
 
 export const PatientAssignmentsReport = () => {
   const { toast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
   const { data: assignments = [], isLoading, error, refetch } = usePatientAssignments();
+  const isIPad = useIsIPad();
 
   const handleRefresh = async () => {
     try {
@@ -34,7 +36,7 @@ export const PatientAssignmentsReport = () => {
   };
   
   return (
-    <Card>
+    <Card className={isIPad ? "overflow-x-auto max-w-full" : ""}>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
@@ -51,7 +53,7 @@ export const PatientAssignmentsReport = () => {
           Refresh
         </Button>
       </CardHeader>
-      <CardContent>
+      <CardContent className={isIPad ? "pb-6 overflow-x-auto" : ""}>
         {error ? (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -68,7 +70,9 @@ export const PatientAssignmentsReport = () => {
             </AlertDescription>
           </Alert>
         ) : (
-          <PatientAssignmentsTable assignments={assignments} />
+          <div className={isIPad ? "max-w-full overflow-x-auto -mx-2 px-2" : ""}>
+            <PatientAssignmentsTable assignments={assignments} />
+          </div>
         )}
       </CardContent>
     </Card>

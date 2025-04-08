@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
+import { useIsIPad } from "@/hooks/use-mobile";
 
 interface CollapsibleSectionProps {
   title: string;
@@ -26,6 +27,7 @@ export const CollapsibleSection = ({
   const [isLoading, setIsLoading] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const { resetInactivityTimer } = useAuth();
+  const isIPad = useIsIPad();
 
   // Optimized toggle function with animation frame scheduling
   const handleToggle = () => {
@@ -57,7 +59,13 @@ export const CollapsibleSection = ({
   }, [lazyLoad]);
 
   return (
-    <div className={cn("rounded-lg border bg-card shadow-sm", className)} style={{contain: "content"}}>
+    <div 
+      className={cn("rounded-lg border bg-card shadow-sm", 
+        isIPad ? "overflow-hidden max-w-full" : "", 
+        className
+      )} 
+      style={{contain: "content"}}
+    >
       <div
         className="flex items-center justify-between p-4 cursor-pointer"
         onClick={handleToggle}
@@ -66,9 +74,9 @@ export const CollapsibleSection = ({
       >
         <h3 className="text-lg font-medium">{title}</h3>
         {isOpen ? (
-          <ChevronUp className="h-5 w-5 text-muted-foreground" />
+          <ChevronUp className="h-5 w-5 text-muted-foreground flex-shrink-0" />
         ) : (
-          <ChevronDown className="h-5 w-5 text-muted-foreground" />
+          <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
         )}
       </div>
       
@@ -77,7 +85,7 @@ export const CollapsibleSection = ({
       {isOpen && (
         <div 
           ref={contentRef}
-          className="p-4" 
+          className={cn("p-4", isIPad ? "overflow-x-auto" : "")}
           data-state={isOpen ? "open" : "closed"}
           style={{ 
             willChange: "transform, opacity",

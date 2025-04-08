@@ -65,11 +65,27 @@
     max-width: 100%;
     margin: 0;
     border-radius: 0;
+    overflow-x: hidden;
   }
   
   .mobile-content {
     height: calc(100vh - 24px) !important;
     padding-top: 80px;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  
+  /* Admin dashboard specific iPad styles */
+  .space-y-6 > div {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  
+  /* Make sure tables don't overflow on iPad */
+  table {
+    width: 100%;
+    display: table;
+    table-layout: fixed;
   }
   
   /* Make navbar visible on iPad */
@@ -79,6 +95,8 @@
     border-bottom: 1px solid #D6BCFA !important;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
     padding: 0.75rem 1rem;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 }
 
@@ -124,6 +142,7 @@
 @media screen and (min-width: 768px) and (max-width: 1024px) {
   .mobile-nav {
     max-width: 100%;
+    width: 100%;
   }
 }
 
