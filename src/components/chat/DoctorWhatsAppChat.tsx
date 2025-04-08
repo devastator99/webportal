@@ -42,52 +42,39 @@ export const DoctorWhatsAppChat = () => {
     setShowSidebar(prev => !prev);
   };
 
-  // Use the proper edge function based on the user role
-  const { data: assignedPatients = [], isLoading: isLoadingPatients, error } = useQuery({
-    queryKey: ["provider_patients", user?.id, userRole],
+  // Use the proper query to get care team rooms instead of just patients
+  const { data: careTeamRooms = [], isLoading: isLoadingRooms, error } = useQuery({
+    queryKey: ["user_care_team_rooms", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
       
       try {
-        console.log(`Fetching patients assigned to ${userRole}:`, user.id);
+        console.log(`Fetching care team rooms for ${userRole}:`, user.id);
         
-        const { data, error } = userRole === "nutritionist" 
-          ? await supabase.functions.invoke('get-nutritionist-patients', { body: { nutritionist_id: user.id } })
-          : await supabase.functions.invoke('get-doctor-patients', { body: { doctor_id: user.id } });
+        const { data: rooms, error: roomsError } = await supabase
+          .rpc('get_user_care_team_rooms', { 
+            p_user_id: user.id 
+          });
           
-        if (error) {
-          console.error(`Error in get_${userRole}_patients RPC:`, error);
-          throw error;
+        if (roomsError) {
+          console.error("Error fetching care team rooms:", roomsError);
+          throw roomsError;
         }
         
-        // Format patient data to be consistent regardless of the source function
-        const formattedPatients = data?.map(p => ({
-          id: p.patient_id || p.id,
-          first_name: p.patient_first_name || p.first_name,
-          last_name: p.patient_last_name || p.last_name
-        })) || [];
-        
-        console.log("Patients retrieved:", formattedPatients.length);
-        
-        const sortedPatients = [...formattedPatients].sort((a, b) => {
-          const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim().toLowerCase();
-          const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim().toLowerCase();
-          return nameA.localeCompare(nameB);
-        });
-        
-        return sortedPatients;
+        console.log("Care team rooms retrieved:", rooms?.length || 0);
+        return rooms || [];
       } catch (error) {
-        console.error(`Error fetching ${userRole}'s patients:`, error);
+        console.error("Error fetching care team rooms:", error);
         toast({
           title: "Error",
-          description: "Could not load patient list",
+          description: "Could not load care team rooms",
           variant: "destructive"
         });
         return [];
       }
     },
     enabled: !!user?.id,
-    staleTime: 60000
+    staleTime: 30000 // Cache for 30 seconds
   });
 
   // When a new patient is selected, clear the local messages
@@ -95,12 +82,14 @@ export const DoctorWhatsAppChat = () => {
     setLocalMessages([]);
   }, [selectedPatientId]);
 
+  // Select first patient if none selected
   useEffect(() => {
-    if (assignedPatients.length > 0 && !selectedPatientId) {
-      setSelectedPatientId(assignedPatients[0].id);
+    if (careTeamRooms.length > 0 && !selectedPatientId) {
+      setSelectedPatientId(careTeamRooms[0].patient_id);
     }
-  }, [assignedPatients, selectedPatientId]);
+  }, [careTeamRooms, selectedPatientId]);
 
+  // Fetch care team members when a patient is selected
   useEffect(() => {
     const fetchCareTeam = async () => {
       if (!selectedPatientId || !user?.id) return;
@@ -150,12 +139,15 @@ export const DoctorWhatsAppChat = () => {
         // Also make sure to include the patient in the care team
         const hasPatient = updatedCareTeam.some(member => member.id === selectedPatientId);
         if (!hasPatient) {
-          const selectedPatient = assignedPatients.find(p => p.id === selectedPatientId);
-          if (selectedPatient) {
+          // Get patient info from the care team rooms
+          const selectedRoom = careTeamRooms.find(room => room.patient_id === selectedPatientId);
+          
+          if (selectedRoom) {
+            const patientName = selectedRoom.patient_name?.split(' ') || ['Patient', ''];
             updatedCareTeam.push({
               id: selectedPatientId,
-              first_name: selectedPatient.first_name,
-              last_name: selectedPatient.last_name,
+              first_name: patientName[0] || 'Patient',
+              last_name: patientName.slice(1).join(' ') || '',
               role: "patient"
             });
           }
@@ -176,7 +168,7 @@ export const DoctorWhatsAppChat = () => {
     };
     
     fetchCareTeam();
-  }, [selectedPatientId, user, toast, assignedPatients, userRole]);
+  }, [selectedPatientId, user, toast, careTeamRooms, userRole]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedPatientId || !user?.id) return;
@@ -205,39 +197,41 @@ export const DoctorWhatsAppChat = () => {
       
       setLocalMessages(prev => [...prev, tempMessage]);
       
-      // Send message to patient - this is the main record of the message
-      const { data, error } = await supabase.rpc('send_chat_message', {
-        p_sender_id: user.id,
-        p_receiver_id: selectedPatientId,
-        p_message: newMessage,
-        p_message_type: 'text'
-      });
+      // Get the room ID for this patient
+      const selectedRoom = careTeamRooms.find(room => room.patient_id === selectedPatientId);
       
-      if (error) throw error;
-      
-      // Forward the message to all care team members so everyone sees the care team communication
-      if (careTeamMembers && careTeamMembers.length > 0) {
-        console.log("Forwarding message to all care team members:", careTeamMembers.length);
+      if (selectedRoom) {
+        // Send message to the room
+        const { data, error } = await supabase.rpc('send_room_message', {
+          p_room_id: selectedRoom.room_id,
+          p_message: newMessage
+        });
         
-        // Send the message to each care team member except self
-        for (const member of careTeamMembers) {
-          if (member.id !== user.id && member.id !== '00000000-0000-0000-0000-000000000000' && member.id !== selectedPatientId) {
-            await supabase.rpc('send_chat_message', {
-              p_sender_id: user.id,
-              p_receiver_id: member.id,
-              p_message: newMessage,
-              p_message_type: 'text'
-            });
-          }
-        }
+        if (error) throw error;
+      } else {
+        // Fallback to direct message if room not found
+        const { data, error } = await supabase.rpc('send_chat_message', {
+          p_sender_id: user.id,
+          p_receiver_id: selectedPatientId,
+          p_message: newMessage,
+          p_message_type: 'text'
+        });
+        
+        if (error) throw error;
       }
       
       setNewMessage("");
       
-      // Invalidate ALL chat messages for the selected patient to refresh the view
-      queryClient.invalidateQueries({ 
-        queryKey: ["chat_messages", user.id, selectedPatientId] 
-      });
+      // Invalidate queries to refresh the messages
+      if (selectedRoom) {
+        queryClient.invalidateQueries({ 
+          queryKey: ["room_messages", selectedRoom.room_id] 
+        });
+      } else {
+        queryClient.invalidateQueries({ 
+          queryKey: ["chat_messages", user.id, selectedPatientId] 
+        });
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       toast({
@@ -252,24 +246,24 @@ export const DoctorWhatsAppChat = () => {
     return `${(firstName || '').charAt(0)}${(lastName || '').charAt(0)}`.toUpperCase();
   };
 
-  if (isLoadingPatients && assignedPatients.length === 0) {
+  if (isLoadingRooms && careTeamRooms.length === 0) {
     return <div className="h-full flex items-center justify-center"><Skeleton className="h-40 w-full" /></div>;
   }
 
-  if (assignedPatients.length === 0 && !isLoadingPatients) {
+  if (careTeamRooms.length === 0 && !isLoadingRooms) {
     return (
       <Card className="h-full flex items-center justify-center">
         <CardContent>
           <p className="text-muted-foreground text-center">
-            No patients assigned to you yet. Ask an administrator to assign patients.
+            No care team rooms found. Patients need to be assigned to you first.
           </p>
         </CardContent>
       </Card>
     );
   }
 
-  const selectedPatient = selectedPatientId 
-    ? assignedPatients.find(p => p.id === selectedPatientId) 
+  const selectedRoom = selectedPatientId 
+    ? careTeamRooms.find(room => room.patient_id === selectedPatientId) 
     : undefined;
 
   const showChatOnly = isMobile && selectedPatientId && !showSidebar;
@@ -279,7 +273,7 @@ export const DoctorWhatsAppChat = () => {
     <ErrorBoundary>
       <Card className="h-full flex flex-col">
         <CardContent className="p-0 flex flex-1 overflow-hidden">
-          {/* Sidebar with Patients */}
+          {/* Sidebar with Care Team Rooms */}
           {(showSidebar || showSidebarOnly) && (
             <div className={`${showSidebarOnly ? 'w-full' : (isIPad ? 'w-2/5' : 'w-1/3')} border-r h-full bg-background relative`}>
               <div className="p-3 bg-muted/40 border-b flex justify-between items-center">
@@ -291,7 +285,7 @@ export const DoctorWhatsAppChat = () => {
                 <span className="text-sm font-medium ml-2">Care Teams</span>
               </div>
               <ScrollArea className="h-[calc(100%-48px)]">
-                {isLoadingPatients ? (
+                {isLoadingRooms ? (
                   <div className="space-y-3 p-3">
                     {[...Array(3)].map((_, i) => (
                       <div key={i} className="flex items-center gap-3">
@@ -305,36 +299,40 @@ export const DoctorWhatsAppChat = () => {
                   </div>
                 ) : (
                   <div className="space-y-0">
-                    {assignedPatients.map((patient) => (
-                      <div key={patient.id}>
-                        <div 
-                          className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/50 transition-colors ${
-                            selectedPatientId === patient.id ? 'bg-muted' : ''
-                          }`}
-                          onClick={() => {
-                            setSelectedPatientId(patient.id);
-                            if (isMobile) {
-                              setShowSidebar(false);
-                            }
-                          }}
-                        >
-                          <Avatar className="h-10 w-10">
-                            <AvatarFallback className="bg-primary/10 text-primary">
-                              {getInitials(patient.first_name, patient.last_name)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-sm font-medium truncate">
-                              {patient.first_name} {patient.last_name}
-                            </div>
-                            <div className="text-xs text-muted-foreground truncate">
-                              Click to view care team chat
+                    {careTeamRooms.map((room) => {
+                      // Split the patient name into first and last name
+                      const patientName = room.patient_name?.split(' ') || ['Patient', ''];
+                      return (
+                        <div key={room.room_id}>
+                          <div 
+                            className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-muted/50 transition-colors ${
+                              selectedPatientId === room.patient_id ? 'bg-muted' : ''
+                            }`}
+                            onClick={() => {
+                              setSelectedPatientId(room.patient_id);
+                              if (isMobile) {
+                                setShowSidebar(false);
+                              }
+                            }}
+                          >
+                            <Avatar className="h-10 w-10">
+                              <AvatarFallback className="bg-primary/10 text-primary">
+                                {getInitials(patientName[0], patientName.slice(1).join(' '))}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium truncate">
+                                {room.patient_name || 'Unknown Patient'}
+                              </div>
+                              <div className="text-xs text-muted-foreground truncate">
+                                {room.last_message || 'No messages yet'}
+                              </div>
                             </div>
                           </div>
+                          <Separator />
                         </div>
-                        <Separator />
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </ScrollArea>
@@ -344,7 +342,7 @@ export const DoctorWhatsAppChat = () => {
           {/* Care Team Chat Area */}
           {(!showSidebarOnly) && (
             <div className="flex-1 flex flex-col h-full relative">
-              {selectedPatientId ? (
+              {selectedPatientId && selectedRoom ? (
                 <>
                   <div className="p-3 bg-muted/40 border-b flex items-center gap-3">
                     {(isMobile || isIPad) && !showSidebar && (
@@ -354,12 +352,15 @@ export const DoctorWhatsAppChat = () => {
                     )}
                     <Avatar className="h-9 w-9">
                       <AvatarFallback className="bg-primary/10 text-primary">
-                        {selectedPatient ? getInitials(selectedPatient.first_name, selectedPatient.last_name) : "PT"}
+                        {selectedRoom.patient_name ? getInitials(
+                          selectedRoom.patient_name.split(' ')[0],
+                          selectedRoom.patient_name.split(' ').slice(1).join(' ')
+                        ) : "PT"}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <div className="font-medium">
-                        {selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name} - Care Team Chat` : 'Loading...'}
+                        {selectedRoom.room_name || 'Care Team Chat'}
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {isLoadingCareTeam ? 'Loading care team...' : `${careTeamMembers.length} care team members`}
@@ -378,9 +379,11 @@ export const DoctorWhatsAppChat = () => {
                       </div>
                     ) : (
                       <ChatMessagesList
+                        roomId={selectedRoom.room_id}
                         selectedUserId={selectedPatientId}
                         careTeamMembers={careTeamMembers}
                         localMessages={localMessages}
+                        useRoomMessages={true}
                       />
                     )}
                     
@@ -404,7 +407,7 @@ export const DoctorWhatsAppChat = () => {
                     </div>
                   ) : (
                     <div className="text-center">
-                      Select a patient to view care team messages
+                      Select a care team to view messages
                     </div>
                   )}
                 </div>

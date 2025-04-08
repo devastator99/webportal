@@ -1,224 +1,285 @@
 
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
-import { ChatMessage } from "./ChatMessage";
+import { useAuth } from "@/contexts/AuthContext";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useToast } from "@/hooks/use-toast";
-import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
+import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CheckCircle } from "lucide-react";
 
-interface UserProfile {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  role?: string;
-  user_role?: { role: string } | null;
-}
-
-interface CareTeamGroup {
-  groupName: string;
-  members: UserProfile[];
-}
-
-export interface ChatMessagesListProps {
+interface ChatMessagesListProps {
   selectedUserId?: string | null;
-  careTeamGroup?: CareTeamGroup | null;
-  careTeamMembers?: UserProfile[];
-  offlineMode?: boolean;
+  groupChat?: boolean;
+  roomId?: string;
+  careTeamMembers?: any[];
   localMessages?: any[];
-  isGroupChat?: boolean; 
-  includeCareTeamMessages?: boolean;
-  specificEmail?: string;
+  useRoomMessages?: boolean;
 }
 
-interface ChatMessageType {
-  id: string;
-  message: string;
-  message_type: string;
-  created_at: string;
-  read?: boolean;
-  sender: UserProfile;
-  receiver: UserProfile;
-  file_url?: string | null;
-}
-
-export const ChatMessagesList = ({ 
-  selectedUserId, 
-  careTeamGroup = null,
+export const ChatMessagesList = ({
+  selectedUserId,
+  groupChat = false,
+  roomId,
   careTeamMembers = [],
-  offlineMode = false,
   localMessages = [],
-  isGroupChat = false,
-  includeCareTeamMessages = false,
-  specificEmail = null
+  useRoomMessages = false
 }: ChatMessagesListProps) => {
-  const { user, userRole } = useAuth();
-  const { toast } = useToast();
+  const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [errorRetries, setErrorRetries] = useState(0);
-
-  console.log("ChatMessagesList render with:", {
-    selectedUserId,
-    careTeamGroup: careTeamGroup?.members?.length,
-    careTeamMembers: careTeamMembers?.length,
-    userRole,
-    localMessages: localMessages?.length,
-    isGroupChat,
-    includeCareTeamMessages,
-    specificEmail
-  });
-
-  const {
-    data: messages,
-    isLoading,
-    error,
-    refetch,
-    isRefetching
-  } = useQuery({
-    queryKey: ["chat_messages", user?.id, selectedUserId, 
-      careTeamGroup?.groupName, 
-      careTeamMembers?.map(m => m.id).join('-'),
-      isGroupChat,
-      includeCareTeamMessages,
-      specificEmail,
-      userRole // Add userRole to query key to ensure refetch when role changes
-    ],
-    queryFn: async () => {
-      if (!user?.id) return [];
-
-      console.log("Fetching messages with params:", {
-        userId: user?.id,
-        selectedUserId,
-        careTeamMembersCount: careTeamMembers?.length || 0,
-        careTeamGroupName: careTeamGroup?.groupName,
-        userRole,
-        isGroupChat,
-        includeCareTeamMessages,
-        specificEmail
-      });
-      
-      if (selectedUserId || specificEmail || userRole === 'patient') {
-        try {
-          console.log("Getting care team messages via edge function");
-          const { data, error } = await supabase.functions.invoke('get-chat-messages', {
-            body: {
-              user_id: user.id,
-              other_user_id: selectedUserId,
-              email: specificEmail,
-              is_group_chat: isGroupChat || userRole === 'patient',
-              care_team_members: careTeamMembers,
-              include_care_team_messages: includeCareTeamMessages || userRole === 'patient',
-              is_patient: userRole === 'patient' // Explicitly indicate if the user is a patient
-            }
-          });
-
-          if (error) {
-            console.error("Error invoking get-chat-messages:", error);
-            throw error;
-          }
-
-          console.log(`Retrieved ${data?.messages?.length || 0} messages via edge function`);
-          return data?.messages || [];
-        } catch (err) {
-          console.error("Error in messages retrieval:", err);
-          
-          if (errorRetries > 2) {
-            toast({
-              title: "Trouble loading messages",
-              description: "We're having trouble connecting to the message service. Please try again later.",
-              variant: "destructive"
-            });
-          }
-          
-          setErrorRetries(prev => prev + 1);
-          throw err;
-        }
-      }
-
-      return [];
-    },
-    enabled: !!user?.id && (!!selectedUserId || !!specificEmail || userRole === 'patient'),
-    staleTime: 5000,
-    refetchInterval: 10000,
-    retry: 2,
-    refetchOnWindowFocus: true
-  });
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, localMessages]);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const handleManualRefresh = () => {
-    setErrorRetries(0);
-    refetch();
-  };
-
-  const serverMessages = Array.isArray(messages) ? messages : [];
-  const allMessages = [...serverMessages, ...localMessages];
+  const [page, setPage] = useState(1);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
   
-  allMessages.sort((a, b) => (new Date(a.created_at)).getTime() - (new Date(b.created_at)).getTime());
+  // Common function to get sender name and role
+  const getSenderInfo = (senderId: string) => {
+    const careTeamMember = careTeamMembers.find(m => m.id === senderId);
+    if (careTeamMember) {
+      return {
+        name: `${careTeamMember.first_name || ''} ${careTeamMember.last_name || ''}`.trim(),
+        role: careTeamMember.role
+      };
+    }
+    // Default values if sender not found
+    return { name: "Unknown User", role: "unknown" };
+  };
 
-  if (isLoading) {
-    return <div className="flex-1 flex items-center justify-center">Loading messages...</div>;
+  // Query Room Messages if roomId is provided and useRoomMessages is true
+  const {
+    data: roomMessagesData,
+    isLoading: isLoadingRoomMessages,
+    error: roomMessagesError
+  } = useQuery({
+    queryKey: ["room_messages", roomId],
+    queryFn: async () => {
+      if (!roomId) return { messages: [], hasMore: false };
+      
+      try {
+        console.log(`Fetching room messages for room: ${roomId}`);
+        const { data, error } = await supabase.rpc('get_room_messages', {
+          p_room_id: roomId,
+          p_limit: 50,
+          p_offset: 0
+        });
+        
+        if (error) throw error;
+        
+        console.log(`Retrieved ${data?.length || 0} room messages`);
+        
+        // Format the messages to match the structure expected by the component
+        const formattedMessages = data.map(msg => ({
+          id: msg.id,
+          message: msg.message,
+          message_type: 'text',
+          created_at: msg.created_at,
+          read: true, // Room messages don't have a read status in the same way
+          sender: {
+            id: msg.sender_id,
+            // We'll populate these from care team members or use defaults
+            first_name: getSenderInfo(msg.sender_id).name.split(' ')[0],
+            last_name: getSenderInfo(msg.sender_id).name.split(' ').slice(1).join(' '),
+            role: getSenderInfo(msg.sender_id).role
+          }
+        }));
+        
+        return { 
+          messages: formattedMessages || [], 
+          hasMore: (data?.length || 0) >= 50 
+        };
+      } catch (error) {
+        console.error("Error fetching room messages:", error);
+        throw error;
+      }
+    },
+    enabled: !!roomId && useRoomMessages,
+    staleTime: 5000 // Cache for 5 seconds
+  });
+
+  // Original query for direct/group chat messages
+  const {
+    data: chatMessagesData,
+    isLoading: isLoadingChatMessages,
+    error: chatMessagesError
+  } = useQuery({
+    queryKey: ["chat_messages", user?.id, selectedUserId, groupChat, page],
+    queryFn: async () => {
+      if (!user?.id || !selectedUserId) return { messages: [], hasMore: false };
+      
+      try {
+        console.log("Fetching messages for user:", selectedUserId);
+        
+        const { data, error } = await supabase.functions.invoke('get-chat-messages', {
+          body: { 
+            user_id: user.id,
+            other_user_id: selectedUserId,
+            is_group_chat: groupChat,
+            care_team_members: careTeamMembers.map(m => m.id),
+            include_care_team_messages: true,
+            page,
+            per_page: 50
+          }
+        });
+        
+        if (error) throw error;
+        
+        return { 
+          messages: data.messages || [], 
+          hasMore: data.hasMore || false 
+        };
+      } catch (error) {
+        console.error("Error fetching messages:", error);
+        throw error;
+      }
+    },
+    enabled: !!user?.id && !!selectedUserId && !useRoomMessages,
+    staleTime: 5000 // Cache for 5 seconds
+  });
+
+  const isLoading = useRoomMessages ? isLoadingRoomMessages : isLoadingChatMessages;
+  const error = useRoomMessages ? roomMessagesError : chatMessagesError;
+  
+  // Select the appropriate messages based on the query mode
+  const messagesData = useRoomMessages ? roomMessagesData : chatMessagesData;
+  
+  // Combine server messages with local messages
+  const allMessages = [
+    ...(messagesData?.messages || []),
+    ...localMessages
+  ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [allMessages]);
+  
+  // Update hasMore state when data changes
+  useEffect(() => {
+    if (messagesData) {
+      setHasMoreMessages(messagesData.hasMore);
+    }
+  }, [messagesData]);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement;
+    if (target.scrollTop === 0 && hasMoreMessages) {
+      setPage(prev => prev + 1);
+    }
+  };
+
+  const getDateLabel = (timestamp: string) => {
+    return format(new Date(timestamp), 'MMM d, yyyy');
+  };
+
+  // Group messages by date for better readability
+  const groupedMessages: { [key: string]: typeof allMessages } = {};
+  allMessages.forEach(msg => {
+    const date = getDateLabel(msg.created_at);
+    if (!groupedMessages[date]) {
+      groupedMessages[date] = [];
+    }
+    groupedMessages[date].push(msg);
+  });
+
+  if (isLoading && allMessages.length === 0) {
+    return (
+      <div className="flex-1 p-4 space-y-4">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+            <Skeleton className={`h-14 w-2/3 rounded-lg ${i % 2 === 0 ? 'bg-primary/5' : 'bg-muted'}`} />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="text-destructive text-center p-4">
+          <p>Error loading messages</p>
+          <p className="text-sm mt-1">Please try again later</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!selectedUserId) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-muted-foreground">
+        <p>Select a contact to start chatting</p>
+      </div>
+    );
   }
 
   return (
-    <div className="flex-1 overflow-hidden relative">
-      {error && (
-        <div className="absolute top-2 right-2 z-50">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleManualRefresh}
-            disabled={isRefetching}
-            className="flex items-center gap-1"
-          >
-            <RefreshCw className={`h-3 w-3 ${isRefetching ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+    <ScrollArea 
+      className="flex-1 p-4" 
+      onScroll={handleScroll}
+      ref={scrollRef}
+    >
+      {allMessages.length === 0 ? (
+        <div className="h-full flex items-center justify-center text-muted-foreground">
+          <p>No messages yet. Start a conversation!</p>
         </div>
-      )}
-      
-      <ScrollArea className="h-full w-full p-4">
-        <div className="flex flex-col gap-2">
-          {error && allMessages.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p className="text-destructive mb-2">Error loading messages</p>
-              <p className="text-sm">Try refreshing or check your connection</p>
-            </div>
-          ) : allMessages.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No messages yet. Start a conversation in the Care Team Chat!
-            </div>
-          ) : (
-            allMessages.map((message, index) => {
-              if (!message) return null;
+      ) : (
+        <div className="space-y-6">
+          {Object.entries(groupedMessages).map(([date, messages]) => (
+            <div key={date} className="space-y-4">
+              <div className="relative flex py-2">
+                <div className="flex-grow border-t border-muted-foreground/20 my-2"></div>
+                <span className="flex-shrink mx-4 text-muted-foreground text-xs">{date}</span>
+                <div className="flex-grow border-t border-muted-foreground/20 my-2"></div>
+              </div>
               
-              const isLocal = localMessages.some(localMessage => localMessage.id === message.id);
-              const isCurrentUser = message.sender?.id === user?.id;
-              const showAvatar = index === 0 || allMessages[index - 1]?.sender?.id !== message.sender?.id;
-              
-              return (
-                <ChatMessage
-                  key={message.id}
-                  message={message}
-                  isCurrentUser={isCurrentUser}
-                  showAvatar={showAvatar}
-                  offlineMode={offlineMode}
-                  isLocal={isLocal}
-                />
-              );
-            })
-          )}
+              {messages.map((message) => {
+                const isCurrentUser = message.sender?.id === user?.id;
+                const senderName = `${message.sender?.first_name || ''} ${message.sender?.last_name || ''}`.trim();
+                const senderRole = message.sender?.role || 'user';
+                
+                return (
+                  <div 
+                    key={message.id} 
+                    className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div 
+                      className={`max-w-[80%] rounded-lg p-3 shadow-sm ${
+                        isCurrentUser 
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-background'
+                      }`}
+                    >
+                      {!isCurrentUser && groupChat && (
+                        <div className="mb-1">
+                          <p className={`text-xs font-medium capitalize ${
+                            senderRole === 'doctor' ? 'text-blue-600 dark:text-blue-400' :
+                            senderRole === 'nutritionist' ? 'text-green-600 dark:text-green-400' :
+                            senderRole === 'aibot' ? 'text-cyan-600 dark:text-cyan-400' :
+                            'text-muted-foreground'
+                          }`}>
+                            {senderName}
+                          </p>
+                        </div>
+                      )}
+                      
+                      <p className="whitespace-pre-wrap break-words text-sm">{message.message}</p>
+                      
+                      <div className="mt-1 flex items-center justify-end gap-1 text-[10px] opacity-70">
+                        {format(new Date(message.created_at), 'p')}
+                        {isCurrentUser && message.read && (
+                          <CheckCircle className="h-3 w-3 text-blue-400 ml-0.5" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
           <div ref={messagesEndRef} />
         </div>
-      </ScrollArea>
-    </div>
+      )}
+    </ScrollArea>
   );
 };
