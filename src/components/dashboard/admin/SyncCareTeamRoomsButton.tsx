@@ -50,20 +50,23 @@ export const SyncCareTeamRoomsButton = () => {
       setIsSyncing(true);
       setResults(null);
       
-      // Use a POST request to the 'sync_all_care_team_rooms' function
-      // since it's not in the typed RPC list
-      const { data, error } = await supabase.from('sync_all_care_team_rooms').select('*');
+      // Use the standard rpc() call but with a type assertion to handle the response
+      const { data: rpcResult, error } = await supabase.rpc(
+        'sync_all_care_team_rooms' as any
+      );
       
       if (error) {
         throw error;
       }
       
-      console.log("Sync results:", data);
+      console.log("Sync results:", rpcResult);
       
-      // Safely handle the response data that might be an array
+      // Safely handle the response based on what we know about the function
+      const data = rpcResult as any[];
+      
       if (Array.isArray(data)) {
         const successCount = data.filter(r => r.result === 'Success').length;
-        const errorCount = data.filter(r => r.result && r.result.startsWith('Error')).length;
+        const errorCount = data.filter(r => r.result && r.result.includes('Error')).length;
         
         setResults({
           success: true,
@@ -79,7 +82,7 @@ export const SyncCareTeamRoomsButton = () => {
           description: `Success: ${successCount}, Errors: ${errorCount}`,
         });
       } else {
-        // Handle case where data is not an array
+        // Handle case where response is not in expected format
         setResults({
           success: true,
           results: data,
