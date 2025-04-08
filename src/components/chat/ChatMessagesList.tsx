@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -262,28 +261,20 @@ export const ChatMessagesList = ({
             
           if (profilesError) throw profilesError;
           
-          const fetchRoles = async () => {
-            const roles = new Map();
-            
-            for (const senderId of senderIds) {
-              try {
-                // Use the get_user_role function with the correct parameter name
-                const { data: roleData, error: roleError } = await supabase
-                  .rpc('get_user_role', { lookup_user_id: senderId });
-                  
-                if (!roleError && roleData) {
-                  // Store the role string directly
-                  roles.set(senderId, roleData);
-                }
-              } catch (e) {
-                console.error(`Error fetching role for user ${senderId}:`, e);
-              }
-            }
-            
-            return roles;
-          };
+          const { data: rolesData, error: rolesError } = await supabase
+            .rpc('get_user_role_by_ids', { user_ids: senderIds });
           
-          const rolesMap = await fetchRoles();
+          if (rolesError) {
+            console.error("Error fetching roles:", rolesError);
+            throw rolesError;
+          }
+          
+          const rolesMap = new Map();
+          if (rolesData && Array.isArray(rolesData)) {
+            rolesData.forEach(item => {
+              rolesMap.set(item.user_id, item.role);
+            });
+          }
           
           const profilesMap = new Map();
           senderProfiles.forEach(profile => {
@@ -291,7 +282,7 @@ export const ChatMessagesList = ({
               id: profile.id,
               first_name: profile.first_name || 'Unknown',
               last_name: profile.last_name || 'User',
-              role: rolesMap.get(profile.id) || 'unknown'
+              role: rolesMap.get(profile.id) || 'member'
             });
           });
           
@@ -455,7 +446,6 @@ export const ChatMessagesList = ({
 
   const hasPrevMessages = messagesData?.hasMore && page > 1;
 
-  // Wrap the entire component with ErrorBoundary
   return (
     <ErrorBoundary>
       <div 

@@ -18,7 +18,7 @@ $$;
 GRANT EXECUTE ON FUNCTION public.get_user_role_by_ids TO authenticated;
 
 -- Create an additional function to get a user's role safely
-CREATE OR REPLACE FUNCTION public.get_user_role(user_id UUID)
+CREATE OR REPLACE FUNCTION public.get_user_role(lookup_user_id UUID)
 RETURNS TEXT
 SECURITY DEFINER
 SET search_path = public
@@ -29,7 +29,7 @@ DECLARE
 BEGIN
   SELECT role::TEXT INTO v_role
   FROM user_roles
-  WHERE user_id = $1
+  WHERE user_id = lookup_user_id
   LIMIT 1;
   
   RETURN v_role;
