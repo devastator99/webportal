@@ -151,7 +151,7 @@ export const PatientAssignmentManager = () => {
         throw new Error("Administrator ID is missing. Please log in again.");
       }
 
-      // Call the admin_assign_care_team RPC
+      // Step 1: First assign the care team without creating room
       const { data: assignmentData, error: assignmentError } = await supabase.rpc(
         'admin_assign_care_team',
         {
@@ -183,29 +183,61 @@ export const PatientAssignmentManager = () => {
         );
       }
       
-      console.log("Now creating care team room for patient");
-      
-      // Try to create care team room separately with error handling
-      try {
-        const { data: roomData, error: roomError } = await supabase.rpc(
-          'create_care_team_room',
-          {
-            p_patient_id: selectedPatient,
-            p_doctor_id: selectedDoctor,
-            p_nutritionist_id: selectedNutritionist
-          }
-        );
+      // Step 2: Verify profiles exist before creating the room
+      const { data: profilesExist, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id')
+        .in('id', [
+          selectedPatient, 
+          selectedDoctor, 
+          ...(selectedNutritionist ? [selectedNutritionist] : [])
+        ]);
         
-        if (roomError) {
-          console.warn("Warning creating care team room:", roomError);
-          // Continue despite room creation error, as assignment was successful
-        } else {
-          console.log("Care team room created with ID:", roomData);
+      if (profilesError) {
+        console.error("Error verifying profiles:", profilesError);
+        throw new Error(`Error verifying user profiles: ${profilesError.message}`);
+      }
+      
+      const existingIds = new Set(profilesExist?.map(p => p.id) || []);
+      const missingProfiles = [];
+      
+      if (!existingIds.has(selectedPatient)) missingProfiles.push('patient');
+      if (!existingIds.has(selectedDoctor)) missingProfiles.push('doctor');
+      if (selectedNutritionist && !existingIds.has(selectedNutritionist)) {
+        missingProfiles.push('nutritionist');
+      }
+      
+      if (missingProfiles.length > 0) {
+        console.warn(`Missing profiles detected: ${missingProfiles.join(', ')}`);
+      }
+      
+      // Step 3: Only attempt to create room if all profiles exist
+      if (missingProfiles.length === 0) {
+        try {
+          // Try to create care team room separately
+          console.log("Now creating care team room for patient");
+          const { data: roomData, error: roomError } = await supabase.rpc(
+            'create_care_team_room',
+            {
+              p_patient_id: selectedPatient,
+              p_doctor_id: selectedDoctor,
+              p_nutritionist_id: selectedNutritionist
+            }
+          );
+          
+          if (roomError) {
+            console.warn("Warning creating care team room:", roomError);
+            // Don't throw error here - continue with success message as the assignment was successful
+          } else {
+            console.log("Care team room created with ID:", roomData);
+          }
+        } catch (roomError: any) {
+          // Just log the error but don't fail the whole operation
+          console.warn("Exception creating care team room:", roomError);
+          // Continue with success message as the assignment was successful
         }
-      } catch (roomError: any) {
-        // Just log the error but don't fail the whole operation
-        console.warn("Exception creating care team room:", roomError);
-        // Continue with success message as the assignment was successful
+      } else {
+        console.warn("Skipping room creation due to missing profiles");
       }
       
       const patientName = patients?.find(p => p.id === selectedPatient);
@@ -217,7 +249,12 @@ export const PatientAssignmentManager = () => {
       if (nutritionistName) {
         successMsg += ` along with nutritionist ${formatName(nutritionistName)}`;
       }
-      successMsg += ". Care team room has been created.";
+      
+      if (missingProfiles.length === 0) {
+        successMsg += ". Care team room has been created.";
+      } else {
+        successMsg += ". Note: Care team room couldn't be created due to missing user profiles.";
+      }
       
       setSuccessMessage(successMsg);
       

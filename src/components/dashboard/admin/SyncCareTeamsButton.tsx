@@ -60,6 +60,44 @@ export const SyncCareTeamsButton = () => {
               continue;
             }
             
+            // First verify that all users exist in the profiles table
+            const { data: userProfiles, error: profilesError } = await supabase
+              .from('profiles')
+              .select('id')
+              .in('id', [
+                assignment.patient_id, 
+                assignment.doctor_id, 
+                ...(assignment.nutritionist_id ? [assignment.nutritionist_id] : [])
+              ]);
+              
+            if (profilesError) {
+              console.error(`Error verifying profiles:`, profilesError);
+              statusCounts.error++;
+              continue;
+            }
+            
+            // Check if all required users exist
+            const userIds = userProfiles?.map(p => p.id) || [];
+            const missingUsers = [];
+            
+            if (!userIds.includes(assignment.patient_id)) {
+              missingUsers.push(`patient ${assignment.patient_id}`);
+            }
+            
+            if (!userIds.includes(assignment.doctor_id)) {
+              missingUsers.push(`doctor ${assignment.doctor_id}`);
+            }
+            
+            if (assignment.nutritionist_id && !userIds.includes(assignment.nutritionist_id)) {
+              missingUsers.push(`nutritionist ${assignment.nutritionist_id}`);
+            }
+            
+            if (missingUsers.length > 0) {
+              console.error(`Skipping room creation: Missing user profiles for ${missingUsers.join(', ')}`);
+              statusCounts.skipped++;
+              continue;
+            }
+            
             // Create/update care team room with improved error handling
             try {
               const { data: roomId, error: roomError } = await supabase.rpc(
