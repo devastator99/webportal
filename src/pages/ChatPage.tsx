@@ -34,12 +34,12 @@ const ChatPage = () => {
           const { data, error } = await supabase
             .rpc('get_patient_care_team_room', {
               p_patient_id: user.id
-            });
+            }) as { data: string | null, error: Error | null };
           
           if (error) {
             console.error("Error fetching patient care team room:", error);
           } else if (data) {
-            setPatientRoomId(data);
+            setPatientRoomId(data as string);
           }
         } catch (error) {
           console.error("Error in patient room fetch:", error);
