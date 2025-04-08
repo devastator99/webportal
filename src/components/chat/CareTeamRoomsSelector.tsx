@@ -166,15 +166,18 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
           
           {userRole === 'doctor' ? 'Patient Care Teams' : 
            userRole === 'nutritionist' ? 'Nutrition Care Teams' : 
-           'Care Team Chats'}
+           'Care Team Chat'}
         </div>
         
-        <button 
-          onClick={handleSyncRooms}
-          className="text-xs text-blue-500 hover:text-blue-700 underline mt-1"
-        >
-          Sync Care Team Rooms
-        </button>
+        {/* Only show sync button for providers (doctors/nutritionists) */}
+        {isProvider && (
+          <button 
+            onClick={handleSyncRooms}
+            className="text-xs text-blue-500 hover:text-blue-700 underline mt-1"
+          >
+            Sync Care Team Rooms
+          </button>
+        )}
         
         {rooms.length === 0 && !isLoading && (
           <div className="text-xs text-muted-foreground mt-1 italic">

@@ -33,7 +33,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const isIPad = useIsIPad();
-  const [showSidebar, setShowSidebar] = useState(!isMobile);
+  const [showSidebar, setShowSidebar] = useState(!isMobile && userRole !== 'patient');
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [isAiResponding, setIsAiResponding] = useState(false);
   
@@ -41,14 +41,18 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   useEffect(() => {
     if (patientRoomId) {
       setSelectedRoomId(patientRoomId);
-      if (isMobile) {
+      // For patients, always hide sidebar and focus on their care team chat
+      if (userRole === 'patient') {
         setShowSidebar(false);
       }
     }
-  }, [patientRoomId, isMobile]);
+  }, [patientRoomId, userRole, isMobile]);
   
   const toggleSidebar = () => {
-    setShowSidebar(prev => !prev);
+    // Only allow sidebar toggle for non-patients
+    if (userRole !== 'patient') {
+      setShowSidebar(prev => !prev);
+    }
   };
 
   // When a room is selected, fetch room members
@@ -237,15 +241,15 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     enabled: !!selectedRoomId
   });
 
-  const showChatOnly = isMobile && selectedRoomId && !showSidebar;
-  const showSidebarOnly = isMobile && showSidebar;
+  const showChatOnly = (isMobile && selectedRoomId && !showSidebar) || userRole === 'patient';
+  const showSidebarOnly = isMobile && showSidebar && userRole !== 'patient';
 
   return (
     <ErrorBoundary>
       <Card className="h-[calc(100vh-96px)] flex flex-col border shadow-lg">
         <CardContent className="p-0 flex flex-1 overflow-hidden">
-          {/* Sidebar with Care Team Rooms - hide for patients if they have a room */}
-          {(showSidebar || showSidebarOnly) && (!patientRoomId || userRole !== 'patient') && (
+          {/* Sidebar with Care Team Rooms - hide for patients completely */}
+          {(showSidebar || showSidebarOnly) && userRole !== 'patient' && (
             <div className={`${showSidebarOnly ? 'w-full' : (isIPad ? 'w-2/5' : 'w-1/4')} border-r h-full bg-background`}>
               <CareTeamRoomsSelector 
                 selectedRoomId={selectedRoomId} 
@@ -265,7 +269,8 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
               {selectedRoomId ? (
                 <>
                   <div className="p-3 bg-muted/40 border-b flex items-center gap-3">
-                    {(isMobile || isIPad) && !showSidebar && !patientRoomId && (
+                    {/* Only show toggle button for non-patients */}
+                    {(isMobile || isIPad) && !showSidebar && userRole !== 'patient' && (
                       <Button variant="ghost" size="icon" onClick={toggleSidebar} className="mr-1">
                         <Menu className="h-5 w-5" />
                       </Button>
@@ -295,23 +300,22 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                       </div>
                     </div>
                     
-                    {!patientRoomId && (
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="ml-auto"
-                        onClick={() => {
-                          toast({
-                            title: "Members",
-                            description: roomMembers.map(m => `${m.first_name} ${m.last_name} (${m.role})`).join(', '),
-                            duration: 5000,
-                          });
-                        }}
-                      >
-                        <Users className="h-4 w-4 mr-1" />
-                        Members
-                      </Button>
-                    )}
+                    {/* Show members button for all users */}
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="ml-auto"
+                      onClick={() => {
+                        toast({
+                          title: "Members",
+                          description: roomMembers.map(m => `${m.first_name} ${m.last_name} (${m.role})`).join(', '),
+                          duration: 5000,
+                        });
+                      }}
+                    >
+                      <Users className="h-4 w-4 mr-1" />
+                      Members
+                    </Button>
                   </div>
                   
                   <div className="flex-1 flex flex-col h-full bg-[#f0f2f5] dark:bg-slate-900 overflow-hidden">
