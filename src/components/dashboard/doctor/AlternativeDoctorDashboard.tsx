@@ -16,8 +16,6 @@ import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TodaySchedule } from "@/components/dashboard/doctor/TodaySchedule";
-import { ChatModule } from "@/modules/chat/ChatModule";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const AlternativeDoctorDashboard = () => {
   const { user } = useAuth();
@@ -86,18 +84,6 @@ export const AlternativeDoctorDashboard = () => {
             className="mobile-card"
           >
             <TodaySchedule />
-          </CollapsibleSection>
-          
-          <CollapsibleSection 
-            title="Care Team Chat" 
-            className="mobile-card"
-            defaultOpen={true}
-          >
-            <Card className="border-0 shadow-none">
-              <CardContent className="p-0">
-                <ChatModule showChatbotWidget={false} />
-              </CardContent>
-            </Card>
           </CollapsibleSection>
           
           <CollapsibleSection 
