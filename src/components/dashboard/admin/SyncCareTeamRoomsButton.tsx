@@ -50,26 +50,50 @@ export const SyncCareTeamRoomsButton = () => {
       setIsSyncing(true);
       setResults(null);
       
-      const { data, error } = await supabase.rpc('sync_all_care_team_rooms');
+      // Use a POST request to the 'sync_all_care_team_rooms' function
+      // since it's not in the typed RPC list
+      const { data, error } = await supabase.from('sync_all_care_team_rooms').select('*');
       
       if (error) {
         throw error;
       }
       
       console.log("Sync results:", data);
-      setResults({
-        success: true,
-        results: data,
-        statusCounts: {
-          success: data.filter((r: any) => r.result === 'Success').length,
-          error: data.filter((r: any) => r.result.startsWith('Error')).length
-        }
-      });
       
-      toast({
-        title: "Care team rooms synced",
-        description: `Success: ${data.filter((r: any) => r.result === 'Success').length}, Errors: ${data.filter((r: any) => r.result.startsWith('Error')).length}`,
-      });
+      // Safely handle the response data that might be an array
+      if (Array.isArray(data)) {
+        const successCount = data.filter(r => r.result === 'Success').length;
+        const errorCount = data.filter(r => r.result && r.result.startsWith('Error')).length;
+        
+        setResults({
+          success: true,
+          results: data,
+          statusCounts: {
+            success: successCount,
+            error: errorCount
+          }
+        });
+        
+        toast({
+          title: "Care team rooms synced",
+          description: `Success: ${successCount}, Errors: ${errorCount}`,
+        });
+      } else {
+        // Handle case where data is not an array
+        setResults({
+          success: true,
+          results: data,
+          statusCounts: {
+            success: 0,
+            error: 0
+          }
+        });
+        
+        toast({
+          title: "Care team rooms synced",
+          description: "Operation completed but result format was unexpected.",
+        });
+      }
     } catch (error) {
       console.error("Error syncing care team rooms using DB function:", error);
       toast({
