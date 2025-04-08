@@ -31,6 +31,24 @@ interface CareTeamMember {
   role: string;
 }
 
+// Define interfaces for the careTeamInfo data structure
+interface DoctorData {
+  first_name: string | null;
+  last_name: string | null;
+}
+
+interface NutritionistData {
+  first_name: string | null;
+  last_name: string | null;
+}
+
+interface CareTeamInfo {
+  doctor?: DoctorData | null;
+  nutritionist?: NutritionistData | null;
+  doctor_id?: string | null;
+  nutritionist_id?: string | null;
+}
+
 export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatInterfaceProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
@@ -246,7 +264,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   });
 
   // Fixed query to properly fetch patient assignment data
-  const { data: careTeamInfo, isLoading: isLoadingCareTeam } = useQuery({
+  const { data: careTeamInfo, isLoading: isLoadingCareTeam } = useQuery<CareTeamInfo | null>({
     queryKey: ["care_team_info", roomDetails?.patient_id],
     queryFn: async () => {
       if (!roomDetails?.patient_id) return null;
@@ -314,13 +332,13 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
 
   // Component to display care team members
   const CareTeamInfo = () => {
-    // Properly extract values from careTeamInfo with type-checking
+    // Safely extract doctor and nutritionist data with proper type checking
     const doctorData = careTeamInfo?.doctor && typeof careTeamInfo.doctor === 'object' 
-      ? careTeamInfo.doctor 
+      ? careTeamInfo.doctor as DoctorData 
       : null;
       
     const nutritionistData = careTeamInfo?.nutritionist && typeof careTeamInfo.nutritionist === 'object'
-      ? careTeamInfo.nutritionist
+      ? careTeamInfo.nutritionist as NutritionistData
       : null;
     
     if (isLoadingCareTeam) {
@@ -425,13 +443,13 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                       size="sm" 
                       className="ml-auto"
                       onClick={() => {
-                        // Properly extract values from careTeamInfo with type-checking
+                        // Safely extract doctor and nutritionist data with proper type checking
                         const doctorData = careTeamInfo?.doctor && typeof careTeamInfo.doctor === 'object' 
-                          ? careTeamInfo.doctor 
+                          ? careTeamInfo.doctor as DoctorData
                           : null;
                           
                         const nutritionistData = careTeamInfo?.nutritionist && typeof careTeamInfo.nutritionist === 'object'
-                          ? careTeamInfo.nutritionist
+                          ? careTeamInfo.nutritionist as NutritionistData
                           : null;
                           
                         const doctorText = doctorData ? `Dr. ${doctorData.first_name} ${doctorData.last_name}` : "No doctor assigned";
