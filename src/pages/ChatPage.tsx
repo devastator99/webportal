@@ -30,16 +30,22 @@ const ChatPage = () => {
       const fetchPatientChatRoom = async () => {
         setLoadingRoom(true);
         try {
-          // Use the secure RPC function instead of direct query
-          const { data, error } = await supabase
-            .rpc('get_patient_care_team_room', {
-              p_patient_id: user.id
-            }) as { data: string | null, error: Error | null };
+          // Use direct table access with RLS policies instead of RPC
+          const { data: roomData, error: roomError } = await supabase
+            .from('chat_rooms')
+            .select('id')
+            .eq('patient_id', user.id)
+            .eq('room_type', 'care_team')
+            .eq('is_active', true)
+            .limit(1)
+            .single();
           
-          if (error) {
-            console.error("Error fetching patient care team room:", error);
-          } else if (data) {
-            setPatientRoomId(data as string);
+          if (roomError) {
+            if (roomError.code !== 'PGRST116') { // Not found error
+              console.error("Error fetching patient care team room:", roomError);
+            }
+          } else if (roomData) {
+            setPatientRoomId(roomData.id);
           }
         } catch (error) {
           console.error("Error in patient room fetch:", error);
