@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,8 +9,9 @@ import { format, isToday, isYesterday } from "date-fns";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 const ChatMessage = ({ message, isCurrentUser, formatMessageDate }) => {
-  // Use string type for messageRole and provide a default
-  const messageRole = message.sender?.role || "member";
+  const messageRole = typeof message.sender?.role === 'string' 
+    ? message.sender?.role 
+    : (message.sender?.role?.role || "member");
   
   return (
     <div
@@ -99,7 +99,8 @@ const MessagesList = ({
   
   const getMemberRole = (userId) => {
     const member = careTeamMembers.find(m => m.id === userId);
-    return member?.role || "member";
+    if (!member) return "member";
+    return typeof member.role === 'string' ? member.role : "member";
   };
   
   return (
@@ -263,13 +264,11 @@ export const ChatMessagesList = ({
             
           if (profilesError) throw profilesError;
           
-          // Fetch roles one by one to avoid TS errors with the bulk function
           const fetchRoles = async () => {
             const roles = new Map();
             
             for (const senderId of senderIds) {
               try {
-                // Use get_user_role (not get_user_role_by_ids)
                 const { data: roleData, error: roleError } = await supabase
                   .rpc('get_user_role', { lookup_user_id: senderId });
                 
@@ -301,12 +300,23 @@ export const ChatMessagesList = ({
               ? message.read_by.includes(currentUserId)
               : false;
               
-            const senderProfile = profilesMap.get(message.sender_id) || {
-              id: message.sender_id,
-              first_name: 'Unknown',
-              last_name: 'User',
-              role: 'unknown'
-            };
+            let senderProfile = profilesMap.get(message.sender_id);
+            
+            if (message.is_ai_message && !senderProfile) {
+              senderProfile = {
+                id: message.sender_id || '00000000-0000-0000-0000-000000000000',
+                first_name: 'AI',
+                last_name: 'Assistant',
+                role: 'aibot'
+              };
+            } else if (!senderProfile) {
+              senderProfile = {
+                id: message.sender_id,
+                first_name: 'Unknown',
+                last_name: 'User',
+                role: 'unknown'
+              };
+            }
               
             return {
               ...message,
