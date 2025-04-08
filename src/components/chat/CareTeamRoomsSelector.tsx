@@ -44,8 +44,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       try {
         console.log("Fetching care team rooms for user:", user.id, "with role:", userRole);
         
-        // IMPROVED APPROACH: Get all care team rooms directly where user is a member
-        // This simplifies the logic and ensures we get all rooms without multiple queries
+        // Modified query to directly get rooms where the user is a member
         const { data: roomsWithMembership, error: roomsError } = await supabase
           .from('chat_rooms')
           .select(`
