@@ -44,8 +44,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       try {
         console.log("Fetching care team rooms for user:", user.id, "with role:", userRole);
         
-        // Direct approach: Get all rooms where the user is a member
-        // This should work for both providers and patients
+        // Direct approach using room_members to find rooms where the user is a member
         const { data: roomMemberships, error: membershipError } = await supabase
           .from('room_members')
           .select('room_id')
@@ -62,7 +61,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
         }
         
         const roomIds = roomMemberships.map(rm => rm.room_id);
-        console.log(`Found ${roomIds.length} room memberships for user`);
+        console.log(`Found ${roomIds.length} room memberships for user:`, roomIds);
         
         // Get room details for care team rooms only
         const { data: rooms, error: roomsError } = await supabase
@@ -77,7 +76,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
           throw roomsError;
         }
         
-        console.log(`Retrieved ${rooms?.length || 0} active care team rooms`);
+        console.log(`Retrieved ${rooms?.length || 0} active care team rooms:`, rooms);
         
         if (!rooms || rooms.length === 0) {
           console.log("No care team rooms found");
