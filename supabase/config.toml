@@ -4,3 +4,6 @@ project_id = "hcaqodjylicmppxcbqbh"
 verify_jwt = true
 [functions.verify-users-exist]
 verify_jwt = true
+[functions.send-chat-message]
+verify_jwt = true
+
