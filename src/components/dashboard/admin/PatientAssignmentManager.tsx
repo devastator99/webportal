@@ -271,9 +271,10 @@ export const PatientAssignmentManager = () => {
       
       if (roomError) {
         console.warn("Warning creating care team room:", roomError);
-      } else {
-        console.log("Care team room created with ID:", roomData);
-      }
+        throw new Error(roomError.message || "Error creating care team room");
+      } 
+      
+      console.log("Care team room created with ID:", roomData);
       
       const patientName = patients?.find(p => p.id === selectedPatient);
       const doctorName = doctors?.find(d => d.id === selectedDoctor);
@@ -285,7 +286,7 @@ export const PatientAssignmentManager = () => {
         successMsg += ` along with nutritionist ${formatName(nutritionistName)}`;
       }
       
-      successMsg += ". Care team room has been created.";
+      successMsg += `. Care team room has been created with ID: ${roomData}`;
       
       setSuccessMessage(successMsg);
       
