@@ -17,6 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
+import { TodaySchedule } from "@/components/dashboard/doctor/TodaySchedule";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
@@ -28,27 +29,27 @@ export const DoctorDashboard = () => {
   return (
     <div className="animate-fade-up">
       {/* Greeting and quick action buttons */}
-      <div className="mobile-card mb-4">
+      <div className="mobile-card mb-4 p-4 bg-white rounded-lg shadow-sm">
         <h1 className="text-lg font-bold mb-1 text-left">Hello, Doctor 👋</h1>
         <p className="text-xs text-gray-500 text-left mb-3">Welcome back to your dashboard</p>
         
         <div className="grid grid-cols-3 gap-2">
           <Button 
-            className="rounded-full bg-[#9b87f5] hover:bg-[#7E69AB] text-white text-xs py-1.5"
+            className="rounded-full bg-[#9b87f5] hover:bg-[#7E69AB] text-white text-xs py-1.5 h-auto"
             onClick={() => navigate("/patients")}
           >
             <Users className="mr-1 h-3.5 w-3.5" />
-            <span>Patients</span>
+            <span className="whitespace-nowrap overflow-hidden text-ellipsis">Patients</span>
           </Button>
           
           <Dialog open={showVoiceScheduler} onOpenChange={setShowVoiceScheduler}>
             <DialogTrigger asChild>
               <Button 
-                className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff] text-xs py-1.5"
+                className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff] text-xs py-1.5 h-auto"
               >
                 <Calendar className="mr-1 h-3.5 w-3.5" />
                 <Mic className="h-3 w-3 mx-0.5" />
-                <span>Schedule</span>
+                <span className="whitespace-nowrap overflow-hidden text-ellipsis">Schedule</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[800px] max-h-[80vh] p-0">
@@ -61,10 +62,10 @@ export const DoctorDashboard = () => {
           <Dialog open={showChatOverlay} onOpenChange={setShowChatOverlay}>
             <DialogTrigger asChild>
               <Button
-                className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff] text-xs py-1.5"
+                className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff] text-xs py-1.5 h-auto"
               >
                 <MessageCircle className="mr-1 h-3.5 w-3.5" />
-                <span>Chat</span>
+                <span className="whitespace-nowrap overflow-hidden text-ellipsis">Chat</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[800px] max-h-[80vh] p-0">
@@ -79,11 +80,16 @@ export const DoctorDashboard = () => {
       {/* Stats cards in a more compact design */}
       <StatsCards />
       
+      {/* Schedule section with increased priority and size */}
+      <div className="mb-6">
+        <TodaySchedule />
+      </div>
+      
       {/* Main content with collapsible sections for mobile */}
       <ScrollArea className="mb-16">
         <div className="space-y-4">
           <CollapsibleSection 
-            title="Today's Appointments" 
+            title="Appointment Calendar" 
             defaultOpen={true}
             className="mobile-card"
           >
