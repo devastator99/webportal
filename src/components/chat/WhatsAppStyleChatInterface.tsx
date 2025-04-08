@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,15 +8,16 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { CareTeamRoomsSelector } from "@/components/chat/CareTeamRoomsSelector";
 import { ChatMessagesList } from "@/components/chat/ChatMessagesList";
 import { ChatInput } from "@/components/chat/ChatInput";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
-import { Menu, ChevronLeft, UserCircle, Users, MessageCircle, Loader } from "lucide-react";
+import { Menu, ChevronLeft, UserCircle, Users, MessageCircle, Loader, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface WhatsAppStyleChatInterfaceProps {
   patientRoomId?: string | null;
@@ -38,7 +40,11 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   
   useEffect(() => {
     if (patientRoomId) {
+      console.log("Patient room ID provided to interface:", patientRoomId);
       setSelectedRoomId(patientRoomId);
+      if (patientRoomId) {
+        fetchRoomMembers(patientRoomId);
+      }
       if (userRole === 'patient') {
         setShowSidebar(false);
       }
@@ -56,6 +62,8 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     
     try {
       setIsLoadingMembers(true);
+      console.log("Fetching members for room:", roomId);
+      
       const { data, error } = await supabase
         .from('room_members')
         .select(`
@@ -69,7 +77,12 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         `)
         .eq('room_id', roomId);
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching room members:", error);
+        throw error;
+      }
+      
+      console.log("Room members data:", data);
       
       const formattedMembers = data.map(member => {
         const profile = member.profiles && typeof member.profiles === 'object' 
@@ -84,6 +97,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         };
       });
       
+      console.log("Formatted members:", formattedMembers);
       setRoomMembers(formattedMembers);
     } catch (error) {
       console.error("Error fetching room members:", error);
@@ -190,6 +204,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       if (!selectedRoomId) return null;
       
       try {
+        console.log("Fetching details for room:", selectedRoomId);
         const { data, error } = await supabase
           .from('chat_rooms')
           .select(`
@@ -205,8 +220,12 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
           .eq('id', selectedRoomId)
           .single();
           
-        if (error) throw error;
+        if (error) {
+          console.error("Error fetching room details:", error);
+          throw error;
+        }
         
+        console.log("Room details found:", data);
         return data;
       } catch (error) {
         console.error("Error fetching room details:", error);
@@ -229,6 +248,9 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                 selectedRoomId={selectedRoomId} 
                 onSelectRoom={(roomId) => {
                   setSelectedRoomId(roomId);
+                  if (roomId) {
+                    fetchRoomMembers(roomId);
+                  }
                   if (isMobile) {
                     setShowSidebar(false);
                   }
@@ -324,11 +346,20 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                     {userRole === 'patient' ? (
                       patientRoomId === null ? (
                         <div className="space-y-4">
-                          <Loader className="h-12 w-12 mx-auto mb-4 text-primary animate-spin" />
-                          <p className="text-lg">Loading your care team chat...</p>
-                          <p className="text-sm text-muted-foreground">
-                            We're connecting you with your healthcare providers
-                          </p>
+                          {/* No care team chat found for patient */}
+                          <div className="p-6 max-w-md mx-auto">
+                            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-amber-500" />
+                            <h3 className="font-medium text-xl mb-2">No Care Team Chat Available</h3>
+                            <p className="text-muted-foreground">
+                              It looks like you don't have a care team assigned yet or your care team chat hasn't been created.
+                            </p>
+                            <Alert className="mt-6">
+                              <AlertTitle>What to do next</AlertTitle>
+                              <AlertDescription>
+                                Please contact your healthcare provider to ensure you're assigned to a care team.
+                              </AlertDescription>
+                            </Alert>
+                          </div>
                         </div>
                       ) : (
                         <div className="space-y-4">

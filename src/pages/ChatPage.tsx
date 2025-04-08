@@ -9,13 +9,16 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, MessageCircle } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const ChatPage = () => {
   const { user, userRole, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(true);
   const [patientRoomId, setPatientRoomId] = useState<string | null>(null);
   const [loadingRoom, setLoadingRoom] = useState(false);
+  const [roomError, setRoomError] = useState<string | null>(null);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -29,7 +32,11 @@ const ChatPage = () => {
     if (user && userRole === 'patient') {
       const fetchPatientChatRoom = async () => {
         setLoadingRoom(true);
+        setRoomError(null);
+        
         try {
+          console.log("Fetching care team room for patient ID:", user.id);
+          
           // Use direct table access with RLS policies instead of RPC
           const { data: roomData, error: roomError } = await supabase
             .from('chat_rooms')
@@ -43,12 +50,51 @@ const ChatPage = () => {
           if (roomError) {
             if (roomError.code !== 'PGRST116') { // Not found error
               console.error("Error fetching patient care team room:", roomError);
+              setRoomError(`Error fetching room: ${roomError.message}`);
+              
+              toast({
+                title: "Error loading chat room",
+                description: "Could not load your care team chat room",
+                variant: "destructive"
+              });
+            } else {
+              console.log("No care team room found for patient:", user.id);
+              setRoomError("No care team room found");
             }
           } else if (roomData) {
+            console.log("Found patient care team room:", roomData.id);
             setPatientRoomId(roomData.id);
+          } else {
+            console.log("No room data returned for patient:", user.id);
+            setRoomError("No room data returned");
+          }
+          
+          // Check if there are ANY rooms for this patient
+          const { data: allRooms, error: allRoomsError } = await supabase
+            .from('chat_rooms')
+            .select('id, name, patient_id')
+            .eq('patient_id', user.id);
+            
+          if (allRoomsError) {
+            console.error("Error checking all rooms:", allRoomsError);
+          } else {
+            console.log(`Found ${allRooms?.length || 0} total rooms for patient:`, allRooms);
+          }
+          
+          // Check if the patient is a member of any rooms
+          const { data: roomMemberships, error: membershipError } = await supabase
+            .from('room_members')
+            .select('room_id')
+            .eq('user_id', user.id);
+            
+          if (membershipError) {
+            console.error("Error checking room memberships:", membershipError);
+          } else {
+            console.log(`Patient is a member of ${roomMemberships?.length || 0} rooms:`, roomMemberships);
           }
         } catch (error) {
-          console.error("Error in patient room fetch:", error);
+          console.error("Exception in patient room fetch:", error);
+          setRoomError(`Exception: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
           setLoadingRoom(false);
         }
@@ -56,7 +102,7 @@ const ChatPage = () => {
       
       fetchPatientChatRoom();
     }
-  }, [user, userRole]);
+  }, [user, userRole, toast]);
   
   useEffect(() => {
     // Hide welcome message after 3 seconds
@@ -100,6 +146,18 @@ const ChatPage = () => {
               {userRole === 'patient' 
                 ? "Chat with your healthcare team" 
                 : "Care Team Chats - Connect with your patients and their care teams"}
+            </p>
+          </div>
+        )}
+        
+        {userRole === 'patient' && roomError && !patientRoomId && (
+          <div className="bg-destructive/10 p-4 rounded-md mb-4">
+            <h3 className="font-medium">No care team chat available</h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              You currently don't have a care team assigned. Please contact your healthcare provider.
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Debug info: {roomError}
             </p>
           </div>
         )}
