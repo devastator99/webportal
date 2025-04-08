@@ -2,3 +2,5 @@
 project_id = "hcaqodjylicmppxcbqbh"
 [functions.sync-care-team-rooms]
 verify_jwt = true
+[functions.verify-users-exist]
+verify_jwt = true
