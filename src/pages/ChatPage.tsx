@@ -47,7 +47,12 @@ const ChatPage = () => {
   return (
     <div className="container pt-16 md:pt-20">
       <ErrorBoundary>
-        <ChatPageHeader />
+        <h1 className="text-2xl font-bold mb-2">Care Team Chat</h1>
+        <p className="text-muted-foreground mb-4">
+          {isProvider 
+            ? "Connect with your patients and their care teams" 
+            : "Chat with your healthcare team"}
+        </p>
         <Separator className="my-4" />
         
         {/* Welcome tooltip */}

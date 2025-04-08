@@ -30,13 +30,13 @@ export const DoctorDashboard = () => {
         <h1 className="text-xl font-bold mb-2 text-left">Hello, Doctor 👋</h1>
         <p className="text-sm text-gray-500 text-left mb-4">Welcome back to your dashboard</p>
         
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-3 gap-2">
           <Button 
             className="rounded-full bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
             onClick={() => navigate("/patients")}
           >
             <Users className="mr-2 h-4 w-4" />
-            Patients
+            <span>Patients</span>
           </Button>
           
           <ScheduleAppointment callerRole="doctor">
@@ -44,24 +44,16 @@ export const DoctorDashboard = () => {
               className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
             >
               <Calendar className="mr-2 h-4 w-4" />
-              Schedule
+              <span>Calendar</span>
             </Button>
           </ScheduleAppointment>
-          
-          <Button
-            className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
-            onClick={() => setShowVoiceScheduler(true)}
-          >
-            <Mic className="mr-2 h-4 w-4" />
-            Voice
-          </Button>
           
           <Button
             className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
             onClick={() => window.open("/chat", "_blank")}
           >
             <MessageCircle className="mr-2 h-4 w-4" />
-            Chat
+            <span>Chat</span>
           </Button>
         </div>
       </div>
