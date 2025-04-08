@@ -29,25 +29,25 @@ export const DoctorDashboard = () => {
     <div className="animate-fade-up">
       {/* Greeting and quick action buttons */}
       <div className="mobile-card mb-4">
-        <h1 className="text-xl font-bold mb-2 text-left">Hello, Doctor 👋</h1>
-        <p className="text-sm text-gray-500 text-left mb-4">Welcome back to your dashboard</p>
+        <h1 className="text-lg font-bold mb-1 text-left">Hello, Doctor 👋</h1>
+        <p className="text-xs text-gray-500 text-left mb-3">Welcome back to your dashboard</p>
         
         <div className="grid grid-cols-3 gap-2">
           <Button 
-            className="rounded-full bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
+            className="rounded-full bg-[#9b87f5] hover:bg-[#7E69AB] text-white text-xs py-1.5"
             onClick={() => navigate("/patients")}
           >
-            <Users className="mr-2 h-4 w-4" />
+            <Users className="mr-1 h-3.5 w-3.5" />
             <span>Patients</span>
           </Button>
           
           <Dialog open={showVoiceScheduler} onOpenChange={setShowVoiceScheduler}>
             <DialogTrigger asChild>
               <Button 
-                className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
+                className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff] text-xs py-1.5"
               >
-                <Calendar className="mr-2 h-4 w-4" />
-                <Mic className="h-3.5 w-3.5 ml-1 mr-1" />
+                <Calendar className="mr-1 h-3.5 w-3.5" />
+                <Mic className="h-3 w-3 mx-0.5" />
                 <span>Schedule</span>
               </Button>
             </DialogTrigger>
@@ -61,9 +61,9 @@ export const DoctorDashboard = () => {
           <Dialog open={showChatOverlay} onOpenChange={setShowChatOverlay}>
             <DialogTrigger asChild>
               <Button
-                className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
+                className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff] text-xs py-1.5"
               >
-                <MessageCircle className="mr-2 h-4 w-4" />
+                <MessageCircle className="mr-1 h-3.5 w-3.5" />
                 <span>Chat</span>
               </Button>
             </DialogTrigger>
