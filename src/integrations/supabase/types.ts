@@ -1241,6 +1241,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: boolean
       }
+      is_room_member: {
+        Args: { p_room_id: string; p_user_id: string }
+        Returns: boolean
+      }
       mark_messages_as_read: {
         Args: { p_user_id: string; p_sender_id: string }
         Returns: boolean

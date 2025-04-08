@@ -38,7 +38,28 @@ export const ChatMessagesList = ({
   const [page, setPage] = useState(1);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const [combinedMessages, setCombinedMessages] = useState<any[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const pageSize = 20;
+  
+  // Load current user ID once when component mounts
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) {
+          console.error("Error getting current user:", error);
+          return;
+        }
+        if (data?.user) {
+          setCurrentUserId(data.user.id);
+        }
+      } catch (error) {
+        console.error("Exception getting current user:", error);
+      }
+    };
+    
+    loadCurrentUser();
+  }, []);
 
   const {
     data: messagesData,
@@ -54,14 +75,9 @@ export const ChatMessagesList = ({
       try {
         let queryResult;
         if (useRoomMessages && roomId) {
-          // First get current user id
-          const { data: userData, error: userError } = await supabase.auth.getUser();
-          
-          if (userError) {
-            throw userError;
+          if (!currentUserId) {
+            console.warn("Current user ID not available yet");
           }
-          
-          const currentUserId = userData?.user?.id;
           
           const { data, error } = await supabase
             .from('room_messages')
@@ -105,14 +121,6 @@ export const ChatMessagesList = ({
           
           queryResult = { messages, hasMore: data.length === pageSize, page };
         } else if (selectedUserId) {
-          const { data: userData, error: userError } = await supabase.auth.getUser();
-          
-          if (userError) {
-            throw userError;
-          }
-          
-          const currentUserId = userData?.user?.id;
-          
           if (!currentUserId) {
             throw new Error("Could not determine current user");
           }
@@ -151,7 +159,7 @@ export const ChatMessagesList = ({
         throw error;
       }
     },
-    enabled: !!(roomId || selectedUserId || specificEmail),
+    enabled: !!(roomId || selectedUserId || specificEmail) && !!currentUserId,
     staleTime: 1000 * 60 // 1 minute
   });
 
@@ -331,19 +339,7 @@ export const ChatMessagesList = ({
             <div className="space-y-3">
               {messages.map((message) => {
                 const messageRole = getMemberRole(message.sender?.id);
-                
-                // Get current user ID for comparison
-                let isCurrentUser = false;
-                
-                try {
-                  // Use async IIFE to get and store the current user ID
-                  (async () => {
-                    const { data: userData } = await supabase.auth.getUser();
-                    isCurrentUser = message.sender?.id === userData?.user?.id;
-                  })();
-                } catch (error) {
-                  console.error("Error getting current user:", error);
-                }
+                const isCurrentUser = message.sender?.id === currentUserId;
                 
                 return (
                   <div
