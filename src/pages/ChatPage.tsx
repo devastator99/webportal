@@ -1,81 +1,73 @@
 
-import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { UsersProvider } from "@/components/chat/UsersProvider";
-import { ChatInterface } from "@/components/chat/ChatInterface";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { UserModule } from "@/modules/chat";
+import { ChatPageHeader } from "@/components/chat/ChatPageHeader";
+import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
-import { MessageSquare, Users } from "lucide-react";
-import { ChatRoomInterface } from "@/components/chat/ChatRoomInterface";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
+import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 const ChatPage = () => {
-  const { user, userRole } = useAuth();
+  const { user, userRole, isLoading } = useAuth();
   const navigate = useNavigate();
-  
+  const [showWelcomeMessage, setShowWelcomeMessage] = useState(true);
+
   // Redirect if not logged in
   useEffect(() => {
-    if (!user) {
-      navigate("/auth");
+    if (!isLoading && !user) {
+      navigate('/');
     }
-  }, [user, navigate]);
+  }, [user, isLoading, navigate]);
+  
+  useEffect(() => {
+    // Hide welcome message after 3 seconds
+    const timer = setTimeout(() => {
+      setShowWelcomeMessage(false);
+    }, 3000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="container pt-24 animate-fade-in">
+        <div className="mx-auto flex justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  const isDoctor = userRole === 'doctor';
+  const isNutritionist = userRole === 'nutritionist';
+  const isProvider = isDoctor || isNutritionist;
 
   return (
-    <div className="flex flex-col min-h-screen pt-16 md:pt-20">
-      <div className="container mx-auto py-4 px-4 max-w-7xl flex-1 flex flex-col h-[calc(100vh-70px)] overflow-hidden">
-        <Card className="h-full flex flex-col overflow-hidden">
-          <CardHeader className="pb-0">
-            <Tabs defaultValue="care-team">
-              <TabsList>
-                <TabsTrigger value="care-team">
-                  <Users className="h-4 w-4 mr-2" />
-                  Care Team Rooms
-                </TabsTrigger>
-                <TabsTrigger value="direct">
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Direct Messages
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="care-team" className="h-[calc(100vh-165px)] mt-2">
-                <ErrorBoundary>
-                  <ChatRoomInterface />
-                </ErrorBoundary>
-              </TabsContent>
-              
-              <TabsContent value="direct" className="h-[calc(100vh-165px)] mt-2">
-                <ErrorBoundary>
-                  <UsersProvider>
-                    {({ careTeamGroup, assignedUsers, isLoading, error }) => (
-                      <div className="w-full h-full">
-                        {isLoading ? (
-                          <div className="flex items-center justify-center h-full">
-                            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
-                          </div>
-                        ) : error ? (
-                          <div className="text-center py-12 text-red-500">
-                            Error loading chat data. Please try again later.
-                          </div>
-                        ) : (
-                          <ChatInterface 
-                            assignedUsers={assignedUsers}
-                            careTeamGroup={careTeamGroup}
-                            showGroupChat={true} 
-                            whatsAppStyle={userRole === "doctor" || userRole === "nutritionist"}
-                            includeAiBot={true}
-                            includeCareTeamMessages={true}
-                          />
-                        )}
-                      </div>
-                    )}
-                  </UsersProvider>
-                </ErrorBoundary>
-              </TabsContent>
-            </Tabs>
-          </CardHeader>
-        </Card>
-      </div>
+    <div className="container pt-16 md:pt-20">
+      <ErrorBoundary>
+        <ChatPageHeader />
+        <Separator className="my-4" />
+        
+        {/* Welcome tooltip */}
+        {showWelcomeMessage && (
+          <div className="bg-primary/10 p-3 rounded-md mb-4 animate-fade-in text-center">
+            <p className="text-primary font-medium">
+              {isProvider 
+                ? "Care Team Chats - Connect with your patients and their care teams" 
+                : "Chat with your healthcare team"}
+            </p>
+          </div>
+        )}
+        
+        {userRole === 'doctor' || userRole === 'nutritionist' ? (
+          <WhatsAppStyleChatInterface />
+        ) : (
+          <UserModule />
+        )}
+      </ErrorBoundary>
     </div>
   );
 };

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Calendar, User, Settings } from 'lucide-react';
+import { Home, Calendar, User, Settings, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const MobileNavigation: React.FC = () => {
@@ -32,6 +32,12 @@ export const MobileNavigation: React.FC = () => {
       icon: User,
       path: '/patients',
       active: location.pathname === '/patients'
+    },
+    {
+      label: 'Chat',
+      icon: MessageCircle,
+      path: '/chat',
+      active: location.pathname === '/chat'
     },
     {
       label: 'Profile',
