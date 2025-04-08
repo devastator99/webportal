@@ -3,15 +3,15 @@ import { getNutritionistPatients } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, ArrowRight, Salad, Calendar, FileText } from "lucide-react";
+import { Users, ArrowRight, Salad, Calendar, FileText, MessageCircle } from "lucide-react";
 import { DashboardHeader } from "./DashboardHeader";
 import { useState } from "react";
 import { HealthPlanCreator } from "./nutritionist/HealthPlanCreator";
 import { HealthPlanPDF } from "./nutritionist/HealthPlanPDF";
 import { useToast } from "@/hooks/use-toast";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
+import { NutritionistCareTeamChat } from "@/components/chat/NutritionistCareTeamChat";
 
-// Create a StatsCards component to keep the file size manageable
 const NutritionistStatsCards = ({ patientsCount }: { patientsCount: number }) => {
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -48,7 +48,6 @@ const NutritionistStatsCards = ({ patientsCount }: { patientsCount: number }) =>
   );
 };
 
-// Interface for patient profile
 interface PatientProfile {
   id: string;
   first_name: string | null;
@@ -59,9 +58,8 @@ export const NutritionistDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'create' | 'pdf'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'create' | 'pdf' | 'chat'>('list');
 
-  // Use the updated getNutritionistPatients function to get assigned patients
   const { data: patients = [], isLoading } = useQuery({
     queryKey: ["nutritionist_patients", user?.id],
     queryFn: async () => {
@@ -70,7 +68,6 @@ export const NutritionistDashboard = () => {
       try {
         console.log("Fetching patients for nutritionist:", user.id);
         
-        // Use our helper function to get nutritionist's patients
         const patientsData = await getNutritionistPatients(user.id);
         console.log("Patients retrieved:", patientsData);
         
@@ -86,7 +83,7 @@ export const NutritionistDashboard = () => {
       }
     },
     enabled: !!user?.id,
-    staleTime: 60000 // Cache for 1 minute
+    staleTime: 60000
   });
 
   const handlePatientAction = (patientId: string, mode: 'create' | 'pdf') => {
@@ -105,7 +102,16 @@ export const NutritionistDashboard = () => {
       
       <NutritionistStatsCards patientsCount={patients?.length || 0} />
 
-      {viewMode !== 'list' ? (
+      {viewMode === 'chat' ? (
+        <>
+          <Button variant="outline" onClick={handleBackToList} className="mb-4">
+            Back to Patient List
+          </Button>
+          <div className="h-[600px]">
+            <NutritionistCareTeamChat />
+          </div>
+        </>
+      ) : viewMode !== 'list' ? (
         <>
           <Button variant="outline" onClick={handleBackToList} className="mb-4">
             Back to Patient List
@@ -120,49 +126,63 @@ export const NutritionistDashboard = () => {
           )}
         </>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>Assigned Patients</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="py-8 flex justify-center">
-                <LoadingSpinner size="md" />
-              </div>
-            ) : patients?.length === 0 ? (
-              <p className="text-muted-foreground">No patients assigned yet.</p>
-            ) : (
-              <div className="space-y-4">
-                {patients.map((patient) => (
-                  <div key={patient.id} className="flex justify-between items-center border-b pb-2">
-                    <div>
-                      <p className="font-medium">
-                        {patient.first_name} {patient.last_name}
-                      </p>
+        <>
+          <div className="flex justify-between mb-4">
+            <h2 className="text-2xl font-bold">Patient Management</h2>
+            <Button 
+              onClick={() => setViewMode('chat')}
+              className="bg-green-500 hover:bg-green-600"
+            >
+              <MessageCircle className="mr-2 h-4 w-4" />
+              Care Team Chat
+            </Button>
+          </div>
+        
+          <Card>
+            <CardHeader>
+              <CardTitle>Assigned Patients</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="py-8 flex justify-center">
+                  <LoadingSpinner size="md" />
+                </div>
+              ) : patients?.length === 0 ? (
+                <p className="text-muted-foreground">No patients assigned yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  {patients.map((patient) => (
+                    <div key={patient.id} className="flex justify-between items-center border-b pb-2">
+                      <div>
+                        <p className="font-medium">
+                          {patient.first_name} {patient.last_name}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          onClick={() => handlePatientAction(patient.id, 'pdf')}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <FileText className="h-4 w-4 mr-1" />
+                          View Plan
+                        </Button>
+                        <Button
+                          onClick={() => handlePatientAction(patient.id, 'create')}
+                          size="sm"
+                          className="bg-green-500 hover:bg-green-600"
+                        >
+                          <Salad className="h-4 w-4 mr-1" />
+                          Create Plan
+                        </Button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        onClick={() => handlePatientAction(patient.id, 'pdf')}
-                        variant="outline"
-                        size="sm"
-                      >
-                        <FileText className="h-4 w-4 mr-1" />
-                        View Plan
-                      </Button>
-                      <Button
-                        onClick={() => handlePatientAction(patient.id, 'create')}
-                        size="sm"
-                      >
-                        <Salad className="h-4 w-4 mr-1" />
-                        Create Plan
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
       )}
     </div>
   );
