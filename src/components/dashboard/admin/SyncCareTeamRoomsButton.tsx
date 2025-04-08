@@ -52,27 +52,31 @@ export const SyncCareTeamRoomsButton = () => {
     }
   };
   
-  // Alternative way to sync rooms using the database function directly
   const handleSyncRoomsWithDbFunction = async () => {
     try {
       setIsSyncing(true);
       setResults(null);
       
-      // Use type assertion to work with the RPC function that might not be in the TypeScript definitions
+      // First, verify the function exists
+      console.log("Starting care team room sync with DB function...");
+      
+      // Use type assertion to work with the RPC function
       const { data: rpcResult, error } = await supabase.rpc(
-        'sync_all_care_team_rooms' as any
+        'sync_all_care_team_rooms'
       );
       
       if (error) {
+        console.error("DB function call error:", error);
         throw error;
       }
       
       console.log("Sync results from DB function:", rpcResult);
       
-      // Type assertion to handle the response
-      const results = rpcResult as SyncResult[];
-      
-      if (Array.isArray(results)) {
+      // Handle the response - ensure we can process different return formats
+      if (Array.isArray(rpcResult)) {
+        // The expected format: array of results
+        const results = rpcResult as SyncResult[];
+        
         // Count the success and error results
         const successCount = results.filter(r => r.result === 'Success').length;
         const errorCount = results.filter(r => r.result && r.result.includes('Error')).length;
@@ -86,12 +90,30 @@ export const SyncCareTeamRoomsButton = () => {
           }
         });
         
+        // Verify doctors were added correctly
+        for (const result of results) {
+          if (result.doctor_id && result.room_id) {
+            const { data: memberCheck, error: memberError } = await supabase
+              .from('room_members')
+              .select('*')
+              .eq('room_id', result.room_id)
+              .eq('user_id', result.doctor_id)
+              .maybeSingle();
+              
+            if (memberError) {
+              console.error(`Error checking doctor membership: ${memberError.message}`);
+            } else if (!memberCheck) {
+              console.warn(`Doctor ${result.doctor_id} not found in room ${result.room_id} after sync`);
+            }
+          }
+        }
+        
         toast({
           title: "Care team rooms synced",
           description: `Success: ${successCount}, Errors: ${errorCount}`,
         });
       } else {
-        // Handle case where response is not in expected format
+        // Handle unexpected response format
         console.warn("Unexpected response format from sync_all_care_team_rooms:", rpcResult);
         
         setResults({
