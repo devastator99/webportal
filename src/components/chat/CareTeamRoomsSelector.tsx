@@ -34,6 +34,9 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
   
   const isProvider = userRole === 'doctor' || userRole === 'nutritionist';
   
+  // Debug info
+  console.log("CareTeamRoomsSelector: User info", { userId: user?.id, userRole, isProvider });
+  
   const { data: roomsData = [], isLoading, refetch, error } = useQuery({
     queryKey: ["care_team_rooms", user?.id, userRole],
     queryFn: async () => {
@@ -47,6 +50,31 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
         if (isProvider) {
           console.log("Using provider-specific query to find care team rooms");
           
+          // DEBUGGING: First, let's check if the doctor/nutritionist is assigned to any patients
+          const { data: assignments, error: assignmentError } = await supabase
+            .from('patient_assignments')
+            .select('*')
+            .eq(userRole === 'doctor' ? 'doctor_id' : 'nutritionist_id', user.id);
+            
+          if (assignmentError) {
+            console.error("Error checking patient assignments:", assignmentError);
+          } else {
+            console.log(`Found ${assignments?.length || 0} patient assignments for ${userRole} ${user.id}`);
+            console.log("Assignments:", assignments);
+          }
+          
+          // DEBUGGING: Check room_members directly to see if the provider is a member of any rooms
+          const { data: membershipData, error: membershipError } = await supabase
+            .from('room_members')
+            .select('room_id, role')
+            .eq('user_id', user.id);
+            
+          if (membershipError) {
+            console.error("Error checking room memberships:", membershipError);
+          } else {
+            console.log(`Provider is a member of ${membershipData?.length || 0} rooms:`, membershipData);
+          }
+          
           // Direct query to find all care team rooms where the provider is a member
           const { data, error } = await supabase
             .from('room_members')
@@ -59,7 +87,8 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
                 description, 
                 patient_id, 
                 created_at,
-                room_type
+                room_type,
+                is_active
               )
             `)
             .eq('user_id', user.id)
@@ -71,7 +100,23 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
             throw error;
           }
           
-          console.log(`Found ${data?.length || 0} care team rooms for provider ${userRole}`);
+          console.log(`Found ${data?.length || 0} care team rooms for provider ${userRole}`, data);
+          
+          // DEBUGGING: If no rooms found, check the chat_rooms table directly
+          if (!data || data.length === 0) {
+            const { data: allRooms, error: allRoomsError } = await supabase
+              .from('chat_rooms')
+              .select('*')
+              .eq('room_type', 'care_team')
+              .eq('is_active', true);
+              
+            if (allRoomsError) {
+              console.error("Error checking all chat rooms:", allRoomsError);
+            } else {
+              console.log(`Total care team rooms in system: ${allRooms?.length || 0}`);
+            }
+          }
+          
           roomsData = data?.map(item => ({
             id: item.chat_rooms.id,
             name: item.chat_rooms.name,
@@ -107,6 +152,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
         if (roomsData.length === 0) {
           console.log("No care team rooms found for user:", user.id);
           
+          // DEBUGGING: Check if sync is needed by looking at patient assignments
           if (isProvider) {
             const { data: assignments, error: assignmentError } = await supabase
               .from('patient_assignments')
@@ -119,6 +165,36 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
               console.log(`Found ${assignments?.length || 0} patient assignments for ${userRole}`);
               
               if (assignments && assignments.length > 0) {
+                // DEBUGGING: Check if care team rooms exist for these patients
+                for (const assignment of assignments) {
+                  const { data: roomCheck, error: roomCheckError } = await supabase
+                    .from('chat_rooms')
+                    .select('id, name')
+                    .eq('patient_id', assignment.patient_id)
+                    .eq('room_type', 'care_team');
+                    
+                  if (roomCheckError) {
+                    console.error(`Error checking room for patient ${assignment.patient_id}:`, roomCheckError);
+                  } else {
+                    console.log(`Patient ${assignment.patient_id} has ${roomCheck?.length || 0} care team rooms:`, roomCheck);
+                    
+                    if (roomCheck && roomCheck.length > 0) {
+                      // DEBUGGING: Check if provider is a member of this room
+                      const { data: memberCheck, error: memberCheckError } = await supabase
+                        .from('room_members')
+                        .select('*')
+                        .eq('room_id', roomCheck[0].id)
+                        .eq('user_id', user.id);
+                        
+                      if (memberCheckError) {
+                        console.error("Error checking room membership:", memberCheckError);
+                      } else {
+                        console.log(`Provider is ${memberCheck?.length ? '' : 'NOT'} a member of room ${roomCheck[0].id}`);
+                      }
+                    }
+                  }
+                }
+                
                 toast({
                   title: "Care team rooms may need to be synced",
                   description: "You have patient assignments but no care team rooms. Ask an administrator to sync care teams.",
@@ -187,6 +263,9 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
           }
         }
         
+        // DEBUGGING: Log the final list of rooms with details
+        console.log("Final rooms with details:", roomsWithDetails);
+        
         return roomsWithDetails.sort((a, b) => {
           return new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime();
         });
@@ -226,6 +305,11 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
     }
   }, [user?.id, userRole]);
 
+  // DEBUGGING: Log the final rooms data
+  useEffect(() => {
+    console.log("Rooms data in component state:", roomsData);
+  }, [roomsData]);
+
   const rooms: CareTeamRoom[] = Array.isArray(roomsData) ? roomsData : [];
 
   const groupRoomsByPatient = (rooms: CareTeamRoom[]) => {
@@ -258,6 +342,47 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
     }
   };
 
+  // DEBUGGING: Add a button to manually trigger room sync
+  const handleSyncRooms = async () => {
+    if (!user?.id) return;
+    
+    try {
+      console.log("Manually triggering care team room sync");
+      
+      const { data, error } = await supabase.functions.invoke("sync-care-team-rooms", {
+        body: { user_id: user.id }
+      });
+      
+      if (error) {
+        console.error("Error syncing rooms:", error);
+        toast({
+          title: "Error",
+          description: "Failed to sync care team rooms. Please try again.",
+          variant: "destructive"
+        });
+      } else {
+        console.log("Sync response:", data);
+        toast({
+          title: "Rooms synced",
+          description: "Care team rooms sync completed. Refreshing rooms list...",
+          duration: 3000,
+        });
+        
+        // Refresh rooms after sync
+        setTimeout(() => {
+          refreshRooms();
+        }, 1000);
+      }
+    } catch (error) {
+      console.error("Error calling sync function:", error);
+      toast({
+        title: "Error",
+        description: "Could not sync care team rooms. Please try again later.",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="p-3 bg-muted/40 border-b">
@@ -274,6 +399,17 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
            userRole === 'nutritionist' ? 'Nutrition Care Teams' : 
            'Care Team Chats'}
         </div>
+        
+        {/* DEBUGGING: Add sync button for providers */}
+        {isProvider && (
+          <button 
+            onClick={handleSyncRooms}
+            className="text-xs text-blue-500 hover:text-blue-700 underline mt-1"
+          >
+            Sync Care Team Rooms
+          </button>
+        )}
+        
         {rooms.length === 0 && !isLoading && (
           <div className="text-xs text-muted-foreground mt-1 italic">
             {isProvider ? 
