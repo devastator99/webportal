@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,7 +39,6 @@ export const ChatMessagesList = ({
   const [combinedMessages, setCombinedMessages] = useState<any[]>([]);
   const pageSize = 20;
 
-  // Load messages with pagination
   const {
     data: messagesData,
     isLoading,
@@ -55,7 +53,6 @@ export const ChatMessagesList = ({
       try {
         let queryResult;
         if (useRoomMessages && roomId) {
-          // Fetch room messages
           const { data, error } = await supabase
             .from('room_messages')
             .select(`
@@ -77,7 +74,6 @@ export const ChatMessagesList = ({
             
           if (error) throw error;
           
-          // For room messages we need to format and reverse to get oldest first
           const messages = data.map((message: any) => ({
             ...message,
             sender: {
@@ -90,10 +86,16 @@ export const ChatMessagesList = ({
           
           queryResult = { messages, hasMore: data.length === pageSize, page };
         } else if (selectedUserId) {
-          // Fetch direct messages between users
+          const { data: userData } = await supabase.auth.getUser();
+          const currentUserId = userData?.user?.id;
+          
+          if (!currentUserId) {
+            throw new Error("Could not determine current user");
+          }
+          
           const { data: responseData, error } = await supabase.functions.invoke('get-chat-messages', {
             body: { 
-              user_id: supabase.auth.getUser()?.data?.user?.id,
+              user_id: currentUserId,
               other_user_id: selectedUserId,
               page,
               per_page: pageSize
@@ -103,7 +105,6 @@ export const ChatMessagesList = ({
           if (error) throw error;
           queryResult = responseData;
         } else if (specificEmail) {
-          // Search functionality for emails
           const { data, error } = await supabase
             .from('chat_messages')
             .select('*')
@@ -130,19 +131,16 @@ export const ChatMessagesList = ({
     staleTime: 1000 * 60 // 1 minute
   });
 
-  // Load more messages
   const handleLoadMore = () => {
     if (messagesData?.hasMore) {
       setPage(prev => prev + 1);
     }
   };
 
-  // Scroll to bottom functionality
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // Check scroll position to show/hide scroll-to-bottom button
   const handleScroll = () => {
     if (!scrollContainerRef.current) return;
     
@@ -153,37 +151,31 @@ export const ChatMessagesList = ({
     setShowScrollToBottom(!isNearBottom);
   };
 
-  // Combine local and remote messages
   useEffect(() => {
     if (messagesData) {
       const remoteMessages = messagesData.messages || [];
       let allMessages;
       
       if (useRoomMessages && page === 1) {
-        // For first page of room messages, add local messages to the end
         allMessages = [...remoteMessages, ...localMessages];
       } else {
-        // For other cases, just use the remote messages
         allMessages = remoteMessages;
       }
       
       if (page === 1) {
         setCombinedMessages(allMessages);
       } else {
-        // For subsequent pages, prepend to existing messages
         setCombinedMessages(prev => [...allMessages, ...prev]);
       }
     }
   }, [messagesData, localMessages, page, useRoomMessages]);
 
-  // Auto-scroll to bottom for new messages
   useEffect(() => {
     if (!showScrollToBottom && messagesEndRef.current) {
       scrollToBottom();
     }
   }, [combinedMessages, showScrollToBottom]);
 
-  // Set up real-time subscription for new messages
   useEffect(() => {
     if (!roomId && !selectedUserId) return;
     
@@ -252,7 +244,6 @@ export const ChatMessagesList = ({
     }
   };
 
-  // Group messages by date
   const groupedMessages: { [key: string]: any[] } = {};
   combinedMessages.forEach(message => {
     const date = new Date(message.created_at);
@@ -265,7 +256,6 @@ export const ChatMessagesList = ({
     groupedMessages[dateKey].push(message);
   });
 
-  // Get user role
   const getMemberRole = (userId: string) => {
     const member = careTeamMembers.find(m => m.id === userId);
     return member?.role || "member";
@@ -369,7 +359,6 @@ export const ChatMessagesList = ({
         );
       })}
       
-      {/* Scroll to bottom button */}
       {showScrollToBottom && (
         <button
           className="fixed bottom-20 right-4 bg-primary text-white p-2 rounded-full shadow-lg"
