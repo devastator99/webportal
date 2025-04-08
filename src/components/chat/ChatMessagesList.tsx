@@ -60,12 +60,14 @@ export const ChatMessagesList = ({
               message,
               message_type,
               created_at,
-              read,
-              sender:user_id(
-                id,
-                first_name,
+              read_by,
+              is_system_message,
+              is_ai_message,
+              sender:profiles!room_messages_sender_id_fkey(
+                id, 
+                first_name, 
                 last_name,
-                role:user_roles(role_name)
+                user_roles(role)
               )
             `)
             .eq('room_id', roomId)
@@ -74,15 +76,22 @@ export const ChatMessagesList = ({
             
           if (error) throw error;
           
-          const messages = data.map((message: any) => ({
-            ...message,
-            sender: {
-              id: message.sender?.id,
-              first_name: message.sender?.first_name || 'Unknown',
-              last_name: message.sender?.last_name || 'User',
-              role: message.sender?.role?.role_name
-            }
-          })).reverse();
+          const messages = data.map((message: any) => {
+            const currentUserRead = message.read_by && Array.isArray(message.read_by) 
+              ? message.read_by.includes(supabase.auth.getUser()?.data?.user?.id)
+              : false;
+              
+            return {
+              ...message,
+              read: currentUserRead,
+              sender: {
+                id: message.sender?.id,
+                first_name: message.sender?.first_name || 'Unknown',
+                last_name: message.sender?.last_name || 'User',
+                role: message.sender?.user_roles?.[0]?.role || 'unknown'
+              }
+            };
+          }).reverse();
           
           queryResult = { messages, hasMore: data.length === pageSize, page };
         } else if (selectedUserId) {
@@ -307,15 +316,15 @@ export const ChatMessagesList = ({
             <div className="space-y-3">
               {messages.map((message) => {
                 const messageRole = getMemberRole(message.sender?.id);
+                const isCurrentUser = message.sender?.id === supabase.auth.getUser()?.data?.user?.id;
+                
                 return (
                   <div
                     key={message.id}
-                    className={`flex ${
-                      message.sender?.id === "current_user" ? "justify-end" : "justify-start"
-                    }`}
+                    className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}
                   >
                     <div className="flex items-start max-w-[75%]">
-                      {message.sender?.id !== "current_user" && (
+                      {!isCurrentUser && (
                         <Avatar className="h-8 w-8 mr-2 flex-shrink-0">
                           <AvatarFallback className="bg-primary/10 text-primary text-xs">
                             {message.sender?.first_name?.charAt(0) || "?"}{message.sender?.last_name?.charAt(0) || ""}
@@ -325,12 +334,12 @@ export const ChatMessagesList = ({
                       
                       <div
                         className={`rounded-xl px-3 py-2 ${
-                          message.sender?.id === "current_user"
+                          isCurrentUser
                             ? "bg-primary text-white rounded-tr-none"
                             : "bg-card border rounded-tl-none"
                         }`}
                       >
-                        {message.sender?.id !== "current_user" && (
+                        {!isCurrentUser && (
                           <div className="flex items-center gap-1 mb-1">
                             <span className="font-medium text-xs">
                               {message.sender?.first_name} {message.sender?.last_name}
