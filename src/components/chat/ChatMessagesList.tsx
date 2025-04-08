@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -53,6 +54,15 @@ export const ChatMessagesList = ({
       try {
         let queryResult;
         if (useRoomMessages && roomId) {
+          // First get current user id
+          const { data: userData, error: userError } = await supabase.auth.getUser();
+          
+          if (userError) {
+            throw userError;
+          }
+          
+          const currentUserId = userData?.user?.id;
+          
           const { data, error } = await supabase
             .from('room_messages')
             .select(`
@@ -78,7 +88,7 @@ export const ChatMessagesList = ({
           
           const messages = data.map((message: any) => {
             const currentUserRead = message.read_by && Array.isArray(message.read_by) 
-              ? message.read_by.includes(supabase.auth.getUser()?.data?.user?.id)
+              ? message.read_by.includes(currentUserId)
               : false;
               
             return {
@@ -95,7 +105,12 @@ export const ChatMessagesList = ({
           
           queryResult = { messages, hasMore: data.length === pageSize, page };
         } else if (selectedUserId) {
-          const { data: userData } = await supabase.auth.getUser();
+          const { data: userData, error: userError } = await supabase.auth.getUser();
+          
+          if (userError) {
+            throw userError;
+          }
+          
           const currentUserId = userData?.user?.id;
           
           if (!currentUserId) {
@@ -316,7 +331,19 @@ export const ChatMessagesList = ({
             <div className="space-y-3">
               {messages.map((message) => {
                 const messageRole = getMemberRole(message.sender?.id);
-                const isCurrentUser = message.sender?.id === supabase.auth.getUser()?.data?.user?.id;
+                
+                // Get current user ID for comparison
+                let isCurrentUser = false;
+                
+                try {
+                  // Use async IIFE to get and store the current user ID
+                  (async () => {
+                    const { data: userData } = await supabase.auth.getUser();
+                    isCurrentUser = message.sender?.id === userData?.user?.id;
+                  })();
+                } catch (error) {
+                  console.error("Error getting current user:", error);
+                }
                 
                 return (
                   <div
