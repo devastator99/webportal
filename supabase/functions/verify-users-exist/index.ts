@@ -43,23 +43,6 @@ serve(async (req: Request) => {
     // Handle AI bot ID separately since it's a special case
     const aiBotId = '00000000-0000-0000-0000-000000000000';
     const hasAiBot = userIds.includes(aiBotId);
-    const realUserIds = userIds.filter(id => id !== aiBotId);
-    
-    console.log(`Verifying existence of ${realUserIds.length} users (excluding AI bot)`);
-    
-    if (realUserIds.length === 0 && hasAiBot) {
-      // Only the AI bot was requested, which we know is valid
-      return new Response(
-        JSON.stringify({ 
-          validUserIds: hasAiBot ? [aiBotId] : [],
-          invalidUserIds: [] 
-        }),
-        { 
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" } 
-        }
-      );
-    }
     
     // Query auth.users to check which IDs exist
     const { data, error } = await supabase.auth.admin.listUsers({
@@ -73,19 +56,40 @@ serve(async (req: Request) => {
     // Extract the IDs of all users
     const existingUserIds = new Set(data.users.map(user => user.id));
     
-    // Determine which IDs are valid and which are invalid
-    const validRealUserIds = realUserIds.filter(id => existingUserIds.has(id));
-    const invalidUserIds = realUserIds.filter(id => !existingUserIds.has(id));
+    // Also check if profiles exist for these users
+    const { data: existingProfiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('id')
+      .in('id', userIds);
+      
+    if (profilesError) {
+      throw new Error(`Error checking profiles: ${profilesError.message}`);
+    }
     
-    // Add AI bot ID to valid list if it was requested
-    const validUserIds = hasAiBot ? [...validRealUserIds, aiBotId] : validRealUserIds;
+    const existingProfileIds = new Set((existingProfiles || []).map(profile => profile.id));
+    
+    // Determine which IDs are valid (exist in auth.users AND profiles) and which are invalid
+    const validUserIds = userIds.filter(id => 
+      (existingUserIds.has(id) && existingProfileIds.has(id)) || 
+      (id === aiBotId && hasAiBot)
+    );
+    
+    const invalidUserIds = userIds.filter(id => 
+      id !== aiBotId && 
+      (!existingUserIds.has(id) || !existingProfileIds.has(id))
+    );
     
     console.log(`Found ${validUserIds.length} valid users and ${invalidUserIds.length} invalid users`);
 
     return new Response(
       JSON.stringify({ 
         validUserIds, 
-        invalidUserIds 
+        invalidUserIds,
+        missingProfiles: userIds.filter(id => 
+          id !== aiBotId && 
+          existingUserIds.has(id) && 
+          !existingProfileIds.has(id)
+        )
       }),
       { 
         status: 200,

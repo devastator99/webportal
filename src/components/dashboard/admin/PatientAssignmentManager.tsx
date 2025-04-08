@@ -116,159 +116,47 @@ export const PatientAssignmentManager = () => {
     }
   }, [errorMessage]);
   
-  const ensureUserProfiles = async (userIds: string[]) => {
+  const verifySelectedUsers = async () => {
     try {
-      if (!userIds.length) return { success: true, validIds: [] };
-      
-      console.log("Ensuring profiles exist for users:", userIds);
-
-      // First create the AI Bot profile to avoid foreign key issues
-      const aiAssistantId = '00000000-0000-0000-0000-000000000000';
-      const hasAiBot = userIds.includes(aiAssistantId);
-      
-      if (hasAiBot) {
-        // Directly insert/update AI Bot profile
-        const aiBot = {
-          id: aiAssistantId,
-          first_name: 'AI',
-          last_name: 'Assistant'
-        };
-        
-        const { error: aiBotError } = await supabase
-          .from('profiles')
-          .upsert([aiBot], { onConflict: 'id' });
-          
-        if (aiBotError) {
-          console.error("Error creating AI bot profile:", aiBotError);
-          // Continue execution even if AI bot creation fails
-        } else {
-          console.log("Successfully created/updated AI bot profile");
-        }
+      // Collect user IDs to check
+      const userIds = [selectedPatient, selectedDoctor];
+      if (selectedNutritionist) {
+        userIds.push(selectedNutritionist);
       }
       
-      // Get existing profiles to avoid trying to recreate them
+      console.log("Verifying profiles exist for:", userIds);
+      
+      // Check if profiles exist in the profiles table
       const { data: existingProfiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, first_name, last_name')
+        .select('id')
         .in('id', userIds);
         
       if (profilesError) {
-        console.error("Error checking existing profiles:", profilesError);
-        return { success: false, error: profilesError.message };
+        throw new Error(`Error checking profiles: ${profilesError.message}`);
       }
       
-      // Map of existing profiles by ID
-      const existingProfileMap = (existingProfiles || []).reduce((map, profile) => {
-        map[profile.id] = profile;
-        return map;
-      }, {} as Record<string, any>);
+      // Convert to a Set for easy lookups
+      const existingProfileIds = new Set((existingProfiles || []).map(p => p.id));
       
-      console.log("Existing profiles:", Object.keys(existingProfileMap).length);
+      // Find missing profiles
+      const missingProfileIds = userIds.filter(id => !existingProfileIds.has(id));
       
-      // Get IDs that need profiles (excluding those that already have profiles)
-      const missingProfileIds = userIds.filter(id => !existingProfileMap[id]);
-      
-      // If all profiles exist, we're done
-      if (missingProfileIds.length === 0) {
-        console.log("All profiles already exist");
-        return { success: true, validIds: userIds };
-      }
-      
-      console.log("Missing profiles:", missingProfileIds.length, missingProfileIds);
-      
-      // Verify missing IDs exist in auth.users using the edge function
-      // This will also exclude the AI bot ID from verification as it's handled separately
-      const { data: usersResult, error: usersError } = await supabase.functions.invoke('verify-users-exist', {
-        body: { userIds: missingProfileIds }
-      });
-      
-      if (usersError) {
-        console.error("Error verifying users:", usersError);
-        return { success: false, error: `User verification failed: ${usersError.message}` };
-      }
-      
-      const validUserIds = usersResult?.validUserIds || [];
-      const invalidUserIds = usersResult?.invalidUserIds || [];
-      
-      if (invalidUserIds.length > 0) {
-        console.warn("Some user IDs are invalid:", invalidUserIds);
-      }
-      
-      if (validUserIds.length === 0) {
-        console.log("No valid users found that need profiles");
-        // Return the IDs that have profiles plus the AI bot if it was requested
-        return { 
-          success: true, 
-          validIds: Object.keys(existingProfileMap),
-          invalidUserIds
-        };
-      }
-      
-      console.log("Valid users that need profiles:", validUserIds);
-      
-      // Prepare data for profile creation using data from the UI state
-      const usersData: Record<string, { first_name: string, last_name: string }> = {};
-      
-      // Gather name data from the UI components
-      [
-        { list: patients, role: 'Patient' },
-        { list: doctors, role: 'Doctor' },
-        { list: nutritionists, role: 'Nutritionist' }
-      ].forEach(({ list, role }) => {
-        if (!list) return;
-        
-        list.forEach(item => {
-          if (validUserIds.includes(item.id)) {
-            usersData[item.id] = {
-              first_name: item.first_name || `Unknown`,
-              last_name: item.last_name || role
-            };
-          }
+      if (missingProfileIds.length > 0) {
+        const missingUsers = missingProfileIds.map(id => {
+          if (id === selectedPatient) return "Patient";
+          if (id === selectedDoctor) return "Doctor";
+          if (id === selectedNutritionist) return "Nutritionist";
+          return "User";
         });
-      });
-      
-      // Prepare profiles for bulk creation
-      const profilesToCreate = validUserIds.map(userId => ({
-        id: userId,
-        first_name: usersData[userId]?.first_name || 'User',
-        last_name: usersData[userId]?.last_name || 'Unknown'
-      }));
-      
-      if (profilesToCreate.length > 0) {
-        console.log("Creating profiles:", profilesToCreate);
         
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .upsert(profilesToCreate, { onConflict: 'id' });
-          
-        if (insertError) {
-          console.error("Error creating profiles:", insertError);
-          return { 
-            success: false, 
-            error: `Failed to create profiles: ${insertError.message}` 
-          };
-        }
-        
-        console.log("Successfully created profiles");
+        throw new Error(`Missing profiles for: ${missingUsers.join(', ')}. Profiles must be created during signup.`);
       }
       
-      // Combine existing profiles and newly created ones
-      const allValidIds = [
-        ...Object.keys(existingProfileMap),
-        ...validUserIds
-      ];
-      
-      // Ensure no duplicate IDs
-      const uniqueValidIds = [...new Set(allValidIds)];
-      
-      return { 
-        success: true, 
-        validIds: uniqueValidIds,
-        invalidUserIds
-      };
+      return true;
     } catch (error: any) {
-      console.error("Error ensuring user profiles:", error);
-      return { success: false, error: error.message };
+      console.error("Error verifying profiles:", error);
+      throw error;
     }
   };
   
@@ -307,32 +195,10 @@ export const PatientAssignmentManager = () => {
         throw new Error("Administrator ID is missing. Please log in again.");
       }
       
-      // Collect all user IDs that will be involved in this assignment
-      const userIds = [
-        selectedPatient, 
-        selectedDoctor
-      ];
+      // Verify that all users have profiles before proceeding
+      await verifySelectedUsers();
       
-      // Add nutritionist ID if selected
-      if (selectedNutritionist) {
-        userIds.push(selectedNutritionist);
-      }
-      
-      // Always include AI assistant
-      userIds.push('00000000-0000-0000-0000-000000000000');
-      
-      console.log("Ensuring profiles exist for users:", userIds);
-      const profilesResult = await ensureUserProfiles(userIds);
-      
-      if (!profilesResult.success) {
-        throw new Error(`Error with profiles: ${profilesResult.error}`);
-      }
-      
-      if (profilesResult.invalidUserIds?.length > 0) {
-        throw new Error(`Some users do not exist in the system: ${profilesResult.invalidUserIds.join(', ')}`);
-      }
-      
-      // Now that we've ensured all profiles exist, assign the care team
+      // Now that we've verified profiles exist, assign the care team
       const { data: assignmentData, error: assignmentError } = await supabase.rpc(
         'admin_assign_care_team',
         {
