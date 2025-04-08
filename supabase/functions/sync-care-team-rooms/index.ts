@@ -5,11 +5,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
-
-// AI Bot ID constant
-const AI_BOT_ID = '00000000-0000-0000-0000-000000000000';
 
 serve(async (req: Request) => {
   // Handle CORS preflight requests
@@ -18,114 +15,94 @@ serve(async (req: Request) => {
   }
 
   try {
-    console.log("Starting sync-care-team-rooms edge function");
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     
-    // Create a Supabase client with the auth context
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing environment variables for Supabase connection");
+      throw new Error("Missing environment variables for Supabase connection");
+    }
+
+    // Create admin Supabase client with service role key
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Create a client with the auth context of the request
     const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      supabaseUrl,
+      Deno.env.get("SUPABASE_ANON_KEY") || "",
       {
-        global: { headers: { Authorization: req.headers.get("Authorization")! } },
+        global: { headers: { Authorization: req.headers.get("Authorization")! } }
       }
     );
-
-    // Get authenticated user
+    
+    // First, check if the user is an administrator
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    if (userError) {
-      console.error("Error getting user:", userError);
+    
+    if (userError || !user) {
       return new Response(
-        JSON.stringify({ error: `Authentication error: ${userError.message}` }),
+        JSON.stringify({ error: "Not authenticated" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    if (!user) {
-      return new Response(
-        JSON.stringify({ error: "Authentication required" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    
-    console.log("User authenticated:", user.id);
-
-    // Check if user has admin permission
-    const { data: canSyncRooms, error: permissionError } = await supabaseClient.rpc('user_can_sync_rooms');
-    
-    if (permissionError) {
-      console.error("Error checking permission:", permissionError);
-      return new Response(
-        JSON.stringify({ error: `Permission check failed: ${permissionError.message}` }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    
-    if (!canSyncRooms) {
-      return new Response(
-        JSON.stringify({ error: "Only administrators can sync care team rooms" }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Use the patient_assignments_report RPC to get assignments
-    console.log("Fetching patient assignments report...");
-    const { data: patientAssignmentsReport, error: parError } = await supabaseClient
-      .rpc('get_patient_assignments_report');
+    const { data: userRole, error: roleError } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .single();
       
-    if (parError) {
-      console.error("Error fetching patient assignments report:", parError);
+    if (roleError || !userRole || userRole.role !== 'administrator') {
       return new Response(
-        JSON.stringify({ error: `Failed to fetch patient assignments: ${parError.message}` }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Unauthorized: Only administrators can sync care team rooms" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    if (!patientAssignmentsReport || patientAssignmentsReport.length === 0) {
-      console.log("No patient assignments found");
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: "No patient assignments found to sync", 
-          rooms: [] 
-        }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Get all patient assignments
+    const { data: assignments, error: assignmentsError } = await supabaseAdmin
+      .from('patient_assignments')
+      .select('*');
+      
+    if (assignmentsError) {
+      throw new Error(`Failed to fetch patient assignments: ${assignmentsError.message}`);
     }
     
-    console.log(`Found ${patientAssignmentsReport.length} patient assignments to process`);
-
-    // Process each patient assignment to create care team rooms
-    const createdRooms = [];
+    console.log(`Found ${assignments?.length || 0} patient assignments`);
+    
+    // Process each assignment to create/update care team rooms
     const results = [];
+    const roomsProcessed = new Set();
     
-    for (const assignment of patientAssignmentsReport) {
+    for (const assignment of assignments || []) {
       try {
-        // Skip if no doctor assigned (required for care team)
-        if (!assignment.doctor_id) {
-          console.log(`Skipping patient ${assignment.patient_id}: No doctor assigned`);
+        // Skip if patient_id is missing or if both doctor_id and nutritionist_id are missing
+        if (!assignment.patient_id || (!assignment.doctor_id && !assignment.nutritionist_id)) {
           results.push({
             patient_id: assignment.patient_id,
-            patient_name: `${assignment.patient_first_name || ''} ${assignment.patient_last_name || ''}`.trim(),
-            status: "skipped",
-            reason: "No doctor assigned"
-          });
-          continue;
-        }
-
-        // Check if patient has a name
-        const patientName = `${assignment.patient_first_name || ''} ${assignment.patient_last_name || ''}`.trim();
-        if (!patientName) {
-          console.log(`Skipping patient with empty name: ${assignment.patient_id}`);
-          results.push({
-            patient_id: assignment.patient_id,
-            status: "skipped",
-            reason: "Patient name is empty"
+            status: 'skipped',
+            reason: 'Missing required IDs'
           });
           continue;
         }
         
-        // Call create_care_team_room RPC function
-        console.log(`Creating/updating room for patient: ${patientName} (${assignment.patient_id})`);
-        const { data: roomId, error: roomError } = await supabaseClient.rpc(
+        // Check if patient profile exists
+        const { data: patientProfile, error: patientError } = await supabaseAdmin
+          .from('profiles')
+          .select('id, first_name, last_name')
+          .eq('id', assignment.patient_id)
+          .single();
+          
+        if (patientError || !patientProfile) {
+          results.push({
+            patient_id: assignment.patient_id,
+            status: 'skipped',
+            reason: 'Patient profile not found'
+          });
+          continue;
+        }
+        
+        // Call the create_care_team_room function
+        const { data: roomId, error: roomError } = await supabaseAdmin.rpc(
           'create_care_team_room',
           {
             p_patient_id: assignment.patient_id,
@@ -138,82 +115,71 @@ serve(async (req: Request) => {
           console.error(`Error creating room for patient ${assignment.patient_id}:`, roomError);
           results.push({
             patient_id: assignment.patient_id,
-            patient_name: patientName,
-            status: "error",
-            reason: roomError.message
+            status: 'error',
+            error: roomError.message
           });
           continue;
         }
         
-        if (!roomId) {
-          console.error(`Failed to get room ID for patient ${assignment.patient_id}`);
-          results.push({
-            patient_id: assignment.patient_id,
-            patient_name: patientName,
-            status: "error",
-            reason: "No room ID returned"
-          });
-          continue;
+        console.log(`Room for patient ${assignment.patient_id} synced, room ID: ${roomId}`);
+        
+        // Check if this is a create or update
+        let status = 'created';
+        if (roomsProcessed.has(roomId)) {
+          status = 'updated';
+        } else {
+          roomsProcessed.add(roomId);
         }
-        
-        createdRooms.push(roomId);
-        
-        // Check if this is a new room by querying room_members
-        const { count, error: membersError } = await supabaseClient
-          .from('room_members')
-          .select('*', { count: 'exact', head: true })
-          .eq('room_id', roomId);
-          
-        const isNewRoom = count === 0 || count === null;
         
         results.push({
           patient_id: assignment.patient_id,
-          patient_name: patientName,
           room_id: roomId,
-          status: isNewRoom ? "created" : "updated",
+          status,
           doctor_id: assignment.doctor_id,
-          doctor_name: `${assignment.doctor_first_name || ''} ${assignment.doctor_last_name || ''}`.trim(),
-          nutritionist_id: assignment.nutritionist_id,
-          nutritionist_name: assignment.nutritionist_id ? 
-            `${assignment.nutritionist_first_name || ''} ${assignment.nutritionist_last_name || ''}`.trim() : 
-            null
+          nutritionist_id: assignment.nutritionist_id
         });
-        console.log(`Room ${roomId} ${isNewRoom ? "created" : "updated"} for patient: ${patientName}`);
-      } catch (assignmentError) {
-        console.error(`Error processing assignment:`, assignmentError);
+      } catch (err) {
+        console.error(`Error processing assignment for patient ${assignment.patient_id}:`, err);
         results.push({
-          status: "error",
-          reason: assignmentError instanceof Error ? assignmentError.message : String(assignmentError)
+          patient_id: assignment.patient_id,
+          status: 'error',
+          error: err instanceof Error ? err.message : 'Unknown error'
         });
       }
     }
     
-    console.log(`Successfully processed ${createdRooms.length} care team rooms`);
-    
     // Count results by status
-    const statusCounts = results.reduce((acc, result) => {
-      acc[result.status] = (acc[result.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const statusCounts = {
+      created: results.filter(r => r.status === 'created').length,
+      updated: results.filter(r => r.status === 'updated').length,
+      skipped: results.filter(r => r.status === 'skipped').length,
+      error: results.filter(r => r.status === 'error').length
+    };
     
-    console.log("Status counts:", statusCounts);
-
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `Synced ${createdRooms.length} care team rooms`,
-        rooms: createdRooms,
-        results: results,
-        statusCounts: statusCounts
+      JSON.stringify({
+        success: true,
+        rooms: Array.from(roomsProcessed),
+        results,
+        statusCounts
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { 
+        status: 200, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      }
     );
+
   } catch (error) {
     console.error("Error in sync-care-team-rooms:", error);
     
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : "Unknown error occurred" 
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      }
     );
   }
 });

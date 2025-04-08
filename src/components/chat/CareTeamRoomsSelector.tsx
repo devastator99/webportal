@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,10 +43,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       
       try {
         console.log("Fetching care team rooms for user:", user.id, "with role:", userRole);
-        
-        // Instead of trying to create rooms here, we'll fetch existing rooms from the database
-        // This simplifies the code and separates concerns better
-        console.log("Fetching existing care team rooms from database");
         
         // Get all rooms where the user is a member
         const { data: userRoomMemberships, error: membershipError } = await supabase
