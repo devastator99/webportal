@@ -62,7 +62,7 @@ BEGIN
     VALUES (v_room_id, p_nutritionist_id, 'nutritionist');
   END IF;
   
-  -- Add AI bot as member (no profile check needed)
+  -- Add AI bot as member (now a real user in the system)
   INSERT INTO room_members (room_id, user_id, role)
   VALUES (v_room_id, v_ai_bot_id, 'aibot');
   

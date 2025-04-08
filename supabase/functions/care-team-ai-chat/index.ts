@@ -12,7 +12,7 @@ const corsHeaders = {
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 
-// AI Bot ID
+// AI Bot ID - this is now a real user in the system
 const AI_BOT_ID = '00000000-0000-0000-0000-000000000000';
 
 serve(async (req: Request) => {
@@ -142,32 +142,26 @@ serve(async (req: Request) => {
         let senderName = "Unknown";
         let senderRole = "unknown";
         
-        if (msg.sender_id === AI_BOT_ID) {
-          // Special case for AI bot
-          senderName = "AI Assistant";
-          senderRole = "aibot";
-        } else {
-          // Get sender profile
-          const { data: sender } = await supabaseClient
-            .from('profiles')
-            .select('first_name, last_name')
-            .eq('id', msg.sender_id)
-            .single();
-            
-          if (sender) {
-            senderName = `${sender.first_name || ''} ${sender.last_name || ''}`.trim();
-          }
+        // Get sender profile
+        const { data: sender } = await supabaseClient
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', msg.sender_id)
+          .single();
           
-          // Get sender role
-          const { data: roleData } = await supabaseClient
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', msg.sender_id)
-            .single();
-            
-          if (roleData) {
-            senderRole = roleData.role;
-          }
+        if (sender) {
+          senderName = `${sender.first_name || ''} ${sender.last_name || ''}`.trim();
+        }
+        
+        // Get sender role
+        const { data: roleData } = await supabaseClient
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', msg.sender_id)
+          .single();
+          
+        if (roleData) {
+          senderRole = roleData.role;
         }
         
         conversationHistory.push({

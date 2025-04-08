@@ -65,6 +65,7 @@ export const ChatInterface = ({
   const isOnline = useOnlineStatus();
   const [localMessages, setLocalMessages] = useState<LocalMessage[]>([]);
   const [hasInitialAiMessage, setHasInitialAiMessage] = useState<boolean>(false);
+  const AI_BOT_ID = '00000000-0000-0000-0000-000000000000';
 
   const showWhatsAppStyle = whatsAppStyle && userRole === 'doctor' && assignedUsers.length > 0;
 
@@ -97,7 +98,7 @@ export const ChatInterface = ({
   useEffect(() => {
     if (careTeamGroup && !hasInitialAiMessage && isOnline) {
       const hasAiBot = careTeamGroup.members.some(member => 
-        member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000'
+        member.role === 'aibot' || member.id === AI_BOT_ID
       );
       
       if (hasAiBot && userRole === 'patient') {
@@ -111,7 +112,7 @@ export const ChatInterface = ({
               created_at: new Date().toISOString(),
               read: false,
               sender: {
-                id: '00000000-0000-0000-0000-000000000000',
+                id: AI_BOT_ID,
                 first_name: 'AI',
                 last_name: 'Assistant',
                 role: 'aibot'
@@ -127,7 +128,7 @@ export const ChatInterface = ({
         }, 1000);
       }
     }
-  }, [careTeamGroup, hasInitialAiMessage, isOnline, userRole]);
+  }, [careTeamGroup, hasInitialAiMessage, isOnline, userRole, AI_BOT_ID]);
 
   useEffect(() => {
     const syncOfflineMessages = async () => {
@@ -244,7 +245,7 @@ export const ChatInterface = ({
             });
             
             const hasAiBot = Array.isArray(careTeamMembers) && careTeamMembers.some(member => 
-              member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000'
+              member.role === 'aibot' || member.id === AI_BOT_ID
             );
             
             if (hasAiBot) {
@@ -265,7 +266,7 @@ export const ChatInterface = ({
                     created_at: new Date().toISOString(),
                     read: false,
                     sender: {
-                      id: '00000000-0000-0000-0000-000000000000',
+                      id: AI_BOT_ID,
                       first_name: 'AI',
                       last_name: 'Assistant',
                       role: 'aibot'
@@ -276,7 +277,7 @@ export const ChatInterface = ({
                   setLocalMessages(prev => [...prev, aiMessage]);
                   
                   supabase.rpc('send_chat_message', {
-                    p_sender_id: '00000000-0000-0000-0000-000000000000',
+                    p_sender_id: AI_BOT_ID,
                     p_receiver_id: selectedUserId,
                     p_message: aiResponse.response,
                     p_message_type: 'text'
@@ -285,7 +286,7 @@ export const ChatInterface = ({
                   const nutritionist = careTeamMembers?.find(m => m.role === 'nutritionist');
                   if (nutritionist?.id) {
                     supabase.rpc('send_chat_message', {
-                      p_sender_id: '00000000-0000-0000-0000-000000000000',
+                      p_sender_id: AI_BOT_ID,
                       p_receiver_id: nutritionist.id,
                       p_message: aiResponse.response,
                       p_message_type: 'text'
@@ -346,7 +347,7 @@ export const ChatInterface = ({
         }
         
         const sendPromises = careTeamGroup.members.map(member => {
-          if (member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000') return Promise.resolve();
+          if (member.role === 'aibot' || member.id === AI_BOT_ID) return Promise.resolve();
           
           return supabase.rpc('send_chat_message', {
             p_sender_id: user.id,
@@ -359,7 +360,7 @@ export const ChatInterface = ({
         await Promise.all(sendPromises);
         
         if (careTeamGroup.members.some(member => 
-          member.role === 'aibot' || member.id === '00000000-0000-0000-0000-000000000000'
+          member.role === 'aibot' || member.id === AI_BOT_ID
         )) {
           try {
             const { data: aiResponse } = await supabase.functions.invoke('doctor-ai-assistant', {
@@ -379,7 +380,7 @@ export const ChatInterface = ({
                   created_at: new Date().toISOString(),
                   read: false,
                   sender: {
-                    id: '00000000-0000-0000-0000-000000000000',
+                    id: AI_BOT_ID,
                     first_name: 'AI',
                     last_name: 'Assistant',
                     role: 'aibot'
@@ -390,10 +391,10 @@ export const ChatInterface = ({
                 setLocalMessages(prev => [...prev, aiMessage]);
                 
                 const aiSendPromises = careTeamGroup.members
-                  .filter(member => member.id !== '00000000-0000-0000-0000-000000000000')
+                  .filter(member => member.id !== AI_BOT_ID)
                   .map(member => {
                     return supabase.rpc('send_chat_message', {
-                      p_sender_id: '00000000-0000-0000-0000-000000000000',
+                      p_sender_id: AI_BOT_ID,
                       p_receiver_id: member.id,
                       p_message: aiResponse.response,
                       p_message_type: 'text'

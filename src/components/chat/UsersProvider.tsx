@@ -41,15 +41,6 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
       try {
         console.log("Getting users for role:", userRole, "userId:", user.id);
         
-        // AI bot definition - will be added to appropriate groups based on role
-        // This is hardcoded rather than fetched from the database
-        const aiBot: UserProfile = {
-          id: '00000000-0000-0000-0000-000000000000',
-          first_name: 'AI',
-          last_name: 'Assistant',
-          role: 'aibot'
-        };
-        
         if (userRole === "patient") {
           let careTeam: UserProfile[] = [];
           
@@ -89,11 +80,6 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             last_name: admin.last_name,
             role: "administrator"
           })) : [];
-          
-          // Ensure AI bot is in the careTeam list if not already present
-          if (!careTeam.some(member => member.role === 'aibot')) {
-            careTeam.push(aiBot);
-          }
           
           // Make sure to add the patient themselves to the care team group
           const patientSelf: UserProfile = {
@@ -154,10 +140,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             return nameA.localeCompare(nameB);
           });
           
-          // Always add AI bot to doctor's patient care teams
-          if (!formattedPatients.some(p => p.role === 'aibot')) {
-            formattedPatients.push(aiBot);
-          }
+          // AI bot is now retrieved normally from the database, no special handling needed
           
           // Create a special care team group for doctor to see patient messages
           const careTeamGroup = formattedPatients.length > 0 ? {
@@ -197,10 +180,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             return nameA.localeCompare(nameB);
           });
           
-          // Add AI bot to nutritionist's patient list if not already present
-          if (!formattedPatients.some(p => p.role === 'aibot')) {
-            formattedPatients.push(aiBot);
-          }
+          // AI bot is now retrieved normally from the database, no special handling needed
           
           // Create a care team group for nutritionist to see patient messages
           const careTeamGroup = formattedPatients.length > 0 ? {
@@ -222,7 +202,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             throw error;
           }
           
-          // Filter out the current user and ensure data is an array
+          // Filter out the current user
           const formattedUsers = Array.isArray(data) 
             ? data
                 .filter(u => u.id !== user.id)
@@ -234,10 +214,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
                 }))
             : [];
           
-          // Always add AI bot to admin's contact list
-          if (!formattedUsers.some(u => u.role === 'aibot')) {
-            formattedUsers.push(aiBot);
-          }
+          // AI bot is now included normally in the users list
           
           return { 
             assignedUsers: formattedUsers,

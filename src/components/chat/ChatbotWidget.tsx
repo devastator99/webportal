@@ -69,6 +69,8 @@ export const ChatbotWidget = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
+  const AI_BOT_ID = '00000000-0000-0000-0000-000000000000';
+
   const { data: analyzedDocuments } = useQuery({
     queryKey: ["analyzed_documents_for_chat"],
     queryFn: async () => {

@@ -83,13 +83,19 @@ serve(async (req: Request) => {
       }
     }
 
-    // Add AI bot to care team
-    careTeam.push({
-      id: '00000000-0000-0000-0000-000000000000',
-      first_name: 'AI',
-      last_name: 'Assistant',
-      role: 'aibot'
-    });
+    // Add AI bot to care team (now a real user)
+    const { data: aiBot, error: aiBotError } = await supabaseClient
+      .from("profiles")
+      .select("id, first_name, last_name")
+      .eq("id", '00000000-0000-0000-0000-000000000000')
+      .single();
+    
+    if (!aiBotError && aiBot) {
+      careTeam.push({
+        ...aiBot,
+        role: "aibot"
+      });
+    }
 
     return new Response(
       JSON.stringify(careTeam),
