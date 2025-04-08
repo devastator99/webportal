@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,7 +44,8 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       try {
         console.log("Fetching care team rooms for user:", user.id, "with role:", userRole);
         
-        // Get all rooms where the user is a member
+        // Direct approach: Get all rooms where the user is a member
+        // This should work for both providers and patients
         const { data: roomMemberships, error: membershipError } = await supabase
           .from('room_members')
           .select('room_id')
@@ -95,7 +97,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
                 .from('profiles')
                 .select('first_name, last_name')
                 .eq('id', room.patient_id)
-                .single();
+                .maybeSingle();
                 
               if (!patientError && patientData) {
                 patientName = `${patientData.first_name || ''} ${patientData.last_name || ''}`.trim() || 'Patient';
@@ -119,7 +121,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
               .eq('room_id', room.id)
               .order('created_at', { ascending: false })
               .limit(1)
-              .single();
+              .maybeSingle();
               
             if (messageError && messageError.code !== 'PGRST116') {
               console.error(`Error getting latest message for room ${room.id}:`, messageError);
