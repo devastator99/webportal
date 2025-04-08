@@ -31,7 +31,7 @@ interface CareTeamMember {
   role: string;
 }
 
-// Define interfaces for the careTeamInfo data structure
+// Define interfaces for the careTeamInfo data structure with proper types
 interface DoctorData {
   first_name: string | null;
   last_name: string | null;
@@ -263,21 +263,27 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     enabled: !!selectedRoomId
   });
 
-  // Fixed type issues with the care team info query
+  // Fixing the care team info query to properly handle the Supabase relationships
   const { data: careTeamInfo, isLoading: isLoadingCareTeam } = useQuery<CareTeamInfo | null>({
     queryKey: ["care_team_info", roomDetails?.patient_id],
     queryFn: async () => {
       if (!roomDetails?.patient_id) return null;
       
       try {
-        // Fetch patient assignments to get doctor and nutritionist with proper joins
+        // Fetch patient assignments to get doctor and nutritionist with explicit column specification
         const { data, error } = await supabase
           .from('patient_assignments')
           .select(`
             doctor_id,
-            doctor:doctor_id(first_name, last_name),
+            doctor:doctor_id (
+              first_name,
+              last_name
+            ),
             nutritionist_id,
-            nutritionist:nutritionist_id(first_name, last_name)
+            nutritionist:nutritionist_id (
+              first_name,
+              last_name
+            )
           `)
           .eq('patient_id', roomDetails.patient_id)
           .single();
@@ -290,22 +296,31 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         // Handle Supabase error cases by ensuring a valid return type
         if (!data) return null;
         
-        // Transform into CareTeamInfo interface
-        const doctor = data.doctor ? {
-          first_name: data.doctor.first_name,
-          last_name: data.doctor.last_name
-        } : null;
+        // Make sure we explicitly handle the possibility of null/undefined data
+        // with proper type assertions
+        let doctorData: DoctorData | null = null;
+        let nutritionistData: NutritionistData | null = null;
         
-        const nutritionist = data.nutritionist ? {
-          first_name: data.nutritionist.first_name,
-          last_name: data.nutritionist.last_name
-        } : null;
+        // Only try to access properties if we have a non-null object
+        if (data.doctor && typeof data.doctor === 'object') {
+          doctorData = {
+            first_name: (data.doctor as any).first_name || null,
+            last_name: (data.doctor as any).last_name || null
+          };
+        }
+        
+        if (data.nutritionist && typeof data.nutritionist === 'object') {
+          nutritionistData = {
+            first_name: (data.nutritionist as any).first_name || null,
+            last_name: (data.nutritionist as any).last_name || null
+          };
+        }
         
         const result: CareTeamInfo = {
           doctor_id: data.doctor_id,
           nutritionist_id: data.nutritionist_id,
-          doctor: doctor,
-          nutritionist: nutritionist
+          doctor: doctorData,
+          nutritionist: nutritionistData
         };
         
         return result;
