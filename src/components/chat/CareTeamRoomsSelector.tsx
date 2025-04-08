@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,8 +43,8 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       try {
         console.log("Fetching care team rooms for user:", user.id, "with role:", userRole);
         
-        // Modified query to directly get rooms where the user is a member
-        const { data: roomsWithMembership, error: roomsError } = await supabase
+        // Use a more direct query approach similar to the provided SQL query
+        const { data: careTeamRooms, error: roomsError } = await supabase
           .from('chat_rooms')
           .select(`
             id,
@@ -53,20 +52,20 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
             description,
             patient_id,
             created_at,
-            room_members!inner(user_id)
+            room_members!inner(user_id, role)
           `)
           .eq('room_type', 'care_team')
           .eq('is_active', true)
           .eq('room_members.user_id', user.id);
           
         if (roomsError) {
-          console.error("Error fetching rooms with membership:", roomsError);
+          console.error("Error fetching rooms:", roomsError);
           throw roomsError;
         }
         
-        console.log(`Found ${roomsWithMembership?.length || 0} care team rooms where user is a member`);
+        console.log(`Found ${careTeamRooms?.length || 0} care team rooms where user is a member`);
         
-        if (!roomsWithMembership || roomsWithMembership.length === 0) {
+        if (!careTeamRooms || careTeamRooms.length === 0) {
           console.log("No care team rooms found for user:", user.id);
           
           // For doctors and nutritionists, check if rooms should exist based on patient assignments
@@ -99,7 +98,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
         // Process each room to gather additional details
         const roomsWithDetails: CareTeamRoom[] = [];
         
-        for (const room of roomsWithMembership) {
+        for (const room of careTeamRooms) {
           try {
             // Get patient name if it exists
             let patientName = 'Patient';
