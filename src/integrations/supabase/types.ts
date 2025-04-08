@@ -673,6 +673,13 @@ export type Database = {
             foreignKeyName: "room_members_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
+            referencedRelation: "care_team_rooms_view"
+            referencedColumns: ["room_id"]
+          },
+          {
+            foreignKeyName: "room_members_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
             referencedRelation: "chat_rooms"
             referencedColumns: ["id"]
           },
@@ -717,6 +724,13 @@ export type Database = {
             foreignKeyName: "room_messages_room_id_fkey"
             columns: ["room_id"]
             isOneToOne: false
+            referencedRelation: "care_team_rooms_view"
+            referencedColumns: ["room_id"]
+          },
+          {
+            foreignKeyName: "room_messages_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
             referencedRelation: "chat_rooms"
             referencedColumns: ["id"]
           },
@@ -753,6 +767,21 @@ export type Database = {
       }
     }
     Views: {
+      care_team_rooms_view: {
+        Row: {
+          created_at: string | null
+          last_message: string | null
+          last_message_time: string | null
+          member_count: number | null
+          patient_id: string | null
+          patient_name: string | null
+          room_description: string | null
+          room_id: string | null
+          room_name: string | null
+          room_type: Database["public"]["Enums"]["chat_room_type"] | null
+        }
+        Relationships: []
+      }
       detailed_payment_reports: {
         Row: {
           amount: number | null
@@ -1174,16 +1203,16 @@ export type Database = {
       get_user_care_team_rooms: {
         Args: { p_user_id: string }
         Returns: {
-          room_id: string
-          room_name: string
-          room_description: string
-          room_type: Database["public"]["Enums"]["chat_room_type"]
-          created_at: string
-          patient_id: string
-          patient_name: string
-          member_count: number
-          last_message: string
-          last_message_time: string
+          created_at: string | null
+          last_message: string | null
+          last_message_time: string | null
+          member_count: number | null
+          patient_id: string | null
+          patient_name: string | null
+          room_description: string | null
+          room_id: string | null
+          room_name: string | null
+          room_type: Database["public"]["Enums"]["chat_room_type"] | null
         }[]
       }
       get_user_chat_messages: {

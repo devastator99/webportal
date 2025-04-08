@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,7 +48,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       try {
         console.log("Fetching care team rooms for user:", user.id, "with role:", userRole);
         
-        // Use the get_user_care_team_rooms function which now handles doctor role properly
+        // Use the get_user_care_team_rooms function which now leverages the view
         const { data, error } = await supabase
           .rpc('get_user_care_team_rooms', { 
             p_user_id: user.id 
@@ -60,7 +59,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
           throw error;
         }
         
-        console.log(`Found ${data?.length || 0} care team rooms for ${userRole} ${user.id}`);
+        console.log(`Found ${data?.length || 0} care team rooms for ${userRole} ${user.id}`, data);
         return data || [];
       } catch (error) {
         console.error("Error fetching care team rooms:", error);
@@ -139,6 +138,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
     console.log("Rooms data in component state:", roomsData);
   }, [roomsData]);
 
+  // Ensure we have a proper array
   const rooms: CareTeamRoom[] = Array.isArray(roomsData) ? roomsData : [];
 
   const groupRoomsByPatient = (rooms: CareTeamRoom[]) => {
