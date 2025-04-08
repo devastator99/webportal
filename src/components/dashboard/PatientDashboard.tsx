@@ -10,6 +10,7 @@ import { Suspense, lazy } from "react";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { featureFlags } from "@/config/features";
+import { useIsIPad } from "@/hooks/use-mobile";
 
 // Lazy load components
 const LazyMedicalRecordsUpload = lazy(() => 
@@ -30,6 +31,7 @@ const LoadingFallback = () => (
 export const PatientDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const isIPad = useIsIPad();
 
   const { data: patientData, isLoading } = useQuery({
     queryKey: ["patient_dashboard", user?.id],
@@ -67,19 +69,32 @@ export const PatientDashboard = () => {
     return <DashboardSkeleton />;
   }
 
+  // Add iPad-specific classes for better visibility
+  const containerClasses = isIPad 
+    ? "container mx-auto pt-20 pb-6 px-4 space-y-6 max-w-[95%]" 
+    : "container mx-auto pt-20 pb-6 px-6 space-y-6";
+
   return (
-    <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
+    <div className={containerClasses}>
       <DashboardHeader />
       
-      {/* Stats Row - Always loaded since it's essential and compact */}
-      <PatientStats />
+      {/* Stats Row - Enhanced for iPad */}
+      <div className={isIPad ? "overflow-x-auto pb-2" : ""}>
+        <PatientStats />
+      </div>
 
       {/* Main Content - Use collapsible sections with lazy loading */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-3 space-y-6">
-          <CollapsibleSection title="Upload Medical Records" defaultOpen={true}>
+      <div className="grid grid-cols-1 gap-6">
+        <div className="space-y-6">
+          <CollapsibleSection 
+            title="Upload Medical Records" 
+            defaultOpen={true}
+            className={isIPad ? "overflow-x-visible" : ""}
+          >
             <Suspense fallback={<LoadingFallback />}>
-              <LazyMedicalRecordsUpload showUploadOnly />
+              <div className={isIPad ? "p-2" : ""}>
+                <LazyMedicalRecordsUpload showUploadOnly />
+              </div>
             </Suspense>
           </CollapsibleSection>
           
