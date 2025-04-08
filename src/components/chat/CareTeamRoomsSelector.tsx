@@ -5,13 +5,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { MessageCircle, User, Stethoscope, Utensils, Users, Clock, RefreshCw } from "lucide-react";
+import { MessageCircle, User, Stethoscope, Utensils, Users, Clock, RefreshCw, PlusCircle } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface CareTeamRoom {
   room_id: string;
@@ -72,7 +73,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       }
     },
     enabled: !!user?.id,
-    refetchInterval: 30000,
+    refetchInterval: 30000, // Poll every 30 seconds
     staleTime: 10000
   });
 
@@ -194,25 +195,45 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       </div>
       
       <ScrollArea className="flex-1">
-        <div className="space-y-0">
-          {isLoading ? (
-            <div className="p-3 space-y-4">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="flex gap-3">
-                  <Skeleton className="h-12 w-12 rounded-full" />
-                  <div className="space-y-2 w-full">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </div>
+        {isLoading ? (
+          <div className="p-3 space-y-4">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="flex gap-3">
+                <Skeleton className="h-12 w-12 rounded-full" />
+                <div className="space-y-2 w-full">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-3 w-1/2" />
                 </div>
-              ))}
-            </div>
-          ) : rooms.length === 0 ? (
-            <div className="p-6 text-center text-muted-foreground">
-              {isProvider ? 'No patient care teams available' : 'No care team chats available'}
-            </div>
-          ) : isProvider ? (
-            Object.entries(roomsByPatient || {}).map(([patientId, patientRooms]) => {
+              </div>
+            ))}
+          </div>
+        ) : rooms.length === 0 ? (
+          <div className="p-6 flex flex-col items-center justify-center space-y-4 text-center">
+            {isProvider ? (
+              <>
+                <Alert variant="default" className="bg-muted/50">
+                  <AlertDescription>
+                    No patient care teams are currently available. 
+                    {userRole === 'doctor' && " You can see all care team rooms once they're created."}
+                  </AlertDescription>
+                </Alert>
+                {userRole === 'doctor' && (
+                  <div className="text-sm text-muted-foreground mt-2">
+                    Care team rooms will appear here automatically when patients are assigned to doctors.
+                  </div>
+                )}
+              </>
+            ) : (
+              <Alert variant="default" className="bg-muted/50">
+                <AlertDescription>
+                  You don't have any care team chats available. Please contact your healthcare provider.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+        ) : isProvider ? (
+          <div className="space-y-0">
+            {Object.entries(roomsByPatient || {}).map(([patientId, patientRooms]) => {
               const patientName = patientRooms[0]?.patient_name || 'Unknown Patient';
               
               return (
@@ -233,8 +254,10 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
                 </div>
               );
             })
-          ) : (
-            rooms.map((room) => (
+          } 
+        ) : (
+          <div className="space-y-0">
+            {rooms.map((room) => (
               <RoomListItem 
                 key={room.room_id}
                 room={room}
@@ -243,9 +266,9 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
                 userRole={userRole || ''}
                 formatMessageTime={formatMessageTime}
               />
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </ScrollArea>
     </div>
   );
