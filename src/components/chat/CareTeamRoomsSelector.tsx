@@ -253,8 +253,8 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
                   ))}
                 </div>
               );
-            })
-          } 
+            })}
+          </div> 
         ) : (
           <div className="space-y-0">
             {rooms.map((room) => (
