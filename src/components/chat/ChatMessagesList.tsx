@@ -261,20 +261,26 @@ export const ChatMessagesList = ({
             
           if (profilesError) throw profilesError;
           
-          const { data: rolesData, error: rolesError } = await supabase
-            .rpc('get_user_role_by_ids', { user_ids: senderIds });
+          const fetchRoles = async () => {
+            const roles = new Map();
+            
+            for (const senderId of senderIds) {
+              try {
+                const { data: roleData, error: roleError } = await supabase
+                  .rpc('get_user_role', { lookup_user_id: senderId });
+                
+                if (!roleError && roleData) {
+                  roles.set(senderId, roleData);
+                }
+              } catch (e) {
+                console.error(`Error fetching role for user ${senderId}:`, e);
+              }
+            }
+            
+            return roles;
+          };
           
-          if (rolesError) {
-            console.error("Error fetching roles:", rolesError);
-            throw rolesError;
-          }
-          
-          const rolesMap = new Map();
-          if (rolesData && Array.isArray(rolesData)) {
-            rolesData.forEach(item => {
-              rolesMap.set(item.user_id, item.role);
-            });
-          }
+          const rolesMap = await fetchRoles();
           
           const profilesMap = new Map();
           senderProfiles.forEach(profile => {
