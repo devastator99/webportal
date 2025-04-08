@@ -44,25 +44,35 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       try {
         console.log("Fetching care team rooms for user:", user.id, "with role:", userRole);
         
-        // Direct approach using room_members to find rooms where the user is a member
-        const { data: roomMemberships, error: membershipError } = await supabase
-          .from('room_members')
-          .select('room_id')
-          .eq('user_id', user.id);
+        // IMPROVED APPROACH: Get all care team rooms directly where user is a member
+        // This simplifies the logic and ensures we get all rooms without multiple queries
+        const { data: roomsWithMembership, error: roomsError } = await supabase
+          .from('chat_rooms')
+          .select(`
+            id,
+            name,
+            description,
+            patient_id,
+            created_at,
+            room_members!inner(user_id)
+          `)
+          .eq('room_type', 'care_team')
+          .eq('is_active', true)
+          .eq('room_members.user_id', user.id);
           
-        if (membershipError) {
-          console.error("Error fetching room memberships:", membershipError);
-          throw membershipError;
+        if (roomsError) {
+          console.error("Error fetching rooms with membership:", roomsError);
+          throw roomsError;
         }
         
-        console.log("Room memberships found:", roomMemberships?.length || 0);
+        console.log(`Found ${roomsWithMembership?.length || 0} care team rooms where user is a member`);
         
-        if (!roomMemberships || roomMemberships.length === 0) {
-          console.log("No room memberships found for user:", user.id);
+        if (!roomsWithMembership || roomsWithMembership.length === 0) {
+          console.log("No care team rooms found for user:", user.id);
           
           // For doctors and nutritionists, check if rooms should exist based on patient assignments
           if (isProvider) {
-            // Get assigned patients for provider
+            // Get assigned patients for provider to determine if rooms should exist
             const { data: assignments, error: assignmentError } = await supabase
               .from('patient_assignments')
               .select('patient_id')
@@ -87,33 +97,10 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
           return [];
         }
         
-        const roomIds = roomMemberships.map(rm => rm.room_id);
-        console.log(`Found ${roomIds.length} room memberships for user:`, roomIds);
-        
-        // Get room details for care team rooms only
-        const { data: rooms, error: roomsError } = await supabase
-          .from('chat_rooms')
-          .select('id, name, description, patient_id, created_at')
-          .in('id', roomIds)
-          .eq('room_type', 'care_team')
-          .eq('is_active', true);
-          
-        if (roomsError) {
-          console.error("Error fetching room details:", roomsError);
-          throw roomsError;
-        }
-        
-        console.log(`Retrieved ${rooms?.length || 0} active care team rooms:`, rooms);
-        
-        if (!rooms || rooms.length === 0) {
-          console.log("No care team rooms found");
-          return [];
-        }
-        
         // Process each room to gather additional details
         const roomsWithDetails: CareTeamRoom[] = [];
         
-        for (const room of rooms) {
+        for (const room of roomsWithMembership) {
           try {
             // Get patient name if it exists
             let patientName = 'Patient';
