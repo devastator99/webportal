@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatPageHeader } from "@/components/chat/ChatPageHeader";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
@@ -37,23 +36,23 @@ const ChatPage = () => {
         try {
           console.log("Fetching care team room for patient ID:", user.id);
           
-          // Use the RPC function instead of direct table access
-          const { data: roomData, error: roomError } = await supabase
-            .rpc('get_patient_care_team_room', { p_patient_id: user.id });
+          // Use the edge function instead of direct RPC
+          const { data, error } = await supabase.functions.invoke('get-patient-care-team-room', {
+            body: { patient_id: user.id }
+          });
           
-          if (roomError) {
-            console.error("Error fetching patient care team room:", roomError);
-            setRoomError(`Error fetching room: ${roomError.message}`);
+          if (error) {
+            console.error("Error fetching patient care team room:", error);
+            setRoomError(`Error fetching room: ${error.message}`);
             
             toast({
               title: "Error loading chat room",
               description: "Could not load your care team chat room",
               variant: "destructive"
             });
-          } else if (roomData) {
-            console.log("Found patient care team room:", roomData);
-            // Correctly cast the returned data as a string
-            setPatientRoomId(String(roomData));
+          } else if (data) {
+            console.log("Found patient care team room:", data);
+            setPatientRoomId(String(data));
           } else {
             console.log("No care team room found for patient:", user.id);
             setRoomError("No care team room found");
