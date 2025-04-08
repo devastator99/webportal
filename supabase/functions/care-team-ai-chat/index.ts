@@ -12,7 +12,7 @@ const corsHeaders = {
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 
-// AI Bot ID - this is now a real user in the system
+// AI Bot ID - this is a real user in the system with a fixed UUID
 const AI_BOT_ID = '00000000-0000-0000-0000-000000000000';
 
 serve(async (req: Request) => {

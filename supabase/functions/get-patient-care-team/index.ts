@@ -60,9 +60,16 @@ serve(async (req: Request) => {
         .single();
 
       if (!doctorProfileError && doctor) {
+        // Get doctor's role from user_roles table
+        const { data: doctorRole } = await supabaseClient
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", doctor.id)
+          .single();
+
         careTeam.push({
           ...doctor,
-          role: "doctor"
+          role: doctorRole?.role || "doctor"
         });
       }
     }
@@ -76,24 +83,39 @@ serve(async (req: Request) => {
         .single();
 
       if (!nutritionistProfileError && nutritionist) {
+        // Get nutritionist's role from user_roles table
+        const { data: nutritionistRole } = await supabaseClient
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", nutritionist.id)
+          .single();
+
         careTeam.push({
           ...nutritionist,
-          role: "nutritionist"
+          role: nutritionistRole?.role || "nutritionist"
         });
       }
     }
 
     // Add AI bot to care team (now a real user)
+    const AI_BOT_ID = '00000000-0000-0000-0000-000000000000';
     const { data: aiBot, error: aiBotError } = await supabaseClient
       .from("profiles")
       .select("id, first_name, last_name")
-      .eq("id", '00000000-0000-0000-0000-000000000000')
+      .eq("id", AI_BOT_ID)
       .single();
     
     if (!aiBotError && aiBot) {
+      // Get AI bot's role from user_roles table
+      const { data: aiBotRole } = await supabaseClient
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", AI_BOT_ID)
+        .single();
+
       careTeam.push({
         ...aiBot,
-        role: "aibot"
+        role: "aibot" // Always use 'aibot' as role regardless of the actual role in the database
       });
     }
 
