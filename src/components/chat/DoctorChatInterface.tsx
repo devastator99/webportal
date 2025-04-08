@@ -6,13 +6,11 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChatMessagesList } from "@/components/chat/ChatMessagesList";
 import { ChatInput } from "@/components/chat/ChatInput";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
-import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Loader2, AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface UserProfile {
@@ -36,8 +34,6 @@ export const DoctorChatInterface = () => {
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [localMessages, setLocalMessages] = useState<any[]>([]);
-  const [isCreatingRooms, setIsCreatingRooms] = useState(false);
-  const [hasCreatedRooms, setHasCreatedRooms] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Get assigned patients for doctor
@@ -108,79 +104,6 @@ export const DoctorChatInterface = () => {
     enabled: !!user?.id
   });
 
-  // Create care team rooms for patients who don't have one
-  const createCareTeamRooms = async () => {
-    if (!user?.id || !assignedPatients?.length) return;
-    
-    setIsCreatingRooms(true);
-    setErrorMessage(null);
-    
-    try {
-      const patientsWithoutRooms = assignedPatients.filter(patient => 
-        !careTeamRooms?.some(room => room.patient_id === patient.id)
-      );
-      
-      if (patientsWithoutRooms.length === 0) {
-        toast({
-          title: "No missing rooms",
-          description: "All patients already have care team rooms"
-        });
-        setIsCreatingRooms(false);
-        return;
-      }
-      
-      console.log(`Creating care team rooms for ${patientsWithoutRooms.length} patients`);
-      
-      let createdCount = 0;
-      
-      for (const patient of patientsWithoutRooms) {
-        try {
-          // Call the function to create a care team room
-          const { data: roomId, error } = await supabase.rpc('create_care_team_room', {
-            p_patient_id: patient.id,
-            p_doctor_id: user.id
-          });
-          
-          if (error) {
-            console.error(`Error creating room for patient ${patient.id}:`, error);
-          } else if (roomId) {
-            createdCount++;
-            console.log(`Created room ${roomId} for patient ${patient.id}`);
-          }
-        } catch (patientError) {
-          console.error(`Error processing patient ${patient.id}:`, patientError);
-        }
-      }
-      
-      if (createdCount > 0) {
-        toast({
-          title: "Rooms created",
-          description: `Created ${createdCount} care team rooms`
-        });
-        
-        // Refetch rooms to update the UI
-        refetchRooms();
-        setHasCreatedRooms(true);
-      } else {
-        toast({
-          title: "No rooms created",
-          description: "Failed to create any rooms. Check console for details.",
-          variant: "destructive"
-        });
-      }
-    } catch (error: any) {
-      console.error("Error creating care team rooms:", error);
-      setErrorMessage(error.message || "Failed to create care team rooms");
-      toast({
-        title: "Error",
-        description: "Failed to create care team rooms",
-        variant: "destructive"
-      });
-    } finally {
-      setIsCreatingRooms(false);
-    }
-  };
-
   // Select first patient by default if none selected
   useEffect(() => {
     if (assignedPatients?.length && !selectedPatientId) {
@@ -190,37 +113,28 @@ export const DoctorChatInterface = () => {
 
   // Check for patients without care team rooms
   useEffect(() => {
-    if (assignedPatients?.length && careTeamRooms?.length && !hasCreatedRooms) {
+    if (assignedPatients?.length && careTeamRooms?.length) {
       const patientsWithoutRooms = assignedPatients.filter(patient => 
         !careTeamRooms.some(room => room.patient_id === patient.id)
       );
       
       if (patientsWithoutRooms.length > 0) {
-        setErrorMessage(`${patientsWithoutRooms.length} patients don't have care team rooms. Click "Create Missing Rooms" to fix this.`);
+        setErrorMessage(`${patientsWithoutRooms.length} patients don't have care team rooms. Please ask an administrator to sync care team rooms.`);
+      } else {
+        setErrorMessage(null);
       }
     }
-  }, [assignedPatients, careTeamRooms, hasCreatedRooms]);
+  }, [assignedPatients, careTeamRooms]);
 
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedPatientId || !user?.id) return;
     
     try {
-      // First, ensure a care team room exists for this patient
+      // Find care team room for this patient
       const patientRoom = careTeamRooms?.find(room => room.patient_id === selectedPatientId);
       
       if (!patientRoom) {
-        // Try to create the room
-        const { data: roomId, error: roomError } = await supabase.rpc('create_care_team_room', {
-          p_patient_id: selectedPatientId,
-          p_doctor_id: user.id
-        });
-        
-        if (roomError || !roomId) {
-          throw new Error("Failed to create care team room for this patient");
-        }
-        
-        // Refetch rooms
-        refetchRooms();
+        throw new Error("No care team room exists for this patient. Please ask an administrator to sync care team rooms.");
       }
       
       // Create temporary message for immediate display
@@ -272,7 +186,7 @@ export const DoctorChatInterface = () => {
       console.error("Error sending message:", error);
       toast({
         title: "Error sending message",
-        description: "Please try again",
+        description: error instanceof Error ? error.message : "Please try again",
         variant: "destructive"
       });
     }
@@ -300,27 +214,7 @@ export const DoctorChatInterface = () => {
   return (
     <Card className="h-[500px] flex flex-col">
       <CardHeader className="pb-2">
-        <CardTitle className="flex justify-between items-center">
-          <div>Care Team Messages</div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={createCareTeamRooms} 
-            disabled={isCreatingRooms || !assignedPatients?.length}
-          >
-            {isCreatingRooms ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Create Missing Rooms
-              </>
-            )}
-          </Button>
-        </CardTitle>
+        <CardTitle>Care Team Messages</CardTitle>
         
         {errorMessage && (
           <Alert variant="destructive" className="mt-2">

@@ -45,23 +45,17 @@ serve(async (req: Request) => {
     
     console.log("User authenticated:", user.id);
 
-    // Check if user has admin permission using the user_can_sync_rooms function
+    // Check if user has admin permission
     const { data: canSyncRooms, error: permissionError } = await supabaseClient.rpc('user_can_sync_rooms');
     
     if (permissionError) {
       console.error("Error checking permission:", permissionError);
       return new Response(
-        JSON.stringify({ 
-          error: `Permission check failed: ${permissionError.message}`,
-          details: permissionError
-        }),
+        JSON.stringify({ error: `Permission check failed: ${permissionError.message}` }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    console.log("User sync permission:", canSyncRooms);
-
-    // Only allow administrators to run this function
     if (!canSyncRooms) {
       return new Response(
         JSON.stringify({ error: "Only administrators can sync care team rooms" }),
@@ -69,7 +63,7 @@ serve(async (req: Request) => {
       );
     }
 
-    // Use the patient_assignments_report RPC to get assignments with patient names
+    // Use the patient_assignments_report RPC to get assignments
     console.log("Fetching patient assignments report...");
     const { data: patientAssignmentsReport, error: parError } = await supabaseClient
       .rpc('get_patient_assignments_report');
@@ -77,75 +71,37 @@ serve(async (req: Request) => {
     if (parError) {
       console.error("Error fetching patient assignments report:", parError);
       return new Response(
-        JSON.stringify({ 
-          error: `Failed to fetch patient assignments report: ${parError.message}`,
-          details: parError
-        }),
+        JSON.stringify({ error: `Failed to fetch patient assignments: ${parError.message}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
     if (!patientAssignmentsReport || patientAssignmentsReport.length === 0) {
-      console.log("No patient assignments found in report");
+      console.log("No patient assignments found");
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: "No patient assignments found to sync", 
-          rooms: [],
-          results: [],
-          statusCounts: { skipped: 0 }
+          rooms: [] 
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    console.log(`Found ${patientAssignmentsReport.length} patient assignments in report`);
-    console.log("Sample assignments from report:", JSON.stringify(patientAssignmentsReport.slice(0, 3)));
+    console.log(`Found ${patientAssignmentsReport.length} patient assignments to process`);
 
-    // Fetch all existing care team rooms for reference
-    const { data: existingRooms, error: existingRoomsError } = await supabaseClient
-      .from('chat_rooms')
-      .select('id, patient_id, name')
-      .eq('room_type', 'care_team');
-      
-    if (existingRoomsError) {
-      console.error("Error fetching existing care team rooms:", existingRoomsError);
-      // Continue with the process despite the error
-    }
-    
-    console.log(`Found ${existingRooms?.length || 0} existing care team rooms`);
-    
-    // Create a map for faster lookup of existing rooms by patient_id
-    const existingRoomsByPatient = new Map();
-    if (existingRooms && existingRooms.length > 0) {
-      existingRooms.forEach(room => {
-        if (room.patient_id) {
-          existingRoomsByPatient.set(room.patient_id, room.id);
-        }
-      });
-    }
-
-    // Process each patient assignment to ensure care team rooms exist
+    // Process each patient assignment to create care team rooms
     const createdRooms = [];
     const results = [];
     
     for (const assignment of patientAssignmentsReport) {
       try {
-        // Skip patients without an ID
-        if (!assignment.patient_id) {
-          console.log("Skipping invalid assignment: Missing patient_id");
-          results.push({
-            status: "skipped",
-            reason: "Missing patient_id"
-          });
-          continue;
-        }
-        
         // Skip if no doctor assigned (required for care team)
         if (!assignment.doctor_id) {
           console.log(`Skipping patient ${assignment.patient_id}: No doctor assigned`);
           results.push({
             patient_id: assignment.patient_id,
+            patient_name: `${assignment.patient_first_name || ''} ${assignment.patient_last_name || ''}`.trim(),
             status: "skipped",
             reason: "No doctor assigned"
           });
@@ -166,7 +122,7 @@ serve(async (req: Request) => {
         
         // Call create_care_team_room RPC function
         console.log(`Creating/updating room for patient: ${patientName} (${assignment.patient_id})`);
-        const { data: roomData, error: roomError } = await supabaseClient.rpc(
+        const { data: roomId, error: roomError } = await supabaseClient.rpc(
           'create_care_team_room',
           {
             p_patient_id: assignment.patient_id,
@@ -179,87 +135,38 @@ serve(async (req: Request) => {
           console.error(`Error creating room for patient ${assignment.patient_id}:`, roomError);
           results.push({
             patient_id: assignment.patient_id,
+            patient_name: patientName,
             status: "error",
-            reason: `Failed to create room: ${roomError.message}`
+            reason: roomError.message
           });
           continue;
         }
         
-        if (!roomData) {
+        if (!roomId) {
           console.error(`Failed to get room ID for patient ${assignment.patient_id}`);
           results.push({
             patient_id: assignment.patient_id,
+            patient_name: patientName,
             status: "error",
             reason: "No room ID returned"
           });
           continue;
         }
         
-        createdRooms.push(roomData);
+        createdRooms.push(roomId);
         
-        // Check if this is a new room or an existing one
-        const isNewRoom = !existingRoomsByPatient.has(assignment.patient_id);
-        
-        // Ensure the doctor is a member of the room
-        if (assignment.doctor_id) {
-          const { error: memberError } = await supabaseClient
-            .from('room_members')
-            .upsert({
-              room_id: roomData,
-              user_id: assignment.doctor_id,
-              role: 'doctor'
-            });
-            
-          if (memberError && !memberError.message.includes('duplicate key')) {
-            console.error(`Error adding doctor to room ${roomData}:`, memberError);
-          }
-        }
-        
-        // Ensure the nutritionist is a member of the room if assigned
-        if (assignment.nutritionist_id) {
-          const { error: memberError } = await supabaseClient
-            .from('room_members')
-            .upsert({
-              room_id: roomData,
-              user_id: assignment.nutritionist_id,
-              role: 'nutritionist'
-            });
-            
-          if (memberError && !memberError.message.includes('duplicate key')) {
-            console.error(`Error adding nutritionist to room ${roomData}:`, memberError);
-          }
-        }
-        
-        // Ensure the patient is a member of the room
-        const { error: patientMemberError } = await supabaseClient
+        // Check if this is a new room by querying room_members
+        const { count, error: membersError } = await supabaseClient
           .from('room_members')
-          .upsert({
-            room_id: roomData,
-            user_id: assignment.patient_id,
-            role: 'patient'
-          });
+          .select('*', { count: 'exact', head: true })
+          .eq('room_id', roomId);
           
-        if (patientMemberError && !patientMemberError.message.includes('duplicate key')) {
-          console.error(`Error adding patient to room ${roomData}:`, patientMemberError);
-        }
-        
-        // Ensure AI bot is a member of the room
-        const { error: botMemberError } = await supabaseClient
-          .from('room_members')
-          .upsert({
-            room_id: roomData,
-            user_id: '00000000-0000-0000-0000-000000000000',
-            role: 'aibot'
-          });
-          
-        if (botMemberError && !botMemberError.message.includes('duplicate key')) {
-          console.error(`Error adding AI bot to room ${roomData}:`, botMemberError);
-        }
+        const isNewRoom = count === 0 || count === null;
         
         results.push({
           patient_id: assignment.patient_id,
           patient_name: patientName,
-          room_id: roomData,
+          room_id: roomId,
           status: isNewRoom ? "created" : "updated",
           doctor_id: assignment.doctor_id,
           doctor_name: `${assignment.doctor_first_name || ''} ${assignment.doctor_last_name || ''}`.trim(),
@@ -268,7 +175,7 @@ serve(async (req: Request) => {
             `${assignment.nutritionist_first_name || ''} ${assignment.nutritionist_last_name || ''}`.trim() : 
             null
         });
-        console.log(`Room ${roomData} ${isNewRoom ? "created" : "updated"} for patient: ${patientName}`);
+        console.log(`Room ${roomId} ${isNewRoom ? "created" : "updated"} for patient: ${patientName}`);
       } catch (assignmentError) {
         console.error(`Error processing assignment:`, assignmentError);
         results.push({
@@ -302,10 +209,7 @@ serve(async (req: Request) => {
     console.error("Error in sync-care-team-rooms:", error);
     
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined
-      }),
+      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

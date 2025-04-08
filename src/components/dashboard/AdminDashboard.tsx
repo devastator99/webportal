@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserManagement } from "@/components/dashboard/admin/UserManagement";
@@ -6,10 +5,8 @@ import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAs
 import { PatientAssignmentsReport } from "@/components/dashboard/admin/PatientAssignmentsReport";
 import { UserRegistration } from "@/components/dashboard/admin/UserRegistration";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { Settings, RefreshCw } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { Settings } from "lucide-react";
+import { SyncCareTeamsButton } from "@/components/dashboard/admin/SyncCareTeamsButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
 
@@ -33,60 +30,14 @@ const SystemSettings = () => {
 };
 
 export const AdminDashboard = () => {
-  const { toast } = useToast();
-  const [syncing, setSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
-
-  const handleSyncCareTeams = async () => {
-    setSyncing(true);
-    setSyncSuccess(null);
-    setSyncError(null);
-
-    try {
-      // Use the Edge Function to sync care team rooms instead of direct RPC
-      const { data, error } = await supabase.functions.invoke('sync-care-team-rooms');
-      
-      if (error) {
-        throw new Error(`Failed to sync care teams: ${error.message}`);
-      }
-      
-      // Count the number of room IDs returned
-      const roomCount = data?.rooms?.length || 0;
-      setSyncSuccess(`Successfully synced ${roomCount} care team rooms`);
-      
-      toast({
-        title: "Care Teams Synced",
-        description: `Successfully synced ${roomCount} care team rooms`,
-      });
-    } catch (error: any) {
-      console.error("Error syncing care teams:", error);
-      
-      const errorMessage = error.message || "Failed to sync care teams";
-      setSyncError(errorMessage);
-      
-      toast({
-        title: "Sync Failed",
-        description: errorMessage,
-        variant: "destructive"
-      });
-    } finally {
-      setSyncing(false);
-    }
-  };
 
   return (
     <div className="space-y-4 animate-fade-up">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
-        <Button 
-          onClick={handleSyncCareTeams} 
-          disabled={syncing}
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
-          {syncing ? "Syncing..." : "Sync Care Teams"}
-        </Button>
+        <SyncCareTeamsButton />
       </div>
       
       {syncSuccess && (
