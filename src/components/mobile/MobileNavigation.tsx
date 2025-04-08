@@ -20,19 +20,16 @@ export const MobileNavigation: React.FC = () => {
     if (user && userRole === 'patient') {
       const fetchPatientChatRoom = async () => {
         try {
+          // Use RPC function to get care team room ID to avoid recursion
           const { data, error } = await supabase
-            .from('chat_rooms')
-            .select('id')
-            .eq('patient_id', user.id)
-            .eq('room_type', 'care_team')
-            .eq('is_active', true)
-            .limit(1)
-            .single();
+            .rpc('get_patient_care_team_room', {
+              p_patient_id: user.id
+            });
           
           if (error) {
             console.error("Error fetching patient care team room:", error);
           } else if (data) {
-            setPatientRoomId(data.id);
+            setPatientRoomId(data);
           }
         } catch (error) {
           console.error("Error in patient room fetch:", error);

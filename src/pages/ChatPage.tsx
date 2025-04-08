@@ -30,52 +30,16 @@ const ChatPage = () => {
       const fetchPatientChatRoom = async () => {
         setLoadingRoom(true);
         try {
-          // Look for a care team room where the patient is a member
+          // Use the secure RPC function instead of direct query
           const { data, error } = await supabase
-            .from('chat_rooms')
-            .select('id')
-            .eq('patient_id', user.id)
-            .eq('room_type', 'care_team')
-            .eq('is_active', true)
-            .limit(1)
-            .single();
+            .rpc('get_patient_care_team_room', {
+              p_patient_id: user.id
+            });
           
           if (error) {
             console.error("Error fetching patient care team room:", error);
-            
-            // If no room exists, create a new one by calling the create_care_team_room function
-            // This will ensure both doctor and nutritionist are added
-            if (error.code === 'PGRST116') { // No rows returned
-              try {
-                const { data: assignmentData, error: assignmentError } = await supabase
-                  .from('patient_assignments')
-                  .select('doctor_id, nutritionist_id')
-                  .eq('patient_id', user.id)
-                  .single();
-                
-                if (!assignmentError && assignmentData) {
-                  // Create a care team room with the patient's assigned doctor and nutritionist
-                  const { data: roomData, error: roomError } = await supabase.rpc(
-                    'create_care_team_room',
-                    {
-                      p_patient_id: user.id,
-                      p_doctor_id: assignmentData.doctor_id,
-                      p_nutritionist_id: assignmentData.nutritionist_id
-                    }
-                  );
-                  
-                  if (!roomError && roomData) {
-                    setPatientRoomId(roomData);
-                  } else {
-                    console.error("Error creating care team room:", roomError);
-                  }
-                }
-              } catch (err) {
-                console.error("Error handling room creation:", err);
-              }
-            }
           } else if (data) {
-            setPatientRoomId(data.id);
+            setPatientRoomId(data);
           }
         } catch (error) {
           console.error("Error in patient room fetch:", error);
