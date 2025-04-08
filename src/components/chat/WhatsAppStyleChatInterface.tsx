@@ -263,7 +263,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     enabled: !!selectedRoomId
   });
 
-  // Fixed query to properly fetch patient assignment data
+  // Fixed type issues with the care team info query
   const { data: careTeamInfo, isLoading: isLoadingCareTeam } = useQuery<CareTeamInfo | null>({
     queryKey: ["care_team_info", roomDetails?.patient_id],
     queryFn: async () => {
@@ -287,7 +287,18 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
           throw error;
         }
         
-        return data || null;
+        // Handle Supabase error cases by ensuring a valid return type
+        if (!data) return null;
+        
+        // Transform into CareTeamInfo interface
+        const result: CareTeamInfo = {
+          doctor_id: data.doctor_id,
+          nutritionist_id: data.nutritionist_id,
+          doctor: data.doctor || null,
+          nutritionist: data.nutritionist || null
+        };
+        
+        return result;
       } catch (error) {
         console.error("Error fetching care team info:", error);
         return null;
@@ -332,15 +343,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
 
   // Component to display care team members
   const CareTeamInfo = () => {
-    // Safely extract doctor and nutritionist data with proper type checking
-    const doctorData = careTeamInfo?.doctor && typeof careTeamInfo.doctor === 'object' 
-      ? careTeamInfo.doctor as DoctorData 
-      : null;
-      
-    const nutritionistData = careTeamInfo?.nutritionist && typeof careTeamInfo.nutritionist === 'object'
-      ? careTeamInfo.nutritionist as NutritionistData
-      : null;
-    
     if (isLoadingCareTeam) {
       return <Skeleton className="h-4 w-24" />;
     }
@@ -357,19 +359,19 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
           <TooltipContent className="p-2 max-w-xs">
             <div className="space-y-1">
               <h4 className="text-xs font-semibold mb-1">Care Team</h4>
-              {doctorData ? (
+              {careTeamInfo?.doctor ? (
                 <div className="flex items-center gap-1">
                   <UserCircle className="h-3 w-3 text-blue-500" />
-                  <span className="text-xs">Dr. {doctorData.first_name} {doctorData.last_name}</span>
+                  <span className="text-xs">Dr. {careTeamInfo.doctor.first_name} {careTeamInfo.doctor.last_name}</span>
                   <Badge variant="outline" className="text-[10px] px-1 h-4">doctor</Badge>
                 </div>
               ) : (
                 <div className="text-xs text-muted-foreground">No doctor assigned</div>
               )}
-              {nutritionistData ? (
+              {careTeamInfo?.nutritionist ? (
                 <div className="flex items-center gap-1">
                   <UserCircle className="h-3 w-3 text-green-500" />
-                  <span className="text-xs">{nutritionistData.first_name} {nutritionistData.last_name}</span>
+                  <span className="text-xs">{careTeamInfo.nutritionist.first_name} {careTeamInfo.nutritionist.last_name}</span>
                   <Badge variant="outline" className="text-[10px] px-1 h-4">nutritionist</Badge>
                 </div>
               ) : (
@@ -443,17 +445,13 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                       size="sm" 
                       className="ml-auto"
                       onClick={() => {
-                        // Safely extract doctor and nutritionist data with proper type checking
-                        const doctorData = careTeamInfo?.doctor && typeof careTeamInfo.doctor === 'object' 
-                          ? careTeamInfo.doctor as DoctorData
-                          : null;
+                        const doctorText = careTeamInfo?.doctor 
+                          ? `Dr. ${careTeamInfo.doctor.first_name} ${careTeamInfo.doctor.last_name}` 
+                          : "No doctor assigned";
                           
-                        const nutritionistData = careTeamInfo?.nutritionist && typeof careTeamInfo.nutritionist === 'object'
-                          ? careTeamInfo.nutritionist as NutritionistData
-                          : null;
-                          
-                        const doctorText = doctorData ? `Dr. ${doctorData.first_name} ${doctorData.last_name}` : "No doctor assigned";
-                        const nutritionistText = nutritionistData ? `${nutritionistData.first_name} ${nutritionistData.last_name}` : "No nutritionist assigned";
+                        const nutritionistText = careTeamInfo?.nutritionist 
+                          ? `${careTeamInfo.nutritionist.first_name} ${careTeamInfo.nutritionist.last_name}` 
+                          : "No nutritionist assigned";
                         
                         toast({
                           title: "Care Team Members",
