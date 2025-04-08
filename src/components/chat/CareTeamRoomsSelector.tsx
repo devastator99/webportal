@@ -88,6 +88,24 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       setIsSyncing(true);
       console.log("Manually refreshing care team rooms");
       
+      if (userRole === 'doctor' || userRole === 'administrator') {
+        // For doctors and admins, provide option to sync care teams
+        const { data, error } = await supabase.functions.invoke('sync-care-team-rooms');
+        
+        if (error) {
+          console.error("Error syncing care team rooms:", error);
+          throw error;
+        }
+        
+        console.log("Sync care team rooms response:", data);
+        
+        toast({
+          title: "Care Team Rooms Synced",
+          description: `Created/Updated ${data?.statusCounts?.created || 0 + data?.statusCounts?.updated || 0} rooms.`,
+          duration: 3000,
+        });
+      }
+      
       // Simply refresh the list
       queryClient.invalidateQueries({ queryKey: ["care_team_rooms"] });
       await refetch();
