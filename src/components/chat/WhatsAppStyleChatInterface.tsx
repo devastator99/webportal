@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,13 +38,13 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   
   // Use patientRoomId if provided and user is a patient
   useEffect(() => {
-    if (patientRoomId && userRole === 'patient') {
+    if (patientRoomId) {
       setSelectedRoomId(patientRoomId);
       if (isMobile) {
         setShowSidebar(false);
       }
     }
-  }, [patientRoomId, userRole, isMobile]);
+  }, [patientRoomId, isMobile]);
   
   const toggleSidebar = () => {
     setShowSidebar(prev => !prev);

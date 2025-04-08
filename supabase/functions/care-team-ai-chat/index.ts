@@ -1,5 +1,5 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -8,280 +8,99 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// OpenAI API configuration
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
-const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
-
-// AI Bot ID - this is a real user in the system with a fixed UUID
-const AI_BOT_ID = '00000000-0000-0000-0000-000000000000';
-
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
-
+  
   try {
-    // Create a Supabase client with the auth context of the request
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { 
-        global: { 
-          headers: { Authorization: req.headers.get('Authorization')! } 
-        } 
-      }
-    );
-
-    // Get the authenticated user
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized', details: userError?.message }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Get request body
     const { roomId, message } = await req.json();
-
+    
     if (!roomId || !message) {
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        JSON.stringify({ error: "Room ID and message are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    // Verify the user is a member of this room
-    const { data: roomMember, error: roomError } = await supabaseClient
-      .from('room_members')
-      .select('role')
-      .eq('room_id', roomId)
-      .eq('user_id', user.id)
-      .single();
-
-    if (roomError || !roomMember) {
-      return new Response(
-        JSON.stringify({ error: 'Access denied: Not a member of this room' }),
-        { 
-          status: 403, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      );
-    }
-
-    // Get user's role and name for better context
-    const { data: userData, error: profileError } = await supabaseClient
-      .from('profiles')
-      .select('first_name, last_name')
-      .eq('id', user.id)
-      .single();
-      
-    const userName = userData ? 
-      `${userData.first_name || ''} ${userData.last_name || ''}`.trim() : 
-      'User';
-
-    // Get room details and patient info
-    const { data: roomData, error: roomDetailsError } = await supabaseClient
+    
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") || "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
+    );
+    
+    // Get chat room details to check if it's a care team room
+    const { data: roomData, error: roomError } = await supabaseClient
       .from('chat_rooms')
-      .select('patient_id, name')
+      .select('id, room_type, patient_id')
       .eq('id', roomId)
       .single();
       
-    if (roomDetailsError) {
-      console.error("Error fetching room details:", roomDetailsError);
-    }
-    
-    let patientName = "the patient";
-    if (roomData?.patient_id) {
-      const { data: patientData } = await supabaseClient
-        .from('profiles')
-        .select('first_name, last_name')
-        .eq('id', roomData.patient_id)
-        .single();
-        
-      if (patientData) {
-        patientName = `${patientData.first_name || ''} ${patientData.last_name || ''}`.trim();
-      }
-    }
-
-    // Get room message history for context
-    const { data: messageHistory, error: historyError } = await supabaseClient
-      .from('room_messages')
-      .select(`
-        id,
-        sender_id,
-        message,
-        is_system_message,
-        is_ai_message,
-        created_at
-      `)
-      .eq('room_id', roomId)
-      .order('created_at', { ascending: true })
-      .limit(10);
-
-    if (historyError) {
-      console.error("Error fetching message history:", historyError);
-    }
-
-    // Build conversation history with sender information
-    const conversationHistory = [];
-    
-    if (messageHistory && messageHistory.length > 0) {
-      for (const msg of messageHistory) {
-        let senderName = "Unknown";
-        let senderRole = "unknown";
-        
-        // Get sender profile
-        const { data: sender } = await supabaseClient
-          .from('profiles')
-          .select('first_name, last_name')
-          .eq('id', msg.sender_id)
-          .single();
-          
-        if (sender) {
-          senderName = `${sender.first_name || ''} ${sender.last_name || ''}`.trim();
-        }
-        
-        // Get sender role
-        const { data: roleData } = await supabaseClient
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', msg.sender_id)
-          .single();
-          
-        if (roleData) {
-          senderRole = roleData.role;
-        }
-        
-        conversationHistory.push({
-          role: msg.is_ai_message ? "assistant" : "user",
-          content: `${msg.is_ai_message ? '' : `${senderName} (${senderRole}): `}${msg.message}`
-        });
-      }
-    }
-
-    // Prepare AI chat request
-    const aiMessages = [
-      {
-        role: "system",
-        content: `You are an AI healthcare assistant in a care team chat for ${patientName}. 
-        Your goal is to provide helpful, accurate, and supportive information to both the patient and healthcare providers.
-        
-        Guidelines:
-        - Be professional and compassionate
-        - Be concise but thorough
-        - Do not diagnose but help clarify medical information
-        - When medical questions arise, suggest consulting with the doctor
-        - Support both patients and healthcare providers in the conversation
-        - For nutrition questions, refer to the nutritionist when possible
-        - Always maintain a helpful and supportive tone
-        - When appropriate, suggest questions the patient might want to ask their doctor or nutritionist`
-      },
-      ...conversationHistory,
-      {
-        role: "user",
-        content: `${userName} (${roomMember.role}): ${message}`
-      }
-    ];
-
-    // Call OpenAI API
-    if (!OPENAI_API_KEY) {
+    if (roomError) {
+      console.error("Error fetching room details:", roomError);
       return new Response(
-        JSON.stringify({ error: 'OpenAI API key not configured' }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        JSON.stringify({ error: "Room not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    console.log("Sending request to OpenAI with", aiMessages.length, "messages in context");
     
-    const openAIResponse = await fetch(OPENAI_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${OPENAI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini', // Using the more efficient model
-        messages: aiMessages,
-        max_tokens: 1000,
-        temperature: 0.7
-      })
-    });
-
-    const openAIData = await openAIResponse.json();
-    
-    if (!openAIData.choices || !openAIData.choices[0]) {
-      console.error("OpenAI error:", openAIData);
+    if (roomData.room_type !== 'care_team') {
       return new Response(
-        JSON.stringify({ error: 'Failed to get AI response', details: openAIData }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        JSON.stringify({ error: "AI responses are only available in care team rooms" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const aiResponseText = openAIData.choices[0].message.content.trim();
-    console.log("AI response:", aiResponseText.substring(0, 100) + "...");
-
-    // Save AI response to the room
-    const { data: aiMessageData, error: aiMessageError } = await supabaseClient
+    
+    // Create and send AI response
+    let aiResponse = "I'm your healthcare AI assistant. I can help answer general health questions, but please consult with your healthcare providers for medical advice.";
+    
+    if (message.toLowerCase().includes('hello') || message.toLowerCase().includes('hi')) {
+      aiResponse = "Hello! I'm your healthcare AI assistant. How can I help you today?";
+    } else if (message.toLowerCase().includes('help')) {
+      aiResponse = "I can help answer general health questions, provide information about your care team, or assist with basic healthcare guidance. What do you need help with?";
+    } else if (message.toLowerCase().includes('doctor') || message.toLowerCase().includes('appointment')) {
+      aiResponse = "Your care team is available to assist you. If you need to schedule an appointment or have specific medical questions, please let your doctor know directly through this chat.";
+    } else if (message.toLowerCase().includes('diet') || message.toLowerCase().includes('food') || message.toLowerCase().includes('nutrition')) {
+      aiResponse = "For diet and nutrition questions, your nutritionist is here to help. They can provide personalized guidance based on your health needs. Feel free to ask specific questions!";
+    } else if (message.toLowerCase().includes('medication') || message.toLowerCase().includes('medicine')) {
+      aiResponse = "Medication questions should be directed to your doctor. They can provide accurate information about your prescriptions, dosages, and potential side effects.";
+    } else if (message.toLowerCase().includes('thank')) {
+      aiResponse = "You're welcome! I'm here to help you and your care team communicate effectively.";
+    }
+    
+    // Insert AI response as a message
+    const { data: messageData, error: messageError } = await supabaseClient
       .from('room_messages')
       .insert({
         room_id: roomId,
-        sender_id: AI_BOT_ID, // AI bot ID
-        message: aiResponseText,
-        is_system_message: false,
-        is_ai_message: true,
-        read_by: [user.id] // Mark as read by the user who triggered it
+        sender_id: '00000000-0000-0000-0000-000000000000', // AI bot ID
+        message: aiResponse,
+        is_ai_message: true
       })
       .select()
       .single();
-
-    if (aiMessageError) {
-      console.error("Error saving AI message:", aiMessageError);
+      
+    if (messageError) {
+      console.error("Error inserting AI message:", messageError);
       return new Response(
-        JSON.stringify({ error: 'Failed to save AI response', details: aiMessageError.message }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
+        JSON.stringify({ error: "Failed to send AI response" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
+    
     return new Response(
       JSON.stringify({ 
         success: true, 
-        response: aiResponseText,
-        messageId: aiMessageData.id 
+        message: aiResponse,
+        messageId: messageData.id
       }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Care team AI chat error:", error);
+    console.error("Error in care-team-ai-chat:", error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error', details: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      JSON.stringify({ error: "Internal server error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

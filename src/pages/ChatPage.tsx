@@ -42,6 +42,38 @@ const ChatPage = () => {
           
           if (error) {
             console.error("Error fetching patient care team room:", error);
+            
+            // If no room exists, create a new one by calling the create_care_team_room function
+            // This will ensure both doctor and nutritionist are added
+            if (error.code === 'PGRST116') { // No rows returned
+              try {
+                const { data: assignmentData, error: assignmentError } = await supabase
+                  .from('patient_assignments')
+                  .select('doctor_id, nutritionist_id')
+                  .eq('patient_id', user.id)
+                  .single();
+                
+                if (!assignmentError && assignmentData) {
+                  // Create a care team room with the patient's assigned doctor and nutritionist
+                  const { data: roomData, error: roomError } = await supabase.rpc(
+                    'create_care_team_room',
+                    {
+                      p_patient_id: user.id,
+                      p_doctor_id: assignmentData.doctor_id,
+                      p_nutritionist_id: assignmentData.nutritionist_id
+                    }
+                  );
+                  
+                  if (!roomError && roomData) {
+                    setPatientRoomId(roomData);
+                  } else {
+                    console.error("Error creating care team room:", roomError);
+                  }
+                }
+              } catch (err) {
+                console.error("Error handling room creation:", err);
+              }
+            }
           } else if (data) {
             setPatientRoomId(data.id);
           }

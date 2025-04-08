@@ -49,7 +49,14 @@ export const MobileNavigation: React.FC = () => {
   
   const handleChatClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    setChatOpen(true);
+    
+    // For patients, open the chat dialog with their care team room
+    // For other users, navigate to the chat page
+    if (userRole === 'patient' && patientRoomId) {
+      setChatOpen(true);
+    } else {
+      navigate('/chat');
+    }
   };
   
   const navItems = [
