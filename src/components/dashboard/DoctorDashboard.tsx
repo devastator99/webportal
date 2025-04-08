@@ -1,9 +1,9 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { AlternativeDoctorDashboard } from "@/components/dashboard/doctor/AlternativeDoctorDashboard";
+import { DoctorDashboard as OriginalDoctorDashboard } from "@/components/dashboard/doctor/DoctorDashboard";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
   
-  return <AlternativeDoctorDashboard />;
+  return <OriginalDoctorDashboard />;
 };

@@ -1,13 +1,13 @@
 
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Calendar, User, Settings, MessageSquare } from 'lucide-react';
+import { Home, Calendar, User, Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const MobileNavigation: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
   
   // If user is not logged in, don't show the navigation
   if (!user && location.pathname !== '/dashboard' && location.pathname !== '/dashboard-alt') {
@@ -32,12 +32,6 @@ export const MobileNavigation: React.FC = () => {
       icon: User,
       path: '/patients',
       active: location.pathname === '/patients'
-    },
-    {
-      label: 'Chat',
-      icon: MessageSquare,
-      path: '/chat',
-      active: location.pathname.includes('chat')
     },
     {
       label: 'Profile',
