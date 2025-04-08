@@ -12,6 +12,9 @@ const corsHeaders = {
 const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 
+// AI Bot ID
+const AI_BOT_ID = '00000000-0000-0000-0000-000000000000';
+
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -139,7 +142,8 @@ serve(async (req: Request) => {
         let senderName = "Unknown";
         let senderRole = "unknown";
         
-        if (msg.sender_id === '00000000-0000-0000-0000-000000000000') {
+        if (msg.sender_id === AI_BOT_ID) {
+          // Special case for AI bot
           senderName = "AI Assistant";
           senderRole = "aibot";
         } else {
@@ -245,7 +249,7 @@ serve(async (req: Request) => {
       .from('room_messages')
       .insert({
         room_id: roomId,
-        sender_id: '00000000-0000-0000-0000-000000000000', // AI bot ID
+        sender_id: AI_BOT_ID, // AI bot ID
         message: aiResponseText,
         is_system_message: false,
         is_ai_message: true,

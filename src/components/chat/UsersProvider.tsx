@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -41,6 +42,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
         console.log("Getting users for role:", userRole, "userId:", user.id);
         
         // AI bot definition - will be added to appropriate groups based on role
+        // This is hardcoded rather than fetched from the database
         const aiBot: UserProfile = {
           id: '00000000-0000-0000-0000-000000000000',
           first_name: 'AI',
@@ -59,13 +61,15 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
             console.error("Error fetching care team with RPC:", careTeamError);
             throw careTeamError;
           } else {
-            // Ensure all returned team members have a role property
-            careTeam = Array.isArray(careTeamData) ? careTeamData.map(member => ({
-              id: member.id,
-              first_name: member.first_name,
-              last_name: member.last_name,
-              role: member.role || "unknown" // Ensure role is always defined
-            })) : [];
+            // Filter out any potential nulls and ensure all returned team members have a role property
+            careTeam = Array.isArray(careTeamData) ? careTeamData
+              .filter(member => member && member.id) // Filter out any null members
+              .map(member => ({
+                id: member.id,
+                first_name: member.first_name,
+                last_name: member.last_name,
+                role: member.role || "unknown" // Ensure role is always defined
+              })) : [];
             console.log("Retrieved care team members:", careTeam.length, careTeam);
           }
           

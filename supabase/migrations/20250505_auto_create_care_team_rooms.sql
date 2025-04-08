@@ -10,6 +10,7 @@ DECLARE
   v_room_id UUID;
   v_patient_name TEXT;
   v_room_name TEXT;
+  v_ai_bot_id UUID := '00000000-0000-0000-0000-000000000000'; -- AI bot ID constant
 BEGIN
   -- Get patient name for room name
   SELECT COALESCE(first_name, '') || ' ' || COALESCE(last_name, '') INTO v_patient_name
@@ -61,9 +62,9 @@ BEGIN
     VALUES (v_room_id, p_nutritionist_id, 'nutritionist');
   END IF;
   
-  -- Add AI bot as member
+  -- Add AI bot as member (no profile check needed)
   INSERT INTO room_members (room_id, user_id, role)
-  VALUES (v_room_id, '00000000-0000-0000-0000-000000000000', 'aibot');
+  VALUES (v_room_id, v_ai_bot_id, 'aibot');
   
   -- Add system message
   INSERT INTO room_messages (room_id, sender_id, message, is_system_message, is_ai_message)

@@ -116,7 +116,7 @@ export const PatientAssignmentManager = () => {
     }
   }, [errorMessage]);
   
-  const verifySelectedUsers = async () => {
+  const verifyUserProfiles = async () => {
     try {
       // Collect user IDs to check
       const userIds = [selectedPatient, selectedDoctor];
@@ -126,31 +126,38 @@ export const PatientAssignmentManager = () => {
       
       console.log("Verifying profiles exist for:", userIds);
       
-      // Check if profiles exist in the profiles table
-      const { data: existingProfiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id')
-        .in('id', userIds);
-        
-      if (profilesError) {
-        throw new Error(`Error checking profiles: ${profilesError.message}`);
+      // Use the edge function to verify users exist and have profiles
+      const { data, error } = await supabase.functions.invoke('verify-users-exist', {
+        body: { userIds }
+      });
+      
+      if (error) {
+        throw new Error(`Error verifying users: ${error.message}`);
       }
       
-      // Convert to a Set for easy lookups
-      const existingProfileIds = new Set((existingProfiles || []).map(p => p.id));
-      
-      // Find missing profiles
-      const missingProfileIds = userIds.filter(id => !existingProfileIds.has(id));
-      
-      if (missingProfileIds.length > 0) {
-        const missingUsers = missingProfileIds.map(id => {
+      // Check for invalid users
+      if (data.invalidUserIds && data.invalidUserIds.length > 0) {
+        // Map the IDs to roles for better error messages
+        const invalidRoles = data.invalidUserIds.map((id: string) => {
           if (id === selectedPatient) return "Patient";
           if (id === selectedDoctor) return "Doctor";
           if (id === selectedNutritionist) return "Nutritionist";
           return "User";
         });
         
-        throw new Error(`Missing profiles for: ${missingUsers.join(', ')}. Profiles must be created during signup.`);
+        throw new Error(`The following users don't exist or don't have profiles: ${invalidRoles.join(', ')}. Profiles must be created during signup.`);
+      }
+      
+      // Check for users that have auth accounts but are missing profiles
+      if (data.missingProfiles && data.missingProfiles.length > 0) {
+        const missingRoles = data.missingProfiles.map((id: string) => {
+          if (id === selectedPatient) return "Patient";
+          if (id === selectedDoctor) return "Doctor";
+          if (id === selectedNutritionist) return "Nutritionist";
+          return "User";
+        });
+        
+        throw new Error(`The following users are missing profiles: ${missingRoles.join(', ')}. Profiles must be created during signup.`);
       }
       
       return true;
@@ -196,7 +203,7 @@ export const PatientAssignmentManager = () => {
       }
       
       // Verify that all users have profiles before proceeding
-      await verifySelectedUsers();
+      await verifyUserProfiles();
       
       // Now that we've verified profiles exist, assign the care team
       const { data: assignmentData, error: assignmentError } = await supabase.rpc(

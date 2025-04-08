@@ -40,11 +40,14 @@ serve(async (req: Request) => {
       );
     }
 
-    // Handle AI bot ID separately since it's a special case
+    // Handle AI bot ID separately since it's a special case that doesn't need a real profile
     const aiBotId = '00000000-0000-0000-0000-000000000000';
     const hasAiBot = userIds.includes(aiBotId);
     
-    // Query auth.users to check which IDs exist
+    // Filter out the AI bot ID from the list to check against real users
+    const realUserIds = userIds.filter(id => id !== aiBotId);
+    
+    // Query auth.users to check which IDs exist (only for real users)
     const { data, error } = await supabase.auth.admin.listUsers({
       perPage: 1000, // Set a reasonable limit
     });
@@ -56,40 +59,50 @@ serve(async (req: Request) => {
     // Extract the IDs of all users
     const existingUserIds = new Set(data.users.map(user => user.id));
     
-    // Also check if profiles exist for these users
-    const { data: existingProfiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id')
-      .in('id', userIds);
+    // Check if profiles exist for real users
+    let existingProfiles: { id: string }[] = [];
+    
+    if (realUserIds.length > 0) {
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id')
+        .in('id', realUserIds);
+        
+      if (profilesError) {
+        throw new Error(`Error checking profiles: ${profilesError.message}`);
+      }
       
-    if (profilesError) {
-      throw new Error(`Error checking profiles: ${profilesError.message}`);
+      existingProfiles = profilesData || [];
     }
     
-    const existingProfileIds = new Set((existingProfiles || []).map(profile => profile.id));
+    const existingProfileIds = new Set(existingProfiles.map(profile => profile.id));
     
     // Determine which IDs are valid (exist in auth.users AND profiles) and which are invalid
-    const validUserIds = userIds.filter(id => 
-      (existingUserIds.has(id) && existingProfileIds.has(id)) || 
-      (id === aiBotId && hasAiBot)
+    const validUserIds = [
+      // The AI bot is always valid if it was in the original user IDs list
+      ...(hasAiBot ? [aiBotId] : []),
+      
+      // Add real users that exist both in auth.users and profiles
+      ...realUserIds.filter(id => existingUserIds.has(id) && existingProfileIds.has(id))
+    ];
+    
+    const invalidUserIds = realUserIds.filter(id => 
+      !existingUserIds.has(id) || !existingProfileIds.has(id)
     );
     
-    const invalidUserIds = userIds.filter(id => 
-      id !== aiBotId && 
-      (!existingUserIds.has(id) || !existingProfileIds.has(id))
+    // Also identify users that exist in auth.users but don't have profiles yet
+    const missingProfiles = realUserIds.filter(id => 
+      existingUserIds.has(id) && !existingProfileIds.has(id)
     );
     
     console.log(`Found ${validUserIds.length} valid users and ${invalidUserIds.length} invalid users`);
+    console.log(`Found ${missingProfiles.length} users missing profiles`);
 
     return new Response(
       JSON.stringify({ 
         validUserIds, 
         invalidUserIds,
-        missingProfiles: userIds.filter(id => 
-          id !== aiBotId && 
-          existingUserIds.has(id) && 
-          !existingProfileIds.has(id)
-        )
+        missingProfiles
       }),
       { 
         status: 200,
