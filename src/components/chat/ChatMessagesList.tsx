@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowDown, MoreHorizontal } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 const ChatMessage = ({ message, isCurrentUser, formatMessageDate }) => {
   const messageRole = message.sender?.role || "member";
@@ -265,10 +267,12 @@ export const ChatMessagesList = ({
             
             for (const senderId of senderIds) {
               try {
+                // Use the get_user_role function with the correct parameter name
                 const { data: roleData, error: roleError } = await supabase
                   .rpc('get_user_role', { lookup_user_id: senderId });
                   
                 if (!roleError && roleData) {
+                  // Store the role string directly
                   roles.set(senderId, roleData);
                 }
               } catch (e) {
@@ -451,38 +455,41 @@ export const ChatMessagesList = ({
 
   const hasPrevMessages = messagesData?.hasMore && page > 1;
 
+  // Wrap the entire component with ErrorBoundary
   return (
-    <div 
-      ref={scrollContainerRef} 
-      className="flex-1 overflow-y-auto px-4 py-2"
-      onScroll={handleScroll}
-    >
-      {hasPrevMessages && (
-        <div className="flex justify-center my-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleLoadMore}
-            className="text-xs"
-            disabled={isLoading}
-          >
-            {isLoading ? "Loading..." : "Load older messages"}
-          </Button>
-        </div>
-      )}
-      
-      <MessagesList 
-        combinedMessages={combinedMessages}
-        currentUserId={currentUserId}
-        formatMessageDate={formatMessageDate}
-        careTeamMembers={careTeamMembers}
-      />
-      
-      {showScrollToBottom && (
-        <ScrollToBottomButton onClick={scrollToBottom} />
-      )}
-      
-      <div ref={messagesEndRef} />
-    </div>
+    <ErrorBoundary>
+      <div 
+        ref={scrollContainerRef} 
+        className="flex-1 overflow-y-auto px-4 py-2"
+        onScroll={handleScroll}
+      >
+        {hasPrevMessages && (
+          <div className="flex justify-center my-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleLoadMore}
+              className="text-xs"
+              disabled={isLoading}
+            >
+              {isLoading ? "Loading..." : "Load older messages"}
+            </Button>
+          </div>
+        )}
+        
+        <MessagesList 
+          combinedMessages={combinedMessages}
+          currentUserId={currentUserId}
+          formatMessageDate={formatMessageDate}
+          careTeamMembers={careTeamMembers}
+        />
+        
+        {showScrollToBottom && (
+          <ScrollToBottomButton onClick={scrollToBottom} />
+        )}
+        
+        <div ref={messagesEndRef} />
+      </div>
+    </ErrorBoundary>
   );
 };
