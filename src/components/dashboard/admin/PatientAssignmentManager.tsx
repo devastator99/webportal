@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -222,7 +223,7 @@ export const PatientAssignmentManager = () => {
         throw new Error(assignmentError.message || "Error assigning care team");
       }
       
-      // Create care team room after successful assignment
+      // Create care team room after successful assignment - passing both doctor and nutritionist
       const { data: roomData, error: roomError } = await supabase.rpc(
         'create_care_team_room',
         {
@@ -237,7 +238,7 @@ export const PatientAssignmentManager = () => {
         throw new Error(roomError.message || "Error creating care team room");
       } 
       
-      console.log("Care team room created with ID:", roomData);
+      console.log("Care team room created or updated with ID:", roomData);
       
       const patientName = patients?.find(p => p.id === selectedPatient);
       const doctorName = doctors?.find(d => d.id === selectedDoctor);
@@ -262,6 +263,7 @@ export const PatientAssignmentManager = () => {
       setSelectedDoctor("");
       setSelectedNutritionist(null);
       
+      // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["doctor_patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient_doctor"] });
       queryClient.invalidateQueries({ queryKey: ["nutritionist_patients"] });
