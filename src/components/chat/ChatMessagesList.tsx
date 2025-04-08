@@ -91,7 +91,7 @@ export const ChatMessagesList = ({
           queryResult = { messages, hasMore: data.length === pageSize, page };
         } else if (selectedUserId) {
           // Fetch direct messages between users
-          const { data, error } = await supabase.functions.invoke('get-chat-messages', {
+          const { data: responseData, error } = await supabase.functions.invoke('get-chat-messages', {
             body: { 
               user_id: supabase.auth.getUser()?.data?.user?.id,
               other_user_id: selectedUserId,
@@ -101,7 +101,7 @@ export const ChatMessagesList = ({
           });
           
           if (error) throw error;
-          queryResult = data;
+          queryResult = responseData;
         } else if (specificEmail) {
           // Search functionality for emails
           const { data, error } = await supabase
