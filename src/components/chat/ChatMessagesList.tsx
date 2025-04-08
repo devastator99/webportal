@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -261,24 +260,26 @@ export const ChatMessagesList = ({
             
           if (profilesError) throw profilesError;
           
-          // Instead of using RPC, fetch user roles directly from the user_roles table
-          const { data: userRoles, error: rolesError } = await supabase
-            .from('user_roles')
-            .select('user_id, role')
-            .in('user_id', senderIds);
+          const fetchRoles = async () => {
+            const roles = new Map();
             
-          if (rolesError) {
-            console.error("Error fetching user roles:", rolesError);
-            // Continue without roles if there's an error
-          }
+            for (const senderId of senderIds) {
+              try {
+                const { data: roleData, error: roleError } = await supabase
+                  .rpc('get_user_role', { user_id: senderId });
+                  
+                if (!roleError && roleData) {
+                  roles.set(senderId, roleData);
+                }
+              } catch (e) {
+                console.error(`Error fetching role for user ${senderId}:`, e);
+              }
+            }
+            
+            return roles;
+          };
           
-          // Create a map of user IDs to roles
-          const rolesMap = new Map();
-          if (userRoles && Array.isArray(userRoles)) {
-            userRoles.forEach(item => {
-              rolesMap.set(item.user_id, item.role);
-            });
-          }
+          const rolesMap = await fetchRoles();
           
           const profilesMap = new Map();
           senderProfiles.forEach(profile => {
