@@ -1,6 +1,5 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { UserModule } from "@/modules/chat";
 import { ChatPageHeader } from "@/components/chat/ChatPageHeader";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
@@ -62,11 +61,7 @@ const ChatPage = () => {
           </div>
         )}
         
-        {userRole === 'doctor' || userRole === 'nutritionist' ? (
-          <WhatsAppStyleChatInterface />
-        ) : (
-          <UserModule />
-        )}
+        <WhatsAppStyleChatInterface />
       </ErrorBoundary>
     </div>
   );

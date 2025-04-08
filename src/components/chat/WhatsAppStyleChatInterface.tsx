@@ -55,7 +55,7 @@ export const WhatsAppStyleChatInterface = () => {
           id,
           role,
           user_id,
-          profiles:user_id(
+          profiles(
             first_name,
             last_name
           )

@@ -6,7 +6,8 @@ import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, ChevronDown } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ChatMessagesListProps {
   selectedUserId?: string | null;
@@ -36,6 +37,7 @@ export const ChatMessagesList = ({
   const [page, setPage] = useState(1);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   
   // Common function to get sender name and role
   const getSenderInfo = (senderId: string) => {
@@ -91,23 +93,30 @@ export const ChatMessagesList = ({
   const {
     data: roomMessagesData,
     isLoading: isLoadingRoomMessages,
-    error: roomMessagesError
+    error: roomMessagesError,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    refetch
   } = useQuery({
-    queryKey: ["room_messages", roomId],
+    queryKey: ["room_messages", roomId, page],
     queryFn: async () => {
       if (!roomId) return { messages: [], hasMore: false };
       
       try {
-        console.log(`Fetching room messages for room: ${roomId}`);
+        console.log(`Fetching room messages for room: ${roomId}, page: ${page}`);
+        const limit = 50;
+        const offset = (page - 1) * limit;
+        
         const { data, error } = await supabase.rpc('get_room_messages', {
           p_room_id: roomId,
-          p_limit: 50,
-          p_offset: 0
+          p_limit: limit,
+          p_offset: offset
         });
         
         if (error) throw error;
         
-        console.log(`Retrieved ${data?.length || 0} room messages`);
+        console.log(`Retrieved ${data?.length || 0} room messages for page ${page}`);
         
         // Format the messages to match the structure expected by the component
         const formattedMessages = data.map(msg => ({
@@ -127,7 +136,8 @@ export const ChatMessagesList = ({
         
         return { 
           messages: formattedMessages || [], 
-          hasMore: (data?.length || 0) >= 50 
+          hasMore: (data?.length || 0) >= limit,
+          page: page
         };
       } catch (error) {
         console.error("Error fetching room messages:", error);
@@ -135,7 +145,8 @@ export const ChatMessagesList = ({
       }
     },
     enabled: !!roomId && useRoomMessages,
-    staleTime: 5000 // Cache for 5 seconds
+    refetchInterval: 5000, // Refetch every 5 seconds for real-time updates
+    keepPreviousData: true // Keep previous data while fetching new data
   });
 
   // Original query for direct/group chat messages
@@ -197,31 +208,74 @@ export const ChatMessagesList = ({
     messagesData = chatMessagesData || { messages: [], hasMore: false };
   }
   
-  // Combine server messages with local messages
+  // State to track all historical messages
+  const [allHistoricalMessages, setAllHistoricalMessages] = useState<any[]>([]);
+  
+  // Update historical messages when new messages come in
+  useEffect(() => {
+    if (messagesData && messagesData.messages) {
+      if (page === 1) {
+        setAllHistoricalMessages(messagesData.messages);
+      } else {
+        // For page > 1, add messages at the beginning (older messages)
+        setAllHistoricalMessages(prev => {
+          // Create a Set of IDs for O(1) lookup
+          const existingIds = new Set(prev.map(msg => msg.id));
+          // Only add messages that don't already exist
+          const newMessages = messagesData.messages.filter(msg => !existingIds.has(msg.id));
+          return [...newMessages, ...prev];
+        });
+      }
+      
+      // Update hasMore state
+      setHasMoreMessages(messagesData.hasMore);
+    }
+  }, [messagesData, page]);
+  
+  // Combine all messages - historical and local
   const allMessages = [
-    ...(messagesData?.messages || []),
+    ...allHistoricalMessages,
     ...localMessages
   ].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   
   // Scroll to bottom when messages change
   useEffect(() => {
-    if (messagesEndRef.current) {
+    if (messagesEndRef.current && page === 1) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [allMessages]);
+  }, [allMessages, page]);
   
-  // Update hasMore state when data changes
+  // Handle scroll detection
   useEffect(() => {
-    if (messagesData) {
-      setHasMoreMessages(messagesData.hasMore);
+    const handleScroll = () => {
+      if (!scrollRef.current) return;
+      
+      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
+      // If less than 100px from the bottom, hide the scroll button
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setShowScrollButton(!isNearBottom);
+      
+      // If at the top and there are more messages, load more
+      if (scrollTop === 0 && hasMoreMessages) {
+        setPage(prev => prev + 1);
+      }
+    };
+    
+    const scrollElement = scrollRef.current;
+    if (scrollElement) {
+      scrollElement.addEventListener('scroll', handleScroll);
     }
-  }, [messagesData]);
-
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLDivElement;
-    if (target.scrollTop === 0 && hasMoreMessages) {
-      setPage(prev => prev + 1);
-    }
+    
+    return () => {
+      if (scrollElement) {
+        scrollElement.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [hasMoreMessages]);
+  
+  // Function to scroll to bottom
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const getDateLabel = (timestamp: string) => {
@@ -261,7 +315,7 @@ export const ChatMessagesList = ({
     );
   }
 
-  if (!selectedUserId && !specificEmail) {
+  if (!selectedUserId && !specificEmail && !roomId) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
         <p>Select a contact to start chatting</p>
@@ -271,8 +325,7 @@ export const ChatMessagesList = ({
 
   return (
     <ScrollArea 
-      className="flex-1 p-4" 
-      onScroll={handleScroll}
+      className="flex-1 p-4 relative" 
       ref={scrollRef}
     >
       {allMessages.length === 0 ? (
@@ -281,6 +334,26 @@ export const ChatMessagesList = ({
         </div>
       ) : (
         <div className="space-y-6">
+          {hasMoreMessages && page === 1 && (
+            <div className="text-center mb-4">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setPage(prev => prev + 1)}
+                disabled={isFetchingNextPage}
+                className="text-xs"
+              >
+                {isFetchingNextPage ? 'Loading...' : 'Load older messages'}
+              </Button>
+            </div>
+          )}
+          
+          {isFetchingNextPage && page > 1 && (
+            <div className="text-center mb-4">
+              <Skeleton className="h-8 w-32 mx-auto" />
+            </div>
+          )}
+          
           {Object.entries(groupedMessages).map(([date, messages]) => (
             <div key={date} className="space-y-4">
               <div className="relative flex py-2">
@@ -306,7 +379,7 @@ export const ChatMessagesList = ({
                           : 'bg-background'
                       }`}
                     >
-                      {!isCurrentUser && groupChat && (
+                      {!isCurrentUser && (groupChat || useRoomMessages) && (
                         <div className="mb-1">
                           <p className={`text-xs font-medium capitalize ${
                             senderRole === 'doctor' ? 'text-blue-600 dark:text-blue-400' :
@@ -335,6 +408,17 @@ export const ChatMessagesList = ({
           ))}
           <div ref={messagesEndRef} />
         </div>
+      )}
+      
+      {showScrollButton && (
+        <Button 
+          size="icon"
+          variant="secondary"
+          className="absolute bottom-4 right-4 h-8 w-8 rounded-full shadow-md"
+          onClick={scrollToBottom}
+        >
+          <ChevronDown className="h-4 w-4" />
+        </Button>
       )}
     </ScrollArea>
   );
