@@ -37,51 +37,28 @@ const ChatPage = () => {
         try {
           console.log("Fetching care team room for patient ID:", user.id);
           
-          // Use direct table access with RLS policies instead of RPC
-          const { data: roomData, error: roomError } = await supabase
-            .from('chat_rooms')
-            .select('id')
-            .eq('patient_id', user.id)
-            .eq('room_type', 'care_team')
-            .eq('is_active', true)
-            .limit(1)
-            .single();
+          // Use the RPC function instead of direct table access
+          const { data: roomId, error: roomError } = await supabase
+            .rpc('get_patient_care_team_room', { p_patient_id: user.id });
           
           if (roomError) {
-            if (roomError.code !== 'PGRST116') { // Not found error
-              console.error("Error fetching patient care team room:", roomError);
-              setRoomError(`Error fetching room: ${roomError.message}`);
-              
-              toast({
-                title: "Error loading chat room",
-                description: "Could not load your care team chat room",
-                variant: "destructive"
-              });
-            } else {
-              console.log("No care team room found for patient:", user.id);
-              setRoomError("No care team room found");
-            }
-          } else if (roomData) {
-            console.log("Found patient care team room:", roomData.id);
-            setPatientRoomId(roomData.id);
+            console.error("Error fetching patient care team room:", roomError);
+            setRoomError(`Error fetching room: ${roomError.message}`);
+            
+            toast({
+              title: "Error loading chat room",
+              description: "Could not load your care team chat room",
+              variant: "destructive"
+            });
+          } else if (roomId) {
+            console.log("Found patient care team room:", roomId);
+            setPatientRoomId(roomId);
           } else {
-            console.log("No room data returned for patient:", user.id);
-            setRoomError("No room data returned");
+            console.log("No care team room found for patient:", user.id);
+            setRoomError("No care team room found");
           }
           
           // Check if there are ANY rooms for this patient
-          const { data: allRooms, error: allRoomsError } = await supabase
-            .from('chat_rooms')
-            .select('id, name, patient_id')
-            .eq('patient_id', user.id);
-            
-          if (allRoomsError) {
-            console.error("Error checking all rooms:", allRoomsError);
-          } else {
-            console.log(`Found ${allRooms?.length || 0} total rooms for patient:`, allRooms);
-          }
-          
-          // Check if the patient is a member of any rooms
           const { data: roomMemberships, error: membershipError } = await supabase
             .from('room_members')
             .select('room_id')

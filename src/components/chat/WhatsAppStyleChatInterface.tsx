@@ -64,6 +64,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       setIsLoadingMembers(true);
       console.log("Fetching members for room:", roomId);
       
+      // Use the room_members table with RLS policies for secure access
       const { data, error } = await supabase
         .from('room_members')
         .select(`
@@ -154,6 +155,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       setLocalMessages(prev => [...prev, tempMessage]);
       
+      // Send message using RPC function with SECURITY DEFINER
       const { data, error } = await supabase.rpc('send_room_message', {
         p_room_id: selectedRoomId,
         p_message: newMessage
@@ -237,6 +239,37 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
 
   const showChatOnly = (isMobile && selectedRoomId && !showSidebar) || userRole === 'patient';
   const showSidebarOnly = isMobile && showSidebar && userRole !== 'patient';
+  
+  // For patients with no room
+  const renderPatientEmptyState = () => {
+    if (patientRoomId === null) {
+      return (
+        <div className="space-y-4">
+          <AlertCircle className="h-12 w-12 mx-auto mb-4 text-amber-500" />
+          <h3 className="font-medium text-xl mb-2">No Care Team Chat Available</h3>
+          <p className="text-muted-foreground">
+            It looks like you don't have a care team assigned yet or your care team chat hasn't been created.
+          </p>
+          <Alert className="mt-6">
+            <AlertTitle>What to do next</AlertTitle>
+            <AlertDescription>
+              Please contact your healthcare provider to ensure you're assigned to a care team.
+            </AlertDescription>
+          </Alert>
+        </div>
+      );
+    } else {
+      return (
+        <div className="space-y-4">
+          <MessageCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/60" />
+          <p className="text-lg">Welcome to your care team chat</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            No conversations started yet. Your healthcare team will be with you soon.
+          </p>
+        </div>
+      );
+    }
+  };
 
   return (
     <ErrorBoundary>
@@ -342,34 +375,9 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                 </>
               ) : (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                  <div className="text-center">
+                  <div className="text-center p-6 max-w-md mx-auto">
                     {userRole === 'patient' ? (
-                      patientRoomId === null ? (
-                        <div className="space-y-4">
-                          {/* No care team chat found for patient */}
-                          <div className="p-6 max-w-md mx-auto">
-                            <AlertCircle className="h-12 w-12 mx-auto mb-4 text-amber-500" />
-                            <h3 className="font-medium text-xl mb-2">No Care Team Chat Available</h3>
-                            <p className="text-muted-foreground">
-                              It looks like you don't have a care team assigned yet or your care team chat hasn't been created.
-                            </p>
-                            <Alert className="mt-6">
-                              <AlertTitle>What to do next</AlertTitle>
-                              <AlertDescription>
-                                Please contact your healthcare provider to ensure you're assigned to a care team.
-                              </AlertDescription>
-                            </Alert>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <MessageCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/60" />
-                          <p className="text-lg">Welcome to your care team chat</p>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            No conversations started yet. Your healthcare team will be with you soon.
-                          </p>
-                        </div>
-                      )
+                      renderPatientEmptyState()
                     ) : (
                       <>
                         <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/60" />

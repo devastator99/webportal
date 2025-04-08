@@ -20,22 +20,17 @@ export const MobileNavigation: React.FC = () => {
     if (user && userRole === 'patient') {
       const fetchPatientChatRoom = async () => {
         try {
-          // Instead of using RPC, use a secure query to the rooms table
-          const { data: roomData, error: roomError } = await supabase
-            .from('chat_rooms')
-            .select('id')
-            .eq('patient_id', user.id)
-            .eq('room_type', 'care_team')
-            .eq('is_active', true)
-            .limit(1)
-            .single();
+          // Use the RPC function for better security
+          const { data: roomId, error: roomError } = await supabase
+            .rpc('get_patient_care_team_room', { p_patient_id: user.id });
           
           if (roomError) {
-            if (roomError.code !== 'PGRST116') { // Not found error
-              console.error("Error fetching patient care team room:", roomError);
-            }
-          } else if (roomData) {
-            setPatientRoomId(roomData.id);
+            console.error("Error fetching patient care team room:", roomError);
+          } else if (roomId) {
+            console.log("Found patient care team room in mobile nav:", roomId);
+            setPatientRoomId(roomId);
+          } else {
+            console.log("No care team room found for patient in mobile nav");
           }
         } catch (error) {
           console.error("Error in patient room fetch:", error);
