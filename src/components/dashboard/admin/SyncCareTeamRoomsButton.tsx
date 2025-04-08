@@ -60,9 +60,9 @@ export const SyncCareTeamRoomsButton = () => {
       // First, verify the function exists
       console.log("Starting care team room sync with DB function...");
       
-      // Use type assertion to work with the RPC function
+      // Use any type assertion to work with the RPC function that isn't in the TypeScript definitions
       const { data: rpcResult, error } = await supabase.rpc(
-        'sync_all_care_team_rooms'
+        'sync_all_care_team_rooms' as any
       );
       
       if (error) {
