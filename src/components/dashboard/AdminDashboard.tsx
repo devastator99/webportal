@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserManagement } from "@/components/dashboard/admin/UserManagement";
@@ -5,7 +6,7 @@ import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAs
 import { PatientAssignmentsReport } from "@/components/dashboard/admin/PatientAssignmentsReport";
 import { UserRegistration } from "@/components/dashboard/admin/UserRegistration";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { Settings } from "lucide-react";
+import { Settings, Users, FileChart } from "lucide-react";
 import { SyncCareTeamsButton } from "@/components/dashboard/admin/SyncCareTeamsButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
@@ -53,22 +54,34 @@ export const AdminDashboard = () => {
       )}
       
       <div className="space-y-6">
-        <CollapsibleSection title="Patient Assignments" defaultOpen={true}>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-1">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Assign Care Team</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <PatientAssignmentManager />
-                </CardContent>
-              </Card>
-            </div>
-            <div className="md:col-span-2">
+        {/* Separate Care Team Assignment section */}
+        <CollapsibleSection title="Care Team Assignment" defaultOpen={true}>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Assign Care Team
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PatientAssignmentManager />
+            </CardContent>
+          </Card>
+        </CollapsibleSection>
+        
+        {/* Separate Care Team Report section */}
+        <CollapsibleSection title="Care Team Reports" defaultOpen={false}>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileChart className="h-5 w-5" />
+                Patient Care Team Assignments
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <PatientAssignmentsReport />
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </CollapsibleSection>
         
         <CollapsibleSection title="User Management">
