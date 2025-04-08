@@ -40,7 +40,26 @@ serve(async (req: Request) => {
       );
     }
 
-    console.log(`Verifying existence of ${userIds.length} users`);
+    // Handle AI bot ID separately since it's a special case
+    const aiBotId = '00000000-0000-0000-0000-000000000000';
+    const hasAiBot = userIds.includes(aiBotId);
+    const realUserIds = userIds.filter(id => id !== aiBotId);
+    
+    console.log(`Verifying existence of ${realUserIds.length} users (excluding AI bot)`);
+    
+    if (realUserIds.length === 0 && hasAiBot) {
+      // Only the AI bot was requested, which we know is valid
+      return new Response(
+        JSON.stringify({ 
+          validUserIds: hasAiBot ? [aiBotId] : [],
+          invalidUserIds: [] 
+        }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" } 
+        }
+      );
+    }
     
     // Query auth.users to check which IDs exist
     const { data, error } = await supabase.auth.admin.listUsers({
@@ -55,8 +74,11 @@ serve(async (req: Request) => {
     const existingUserIds = new Set(data.users.map(user => user.id));
     
     // Determine which IDs are valid and which are invalid
-    const validUserIds = userIds.filter(id => existingUserIds.has(id));
-    const invalidUserIds = userIds.filter(id => !existingUserIds.has(id));
+    const validRealUserIds = realUserIds.filter(id => existingUserIds.has(id));
+    const invalidUserIds = realUserIds.filter(id => !existingUserIds.has(id));
+    
+    // Add AI bot ID to valid list if it was requested
+    const validUserIds = hasAiBot ? [...validRealUserIds, aiBotId] : validRealUserIds;
     
     console.log(`Found ${validUserIds.length} valid users and ${invalidUserIds.length} invalid users`);
 
