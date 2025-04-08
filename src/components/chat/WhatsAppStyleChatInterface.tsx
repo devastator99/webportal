@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface WhatsAppStyleChatInterfaceProps {
   patientRoomId?: string | null;
@@ -237,6 +238,38 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     enabled: !!selectedRoomId
   });
 
+  const { data: careTeamInfo, isLoading: isLoadingCareTeam } = useQuery({
+    queryKey: ["care_team_info", roomDetails?.patient_id],
+    queryFn: async () => {
+      if (!roomDetails?.patient_id) return null;
+      
+      try {
+        // Fetch patient assignments to get doctor and nutritionist
+        const { data, error } = await supabase
+          .from('patient_assignments')
+          .select(`
+            doctor_id,
+            doctor:doctor_id(first_name, last_name),
+            nutritionist_id,
+            nutritionist:nutritionist_id(first_name, last_name)
+          `)
+          .eq('patient_id', roomDetails.patient_id)
+          .single();
+          
+        if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+          console.error("Error fetching patient assignments:", error);
+          throw error;
+        }
+        
+        return data || null;
+      } catch (error) {
+        console.error("Error fetching care team info:", error);
+        return null;
+      }
+    },
+    enabled: !!roomDetails?.patient_id
+  });
+
   const showChatOnly = (isMobile && selectedRoomId && !showSidebar) || userRole === 'patient';
   const showSidebarOnly = isMobile && showSidebar && userRole !== 'patient';
   
@@ -269,6 +302,57 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         </div>
       );
     }
+  };
+
+  // Component to display care team members
+  const CareTeamInfo = () => {
+    const doctor = careTeamInfo?.doctor;
+    const nutritionist = careTeamInfo?.nutritionist;
+    
+    if (isLoadingCareTeam) {
+      return <Skeleton className="h-4 w-24" />;
+    }
+    
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="text-xs text-muted-foreground flex items-center cursor-help">
+              <Users className="h-3 w-3 mr-1" />
+              <span>{roomMembers.length} members</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent className="p-2 max-w-xs">
+            <div className="space-y-1">
+              <h4 className="text-xs font-semibold mb-1">Care Team</h4>
+              {doctor ? (
+                <div className="flex items-center gap-1">
+                  <UserCircle className="h-3 w-3 text-blue-500" />
+                  <span className="text-xs">Dr. {doctor.first_name} {doctor.last_name}</span>
+                  <Badge variant="outline" className="text-[10px] px-1 h-4">doctor</Badge>
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground">No doctor assigned</div>
+              )}
+              {nutritionist ? (
+                <div className="flex items-center gap-1">
+                  <UserCircle className="h-3 w-3 text-green-500" />
+                  <span className="text-xs">{nutritionist.first_name} {nutritionist.last_name}</span>
+                  <Badge variant="outline" className="text-[10px] px-1 h-4">nutritionist</Badge>
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground">No nutritionist assigned</div>
+              )}
+              <div className="flex items-center gap-1">
+                <UserCircle className="h-3 w-3 text-purple-500" />
+                <span className="text-xs">AI Assistant</span>
+                <Badge variant="outline" className="text-[10px] px-1 h-4">aibot</Badge>
+              </div>
+            </div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
   };
 
   return (
@@ -317,13 +401,8 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                           roomDetails?.name || 'Care Team Chat'
                         )}
                       </div>
-                      <div className="text-xs text-muted-foreground flex items-center">
-                        <Users className="h-3 w-3 mr-1" />
-                        {isLoadingMembers ? (
-                          <Skeleton className="h-4 w-24" />
-                        ) : (
-                          `${roomMembers.length} members`
-                        )}
+                      <div className="text-xs text-muted-foreground">
+                        <CareTeamInfo />
                       </div>
                     </div>
                     
@@ -332,9 +411,14 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                       size="sm" 
                       className="ml-auto"
                       onClick={() => {
+                        const doctor = careTeamInfo?.doctor;
+                        const nutritionist = careTeamInfo?.nutritionist;
+                        const doctorText = doctor ? `Dr. ${doctor.first_name} ${doctor.last_name}` : "No doctor assigned";
+                        const nutritionistText = nutritionist ? `${nutritionist.first_name} ${nutritionist.last_name}` : "No nutritionist assigned";
+                        
                         toast({
-                          title: "Members",
-                          description: roomMembers.map(m => `${m.first_name} ${m.last_name} (${m.role})`).join(', '),
+                          title: "Care Team Members",
+                          description: `Doctor: ${doctorText}\nNutritionist: ${nutritionistText}\nAI Assistant`,
                           duration: 5000,
                         });
                       }}

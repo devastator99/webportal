@@ -1,12 +1,15 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowDown, MoreHorizontal } from "lucide-react";
+import { ArrowDown, MoreHorizontal, UserCircle, Users } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 const ChatMessage = ({ message, isCurrentUser, formatMessageDate }) => {
   const messageRole = typeof message.sender?.role === 'string' 
@@ -163,6 +166,47 @@ const ScrollToBottomButton = ({ onClick }) => (
     <ArrowDown className="h-4 w-4" />
   </button>
 );
+
+// New component to display care team members
+const CareTeamMembers = ({ careTeamMembers }) => {
+  const doctor = careTeamMembers.find(member => member.role === 'doctor' || member.role?.role === 'doctor');
+  const nutritionist = careTeamMembers.find(member => member.role === 'nutritionist' || member.role?.role === 'nutritionist');
+  
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center gap-1 text-xs text-muted-foreground cursor-help">
+            <Users className="h-3 w-3" />
+            <span>{careTeamMembers.length} members</span>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent className="p-2 max-w-xs">
+          <div className="space-y-1">
+            <h4 className="text-xs font-semibold">Care Team</h4>
+            {doctor && (
+              <div className="flex items-center gap-1">
+                <UserCircle className="h-3 w-3 text-blue-500" />
+                <span className="text-xs">Dr. {doctor.first_name} {doctor.last_name}</span>
+                <Badge variant="outline" className="text-[10px] px-1 h-4">doctor</Badge>
+              </div>
+            )}
+            {nutritionist && (
+              <div className="flex items-center gap-1">
+                <UserCircle className="h-3 w-3 text-green-500" />
+                <span className="text-xs">{nutritionist.first_name} {nutritionist.last_name}</span>
+                <Badge variant="outline" className="text-[10px] px-1 h-4">nutritionist</Badge>
+              </div>
+            )}
+            {!doctor && !nutritionist && (
+              <div className="text-xs text-muted-foreground">No doctor or nutritionist assigned</div>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+};
 
 export const ChatMessagesList = ({
   roomId,
