@@ -266,7 +266,7 @@ export const ChatMessagesList = ({
             for (const senderId of senderIds) {
               try {
                 const { data: roleData, error: roleError } = await supabase
-                  .rpc('get_user_role', { user_id: senderId });
+                  .rpc('get_user_role', { lookup_user_id: senderId });
                   
                 if (!roleError && roleData) {
                   roles.set(senderId, roleData);
