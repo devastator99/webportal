@@ -2,6 +2,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatPageHeader } from "@/components/chat/ChatPageHeader";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
+import { DoctorWhatsAppChat } from "@/components/chat/DoctorWhatsAppChat";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
@@ -66,7 +67,13 @@ const ChatPage = () => {
           </div>
         )}
         
-        <WhatsAppStyleChatInterface />
+        <div className="h-[calc(100vh-220px)]">
+          {isDoctor ? (
+            <DoctorWhatsAppChat />
+          ) : (
+            <WhatsAppStyleChatInterface />
+          )}
+        </div>
       </ErrorBoundary>
     </div>
   );

@@ -64,13 +64,16 @@ export const WhatsAppStyleChatInterface = () => {
         
       if (error) throw error;
       
-      // Format member data
-      const formattedMembers = data.map(member => ({
-        id: member.user_id,
-        first_name: member.profiles?.first_name || "User",
-        last_name: member.profiles?.last_name || "",
-        role: member.role || "member"
-      }));
+      // Format member data - handle profiles that might be null
+      const formattedMembers = data.map(member => {
+        const profile = member.profiles || {};
+        return {
+          id: member.user_id,
+          first_name: profile.first_name || "User",
+          last_name: profile.last_name || "",
+          role: member.role || "member"
+        };
+      });
       
       setRoomMembers(formattedMembers);
     } catch (error) {

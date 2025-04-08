@@ -9,17 +9,29 @@ import { ArrowDown, MoreHorizontal } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 
 interface ChatMessagesListProps {
-  roomId: string;
-  localMessages: any[];
-  careTeamMembers: any[];
+  roomId?: string;
+  selectedUserId?: string | null;
+  groupChat?: boolean;
+  careTeamGroup?: any;
+  careTeamMembers?: any[];
+  offlineMode?: boolean;
+  localMessages?: any[];
   useRoomMessages?: boolean;
+  includeCareTeamMessages?: boolean;
+  specificEmail?: string;
 }
 
 export const ChatMessagesList = ({
   roomId,
-  localMessages,
-  careTeamMembers,
-  useRoomMessages = false
+  selectedUserId = null,
+  groupChat = false,
+  careTeamGroup = null,
+  careTeamMembers = [],
+  offlineMode = false,
+  localMessages = [],
+  useRoomMessages = false,
+  includeCareTeamMessages = false,
+  specificEmail
 }: ChatMessagesListProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -38,11 +50,11 @@ export const ChatMessagesList = ({
   } = useQuery({
     queryKey: ["room_messages", roomId, page],
     queryFn: async () => {
-      if (!roomId) return { messages: [], hasMore: false };
+      if (!roomId && !selectedUserId && !specificEmail) return { messages: [], hasMore: false };
 
       try {
         let query;
-        if (useRoomMessages) {
+        if (useRoomMessages && roomId) {
           // Fetch room messages
           query = supabase
             .from('room_messages')
@@ -62,25 +74,40 @@ export const ChatMessagesList = ({
             .eq('room_id', roomId)
             .order('created_at', { ascending: false })
             .range((page - 1) * pageSize, page * pageSize - 1);
-        } else {
+        } else if (selectedUserId) {
           // Fetch direct messages between users
-          query = supabase.rpc('get_chat_messages', {
-            p_sender_id: roomId,
+          const { data, error } = await supabase.rpc('get_chat_messages', {
+            p_sender_id: selectedUserId,
             p_page: page,
             p_page_size: pageSize
           });
+          
+          if (error) throw error;
+          return data;
+        } else if (specificEmail) {
+          // Search functionality for emails
+          const { data, error } = await supabase
+            .from('chat_messages')
+            .select('*')
+            .ilike('message', `%${specificEmail}%`)
+            .order('created_at', { ascending: false })
+            .range((page - 1) * pageSize, page * pageSize - 1);
+            
+          if (error) throw error;
+          
+          return { 
+            messages: data || [], 
+            hasMore: data?.length === pageSize,
+            page
+          };
         }
 
-        const { data, error } = await query;
-        
-        if (error) throw error;
-
-        // For room messages we need to format and reverse to get oldest first
-        let messages;
-        let hasMore;
-        
-        if (useRoomMessages) {
-          messages = data.map((message: any) => ({
+        if (query) {
+          const { data, error } = await query;
+          if (error) throw error;
+  
+          // For room messages we need to format and reverse to get oldest first
+          const messages = data.map((message: any) => ({
             ...message,
             sender: {
               id: message.sender?.id,
@@ -90,18 +117,17 @@ export const ChatMessagesList = ({
             }
           })).reverse();
           
-          hasMore = data.length === pageSize;
+          const hasMore = data.length === pageSize;
           return { messages, hasMore, page };
-        } else {
-          // Direct messages from RPC are already formatted
-          return data;
         }
+        
+        return { messages: [], hasMore: false };
       } catch (error) {
         console.error("Error fetching messages:", error);
         throw error;
       }
     },
-    enabled: !!roomId,
+    enabled: !!(roomId || selectedUserId || specificEmail),
     staleTime: 1000 * 60 // 1 minute
   });
 
@@ -160,9 +186,9 @@ export const ChatMessagesList = ({
 
   // Set up real-time subscription for new messages
   useEffect(() => {
-    if (!roomId) return;
+    if (!roomId && !selectedUserId) return;
     
-    const subscription = useRoomMessages
+    const subscription = useRoomMessages && roomId
       ? supabase
           .channel(`room_messages:${roomId}`)
           .on('postgres_changes', {
@@ -175,7 +201,7 @@ export const ChatMessagesList = ({
           })
           .subscribe()
       : supabase
-          .channel(`chat_messages:${roomId}`)
+          .channel(`chat_messages:${selectedUserId}`)
           .on('postgres_changes', {
             event: 'INSERT',
             schema: 'public',
@@ -188,7 +214,7 @@ export const ChatMessagesList = ({
     return () => {
       subscription.unsubscribe();
     };
-  }, [roomId, refetch, useRoomMessages]);
+  }, [roomId, selectedUserId, refetch, useRoomMessages]);
 
   if (isLoading && page === 1) {
     return (

@@ -9,19 +9,23 @@ import { DocumentAnalyzer } from "@/components/dashboard/doctor/DocumentSummary"
 import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWriter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, Mic, MessageCircle } from "lucide-react";
+import { Calendar, Users, MessageCircle } from "lucide-react";
 import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
+import { DoctorWhatsAppChat } from "@/components/chat/DoctorWhatsAppChat";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [showVoiceScheduler, setShowVoiceScheduler] = useState(false);
+  const [showChatOverlay, setShowChatOverlay] = useState(false);
   
   return (
     <div className="animate-fade-up">
@@ -39,22 +43,29 @@ export const DoctorDashboard = () => {
             <span>Patients</span>
           </Button>
           
-          <ScheduleAppointment callerRole="doctor">
-            <Button 
-              className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
-            >
-              <Calendar className="mr-2 h-4 w-4" />
-              <span>Calendar</span>
-            </Button>
-          </ScheduleAppointment>
-          
-          <Button
+          <Button 
             className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
-            onClick={() => window.open("/chat", "_blank")}
+            onClick={() => setShowVoiceScheduler(true)}
           >
-            <MessageCircle className="mr-2 h-4 w-4" />
-            <span>Chat</span>
+            <Calendar className="mr-2 h-4 w-4" />
+            <span>Calendar</span>
           </Button>
+          
+          <Dialog open={showChatOverlay} onOpenChange={setShowChatOverlay}>
+            <DialogTrigger asChild>
+              <Button
+                className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
+              >
+                <MessageCircle className="mr-2 h-4 w-4" />
+                <span>Chat</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[800px] max-h-[80vh] p-0">
+              <div className="h-[70vh]">
+                <DoctorWhatsAppChat />
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
       
