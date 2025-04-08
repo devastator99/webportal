@@ -48,7 +48,22 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       try {
         console.log("Fetching care team rooms for user:", user.id, "with role:", userRole);
         
-        // Get rooms directly from the database
+        // Get direct database query results for debugging
+        const { data: directResponse, error: directError } = await supabase
+          .from('room_members')
+          .select('room_id')
+          .eq('user_id', user.id);
+          
+        console.log("Direct room membership query:", { 
+          count: directResponse?.length || 0, 
+          error: directError 
+        });
+        
+        if (directResponse && directResponse.length > 0) {
+          console.log("User is a member of rooms:", directResponse.map(r => r.room_id));
+        }
+        
+        // Get rooms using the RPC function
         const { data: rooms, error: roomsError } = await supabase
           .rpc('get_user_care_team_rooms', { 
             p_user_id: user.id 
@@ -60,25 +75,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
         }
         
         console.log(`Found ${rooms?.length || 0} care team rooms for ${userRole} ${user.id}`);
-        
-        // If doctor has no rooms, run the fix function
-        if (userRole === 'doctor' && (!rooms || rooms.length === 0)) {
-          console.log("Doctor has no rooms, attempting fix...");
-          await fixDoctorRoomAccess();
-          
-          // Try fetching rooms again after fix
-          const { data: roomsAfterFix, error: roomsAfterFixError } = await supabase
-            .rpc('get_user_care_team_rooms', { 
-              p_user_id: user.id 
-            });
-            
-          if (roomsAfterFixError) {
-            console.error("Error fetching rooms after fix:", roomsAfterFixError);
-          } else {
-            console.log(`Found ${roomsAfterFix?.length || 0} care team rooms after fix`);
-            return roomsAfterFix || [];
-          }
-        }
         
         return rooms || [];
       } catch (error) {
@@ -96,38 +92,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
     staleTime: 10000
   });
 
-  // Function to fix doctor room access
-  const fixDoctorRoomAccess = async () => {
-    try {
-      console.log("Running fix-doctor-room-access function...");
-      
-      const { data: fixResult, error: fixError } = await supabase.functions.invoke(
-        'fix-doctor-room-access',
-        { method: 'POST' }
-      );
-      
-      if (fixError) {
-        console.error("Error running fix:", fixError);
-        toast({
-          title: "Error",
-          description: "Could not fix room access. Please contact an administrator.",
-          variant: "destructive"
-        });
-      } else {
-        console.log("Fix completed:", fixResult);
-        if (fixResult.successfulFixes > 0) {
-          toast({
-            title: "Room Access Fixed",
-            description: `Fixed ${fixResult.successfulFixes} room access issues.`,
-            duration: 3000,
-          });
-        }
-      }
-    } catch (error) {
-      console.error("Exception running room fix:", error);
-    }
-  };
-
   useEffect(() => {
     if (error) {
       console.error("Error in care team rooms query:", error);
@@ -139,9 +103,101 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       setIsSyncing(true);
       console.log("Manually refreshing care team rooms");
       
-      // For doctors, run the fix first
+      // For doctors, check room memberships directly
       if (userRole === 'doctor') {
-        await fixDoctorRoomAccess();
+        try {
+          // Check direct room memberships first
+          const { data: directRooms, error: directError } = await supabase
+            .from('room_members')
+            .select('room_id, role')
+            .eq('user_id', user?.id);
+            
+          console.log("Direct room memberships check:", { 
+            count: directRooms?.length || 0, 
+            rooms: directRooms,
+            error: directError 
+          });
+          
+          // Get patient assignments for this doctor
+          const { data: patients, error: patientsError } = await supabase
+            .from('patient_assignments')
+            .select('patient_id')
+            .eq('doctor_id', user?.id);
+            
+          console.log("Doctor's assigned patients:", { 
+            count: patients?.length || 0, 
+            patients: patients?.map(p => p.patient_id),
+            error: patientsError 
+          });
+          
+          // Get care teams rooms for these patients
+          if (patients && patients.length > 0) {
+            const patientIds = patients.map(p => p.patient_id);
+            
+            const { data: patientRooms, error: roomsError } = await supabase
+              .from('chat_rooms')
+              .select('id, patient_id, name')
+              .in('patient_id', patientIds)
+              .eq('room_type', 'care_team');
+              
+            console.log("Care team rooms for doctor's patients:", { 
+              count: patientRooms?.length || 0, 
+              rooms: patientRooms,
+              error: roomsError 
+            });
+            
+            // Check which rooms doctor is missing from
+            if (patientRooms && patientRooms.length > 0) {
+              const membershipRoomIds = directRooms?.map(r => r.room_id) || [];
+              const missingRooms = patientRooms.filter(room => 
+                !membershipRoomIds.includes(room.id)
+              );
+              
+              console.log("Missing room memberships:", { 
+                count: missingRooms.length, 
+                rooms: missingRooms 
+              });
+              
+              // Add doctor to missing rooms
+              if (missingRooms.length > 0) {
+                for (const room of missingRooms) {
+                  const { data: added, error: addError } = await supabase
+                    .from('room_members')
+                    .insert({
+                      room_id: room.id,
+                      user_id: user?.id,
+                      role: 'doctor'
+                    });
+                    
+                  console.log(`Added doctor to room ${room.id}:`, { 
+                    added, 
+                    error: addError 
+                  });
+                }
+                
+                toast({
+                  title: "Rooms Synced",
+                  description: `Added you to ${missingRooms.length} missing care team rooms.`,
+                  duration: 3000,
+                });
+              }
+            }
+          }
+          
+          // Run fix function as a backup
+          const { data: fixResult, error: fixError } = await supabase.functions.invoke(
+            'fix-doctor-room-access',
+            { method: 'POST' }
+          );
+          
+          if (fixError) {
+            console.error("Error running fix:", fixError);
+          } else {
+            console.log("Fix result:", fixResult);
+          }
+        } catch (e) {
+          console.error("Error in direct room check:", e);
+        }
       }
       
       // Invalidate the query cache
@@ -240,7 +296,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
         {rooms.length === 0 && !isLoading && (
           <div className="text-xs text-muted-foreground mt-1 italic">
             {isProvider ? 
-              "No care team rooms found. Ask an admin to sync your care teams." : 
+              "No care team rooms found. Check patient assignments or click refresh." : 
               "No care team chats available."
             }
           </div>
