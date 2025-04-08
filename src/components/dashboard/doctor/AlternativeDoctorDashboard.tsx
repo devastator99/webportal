@@ -16,6 +16,7 @@ import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TodaySchedule } from "@/components/dashboard/doctor/TodaySchedule";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 export const AlternativeDoctorDashboard = () => {
   const { user } = useAuth();
@@ -45,13 +46,22 @@ export const AlternativeDoctorDashboard = () => {
             <span>Patients</span>
           </Button>
           
-          <Button
-            className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
-            onClick={() => setShowVoiceScheduler(true)}
-          >
-            <Calendar className="mr-2 h-4 w-4" />
-            <span>Calendar</span>
-          </Button>
+          <Dialog open={showVoiceScheduler} onOpenChange={setShowVoiceScheduler}>
+            <DialogTrigger asChild>
+              <Button
+                className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                <Mic className="h-3.5 w-3.5 ml-1 mr-1" />
+                <span>Schedule</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[800px] max-h-[80vh] p-0">
+              <div className="h-[70vh]">
+                <VoiceScheduler onClose={() => setShowVoiceScheduler(false)} />
+              </div>
+            </DialogContent>
+          </Dialog>
           
           <Button
             className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
@@ -107,14 +117,6 @@ export const AlternativeDoctorDashboard = () => {
           </CollapsibleSection>
         </div>
       </ScrollArea>
-      
-      {showVoiceScheduler && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50">
-          <div className="w-full max-w-md">
-            <VoiceScheduler onClose={() => setShowVoiceScheduler(false)} />
-          </div>
-        </div>
-      )}
     </div>
   );
 };

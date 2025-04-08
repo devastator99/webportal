@@ -9,19 +9,21 @@ import { DocumentAnalyzer } from "@/components/dashboard/doctor/DocumentSummary"
 import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWriter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, MessageCircle } from "lucide-react";
+import { Calendar, Users, MessageCircle, Mic } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [showChatOverlay, setShowChatOverlay] = useState(false);
+  const [showVoiceScheduler, setShowVoiceScheduler] = useState(false);
   
   return (
     <div className="animate-fade-up">
@@ -39,13 +41,22 @@ export const DoctorDashboard = () => {
             <span>Patients</span>
           </Button>
           
-          <Button 
-            className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
-            onClick={() => navigate("/appointments")}
-          >
-            <Calendar className="mr-2 h-4 w-4" />
-            <span>Calendar</span>
-          </Button>
+          <Dialog open={showVoiceScheduler} onOpenChange={setShowVoiceScheduler}>
+            <DialogTrigger asChild>
+              <Button 
+                className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                <Mic className="h-3.5 w-3.5 ml-1 mr-1" />
+                <span>Schedule</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[800px] max-h-[80vh] p-0">
+              <div className="h-[70vh]">
+                <VoiceScheduler onClose={() => setShowVoiceScheduler(false)} />
+              </div>
+            </DialogContent>
+          </Dialog>
           
           <Dialog open={showChatOverlay} onOpenChange={setShowChatOverlay}>
             <DialogTrigger asChild>
