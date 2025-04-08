@@ -39,7 +39,9 @@ export const PatientAssignmentsReport = () => {
     <Card className={isIPad ? "overflow-x-auto max-w-full" : ""}>
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
+          <div className="bg-[#D3E4FD] p-1.5 rounded-full">
+            <Users className="h-4 w-4 text-[#0EA5E9]" />
+          </div>
           Patient Care Team Assignments
         </CardTitle>
         <Button 

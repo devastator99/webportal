@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { getNutritionistPatients } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -100,7 +101,35 @@ export const NutritionistDashboard = () => {
     <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
       <DashboardHeader />
       
-      <NutritionistStatsCards patientsCount={patients?.length || 0} />
+      <Card className="mb-4">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex flex-col items-center">
+              <div className="bg-[#E5DEFF] p-3 rounded-full mb-2">
+                <Users className="h-6 w-6 text-[#9b87f5]" />
+              </div>
+              <span className="text-2xl font-bold">{user?.id ? (patients?.length || 0) : 0}</span>
+              <span className="text-xs text-gray-500 text-center">Patients</span>
+            </div>
+            
+            <div className="flex flex-col items-center">
+              <div className="bg-[#F2FCE2] p-3 rounded-full mb-2">
+                <Salad className="h-6 w-6 text-green-500" />
+              </div>
+              <span className="text-2xl font-bold">0</span>
+              <span className="text-xs text-gray-500 text-center">Health Plans</span>
+            </div>
+            
+            <div className="flex flex-col items-center">
+              <div className="bg-[#FDE1D3] p-3 rounded-full mb-2">
+                <Calendar className="h-6 w-6 text-[#F97316]" />
+              </div>
+              <span className="text-2xl font-bold">0</span>
+              <span className="text-xs text-gray-500 text-center">Calendar Events</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {viewMode === 'chat' ? (
         <>

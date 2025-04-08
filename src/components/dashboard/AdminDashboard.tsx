@@ -6,7 +6,7 @@ import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAs
 import { PatientAssignmentsReport } from "@/components/dashboard/admin/PatientAssignmentsReport";
 import { UserRegistration } from "@/components/dashboard/admin/UserRegistration";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { Settings, Users, FileText } from "lucide-react";
+import { Settings, Users, FileText, Database, UserPlus, Building } from "lucide-react";
 import { SyncCareTeamsButton } from "@/components/dashboard/admin/SyncCareTeamsButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
@@ -52,6 +52,36 @@ export const AdminDashboard = () => {
           <AlertDescription>{syncError}</AlertDescription>
         </Alert>
       )}
+      
+      <Card className="mb-4">
+        <CardContent className="p-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex flex-col items-center">
+              <div className="bg-[#D3E4FD] p-3 rounded-full mb-2">
+                <Users className="h-6 w-6 text-[#0EA5E9]" />
+              </div>
+              <span className="text-2xl font-bold">-</span>
+              <span className="text-xs text-gray-500 text-center">Total Users</span>
+            </div>
+            
+            <div className="flex flex-col items-center">
+              <div className="bg-[#E5DEFF] p-3 rounded-full mb-2">
+                <Building className="h-6 w-6 text-[#9b87f5]" />
+              </div>
+              <span className="text-2xl font-bold">-</span>
+              <span className="text-xs text-gray-500 text-center">Clinics</span>
+            </div>
+            
+            <div className="flex flex-col items-center">
+              <div className="bg-[#F2FCE2] p-3 rounded-full mb-2">
+                <Database className="h-6 w-6 text-green-500" />
+              </div>
+              <span className="text-2xl font-bold">-</span>
+              <span className="text-xs text-gray-500 text-center">System Status</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
       
       <div className="space-y-6">
         {/* Separate Care Team Assignment section */}
