@@ -6,6 +6,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+type SyncResult = {
+  patient_id: string;
+  room_id: string;
+  doctor_id: string;
+  nutritionist_id: string | null;
+  result: string;
+};
+
 export const SyncCareTeamRoomsButton = () => {
   const [isSyncing, setIsSyncing] = useState(false);
   const [results, setResults] = useState<any>(null);
@@ -50,7 +58,7 @@ export const SyncCareTeamRoomsButton = () => {
       setIsSyncing(true);
       setResults(null);
       
-      // Use the standard rpc() call but with a type assertion to handle the response
+      // Use type assertion to work with the RPC function that might not be in the TypeScript definitions
       const { data: rpcResult, error } = await supabase.rpc(
         'sync_all_care_team_rooms' as any
       );
@@ -59,18 +67,19 @@ export const SyncCareTeamRoomsButton = () => {
         throw error;
       }
       
-      console.log("Sync results:", rpcResult);
+      console.log("Sync results from DB function:", rpcResult);
       
-      // Safely handle the response based on what we know about the function
-      const data = rpcResult as any[];
+      // Type assertion to handle the response
+      const results = rpcResult as SyncResult[];
       
-      if (Array.isArray(data)) {
-        const successCount = data.filter(r => r.result === 'Success').length;
-        const errorCount = data.filter(r => r.result && r.result.includes('Error')).length;
+      if (Array.isArray(results)) {
+        // Count the success and error results
+        const successCount = results.filter(r => r.result === 'Success').length;
+        const errorCount = results.filter(r => r.result && r.result.includes('Error')).length;
         
         setResults({
           success: true,
-          results: data,
+          results: results,
           statusCounts: {
             success: successCount,
             error: errorCount
@@ -83,9 +92,11 @@ export const SyncCareTeamRoomsButton = () => {
         });
       } else {
         // Handle case where response is not in expected format
+        console.warn("Unexpected response format from sync_all_care_team_rooms:", rpcResult);
+        
         setResults({
           success: true,
-          results: data,
+          results: rpcResult,
           statusCounts: {
             success: 0,
             error: 0
