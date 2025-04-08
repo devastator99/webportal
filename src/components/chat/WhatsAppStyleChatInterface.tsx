@@ -291,11 +291,21 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         if (!data) return null;
         
         // Transform into CareTeamInfo interface
+        const doctor = data.doctor ? {
+          first_name: data.doctor.first_name,
+          last_name: data.doctor.last_name
+        } : null;
+        
+        const nutritionist = data.nutritionist ? {
+          first_name: data.nutritionist.first_name,
+          last_name: data.nutritionist.last_name
+        } : null;
+        
         const result: CareTeamInfo = {
           doctor_id: data.doctor_id,
           nutritionist_id: data.nutritionist_id,
-          doctor: data.doctor || null,
-          nutritionist: data.nutritionist || null
+          doctor: doctor,
+          nutritionist: nutritionist
         };
         
         return result;
