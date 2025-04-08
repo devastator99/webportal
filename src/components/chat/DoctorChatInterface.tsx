@@ -200,7 +200,7 @@ export const DoctorChatInterface = () => {
                 <ChatMessagesList
                   selectedUserId={selectedPatientId}
                   localMessages={localMessages}
-                  isGroupChat={true}
+                  groupChat={true}
                   includeCareTeamMessages={true}
                 />
                 <ChatInput

@@ -15,6 +15,10 @@ interface ChatMessagesListProps {
   careTeamMembers?: any[];
   localMessages?: any[];
   useRoomMessages?: boolean;
+  specificEmail?: string;
+  offlineMode?: boolean;
+  careTeamGroup?: any;
+  includeCareTeamMessages?: boolean;
 }
 
 export const ChatMessagesList = ({
@@ -23,7 +27,9 @@ export const ChatMessagesList = ({
   roomId,
   careTeamMembers = [],
   localMessages = [],
-  useRoomMessages = false
+  useRoomMessages = false,
+  specificEmail,
+  offlineMode = false
 }: ChatMessagesListProps) => {
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -43,6 +49,43 @@ export const ChatMessagesList = ({
     // Default values if sender not found
     return { name: "Unknown User", role: "unknown" };
   };
+
+  // Query for specific email if provided
+  const {
+    data: emailMessagesData,
+    isLoading: isLoadingEmailMessages,
+    error: emailMessagesError
+  } = useQuery({
+    queryKey: ["email_messages", specificEmail],
+    queryFn: async () => {
+      if (!specificEmail || !user?.id) return { messages: [], hasMore: false };
+      
+      try {
+        console.log(`Searching messages for email: ${specificEmail}`);
+        
+        const { data, error } = await supabase.functions.invoke('search-messages-by-email', {
+          body: { 
+            user_id: user.id,
+            email: specificEmail,
+            page: 1,
+            per_page: 50
+          }
+        });
+        
+        if (error) throw error;
+        
+        return { 
+          messages: data?.messages || [], 
+          hasMore: data?.hasMore || false 
+        };
+      } catch (error) {
+        console.error("Error searching messages by email:", error);
+        throw error;
+      }
+    },
+    enabled: !!specificEmail && !!user?.id,
+    staleTime: 5000 // Cache for 5 seconds
+  });
 
   // Query Room Messages if roomId is provided and useRoomMessages is true
   const {
@@ -131,15 +174,28 @@ export const ChatMessagesList = ({
         throw error;
       }
     },
-    enabled: !!user?.id && !!selectedUserId && !useRoomMessages,
+    enabled: !!user?.id && !!selectedUserId && !useRoomMessages && !specificEmail && !offlineMode,
     staleTime: 5000 // Cache for 5 seconds
   });
 
-  const isLoading = useRoomMessages ? isLoadingRoomMessages : isLoadingChatMessages;
-  const error = useRoomMessages ? roomMessagesError : chatMessagesError;
+  // Choose the appropriate data source
+  let isLoading = false;
+  let error = null;
+  let messagesData = { messages: [], hasMore: false };
   
-  // Select the appropriate messages based on the query mode
-  const messagesData = useRoomMessages ? roomMessagesData : chatMessagesData;
+  if (specificEmail) {
+    isLoading = isLoadingEmailMessages;
+    error = emailMessagesError;
+    messagesData = emailMessagesData || { messages: [], hasMore: false };
+  } else if (useRoomMessages) {
+    isLoading = isLoadingRoomMessages;
+    error = roomMessagesError;
+    messagesData = roomMessagesData || { messages: [], hasMore: false };
+  } else if (!offlineMode) {
+    isLoading = isLoadingChatMessages;
+    error = chatMessagesError;
+    messagesData = chatMessagesData || { messages: [], hasMore: false };
+  }
   
   // Combine server messages with local messages
   const allMessages = [
@@ -205,7 +261,7 @@ export const ChatMessagesList = ({
     );
   }
 
-  if (!selectedUserId) {
+  if (!selectedUserId && !specificEmail) {
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground">
         <p>Select a contact to start chatting</p>
