@@ -5,12 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { MessageCircle, User, Stethoscope, Utensils, Users, Clock } from "lucide-react";
+import { MessageCircle, User, Stethoscope, Utensils, Users, Clock, RefreshCw } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 interface CareTeamRoom {
   room_id: string;
@@ -32,6 +33,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [isSyncing, setIsSyncing] = useState(false);
   
   const isProvider = userRole === 'doctor' || userRole === 'nutritionist';
   
@@ -59,6 +61,25 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
         
         console.log(`Found ${rooms?.length || 0} care team rooms for ${userRole} ${user.id}`);
         
+        // If doctor has no rooms, run the fix function
+        if (userRole === 'doctor' && (!rooms || rooms.length === 0)) {
+          console.log("Doctor has no rooms, attempting fix...");
+          await fixDoctorRoomAccess();
+          
+          // Try fetching rooms again after fix
+          const { data: roomsAfterFix, error: roomsAfterFixError } = await supabase
+            .rpc('get_user_care_team_rooms', { 
+              p_user_id: user.id 
+            });
+            
+          if (roomsAfterFixError) {
+            console.error("Error fetching rooms after fix:", roomsAfterFixError);
+          } else {
+            console.log(`Found ${roomsAfterFix?.length || 0} care team rooms after fix`);
+            return roomsAfterFix || [];
+          }
+        }
+        
         return rooms || [];
       } catch (error) {
         console.error("Error fetching care team rooms:", error);
@@ -75,6 +96,38 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
     staleTime: 10000
   });
 
+  // Function to fix doctor room access
+  const fixDoctorRoomAccess = async () => {
+    try {
+      console.log("Running fix-doctor-room-access function...");
+      
+      const { data: fixResult, error: fixError } = await supabase.functions.invoke(
+        'fix-doctor-room-access',
+        { method: 'POST' }
+      );
+      
+      if (fixError) {
+        console.error("Error running fix:", fixError);
+        toast({
+          title: "Error",
+          description: "Could not fix room access. Please contact an administrator.",
+          variant: "destructive"
+        });
+      } else {
+        console.log("Fix completed:", fixResult);
+        if (fixResult.successfulFixes > 0) {
+          toast({
+            title: "Room Access Fixed",
+            description: `Fixed ${fixResult.successfulFixes} room access issues.`,
+            duration: 3000,
+          });
+        }
+      }
+    } catch (error) {
+      console.error("Exception running room fix:", error);
+    }
+  };
+
   useEffect(() => {
     if (error) {
       console.error("Error in care team rooms query:", error);
@@ -83,11 +136,32 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
 
   const refreshRooms = async () => {
     try {
+      setIsSyncing(true);
       console.log("Manually refreshing care team rooms");
+      
+      // For doctors, run the fix first
+      if (userRole === 'doctor') {
+        await fixDoctorRoomAccess();
+      }
+      
+      // Invalidate the query cache
       queryClient.invalidateQueries({ queryKey: ["care_team_rooms"] });
       await refetch();
+      
+      toast({
+        title: "Rooms Refreshed",
+        description: "Care team rooms have been refreshed.",
+        duration: 3000,
+      });
     } catch (error) {
       console.error("Error refreshing rooms:", error);
+      toast({
+        title: "Error",
+        description: "Could not refresh care team rooms.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSyncing(false);
     }
   };
 
@@ -134,50 +208,34 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
     }
   };
 
-  // Handler to manually sync care team rooms
-  const handleSyncRooms = async () => {
-    try {
-      toast({
-        title: "Syncing care team rooms",
-        description: "Please use the admin dashboard to sync care team rooms",
-        duration: 3000,
-      });
-    } catch (error) {
-      console.error("Error with sync request:", error);
-      toast({
-        title: "Error",
-        description: "Could not process sync request",
-        variant: "destructive"
-      });
-    }
-  };
-
   return (
     <div className="flex flex-col h-full">
       <div className="p-3 bg-muted/40 border-b">
-        <div className="font-medium mb-2 flex items-center gap-2">
-          {userRole === 'doctor' ? (
-            <Stethoscope className="h-4 w-4 text-blue-500" />
-          ) : userRole === 'nutritionist' ? (
-            <Utensils className="h-4 w-4 text-green-500" />
-          ) : (
-            <MessageCircle className="h-4 w-4" />
-          )}
+        <div className="font-medium mb-2 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {userRole === 'doctor' ? (
+              <Stethoscope className="h-4 w-4 text-blue-500" />
+            ) : userRole === 'nutritionist' ? (
+              <Utensils className="h-4 w-4 text-green-500" />
+            ) : (
+              <MessageCircle className="h-4 w-4" />
+            )}
+            
+            {userRole === 'doctor' ? 'Patient Care Teams' : 
+             userRole === 'nutritionist' ? 'Nutrition Care Teams' : 
+             'Care Team Chat'}
+          </div>
           
-          {userRole === 'doctor' ? 'Patient Care Teams' : 
-           userRole === 'nutritionist' ? 'Nutrition Care Teams' : 
-           'Care Team Chat'}
-        </div>
-        
-        {/* Only show sync button for providers (doctors/nutritionists) */}
-        {isProvider && (
-          <button 
-            onClick={handleSyncRooms}
-            className="text-xs text-blue-500 hover:text-blue-700 underline mt-1"
+          <Button 
+            onClick={refreshRooms} 
+            variant="ghost" 
+            size="icon" 
+            disabled={isSyncing}
+            title="Refresh rooms"
           >
-            Sync Care Team Rooms
-          </button>
-        )}
+            <RefreshCw className={`h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
         
         {rooms.length === 0 && !isLoading && (
           <div className="text-xs text-muted-foreground mt-1 italic">
