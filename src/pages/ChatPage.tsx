@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, MessageCircle } from "lucide-react";
 
 const ChatPage = () => {
   const { user, userRole, isLoading } = useAuth();
@@ -70,8 +70,11 @@ const ChatPage = () => {
   if (isLoading || (userRole === 'patient' && loadingRoom)) {
     return (
       <div className="container pt-24 animate-fade-in">
-        <div className="mx-auto flex justify-center">
+        <div className="mx-auto flex flex-col items-center justify-center space-y-4">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-muted-foreground text-sm">
+            {userRole === 'patient' ? 'Loading your care team chat...' : 'Loading chat...'}
+          </p>
         </div>
       </div>
     );

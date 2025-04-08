@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
-import { Menu, ChevronLeft, UserCircle, Users } from "lucide-react";
+import { Menu, ChevronLeft, UserCircle, Users, MessageCircle, Loader } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -37,11 +36,9 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [isAiResponding, setIsAiResponding] = useState(false);
   
-  // Use patientRoomId if provided and user is a patient
   useEffect(() => {
     if (patientRoomId) {
       setSelectedRoomId(patientRoomId);
-      // For patients, always hide sidebar and focus on their care team chat
       if (userRole === 'patient') {
         setShowSidebar(false);
       }
@@ -49,19 +46,10 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   }, [patientRoomId, userRole, isMobile]);
   
   const toggleSidebar = () => {
-    // Only allow sidebar toggle for non-patients
     if (userRole !== 'patient') {
       setShowSidebar(prev => !prev);
     }
   };
-
-  // When a room is selected, fetch room members
-  useEffect(() => {
-    setLocalMessages([]);
-    if (selectedRoomId) {
-      fetchRoomMembers(selectedRoomId);
-    }
-  }, [selectedRoomId]);
 
   const fetchRoomMembers = async (roomId: string) => {
     if (!roomId) return;
@@ -83,9 +71,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         
       if (error) throw error;
       
-      // Format member data - handle profiles that might be null
       const formattedMembers = data.map(member => {
-        // Check if profiles exists and has the expected properties
         const profile = member.profiles && typeof member.profiles === 'object' 
           ? member.profiles 
           : { first_name: "User", last_name: "" };
@@ -111,12 +97,10 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     }
   };
 
-  // Function to trigger AI response
   const triggerAiResponse = async (messageText: string, roomId: string) => {
     try {
       setIsAiResponding(true);
       
-      // Call the care-team-ai-chat edge function
       const { data, error } = await supabase.functions.invoke('care-team-ai-chat', {
         body: { 
           roomId: roomId,
@@ -142,7 +126,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     if (!newMessage.trim() || !selectedRoomId || !user?.id) return;
     
     try {
-      // Create temporary message for immediate display
       const tempMessage = {
         id: uuidv4(),
         message: newMessage,
@@ -157,7 +140,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       setLocalMessages(prev => [...prev, tempMessage]);
       
-      // Send message to the room
       const { data, error } = await supabase.rpc('send_room_message', {
         p_room_id: selectedRoomId,
         p_message: newMessage
@@ -165,13 +147,10 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       if (error) throw error;
       
-      // Clear the input field
       const sentMessage = newMessage;
       setNewMessage("");
       
-      // Trigger AI response after user message is sent
       if (userRole === 'patient') {
-        // Store a temporary AI "typing" message
         const typingMessage = {
           id: uuidv4() + "-typing",
           message: "AI Assistant is typing...",
@@ -187,14 +166,11 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         
         setLocalMessages(prev => [...prev, typingMessage]);
         
-        // Get AI response
         await triggerAiResponse(sentMessage, selectedRoomId);
         
-        // Remove typing indicator
         setLocalMessages(prev => prev.filter(msg => !msg.isTyping));
       }
       
-      // Invalidate queries to refresh the messages
       queryClient.invalidateQueries({ 
         queryKey: ["room_messages", selectedRoomId] 
       });
@@ -208,7 +184,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     }
   };
 
-  // Get selected room details
   const { data: roomDetails, isLoading: isLoadingRoomDetails } = useQuery({
     queryKey: ["room_details", selectedRoomId],
     queryFn: async () => {
@@ -248,7 +223,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     <ErrorBoundary>
       <Card className="h-[calc(100vh-96px)] flex flex-col border shadow-lg">
         <CardContent className="p-0 flex flex-1 overflow-hidden">
-          {/* Sidebar with Care Team Rooms - hide for patients completely */}
           {(showSidebar || showSidebarOnly) && userRole !== 'patient' && (
             <div className={`${showSidebarOnly ? 'w-full' : (isIPad ? 'w-2/5' : 'w-1/4')} border-r h-full bg-background`}>
               <CareTeamRoomsSelector 
@@ -263,13 +237,11 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
             </div>
           )}
           
-          {/* Chat Area */}
           {(!showSidebarOnly) && (
             <div className="flex-1 flex flex-col h-full relative">
               {selectedRoomId ? (
                 <>
                   <div className="p-3 bg-muted/40 border-b flex items-center gap-3">
-                    {/* Only show toggle button for non-patients */}
                     {(isMobile || isIPad) && !showSidebar && userRole !== 'patient' && (
                       <Button variant="ghost" size="icon" onClick={toggleSidebar} className="mr-1">
                         <Menu className="h-5 w-5" />
@@ -300,7 +272,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                       </div>
                     </div>
                     
-                    {/* Show members button for all users */}
                     <Button 
                       variant="ghost" 
                       size="sm" 
@@ -350,11 +321,33 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
               ) : (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground">
                   <div className="text-center">
-                    <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/60" />
-                    <p className="text-lg">Select a care team chat</p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Choose a room from the sidebar to start chatting
-                    </p>
+                    {userRole === 'patient' ? (
+                      patientRoomId === null ? (
+                        <div className="space-y-4">
+                          <Loader className="h-12 w-12 mx-auto mb-4 text-primary animate-spin" />
+                          <p className="text-lg">Loading your care team chat...</p>
+                          <p className="text-sm text-muted-foreground">
+                            We're connecting you with your healthcare providers
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <MessageCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/60" />
+                          <p className="text-lg">Welcome to your care team chat</p>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            No conversations started yet. Your healthcare team will be with you soon.
+                          </p>
+                        </div>
+                      )
+                    ) : (
+                      <>
+                        <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/60" />
+                        <p className="text-lg">Select a care team chat</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Choose a room from the sidebar to start chatting
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
