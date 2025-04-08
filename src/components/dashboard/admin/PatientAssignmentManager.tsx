@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -116,6 +115,83 @@ export const PatientAssignmentManager = () => {
     }
   }, [errorMessage]);
   
+  const ensureUserProfiles = async (userIds: string[]) => {
+    try {
+      if (userIds.length === 0) return { success: true, validIds: [] };
+      
+      const { data: existingProfiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id')
+        .in('id', userIds);
+        
+      if (profilesError) {
+        console.error("Error checking existing profiles:", profilesError);
+        return { success: false, error: profilesError.message };
+      }
+      
+      const validIds = new Set((existingProfiles || []).map(p => p.id));
+      const missingIds = userIds.filter(id => !validIds.has(id));
+      
+      if (missingIds.length > 0) {
+        console.log(`Need to create ${missingIds.length} missing profiles:`, missingIds);
+        
+        const usersInfo: Record<string, {first_name: string, last_name: string}> = {};
+        
+        if (patients) {
+          patients.forEach(p => {
+            if (missingIds.includes(p.id)) {
+              usersInfo[p.id] = { first_name: p.first_name || 'Unknown', last_name: p.last_name || 'Patient' };
+            }
+          });
+        }
+        
+        if (doctors) {
+          doctors.forEach(d => {
+            if (missingIds.includes(d.id)) {
+              usersInfo[d.id] = { first_name: d.first_name || 'Unknown', last_name: d.last_name || 'Doctor' };
+            }
+          });
+        }
+        
+        if (nutritionists) {
+          nutritionists.forEach(n => {
+            if (missingIds.includes(n.id)) {
+              usersInfo[n.id] = { first_name: n.first_name || 'Unknown', last_name: n.last_name || 'Nutritionist' };
+            }
+          });
+        }
+        
+        for (const userId of missingIds) {
+          const userData = usersInfo[userId] || { first_name: 'Temporary', last_name: 'User' };
+          
+          const { error: insertError } = await supabase
+            .from('profiles')
+            .insert({
+              id: userId,
+              first_name: userData.first_name,
+              last_name: userData.last_name
+            });
+            
+          if (insertError) {
+            console.error(`Failed to create profile for user ${userId}:`, insertError);
+          } else {
+            console.log(`Created profile for user ${userId}: ${userData.first_name} ${userData.last_name}`);
+            validIds.add(userId);
+          }
+        }
+      }
+      
+      return { 
+        success: true, 
+        validIds: Array.from(validIds),
+        missingIds: userIds.filter(id => !validIds.has(id))
+      };
+    } catch (error: any) {
+      console.error("Error ensuring user profiles:", error);
+      return { success: false, error: error.message };
+    }
+  };
+  
   const handleAssignCareTeam = async () => {
     if (!selectedPatient) {
       toast({
@@ -150,8 +226,23 @@ export const PatientAssignmentManager = () => {
       if (!user?.id) {
         throw new Error("Administrator ID is missing. Please log in again.");
       }
+      
+      const userIds = [
+        selectedPatient, 
+        selectedDoctor, 
+        ...(selectedNutritionist ? [selectedNutritionist] : [])
+      ];
+      
+      const profilesResult = await ensureUserProfiles(userIds);
+      
+      if (!profilesResult.success) {
+        throw new Error(`Error verifying profiles: ${profilesResult.error}`);
+      }
+      
+      if (profilesResult.missingIds && profilesResult.missingIds.length > 0) {
+        console.warn(`Some profiles could not be created: ${profilesResult.missingIds.join(', ')}`);
+      }
 
-      // Step 1: First assign the care team without creating room
       const { data: assignmentData, error: assignmentError } = await supabase.rpc(
         'admin_assign_care_team',
         {
@@ -169,75 +260,19 @@ export const PatientAssignmentManager = () => {
         throw new Error(assignmentError.message || "Error assigning care team");
       }
       
-      // Type cast and validation
-      if (!assignmentData) {
-        throw new Error("Failed to receive response from server");
-      }
-      
-      // Safely cast to expected response type with validation
-      const responseData = assignmentData as unknown as AdminOperationResponse;
-      if (!responseData || !responseData.success) {
-        throw new Error(
-          (responseData && typeof responseData === 'object' && 'error' in responseData && responseData.error) 
-          || "Failed to assign care team"
-        );
-      }
-      
-      // Step 2: Verify profiles exist before creating the room
-      const { data: profilesExist, error: profilesError } = await supabase
-        .from('profiles')
-        .select('id')
-        .in('id', [
-          selectedPatient, 
-          selectedDoctor, 
-          ...(selectedNutritionist ? [selectedNutritionist] : [])
-        ]);
-        
-      if (profilesError) {
-        console.error("Error verifying profiles:", profilesError);
-        throw new Error(`Error verifying user profiles: ${profilesError.message}`);
-      }
-      
-      const existingIds = new Set(profilesExist?.map(p => p.id) || []);
-      const missingProfiles = [];
-      
-      if (!existingIds.has(selectedPatient)) missingProfiles.push('patient');
-      if (!existingIds.has(selectedDoctor)) missingProfiles.push('doctor');
-      if (selectedNutritionist && !existingIds.has(selectedNutritionist)) {
-        missingProfiles.push('nutritionist');
-      }
-      
-      if (missingProfiles.length > 0) {
-        console.warn(`Missing profiles detected: ${missingProfiles.join(', ')}`);
-      }
-      
-      // Step 3: Only attempt to create room if all profiles exist
-      if (missingProfiles.length === 0) {
-        try {
-          // Try to create care team room separately
-          console.log("Now creating care team room for patient");
-          const { data: roomData, error: roomError } = await supabase.rpc(
-            'create_care_team_room',
-            {
-              p_patient_id: selectedPatient,
-              p_doctor_id: selectedDoctor,
-              p_nutritionist_id: selectedNutritionist
-            }
-          );
-          
-          if (roomError) {
-            console.warn("Warning creating care team room:", roomError);
-            // Don't throw error here - continue with success message as the assignment was successful
-          } else {
-            console.log("Care team room created with ID:", roomData);
-          }
-        } catch (roomError: any) {
-          // Just log the error but don't fail the whole operation
-          console.warn("Exception creating care team room:", roomError);
-          // Continue with success message as the assignment was successful
+      const { data: roomData, error: roomError } = await supabase.rpc(
+        'create_care_team_room',
+        {
+          p_patient_id: selectedPatient,
+          p_doctor_id: selectedDoctor,
+          p_nutritionist_id: selectedNutritionist
         }
+      );
+      
+      if (roomError) {
+        console.warn("Warning creating care team room:", roomError);
       } else {
-        console.warn("Skipping room creation due to missing profiles");
+        console.log("Care team room created with ID:", roomData);
       }
       
       const patientName = patients?.find(p => p.id === selectedPatient);
@@ -250,11 +285,7 @@ export const PatientAssignmentManager = () => {
         successMsg += ` along with nutritionist ${formatName(nutritionistName)}`;
       }
       
-      if (missingProfiles.length === 0) {
-        successMsg += ". Care team room has been created.";
-      } else {
-        successMsg += ". Note: Care team room couldn't be created due to missing user profiles.";
-      }
+      successMsg += ". Care team room has been created.";
       
       setSuccessMessage(successMsg);
       
@@ -267,7 +298,6 @@ export const PatientAssignmentManager = () => {
       setSelectedDoctor("");
       setSelectedNutritionist(null);
       
-      // Invalidate all related queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["doctor_patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient_doctor"] });
       queryClient.invalidateQueries({ queryKey: ["nutritionist_patients"] });

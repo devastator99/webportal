@@ -51,86 +51,126 @@ export const SyncCareTeamsButton = () => {
       const statusCounts = { created: 0, updated: 0, error: 0, skipped: 0 };
       
       if (patientAssignmentsReport && patientAssignmentsReport.length > 0) {
-        for (const assignment of patientAssignmentsReport) {
-          try {
-            // Skip if missing required data
-            if (!assignment.patient_id || !assignment.doctor_id) {
-              console.log(`Skipping assignment: Missing required IDs`);
-              statusCounts.skipped++;
-              continue;
-            }
+        // Pre-validate all users that will be involved in care team rooms
+        console.log("Pre-validating all user profiles before creating rooms...");
+        const allUserIds = new Set<string>();
+        
+        // Collect all user IDs that will be involved in care teams
+        patientAssignmentsReport.forEach(assignment => {
+          if (assignment.patient_id) allUserIds.add(assignment.patient_id);
+          if (assignment.doctor_id) allUserIds.add(assignment.doctor_id);
+          if (assignment.nutritionist_id) allUserIds.add(assignment.nutritionist_id);
+        });
+        
+        // Verify all users exist in the profiles table in one batch query
+        if (allUserIds.size > 0) {
+          const userIdsArray = Array.from(allUserIds);
+          console.log(`Validating ${userIdsArray.length} user profiles...`);
+          
+          const { data: existingProfiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id')
+            .in('id', userIdsArray);
             
-            // First verify that all users exist in the profiles table
-            const { data: userProfiles, error: profilesError } = await supabase
-              .from('profiles')
-              .select('id')
-              .in('id', [
-                assignment.patient_id, 
-                assignment.doctor_id, 
-                ...(assignment.nutritionist_id ? [assignment.nutritionist_id] : [])
-              ]);
-              
-            if (profilesError) {
-              console.error(`Error verifying profiles:`, profilesError);
-              statusCounts.error++;
-              continue;
-            }
+          if (profilesError) {
+            console.error("Error validating user profiles:", profilesError);
+            throw new Error(`Failed to validate user profiles: ${profilesError.message}`);
+          }
+          
+          // Create a set of existing profile IDs for quick lookup
+          const validProfileIds = new Set((existingProfiles || []).map(p => p.id));
+          console.log(`Found ${validProfileIds.size} valid profiles out of ${userIdsArray.length} required users`);
+          
+          // Find missing profiles
+          const missingProfiles = userIdsArray.filter(id => !validProfileIds.has(id));
+          if (missingProfiles.length > 0) {
+            console.warn(`Missing ${missingProfiles.length} user profiles: `, missingProfiles);
             
-            // Check if all required users exist
-            const userIds = userProfiles?.map(p => p.id) || [];
-            const missingUsers = [];
-            
-            if (!userIds.includes(assignment.patient_id)) {
-              missingUsers.push(`patient ${assignment.patient_id}`);
-            }
-            
-            if (!userIds.includes(assignment.doctor_id)) {
-              missingUsers.push(`doctor ${assignment.doctor_id}`);
-            }
-            
-            if (assignment.nutritionist_id && !userIds.includes(assignment.nutritionist_id)) {
-              missingUsers.push(`nutritionist ${assignment.nutritionist_id}`);
-            }
-            
-            if (missingUsers.length > 0) {
-              console.error(`Skipping room creation: Missing user profiles for ${missingUsers.join(', ')}`);
-              statusCounts.skipped++;
-              continue;
-            }
-            
-            // Create/update care team room with improved error handling
-            try {
-              const { data: roomId, error: roomError } = await supabase.rpc(
-                'create_care_team_room',
-                {
-                  p_patient_id: assignment.patient_id,
-                  p_doctor_id: assignment.doctor_id,
-                  p_nutritionist_id: assignment.nutritionist_id
+            // Try to create missing profiles with minimal data to satisfy foreign key constraints
+            console.log("Attempting to create missing user profiles...");
+            for (const userId of missingProfiles) {
+              try {
+                const { error: insertError } = await supabase
+                  .from('profiles')
+                  .insert({
+                    id: userId,
+                    first_name: 'Temporary',
+                    last_name: 'User'
+                  });
+                  
+                if (insertError) {
+                  console.error(`Failed to create profile for user ${userId}:`, insertError);
+                } else {
+                  console.log(`Created temporary profile for user ${userId}`);
+                  validProfileIds.add(userId);
                 }
-              );
-              
-              if (roomError) {
-                console.error(`Error creating room:`, roomError);
-                statusCounts.error++;
+              } catch (e) {
+                console.error(`Exception creating profile for ${userId}:`, e);
+              }
+            }
+          }
+          
+          // Now create care team rooms, but only for assignments where all required profiles exist
+          for (const assignment of patientAssignmentsReport) {
+            try {
+              // Skip if missing required data
+              if (!assignment.patient_id || !assignment.doctor_id) {
+                console.log(`Skipping assignment: Missing required IDs`);
+                statusCounts.skipped++;
                 continue;
               }
               
-              if (roomId) {
-                createdRooms.push(roomId);
-                console.log(`Room ${roomId} created/updated for patient: ${assignment.patient_first_name} ${assignment.patient_last_name}`);
-                statusCounts.created++;
-              } else {
+              // Verify all required users have valid profiles
+              const requiredUsers = [
+                assignment.patient_id, 
+                assignment.doctor_id, 
+                ...(assignment.nutritionist_id ? [assignment.nutritionist_id] : [])
+              ];
+              
+              const allUsersValid = requiredUsers.every(id => validProfileIds.has(id));
+              
+              if (!allUsersValid) {
+                console.log(`Skipping room creation: Not all required profiles exist for patient: ${assignment.patient_first_name} ${assignment.patient_last_name}`);
                 statusCounts.skipped++;
+                continue;
               }
-            } catch (roomCreationError: any) {
-              console.error(`Exception creating room:`, roomCreationError);
+              
+              // Create/update care team room with improved error handling
+              try {
+                const { data: roomId, error: roomError } = await supabase.rpc(
+                  'create_care_team_room',
+                  {
+                    p_patient_id: assignment.patient_id,
+                    p_doctor_id: assignment.doctor_id,
+                    p_nutritionist_id: assignment.nutritionist_id
+                  }
+                );
+                
+                if (roomError) {
+                  console.error(`Error creating room:`, roomError);
+                  statusCounts.error++;
+                  continue;
+                }
+                
+                if (roomId) {
+                  createdRooms.push(roomId);
+                  console.log(`Room ${roomId} created/updated for patient: ${assignment.patient_first_name} ${assignment.patient_last_name}`);
+                  statusCounts.created++;
+                } else {
+                  statusCounts.skipped++;
+                }
+              } catch (roomCreationError: any) {
+                console.error(`Exception creating room:`, roomCreationError);
+                statusCounts.error++;
+                continue;
+              }
+            } catch (assignmentError) {
+              console.error("Error processing assignment:", assignmentError);
               statusCounts.error++;
-              continue;
             }
-          } catch (assignmentError) {
-            console.error("Error processing assignment:", assignmentError);
-            statusCounts.error++;
           }
+        } else {
+          console.warn("No user IDs found to validate - this is unusual");
         }
       }
       
