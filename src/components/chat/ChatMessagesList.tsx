@@ -79,6 +79,7 @@ export const ChatMessagesList = ({
             console.warn("Current user ID not available yet");
           }
           
+          // Modified query to avoid the relationship issue
           const { data, error } = await supabase
             .from('room_messages')
             .select(`
@@ -89,12 +90,7 @@ export const ChatMessagesList = ({
               read_by,
               is_system_message,
               is_ai_message,
-              sender:profiles!room_messages_sender_id_fkey(
-                id, 
-                first_name, 
-                last_name,
-                user_roles(role)
-              )
+              sender_id
             `)
             .eq('room_id', roomId)
             .order('created_at', { ascending: false })
@@ -102,20 +98,49 @@ export const ChatMessagesList = ({
             
           if (error) throw error;
           
+          // Get sender profiles separately to avoid the relationship issue
+          const senderIds = [...new Set(data.map(msg => msg.sender_id))];
+          
+          // Fetch profiles for all senders in one go
+          const { data: senderProfiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select(`
+              id, 
+              first_name, 
+              last_name,
+              user_roles!inner(role)
+            `)
+            .in('id', senderIds);
+            
+          if (profilesError) throw profilesError;
+          
+          // Create a lookup map for profiles
+          const profilesMap = new Map();
+          senderProfiles.forEach(profile => {
+            profilesMap.set(profile.id, {
+              id: profile.id,
+              first_name: profile.first_name || 'Unknown',
+              last_name: profile.last_name || 'User',
+              role: profile.user_roles?.[0]?.role || 'unknown'
+            });
+          });
+          
           const messages = data.map((message: any) => {
             const currentUserRead = message.read_by && Array.isArray(message.read_by) 
               ? message.read_by.includes(currentUserId)
               : false;
               
+            const senderProfile = profilesMap.get(message.sender_id) || {
+              id: message.sender_id,
+              first_name: 'Unknown',
+              last_name: 'User',
+              role: 'unknown'
+            };
+              
             return {
               ...message,
               read: currentUserRead,
-              sender: {
-                id: message.sender?.id,
-                first_name: message.sender?.first_name || 'Unknown',
-                last_name: message.sender?.last_name || 'User',
-                role: message.sender?.user_roles?.[0]?.role || 'unknown'
-              }
+              sender: senderProfile
             };
           }).reverse();
           
