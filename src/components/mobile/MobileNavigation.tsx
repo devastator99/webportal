@@ -14,13 +14,9 @@ export const MobileNavigation: React.FC = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const [patientRoomId, setPatientRoomId] = useState<string | null>(null);
   
-  // If user is not logged in, don't show the navigation
-  if (!user && location.pathname !== '/dashboard' && location.pathname !== '/dashboard-alt') {
-    return null;
-  }
-  
-  // For patients, fetch their care team room ID
+  // Use useEffect hook regardless of user being logged in or not
   useEffect(() => {
+    // Only fetch patient room ID if user is logged in and is a patient
     if (user && userRole === 'patient') {
       const fetchPatientChatRoom = async () => {
         try {
@@ -46,6 +42,11 @@ export const MobileNavigation: React.FC = () => {
       fetchPatientChatRoom();
     }
   }, [user, userRole]);
+  
+  // If user is not logged in, don't show the navigation
+  if (!user && location.pathname !== '/dashboard' && location.pathname !== '/dashboard-alt') {
+    return null;
+  }
   
   const handleChatClick = (e: React.MouseEvent) => {
     e.preventDefault();
