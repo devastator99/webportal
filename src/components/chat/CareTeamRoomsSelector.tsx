@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,7 +35,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
   const isProvider = userRole === 'doctor' || userRole === 'nutritionist';
   
   // Query to get user's care team rooms
-  const { data: roomsData = [], isLoading, refetch } = useQuery({
+  const { data: roomsData = [], isLoading, refetch, error } = useQuery({
     queryKey: ["care_team_rooms", user?.id, userRole],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -44,10 +43,10 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       try {
         console.log("Fetching care team rooms for user:", user.id, "with role:", userRole);
         
-        // Get all rooms where the user is a member
+        // First check if user has any room memberships
         const { data: userRoomMemberships, error: membershipError } = await supabase
           .from('room_members')
-          .select('room_id')
+          .select('room_id, role')
           .eq('user_id', user.id);
           
         if (membershipError) {
@@ -61,7 +60,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
         }
         
         const roomIds = userRoomMemberships.map(rm => rm.room_id);
-        console.log(`Found ${roomIds.length} room memberships for user:`, user.id);
+        console.log(`Found ${roomIds.length} room memberships for user ${user.id} with role ${userRole}:`, userRoomMemberships);
         
         // Get room details
         const { data: rooms, error: roomsError } = await supabase
@@ -113,6 +112,18 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
               console.error(`Error getting member count for room ${room.id}:`, memberCountError);
             }
             
+            // Get room members for debugging
+            const { data: roomMembers, error: roomMembersError } = await supabase
+              .from('room_members')
+              .select('user_id, role')
+              .eq('room_id', room.id);
+              
+            if (roomMembersError) {
+              console.error(`Error getting members for room ${room.id}:`, roomMembersError);
+            } else {
+              console.log(`Room ${room.id} members:`, roomMembers);
+            }
+            
             // Get latest message
             const { data: latestMessage, error: messageError } = await supabase
               .from('room_messages')
@@ -159,6 +170,13 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
     refetchInterval: 30000, // Refresh every 30 seconds
     staleTime: 10000 // Consider data stale after 10 seconds
   });
+
+  // If error occurs, log it
+  useEffect(() => {
+    if (error) {
+      console.error("Error in care team rooms query:", error);
+    }
+  }, [error]);
 
   // Function to manually refresh rooms
   const refreshRooms = async () => {

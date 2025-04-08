@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -118,7 +117,6 @@ export const PatientAssignmentManager = () => {
   
   const verifyUserProfiles = async () => {
     try {
-      // Collect user IDs to check
       const userIds = [selectedPatient, selectedDoctor];
       if (selectedNutritionist) {
         userIds.push(selectedNutritionist);
@@ -126,7 +124,6 @@ export const PatientAssignmentManager = () => {
       
       console.log("Verifying profiles exist for:", userIds);
       
-      // Use the edge function to verify users exist and have profiles
       const { data, error } = await supabase.functions.invoke('verify-users-exist', {
         body: { userIds }
       });
@@ -135,9 +132,7 @@ export const PatientAssignmentManager = () => {
         throw new Error(`Error verifying users: ${error.message}`);
       }
       
-      // Check for invalid users
       if (data.invalidUserIds && data.invalidUserIds.length > 0) {
-        // Map the IDs to roles for better error messages
         const invalidRoles = data.invalidUserIds.map((id: string) => {
           if (id === selectedPatient) return "Patient";
           if (id === selectedDoctor) return "Doctor";
@@ -148,7 +143,6 @@ export const PatientAssignmentManager = () => {
         throw new Error(`The following users don't exist or don't have profiles: ${invalidRoles.join(', ')}. Profiles must be created during signup.`);
       }
       
-      // Check for users that have auth accounts but are missing profiles
       if (data.missingProfiles && data.missingProfiles.length > 0) {
         const missingRoles = data.missingProfiles.map((id: string) => {
           if (id === selectedPatient) return "Patient";
@@ -202,10 +196,8 @@ export const PatientAssignmentManager = () => {
         throw new Error("Administrator ID is missing. Please log in again.");
       }
       
-      // Verify that all users have profiles before proceeding
       await verifyUserProfiles();
       
-      // Now that we've verified profiles exist, assign the care team
       const { data: assignmentData, error: assignmentError } = await supabase.rpc(
         'admin_assign_care_team',
         {
@@ -223,7 +215,6 @@ export const PatientAssignmentManager = () => {
         throw new Error(assignmentError.message || "Error assigning care team");
       }
       
-      // Create care team room after successful assignment - passing both doctor and nutritionist
       const { data: roomData, error: roomError } = await supabase.rpc(
         'create_care_team_room',
         {
@@ -239,6 +230,19 @@ export const PatientAssignmentManager = () => {
       } 
       
       console.log("Care team room created or updated with ID:", roomData);
+      
+      const { data: doctorMembership, error: membershipError } = await supabase
+        .from('room_members')
+        .select('*')
+        .eq('room_id', roomData)
+        .eq('user_id', selectedDoctor)
+        .single();
+        
+      if (membershipError) {
+        console.error("Error verifying doctor membership:", membershipError);
+      } else {
+        console.log("Verified doctor membership:", doctorMembership);
+      }
       
       const patientName = patients?.find(p => p.id === selectedPatient);
       const doctorName = doctors?.find(d => d.id === selectedDoctor);
@@ -263,7 +267,6 @@ export const PatientAssignmentManager = () => {
       setSelectedDoctor("");
       setSelectedNutritionist(null);
       
-      // Invalidate relevant queries to refresh data
       queryClient.invalidateQueries({ queryKey: ["doctor_patients"] });
       queryClient.invalidateQueries({ queryKey: ["patient_doctor"] });
       queryClient.invalidateQueries({ queryKey: ["nutritionist_patients"] });
@@ -271,6 +274,7 @@ export const PatientAssignmentManager = () => {
       queryClient.invalidateQueries({ queryKey: ["patient_assignments_report"] });
       queryClient.invalidateQueries({ queryKey: ["assigned_users"] });
       queryClient.invalidateQueries({ queryKey: ["user_care_team_rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["care_team_rooms"] });
       
     } catch (error: any) {
       console.error("Error assigning care team:", error);
