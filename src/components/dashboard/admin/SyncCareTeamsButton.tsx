@@ -50,6 +50,23 @@ export const SyncCareTeamsButton = () => {
               });
             } else {
               console.log(`Successfully synced room for patient ${assignment.patient_id}, room ID: ${roomId}`);
+              
+              // Verify doctor was added to the room
+              if (assignment.doctor_id) {
+                const { error: memberCheckError } = await supabase
+                  .from('room_members')
+                  .select('*')
+                  .eq('room_id', roomId)
+                  .eq('user_id', assignment.doctor_id)
+                  .maybeSingle();
+                
+                if (memberCheckError) {
+                  console.error(`Error checking doctor membership for room ${roomId}:`, memberCheckError);
+                } else {
+                  console.log(`Verified doctor ${assignment.doctor_id} is a member of room ${roomId}`);
+                }
+              }
+              
               results.push({
                 patient_id: assignment.patient_id,
                 status: 'success',
