@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,18 +7,158 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowDown, MoreHorizontal } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 
-interface ChatMessagesListProps {
-  roomId?: string;
-  selectedUserId?: string | null;
-  groupChat?: boolean;
-  careTeamGroup?: any;
-  careTeamMembers?: any[];
-  offlineMode?: boolean;
-  localMessages?: any[];
-  useRoomMessages?: boolean;
-  includeCareTeamMessages?: boolean;
-  specificEmail?: string;
-}
+const ChatMessage = ({ message, isCurrentUser, formatMessageDate }) => {
+  const messageRole = message.sender?.role || "member";
+  
+  return (
+    <div
+      className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}
+    >
+      <div className="flex items-start max-w-[75%]">
+        {!isCurrentUser && (
+          <Avatar className="h-8 w-8 mr-2 flex-shrink-0">
+            <AvatarFallback className="bg-primary/10 text-primary text-xs">
+              {message.sender?.first_name?.charAt(0) || "?"}{message.sender?.last_name?.charAt(0) || ""}
+            </AvatarFallback>
+          </Avatar>
+        )}
+        
+        <div
+          className={`rounded-xl px-3 py-2 ${
+            isCurrentUser
+              ? "bg-primary text-white rounded-tr-none"
+              : "bg-card border rounded-tl-none"
+          }`}
+        >
+          {!isCurrentUser && (
+            <div className="flex items-center gap-1 mb-1">
+              <span className="font-medium text-xs">
+                {message.sender?.first_name} {message.sender?.last_name}
+              </span>
+              <span className="text-[10px] text-muted-foreground font-medium uppercase bg-muted px-1.5 py-0.5 rounded">
+                {messageRole}
+              </span>
+            </div>
+          )}
+          
+          <div className="space-y-1">
+            <p className="text-sm">{message.message}</p>
+            <div className="text-right">
+              <span className="text-[10px] opacity-70">
+                {formatMessageDate(message.created_at)}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const DateSeparator = ({ dateKey }) => {
+  const dateObj = new Date(dateKey);
+  
+  let dateDisplay;
+  if (isToday(dateObj)) {
+    dateDisplay = "Today";
+  } else if (isYesterday(dateObj)) {
+    dateDisplay = "Yesterday";
+  } else {
+    dateDisplay = format(dateObj, "MMMM d, yyyy");
+  }
+  
+  return (
+    <div className="text-center my-3">
+      <span className="px-2 py-1 bg-muted text-muted-foreground rounded-md text-xs">
+        {dateDisplay}
+      </span>
+    </div>
+  );
+};
+
+const MessagesList = ({ 
+  combinedMessages, 
+  currentUserId, 
+  formatMessageDate, 
+  careTeamMembers = []
+}) => {
+  const groupedMessages = {};
+  combinedMessages.forEach(message => {
+    const date = new Date(message.created_at);
+    const dateKey = format(date, 'yyyy-MM-dd');
+    
+    if (!groupedMessages[dateKey]) {
+      groupedMessages[dateKey] = [];
+    }
+    
+    groupedMessages[dateKey].push(message);
+  });
+  
+  const getMemberRole = (userId) => {
+    const member = careTeamMembers.find(m => m.id === userId);
+    return member?.role || "member";
+  };
+  
+  return (
+    <>
+      {Object.keys(groupedMessages).map(dateKey => {
+        const messages = groupedMessages[dateKey];
+        
+        return (
+          <div key={dateKey}>
+            <DateSeparator dateKey={dateKey} />
+            
+            <div className="space-y-3">
+              {messages.map((message) => {
+                const isCurrentUser = message.sender?.id === currentUserId;
+                
+                return (
+                  <ChatMessage 
+                    key={message.id}
+                    message={message}
+                    isCurrentUser={isCurrentUser}
+                    formatMessageDate={formatMessageDate}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+};
+
+const MessagesLoadingState = () => (
+  <div className="flex-1 p-4 space-y-4">
+    {[...Array(3)].map((_, i) => (
+      <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+        <Skeleton className={`h-16 w-3/4 rounded-lg ${i % 2 === 0 ? 'bg-primary/5' : 'bg-muted'}`} />
+      </div>
+    ))}
+  </div>
+);
+
+const MessagesErrorState = ({ error, refetch }) => (
+  <div className="flex-1 p-4 flex items-center justify-center">
+    <div className="text-red-500 text-center">
+      <p>Error loading messages</p>
+      <p className="text-sm">{error?.message}</p>
+      <Button onClick={refetch} className="mt-2">
+        Retry
+      </Button>
+    </div>
+  </div>
+);
+
+const ScrollToBottomButton = ({ onClick }) => (
+  <button
+    className="fixed bottom-20 right-4 bg-primary text-white p-2 rounded-full shadow-lg"
+    onClick={onClick}
+  >
+    <ArrowDown className="h-4 w-4" />
+  </button>
+);
 
 export const ChatMessagesList = ({
   roomId,
@@ -32,7 +171,18 @@ export const ChatMessagesList = ({
   useRoomMessages = false,
   includeCareTeamMessages = false,
   specificEmail
-}: ChatMessagesListProps) => {
+}: {
+  roomId?: string;
+  selectedUserId?: string | null;
+  groupChat?: boolean;
+  careTeamGroup?: any;
+  careTeamMembers?: any[];
+  offlineMode?: boolean;
+  localMessages?: any[];
+  useRoomMessages?: boolean;
+  includeCareTeamMessages?: boolean;
+  specificEmail?: string;
+}) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
@@ -41,7 +191,6 @@ export const ChatMessagesList = ({
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const pageSize = 20;
   
-  // Load current user ID once when component mounts
   useEffect(() => {
     const loadCurrentUser = async () => {
       try {
@@ -74,12 +223,12 @@ export const ChatMessagesList = ({
 
       try {
         let queryResult;
+        
         if (useRoomMessages && roomId) {
           if (!currentUserId) {
             console.warn("Current user ID not available yet");
           }
           
-          // Modified query to avoid the relationship issue
           const { data, error } = await supabase
             .from('room_messages')
             .select(`
@@ -98,30 +247,43 @@ export const ChatMessagesList = ({
             
           if (error) throw error;
           
-          // Get sender profiles separately to avoid the relationship issue
           const senderIds = [...new Set(data.map(msg => msg.sender_id))];
           
-          // Fetch profiles for all senders in one go
           const { data: senderProfiles, error: profilesError } = await supabase
             .from('profiles')
             .select(`
               id, 
               first_name, 
-              last_name,
-              user_roles!inner(role)
+              last_name
             `)
             .in('id', senderIds);
             
           if (profilesError) throw profilesError;
           
-          // Create a lookup map for profiles
+          const { data: userRoles, error: rolesError } = await supabase
+            .rpc('get_user_role_by_ids', { user_ids: senderIds });
+            
+          if (rolesError) {
+            console.error("Error fetching user roles:", rolesError);
+            return { messages: [], hasMore: false };
+          }
+          
+          const rolesMap = new Map();
+          if (userRoles && Array.isArray(userRoles)) {
+            userRoles.forEach(item => {
+              if (item.user_id && item.role) {
+                rolesMap.set(item.user_id, item.role);
+              }
+            });
+          }
+          
           const profilesMap = new Map();
           senderProfiles.forEach(profile => {
             profilesMap.set(profile.id, {
               id: profile.id,
               first_name: profile.first_name || 'Unknown',
               last_name: profile.last_name || 'User',
-              role: profile.user_roles?.[0]?.role || 'unknown'
+              role: rolesMap.get(profile.id) || 'unknown'
             });
           });
           
@@ -208,6 +370,17 @@ export const ChatMessagesList = ({
     setShowScrollToBottom(!isNearBottom);
   };
 
+  const formatMessageDate = (dateString: string) => {
+    const date = new Date(dateString);
+    if (isToday(date)) {
+      return format(date, "h:mm a");
+    } else if (isYesterday(date)) {
+      return 'Yesterday ' + format(date, "h:mm a");
+    } else {
+      return format(date, "MMM d, h:mm a");
+    }
+  };
+
   useEffect(() => {
     if (messagesData) {
       const remoteMessages = messagesData.messages || [];
@@ -265,58 +438,12 @@ export const ChatMessagesList = ({
   }, [roomId, selectedUserId, refetch, useRoomMessages]);
 
   if (isLoading && page === 1) {
-    return (
-      <div className="flex-1 p-4 space-y-4">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
-            <Skeleton className={`h-16 w-3/4 rounded-lg ${i % 2 === 0 ? 'bg-primary/5' : 'bg-muted'}`} />
-          </div>
-        ))}
-      </div>
-    );
+    return <MessagesLoadingState />;
   }
 
   if (isError) {
-    return (
-      <div className="flex-1 p-4 flex items-center justify-center">
-        <div className="text-red-500 text-center">
-          <p>Error loading messages</p>
-          <p className="text-sm">{(error as Error)?.message}</p>
-          <Button onClick={() => refetch()} className="mt-2">
-            Retry
-          </Button>
-        </div>
-      </div>
-    );
+    return <MessagesErrorState error={error as Error} refetch={refetch} />;
   }
-
-  const formatMessageDate = (dateString: string) => {
-    const date = new Date(dateString);
-    if (isToday(date)) {
-      return format(date, "h:mm a");
-    } else if (isYesterday(date)) {
-      return 'Yesterday ' + format(date, "h:mm a");
-    } else {
-      return format(date, "MMM d, h:mm a");
-    }
-  };
-
-  const groupedMessages: { [key: string]: any[] } = {};
-  combinedMessages.forEach(message => {
-    const date = new Date(message.created_at);
-    const dateKey = format(date, 'yyyy-MM-dd');
-    
-    if (!groupedMessages[dateKey]) {
-      groupedMessages[dateKey] = [];
-    }
-    
-    groupedMessages[dateKey].push(message);
-  });
-
-  const getMemberRole = (userId: string) => {
-    const member = careTeamMembers.find(m => m.id === userId);
-    return member?.role || "member";
-  };
 
   const hasPrevMessages = messagesData?.hasMore && page > 1;
 
@@ -340,89 +467,15 @@ export const ChatMessagesList = ({
         </div>
       )}
       
-      {Object.keys(groupedMessages).map(dateKey => {
-        const dateObj = new Date(dateKey);
-        const messages = groupedMessages[dateKey];
-        
-        let dateDisplay;
-        if (isToday(dateObj)) {
-          dateDisplay = "Today";
-        } else if (isYesterday(dateObj)) {
-          dateDisplay = "Yesterday";
-        } else {
-          dateDisplay = format(dateObj, "MMMM d, yyyy");
-        }
-        
-        return (
-          <div key={dateKey}>
-            <div className="text-center my-3">
-              <span className="px-2 py-1 bg-muted text-muted-foreground rounded-md text-xs">
-                {dateDisplay}
-              </span>
-            </div>
-            
-            <div className="space-y-3">
-              {messages.map((message) => {
-                const messageRole = getMemberRole(message.sender?.id);
-                const isCurrentUser = message.sender?.id === currentUserId;
-                
-                return (
-                  <div
-                    key={message.id}
-                    className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}
-                  >
-                    <div className="flex items-start max-w-[75%]">
-                      {!isCurrentUser && (
-                        <Avatar className="h-8 w-8 mr-2 flex-shrink-0">
-                          <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                            {message.sender?.first_name?.charAt(0) || "?"}{message.sender?.last_name?.charAt(0) || ""}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
-                      
-                      <div
-                        className={`rounded-xl px-3 py-2 ${
-                          isCurrentUser
-                            ? "bg-primary text-white rounded-tr-none"
-                            : "bg-card border rounded-tl-none"
-                        }`}
-                      >
-                        {!isCurrentUser && (
-                          <div className="flex items-center gap-1 mb-1">
-                            <span className="font-medium text-xs">
-                              {message.sender?.first_name} {message.sender?.last_name}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground font-medium uppercase bg-muted px-1.5 py-0.5 rounded">
-                              {messageRole}
-                            </span>
-                          </div>
-                        )}
-                        
-                        <div className="space-y-1">
-                          <p className="text-sm">{message.message}</p>
-                          <div className="text-right">
-                            <span className="text-[10px] opacity-70">
-                              {formatMessageDate(message.created_at)}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
+      <MessagesList 
+        combinedMessages={combinedMessages}
+        currentUserId={currentUserId}
+        formatMessageDate={formatMessageDate}
+        careTeamMembers={careTeamMembers}
+      />
       
       {showScrollToBottom && (
-        <button
-          className="fixed bottom-20 right-4 bg-primary text-white p-2 rounded-full shadow-lg"
-          onClick={scrollToBottom}
-        >
-          <ArrowDown className="h-4 w-4" />
-        </button>
+        <ScrollToBottomButton onClick={scrollToBottom} />
       )}
       
       <div ref={messagesEndRef} />

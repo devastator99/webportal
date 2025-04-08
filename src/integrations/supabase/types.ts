@@ -1233,6 +1233,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: boolean
       }
+      is_current_user_admin_fixed: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       is_doctor: {
         Args: { user_id: string }
         Returns: boolean
