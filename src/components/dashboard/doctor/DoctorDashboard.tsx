@@ -10,21 +10,17 @@ import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWr
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Calendar, Users, MessageCircle } from "lucide-react";
-import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
-import { DoctorWhatsAppChat } from "@/components/chat/DoctorWhatsAppChat";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const [showVoiceScheduler, setShowVoiceScheduler] = useState(false);
   const [showChatOverlay, setShowChatOverlay] = useState(false);
   
   return (
@@ -45,7 +41,7 @@ export const DoctorDashboard = () => {
           
           <Button 
             className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
-            onClick={() => setShowVoiceScheduler(true)}
+            onClick={() => navigate("/appointments")}
           >
             <Calendar className="mr-2 h-4 w-4" />
             <span>Calendar</span>
@@ -62,7 +58,7 @@ export const DoctorDashboard = () => {
             </DialogTrigger>
             <DialogContent className="sm:max-w-[800px] max-h-[80vh] p-0">
               <div className="h-[70vh]">
-                <DoctorWhatsAppChat />
+                <WhatsAppStyleChatInterface />
               </div>
             </DialogContent>
           </Dialog>
@@ -113,14 +109,6 @@ export const DoctorDashboard = () => {
           </CollapsibleSection>
         </div>
       </ScrollArea>
-      
-      {showVoiceScheduler && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50">
-          <div className="w-full max-w-md">
-            <VoiceScheduler onClose={() => setShowVoiceScheduler(false)} />
-          </div>
-        </div>
-      )}
     </div>
   );
 };

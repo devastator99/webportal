@@ -53,10 +53,10 @@ export const ChatMessagesList = ({
       if (!roomId && !selectedUserId && !specificEmail) return { messages: [], hasMore: false };
 
       try {
-        let query;
+        let queryResult;
         if (useRoomMessages && roomId) {
           // Fetch room messages
-          query = supabase
+          const { data, error } = await supabase
             .from('room_messages')
             .select(`
               id,
@@ -74,38 +74,9 @@ export const ChatMessagesList = ({
             .eq('room_id', roomId)
             .order('created_at', { ascending: false })
             .range((page - 1) * pageSize, page * pageSize - 1);
-        } else if (selectedUserId) {
-          // Fetch direct messages between users
-          const { data, error } = await supabase.rpc('get_chat_messages', {
-            p_sender_id: selectedUserId,
-            p_page: page,
-            p_page_size: pageSize
-          });
-          
-          if (error) throw error;
-          return data;
-        } else if (specificEmail) {
-          // Search functionality for emails
-          const { data, error } = await supabase
-            .from('chat_messages')
-            .select('*')
-            .ilike('message', `%${specificEmail}%`)
-            .order('created_at', { ascending: false })
-            .range((page - 1) * pageSize, page * pageSize - 1);
             
           if (error) throw error;
           
-          return { 
-            messages: data || [], 
-            hasMore: data?.length === pageSize,
-            page
-          };
-        }
-
-        if (query) {
-          const { data, error } = await query;
-          if (error) throw error;
-  
           // For room messages we need to format and reverse to get oldest first
           const messages = data.map((message: any) => ({
             ...message,
@@ -117,11 +88,39 @@ export const ChatMessagesList = ({
             }
           })).reverse();
           
-          const hasMore = data.length === pageSize;
-          return { messages, hasMore, page };
+          queryResult = { messages, hasMore: data.length === pageSize, page };
+        } else if (selectedUserId) {
+          // Fetch direct messages between users
+          const { data, error } = await supabase.functions.invoke('get-chat-messages', {
+            body: { 
+              user_id: supabase.auth.getUser()?.data?.user?.id,
+              other_user_id: selectedUserId,
+              page,
+              per_page: pageSize
+            }
+          });
+          
+          if (error) throw error;
+          queryResult = data;
+        } else if (specificEmail) {
+          // Search functionality for emails
+          const { data, error } = await supabase
+            .from('chat_messages')
+            .select('*')
+            .ilike('message', `%${specificEmail}%`)
+            .order('created_at', { ascending: false })
+            .range((page - 1) * pageSize, page * pageSize - 1);
+            
+          if (error) throw error;
+          
+          queryResult = { 
+            messages: data || [], 
+            hasMore: data?.length === pageSize,
+            page
+          };
         }
-        
-        return { messages: [], hasMore: false };
+
+        return queryResult || { messages: [], hasMore: false };
       } catch (error) {
         console.error("Error fetching messages:", error);
         throw error;
@@ -272,7 +271,7 @@ export const ChatMessagesList = ({
     return member?.role || "member";
   };
 
-  const hasPrevMessages = (messagesData?.hasMore || false) && page > 1;
+  const hasPrevMessages = messagesData?.hasMore && page > 1;
 
   return (
     <div 

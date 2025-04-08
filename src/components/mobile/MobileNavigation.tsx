@@ -4,7 +4,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, Calendar, User, Settings, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { DoctorWhatsAppChat } from '@/components/chat/DoctorWhatsAppChat';
 import { WhatsAppStyleChatInterface } from '@/components/chat/WhatsAppStyleChatInterface';
 
 export const MobileNavigation: React.FC = () => {
@@ -74,11 +73,7 @@ export const MobileNavigation: React.FC = () => {
       <Dialog open={chatOpen} onOpenChange={setChatOpen}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] p-0">
           <div className="h-[80vh]">
-            {userRole === 'doctor' ? (
-              <DoctorWhatsAppChat />
-            ) : (
-              <WhatsAppStyleChatInterface />
-            )}
+            <WhatsAppStyleChatInterface />
           </div>
         </DialogContent>
       </Dialog>

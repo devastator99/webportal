@@ -41,18 +41,14 @@ const ChatPage = () => {
 
   if (!user) return null;
 
-  const isDoctor = userRole === 'doctor';
-  const isNutritionist = userRole === 'nutritionist';
-  const isProvider = isDoctor || isNutritionist;
-
   return (
     <div className="container pt-16 md:pt-20">
       <ErrorBoundary>
         <h1 className="text-2xl font-bold mb-2">Care Team Chat</h1>
         <p className="text-muted-foreground mb-4">
-          {isProvider 
-            ? "Connect with your patients and their care teams" 
-            : "Chat with your healthcare team"}
+          {userRole === 'patient' 
+            ? "Chat with your healthcare team" 
+            : "Connect with your patients and their care teams"}
         </p>
         <Separator className="my-4" />
         
@@ -60,19 +56,15 @@ const ChatPage = () => {
         {showWelcomeMessage && (
           <div className="bg-primary/10 p-3 rounded-md mb-4 animate-fade-in text-center">
             <p className="text-primary font-medium">
-              {isProvider 
-                ? "Care Team Chats - Connect with your patients and their care teams" 
-                : "Chat with your healthcare team"}
+              {userRole === 'patient' 
+                ? "Chat with your healthcare team" 
+                : "Care Team Chats - Connect with your patients and their care teams"}
             </p>
           </div>
         )}
         
         <div className="h-[calc(100vh-220px)]">
-          {isDoctor ? (
-            <DoctorWhatsAppChat />
-          ) : (
-            <WhatsAppStyleChatInterface />
-          )}
+          <WhatsAppStyleChatInterface />
         </div>
       </ErrorBoundary>
     </div>

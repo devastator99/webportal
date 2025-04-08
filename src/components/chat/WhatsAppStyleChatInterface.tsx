@@ -66,7 +66,7 @@ export const WhatsAppStyleChatInterface = () => {
       
       // Format member data - handle profiles that might be null
       const formattedMembers = data.map(member => {
-        const profile = member.profiles || {};
+        const profile = member.profiles || { first_name: "User", last_name: "" };
         return {
           id: member.user_id,
           first_name: profile.first_name || "User",
