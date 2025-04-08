@@ -31,8 +31,52 @@ BEGIN
   FROM chat_rooms
   WHERE patient_id = p_patient_id AND room_type = 'care_team';
   
-  -- If room exists, just return the ID
+  -- If room exists, make sure the doctor and nutritionist are members
   IF v_room_id IS NOT NULL THEN
+    -- Add doctor as member if doctor_id is not null
+    IF p_doctor_id IS NOT NULL THEN
+      -- First check if doctor is already a member
+      IF NOT EXISTS (
+        SELECT 1 FROM room_members 
+        WHERE room_id = v_room_id AND user_id = p_doctor_id
+      ) THEN
+        -- Add doctor as member
+        INSERT INTO room_members (room_id, user_id, role)
+        VALUES (v_room_id, p_doctor_id, 'doctor');
+        
+        -- Add system message about doctor joining
+        INSERT INTO room_messages (room_id, sender_id, message, is_system_message)
+        VALUES (
+          v_room_id,
+          p_doctor_id,
+          'Doctor joined the care team.',
+          TRUE
+        );
+      END IF;
+    END IF;
+    
+    -- Add nutritionist as member if provided and not already a member
+    IF p_nutritionist_id IS NOT NULL THEN
+      -- Check if nutritionist is already a member
+      IF NOT EXISTS (
+        SELECT 1 FROM room_members 
+        WHERE room_id = v_room_id AND user_id = p_nutritionist_id
+      ) THEN
+        -- Add nutritionist as member
+        INSERT INTO room_members (room_id, user_id, role)
+        VALUES (v_room_id, p_nutritionist_id, 'nutritionist');
+        
+        -- Add system message about nutritionist joining
+        INSERT INTO room_messages (room_id, sender_id, message, is_system_message)
+        VALUES (
+          v_room_id,
+          p_nutritionist_id,
+          'Nutritionist joined the care team.',
+          TRUE
+        );
+      END IF;
+    END IF;
+    
     RETURN v_room_id;
   END IF;
   
@@ -124,3 +168,42 @@ AFTER INSERT OR UPDATE OF doctor_id, nutritionist_id
 ON patient_assignments
 FOR EACH ROW
 EXECUTE FUNCTION public.create_care_team_room_on_assignment();
+
+-- Function to retroactively add doctors and nutritionists to care team rooms
+CREATE OR REPLACE FUNCTION public.sync_doctors_to_care_team_rooms()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_assignment RECORD;
+BEGIN
+  -- Loop through all patient assignments
+  FOR v_assignment IN
+    SELECT pa.patient_id, pa.doctor_id, pa.nutritionist_id
+    FROM patient_assignments pa
+    WHERE pa.doctor_id IS NOT NULL
+  LOOP
+    -- Create or update the care team room for this assignment
+    PERFORM public.create_care_team_room(
+      v_assignment.patient_id,
+      v_assignment.doctor_id,
+      v_assignment.nutritionist_id
+    );
+  END LOOP;
+END;
+$$;
+
+-- Function to run once to ensure all doctors and nutritionists are members of their patients' care team rooms
+CREATE OR REPLACE FUNCTION public.ensure_care_team_memberships()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  -- Execute the function to sync doctors and nutritionists
+  PERFORM public.sync_doctors_to_care_team_rooms();
+END;
+$$;

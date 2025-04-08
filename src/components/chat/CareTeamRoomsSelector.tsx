@@ -43,123 +43,32 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       try {
         console.log("Fetching care team rooms for user:", user.id, "with role:", userRole);
         
-        // DIRECT MEMBERSHIP CHECK - Start by checking rooms where the user is a member
-        console.log("Checking direct room memberships for user:", user.id);
-        const { data: directMemberships, error: directMembershipError } = await supabase
+        // Get all rooms where the user is a member
+        const { data: roomMemberships, error: membershipError } = await supabase
           .from('room_members')
-          .select('room_id, role')
+          .select('room_id')
           .eq('user_id', user.id);
           
-        if (directMembershipError) {
-          console.error("Error fetching user's direct room memberships:", directMembershipError);
-          throw directMembershipError;
+        if (membershipError) {
+          console.error("Error fetching room memberships:", membershipError);
+          throw membershipError;
         }
         
-        console.log(`Found ${directMemberships?.length || 0} direct room memberships for user ${user.id}`);
-        
-        // Get all room IDs where user is directly a member
-        let roomIds: string[] = [];
-        if (directMemberships && directMemberships.length > 0) {
-          roomIds = directMemberships.map(rm => rm.room_id);
-          console.log(`Direct room membership IDs:`, roomIds);
-        }
-        
-        // ADDITIONAL PROVIDER LOGIC - For providers, also look for rooms based on patient assignments
-        if (isProvider && roomIds.length === 0) {
-          console.log(`No direct memberships found for ${userRole}. Checking patient assignments...`);
-          
-          // For doctors and nutritionists, get all patients they're assigned to
-          const assignmentTable = 'patient_assignments';
-          const providerField = userRole === 'doctor' ? 'doctor_id' : 'nutritionist_id';
-          
-          const { data: patientAssignments, error: assignmentError } = await supabase
-            .from(assignmentTable)
-            .select('patient_id')
-            .eq(providerField, user.id);
-            
-          if (assignmentError) {
-            console.error(`Error fetching patient assignments for ${userRole}:`, assignmentError);
-            throw assignmentError;
-          }
-          
-          if (patientAssignments && patientAssignments.length > 0) {
-            console.log(`Found ${patientAssignments.length} patient assignments for ${userRole} ${user.id}`);
-            
-            // Get rooms for these patients
-            const patientIds = patientAssignments.map(pa => pa.patient_id);
-            console.log("Looking for care team rooms for patients:", patientIds);
-            
-            const { data: patientRooms, error: patientRoomsError } = await supabase
-              .from('chat_rooms')
-              .select('id')
-              .in('patient_id', patientIds)
-              .eq('room_type', 'care_team')
-              .eq('is_active', true);
-              
-            if (patientRoomsError) {
-              console.error("Error fetching patient rooms:", patientRoomsError);
-              throw patientRoomsError;
-            }
-            
-            if (patientRooms && patientRooms.length > 0) {
-              console.log(`Found ${patientRooms.length} care team rooms for provider's patients`);
-              
-              // Add these room IDs to the list
-              const additionalRoomIds = patientRooms.map(r => r.id);
-              roomIds = [...roomIds, ...additionalRoomIds];
-              
-              // CRITICAL: Ensure provider is added as a member to these rooms
-              for (const roomId of additionalRoomIds) {
-                console.log(`Checking if ${userRole} is a member of room ${roomId}`);
-                
-                const { data: membershipCheck, error: membershipCheckError } = await supabase
-                  .from('room_members')
-                  .select('id')
-                  .eq('room_id', roomId)
-                  .eq('user_id', user.id)
-                  .maybeSingle();
-                  
-                if (membershipCheckError) {
-                  console.error("Error checking room membership:", membershipCheckError);
-                  continue;
-                }
-                
-                if (!membershipCheck) {
-                  console.log(`Adding ${userRole} as member to room ${roomId}`);
-                  
-                  const { error: addMemberError } = await supabase
-                    .from('room_members')
-                    .insert({
-                      room_id: roomId,
-                      user_id: user.id,
-                      role: userRole
-                    });
-                    
-                  if (addMemberError) {
-                    console.error(`Error adding ${userRole} as member:`, addMemberError);
-                  }
-                }
-              }
-            }
-          }
-        }
-        
-        if (roomIds.length === 0) {
-          console.log("No room IDs found for user, returning empty array");
+        if (!roomMemberships || roomMemberships.length === 0) {
+          console.log("No room memberships found for user:", user.id);
           return [];
         }
         
-        // Remove duplicates from roomIds
-        roomIds = [...new Set(roomIds)];
-        console.log(`Final set of ${roomIds.length} room IDs for user:`, roomIds);
+        const roomIds = roomMemberships.map(rm => rm.room_id);
+        console.log(`Found ${roomIds.length} room memberships for user`);
         
-        // Now get room details for all the rooms the user should have access to
+        // Get room details for care team rooms only
         const { data: rooms, error: roomsError } = await supabase
           .from('chat_rooms')
-          .select('*')
+          .select('id, name, description, patient_id, created_at')
           .in('id', roomIds)
-          .eq('is_active', true)
-          .eq('room_type', 'care_team');
+          .eq('room_type', 'care_team')
+          .eq('is_active', true);
           
         if (roomsError) {
           console.error("Error fetching room details:", roomsError);
