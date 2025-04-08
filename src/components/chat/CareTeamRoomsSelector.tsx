@@ -55,8 +55,35 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
           throw membershipError;
         }
         
+        console.log("Room memberships found:", roomMemberships?.length || 0);
+        
         if (!roomMemberships || roomMemberships.length === 0) {
           console.log("No room memberships found for user:", user.id);
+          
+          // For doctors and nutritionists, check if rooms should exist based on patient assignments
+          if (isProvider) {
+            // Get assigned patients for provider
+            const { data: assignments, error: assignmentError } = await supabase
+              .from('patient_assignments')
+              .select('patient_id')
+              .eq(userRole === 'doctor' ? 'doctor_id' : 'nutritionist_id', user.id);
+              
+            if (assignmentError) {
+              console.error("Error fetching patient assignments:", assignmentError);
+            } else {
+              console.log(`Found ${assignments?.length || 0} patient assignments for ${userRole}`);
+              
+              if (assignments && assignments.length > 0) {
+                // Suggest care team rooms need to be synced
+                toast({
+                  title: "Care team rooms may need to be synced",
+                  description: "You have patient assignments but no care team rooms. Ask an administrator to sync care teams.",
+                  duration: 5000,
+                });
+              }
+            }
+          }
+          
           return [];
         }
         
