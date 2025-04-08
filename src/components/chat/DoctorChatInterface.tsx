@@ -11,12 +11,22 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
+import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface UserProfile {
   id: string;
   first_name: string | null;
   last_name: string | null;
   role?: string;
+}
+
+interface ChatRoom {
+  id: string;
+  name: string;
+  room_type: string;
+  patient_id: string;
 }
 
 export const DoctorChatInterface = () => {
@@ -26,9 +36,12 @@ export const DoctorChatInterface = () => {
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [localMessages, setLocalMessages] = useState<any[]>([]);
+  const [isCreatingRooms, setIsCreatingRooms] = useState(false);
+  const [hasCreatedRooms, setHasCreatedRooms] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Get assigned patients for doctor
-  const { data: assignedPatients, isLoading } = useQuery({
+  const { data: assignedPatients, isLoading, refetch: refetchPatients } = useQuery({
     queryKey: ["doctor_patients", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
@@ -61,6 +74,113 @@ export const DoctorChatInterface = () => {
     enabled: !!user?.id
   });
 
+  // Get care team rooms for the doctor
+  const { data: careTeamRooms, isLoading: isLoadingRooms, refetch: refetchRooms } = useQuery({
+    queryKey: ["doctor_care_team_rooms", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      try {
+        // Check for rooms where the doctor is a member
+        const { data, error } = await supabase
+          .from('chat_rooms')
+          .select(`
+            id,
+            name,
+            room_type,
+            patient_id,
+            room_members!inner(user_id, role)
+          `)
+          .eq('room_type', 'care_team')
+          .eq('is_active', true)
+          .eq('room_members.user_id', user.id)
+          .eq('room_members.role', 'doctor');
+          
+        if (error) throw error;
+        
+        console.log("Found care team rooms:", data?.length || 0);
+        return data || [];
+      } catch (error) {
+        console.error("Error fetching care team rooms:", error);
+        return [];
+      }
+    },
+    enabled: !!user?.id
+  });
+
+  // Create care team rooms for patients who don't have one
+  const createCareTeamRooms = async () => {
+    if (!user?.id || !assignedPatients?.length) return;
+    
+    setIsCreatingRooms(true);
+    setErrorMessage(null);
+    
+    try {
+      const patientsWithoutRooms = assignedPatients.filter(patient => 
+        !careTeamRooms?.some(room => room.patient_id === patient.id)
+      );
+      
+      if (patientsWithoutRooms.length === 0) {
+        toast({
+          title: "No missing rooms",
+          description: "All patients already have care team rooms"
+        });
+        setIsCreatingRooms(false);
+        return;
+      }
+      
+      console.log(`Creating care team rooms for ${patientsWithoutRooms.length} patients`);
+      
+      let createdCount = 0;
+      
+      for (const patient of patientsWithoutRooms) {
+        try {
+          // Call the function to create a care team room
+          const { data: roomId, error } = await supabase.rpc('create_care_team_room', {
+            p_patient_id: patient.id,
+            p_doctor_id: user.id
+          });
+          
+          if (error) {
+            console.error(`Error creating room for patient ${patient.id}:`, error);
+          } else if (roomId) {
+            createdCount++;
+            console.log(`Created room ${roomId} for patient ${patient.id}`);
+          }
+        } catch (patientError) {
+          console.error(`Error processing patient ${patient.id}:`, patientError);
+        }
+      }
+      
+      if (createdCount > 0) {
+        toast({
+          title: "Rooms created",
+          description: `Created ${createdCount} care team rooms`
+        });
+        
+        // Refetch rooms to update the UI
+        refetchRooms();
+        setHasCreatedRooms(true);
+      } else {
+        toast({
+          title: "No rooms created",
+          description: "Failed to create any rooms. Check console for details.",
+          variant: "destructive"
+        });
+      }
+    } catch (error: any) {
+      console.error("Error creating care team rooms:", error);
+      setErrorMessage(error.message || "Failed to create care team rooms");
+      toast({
+        title: "Error",
+        description: "Failed to create care team rooms",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCreatingRooms(false);
+    }
+  };
+
   // Select first patient by default if none selected
   useEffect(() => {
     if (assignedPatients?.length && !selectedPatientId) {
@@ -68,10 +188,41 @@ export const DoctorChatInterface = () => {
     }
   }, [assignedPatients, selectedPatientId]);
 
+  // Check for patients without care team rooms
+  useEffect(() => {
+    if (assignedPatients?.length && careTeamRooms?.length && !hasCreatedRooms) {
+      const patientsWithoutRooms = assignedPatients.filter(patient => 
+        !careTeamRooms.some(room => room.patient_id === patient.id)
+      );
+      
+      if (patientsWithoutRooms.length > 0) {
+        setErrorMessage(`${patientsWithoutRooms.length} patients don't have care team rooms. Click "Create Missing Rooms" to fix this.`);
+      }
+    }
+  }, [assignedPatients, careTeamRooms, hasCreatedRooms]);
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedPatientId || !user?.id) return;
     
     try {
+      // First, ensure a care team room exists for this patient
+      const patientRoom = careTeamRooms?.find(room => room.patient_id === selectedPatientId);
+      
+      if (!patientRoom) {
+        // Try to create the room
+        const { data: roomId, error: roomError } = await supabase.rpc('create_care_team_room', {
+          p_patient_id: selectedPatientId,
+          p_doctor_id: user.id
+        });
+        
+        if (roomError || !roomId) {
+          throw new Error("Failed to create care team room for this patient");
+        }
+        
+        // Refetch rooms
+        refetchRooms();
+      }
+      
       // Create temporary message for immediate display
       const tempMessage = {
         id: uuidv4(),
@@ -149,7 +300,34 @@ export const DoctorChatInterface = () => {
   return (
     <Card className="h-[500px] flex flex-col">
       <CardHeader className="pb-2">
-        <CardTitle>Care Team Messages</CardTitle>
+        <CardTitle className="flex justify-between items-center">
+          <div>Care Team Messages</div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={createCareTeamRooms} 
+            disabled={isCreatingRooms || !assignedPatients?.length}
+          >
+            {isCreatingRooms ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Create Missing Rooms
+              </>
+            )}
+          </Button>
+        </CardTitle>
+        
+        {errorMessage && (
+          <Alert variant="destructive" className="mt-2">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{errorMessage}</AlertDescription>
+          </Alert>
+        )}
       </CardHeader>
       <CardContent className="p-0 flex flex-1 overflow-hidden">
         {/* Patient list sidebar */}
@@ -159,24 +337,31 @@ export const DoctorChatInterface = () => {
               <div className="py-2 px-4">Loading patients...</div>
             ) : (
               <div className="space-y-1">
-                {assignedPatients?.map((patient) => (
-                  <div 
-                    key={patient.id}
-                    className={`flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-slate-100 transition-colors ${
-                      selectedPatientId === patient.id ? 'bg-slate-100' : ''
-                    }`}
-                    onClick={() => setSelectedPatientId(patient.id)}
-                  >
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                        {getInitials(patient.first_name, patient.last_name)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="text-sm font-medium truncate">
-                      {patient.first_name} {patient.last_name}
+                {assignedPatients?.map((patient) => {
+                  const hasRoom = careTeamRooms?.some(room => room.patient_id === patient.id);
+                  
+                  return (
+                    <div 
+                      key={patient.id}
+                      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer hover:bg-slate-100 transition-colors ${
+                        selectedPatientId === patient.id ? 'bg-slate-100' : ''
+                      }`}
+                      onClick={() => setSelectedPatientId(patient.id)}
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className={`text-xs ${hasRoom ? 'bg-primary/20 text-primary' : 'bg-red-100 text-red-500'}`}>
+                          {getInitials(patient.first_name, patient.last_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="text-sm font-medium truncate flex-1">
+                        {patient.first_name} {patient.last_name}
+                      </div>
+                      {!hasRoom && (
+                        <div className="text-xs text-red-500 whitespace-nowrap">No Room</div>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </ScrollArea>
@@ -208,7 +393,7 @@ export const DoctorChatInterface = () => {
                   onChange={setNewMessage}
                   onSend={handleSendMessage}
                   placeholder="Type a message to the care team..."
-                  disabled={!selectedPatientId}
+                  disabled={!selectedPatientId || !careTeamRooms?.some(room => room.patient_id === selectedPatientId)}
                 />
               </div>
             </>
