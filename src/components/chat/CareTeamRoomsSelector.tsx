@@ -48,116 +48,19 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       try {
         console.log("Fetching care team rooms for user:", user.id, "with role:", userRole);
         
-        let rooms;
-        
-        // For doctors, fetch all care team rooms regardless of membership
-        if (userRole === 'doctor') {
-          const { data: allRooms, error: allRoomsError } = await supabase
-            .from('chat_rooms')
-            .select(`
-              id,
-              name,
-              description,
-              room_type,
-              created_at,
-              patient_id,
-              profiles:patient_id(
-                first_name,
-                last_name
-              ),
-              room_members!inner(id)
-            `)
-            .eq('room_type', 'care_team')
-            .eq('is_active', true);
-          
-          if (allRoomsError) {
-            console.error("Error fetching all care team rooms:", allRoomsError);
-            throw allRoomsError;
-          }
-          
-          // Transform the data to match expected format
-          rooms = allRooms ? allRooms.map(room => {
-            const patientFirstName = room.profiles?.first_name || '';
-            const patientLastName = room.profiles?.last_name || '';
-            const patientName = `${patientFirstName} ${patientLastName}`.trim();
-            
-            return {
-              room_id: room.id,
-              room_name: room.name,
-              room_description: room.description,
-              room_type: room.room_type,
-              created_at: room.created_at,
-              patient_id: room.patient_id,
-              patient_name: patientName,
-              member_count: room.room_members ? room.room_members.length : 0,
-              last_message: null,
-              last_message_time: null
-            };
-          }) : [];
-          
-          console.log(`Found ${rooms?.length || 0} care team rooms for doctor ${user.id}`);
-          
-          // Get the last messages for each room to complete the data
-          if (rooms.length > 0) {
-            const roomIds = rooms.map(r => r.room_id);
-            const { data: lastMessages, error: messagesError } = await supabase
-              .from('room_messages')
-              .select('room_id, message, created_at')
-              .in('room_id', roomIds)
-              .order('created_at', { ascending: false });
-              
-            if (!messagesError && lastMessages) {
-              // Create a map of room_id to last message
-              const lastMessageMap = {};
-              for (const msg of lastMessages) {
-                if (!lastMessageMap[msg.room_id]) {
-                  lastMessageMap[msg.room_id] = { 
-                    message: msg.message, 
-                    created_at: msg.created_at 
-                  };
-                }
-              }
-              
-              // Update the rooms with last message info
-              rooms = rooms.map(room => ({
-                ...room,
-                last_message: lastMessageMap[room.room_id]?.message || null,
-                last_message_time: lastMessageMap[room.room_id]?.created_at || null
-              }));
-            }
-          }
-        } else {
-          // Get direct database query results for debugging
-          const { data: directResponse, error: directError } = await supabase
-            .from('room_members')
-            .select('room_id')
-            .eq('user_id', user.id);
-            
-          console.log("Direct room membership query:", { 
-            count: directResponse?.length || 0, 
-            error: directError 
+        // Use the get_user_care_team_rooms function which now handles doctor role properly
+        const { data, error } = await supabase
+          .rpc('get_user_care_team_rooms', { 
+            p_user_id: user.id 
           });
           
-          if (directResponse && directResponse.length > 0) {
-            console.log("User is a member of rooms:", directResponse.map(r => r.room_id));
-          }
-          
-          // For other roles, use the RPC function to get only rooms they're members of
-          const { data: userRooms, error: roomsError } = await supabase
-            .rpc('get_user_care_team_rooms', { 
-              p_user_id: user.id 
-            });
-            
-          if (roomsError) {
-            console.error("Error fetching care team rooms:", roomsError);
-            throw roomsError;
-          }
-          
-          rooms = userRooms || [];
-          console.log(`Found ${rooms?.length || 0} care team rooms for ${userRole} ${user.id}`);
+        if (error) {
+          console.error("Error fetching care team rooms:", error);
+          throw error;
         }
         
-        return rooms;
+        console.log(`Found ${data?.length || 0} care team rooms for ${userRole} ${user.id}`);
+        return data || [];
       } catch (error) {
         console.error("Error fetching care team rooms:", error);
         toast({
