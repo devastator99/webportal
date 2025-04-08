@@ -18,11 +18,15 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 
-export const WhatsAppStyleChatInterface = () => {
+interface WhatsAppStyleChatInterfaceProps {
+  patientRoomId?: string | null;
+}
+
+export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatInterfaceProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(patientRoomId || null);
   const [newMessage, setNewMessage] = useState("");
   const [localMessages, setLocalMessages] = useState<any[]>([]);
   const [roomMembers, setRoomMembers] = useState<any[]>([]);
@@ -31,6 +35,17 @@ export const WhatsAppStyleChatInterface = () => {
   const isIPad = useIsIPad();
   const [showSidebar, setShowSidebar] = useState(!isMobile);
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
+  const [isAiResponding, setIsAiResponding] = useState(false);
+  
+  // Use patientRoomId if provided and user is a patient
+  useEffect(() => {
+    if (patientRoomId && userRole === 'patient') {
+      setSelectedRoomId(patientRoomId);
+      if (isMobile) {
+        setShowSidebar(false);
+      }
+    }
+  }, [patientRoomId, userRole, isMobile]);
   
   const toggleSidebar = () => {
     setShowSidebar(prev => !prev);
@@ -92,6 +107,33 @@ export const WhatsAppStyleChatInterface = () => {
     }
   };
 
+  // Function to trigger AI response
+  const triggerAiResponse = async (messageText: string, roomId: string) => {
+    try {
+      setIsAiResponding(true);
+      
+      // Call the care-team-ai-chat edge function
+      const { data, error } = await supabase.functions.invoke('care-team-ai-chat', {
+        body: { 
+          roomId: roomId,
+          message: messageText
+        }
+      });
+      
+      if (error) {
+        console.error("Error getting AI response:", error);
+        throw error;
+      }
+      
+      setIsAiResponding(false);
+      return data;
+    } catch (error) {
+      console.error("Error in AI chat:", error);
+      setIsAiResponding(false);
+      return null;
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !selectedRoomId || !user?.id) return;
     
@@ -119,7 +161,34 @@ export const WhatsAppStyleChatInterface = () => {
       
       if (error) throw error;
       
+      // Clear the input field
+      const sentMessage = newMessage;
       setNewMessage("");
+      
+      // Trigger AI response after user message is sent
+      if (userRole === 'patient') {
+        // Store a temporary AI "typing" message
+        const typingMessage = {
+          id: uuidv4() + "-typing",
+          message: "AI Assistant is typing...",
+          created_at: new Date().toISOString(),
+          sender: {
+            id: "00000000-0000-0000-0000-000000000000",
+            first_name: "AI",
+            last_name: "Assistant",
+            role: "aibot"
+          },
+          isTyping: true
+        };
+        
+        setLocalMessages(prev => [...prev, typingMessage]);
+        
+        // Get AI response
+        await triggerAiResponse(sentMessage, selectedRoomId);
+        
+        // Remove typing indicator
+        setLocalMessages(prev => prev.filter(msg => !msg.isTyping));
+      }
       
       // Invalidate queries to refresh the messages
       queryClient.invalidateQueries({ 
@@ -175,8 +244,8 @@ export const WhatsAppStyleChatInterface = () => {
     <ErrorBoundary>
       <Card className="h-[calc(100vh-96px)] flex flex-col border shadow-lg">
         <CardContent className="p-0 flex flex-1 overflow-hidden">
-          {/* Sidebar with Care Team Rooms */}
-          {(showSidebar || showSidebarOnly) && (
+          {/* Sidebar with Care Team Rooms - hide for patients if they have a room */}
+          {(showSidebar || showSidebarOnly) && (!patientRoomId || userRole !== 'patient') && (
             <div className={`${showSidebarOnly ? 'w-full' : (isIPad ? 'w-2/5' : 'w-1/4')} border-r h-full bg-background`}>
               <CareTeamRoomsSelector 
                 selectedRoomId={selectedRoomId} 
@@ -196,7 +265,7 @@ export const WhatsAppStyleChatInterface = () => {
               {selectedRoomId ? (
                 <>
                   <div className="p-3 bg-muted/40 border-b flex items-center gap-3">
-                    {(isMobile || isIPad) && !showSidebar && (
+                    {(isMobile || isIPad) && !showSidebar && !patientRoomId && (
                       <Button variant="ghost" size="icon" onClick={toggleSidebar} className="mr-1">
                         <Menu className="h-5 w-5" />
                       </Button>
@@ -226,21 +295,23 @@ export const WhatsAppStyleChatInterface = () => {
                       </div>
                     </div>
                     
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="ml-auto"
-                      onClick={() => {
-                        toast({
-                          title: "Members",
-                          description: roomMembers.map(m => `${m.first_name} ${m.last_name} (${m.role})`).join(', '),
-                          duration: 5000,
-                        });
-                      }}
-                    >
-                      <Users className="h-4 w-4 mr-1" />
-                      Members
-                    </Button>
+                    {!patientRoomId && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="ml-auto"
+                        onClick={() => {
+                          toast({
+                            title: "Members",
+                            description: roomMembers.map(m => `${m.first_name} ${m.last_name} (${m.role})`).join(', '),
+                            duration: 5000,
+                          });
+                        }}
+                      >
+                        <Users className="h-4 w-4 mr-1" />
+                        Members
+                      </Button>
+                    )}
                   </div>
                   
                   <div className="flex-1 flex flex-col h-full bg-[#f0f2f5] dark:bg-slate-900 overflow-hidden">
@@ -266,8 +337,8 @@ export const WhatsAppStyleChatInterface = () => {
                         value={newMessage}
                         onChange={setNewMessage}
                         onSend={handleSendMessage}
-                        placeholder="Type a message..."
-                        disabled={!selectedRoomId || isLoadingMembers}
+                        placeholder={isAiResponding ? "AI Assistant is typing..." : "Type a message..."}
+                        disabled={!selectedRoomId || isLoadingMembers || isAiResponding}
                       />
                     </div>
                   </div>

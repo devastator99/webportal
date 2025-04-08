@@ -7,11 +7,15 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from "lucide-react";
 
 const ChatPage = () => {
   const { user, userRole, isLoading } = useAuth();
   const navigate = useNavigate();
   const [showWelcomeMessage, setShowWelcomeMessage] = useState(true);
+  const [patientRoomId, setPatientRoomId] = useState<string | null>(null);
+  const [loadingRoom, setLoadingRoom] = useState(false);
 
   // Redirect if not logged in
   useEffect(() => {
@@ -19,6 +23,38 @@ const ChatPage = () => {
       navigate('/');
     }
   }, [user, isLoading, navigate]);
+  
+  // For patients, get their care team chat room
+  useEffect(() => {
+    if (user && userRole === 'patient') {
+      const fetchPatientChatRoom = async () => {
+        setLoadingRoom(true);
+        try {
+          // Look for a care team room where the patient is a member
+          const { data, error } = await supabase
+            .from('chat_rooms')
+            .select('id')
+            .eq('patient_id', user.id)
+            .eq('room_type', 'care_team')
+            .eq('is_active', true)
+            .limit(1)
+            .single();
+          
+          if (error) {
+            console.error("Error fetching patient care team room:", error);
+          } else if (data) {
+            setPatientRoomId(data.id);
+          }
+        } catch (error) {
+          console.error("Error in patient room fetch:", error);
+        } finally {
+          setLoadingRoom(false);
+        }
+      };
+      
+      fetchPatientChatRoom();
+    }
+  }, [user, userRole]);
   
   useEffect(() => {
     // Hide welcome message after 3 seconds
@@ -29,7 +65,7 @@ const ChatPage = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  if (isLoading) {
+  if (isLoading || (userRole === 'patient' && loadingRoom)) {
     return (
       <div className="container pt-24 animate-fade-in">
         <div className="mx-auto flex justify-center">
@@ -64,7 +100,9 @@ const ChatPage = () => {
         )}
         
         <div className="h-[calc(100vh-220px)]">
-          <WhatsAppStyleChatInterface />
+          <WhatsAppStyleChatInterface 
+            patientRoomId={userRole === 'patient' ? patientRoomId : undefined} 
+          />
         </div>
       </ErrorBoundary>
     </div>
