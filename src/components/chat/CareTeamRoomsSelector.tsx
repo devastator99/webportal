@@ -31,10 +31,8 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   
-  // Check if the current user is a provider (doctor or nutritionist)
   const isProvider = userRole === 'doctor' || userRole === 'nutritionist';
   
-  // Query to get user's care team rooms
   const { data: roomsData = [], isLoading, refetch, error } = useQuery({
     queryKey: ["care_team_rooms", user?.id, userRole],
     queryFn: async () => {
@@ -43,20 +41,57 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       try {
         console.log("Fetching care team rooms for user:", user.id, "with role:", userRole);
         
-        // Use a more direct query approach similar to the provided SQL query
-        const { data: careTeamRooms, error: roomsError } = await supabase
-          .from('chat_rooms')
-          .select(`
-            id,
-            name,
-            description,
-            patient_id,
-            created_at,
-            room_members!inner(user_id, role)
-          `)
-          .eq('room_type', 'care_team')
-          .eq('is_active', true)
-          .eq('room_members.user_id', user.id);
+        let query;
+        
+        if (isProvider) {
+          console.log("Using provider-specific query to find care team rooms");
+          
+          const { data: roomsData, error: roomsError } = await supabase
+            .from('room_members')
+            .select(`
+              room_id,
+              role,
+              chat_rooms!inner(
+                id, 
+                name, 
+                description, 
+                patient_id, 
+                created_at,
+                room_type
+              )
+            `)
+            .eq('user_id', user.id)
+            .eq('chat_rooms.room_type', 'care_team')
+            .eq('chat_rooms.is_active', true);
+            
+          if (roomsError) {
+            console.error("Error fetching rooms for provider:", roomsError);
+            throw roomsError;
+          }
+          
+          console.log(`Found ${roomsData?.length || 0} care team rooms for provider ${userRole}`);
+          
+          query = { 
+            data: roomsData?.map(item => item.chat_rooms) || [], 
+            error: null 
+          };
+        } else {
+          query = await supabase
+            .from('chat_rooms')
+            .select(`
+              id,
+              name,
+              description,
+              patient_id,
+              created_at,
+              room_members!inner(user_id, role)
+            `)
+            .eq('room_type', 'care_team')
+            .eq('is_active', true)
+            .eq('room_members.user_id', user.id);
+        }
+        
+        const { data: careTeamRooms, error: roomsError } = query;
           
         if (roomsError) {
           console.error("Error fetching rooms:", roomsError);
@@ -68,9 +103,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
         if (!careTeamRooms || careTeamRooms.length === 0) {
           console.log("No care team rooms found for user:", user.id);
           
-          // For doctors and nutritionists, check if rooms should exist based on patient assignments
           if (isProvider) {
-            // Get assigned patients for provider to determine if rooms should exist
             const { data: assignments, error: assignmentError } = await supabase
               .from('patient_assignments')
               .select('patient_id')
@@ -82,7 +115,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
               console.log(`Found ${assignments?.length || 0} patient assignments for ${userRole}`);
               
               if (assignments && assignments.length > 0) {
-                // Suggest care team rooms need to be synced
                 toast({
                   title: "Care team rooms may need to be synced",
                   description: "You have patient assignments but no care team rooms. Ask an administrator to sync care teams.",
@@ -95,12 +127,10 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
           return [];
         }
         
-        // Process each room to gather additional details
         const roomsWithDetails: CareTeamRoom[] = [];
         
         for (const room of careTeamRooms) {
           try {
-            // Get patient name if it exists
             let patientName = 'Patient';
             
             if (room.patient_id) {
@@ -115,7 +145,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
               }
             }
             
-            // Get member count
             const { count: memberCount, error: memberCountError } = await supabase
               .from('room_members')
               .select('*', { count: 'exact', head: true })
@@ -125,7 +154,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
               console.error(`Error getting member count for room ${room.id}:`, memberCountError);
             }
             
-            // Get latest message
             const { data: latestMessage, error: messageError } = await supabase
               .from('room_messages')
               .select('message, created_at')
@@ -153,7 +181,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
           }
         }
         
-        // Sort rooms by latest message
         return roomsWithDetails.sort((a, b) => {
           return new Date(b.last_message_time).getTime() - new Date(a.last_message_time).getTime();
         });
@@ -168,18 +195,16 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       }
     },
     enabled: !!user?.id,
-    refetchInterval: 30000, // Refresh every 30 seconds
-    staleTime: 10000 // Consider data stale after 10 seconds
+    refetchInterval: 30000,
+    staleTime: 10000
   });
 
-  // If error occurs, log it
   useEffect(() => {
     if (error) {
       console.error("Error in care team rooms query:", error);
     }
   }, [error]);
 
-  // Function to manually refresh rooms
   const refreshRooms = async () => {
     try {
       console.log("Manually refreshing care team rooms");
@@ -189,17 +214,14 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
     }
   };
 
-  // Auto-refresh on mount and when userRole or userId changes
   useEffect(() => {
     if (user?.id) {
       refreshRooms();
     }
   }, [user?.id, userRole]);
 
-  // Ensure rooms is always an array
   const rooms: CareTeamRoom[] = Array.isArray(roomsData) ? roomsData : [];
 
-  // Function to group rooms by patient
   const groupRoomsByPatient = (rooms: CareTeamRoom[]) => {
     const groupedRooms: Record<string, CareTeamRoom[]> = {};
     
@@ -214,12 +236,10 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
     return groupedRooms;
   };
 
-  // Group rooms by patients (useful for doctor and nutritionist views)
   const roomsByPatient = isProvider 
     ? groupRoomsByPatient(rooms)
     : null;
 
-  // Format relative time for messages
   const formatMessageTime = (timeString: string) => {
     const date = new Date(timeString);
     
@@ -234,7 +254,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="p-3 bg-muted/40 border-b">
         <div className="font-medium mb-2 flex items-center gap-2">
           {userRole === 'doctor' ? (
@@ -259,7 +278,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
         )}
       </div>
       
-      {/* Room list */}
       <ScrollArea className="flex-1">
         <div className="space-y-0">
           {isLoading ? (
@@ -279,7 +297,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
               {isProvider ? 'No patient care teams available' : 'No care team chats available'}
             </div>
           ) : isProvider ? (
-            // Display rooms grouped by patient for doctors and nutritionists
             Object.entries(roomsByPatient || {}).map(([patientId, patientRooms]) => {
               const patientName = patientRooms[0]?.patient_name || 'Unknown Patient';
               
@@ -302,7 +319,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
               );
             })
           ) : (
-            // Standard flat list for other users
             rooms.map((room) => (
               <RoomListItem 
                 key={room.room_id}
@@ -320,7 +336,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
   );
 };
 
-// Extracted room list item component for reusability
 interface RoomListItemProps {
   room: CareTeamRoom;
   selectedRoomId: string | null;
@@ -341,7 +356,6 @@ const RoomListItem = ({
     ? formatMessageTime(room.last_message_time)
     : '';
   
-  // Get the appropriate avatar fallback color based on user role
   const getAvatarClass = () => {
     if (userRole === 'doctor') {
       return 'bg-blue-100 text-blue-800';
