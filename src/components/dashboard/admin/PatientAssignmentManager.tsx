@@ -434,7 +434,7 @@ export const PatientAssignmentManager = () => {
                   Assigning...
                 </>
               ) : (
-                "Assign Care Team and Room to Patient"
+                "Assign Care Team and Chat Room"
               )}
             </Button>
           </div>
