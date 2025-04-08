@@ -125,18 +125,7 @@ export const DoctorWhatsAppChat = () => {
           });
         }
         
-        // Make sure the current user (healthcare provider) is included in the care team list
-        const hasProviderSelf = updatedCareTeam.some(member => member.id === user.id);
-        if (!hasProviderSelf) {
-          updatedCareTeam.push({
-            id: user.id,
-            first_name: user.user_metadata?.first_name || (userRole === "doctor" ? "Doctor" : "Nutritionist"),
-            last_name: user.user_metadata?.last_name || "",
-            role: userRole
-          });
-        }
-        
-        // Also make sure to include the patient in the care team
+        // Include the patient in the care team
         const hasPatient = updatedCareTeam.some(member => member.id === selectedPatientId);
         if (!hasPatient) {
           // Get patient info from the care team rooms
@@ -255,7 +244,7 @@ export const DoctorWhatsAppChat = () => {
       <Card className="h-full flex items-center justify-center">
         <CardContent>
           <p className="text-muted-foreground text-center">
-            No care team rooms found. Patients need to be assigned to you first.
+            No care team rooms found. Please contact an administrator if you believe this is an error.
           </p>
         </CardContent>
       </Card>
