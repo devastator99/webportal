@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +10,7 @@ import { format, isToday, isYesterday } from "date-fns";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 const ChatMessage = ({ message, isCurrentUser, formatMessageDate }) => {
+  // Use string type for messageRole and provide a default
   const messageRole = message.sender?.role || "member";
   
   return (
@@ -261,15 +263,18 @@ export const ChatMessagesList = ({
             
           if (profilesError) throw profilesError;
           
+          // Fetch roles one by one to avoid TS errors with the bulk function
           const fetchRoles = async () => {
             const roles = new Map();
             
             for (const senderId of senderIds) {
               try {
+                // Use get_user_role (not get_user_role_by_ids)
                 const { data: roleData, error: roleError } = await supabase
                   .rpc('get_user_role', { lookup_user_id: senderId });
                 
                 if (!roleError && roleData) {
+                  // roleData is now a simple string, not an object
                   roles.set(senderId, roleData);
                 }
               } catch (e) {
