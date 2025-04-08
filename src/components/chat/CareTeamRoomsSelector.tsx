@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,12 +42,13 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       try {
         console.log("Fetching care team rooms for user:", user.id, "with role:", userRole);
         
-        let query;
+        let roomsData = [];
         
         if (isProvider) {
           console.log("Using provider-specific query to find care team rooms");
           
-          const { data: roomsData, error: roomsError } = await supabase
+          // Direct query to find all care team rooms where the provider is a member
+          const { data, error } = await supabase
             .from('room_members')
             .select(`
               room_id,
@@ -64,19 +66,22 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
             .eq('chat_rooms.room_type', 'care_team')
             .eq('chat_rooms.is_active', true);
             
-          if (roomsError) {
-            console.error("Error fetching rooms for provider:", roomsError);
-            throw roomsError;
+          if (error) {
+            console.error("Error fetching rooms for provider:", error);
+            throw error;
           }
           
-          console.log(`Found ${roomsData?.length || 0} care team rooms for provider ${userRole}`);
-          
-          query = { 
-            data: roomsData?.map(item => item.chat_rooms) || [], 
-            error: null 
-          };
+          console.log(`Found ${data?.length || 0} care team rooms for provider ${userRole}`);
+          roomsData = data?.map(item => ({
+            id: item.chat_rooms.id,
+            name: item.chat_rooms.name,
+            description: item.chat_rooms.description || '',
+            patient_id: item.chat_rooms.patient_id || '',
+            created_at: item.chat_rooms.created_at
+          })) || [];
         } else {
-          query = await supabase
+          // For non-providers (patients), get rooms where they are a member
+          const { data, error } = await supabase
             .from('chat_rooms')
             .select(`
               id,
@@ -89,18 +94,17 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
             .eq('room_type', 'care_team')
             .eq('is_active', true)
             .eq('room_members.user_id', user.id);
-        }
-        
-        const { data: careTeamRooms, error: roomsError } = query;
+            
+          if (error) {
+            console.error("Error fetching rooms:", error);
+            throw error;
+          }
           
-        if (roomsError) {
-          console.error("Error fetching rooms:", roomsError);
-          throw roomsError;
+          console.log(`Found ${data?.length || 0} care team rooms where user is a member`);
+          roomsData = data || [];
         }
         
-        console.log(`Found ${careTeamRooms?.length || 0} care team rooms where user is a member`);
-        
-        if (!careTeamRooms || careTeamRooms.length === 0) {
+        if (roomsData.length === 0) {
           console.log("No care team rooms found for user:", user.id);
           
           if (isProvider) {
@@ -129,15 +133,17 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
         
         const roomsWithDetails: CareTeamRoom[] = [];
         
-        for (const room of careTeamRooms) {
+        for (const room of roomsData) {
           try {
             let patientName = 'Patient';
+            let roomId = isProvider ? room.id : room.id;
+            let patientId = isProvider ? room.patient_id : room.patient_id;
             
-            if (room.patient_id) {
+            if (patientId) {
               const { data: patientData, error: patientError } = await supabase
                 .from('profiles')
                 .select('first_name, last_name')
-                .eq('id', room.patient_id)
+                .eq('id', patientId)
                 .maybeSingle();
                 
               if (!patientError && patientData) {
@@ -148,36 +154,36 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
             const { count: memberCount, error: memberCountError } = await supabase
               .from('room_members')
               .select('*', { count: 'exact', head: true })
-              .eq('room_id', room.id);
+              .eq('room_id', roomId);
               
             if (memberCountError) {
-              console.error(`Error getting member count for room ${room.id}:`, memberCountError);
+              console.error(`Error getting member count for room ${roomId}:`, memberCountError);
             }
             
             const { data: latestMessage, error: messageError } = await supabase
               .from('room_messages')
               .select('message, created_at')
-              .eq('room_id', room.id)
+              .eq('room_id', roomId)
               .order('created_at', { ascending: false })
               .limit(1)
               .maybeSingle();
               
             if (messageError && messageError.code !== 'PGRST116') {
-              console.error(`Error getting latest message for room ${room.id}:`, messageError);
+              console.error(`Error getting latest message for room ${roomId}:`, messageError);
             }
             
             roomsWithDetails.push({
-              room_id: room.id,
-              room_name: room.name || `Care Team for ${patientName}`,
-              room_description: room.description || '',
-              patient_id: room.patient_id || '',
+              room_id: roomId,
+              room_name: isProvider ? room.name : room.name || `Care Team for ${patientName}`,
+              room_description: isProvider ? room.description : room.description || '',
+              patient_id: patientId || '',
               patient_name: patientName,
               member_count: memberCount || 0,
               last_message: latestMessage?.message || '',
-              last_message_time: latestMessage?.created_at || room.created_at
+              last_message_time: latestMessage?.created_at || (isProvider ? room.created_at : room.created_at)
             });
           } catch (err) {
-            console.error(`Error processing room ${room.id}:`, err);
+            console.error(`Error processing room:`, err);
           }
         }
         
