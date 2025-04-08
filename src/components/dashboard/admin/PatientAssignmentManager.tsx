@@ -116,7 +116,7 @@ export const PatientAssignmentManager = () => {
     }
   }, [errorMessage]);
   
-  // Modified to better handle profile checking and creation
+  // Modified to ensure all profiles exist before creating room members
   const ensureUserProfiles = async (userIds: string[]) => {
     try {
       if (userIds.length === 0) return { success: true, validIds: [] };
@@ -147,13 +147,24 @@ export const PatientAssignmentManager = () => {
       console.log("Missing profiles that need to be created:", missingIds);
       
       if (missingIds.length > 0) {
+        // Make sure we include the AI bot ID in profiles if it's missing
+        // We need to filter it out since the AI bot doesn't have a real auth user
+        const realUserMissingIds = missingIds.filter(id => id !== '00000000-0000-0000-0000-000000000000');
+        const aiBot = missingIds.includes('00000000-0000-0000-0000-000000000000') 
+          ? [{
+              id: '00000000-0000-0000-0000-000000000000',
+              first_name: 'AI',
+              last_name: 'Assistant'
+            }] 
+          : [];
+        
         // Gather user info from query data
         const usersInfo: Record<string, {first_name: string, last_name: string}> = {};
         
         // Build user info from our query data
         if (patients) {
           patients.forEach(p => {
-            if (missingIds.includes(p.id)) {
+            if (realUserMissingIds.includes(p.id)) {
               usersInfo[p.id] = { 
                 first_name: p.first_name || 'Unknown', 
                 last_name: p.last_name || 'Patient' 
@@ -164,7 +175,7 @@ export const PatientAssignmentManager = () => {
         
         if (doctors) {
           doctors.forEach(d => {
-            if (missingIds.includes(d.id)) {
+            if (realUserMissingIds.includes(d.id)) {
               usersInfo[d.id] = { 
                 first_name: d.first_name || 'Unknown', 
                 last_name: d.last_name || 'Doctor' 
@@ -175,38 +186,40 @@ export const PatientAssignmentManager = () => {
         
         if (nutritionists) {
           nutritionists.forEach(n => {
-            if (missingIds.includes(n.id)) {
+            if (realUserMissingIds.includes(n.id)) {
               usersInfo[n.id] = { 
                 first_name: n.first_name || 'Unknown', 
-                last_name: n.last_name || 'Nutritionist' 
+                last_name: n.first_name || 'Nutritionist' 
               };
             }
           });
         }
         
         // Create profiles in a single batch operation
-        const profilesToCreate = missingIds.map(userId => {
+        const profilesToCreate = realUserMissingIds.map(userId => {
           const userData = usersInfo[userId] || { first_name: 'Temporary', last_name: 'User' };
           return {
             id: userId,
             first_name: userData.first_name,
             last_name: userData.last_name
           };
-        });
+        }).concat(aiBot);
         
         console.log("Creating profiles:", profilesToCreate);
         
-        // Insert all missing profiles in a single operation
-        const { error: batchInsertError } = await supabase
-          .from('profiles')
-          .upsert(profilesToCreate, { onConflict: 'id' });
-          
-        if (batchInsertError) {
-          console.error("Error creating profiles:", batchInsertError);
-          return { 
-            success: false, 
-            error: `Failed to create required profiles: ${batchInsertError.message}` 
-          };
+        if (profilesToCreate.length > 0) {
+          // Insert all missing profiles in a single operation
+          const { error: batchInsertError } = await supabase
+            .from('profiles')
+            .upsert(profilesToCreate, { onConflict: 'id' });
+            
+          if (batchInsertError) {
+            console.error("Error creating profiles:", batchInsertError);
+            return { 
+              success: false, 
+              error: `Failed to create required profiles: ${batchInsertError.message}` 
+            };
+          }
         }
         
         console.log("Successfully created missing profiles");
@@ -258,11 +271,12 @@ export const PatientAssignmentManager = () => {
         throw new Error("Administrator ID is missing. Please log in again.");
       }
       
-      // 1. First ensure all profiles exist
+      // 1. First ensure all profiles exist before creating any rooms or assignments
       const userIds = [
         selectedPatient, 
         selectedDoctor, 
-        ...(selectedNutritionist ? [selectedNutritionist] : [])
+        ...(selectedNutritionist ? [selectedNutritionist] : []),
+        '00000000-0000-0000-0000-000000000000' // Include AI bot ID
       ];
       
       console.log("Creating/verifying profiles for users:", userIds);
