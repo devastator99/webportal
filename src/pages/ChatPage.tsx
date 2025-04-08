@@ -38,7 +38,7 @@ const ChatPage = () => {
           console.log("Fetching care team room for patient ID:", user.id);
           
           // Use the RPC function instead of direct table access
-          const { data: roomId, error: roomError } = await supabase
+          const { data: roomData, error: roomError } = await supabase
             .rpc('get_patient_care_team_room', { p_patient_id: user.id });
           
           if (roomError) {
@@ -50,9 +50,10 @@ const ChatPage = () => {
               description: "Could not load your care team chat room",
               variant: "destructive"
             });
-          } else if (roomId) {
-            console.log("Found patient care team room:", roomId);
-            setPatientRoomId(roomId);
+          } else if (roomData) {
+            console.log("Found patient care team room:", roomData);
+            // Correctly cast the returned data as a string
+            setPatientRoomId(String(roomData));
           } else {
             console.log("No care team room found for patient:", user.id);
             setRoomError("No care team room found");

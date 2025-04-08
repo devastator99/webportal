@@ -6,3 +6,6 @@ verify_jwt = true
 verify_jwt = true
 [functions.send-chat-message]
 verify_jwt = true
+[functions.get-patient-care-team-room]
+verify_jwt = true
+
