@@ -274,7 +274,6 @@ export const ChatMessagesList = ({
                   .rpc('get_user_role', { lookup_user_id: senderId });
                 
                 if (!roleError && roleData) {
-                  // roleData is now a simple string, not an object
                   roles.set(senderId, roleData);
                 }
               } catch (e) {
