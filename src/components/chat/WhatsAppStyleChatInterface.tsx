@@ -24,6 +24,13 @@ interface WhatsAppStyleChatInterfaceProps {
   patientRoomId?: string | null;
 }
 
+interface CareTeamMember {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  role: string;
+}
+
 export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatInterfaceProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
@@ -31,7 +38,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(patientRoomId || null);
   const [newMessage, setNewMessage] = useState("");
   const [localMessages, setLocalMessages] = useState<any[]>([]);
-  const [roomMembers, setRoomMembers] = useState<any[]>([]);
+  const [roomMembers, setRoomMembers] = useState<CareTeamMember[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   const isIPad = useIsIPad();
@@ -238,13 +245,14 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     enabled: !!selectedRoomId
   });
 
+  // Fixed query to properly fetch patient assignment data
   const { data: careTeamInfo, isLoading: isLoadingCareTeam } = useQuery({
     queryKey: ["care_team_info", roomDetails?.patient_id],
     queryFn: async () => {
       if (!roomDetails?.patient_id) return null;
       
       try {
-        // Fetch patient assignments to get doctor and nutritionist
+        // Fetch patient assignments to get doctor and nutritionist with proper joins
         const { data, error } = await supabase
           .from('patient_assignments')
           .select(`
@@ -306,8 +314,14 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
 
   // Component to display care team members
   const CareTeamInfo = () => {
-    const doctor = careTeamInfo?.doctor;
-    const nutritionist = careTeamInfo?.nutritionist;
+    // Properly extract values from careTeamInfo with type-checking
+    const doctorData = careTeamInfo?.doctor && typeof careTeamInfo.doctor === 'object' 
+      ? careTeamInfo.doctor 
+      : null;
+      
+    const nutritionistData = careTeamInfo?.nutritionist && typeof careTeamInfo.nutritionist === 'object'
+      ? careTeamInfo.nutritionist
+      : null;
     
     if (isLoadingCareTeam) {
       return <Skeleton className="h-4 w-24" />;
@@ -325,19 +339,19 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
           <TooltipContent className="p-2 max-w-xs">
             <div className="space-y-1">
               <h4 className="text-xs font-semibold mb-1">Care Team</h4>
-              {doctor ? (
+              {doctorData ? (
                 <div className="flex items-center gap-1">
                   <UserCircle className="h-3 w-3 text-blue-500" />
-                  <span className="text-xs">Dr. {doctor.first_name} {doctor.last_name}</span>
+                  <span className="text-xs">Dr. {doctorData.first_name} {doctorData.last_name}</span>
                   <Badge variant="outline" className="text-[10px] px-1 h-4">doctor</Badge>
                 </div>
               ) : (
                 <div className="text-xs text-muted-foreground">No doctor assigned</div>
               )}
-              {nutritionist ? (
+              {nutritionistData ? (
                 <div className="flex items-center gap-1">
                   <UserCircle className="h-3 w-3 text-green-500" />
-                  <span className="text-xs">{nutritionist.first_name} {nutritionist.last_name}</span>
+                  <span className="text-xs">{nutritionistData.first_name} {nutritionistData.last_name}</span>
                   <Badge variant="outline" className="text-[10px] px-1 h-4">nutritionist</Badge>
                 </div>
               ) : (
@@ -411,10 +425,17 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                       size="sm" 
                       className="ml-auto"
                       onClick={() => {
-                        const doctor = careTeamInfo?.doctor;
-                        const nutritionist = careTeamInfo?.nutritionist;
-                        const doctorText = doctor ? `Dr. ${doctor.first_name} ${doctor.last_name}` : "No doctor assigned";
-                        const nutritionistText = nutritionist ? `${nutritionist.first_name} ${nutritionist.last_name}` : "No nutritionist assigned";
+                        // Properly extract values from careTeamInfo with type-checking
+                        const doctorData = careTeamInfo?.doctor && typeof careTeamInfo.doctor === 'object' 
+                          ? careTeamInfo.doctor 
+                          : null;
+                          
+                        const nutritionistData = careTeamInfo?.nutritionist && typeof careTeamInfo.nutritionist === 'object'
+                          ? careTeamInfo.nutritionist
+                          : null;
+                          
+                        const doctorText = doctorData ? `Dr. ${doctorData.first_name} ${doctorData.last_name}` : "No doctor assigned";
+                        const nutritionistText = nutritionistData ? `${nutritionistData.first_name} ${nutritionistData.last_name}` : "No nutritionist assigned";
                         
                         toast({
                           title: "Care Team Members",
