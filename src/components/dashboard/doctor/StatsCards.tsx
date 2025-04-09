@@ -30,7 +30,7 @@ export const StatsCards = () => {
       try {
         console.log("Fetching dashboard stats for doctor:", user.id);
         
-        // Get patients count with error handling - consistently use doctor_id parameter
+        // Get patients count
         const { data: patientsCount, error: patientsError } = await supabase.rpc(
           'get_doctor_patients_count',
           { doctor_id: user.id }
@@ -45,7 +45,7 @@ export const StatsCards = () => {
           });
         }
 
-        // Get medical records count with error handling
+        // Get medical records count
         const { data: recordsCount, error: recordsError } = await supabase.rpc(
           'get_doctor_medical_records_count',
           { doctor_id: user.id }
@@ -60,42 +60,41 @@ export const StatsCards = () => {
           });
         }
 
-        // For todays_appointments and upcoming_appointments, use type assertion to work around TypeScript errors
-        let todaysCount = 0;
-        let upcomingCount = 0;
-        
-        try {
-          // Use type assertion to handle the TypeScript error for function name
-          const { data, error } = await supabase.rpc(
-            'get_doctor_todays_appointments_count' as any, 
-            { doctor_id: user.id }
-          );
-          
-          if (error) throw error;
-          // Convert to number to ensure correct type
-          todaysCount = Number(data) || 0;
-          console.log("Successfully fetched today's appointments:", data);
-        } catch (todaysError) {
-          console.error("Error fetching today's appointments count:", todaysError);
-          // Don't show toast for this error to avoid multiple toasts
-        }
-        
-        try {
-          // Use type assertion to handle the TypeScript error for function name
-          const { data, error } = await supabase.rpc(
-            'get_doctor_upcoming_appointments_count' as any,
-            { doctor_id: user.id }
-          );
-          
-          if (error) throw error;
-          // Convert to number to ensure correct type
-          upcomingCount = Number(data) || 0;
-          console.log("Successfully fetched upcoming appointments:", data);
-        } catch (upcomingError) {
-          console.error("Error fetching upcoming appointments count:", upcomingError);
-          // Don't show toast for this error to avoid multiple toasts
-        }
+        // Custom fetch function to handle both today's and upcoming appointments
+        const fetchAppointmentsCount = async (functionName: string, paramName = 'doctor_id') => {
+          try {
+            // Use a POST request to call the RPC function directly
+            // This bypasses TypeScript's type checking for the RPC function name
+            const response = await fetch(
+              `https://hcaqodjylicmppxcbqbh.supabase.co/rest/v1/rpc/${functionName}`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjYXFvZGp5bGljbXBweGNicWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzMDIxNDksImV4cCI6MjA1Mzg3ODE0OX0.h4pO6UShabHNPWC9o_EMbbhOVHsR-fuZQ5-b85hNB4w',
+                  'Authorization': `Bearer ${supabase.auth.getSession().then(({ data }) => data.session?.access_token)}`
+                },
+                body: JSON.stringify({ [paramName]: user.id })
+              }
+            );
+            
+            if (!response.ok) {
+              throw new Error(`API call failed with status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log(`Successfully fetched ${functionName}:`, data);
+            return Number(data) || 0;
+          } catch (error) {
+            console.error(`Error fetching ${functionName}:`, error);
+            return 0;
+          }
+        };
 
+        // Get today's and upcoming appointments counts
+        const todaysCount = await fetchAppointmentsCount('get_doctor_todays_appointments_count');
+        const upcomingCount = await fetchAppointmentsCount('get_doctor_upcoming_appointments_count');
+        
         console.log("Dashboard stats fetched:", {
           patients: patientsCount,
           records: recordsCount,
@@ -104,8 +103,8 @@ export const StatsCards = () => {
         });
         
         return {
-          patients_count: patientsCount || 0,
-          medical_records_count: recordsCount || 0,
+          patients_count: Number(patientsCount) || 0,
+          medical_records_count: Number(recordsCount) || 0,
           todays_appointments: todaysCount,
           upcoming_appointments: upcomingCount
         } as DoctorStats;
