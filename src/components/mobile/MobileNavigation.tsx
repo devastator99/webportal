@@ -6,12 +6,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { WhatsAppStyleChatInterface } from '@/components/chat/WhatsAppStyleChatInterface';
 import { supabase } from '@/integrations/supabase/client';
+import { ScheduleAppointment } from '@/components/appointments/ScheduleAppointment';
 
 export const MobileNavigation: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, userRole } = useAuth();
   const [chatOpen, setChatOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const [patientRoomId, setPatientRoomId] = useState<string | null>(null);
   
   // Use useEffect hook regardless of user being logged in or not
@@ -59,6 +61,13 @@ export const MobileNavigation: React.FC = () => {
     }
   };
   
+  const handleCalendarClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    
+    // Open the schedule appointment dialog
+    setScheduleOpen(true);
+  };
+  
   const navItems = [
     {
       label: 'Home',
@@ -69,8 +78,8 @@ export const MobileNavigation: React.FC = () => {
     {
       label: 'Calendar',
       icon: Calendar,
-      action: () => navigate('/dashboard'),
-      active: location.pathname.includes('appointments')
+      action: handleCalendarClick,
+      active: scheduleOpen || location.pathname.includes('appointments')
     },
     {
       label: 'Patients',
@@ -107,10 +116,26 @@ export const MobileNavigation: React.FC = () => {
         ))}
       </nav>
       
+      {/* Chat Dialog */}
       <Dialog open={chatOpen} onOpenChange={setChatOpen}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] p-0">
           <div className="h-[80vh]">
             <WhatsAppStyleChatInterface patientRoomId={patientRoomId} />
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Schedule Appointment Dialog */}
+      <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] p-0">
+          <div className="h-[80vh]">
+            <ScheduleAppointment 
+              callerRole={userRole || "patient"}
+              preSelectedDoctorId=""
+              preSelectedPatientId={userRole === "patient" ? user?.id : ""}
+            >
+              <span></span>
+            </ScheduleAppointment>
           </div>
         </DialogContent>
       </Dialog>
