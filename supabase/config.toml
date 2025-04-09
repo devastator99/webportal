@@ -69,3 +69,10 @@ verify_jwt = true
 
 [functions.send-invoice-notification]
 verify_jwt = true
+
+[functions.get-patient-payment-summary]
+verify_jwt = true
+
+[functions.generate-patient-invoice]
+verify_jwt = true
+

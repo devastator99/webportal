@@ -66,7 +66,8 @@ export const PatientPaymentManager = () => {
   const fetchPatientPaymentData = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_patient_payment_summary');
+      // Use the edge function instead of direct RPC call
+      const { data, error } = await supabase.functions.invoke('get-patient-payment-summary');
       
       if (error) {
         throw error;
@@ -133,12 +134,14 @@ export const PatientPaymentManager = () => {
         throw new Error("Please enter a valid amount");
       }
       
-      // Call the database function to generate the invoice
-      const { data, error } = await supabase.rpc('generate_patient_invoice', {
-        p_patient_id: invoiceData.patientId,
-        p_doctor_id: invoiceData.doctorId || null,
-        p_amount: Number(invoiceData.amount),
-        p_description: invoiceData.description
+      // Use the edge function instead of direct RPC call
+      const { data, error } = await supabase.functions.invoke('generate-patient-invoice', {
+        body: {
+          patientId: invoiceData.patientId,
+          doctorId: invoiceData.doctorId || null,
+          amount: Number(invoiceData.amount),
+          description: invoiceData.description
+        }
       });
       
       if (error) {
