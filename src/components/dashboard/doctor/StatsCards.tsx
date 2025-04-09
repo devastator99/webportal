@@ -36,8 +36,6 @@ export const StatsCards = () => {
           { doctor_id: user.id }
         );
         
-        console.log("Patients count RPC result:", { patientsCount, patientsError });
-
         if (patientsError) {
           console.error("Error fetching patients count:", patientsError);
           toast({
@@ -45,7 +43,6 @@ export const StatsCards = () => {
             description: patientsError.message,
             variant: "destructive",
           });
-          // Continue with other stats despite this error
         }
 
         // Get medical records count
@@ -61,12 +58,11 @@ export const StatsCards = () => {
             description: recordsError.message,
             variant: "destructive",
           });
-          // Continue with other stats despite this error
         }
 
-        // Get today's appointments count, use type assertion
+        // Get today's appointments count
         const { data: todaysCount, error: todaysError } = await supabase.rpc(
-          'get_doctor_todays_appointments_count' as any,
+          'get_doctor_todays_appointments_count',
           { doctor_id: user.id }
         );
 
@@ -77,12 +73,11 @@ export const StatsCards = () => {
             description: todaysError.message,
             variant: "destructive",
           });
-          // Continue with other stats despite this error
         }
 
-        // Get upcoming appointments count, use type assertion
+        // Get upcoming appointments count
         const { data: upcomingCount, error: upcomingError } = await supabase.rpc(
-          'get_doctor_upcoming_appointments_count' as any,
+          'get_doctor_upcoming_appointments_count',
           { doctor_id: user.id }
         );
 
@@ -93,7 +88,6 @@ export const StatsCards = () => {
             description: upcomingError.message,
             variant: "destructive",
           });
-          // Continue with other stats despite this error
         }
 
         console.log("Dashboard stats fetched:", {
@@ -146,8 +140,6 @@ export const StatsCards = () => {
       </Card>
     );
   }
-
-  console.log("Rendering stats with data:", doctorStats);
 
   return (
     <Card className="mb-4">
