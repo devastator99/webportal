@@ -1,3 +1,4 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Calendar, FileText, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -30,7 +31,6 @@ export const StatsCards = () => {
         console.log("Fetching dashboard stats for doctor:", user.id);
         
         // Get patients count with error handling - consistently use doctor_id parameter
-        // We know this function exists and expects doctor_id
         const { data: patientsCount, error: patientsError } = await supabase.rpc(
           'get_doctor_patients_count',
           { doctor_id: user.id }
@@ -60,20 +60,20 @@ export const StatsCards = () => {
           });
         }
 
-        // For todays_appointments and upcoming_appointments, let's ensure we're calling
-        // existing functions with proper parameter names
+        // For todays_appointments and upcoming_appointments, use type assertion to work around TypeScript errors
         let todaysCount = 0;
         let upcomingCount = 0;
         
         try {
-          // Try to call the function using doctor_id parameter
+          // Use type assertion to handle the TypeScript error for function name
           const { data, error } = await supabase.rpc(
-            'get_doctor_todays_appointments_count', 
+            'get_doctor_todays_appointments_count' as any, 
             { doctor_id: user.id }
           );
           
           if (error) throw error;
-          todaysCount = data;
+          // Convert to number to ensure correct type
+          todaysCount = Number(data) || 0;
           console.log("Successfully fetched today's appointments:", data);
         } catch (todaysError) {
           console.error("Error fetching today's appointments count:", todaysError);
@@ -81,14 +81,15 @@ export const StatsCards = () => {
         }
         
         try {
-          // Try to call the function using doctor_id parameter
+          // Use type assertion to handle the TypeScript error for function name
           const { data, error } = await supabase.rpc(
-            'get_doctor_upcoming_appointments_count',
+            'get_doctor_upcoming_appointments_count' as any,
             { doctor_id: user.id }
           );
           
           if (error) throw error;
-          upcomingCount = data;
+          // Convert to number to ensure correct type
+          upcomingCount = Number(data) || 0;
           console.log("Successfully fetched upcoming appointments:", data);
         } catch (upcomingError) {
           console.error("Error fetching upcoming appointments count:", upcomingError);
@@ -105,8 +106,8 @@ export const StatsCards = () => {
         return {
           patients_count: patientsCount || 0,
           medical_records_count: recordsCount || 0,
-          todays_appointments: todaysCount || 0,
-          upcoming_appointments: upcomingCount || 0
+          todays_appointments: todaysCount,
+          upcoming_appointments: upcomingCount
         } as DoctorStats;
       } catch (error) {
         console.error("Error fetching doctor stats:", error);
