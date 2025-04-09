@@ -30,48 +30,44 @@ export const StatsCards = () => {
       try {
         console.log("Fetching dashboard stats for doctor:", user.id);
         
-        // Get patients count using generic RPC function to avoid TypeScript issues
-        const { data: patientsCount, error: patientsError } = await supabase
-          .from('rpc')
-          .select('*')
-          .eq('function_name', 'get_doctor_patients_count')
-          .eq('args', { doctor_id: user.id });
+        // Use direct RPC calls with type assertions to fix TypeScript errors
+        const { data: patientsCount, error: patientsError } = await supabase.rpc(
+          'get_doctor_patients_count' as any, 
+          { p_doctor_id: user.id }
+        );
         
         if (patientsError) {
           console.error("Error fetching patients count:", patientsError);
           throw patientsError;
         }
 
-        // Get medical records count using generic RPC function
-        const { data: recordsCount, error: recordsError } = await supabase
-          .from('rpc')
-          .select('*')
-          .eq('function_name', 'get_doctor_medical_records_count')
-          .eq('args', { doctor_id: user.id });
+        // Get medical records count using RPC function
+        const { data: recordsCount, error: recordsError } = await supabase.rpc(
+          'get_doctor_medical_records_count' as any,
+          { p_doctor_id: user.id }
+        );
 
         if (recordsError) {
           console.error("Error fetching medical records count:", recordsError);
           throw recordsError;
         }
 
-        // Get today's appointments count using generic RPC function
-        const { data: todaysCount, error: todaysError } = await supabase
-          .from('rpc')
-          .select('*')
-          .eq('function_name', 'get_doctor_todays_appointments_count')
-          .eq('args', { doctor_id: user.id });
+        // Get today's appointments count using RPC function
+        const { data: todaysCount, error: todaysError } = await supabase.rpc(
+          'get_doctor_todays_appointments_count' as any,
+          { p_doctor_id: user.id }
+        );
         
         if (todaysError) {
           console.error("Error fetching today's appointments count:", todaysError);
           throw todaysError;
         }
 
-        // Get upcoming appointments count using generic RPC function
-        const { data: upcomingCount, error: upcomingError } = await supabase
-          .from('rpc')
-          .select('*')
-          .eq('function_name', 'get_doctor_upcoming_appointments_count')
-          .eq('args', { doctor_id: user.id });
+        // Get upcoming appointments count using RPC function
+        const { data: upcomingCount, error: upcomingError } = await supabase.rpc(
+          'get_doctor_upcoming_appointments_count' as any,
+          { p_doctor_id: user.id }
+        );
         
         if (upcomingError) {
           console.error("Error fetching upcoming appointments count:", upcomingError);
@@ -79,17 +75,17 @@ export const StatsCards = () => {
         }
         
         console.log("Dashboard stats fetched:", {
-          patients: patientsCount?.[0],
-          records: recordsCount?.[0],
-          today: todaysCount?.[0],
-          upcoming: upcomingCount?.[0]
+          patients: patientsCount,
+          records: recordsCount,
+          today: todaysCount,
+          upcoming: upcomingCount
         });
         
         return {
-          patients_count: Number(patientsCount?.[0]) || 0,
-          medical_records_count: Number(recordsCount?.[0]) || 0,
-          todays_appointments: Number(todaysCount?.[0]) || 0,
-          upcoming_appointments: Number(upcomingCount?.[0]) || 0
+          patients_count: Number(patientsCount) || 0,
+          medical_records_count: Number(recordsCount) || 0,
+          todays_appointments: Number(todaysCount) || 0,
+          upcoming_appointments: Number(upcomingCount) || 0
         } as DoctorStats;
       } catch (error) {
         console.error("Error fetching doctor stats:", error);
