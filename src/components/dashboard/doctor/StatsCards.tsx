@@ -30,7 +30,7 @@ export const StatsCards = () => {
       try {
         console.log("Fetching dashboard stats for doctor:", user.id);
         
-        // Get patients count
+        // Get patients count using RPC
         const { data: patientsCount, error: patientsError } = await supabase.rpc(
           'get_doctor_patients_count', 
           { doctor_id: user.id }
@@ -41,7 +41,7 @@ export const StatsCards = () => {
           throw patientsError;
         }
 
-        // Get medical records count
+        // Get medical records count using RPC
         const { data: recordsCount, error: recordsError } = await supabase.rpc(
           'get_doctor_medical_records_count',
           { doctor_id: user.id }
@@ -52,32 +52,22 @@ export const StatsCards = () => {
           throw recordsError;
         }
 
-        // Get today's appointments count - using direct query instead of RPC
-        const today = new Date().toISOString().split('T')[0];
-        const { count: todaysCount, error: todaysError } = await supabase
-          .from('appointments')
-          .select('*', { count: 'exact', head: true })
-          .eq('doctor_id', user.id)
-          .eq('status', 'scheduled')
-          .gte('scheduled_at', `${today}T00:00:00`)
-          .lte('scheduled_at', `${today}T23:59:59`);
+        // Get today's appointments count using RPC
+        const { data: todaysCount, error: todaysError } = await supabase.rpc(
+          'get_doctor_todays_appointments_count',
+          { doctor_id: user.id }
+        );
 
         if (todaysError) {
           console.error("Error fetching today's appointments count:", todaysError);
           throw todaysError;
         }
 
-        // Get upcoming appointments count - using direct query instead of RPC
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
-        
-        const { count: upcomingCount, error: upcomingError } = await supabase
-          .from('appointments')
-          .select('*', { count: 'exact', head: true })
-          .eq('doctor_id', user.id)
-          .eq('status', 'scheduled')
-          .gte('scheduled_at', `${tomorrowStr}T00:00:00`);
+        // Get upcoming appointments count using RPC
+        const { data: upcomingCount, error: upcomingError } = await supabase.rpc(
+          'get_doctor_upcoming_appointments_count',
+          { doctor_id: user.id }
+        );
 
         if (upcomingError) {
           console.error("Error fetching upcoming appointments count:", upcomingError);
