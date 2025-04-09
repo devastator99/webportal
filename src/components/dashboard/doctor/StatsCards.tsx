@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Calendar, FileText, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -6,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Define TypeScript interface for the stats data
 interface DoctorStats {
   patients_count: number;
   medical_records_count: number;
@@ -30,21 +28,18 @@ export const StatsCards = () => {
       try {
         console.log("Fetching dashboard stats for doctor:", user.id);
         
-        // Get patients count - using direct query instead of RPC to avoid ambiguous column error
-        console.log("Querying patient_assignments table for count");
-        const { count: patientsCount, error: patientsError } = await supabase
-          .from('patient_assignments')
-          .select('*', { count: 'exact', head: true })
-          .eq('doctor_id', user.id);
-
-        console.log("Patients count query result:", { patientsCount, patientsError });
+        const { data: patientsCount, error: patientsError } = await supabase.rpc(
+          'get_doctor_patients_count',
+          { doctor_id: user.id }
+        );
+        
+        console.log("Patients count RPC result:", { patientsCount, patientsError });
 
         if (patientsError) {
           console.error("Error fetching patients count:", patientsError);
           throw patientsError;
         }
 
-        // Get medical records count using RPC
         const { data: recordsCount, error: recordsError } = await supabase.rpc(
           'get_doctor_medical_records_count',
           { doctor_id: user.id }
@@ -55,32 +50,20 @@ export const StatsCards = () => {
           throw recordsError;
         }
 
-        // Get today's appointments count - using direct query instead of RPC
-        const today = new Date().toISOString().split('T')[0];
-        const { count: todaysCount, error: todaysError } = await supabase
-          .from('appointments')
-          .select('*', { count: 'exact', head: true })
-          .eq('doctor_id', user.id)
-          .eq('status', 'scheduled')
-          .gte('scheduled_at', `${today}T00:00:00`)
-          .lte('scheduled_at', `${today}T23:59:59`);
+        const { data: todaysCount, error: todaysError } = await supabase.rpc(
+          'get_doctor_todays_appointments_count',
+          { doctor_id: user.id }
+        );
 
         if (todaysError) {
           console.error("Error fetching today's appointments count:", todaysError);
           throw todaysError;
         }
 
-        // Get upcoming appointments count - using direct query instead of RPC
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
-        
-        const { count: upcomingCount, error: upcomingError } = await supabase
-          .from('appointments')
-          .select('*', { count: 'exact', head: true })
-          .eq('doctor_id', user.id)
-          .eq('status', 'scheduled')
-          .gte('scheduled_at', `${tomorrowStr}T00:00:00`);
+        const { data: upcomingCount, error: upcomingError } = await supabase.rpc(
+          'get_doctor_upcoming_appointments_count',
+          { doctor_id: user.id }
+        );
 
         if (upcomingError) {
           console.error("Error fetching upcoming appointments count:", upcomingError);
@@ -115,7 +98,6 @@ export const StatsCards = () => {
     retry: 1,
   });
 
-  // Simplified loading skeleton
   if (isLoading) {
     return (
       <Card className="mb-4">
