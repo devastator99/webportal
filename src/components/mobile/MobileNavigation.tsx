@@ -62,11 +62,11 @@ export const MobileNavigation: React.FC = () => {
     }
   };
   
+  // Modified to navigate to appointments page instead of opening dialog
   const handleCalendarClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    console.log("Calendar icon clicked, opening schedule dialog");
-    // Open the schedule appointment dialog
-    setScheduleOpen(true);
+    console.log("Calendar icon clicked, navigating to appointments page");
+    navigate('/appointments');
   };
   
   // Convert userRole to a valid callerRole for ScheduleAppointment
@@ -112,7 +112,7 @@ export const MobileNavigation: React.FC = () => {
     label: 'Calendar',
     icon: Calendar,
     action: handleCalendarClick,
-    active: scheduleOpen || location.pathname.includes('appointments')
+    active: location.pathname.includes('appointments')
   };
   
   // Create the final navigation items array based on user role
@@ -148,25 +148,6 @@ export const MobileNavigation: React.FC = () => {
           </DialogHeader>
           <div className="h-[80vh]">
             <WhatsAppStyleChatInterface patientRoomId={patientRoomId} />
-          </div>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Schedule Appointment Dialog */}
-      <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] p-0">
-          <DialogHeader>
-            <DialogTitle>Schedule Appointment</DialogTitle>
-            <DialogDescription>Schedule a new appointment</DialogDescription>
-          </DialogHeader>
-          <div className="h-[80vh] overflow-auto p-4">
-            <ScheduleAppointment 
-              callerRole={getCallerRole()}
-              preSelectedDoctorId={userRole === "doctor" ? user?.id : ""}
-              preSelectedPatientId={userRole === "patient" ? user?.id : ""}
-            >
-              <div className="hidden">Trigger</div>
-            </ScheduleAppointment>
           </div>
         </DialogContent>
       </Dialog>
