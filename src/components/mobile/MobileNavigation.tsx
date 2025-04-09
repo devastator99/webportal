@@ -68,6 +68,16 @@ export const MobileNavigation: React.FC = () => {
     setScheduleOpen(true);
   };
   
+  // Convert userRole to a valid callerRole for ScheduleAppointment
+  const getCallerRole = (): "doctor" | "patient" | "reception" => {
+    if (userRole === "doctor") return "doctor";
+    if (userRole === "patient") return "patient";
+    if (userRole === "reception") return "reception";
+    
+    // Default to patient for any other role (administrator, nutritionist, etc.)
+    return "patient";
+  };
+  
   const navItems = [
     {
       label: 'Home',
@@ -130,7 +140,7 @@ export const MobileNavigation: React.FC = () => {
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] p-0">
           <div className="h-[80vh]">
             <ScheduleAppointment 
-              callerRole={userRole || "patient"}
+              callerRole={getCallerRole()}
               preSelectedDoctorId=""
               preSelectedPatientId={userRole === "patient" ? user?.id : ""}
             >
