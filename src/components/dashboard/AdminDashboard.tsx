@@ -10,6 +10,9 @@ import { Settings, Users, FileText, Database, UserPlus, Building } from "lucide-
 import { SyncCareTeamsButton } from "@/components/dashboard/admin/SyncCareTeamsButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAdminStats } from "@/hooks/useAdminStats";
+import { NumericFormat } from "react-number-format";
 
 // Updated system settings component that imports and uses AdminSettings
 const SystemSettings = () => {
@@ -33,6 +36,7 @@ const SystemSettings = () => {
 export const AdminDashboard = () => {
   const [syncSuccess, setSyncSuccess] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const { data: stats, isLoading: isLoadingStats } = useAdminStats();
 
   return (
     <div className="space-y-4 animate-fade-up">
@@ -60,7 +64,17 @@ export const AdminDashboard = () => {
               <div className="bg-[#D3E4FD] p-3 rounded-full mb-2">
                 <Users className="h-6 w-6 text-[#0EA5E9]" />
               </div>
-              <span className="text-2xl font-bold">-</span>
+              {isLoadingStats ? (
+                <Skeleton className="h-8 w-16 mb-2" />
+              ) : (
+                <span className="text-2xl font-bold">
+                  <NumericFormat 
+                    value={stats?.total_users || 0} 
+                    displayType="text" 
+                    thousandSeparator="," 
+                  />
+                </span>
+              )}
               <span className="text-xs text-gray-500 text-center">Total Users</span>
             </div>
             
@@ -68,7 +82,17 @@ export const AdminDashboard = () => {
               <div className="bg-[#E5DEFF] p-3 rounded-full mb-2">
                 <Building className="h-6 w-6 text-[#9b87f5]" />
               </div>
-              <span className="text-2xl font-bold">-</span>
+              {isLoadingStats ? (
+                <Skeleton className="h-8 w-16 mb-2" />
+              ) : (
+                <span className="text-2xl font-bold">
+                  <NumericFormat 
+                    value={stats?.total_clinics || 0} 
+                    displayType="text" 
+                    thousandSeparator="," 
+                  />
+                </span>
+              )}
               <span className="text-xs text-gray-500 text-center">Clinics</span>
             </div>
             
@@ -76,7 +100,13 @@ export const AdminDashboard = () => {
               <div className="bg-[#F2FCE2] p-3 rounded-full mb-2">
                 <Database className="h-6 w-6 text-green-500" />
               </div>
-              <span className="text-2xl font-bold">-</span>
+              {isLoadingStats ? (
+                <Skeleton className="h-8 w-16 mb-2" />
+              ) : (
+                <span className="text-2xl font-bold">
+                  {stats?.system_status || "Checking..."}
+                </span>
+              )}
               <span className="text-xs text-gray-500 text-center">System Status</span>
             </div>
           </div>
