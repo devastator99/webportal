@@ -155,11 +155,11 @@ export const MobileNavigation: React.FC = () => {
       {/* Schedule Appointment Dialog */}
       <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] p-0">
-          <DialogHeader className="sr-only">
+          <DialogHeader>
             <DialogTitle>Schedule Appointment</DialogTitle>
             <DialogDescription>Schedule a new appointment</DialogDescription>
           </DialogHeader>
-          <div className="h-[80vh] overflow-auto">
+          <div className="h-[80vh] overflow-auto p-4">
             <ScheduleAppointment 
               callerRole={getCallerRole()}
               preSelectedDoctorId={userRole === "doctor" ? user?.id : ""}
