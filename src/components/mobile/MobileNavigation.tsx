@@ -125,16 +125,16 @@ export const MobileNavigation: React.FC = () => {
 
   return (
     <>
-      <nav className="mobile-nav">
+      <nav className="mobile-nav fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center p-2 z-40">
         {navItems.map((item) => (
           <button
             key={item.label}
-            className={`mobile-nav-item ${item.active ? 'active' : ''}`}
+            className={`mobile-nav-item flex flex-col items-center p-1 ${item.active ? 'text-primary' : 'text-gray-500'}`}
             onClick={item.action}
             aria-label={item.label}
           >
             <item.icon className="mobile-nav-icon h-5 w-5" />
-            <span>{item.label}</span>
+            <span className="text-xs mt-1">{item.label}</span>
           </button>
         ))}
       </nav>
@@ -142,24 +142,24 @@ export const MobileNavigation: React.FC = () => {
       {/* Chat Dialog */}
       <Dialog open={chatOpen} onOpenChange={setChatOpen}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] p-0">
-          <DialogHeader className="sr-only">
+          <DialogHeader className="p-4 border-b">
             <DialogTitle>Chat</DialogTitle>
             <DialogDescription>Chat with your care team</DialogDescription>
           </DialogHeader>
           <div className="h-[80vh]">
-            <WhatsAppStyleChatInterface patientRoomId={patientRoomId} />
+            {patientRoomId && <WhatsAppStyleChatInterface patientRoomId={patientRoomId} />}
           </div>
         </DialogContent>
       </Dialog>
       
       {/* Schedule Appointment Dialog */}
       <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] p-0">
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Schedule Appointment</DialogTitle>
             <DialogDescription>Schedule a new appointment</DialogDescription>
           </DialogHeader>
-          <div className="h-[80vh] overflow-auto p-4">
+          <div className="overflow-auto px-4 pb-4">
             <ScheduleAppointment 
               callerRole={getCallerRole()}
               preSelectedDoctorId={userRole === "doctor" ? user?.id : ""}
