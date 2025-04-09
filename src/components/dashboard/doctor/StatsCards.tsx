@@ -30,98 +30,63 @@ export const StatsCards = () => {
       try {
         console.log("Fetching dashboard stats for doctor:", user.id);
         
-        // Use fetch method instead of direct RPC calls to bypass TypeScript errors
-        const patientsCountResponse = await fetch(
-          `${supabase.supabaseUrl}/rest/v1/rpc/get_doctor_patients_count`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': supabase.supabaseKey,
-              'Authorization': `Bearer ${supabase.supabaseKey}`
-            },
-            body: JSON.stringify({ doctor_id: user.id })
+        // Use Supabase functions service for RPC calls
+        const patientsResponse = await supabase.functions.invoke('get-doctor-stats', {
+          body: { 
+            type: 'patients_count',
+            doctor_id: user.id 
           }
-        );
+        });
         
-        if (!patientsCountResponse.ok) {
-          throw new Error('Failed to fetch patients count');
+        if (patientsResponse.error) {
+          throw new Error('Failed to fetch patients count: ' + patientsResponse.error.message);
         }
         
-        const patientsCount = await patientsCountResponse.json();
-
-        // Get medical records count using fetch
-        const recordsCountResponse = await fetch(
-          `${supabase.supabaseUrl}/rest/v1/rpc/get_doctor_medical_records_count`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': supabase.supabaseKey,
-              'Authorization': `Bearer ${supabase.supabaseKey}`
-            },
-            body: JSON.stringify({ doctor_id: user.id })
+        const recordsResponse = await supabase.functions.invoke('get-doctor-stats', {
+          body: { 
+            type: 'medical_records_count',
+            doctor_id: user.id 
           }
-        );
+        });
         
-        if (!recordsCountResponse.ok) {
-          throw new Error('Failed to fetch medical records count');
+        if (recordsResponse.error) {
+          throw new Error('Failed to fetch medical records count: ' + recordsResponse.error.message);
         }
         
-        const recordsCount = await recordsCountResponse.json();
-
-        // Get today's appointments count using fetch
-        const todaysCountResponse = await fetch(
-          `${supabase.supabaseUrl}/rest/v1/rpc/get_doctor_todays_appointments_count`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': supabase.supabaseKey,
-              'Authorization': `Bearer ${supabase.supabaseKey}`
-            },
-            body: JSON.stringify({ doctor_id: user.id })
+        const todaysResponse = await supabase.functions.invoke('get-doctor-stats', {
+          body: { 
+            type: 'todays_appointments_count',
+            doctor_id: user.id 
           }
-        );
+        });
         
-        if (!todaysCountResponse.ok) {
-          throw new Error('Failed to fetch today\'s appointments count');
+        if (todaysResponse.error) {
+          throw new Error('Failed to fetch today\'s appointments count: ' + todaysResponse.error.message);
         }
         
-        const todaysCount = await todaysCountResponse.json();
-
-        // Get upcoming appointments count using fetch
-        const upcomingCountResponse = await fetch(
-          `${supabase.supabaseUrl}/rest/v1/rpc/get_doctor_upcoming_appointments_count`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': supabase.supabaseKey,
-              'Authorization': `Bearer ${supabase.supabaseKey}`
-            },
-            body: JSON.stringify({ doctor_id: user.id })
+        const upcomingResponse = await supabase.functions.invoke('get-doctor-stats', {
+          body: { 
+            type: 'upcoming_appointments_count',
+            doctor_id: user.id 
           }
-        );
+        });
         
-        if (!upcomingCountResponse.ok) {
-          throw new Error('Failed to fetch upcoming appointments count');
+        if (upcomingResponse.error) {
+          throw new Error('Failed to fetch upcoming appointments count: ' + upcomingResponse.error.message);
         }
-        
-        const upcomingCount = await upcomingCountResponse.json();
         
         console.log("Dashboard stats fetched:", {
-          patients: patientsCount,
-          records: recordsCount,
-          today: todaysCount,
-          upcoming: upcomingCount
+          patients: patientsResponse.data,
+          records: recordsResponse.data,
+          today: todaysResponse.data,
+          upcoming: upcomingResponse.data
         });
         
         return {
-          patients_count: Number(patientsCount) || 0,
-          medical_records_count: Number(recordsCount) || 0,
-          todays_appointments: Number(todaysCount) || 0,
-          upcoming_appointments: Number(upcomingCount) || 0
+          patients_count: Number(patientsResponse.data) || 0,
+          medical_records_count: Number(recordsResponse.data) || 0,
+          todays_appointments: Number(todaysResponse.data) || 0,
+          upcoming_appointments: Number(upcomingResponse.data) || 0
         } as DoctorStats;
       } catch (error) {
         console.error("Error fetching doctor stats:", error);
