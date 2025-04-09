@@ -32,8 +32,8 @@ export const StatsCards = () => {
         
         // Use direct RPC calls with type assertions to fix TypeScript errors
         const { data: patientsCount, error: patientsError } = await supabase.rpc(
-          'get_doctor_patients_count' as any, 
-          { p_doctor_id: user.id }
+          'get_doctor_patients_count', 
+          { doctor_id: user.id }
         );
         
         if (patientsError) {
@@ -43,8 +43,8 @@ export const StatsCards = () => {
 
         // Get medical records count using RPC function
         const { data: recordsCount, error: recordsError } = await supabase.rpc(
-          'get_doctor_medical_records_count' as any,
-          { p_doctor_id: user.id }
+          'get_doctor_medical_records_count',
+          { doctor_id: user.id }
         );
 
         if (recordsError) {
@@ -54,8 +54,8 @@ export const StatsCards = () => {
 
         // Get today's appointments count using RPC function
         const { data: todaysCount, error: todaysError } = await supabase.rpc(
-          'get_doctor_todays_appointments_count' as any,
-          { p_doctor_id: user.id }
+          'get_doctor_todays_appointments_count',
+          { doctor_id: user.id }
         );
         
         if (todaysError) {
@@ -65,8 +65,8 @@ export const StatsCards = () => {
 
         // Get upcoming appointments count using RPC function
         const { data: upcomingCount, error: upcomingError } = await supabase.rpc(
-          'get_doctor_upcoming_appointments_count' as any,
-          { p_doctor_id: user.id }
+          'get_doctor_upcoming_appointments_count',
+          { doctor_id: user.id }
         );
         
         if (upcomingError) {

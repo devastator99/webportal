@@ -18,6 +18,7 @@ import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatI
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { VoiceScheduler } from "@/components/voice/VoiceScheduler";
 import { TodaySchedule } from "@/components/dashboard/doctor/TodaySchedule";
+import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
@@ -25,6 +26,7 @@ export const DoctorDashboard = () => {
   const navigate = useNavigate();
   const [showChatOverlay, setShowChatOverlay] = useState(false);
   const [showVoiceScheduler, setShowVoiceScheduler] = useState(false);
+  const [showScheduleAppointment, setShowScheduleAppointment] = useState(false);
   
   return (
     <div className="animate-fade-up">
@@ -42,22 +44,44 @@ export const DoctorDashboard = () => {
             <span className="whitespace-nowrap overflow-hidden text-ellipsis">Patients</span>
           </Button>
           
-          <Dialog open={showVoiceScheduler} onOpenChange={setShowVoiceScheduler}>
-            <DialogTrigger asChild>
-              <Button 
-                className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff] text-xs py-1.5 h-auto"
-              >
-                <Calendar className="mr-1 h-3.5 w-3.5" />
-                <Mic className="h-3 w-3 mx-0.5" />
-                <span className="whitespace-nowrap overflow-hidden text-ellipsis">Schedule</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[800px] max-h-[80vh] p-0">
-              <div className="h-[70vh]">
-                <VoiceScheduler onClose={() => setShowVoiceScheduler(false)} />
-              </div>
-            </DialogContent>
-          </Dialog>
+          <div className="flex">
+            <Dialog open={showVoiceScheduler} onOpenChange={setShowVoiceScheduler}>
+              <DialogTrigger asChild>
+                <Button 
+                  className="rounded-l-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff] text-xs py-1.5 h-auto flex-1"
+                >
+                  <Mic className="mr-1 h-3.5 w-3.5" />
+                  <span className="whitespace-nowrap overflow-hidden text-ellipsis">Voice</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[800px] max-h-[80vh] p-0">
+                <div className="h-[70vh]">
+                  <VoiceScheduler onClose={() => setShowVoiceScheduler(false)} />
+                </div>
+              </DialogContent>
+            </Dialog>
+            
+            <Dialog open={showScheduleAppointment} onOpenChange={setShowScheduleAppointment}>
+              <DialogTrigger asChild>
+                <Button 
+                  className="rounded-r-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff] text-xs py-1.5 h-auto"
+                  aria-label="Schedule Appointment"
+                >
+                  <Calendar className="h-3.5 w-3.5" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[800px] max-h-[80vh] p-0 overflow-auto">
+                <div className="h-[70vh] overflow-auto">
+                  <ScheduleAppointment
+                    callerRole="doctor"
+                    preSelectedDoctorId={user?.id}
+                  >
+                    <span></span>
+                  </ScheduleAppointment>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
           
           <Dialog open={showChatOverlay} onOpenChange={setShowChatOverlay}>
             <DialogTrigger asChild>

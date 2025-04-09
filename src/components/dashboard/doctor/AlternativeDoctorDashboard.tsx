@@ -23,6 +23,7 @@ export const AlternativeDoctorDashboard = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [showVoiceScheduler, setShowVoiceScheduler] = useState(false);
+  const [showScheduleAppointment, setShowScheduleAppointment] = useState(false);
   
   // Extract doctor's name from user metadata
   const doctorFirstName = user?.user_metadata?.first_name || "";
@@ -46,22 +47,44 @@ export const AlternativeDoctorDashboard = () => {
             <span>Patients</span>
           </Button>
           
-          <Dialog open={showVoiceScheduler} onOpenChange={setShowVoiceScheduler}>
-            <DialogTrigger asChild>
-              <Button
-                className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
-              >
-                <Calendar className="mr-2 h-4 w-4" />
-                <Mic className="h-3.5 w-3.5 ml-1 mr-1" />
-                <span>Schedule</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[800px] max-h-[80vh] p-0">
-              <div className="h-[70vh]">
-                <VoiceScheduler onClose={() => setShowVoiceScheduler(false)} />
-              </div>
-            </DialogContent>
-          </Dialog>
+          <div className="flex">
+            <Dialog open={showVoiceScheduler} onOpenChange={setShowVoiceScheduler}>
+              <DialogTrigger asChild>
+                <Button
+                  className="rounded-l-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff] flex-1"
+                >
+                  <Mic className="mr-2 h-4 w-4" />
+                  <span>Voice</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[800px] max-h-[80vh] p-0">
+                <div className="h-[70vh]">
+                  <VoiceScheduler onClose={() => setShowVoiceScheduler(false)} />
+                </div>
+              </DialogContent>
+            </Dialog>
+            
+            <Dialog open={showScheduleAppointment} onOpenChange={setShowScheduleAppointment}>
+              <DialogTrigger asChild>
+                <Button
+                  className="rounded-r-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
+                  aria-label="Schedule Appointment"
+                >
+                  <Calendar className="h-4 w-4" />
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[800px] max-h-[80vh] p-0 overflow-auto">
+                <div className="h-[70vh] overflow-auto">
+                  <ScheduleAppointment
+                    callerRole="doctor"
+                    preSelectedDoctorId={user?.id}
+                  >
+                    <span></span>
+                  </ScheduleAppointment>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
           
           <Button
             className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"

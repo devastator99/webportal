@@ -131,6 +131,7 @@ export const MobileNavigation: React.FC = () => {
             key={item.label}
             className={`mobile-nav-item ${item.active ? 'active' : ''}`}
             onClick={item.action}
+            aria-label={item.label}
           >
             <item.icon className="mobile-nav-icon h-5 w-5" />
             <span>{item.label}</span>
@@ -161,7 +162,7 @@ export const MobileNavigation: React.FC = () => {
           <div className="h-[80vh] overflow-auto">
             <ScheduleAppointment 
               callerRole={getCallerRole()}
-              preSelectedDoctorId=""
+              preSelectedDoctorId={userRole === "doctor" ? user?.id : ""}
               preSelectedPatientId={userRole === "patient" ? user?.id : ""}
             >
               <span></span>
