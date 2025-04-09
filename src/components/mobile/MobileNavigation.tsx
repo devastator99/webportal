@@ -78,18 +78,13 @@ export const MobileNavigation: React.FC = () => {
     return "patient";
   };
   
-  const navItems = [
+  // Base navigation items that are always shown
+  const baseNavItems = [
     {
       label: 'Home',
       icon: Home,
       action: () => navigate('/dashboard'),
       active: location.pathname === '/dashboard'
-    },
-    {
-      label: 'Calendar',
-      icon: Calendar,
-      action: handleCalendarClick,
-      active: scheduleOpen || location.pathname.includes('appointments')
     },
     {
       label: 'Patients',
@@ -110,6 +105,22 @@ export const MobileNavigation: React.FC = () => {
       active: location.pathname === '/dashboard-alt'
     }
   ];
+  
+  // Define calendar item separately so we can conditionally include it
+  const calendarItem = {
+    label: 'Calendar',
+    icon: Calendar,
+    action: handleCalendarClick,
+    active: scheduleOpen || location.pathname.includes('appointments')
+  };
+  
+  // Create the final navigation items array based on user role
+  let navItems = [...baseNavItems];
+  
+  // Insert the Calendar option after "Home" and before "Patients" only for doctors
+  if (userRole === 'doctor') {
+    navItems.splice(1, 0, calendarItem);
+  }
 
   return (
     <>
