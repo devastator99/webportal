@@ -1,3 +1,4 @@
+
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Calendar, FileText, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -50,8 +51,9 @@ export const StatsCards = () => {
           throw recordsError;
         }
 
+        // Use type assertion to bypass TypeScript error
         const { data: todaysCount, error: todaysError } = await supabase.rpc(
-          'get_doctor_todays_appointments_count',
+          'get_doctor_todays_appointments_count' as any,
           { doctor_id: user.id }
         );
 
@@ -60,8 +62,9 @@ export const StatsCards = () => {
           throw todaysError;
         }
 
+        // Use type assertion to bypass TypeScript error
         const { data: upcomingCount, error: upcomingError } = await supabase.rpc(
-          'get_doctor_upcoming_appointments_count',
+          'get_doctor_upcoming_appointments_count' as any,
           { doctor_id: user.id }
         );
 
