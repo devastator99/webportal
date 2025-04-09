@@ -60,40 +60,47 @@ export const StatsCards = () => {
           });
         }
 
-        // Custom fetch function to handle both today's and upcoming appointments
-        const fetchAppointmentsCount = async (functionName: string, paramName = 'doctor_id') => {
-          try {
-            // Use a POST request to call the RPC function directly
-            // This bypasses TypeScript's type checking for the RPC function name
-            const response = await fetch(
-              `https://hcaqodjylicmppxcbqbh.supabase.co/rest/v1/rpc/${functionName}`,
-              {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjYXFvZGp5bGljbXBweGNicWJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgzMDIxNDksImV4cCI6MjA1Mzg3ODE0OX0.h4pO6UShabHNPWC9o_EMbbhOVHsR-fuZQ5-b85hNB4w',
-                  'Authorization': `Bearer ${supabase.auth.getSession().then(({ data }) => data.session?.access_token)}`
-                },
-                body: JSON.stringify({ [paramName]: user.id })
-              }
-            );
-            
-            if (!response.ok) {
-              throw new Error(`API call failed with status: ${response.status}`);
-            }
-            
-            const data = await response.json();
-            console.log(`Successfully fetched ${functionName}:`, data);
-            return Number(data) || 0;
-          } catch (error) {
-            console.error(`Error fetching ${functionName}:`, error);
-            return 0;
+        // Use direct fetch for today's appointments count
+        const todaysAppointmentsResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/get_doctor_todays_appointments_count`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+            },
+            body: JSON.stringify({ doctor_id: user.id })
           }
-        };
+        );
+        
+        let todaysCount = 0;
+        if (todaysAppointmentsResponse.ok) {
+          todaysCount = Number(await todaysAppointmentsResponse.json()) || 0;
+        } else {
+          console.error("Error fetching today's appointments count:", await todaysAppointmentsResponse.text());
+        }
 
-        // Get today's and upcoming appointments counts
-        const todaysCount = await fetchAppointmentsCount('get_doctor_todays_appointments_count');
-        const upcomingCount = await fetchAppointmentsCount('get_doctor_upcoming_appointments_count');
+        // Use direct fetch for upcoming appointments count
+        const upcomingAppointmentsResponse = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/get_doctor_upcoming_appointments_count`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+            },
+            body: JSON.stringify({ doctor_id: user.id })
+          }
+        );
+        
+        let upcomingCount = 0;
+        if (upcomingAppointmentsResponse.ok) {
+          upcomingCount = Number(await upcomingAppointmentsResponse.json()) || 0;
+        } else {
+          console.error("Error fetching upcoming appointments count:", await upcomingAppointmentsResponse.text());
+        }
         
         console.log("Dashboard stats fetched:", {
           patients: patientsCount,
