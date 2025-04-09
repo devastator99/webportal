@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Calendar, User, Settings, MessageCircle } from 'lucide-react';
+import { Home, User, Settings, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { WhatsAppStyleChatInterface } from '@/components/chat/WhatsAppStyleChatInterface';
@@ -59,13 +59,6 @@ export const MobileNavigation: React.FC = () => {
     }
   };
   
-  // Modified to navigate to appointments page instead of opening dialog
-  const handleCalendarClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    console.log("Calendar icon clicked, navigating to appointments page");
-    navigate('/appointments');
-  };
-  
   // Base navigation items that are always shown
   const baseNavItems = [
     {
@@ -94,21 +87,8 @@ export const MobileNavigation: React.FC = () => {
     }
   ];
   
-  // Define calendar item separately so we can conditionally include it
-  const calendarItem = {
-    label: 'Calendar',
-    icon: Calendar,
-    action: handleCalendarClick,
-    active: location.pathname.includes('appointments')
-  };
-  
-  // Create the final navigation items array based on user role
+  // Create the final navigation items array - no longer adding calendar item for any role
   let navItems = [...baseNavItems];
-  
-  // Insert the Calendar option after "Home" and before "Patients" for doctors and administrators
-  if (userRole === 'doctor' || userRole === 'administrator') {
-    navItems.splice(1, 0, calendarItem);
-  }
 
   return (
     <>
@@ -121,9 +101,9 @@ export const MobileNavigation: React.FC = () => {
             aria-label={item.label}
           >
             <item.icon 
-              className={`mobile-nav-icon h-5 w-5 ${item.label === 'Calendar' ? 'text-[#9b87f5] stroke-[1.5]' : ''}`} 
+              className="mobile-nav-icon h-5 w-5" 
             />
-            <span className={item.label === 'Calendar' ? 'font-medium' : ''}>{item.label}</span>
+            <span>{item.label}</span>
           </button>
         ))}
       </nav>
