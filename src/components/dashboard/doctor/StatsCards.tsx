@@ -30,14 +30,14 @@ export const StatsCards = () => {
       try {
         console.log("Fetching dashboard stats for doctor:", user.id);
         
-        // Get patients count using RPC - add more debugging
-        console.log("Calling get_doctor_patients_count RPC");
-        const { data: patientsCount, error: patientsError } = await supabase.rpc(
-          'get_doctor_patients_count', 
-          { doctor_id: user.id }
-        );
+        // Get patients count - using direct query instead of RPC to avoid ambiguous column error
+        console.log("Querying patient_assignments table for count");
+        const { count: patientsCount, error: patientsError } = await supabase
+          .from('patient_assignments')
+          .select('*', { count: 'exact', head: true })
+          .eq('doctor_id', user.id);
 
-        console.log("Patients count RPC result:", { patientsCount, patientsError });
+        console.log("Patients count query result:", { patientsCount, patientsError });
 
         if (patientsError) {
           console.error("Error fetching patients count:", patientsError);
