@@ -165,7 +165,7 @@ export const MobileNavigation: React.FC = () => {
               preSelectedDoctorId={userRole === "doctor" ? user?.id : ""}
               preSelectedPatientId={userRole === "patient" ? user?.id : ""}
             >
-              <span></span>
+              <div className="hidden">Trigger</div>
             </ScheduleAppointment>
           </div>
         </DialogContent>
