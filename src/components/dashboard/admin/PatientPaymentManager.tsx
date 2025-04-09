@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface PatientPaymentSummary {
   patient_id: string;
@@ -316,89 +317,91 @@ export const PatientPaymentManager = () => {
           <LoadingSpinner size="lg" />
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 border rounded-md shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Patient</TableHead>
-                  <TableHead>Assigned Doctor</TableHead>
-                  <TableHead>Payment Status</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {patients.length > 0 ? (
-                  patients.map((patient) => (
-                    <TableRow key={patient.patient_id}>
-                      <TableCell className="font-medium">
-                        {patient.patient_first_name} {patient.patient_last_name}
-                      </TableCell>
-                      <TableCell>
-                        {patient.doctor_first_name ? (
-                          `${patient.doctor_first_name} ${patient.doctor_last_name}`
-                        ) : (
-                          <Badge variant="outline" className="text-amber-500 bg-amber-50">
-                            No Doctor Assigned
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {patient.pending_payments > 0 ? (
-                          <Badge variant="outline" className="text-amber-500 bg-amber-50">
-                            {patient.pending_payments} Pending
-                          </Badge>
-                        ) : patient.total_invoices > 0 ? (
-                          <Badge variant="outline" className="text-green-500 bg-green-50">
-                            All Paid
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline" className="text-gray-500 bg-gray-50">
-                            No Invoices
-                          </Badge>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleOpenInvoiceDialog(patient)}
-                          >
-                            Generate Invoice
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="default"
-                            onClick={() => handleOpenPaymentDialog(patient)}
-                            disabled={!patient.doctor_id}
-                            className="bg-[#9b87f5] hover:bg-[#8a75e7]"
-                          >
-                            <CreditCard className="w-4 h-4 mr-2" />
-                            Payment
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => sendInvoiceNotification(patient.patient_id, 'email')}
-                            title="Send Email Notification"
-                          >
-                            <Mail className="w-4 h-4" />
-                          </Button>
-                        </div>
+        <div className="bg-white dark:bg-gray-800 border rounded-md shadow-sm">
+          <ScrollArea className="w-full" orientation="horizontal">
+            <div className="min-w-full">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[150px]">Patient</TableHead>
+                    <TableHead className="min-w-[200px]">Assigned Doctor</TableHead>
+                    <TableHead className="min-w-[150px]">Payment Status</TableHead>
+                    <TableHead className="min-w-[280px]">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {patients.length > 0 ? (
+                    patients.map((patient) => (
+                      <TableRow key={patient.patient_id}>
+                        <TableCell className="font-medium">
+                          {patient.patient_first_name} {patient.patient_last_name}
+                        </TableCell>
+                        <TableCell>
+                          {patient.doctor_first_name ? (
+                            `${patient.doctor_first_name} ${patient.doctor_last_name}`
+                          ) : (
+                            <Badge variant="outline" className="text-amber-500 bg-amber-50">
+                              No Doctor Assigned
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {patient.pending_payments > 0 ? (
+                            <Badge variant="outline" className="text-amber-500 bg-amber-50">
+                              {patient.pending_payments} Pending
+                            </Badge>
+                          ) : patient.total_invoices > 0 ? (
+                            <Badge variant="outline" className="text-green-500 bg-green-50">
+                              All Paid
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="text-gray-500 bg-gray-50">
+                              No Invoices
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenInvoiceDialog(patient)}
+                            >
+                              Generate Invoice
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={() => handleOpenPaymentDialog(patient)}
+                              disabled={!patient.doctor_id}
+                              className="bg-[#9b87f5] hover:bg-[#8a75e7]"
+                            >
+                              <CreditCard className="w-4 h-4 mr-2" />
+                              Payment
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => sendInvoiceNotification(patient.patient_id, 'email')}
+                              title="Send Email Notification"
+                            >
+                              <Mail className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-8">
+                        No patients found
                       </TableCell>
                     </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={4} className="text-center py-8">
-                      No patients found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </ScrollArea>
         </div>
       )}
       
