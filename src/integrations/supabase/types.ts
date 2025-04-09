@@ -799,6 +799,24 @@ export type Database = {
         }
         Relationships: []
       }
+      doctor_stats: {
+        Row: {
+          doctor_id: string | null
+          medical_records_count: number | null
+          patients_count: number | null
+          todays_appointments: number | null
+          upcoming_appointments: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_assignments_doctor_profile_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       admin_assign_care_team: {
@@ -981,6 +999,15 @@ export type Database = {
           content: Json
           created_at: string
           updated_at: string
+        }[]
+      }
+      get_doctor_all_stats: {
+        Args: { doctor_id: string }
+        Returns: {
+          patients_count: number
+          medical_records_count: number
+          todays_appointments: number
+          upcoming_appointments: number
         }[]
       }
       get_doctor_appointments: {

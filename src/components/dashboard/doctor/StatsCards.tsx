@@ -28,9 +28,12 @@ export const StatsCards = () => {
       try {
         console.log("Fetching dashboard stats for doctor:", user.id);
         
-        // Use the new function to get all stats in one query
-        const { data, error } = await supabase.rpc('get_doctor_all_stats', { 
-          doctor_id: user.id 
+        // Use the database function to get all stats in one query
+        const { data, error } = await supabase.functions.invoke('get-doctor-stats', {
+          body: { 
+            type: 'all',
+            doctor_id: user.id 
+          }
         });
         
         if (error) {
@@ -40,12 +43,22 @@ export const StatsCards = () => {
         console.log("Dashboard stats fetched:", data);
         
         // Update local state with the fetched data
-        setStatsData({
-          patients_count: Number(data.patients_count) || 0,
-          medical_records_count: Number(data.medical_records_count) || 0,
-          todays_appointments: Number(data.todays_appointments) || 0,
-          upcoming_appointments: Number(data.upcoming_appointments) || 0
-        });
+        if (data && data[0]) {
+          setStatsData({
+            patients_count: Number(data[0].patients_count) || 0,
+            medical_records_count: Number(data[0].medical_records_count) || 0,
+            todays_appointments: Number(data[0].todays_appointments) || 0,
+            upcoming_appointments: Number(data[0].upcoming_appointments) || 0
+          });
+        } else {
+          // Default values if no data is returned
+          setStatsData({
+            patients_count: 0,
+            medical_records_count: 0,
+            todays_appointments: 0,
+            upcoming_appointments: 0
+          });
+        }
         
         return data;
       } catch (error) {
