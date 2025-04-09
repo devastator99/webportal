@@ -26,7 +26,9 @@ export const useNutritionistStats = () => {
       try {
         // Get patient count assigned to this nutritionist
         const { data: patientsData, error: patientsError } = await supabase
-          .rpc('get_nutritionist_patients', { p_nutritionist_id: user.id });
+          .from('patient_assignments')
+          .select('id')
+          .eq('nutritionist_id', user.id);
 
         if (patientsError) throw patientsError;
         

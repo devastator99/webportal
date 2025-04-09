@@ -16,28 +16,34 @@ export const useAdminStats = () => {
     queryKey: ["admin_dashboard_stats"],
     queryFn: async () => {
       try {
-        // Get total users count using the RPC function
-        const { data: usersData, error: usersError } = await supabase
-          .rpc('get_admin_users_count');
+        // Get total users count
+        const { count: usersCount, error: usersError } = await supabase
+          .from('user_roles')
+          .select('*', { count: 'exact', head: true });
         
         if (usersError) throw usersError;
         
-        // Get total clinics count using the RPC function
+        // Get total clinics (using distinct clinic locations)
         const { data: clinicsData, error: clinicsError } = await supabase
-          .rpc('get_admin_clinics_count');
+          .from('profiles')
+          .select('clinic_location')
+          .not('clinic_location', 'is', null)
+          .not('clinic_location', 'eq', '');
           
         if (clinicsError) throw clinicsError;
         
-        // Get system status using the RPC function
-        const { data: statusData, error: statusError } = await supabase
-          .rpc('get_system_status');
+        // Get unique clinic locations count
+        const uniqueClinicLocations = new Set(
+          clinicsData.map(profile => profile.clinic_location)
+        );
         
-        if (statusError) throw statusError;
+        // Check system status - if we got here, system is operational
+        const systemStatus = "Operational";
         
         return {
-          total_users: usersData || 0,
-          total_clinics: clinicsData || 0,
-          system_status: statusData || "Unknown"
+          total_users: usersCount || 0,
+          total_clinics: uniqueClinicLocations.size || 0,
+          system_status: systemStatus
         } as AdminStats;
       } catch (error) {
         console.error("Error fetching admin stats:", error);
