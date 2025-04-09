@@ -93,7 +93,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: DoctorAppointmentCalenda
             preSelectedDoctorId={doctorId}
             preSelectedDate={selectedDate}>
             <Button 
-              className="bg-primary text-white flex items-center gap-1"
+              className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-1"
               onClick={() => {}}>
               <Plus size={16} />
               <span>Schedule</span>
@@ -142,7 +142,7 @@ export const DoctorAppointmentCalendar = ({ doctorId }: DoctorAppointmentCalenda
                       preSelectedDoctorId={doctorId}
                       preSelectedDate={selectedDate}>
                       <Button 
-                        className="bg-primary text-white flex items-center gap-1"
+                        className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-1"
                         onClick={() => {}}>
                         <Plus size={16} />
                         <span>Schedule Appointment</span>
