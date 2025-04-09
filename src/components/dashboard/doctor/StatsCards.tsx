@@ -60,9 +60,9 @@ export const StatsCards = () => {
           });
         }
 
-        // Get today's appointments count
+        // Get today's appointments count - using type assertion to fix TypeScript error
         const { data: todaysCount, error: todaysError } = await supabase.rpc(
-          'get_doctor_todays_appointments_count',
+          'get_doctor_todays_appointments_count' as any,
           { doctor_id: user.id }
         );
 
@@ -75,9 +75,9 @@ export const StatsCards = () => {
           });
         }
 
-        // Get upcoming appointments count
+        // Get upcoming appointments count - using type assertion to fix TypeScript error
         const { data: upcomingCount, error: upcomingError } = await supabase.rpc(
-          'get_doctor_upcoming_appointments_count',
+          'get_doctor_upcoming_appointments_count' as any,
           { doctor_id: user.id }
         );
 
