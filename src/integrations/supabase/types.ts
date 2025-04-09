@@ -899,6 +899,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_admin_clinics_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       get_admin_doctors: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -922,6 +926,10 @@ export type Database = {
           first_name: string
           last_name: string
         }[]
+      }
+      get_admin_users_count: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       get_administrators: {
         Args: Record<PropertyKey, never>
@@ -1198,6 +1206,10 @@ export type Database = {
       }
       get_signed_medical_report_url: {
         Args: { p_report_id: string }
+        Returns: string
+      }
+      get_system_status: {
+        Args: Record<PropertyKey, never>
         Returns: string
       }
       get_user_care_team_rooms: {

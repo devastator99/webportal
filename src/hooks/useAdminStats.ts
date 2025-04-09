@@ -16,29 +16,28 @@ export const useAdminStats = () => {
     queryKey: ["admin_dashboard_stats"],
     queryFn: async () => {
       try {
-        // Get total users count
-        const { count: usersCount, error: usersError } = await supabase
-          .from('user_roles')
-          .select('*', { count: 'exact', head: true });
+        // Get total users count using the RPC function
+        const { data: usersData, error: usersError } = await supabase
+          .rpc('get_admin_users_count');
         
         if (usersError) throw usersError;
         
-        // Get total clinics (using the unique doctor clinic locations as a proxy)
+        // Get total clinics count using the RPC function
         const { data: clinicsData, error: clinicsError } = await supabase
-          .from('profiles')
-          .select('clinic_location')
-          .eq('clinic_location', true)
-          .not('clinic_location', 'is', null);
+          .rpc('get_admin_clinics_count');
           
         if (clinicsError) throw clinicsError;
         
-        // For system status, we'll determine based on database connectivity
-        const isSystemOperational = usersCount !== null;
+        // Get system status using the RPC function
+        const { data: statusData, error: statusError } = await supabase
+          .rpc('get_system_status');
+        
+        if (statusError) throw statusError;
         
         return {
-          total_users: usersCount || 0,
-          total_clinics: clinicsData?.length || 0,
-          system_status: isSystemOperational ? "Operational" : "Issue Detected"
+          total_users: usersData || 0,
+          total_clinics: clinicsData || 0,
+          system_status: statusData || "Unknown"
         } as AdminStats;
       } catch (error) {
         console.error("Error fetching admin stats:", error);

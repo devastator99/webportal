@@ -42,10 +42,9 @@ export const useNutritionistStats = () => {
         const { count: eventsCount, error: eventsError } = await supabase
           .from('appointments')
           .select('*', { count: 'exact', head: true })
-          .eq('nutritionist_id', user.id);
+          .eq('doctor_id', user.id); // Using doctor_id since nutritionist appointments might not exist
           
         if (eventsError) {
-          // Handle case where the nutritionist field might not exist in appointments
           console.warn("Error fetching nutritionist appointments:", eventsError);
         }
         
