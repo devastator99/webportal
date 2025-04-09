@@ -41,40 +41,47 @@ serve(async (req) => {
     let data = null
     let error = null
     
-    // Call the appropriate RPC function based on the type
-    switch (type) {
-      case 'patients_count':
-        const patientsResult = await supabaseClient.rpc('get_doctor_patients_count', { doctor_id })
-        data = patientsResult.data
-        error = patientsResult.error
-        break
-        
-      case 'medical_records_count':
-        const recordsResult = await supabaseClient.rpc('get_doctor_medical_records_count', { doctor_id })
-        data = recordsResult.data
-        error = recordsResult.error
-        break
-        
-      case 'todays_appointments_count':
-        const todaysResult = await supabaseClient.rpc('get_doctor_todays_appointments_count', { doctor_id })
-        data = todaysResult.data
-        error = todaysResult.error
-        break
-        
-      case 'upcoming_appointments_count':
-        const upcomingResult = await supabaseClient.rpc('get_doctor_upcoming_appointments_count', { doctor_id })
-        data = upcomingResult.data
-        error = upcomingResult.error
-        break
-        
-      default:
-        return new Response(
-          JSON.stringify({ error: "Invalid stat type requested" }),
-          { 
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 400 
-          }
-        )
+    // If the type is 'all', fetch all stats at once using our new function
+    if (type === 'all') {
+      const result = await supabaseClient.rpc('get_doctor_all_stats', { doctor_id })
+      data = result.data
+      error = result.error
+    } else {
+      // Backward compatibility for individual stat requests
+      switch (type) {
+        case 'patients_count':
+          const patientsResult = await supabaseClient.rpc('get_doctor_patients_count', { doctor_id })
+          data = patientsResult.data
+          error = patientsResult.error
+          break
+          
+        case 'medical_records_count':
+          const recordsResult = await supabaseClient.rpc('get_doctor_medical_records_count', { doctor_id })
+          data = recordsResult.data
+          error = recordsResult.error
+          break
+          
+        case 'todays_appointments_count':
+          const todaysResult = await supabaseClient.rpc('get_doctor_todays_appointments_count', { doctor_id })
+          data = todaysResult.data
+          error = todaysResult.error
+          break
+          
+        case 'upcoming_appointments_count':
+          const upcomingResult = await supabaseClient.rpc('get_doctor_upcoming_appointments_count', { doctor_id })
+          data = upcomingResult.data
+          error = upcomingResult.error
+          break
+          
+        default:
+          return new Response(
+            JSON.stringify({ error: "Invalid stat type requested" }),
+            { 
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 400 
+            }
+          )
+      }
     }
     
     if (error) {
