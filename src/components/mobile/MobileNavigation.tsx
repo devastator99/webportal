@@ -117,8 +117,8 @@ export const MobileNavigation: React.FC = () => {
   // Create the final navigation items array based on user role
   let navItems = [...baseNavItems];
   
-  // Insert the Calendar option after "Home" and before "Patients" only for doctors
-  if (userRole === 'doctor') {
+  // Insert the Calendar option after "Home" and before "Patients" for doctors and administrators
+  if (userRole === 'doctor' || userRole === 'administrator') {
     navItems.splice(1, 0, calendarItem);
   }
 
