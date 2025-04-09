@@ -9,7 +9,6 @@ import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWr
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
 import { Users, Mic, MessageCircle } from "lucide-react";
-import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { VoiceScheduler } from "@/components/voice/VoiceScheduler";

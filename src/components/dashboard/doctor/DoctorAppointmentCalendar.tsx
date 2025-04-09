@@ -6,10 +6,12 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { CalendarIcon, Clock, User } from "lucide-react";
+import { CalendarIcon, Clock, Plus, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
+import { Button } from "@/components/ui/button";
 
 interface DoctorAppointmentCalendarProps {
   doctorId: string;
@@ -69,13 +71,35 @@ export const DoctorAppointmentCalendar = ({ doctorId }: DoctorAppointmentCalenda
     }
   };
 
+  // Callback when an appointment is scheduled
+  const handleAppointmentScheduled = () => {
+    queryClient.invalidateQueries({
+      queryKey: ["doctor-appointments", doctorId, formattedDate],
+    });
+  };
+
   return (
     <Card className="shadow-md">
       <CardHeader className="pb-3">
-        <CardTitle className="text-2xl font-bold">Appointment Calendar</CardTitle>
-        <CardDescription>
-          View and manage your appointments for {format(selectedDate, "MMMM d, yyyy")}
-        </CardDescription>
+        <div className="flex justify-between items-center">
+          <div>
+            <CardTitle className="text-2xl font-bold">Appointment Calendar</CardTitle>
+            <CardDescription>
+              View and manage your appointments for {format(selectedDate, "MMMM d, yyyy")}
+            </CardDescription>
+          </div>
+          <ScheduleAppointment 
+            callerRole="doctor" 
+            preSelectedDoctorId={doctorId}
+            preSelectedDate={selectedDate}>
+            <Button 
+              className="bg-primary text-white flex items-center gap-1"
+              onClick={() => {}}>
+              <Plus size={16} />
+              <span>Schedule</span>
+            </Button>
+          </ScheduleAppointment>
+        </div>
       </CardHeader>
       <CardContent>
         <div className={`grid ${isMobile ? 'grid-cols-1 gap-6' : 'md:grid-cols-7 gap-8'}`}>
@@ -112,6 +136,19 @@ export const DoctorAppointmentCalendar = ({ doctorId }: DoctorAppointmentCalenda
               ) : appointments.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 bg-white rounded-md border border-dashed border-gray-300">
                   No appointments scheduled for this day
+                  <div className="mt-4">
+                    <ScheduleAppointment 
+                      callerRole="doctor" 
+                      preSelectedDoctorId={doctorId}
+                      preSelectedDate={selectedDate}>
+                      <Button 
+                        className="bg-primary text-white flex items-center gap-1"
+                        onClick={() => {}}>
+                        <Plus size={16} />
+                        <span>Schedule Appointment</span>
+                      </Button>
+                    </ScheduleAppointment>
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-3 max-h-[350px] overflow-y-auto pr-2">
