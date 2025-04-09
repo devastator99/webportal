@@ -6,13 +6,14 @@ import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAs
 import { PatientAssignmentsReport } from "@/components/dashboard/admin/PatientAssignmentsReport";
 import { UserRegistration } from "@/components/dashboard/admin/UserRegistration";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { Settings, Users, FileText, Database, UserPlus, Building } from "lucide-react";
+import { Settings, Users, FileText, Database, UserPlus, Building, CreditCard } from "lucide-react";
 import { SyncCareTeamsButton } from "@/components/dashboard/admin/SyncCareTeamsButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminStats } from "@/hooks/useAdminStats";
 import { NumericFormat } from "react-number-format";
+import { PatientPaymentManager } from "@/components/dashboard/admin/PatientPaymentManager";
 
 // Updated system settings component that imports and uses AdminSettings
 const SystemSettings = () => {
@@ -144,22 +145,48 @@ export const AdminDashboard = () => {
           </Card>
         </CollapsibleSection>
         
+        {/* User Management - Now stacked vertically */}
         <CollapsibleSection title="User Management">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>User Management</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <UserManagement />
-                </CardContent>
-              </Card>
-            </div>
-            <div className="md:col-span-1">
-              <UserRegistration />
-            </div>
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  User Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <UserManagement />
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UserPlus className="h-5 w-5" />
+                  Register New User
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <UserRegistration />
+              </CardContent>
+            </Card>
           </div>
+        </CollapsibleSection>
+        
+        {/* NEW: Patient Payment and Invoice Section */}
+        <CollapsibleSection title="Patient Payments">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CreditCard className="h-5 w-5" />
+                Patient Payments and Invoices
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PatientPaymentManager />
+            </CardContent>
+          </Card>
         </CollapsibleSection>
         
         <CollapsibleSection title="System Settings">

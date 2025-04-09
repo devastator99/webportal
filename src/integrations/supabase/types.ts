@@ -515,6 +515,72 @@ export type Database = {
           },
         ]
       }
+      patient_invoices: {
+        Row: {
+          amount: number
+          created_at: string
+          currency: string
+          description: string | null
+          doctor_id: string | null
+          email_sent: boolean | null
+          id: string
+          invoice_number: string
+          patient_id: string
+          payment_id: string | null
+          razorpay_order_id: string | null
+          status: string
+          updated_at: string
+          whatsapp_sent: boolean | null
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          doctor_id?: string | null
+          email_sent?: boolean | null
+          id?: string
+          invoice_number: string
+          patient_id: string
+          payment_id?: string | null
+          razorpay_order_id?: string | null
+          status?: string
+          updated_at?: string
+          whatsapp_sent?: boolean | null
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          currency?: string
+          description?: string | null
+          doctor_id?: string | null
+          email_sent?: boolean | null
+          id?: string
+          invoice_number?: string
+          patient_id?: string
+          payment_id?: string | null
+          razorpay_order_id?: string | null
+          status?: string
+          updated_at?: string
+          whatsapp_sent?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_invoices_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_invoices_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_medical_reports: {
         Row: {
           file_name: string
@@ -559,6 +625,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_settings: {
+        Row: {
+          consultation_fee: number
+          created_at: string
+          currency: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          consultation_fee?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          consultation_fee?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       payments: {
         Row: {
@@ -917,6 +1007,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      generate_patient_invoice: {
+        Args: {
+          p_patient_id: string
+          p_doctor_id: string
+          p_amount: number
+          p_description?: string
+        }
+        Returns: string
+      }
       get_admin_clinics_count: {
         Args: Record<PropertyKey, never>
         Returns: number
@@ -1192,6 +1291,20 @@ export type Database = {
         Returns: {
           patient_id: string
           nutritionist_id: string
+        }[]
+      }
+      get_patient_payment_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          patient_id: string
+          patient_first_name: string
+          patient_last_name: string
+          doctor_id: string
+          doctor_first_name: string
+          doctor_last_name: string
+          total_invoices: number
+          pending_payments: number
+          paid_amount: number
         }[]
       }
       get_patient_prescriptions: {
