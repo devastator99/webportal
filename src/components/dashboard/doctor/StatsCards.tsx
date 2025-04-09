@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/hooks/use-toast";
 
 interface DoctorStats {
   patients_count: number;
@@ -29,6 +30,7 @@ export const StatsCards = () => {
       try {
         console.log("Fetching dashboard stats for doctor:", user.id);
         
+        // Get patients count
         const { data: patientsCount, error: patientsError } = await supabase.rpc(
           'get_doctor_patients_count',
           { doctor_id: user.id }
@@ -38,9 +40,15 @@ export const StatsCards = () => {
 
         if (patientsError) {
           console.error("Error fetching patients count:", patientsError);
-          throw patientsError;
+          toast({
+            title: "Error fetching patient count",
+            description: patientsError.message,
+            variant: "destructive",
+          });
+          // Continue with other stats despite this error
         }
 
+        // Get medical records count
         const { data: recordsCount, error: recordsError } = await supabase.rpc(
           'get_doctor_medical_records_count',
           { doctor_id: user.id }
@@ -48,10 +56,15 @@ export const StatsCards = () => {
 
         if (recordsError) {
           console.error("Error fetching medical records count:", recordsError);
-          throw recordsError;
+          toast({
+            title: "Error fetching records count",
+            description: recordsError.message,
+            variant: "destructive",
+          });
+          // Continue with other stats despite this error
         }
 
-        // Use type assertion to bypass TypeScript error
+        // Get today's appointments count, use type assertion
         const { data: todaysCount, error: todaysError } = await supabase.rpc(
           'get_doctor_todays_appointments_count' as any,
           { doctor_id: user.id }
@@ -59,10 +72,15 @@ export const StatsCards = () => {
 
         if (todaysError) {
           console.error("Error fetching today's appointments count:", todaysError);
-          throw todaysError;
+          toast({
+            title: "Error fetching today's appointments",
+            description: todaysError.message,
+            variant: "destructive",
+          });
+          // Continue with other stats despite this error
         }
 
-        // Use type assertion to bypass TypeScript error
+        // Get upcoming appointments count, use type assertion
         const { data: upcomingCount, error: upcomingError } = await supabase.rpc(
           'get_doctor_upcoming_appointments_count' as any,
           { doctor_id: user.id }
@@ -70,7 +88,12 @@ export const StatsCards = () => {
 
         if (upcomingError) {
           console.error("Error fetching upcoming appointments count:", upcomingError);
-          throw upcomingError;
+          toast({
+            title: "Error fetching upcoming appointments",
+            description: upcomingError.message,
+            variant: "destructive",
+          });
+          // Continue with other stats despite this error
         }
 
         console.log("Dashboard stats fetched:", {
@@ -88,6 +111,11 @@ export const StatsCards = () => {
         } as DoctorStats;
       } catch (error) {
         console.error("Error fetching doctor stats:", error);
+        toast({
+          title: "Error loading statistics",
+          description: "Failed to load one or more statistics. Please try again later.",
+          variant: "destructive",
+        });
         return { 
           patients_count: 0, 
           medical_records_count: 0, 
