@@ -30,11 +30,14 @@ export const StatsCards = () => {
       try {
         console.log("Fetching dashboard stats for doctor:", user.id);
         
-        // Get patients count using RPC
+        // Get patients count using RPC - add more debugging
+        console.log("Calling get_doctor_patients_count RPC");
         const { data: patientsCount, error: patientsError } = await supabase.rpc(
           'get_doctor_patients_count', 
           { doctor_id: user.id }
         );
+
+        console.log("Patients count RPC result:", { patientsCount, patientsError });
 
         if (patientsError) {
           console.error("Error fetching patients count:", patientsError);
@@ -130,6 +133,8 @@ export const StatsCards = () => {
       </Card>
     );
   }
+
+  console.log("Rendering stats with data:", doctorStats);
 
   return (
     <Card className="mb-4">
