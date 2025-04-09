@@ -8,7 +8,7 @@ import { VideoList } from "@/components/videos/VideoList";
 import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWriter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, Mic, MessageCircle } from "lucide-react";
+import { Users, Mic, MessageCircle } from "lucide-react";
 import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -23,7 +23,7 @@ export const AlternativeDoctorDashboard = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const [showVoiceScheduler, setShowVoiceScheduler] = useState(false);
-  const [showScheduleAppointment, setShowScheduleAppointment] = useState(false);
+  const [showChatOverlay, setShowChatOverlay] = useState(false);
   
   // Extract doctor's name from user metadata
   const doctorFirstName = user?.user_metadata?.first_name || "";
@@ -47,44 +47,21 @@ export const AlternativeDoctorDashboard = () => {
             <span>Patients</span>
           </Button>
           
-          <div className="flex">
-            <Dialog open={showVoiceScheduler} onOpenChange={setShowVoiceScheduler}>
-              <DialogTrigger asChild>
-                <Button
-                  className="rounded-l-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff] flex-1"
-                >
-                  <Mic className="mr-2 h-4 w-4" />
-                  <span>Voice</span>
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[800px] max-h-[80vh] p-0">
-                <div className="h-[70vh]">
-                  <VoiceScheduler onClose={() => setShowVoiceScheduler(false)} />
-                </div>
-              </DialogContent>
-            </Dialog>
-            
-            <Dialog open={showScheduleAppointment} onOpenChange={setShowScheduleAppointment}>
-              <DialogTrigger asChild>
-                <Button
-                  className="rounded-r-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
-                  aria-label="Schedule Appointment"
-                >
-                  <Calendar className="h-4 w-4" />
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="sm:max-w-[800px] max-h-[80vh] p-0 overflow-auto">
-                <div className="h-[70vh] overflow-auto">
-                  <ScheduleAppointment
-                    callerRole="doctor"
-                    preSelectedDoctorId={user?.id}
-                  >
-                    <span></span>
-                  </ScheduleAppointment>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </div>
+          <Dialog open={showVoiceScheduler} onOpenChange={setShowVoiceScheduler}>
+            <DialogTrigger asChild>
+              <Button
+                className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
+              >
+                <Mic className="mr-2 h-4 w-4" />
+                <span>Voice</span>
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[800px] max-h-[80vh] p-0">
+              <div className="h-[70vh]">
+                <VoiceScheduler onClose={() => setShowVoiceScheduler(false)} />
+              </div>
+            </DialogContent>
+          </Dialog>
           
           <Button
             className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
