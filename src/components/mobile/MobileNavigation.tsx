@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { WhatsAppStyleChatInterface } from '@/components/chat/WhatsAppStyleChatInterface';
 import { supabase } from '@/integrations/supabase/client';
 import { ScheduleAppointment } from '@/components/appointments/ScheduleAppointment';
+import { toast } from '@/hooks/use-toast';
 
 export const MobileNavigation: React.FC = () => {
   const location = useLocation();
@@ -63,7 +64,7 @@ export const MobileNavigation: React.FC = () => {
   
   const handleCalendarClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    
+    console.log("Calendar icon clicked, opening schedule dialog");
     // Open the schedule appointment dialog
     setScheduleOpen(true);
   };

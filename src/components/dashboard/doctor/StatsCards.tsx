@@ -30,7 +30,7 @@ export const StatsCards = () => {
       try {
         console.log("Fetching dashboard stats for doctor:", user.id);
         
-        // Get patients count
+        // Get patients count using RPC function directly
         const { data: patientsCount, error: patientsError } = await supabase.rpc(
           'get_doctor_patients_count',
           { doctor_id: user.id }
@@ -38,14 +38,10 @@ export const StatsCards = () => {
         
         if (patientsError) {
           console.error("Error fetching patients count:", patientsError);
-          toast({
-            title: "Error fetching patient count",
-            description: patientsError.message,
-            variant: "destructive",
-          });
+          throw patientsError;
         }
 
-        // Get medical records count
+        // Get medical records count using RPC function directly
         const { data: recordsCount, error: recordsError } = await supabase.rpc(
           'get_doctor_medical_records_count',
           { doctor_id: user.id }
@@ -53,53 +49,29 @@ export const StatsCards = () => {
 
         if (recordsError) {
           console.error("Error fetching medical records count:", recordsError);
-          toast({
-            title: "Error fetching records count",
-            description: recordsError.message,
-            variant: "destructive",
-          });
+          throw recordsError;
         }
 
-        // Use direct fetch for today's appointments count
-        const todaysAppointmentsResponse = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/get_doctor_todays_appointments_count`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-            },
-            body: JSON.stringify({ doctor_id: user.id })
-          }
+        // Get today's appointments count using RPC function directly
+        const { data: todaysCount, error: todaysError } = await supabase.rpc(
+          'get_doctor_todays_appointments_count',
+          { doctor_id: user.id }
         );
         
-        let todaysCount = 0;
-        if (todaysAppointmentsResponse.ok) {
-          todaysCount = Number(await todaysAppointmentsResponse.json()) || 0;
-        } else {
-          console.error("Error fetching today's appointments count:", await todaysAppointmentsResponse.text());
+        if (todaysError) {
+          console.error("Error fetching today's appointments count:", todaysError);
+          throw todaysError;
         }
 
-        // Use direct fetch for upcoming appointments count
-        const upcomingAppointmentsResponse = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/get_doctor_upcoming_appointments_count`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-            },
-            body: JSON.stringify({ doctor_id: user.id })
-          }
+        // Get upcoming appointments count using RPC function directly
+        const { data: upcomingCount, error: upcomingError } = await supabase.rpc(
+          'get_doctor_upcoming_appointments_count',
+          { doctor_id: user.id }
         );
         
-        let upcomingCount = 0;
-        if (upcomingAppointmentsResponse.ok) {
-          upcomingCount = Number(await upcomingAppointmentsResponse.json()) || 0;
-        } else {
-          console.error("Error fetching upcoming appointments count:", await upcomingAppointmentsResponse.text());
+        if (upcomingError) {
+          console.error("Error fetching upcoming appointments count:", upcomingError);
+          throw upcomingError;
         }
         
         console.log("Dashboard stats fetched:", {
@@ -112,8 +84,8 @@ export const StatsCards = () => {
         return {
           patients_count: Number(patientsCount) || 0,
           medical_records_count: Number(recordsCount) || 0,
-          todays_appointments: todaysCount,
-          upcoming_appointments: upcomingCount
+          todays_appointments: Number(todaysCount) || 0,
+          upcoming_appointments: Number(upcomingCount) || 0
         } as DoctorStats;
       } catch (error) {
         console.error("Error fetching doctor stats:", error);
