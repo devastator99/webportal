@@ -6,15 +6,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { WhatsAppStyleChatInterface } from '@/components/chat/WhatsAppStyleChatInterface';
 import { supabase } from '@/integrations/supabase/client';
-import { ScheduleAppointment } from '@/components/appointments/ScheduleAppointment';
-import { toast } from '@/hooks/use-toast';
 
 export const MobileNavigation: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, userRole } = useAuth();
   const [chatOpen, setChatOpen] = useState(false);
-  const [scheduleOpen, setScheduleOpen] = useState(false);
   const [patientRoomId, setPatientRoomId] = useState<string | null>(null);
   
   // Use useEffect hook regardless of user being logged in or not
@@ -67,16 +64,6 @@ export const MobileNavigation: React.FC = () => {
     e.preventDefault();
     console.log("Calendar icon clicked, navigating to appointments page");
     navigate('/appointments');
-  };
-  
-  // Convert userRole to a valid callerRole for ScheduleAppointment
-  const getCallerRole = (): "doctor" | "patient" | "reception" => {
-    if (userRole === "doctor") return "doctor";
-    if (userRole === "patient") return "patient";
-    if (userRole === "reception") return "reception";
-    
-    // Default to patient for any other role (administrator, nutritionist, etc.)
-    return "patient";
   };
   
   // Base navigation items that are always shown
@@ -133,8 +120,10 @@ export const MobileNavigation: React.FC = () => {
             onClick={item.action}
             aria-label={item.label}
           >
-            <item.icon className="mobile-nav-icon h-5 w-5" />
-            <span>{item.label}</span>
+            <item.icon 
+              className={`mobile-nav-icon h-5 w-5 ${item.label === 'Calendar' ? 'text-[#9b87f5] stroke-[1.5]' : ''}`} 
+            />
+            <span className={item.label === 'Calendar' ? 'font-medium' : ''}>{item.label}</span>
           </button>
         ))}
       </nav>

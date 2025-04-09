@@ -185,6 +185,8 @@
   font-size: 12px;
   color: #64748b;
   transition: color 0.2s ease;
+  width: 60px;  /* Set fixed width */
+  padding: 8px 0;  /* Add padding */
 }
 
 .mobile-nav-item.active {
@@ -193,6 +195,11 @@
 
 .mobile-nav-icon {
   margin-bottom: 4px;
+}
+
+/* Specific styling for Calendar icon */
+.mobile-nav-item button[aria-label="Calendar"] .mobile-nav-icon {
+  stroke-width: 2.5;
 }
 
 /* Content area */
