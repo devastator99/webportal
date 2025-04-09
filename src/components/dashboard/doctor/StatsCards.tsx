@@ -30,10 +30,10 @@ export const StatsCards = () => {
       try {
         console.log("Fetching dashboard stats for doctor:", user.id);
         
-        // Get patients count
+        // Get patients count with error handling
         const { data: patientsCount, error: patientsError } = await supabase.rpc(
           'get_doctor_patients_count',
-          { doctor_id: user.id }
+          { p_doctor_id: user.id }  // Updated parameter name to match SQL function
         );
         
         if (patientsError) {
@@ -45,10 +45,10 @@ export const StatsCards = () => {
           });
         }
 
-        // Get medical records count
+        // Get medical records count with error handling
         const { data: recordsCount, error: recordsError } = await supabase.rpc(
           'get_doctor_medical_records_count',
-          { doctor_id: user.id }
+          { p_doctor_id: user.id }  // Updated parameter name to match SQL function
         );
 
         if (recordsError) {
@@ -60,10 +60,10 @@ export const StatsCards = () => {
           });
         }
 
-        // Get today's appointments count - using type assertion to fix TypeScript error
+        // Get today's appointments count
         const { data: todaysCount, error: todaysError } = await supabase.rpc(
-          'get_doctor_todays_appointments_count' as any,
-          { doctor_id: user.id }
+          'get_doctor_todays_appointments_count',
+          { p_doctor_id: user.id }  // Updated parameter name to match SQL function
         );
 
         if (todaysError) {
@@ -75,10 +75,10 @@ export const StatsCards = () => {
           });
         }
 
-        // Get upcoming appointments count - using type assertion to fix TypeScript error
+        // Get upcoming appointments count
         const { data: upcomingCount, error: upcomingError } = await supabase.rpc(
-          'get_doctor_upcoming_appointments_count' as any,
-          { doctor_id: user.id }
+          'get_doctor_upcoming_appointments_count',
+          { p_doctor_id: user.id }  // Updated parameter name to match SQL function
         );
 
         if (upcomingError) {
