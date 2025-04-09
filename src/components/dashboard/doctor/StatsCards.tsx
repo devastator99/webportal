@@ -1,4 +1,3 @@
-
 import { Card, CardContent } from "@/components/ui/card";
 import { Users, Calendar, FileText, Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
@@ -30,10 +29,11 @@ export const StatsCards = () => {
       try {
         console.log("Fetching dashboard stats for doctor:", user.id);
         
-        // Get patients count with error handling
+        // Get patients count with error handling - consistently use doctor_id parameter
+        // We know this function exists and expects doctor_id
         const { data: patientsCount, error: patientsError } = await supabase.rpc(
           'get_doctor_patients_count',
-          { doctor_id: user.id } // Use original parameter name to match TypeScript type
+          { doctor_id: user.id }
         );
         
         if (patientsError) {
@@ -48,7 +48,7 @@ export const StatsCards = () => {
         // Get medical records count with error handling
         const { data: recordsCount, error: recordsError } = await supabase.rpc(
           'get_doctor_medical_records_count',
-          { doctor_id: user.id } // Use original parameter name to match TypeScript type
+          { doctor_id: user.id }
         );
 
         if (recordsError) {
@@ -60,34 +60,39 @@ export const StatsCards = () => {
           });
         }
 
-        // Get today's appointments count
-        const { data: todaysCount, error: todaysError } = await supabase.rpc(
-          'get_doctor_todays_appointments_count' as any, // Type assertion to bypass TypeScript check
-          { doctor_id: user.id } // Use original parameter name to match TypeScript type
-        );
-
-        if (todaysError) {
+        // For todays_appointments and upcoming_appointments, let's ensure we're calling
+        // existing functions with proper parameter names
+        let todaysCount = 0;
+        let upcomingCount = 0;
+        
+        try {
+          // Try to call the function using doctor_id parameter
+          const { data, error } = await supabase.rpc(
+            'get_doctor_todays_appointments_count', 
+            { doctor_id: user.id }
+          );
+          
+          if (error) throw error;
+          todaysCount = data;
+          console.log("Successfully fetched today's appointments:", data);
+        } catch (todaysError) {
           console.error("Error fetching today's appointments count:", todaysError);
-          toast({
-            title: "Error fetching today's appointments",
-            description: todaysError.message,
-            variant: "destructive",
-          });
+          // Don't show toast for this error to avoid multiple toasts
         }
-
-        // Get upcoming appointments count
-        const { data: upcomingCount, error: upcomingError } = await supabase.rpc(
-          'get_doctor_upcoming_appointments_count' as any, // Type assertion to bypass TypeScript check
-          { doctor_id: user.id } // Use original parameter name to match TypeScript type
-        );
-
-        if (upcomingError) {
+        
+        try {
+          // Try to call the function using doctor_id parameter
+          const { data, error } = await supabase.rpc(
+            'get_doctor_upcoming_appointments_count',
+            { doctor_id: user.id }
+          );
+          
+          if (error) throw error;
+          upcomingCount = data;
+          console.log("Successfully fetched upcoming appointments:", data);
+        } catch (upcomingError) {
           console.error("Error fetching upcoming appointments count:", upcomingError);
-          toast({
-            title: "Error fetching upcoming appointments",
-            description: upcomingError.message,
-            variant: "destructive",
-          });
+          // Don't show toast for this error to avoid multiple toasts
         }
 
         console.log("Dashboard stats fetched:", {
