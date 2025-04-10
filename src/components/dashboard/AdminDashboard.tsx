@@ -115,19 +115,9 @@ export const AdminDashboard = () => {
       </Card>
       
       <div className="space-y-6">
-        {/* Assign Care Team section - Now collapsible */}
+        {/* Assign Care Team section - Now collapsible with only one label */}
         <CollapsibleSection title="Assign Care Team">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Assign Care Team
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PatientAssignmentManager />
-            </CardContent>
-          </Card>
+          <PatientAssignmentManager />
         </CollapsibleSection>
         
         {/* Separate Care Team Report section */}
