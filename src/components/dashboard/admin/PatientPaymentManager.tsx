@@ -318,7 +318,7 @@ export const PatientPaymentManager = () => {
         </div>
       ) : (
         <div className="bg-white dark:bg-gray-800 border rounded-md shadow-sm">
-          <ScrollArea className="w-full" orientation="horizontal">
+          <ScrollArea className="h-[400px] w-full" orientation="both">
             <div className="min-w-full">
               <Table>
                 <TableHeader>
