@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useIsIPad } from "@/hooks/use-mobile";
+import { useIsMobile, useIsIPad, useIsMobileOrIPad } from "@/hooks/use-mobile";
 import { InvoicePdfViewer } from "./InvoicePdfViewer";
 
 interface PatientPaymentSummary {
@@ -69,6 +68,8 @@ export const PatientPaymentManager = () => {
   const [invoicePdfLoading, setInvoicePdfLoading] = useState(false);
   const [lastGeneratedInvoice, setLastGeneratedInvoice] = useState<PatientInvoice | null>(null);
   const isIPad = useIsIPad();
+  const isMobile = useIsMobile();
+  const isMobileOrIPad = useIsMobileOrIPad();
   
   useEffect(() => {
     fetchPatientPaymentData();
@@ -172,7 +173,6 @@ export const PatientPaymentManager = () => {
     setIsInvoicePdfOpen(true);
     setInvoicePdfLoading(true);
     
-    // Simulate loading delay (in real app, this would be actual loading time)
     setTimeout(() => {
       setInvoicePdfLoading(false);
     }, 1000);
@@ -205,7 +205,6 @@ export const PatientPaymentManager = () => {
       
       await fetchPatientPaymentData();
       
-      // Fetch the newly created invoice
       const { data: newInvoice, error: fetchError } = await supabase
         .from('patient_invoices')
         .select('id, invoice_number, amount, created_at, description, status')
@@ -221,7 +220,6 @@ export const PatientPaymentManager = () => {
       setIsInvoicePdfOpen(true);
       setInvoicePdfLoading(true);
       
-      // Simulate loading delay (in real app, this would be actual loading time)
       setTimeout(() => {
         setInvoicePdfLoading(false);
       }, 1000);
@@ -233,7 +231,6 @@ export const PatientPaymentManager = () => {
       
       setIsInvoiceDialogOpen(false);
       
-      // Update the patient invoices list
       if (selectedPatient) {
         fetchPatientInvoices(selectedPatient.patient_id);
       }
@@ -396,7 +393,7 @@ export const PatientPaymentManager = () => {
   };
   
   return (
-    <div className={`space-y-4 ${isIPad ? "max-w-full w-full" : ""}`}>
+    <div className="space-y-4 w-full">
       <div className="flex items-center justify-between mb-4">
         <div className="text-sm text-gray-500">
           Manage patient payments and invoices
@@ -417,7 +414,7 @@ export const PatientPaymentManager = () => {
           <LoadingSpinner size="lg" />
         </div>
       ) : (
-        <div className={`bg-white dark:bg-gray-800 border rounded-md shadow-sm ${isIPad ? "w-full overflow-hidden" : ""}`}>
+        <div className="bg-white dark:bg-gray-800 border rounded-md shadow-sm w-full">
           <ScrollArea className="h-[450px]" orientation="both">
             <div className="min-w-[950px]">
               <Table>
@@ -478,7 +475,6 @@ export const PatientPaymentManager = () => {
                                 if (patientInvoices.length > 0) {
                                   handleOpenInvoicePdf(patientInvoices[0]?.id);
                                 } else {
-                                  // Fetch invoices first then try to open
                                   fetchPatientInvoices(patient.patient_id).then(() => {
                                     if (patientInvoices.length > 0) {
                                       handleOpenInvoicePdf(patientInvoices[0]?.id);
@@ -533,6 +529,64 @@ export const PatientPaymentManager = () => {
             </div>
           </ScrollArea>
         </div>
+      )}
+      
+      {selectedPatient && patientInvoices.length > 0 && (
+        <Card className="mt-6">
+          <CardContent className="pt-6">
+            <h3 className="text-lg font-medium mb-4">Patient Invoices</h3>
+            <ScrollArea className="h-[300px] w-full" orientation="both">
+              <div className="min-w-[700px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[150px]">Invoice #</TableHead>
+                      <TableHead className="w-[120px]">Amount</TableHead>
+                      <TableHead className="w-[150px]">Date</TableHead>
+                      <TableHead className="w-[130px]">Status</TableHead>
+                      <TableHead className="w-[150px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {patientInvoices.map((invoice) => (
+                      <TableRow key={invoice.id}>
+                        <TableCell>{invoice.invoice_number}</TableCell>
+                        <TableCell>₹{invoice.amount.toFixed(2)}</TableCell>
+                        <TableCell>
+                          {new Date(invoice.created_at).toLocaleDateString()}
+                        </TableCell>
+                        <TableCell>
+                          {getInvoiceStatusBadge(invoice.status)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleOpenInvoicePdf(invoice.id)}
+                              className="bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-600"
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              View
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => sendInvoiceNotification(selectedPatient.patient_id, 'email')}
+                              className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-600"
+                            >
+                              <Mail className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </ScrollArea>
+          </CardContent>
+        </Card>
       )}
       
       <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
