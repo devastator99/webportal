@@ -1263,6 +1263,17 @@ export type Database = {
           duration: string
         }[]
       }
+      get_patient_invoices: {
+        Args: { p_patient_id: string }
+        Returns: {
+          id: string
+          invoice_number: string
+          amount: number
+          created_at: string
+          description: string
+          status: string
+        }[]
+      }
       get_patient_medical_records: {
         Args: { p_patient_id: string; p_doctor_id: string }
         Returns: {
