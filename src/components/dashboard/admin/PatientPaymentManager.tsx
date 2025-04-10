@@ -112,11 +112,9 @@ export const PatientPaymentManager = () => {
   
   const fetchPatientInvoices = async (patientId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('patient_invoices')
-        .select('id, invoice_number, amount, created_at, description, status')
-        .eq('patient_id', patientId)
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('get_patient_invoices', {
+        p_patient_id: patientId
+      });
       
       if (error) {
         throw error;
@@ -130,6 +128,7 @@ export const PatientPaymentManager = () => {
         description: `Failed to load patient invoices: ${error.message}`,
         variant: "destructive",
       });
+      setPatientInvoices([]);
     }
   };
   
@@ -169,6 +168,15 @@ export const PatientPaymentManager = () => {
   };
   
   const handleOpenInvoicePdf = (invoiceId: string) => {
+    if (!invoiceId) {
+      toast({
+        title: "Error",
+        description: "No invoice selected",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setSelectedInvoiceId(invoiceId);
     setIsInvoicePdfOpen(true);
     setInvoicePdfLoading(true);
@@ -392,6 +400,21 @@ export const PatientPaymentManager = () => {
     };
   };
   
+  const viewPatientInvoice = (patient: PatientPaymentSummary) => {
+    setSelectedPatient(patient);
+    
+    fetchPatientInvoices(patient.patient_id).then(() => {
+      if (patientInvoices.length > 0) {
+        handleOpenInvoicePdf(patientInvoices[0].id);
+      } else {
+        toast({
+          title: "No invoices",
+          description: "No invoices found for this patient"
+        });
+      }
+    });
+  };
+  
   return (
     <div className="space-y-4 w-full">
       <div className="flex items-center justify-between mb-4">
@@ -469,24 +492,7 @@ export const PatientPaymentManager = () => {
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => {
-                                setSelectedPatient(patient);
-                                fetchPatientInvoices(patient.patient_id);
-                                if (patientInvoices.length > 0) {
-                                  handleOpenInvoicePdf(patientInvoices[0]?.id);
-                                } else {
-                                  fetchPatientInvoices(patient.patient_id).then(() => {
-                                    if (patientInvoices.length > 0) {
-                                      handleOpenInvoicePdf(patientInvoices[0]?.id);
-                                    } else {
-                                      toast({
-                                        title: "No invoices",
-                                        description: "No invoices found for this patient"
-                                      });
-                                    }
-                                  });
-                                }
-                              }}
+                              onClick={() => viewPatientInvoice(patient)}
                               disabled={patient.total_invoices === 0}
                               className="bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-600"
                             >
