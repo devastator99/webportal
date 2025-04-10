@@ -115,20 +115,18 @@ export const AdminDashboard = () => {
       </Card>
       
       <div className="space-y-6">
-        {/* Separate Care Team Assignment section */}
-        <CollapsibleSection title="Care Team Assignment" defaultOpen={true}>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Assign Care Team
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <PatientAssignmentManager />
-            </CardContent>
-          </Card>
-        </CollapsibleSection>
+        {/* Assign Care Team section - Removed redundant title */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Assign Care Team
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PatientAssignmentManager />
+          </CardContent>
+        </Card>
         
         {/* Separate Care Team Report section */}
         <CollapsibleSection title="Care Team Reports" defaultOpen={false}>
@@ -174,7 +172,7 @@ export const AdminDashboard = () => {
           </div>
         </CollapsibleSection>
         
-        {/* NEW: Patient Payment and Invoice Section */}
+        {/* Patient Payment and Invoice Section */}
         <CollapsibleSection title="Patient Payments">
           <Card>
             <CardHeader>

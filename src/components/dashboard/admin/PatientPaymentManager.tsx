@@ -417,16 +417,16 @@ export const PatientPaymentManager = () => {
           <LoadingSpinner size="lg" />
         </div>
       ) : (
-        <div className={`bg-white dark:bg-gray-800 border rounded-md shadow-sm ${isIPad ? "w-full" : ""}`}>
-          <ScrollArea className="h-[450px] w-full" orientation="both">
-            <div className="min-w-[900px]">
+        <div className={`bg-white dark:bg-gray-800 border rounded-md shadow-sm ${isIPad ? "w-full overflow-hidden" : ""}`}>
+          <ScrollArea className="h-[450px]" orientation="both">
+            <div className="min-w-[950px]">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="min-w-[150px]">Patient</TableHead>
-                    <TableHead className="min-w-[200px]">Assigned Doctor</TableHead>
-                    <TableHead className="min-w-[150px]">Payment Status</TableHead>
-                    <TableHead className="min-w-[400px]">Actions</TableHead>
+                    <TableHead className="w-[180px]">Patient</TableHead>
+                    <TableHead className="w-[200px]">Assigned Doctor</TableHead>
+                    <TableHead className="w-[150px]">Payment Status</TableHead>
+                    <TableHead className="w-[420px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -475,7 +475,21 @@ export const PatientPaymentManager = () => {
                               onClick={() => {
                                 setSelectedPatient(patient);
                                 fetchPatientInvoices(patient.patient_id);
-                                handleOpenInvoicePdf(patientInvoices[0]?.id);
+                                if (patientInvoices.length > 0) {
+                                  handleOpenInvoicePdf(patientInvoices[0]?.id);
+                                } else {
+                                  // Fetch invoices first then try to open
+                                  fetchPatientInvoices(patient.patient_id).then(() => {
+                                    if (patientInvoices.length > 0) {
+                                      handleOpenInvoicePdf(patientInvoices[0]?.id);
+                                    } else {
+                                      toast({
+                                        title: "No invoices",
+                                        description: "No invoices found for this patient"
+                                      });
+                                    }
+                                  });
+                                }
                               }}
                               disabled={patient.total_invoices === 0}
                               className="bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-600"
