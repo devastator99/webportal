@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -57,7 +56,6 @@ export const PatientPaymentManager = () => {
     fetchPatientPaymentData();
   }, []);
   
-  // Clear dialog state when it closes
   useEffect(() => {
     if (!isInvoiceDialogOpen) {
       resetInvoiceData();
@@ -67,7 +65,6 @@ export const PatientPaymentManager = () => {
   const fetchPatientPaymentData = async () => {
     setLoading(true);
     try {
-      // Use the edge function instead of direct RPC call
       const { data, error } = await supabase.functions.invoke('get-patient-payment-summary');
       
       if (error) {
@@ -135,7 +132,6 @@ export const PatientPaymentManager = () => {
         throw new Error("Please enter a valid amount");
       }
       
-      // Use the edge function instead of direct RPC call
       const { data, error } = await supabase.functions.invoke('generate-patient-invoice', {
         body: {
           patientId: invoiceData.patientId,
@@ -149,7 +145,6 @@ export const PatientPaymentManager = () => {
         throw error;
       }
       
-      // Refresh the patient payment data
       await fetchPatientPaymentData();
       
       toast({
@@ -157,7 +152,6 @@ export const PatientPaymentManager = () => {
         description: "Invoice generated successfully",
       });
       
-      // Close the dialog
       setIsInvoiceDialogOpen(false);
     } catch (error: any) {
       console.error("Error generating invoice:", error);
@@ -180,13 +174,12 @@ export const PatientPaymentManager = () => {
         throw new Error("No patient selected");
       }
       
-      // Create a Razorpay order via edge function
       const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
         body: { 
           patient_id: selectedPatient.patient_id,
           patient_name: `${selectedPatient.patient_first_name} ${selectedPatient.patient_last_name}`,
           doctor_id: selectedPatient.doctor_id,
-          amount: 500 * 100 // Convert to smallest currency unit (paise)
+          amount: 500 * 100
         }
       });
       
@@ -200,17 +193,13 @@ export const PatientPaymentManager = () => {
       
       console.log("Razorpay order created:", data);
       
-      // This would normally open the Razorpay payment dialog
-      // For demo purposes, we'll just show an alert about where this would happen
       toast({
         title: "Payment Integration",
         description: "At this point, the Razorpay payment window would open with options for UPI/Card/Banking",
       });
       
-      // Simulate a successful payment for demo purposes
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // This would be called after successful payment
       await handlePaymentSuccess({
         razorpay_payment_id: "pay_demo_" + Math.random().toString(36).substr(2, 9),
         razorpay_order_id: data.id,
@@ -232,7 +221,6 @@ export const PatientPaymentManager = () => {
   
   const handlePaymentSuccess = async (response: any) => {
     try {
-      // Verify the payment on the server
       const { data, error } = await supabase.functions.invoke('verify-razorpay-payment', {
         body: { 
           ...response,
@@ -244,7 +232,6 @@ export const PatientPaymentManager = () => {
         throw new Error(`Payment verification failed: ${error.message}`);
       }
       
-      // Refresh patient payment data
       await fetchPatientPaymentData();
       
       toast({
@@ -252,7 +239,6 @@ export const PatientPaymentManager = () => {
         description: "The payment has been processed successfully",
       });
       
-      // Close the payment dialog
       setIsPaymentDialogOpen(false);
     } catch (error: any) {
       console.error("Payment verification error:", error);
@@ -283,7 +269,6 @@ export const PatientPaymentManager = () => {
         description: `Invoice notification sent via ${channel}`,
       });
       
-      // Refresh data to update UI indicators
       await fetchPatientPaymentData();
     } catch (error: any) {
       console.error(`Error sending ${channel} notification:`, error);
@@ -326,7 +311,7 @@ export const PatientPaymentManager = () => {
                     <TableHead className="min-w-[150px]">Patient</TableHead>
                     <TableHead className="min-w-[200px]">Assigned Doctor</TableHead>
                     <TableHead className="min-w-[150px]">Payment Status</TableHead>
-                    <TableHead className="min-w-[280px]">Actions</TableHead>
+                    <TableHead className="min-w-[320px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -361,7 +346,7 @@ export const PatientPaymentManager = () => {
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center space-x-2">
+                          <div className="flex items-center gap-3">
                             <Button
                               size="sm"
                               variant="outline"
@@ -384,6 +369,7 @@ export const PatientPaymentManager = () => {
                               variant="outline"
                               onClick={() => sendInvoiceNotification(patient.patient_id, 'email')}
                               title="Send Email Notification"
+                              className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-600"
                             >
                               <Mail className="w-4 h-4" />
                             </Button>
@@ -405,7 +391,6 @@ export const PatientPaymentManager = () => {
         </div>
       )}
       
-      {/* Generate Invoice Dialog */}
       <Dialog open={isInvoiceDialogOpen} onOpenChange={setIsInvoiceDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -454,7 +439,6 @@ export const PatientPaymentManager = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Payment Dialog */}
       <Dialog open={isPaymentDialogOpen} onOpenChange={setIsPaymentDialogOpen}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
