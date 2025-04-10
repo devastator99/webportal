@@ -20,7 +20,9 @@ const ScrollArea = React.forwardRef<
     <ScrollAreaPrimitive.Viewport className="h-full w-full rounded-[inherit]">
       {children}
     </ScrollAreaPrimitive.Viewport>
-    <ScrollBar orientation={orientation === "both" || orientation === "vertical" ? "vertical" : "horizontal"} />
+    {(orientation === "both" || orientation === "vertical") && (
+      <ScrollBar orientation="vertical" />
+    )}
     {(orientation === "both" || orientation === "horizontal") && (
       <ScrollBar orientation="horizontal" />
     )}
@@ -47,7 +49,11 @@ const ScrollBar = React.forwardRef<
     {...props}
   >
     <ScrollAreaPrimitive.ScrollAreaThumb 
-      className="relative flex-1 rounded-full bg-border hover:bg-border/80" 
+      className={cn(
+        "relative flex-1 rounded-full bg-border hover:bg-border/80",
+        orientation === "horizontal" && "h-1.5",
+        orientation === "vertical" && "w-1.5"
+      )}
     />
   </ScrollAreaPrimitive.ScrollAreaScrollbar>
 ))

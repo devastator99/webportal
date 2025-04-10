@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useIsIPad } from "@/hooks/use-mobile";
 
 interface PatientPaymentSummary {
   patient_id: string;
@@ -51,6 +52,7 @@ export const PatientPaymentManager = () => {
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const isIPad = useIsIPad();
   
   useEffect(() => {
     fetchPatientPaymentData();
@@ -281,7 +283,7 @@ export const PatientPaymentManager = () => {
   };
   
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${isIPad ? "max-w-full w-full" : ""}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="text-sm text-gray-500">
           Manage patient payments and invoices
@@ -302,16 +304,16 @@ export const PatientPaymentManager = () => {
           <LoadingSpinner size="lg" />
         </div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 border rounded-md shadow-sm">
-          <ScrollArea className="h-[400px] w-full" orientation="both">
-            <div className="min-w-full">
+        <div className={`bg-white dark:bg-gray-800 border rounded-md shadow-sm ${isIPad ? "w-full" : ""}`}>
+          <ScrollArea className="h-[450px] w-full" orientation="both">
+            <div className="min-w-[800px]">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="min-w-[150px]">Patient</TableHead>
                     <TableHead className="min-w-[200px]">Assigned Doctor</TableHead>
                     <TableHead className="min-w-[150px]">Payment Status</TableHead>
-                    <TableHead className="min-w-[320px]">Actions</TableHead>
+                    <TableHead className="min-w-[340px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -372,6 +374,7 @@ export const PatientPaymentManager = () => {
                               className="bg-blue-50 hover:bg-blue-100 border-blue-200 text-blue-600"
                             >
                               <Mail className="w-4 h-4" />
+                              <span className="ml-1 hidden sm:inline">Email</span>
                             </Button>
                           </div>
                         </TableCell>
