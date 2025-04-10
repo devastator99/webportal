@@ -115,18 +115,20 @@ export const AdminDashboard = () => {
       </Card>
       
       <div className="space-y-6">
-        {/* Assign Care Team section - Removed redundant title */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Assign Care Team
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PatientAssignmentManager />
-          </CardContent>
-        </Card>
+        {/* Assign Care Team section - Now collapsible */}
+        <CollapsibleSection title="Assign Care Team">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Assign Care Team
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <PatientAssignmentManager />
+            </CardContent>
+          </Card>
+        </CollapsibleSection>
         
         {/* Separate Care Team Report section */}
         <CollapsibleSection title="Care Team Reports" defaultOpen={false}>
