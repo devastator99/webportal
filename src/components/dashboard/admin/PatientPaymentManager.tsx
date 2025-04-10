@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
-import { CreditCard, Mail, Send, RefreshCw } from "lucide-react";
+import { CreditCard, Mail, Send, RefreshCw, Eye } from "lucide-react";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useIsIPad } from "@/hooks/use-mobile";
+import { InvoicePdfViewer } from "./InvoicePdfViewer";
 
 interface PatientPaymentSummary {
   patient_id: string;
@@ -36,6 +38,15 @@ interface NewInvoiceData {
   description: string;
 }
 
+interface PatientInvoice {
+  id: string;
+  invoice_number: string;
+  amount: number;
+  created_at: string;
+  description: string;
+  status: string;
+}
+
 export const PatientPaymentManager = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -52,6 +63,11 @@ export const PatientPaymentManager = () => {
   const [generatingInvoice, setGeneratingInvoice] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [patientInvoices, setPatientInvoices] = useState<PatientInvoice[]>([]);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<string | null>(null);
+  const [isInvoicePdfOpen, setIsInvoicePdfOpen] = useState(false);
+  const [invoicePdfLoading, setInvoicePdfLoading] = useState(false);
+  const [lastGeneratedInvoice, setLastGeneratedInvoice] = useState<PatientInvoice | null>(null);
   const isIPad = useIsIPad();
   
   useEffect(() => {
@@ -63,6 +79,12 @@ export const PatientPaymentManager = () => {
       resetInvoiceData();
     }
   }, [isInvoiceDialogOpen]);
+  
+  useEffect(() => {
+    if (selectedPatient) {
+      fetchPatientInvoices(selectedPatient.patient_id);
+    }
+  }, [selectedPatient]);
   
   const fetchPatientPaymentData = async () => {
     setLoading(true);
@@ -84,6 +106,29 @@ export const PatientPaymentManager = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const fetchPatientInvoices = async (patientId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('patient_invoices')
+        .select('id, invoice_number, amount, created_at, description, status')
+        .eq('patient_id', patientId)
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      setPatientInvoices(data || []);
+    } catch (error: any) {
+      console.error("Error fetching patient invoices:", error);
+      toast({
+        title: "Error",
+        description: `Failed to load patient invoices: ${error.message}`,
+        variant: "destructive",
+      });
     }
   };
   
@@ -122,6 +167,17 @@ export const PatientPaymentManager = () => {
     setPaymentError(null);
   };
   
+  const handleOpenInvoicePdf = (invoiceId: string) => {
+    setSelectedInvoiceId(invoiceId);
+    setIsInvoicePdfOpen(true);
+    setInvoicePdfLoading(true);
+    
+    // Simulate loading delay (in real app, this would be actual loading time)
+    setTimeout(() => {
+      setInvoicePdfLoading(false);
+    }, 1000);
+  };
+  
   const generateInvoice = async () => {
     setGeneratingInvoice(true);
     
@@ -149,12 +205,39 @@ export const PatientPaymentManager = () => {
       
       await fetchPatientPaymentData();
       
+      // Fetch the newly created invoice
+      const { data: newInvoice, error: fetchError } = await supabase
+        .from('patient_invoices')
+        .select('id, invoice_number, amount, created_at, description, status')
+        .eq('id', data)
+        .single();
+      
+      if (fetchError) {
+        throw fetchError;
+      }
+      
+      setLastGeneratedInvoice(newInvoice);
+      setSelectedInvoiceId(newInvoice.id);
+      setIsInvoicePdfOpen(true);
+      setInvoicePdfLoading(true);
+      
+      // Simulate loading delay (in real app, this would be actual loading time)
+      setTimeout(() => {
+        setInvoicePdfLoading(false);
+      }, 1000);
+      
       toast({
         title: "Success",
         description: "Invoice generated successfully",
       });
       
       setIsInvoiceDialogOpen(false);
+      
+      // Update the patient invoices list
+      if (selectedPatient) {
+        fetchPatientInvoices(selectedPatient.patient_id);
+      }
+      
     } catch (error: any) {
       console.error("Error generating invoice:", error);
       toast({
@@ -236,6 +319,10 @@ export const PatientPaymentManager = () => {
       
       await fetchPatientPaymentData();
       
+      if (selectedPatient) {
+        fetchPatientInvoices(selectedPatient.patient_id);
+      }
+      
       toast({
         title: "Payment Successful",
         description: "The payment has been processed successfully",
@@ -282,6 +369,32 @@ export const PatientPaymentManager = () => {
     }
   };
   
+  const getInvoiceStatusBadge = (status: string) => {
+    switch (status) {
+      case 'paid':
+        return <Badge variant="outline" className="text-green-500 bg-green-50">Paid</Badge>;
+      case 'pending':
+        return <Badge variant="outline" className="text-amber-500 bg-amber-50">Pending</Badge>;
+      case 'cancelled':
+        return <Badge variant="outline" className="text-red-500 bg-red-50">Cancelled</Badge>;
+      default:
+        return <Badge variant="outline" className="text-gray-500 bg-gray-50">{status}</Badge>;
+    }
+  };
+  
+  const getLatestInvoiceData = () => {
+    if (!lastGeneratedInvoice) return null;
+    
+    return {
+      invoiceNumber: lastGeneratedInvoice.invoice_number,
+      patientName: selectedPatient ? `${selectedPatient.patient_first_name} ${selectedPatient.patient_last_name}` : '',
+      amount: lastGeneratedInvoice.amount,
+      date: new Date(lastGeneratedInvoice.created_at).toLocaleDateString(),
+      description: lastGeneratedInvoice.description,
+      status: lastGeneratedInvoice.status
+    };
+  };
+  
   return (
     <div className={`space-y-4 ${isIPad ? "max-w-full w-full" : ""}`}>
       <div className="flex items-center justify-between mb-4">
@@ -306,14 +419,14 @@ export const PatientPaymentManager = () => {
       ) : (
         <div className={`bg-white dark:bg-gray-800 border rounded-md shadow-sm ${isIPad ? "w-full" : ""}`}>
           <ScrollArea className="h-[450px] w-full" orientation="both">
-            <div className="min-w-[800px]">
+            <div className="min-w-[900px]">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="min-w-[150px]">Patient</TableHead>
                     <TableHead className="min-w-[200px]">Assigned Doctor</TableHead>
                     <TableHead className="min-w-[150px]">Payment Status</TableHead>
-                    <TableHead className="min-w-[340px]">Actions</TableHead>
+                    <TableHead className="min-w-[400px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -355,6 +468,20 @@ export const PatientPaymentManager = () => {
                               onClick={() => handleOpenInvoiceDialog(patient)}
                             >
                               Generate Invoice
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedPatient(patient);
+                                fetchPatientInvoices(patient.patient_id);
+                                handleOpenInvoicePdf(patientInvoices[0]?.id);
+                              }}
+                              disabled={patient.total_invoices === 0}
+                              className="bg-purple-50 hover:bg-purple-100 border-purple-200 text-purple-600"
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              View Invoice
                             </Button>
                             <Button
                               size="sm"
@@ -509,6 +636,14 @@ export const PatientPaymentManager = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      <InvoicePdfViewer
+        invoiceId={selectedInvoiceId}
+        isOpen={isInvoicePdfOpen}
+        onClose={() => setIsInvoicePdfOpen(false)}
+        invoiceData={getLatestInvoiceData()}
+        isLoading={invoicePdfLoading}
+      />
     </div>
   );
 };
