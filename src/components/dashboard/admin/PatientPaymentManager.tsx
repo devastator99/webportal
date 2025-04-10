@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, PatientInvoice, getPatientInvoices } from "@/integrations/supabase/client";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { CreditCard, Mail, Send, RefreshCw, Eye } from "lucide-react";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -35,15 +35,6 @@ interface NewInvoiceData {
   doctorId: string | null;
   amount: string;
   description: string;
-}
-
-interface PatientInvoice {
-  id: string;
-  invoice_number: string;
-  amount: number;
-  created_at: string;
-  description: string;
-  status: string;
 }
 
 export const PatientPaymentManager = () => {
@@ -112,15 +103,8 @@ export const PatientPaymentManager = () => {
   
   const fetchPatientInvoices = async (patientId: string) => {
     try {
-      const { data, error } = await supabase.rpc('get_patient_invoices', {
-        p_patient_id: patientId
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      setPatientInvoices(data || []);
+      const invoices = await getPatientInvoices(patientId);
+      setPatientInvoices(invoices);
     } catch (error: any) {
       console.error("Error fetching patient invoices:", error);
       toast({
