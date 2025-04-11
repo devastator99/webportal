@@ -88,14 +88,22 @@ export const PatientDashboard = () => {
         
       let latestPrescription = null;
       if (doctorAssignment?.doctor_id) {
-        const { data: prescriptions } = await supabase
+        // Using the database RPC function to fetch prescriptions, which should work for patient Prakash
+        const { data: prescriptions, error: prescriptionError } = await supabase
           .rpc("get_patient_prescriptions", {
             p_patient_id: user.id,
             p_doctor_id: doctorAssignment.doctor_id
           });
           
+        if (prescriptionError) {
+          console.error("Error fetching prescriptions:", prescriptionError);
+        }
+        
         if (prescriptions && prescriptions.length > 0) {
           latestPrescription = prescriptions[0];
+          console.log("Retrieved latest prescription:", latestPrescription);
+        } else {
+          console.log("No prescriptions found for patient:", user.id);
         }
       }
 
@@ -130,6 +138,18 @@ export const PatientDashboard = () => {
   const containerClasses = isIPad 
     ? "container mx-auto pt-20 pb-6 px-4 space-y-6 max-w-[95%]" 
     : "container mx-auto pt-20 pb-6 px-6 space-y-6";
+
+  // Helper function to get the correct icon for each health plan type
+  const getIconForType = (type) => {
+    switch (type) {
+      case 'food': return <Utensils className="h-4 w-4 text-green-500" />;
+      case 'exercise': return <Dumbbell className="h-4 w-4 text-blue-500" />;
+      case 'meditation': 
+      case 'mindfulness': return <Brain className="h-4 w-4 text-purple-500" />;
+      case 'sleep': return <Moon className="h-4 w-4 text-indigo-500" />;
+      default: return <Activity className="h-4 w-4 text-gray-500" />;
+    }
+  };
 
   return (
     <div className={containerClasses}>
@@ -242,10 +262,7 @@ export const PatientDashboard = () => {
                   {patientData.healthPlanItems.slice(0, 3).map((item, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        {item.type === 'food' && <Utensils className="h-4 w-4 text-green-500" />}
-                        {item.type === 'exercise' && <Dumbbell className="h-4 w-4 text-blue-500" />}
-                        {item.type === 'meditation' && <Brain className="h-4 w-4 text-purple-500" />}
-                        {item.type === 'sleep' && <Moon className="h-4 w-4 text-indigo-500" />}
+                        {getIconForType(item.type)}
                         <p className="text-sm">{item.description}</p>
                       </div>
                       <Badge variant="outline">{item.scheduled_time}</Badge>
