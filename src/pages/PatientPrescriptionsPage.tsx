@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +15,6 @@ import { Spinner } from "@/components/ui/spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import html2pdf from 'html2pdf.js';
 import { useIsIPad, useIsMobile } from "@/hooks/use-mobile";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface Prescription {
   id: string;
@@ -38,68 +38,41 @@ const PatientPrescriptionsPage = () => {
   const { data: prescriptions, isLoading, error } = useQuery({
     queryKey: ["patient_prescriptions", user?.id],
     queryFn: async () => {
-      if (!user?.id) {
-        console.error("User not authenticated");
-        throw new Error("User not authenticated");
+      if (!user?.id) throw new Error("User not authenticated");
+      
+      // Get doctor ID assigned to patient first
+      const { data: assignment, error: assignmentError } = await supabase
+        .from("patient_assignments")
+        .select("doctor_id")
+        .eq("patient_id", user.id)
+        .single();
+      
+      if (assignmentError || !assignment?.doctor_id) {
+        console.error("Error fetching doctor assignment:", assignmentError);
+        return [];
       }
       
-      console.log("Fetching prescriptions for patient ID:", user.id);
+      // Then get prescriptions using the RPC function
+      const { data, error } = await supabase
+        .rpc("get_patient_prescriptions", {
+          p_patient_id: user.id,
+          p_doctor_id: assignment.doctor_id
+        });
       
-      try {
-        const { data: assignment, error: assignmentError } = await supabase
-          .from("patient_assignments")
-          .select("doctor_id")
-          .eq("patient_id", user.id)
-          .single();
-        
-        if (assignmentError) {
-          console.error("Error fetching doctor assignment:", assignmentError);
-          throw new Error(`Failed to retrieve doctor assignment: ${assignmentError.message}`);
-        }
-        
-        if (!assignment?.doctor_id) {
-          console.warn("No doctor assigned to patient:", user.id);
-          return [];
-        }
-        
-        console.log("Found doctor assignment:", assignment.doctor_id);
-        
-        const { data, error } = await supabase
-          .rpc("get_patient_prescriptions", {
-            p_patient_id: user.id,
-            p_doctor_id: assignment.doctor_id
-          });
-        
-        if (error) {
-          console.error("Error fetching prescriptions:", error);
-          throw new Error(`Failed to retrieve prescriptions: ${error.message}`);
-        }
-        
-        console.log(`Retrieved ${data?.length || 0} prescriptions for patient ${user.id}`);
-        return data as Prescription[] || [];
-      } catch (error: any) {
-        console.error("Exception in prescription fetching:", error);
+      if (error) {
+        console.error("Error fetching prescriptions:", error);
         throw error;
       }
+      
+      return data as Prescription[];
     },
-    enabled: !!user?.id,
-    retry: 2,
-    staleTime: 60000 // 1 minute
+    enabled: !!user?.id
   });
   
   const generatePdf = async (prescription: Prescription) => {
     try {
-      console.log("Generating PDF for prescription:", prescription.id);
       const element = document.getElementById('prescription-pdf-content');
-      if (!element) {
-        console.error("PDF content element not found");
-        toast({
-          title: "Error",
-          description: "Could not find the document content for PDF generation",
-          variant: "destructive",
-        });
-        return;
-      }
+      if (!element) return;
       
       const opt = {
         margin: 10,
@@ -125,6 +98,7 @@ const PatientPrescriptionsPage = () => {
     }
   };
 
+  // Responsive class adjustments
   const containerClass = isMobile 
     ? "container pt-16 pb-8 px-2 prescription-page-container" 
     : isIPad 
@@ -133,11 +107,8 @@ const PatientPrescriptionsPage = () => {
 
   if (isLoading) {
     return (
-      <div className={`${containerClass} flex items-center justify-center min-h-[70vh]`}>
-        <div className="text-center">
-          <Spinner size="lg" className="mb-4" />
-          <p className="text-muted-foreground">Loading your prescriptions...</p>
-        </div>
+      <div className={`${containerClass} loading-container`}>
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -147,39 +118,11 @@ const PatientPrescriptionsPage = () => {
       <div className={containerClass}>
         <Card className="border-destructive">
           <CardHeader>
-            <CardTitle className="text-destructive flex items-center gap-2">
-              <span className="text-red-500">⚠️</span>
-              Error Loading Prescriptions
-            </CardTitle>
+            <CardTitle className="text-destructive">Error Loading Prescriptions</CardTitle>
           </CardHeader>
           <CardContent>
-            <Alert variant="destructive" className="mb-4">
-              <AlertTitle>Something went wrong</AlertTitle>
-              <AlertDescription>
-                There was an error loading your prescriptions. Please try again later.
-              </AlertDescription>
-            </Alert>
-            <details className="mt-4">
-              <summary className="cursor-pointer text-sm text-muted-foreground">Error details</summary>
-              <p className="text-sm mt-2 p-2 bg-gray-100 rounded overflow-auto">
-                {(error as Error).message}
-              </p>
-            </details>
-            <div className="mt-6">
-              <Button 
-                variant="outline" 
-                onClick={() => window.location.reload()}
-                className="mr-2"
-              >
-                Try Again
-              </Button>
-              <Button 
-                variant="default"
-                onClick={() => window.history.back()}
-              >
-                Go Back
-              </Button>
-            </div>
+            <p>There was an error loading your prescriptions. Please try again later.</p>
+            <p className="text-sm text-muted-foreground mt-2">{(error as Error).message}</p>
           </CardContent>
         </Card>
       </div>
@@ -206,15 +149,6 @@ const PatientPrescriptionsPage = () => {
               You don't have any prescriptions yet. Once your doctor writes a prescription, it will appear here.
             </CardDescription>
           </CardHeader>
-          <CardContent className="flex justify-center">
-            <Button 
-              variant="outline" 
-              onClick={() => window.history.back()}
-              className="mt-4"
-            >
-              Return to Dashboard
-            </Button>
-          </CardContent>
         </Card>
       ) : (
         <div className="grid gap-6">
@@ -355,6 +289,7 @@ const PatientPrescriptionsPage = () => {
         </div>
       )}
       
+      {/* PDF Preview Dialog */}
       <Dialog open={pdfPreviewOpen} onOpenChange={setPdfPreviewOpen}>
         <DialogContent className={`sm:max-w-[800px] ${isMobile ? 'w-[95vw] p-3' : ''}`}>
           <DialogHeader>

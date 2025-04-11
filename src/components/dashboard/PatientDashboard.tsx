@@ -51,97 +51,79 @@ export const PatientDashboard = () => {
   const isIPad = useIsIPad();
   const navigate = useNavigate();
 
-  const { data: patientData, isLoading, error } = useQuery({
+  const { data: patientData, isLoading } = useQuery({
     queryKey: ["patient_dashboard", user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error("No user ID");
       
-      try {
-        console.log("Fetching patient dashboard data for user:", user.id);
-        
-        // First get the profile data
-        const { data: profile, error: profileError } = await supabase
-          .from("profiles")
-          .select("first_name, last_name")
-          .eq("id", user.id)
-          .single();
+      // First get the profile data
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("first_name, last_name")
+        .eq("id", user.id)
+        .single();
 
-        if (profileError) {
-          console.error("Error fetching profile:", profileError);
-          throw profileError;
-        }
-
-        if (!profile) {
-          console.error("No profile found for user:", user.id);
-          throw new Error("No profile found");
-        }
-
-        // Get next appointment
-        const { data: appointments, error: appointmentsError } = await supabase
-          .rpc("get_patient_appointments", { p_patient_id: user.id });
-          
-        if (appointmentsError) {
-          console.error("Error fetching appointments:", appointmentsError);
-        }
-
-        // Get latest prescription
-        const { data: doctorAssignment, error: assignmentError } = await supabase
-          .from("patient_assignments")
-          .select("doctor_id")
-          .eq("patient_id", user.id)
-          .single();
-          
-        if (assignmentError) {
-          console.error("Error fetching doctor assignment:", assignmentError);
-        }
-        
-        let latestPrescription = null;
-        if (doctorAssignment?.doctor_id) {
-          console.log("Fetching prescriptions for patient:", user.id, "doctor:", doctorAssignment.doctor_id);
-          // Using the database RPC function to fetch prescriptions
-          const { data: prescriptions, error: prescriptionError } = await supabase
-            .rpc("get_patient_prescriptions", {
-              p_patient_id: user.id,
-              p_doctor_id: doctorAssignment.doctor_id
-            });
-            
-          if (prescriptionError) {
-            console.error("Error fetching prescriptions:", prescriptionError);
-          } else {
-            console.log("Prescriptions retrieved:", prescriptions?.length || 0);
-          }
-          
-          if (prescriptions && prescriptions.length > 0) {
-            latestPrescription = prescriptions[0];
-            console.log("Retrieved latest prescription:", latestPrescription);
-          } else {
-            console.log("No prescriptions found for patient:", user.id);
-          }
-        } else {
-          console.log("No doctor assigned to patient:", user.id);
-        }
-
-        // Get health plan items
-        const { data: healthPlanItems, error: healthPlanError } = await supabase
-          .rpc("get_patient_health_plan", { p_patient_id: user.id });
-          
-        if (healthPlanError) {
-          console.error("Error fetching health plan:", healthPlanError);
-        }
-
-        return {
-          profile: {
-            first_name: profile.first_name ?? '',
-            last_name: profile.last_name ?? ''
-          },
-          nextAppointment: appointments && appointments.length > 0 ? appointments[0] : null,
-          latestPrescription,
-          healthPlanItems: healthPlanItems || []
-        };
-      } catch (error) {
-        console.error("Error in patient dashboard query:", error);
-        throw error;
+      if (profileError) {
+        throw profileError;
       }
+
+      if (!profile) {
+        throw new Error("No profile found");
+      }
+
+      // Get next appointment
+      const { data: appointments, error: appointmentsError } = await supabase
+        .rpc("get_patient_appointments", { p_patient_id: user.id });
+        
+      if (appointmentsError) {
+        console.error("Error fetching appointments:", appointmentsError);
+      }
+
+      // Get latest prescription
+      const { data: doctorAssignment } = await supabase
+        .from("patient_assignments")
+        .select("doctor_id")
+        .eq("patient_id", user.id)
+        .single();
+        
+      let latestPrescription = null;
+      if (doctorAssignment?.doctor_id) {
+        // Using the database RPC function to fetch prescriptions, which should work for patient Prakash
+        const { data: prescriptions, error: prescriptionError } = await supabase
+          .rpc("get_patient_prescriptions", {
+            p_patient_id: user.id,
+            p_doctor_id: doctorAssignment.doctor_id
+          });
+          
+        if (prescriptionError) {
+          console.error("Error fetching prescriptions:", prescriptionError);
+        }
+        
+        if (prescriptions && prescriptions.length > 0) {
+          latestPrescription = prescriptions[0];
+          console.log("Retrieved latest prescription:", latestPrescription);
+        } else {
+          console.log("No prescriptions found for patient:", user.id);
+        }
+      }
+
+      // Get health plan items
+      const { data: healthPlanItems, error: healthPlanError } = await supabase
+        .rpc("get_patient_health_plan", { p_patient_id: user.id });
+        
+      if (healthPlanError) {
+        console.error("Error fetching health plan:", healthPlanError);
+      }
+
+      return {
+        profile: {
+          first_name: profile.first_name ?? '',
+          last_name: profile.last_name ?? ''
+        },
+        nextAppointment: appointments && appointments.length > 0 ? appointments[0] : null,
+        latestPrescription,
+        healthPlanItems: healthPlanItems || []
+      };
     },
     enabled: !!user?.id,
     staleTime: 30000,
@@ -150,15 +132,6 @@ export const PatientDashboard = () => {
 
   if (isLoading) {
     return <DashboardSkeleton />;
-  }
-
-  if (error) {
-    console.error("Error loading patient dashboard:", error);
-    toast({
-      title: "Error",
-      description: "Failed to load dashboard data. Please try again later.",
-      variant: "destructive"
-    });
   }
 
   // Add iPad-specific classes for better visibility
@@ -265,12 +238,7 @@ export const PatientDashboard = () => {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="ml-auto" 
-                  onClick={() => navigate('/patient/prescriptions')}
-                >
+                <Button variant="outline" size="sm" className="ml-auto" onClick={() => navigate('/patient/prescriptions')}>
                   View All Prescriptions <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </CardFooter>
