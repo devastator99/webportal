@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -13,7 +12,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { featureFlags } from "@/config/features";
 import { useIsIPad } from "@/hooks/use-mobile";
@@ -21,10 +19,6 @@ import {
   Calendar, 
   FileText, 
   Activity, 
-  Dumbbell, 
-  Utensils, 
-  Moon, 
-  Brain,
   ArrowRight
 } from "lucide-react";
 import { PatientHealthTips } from "./patient/PatientHealthTips";
@@ -139,53 +133,6 @@ export const PatientDashboard = () => {
       {/* Stats Row - Enhanced for iPad */}
       <div className={isIPad ? "overflow-x-auto pb-2" : ""}>
         <PatientStats />
-      </div>
-
-      {/* Health Progress Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col items-center text-center space-y-2">
-              <Dumbbell className="h-8 w-8 text-blue-500 mb-1" />
-              <h3 className="font-medium text-sm">Physical Activity</h3>
-              <Progress value={75} className="h-2 w-full" />
-              <p className="text-xs text-muted-foreground">75% of goal</p>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col items-center text-center space-y-2">
-              <Utensils className="h-8 w-8 text-green-500 mb-1" />
-              <h3 className="font-medium text-sm">Nutrition</h3>
-              <Progress value={60} className="h-2 w-full" />
-              <p className="text-xs text-muted-foreground">60% of goal</p>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col items-center text-center space-y-2">
-              <Moon className="h-8 w-8 text-indigo-500 mb-1" />
-              <h3 className="font-medium text-sm">Sleep</h3>
-              <Progress value={85} className="h-2 w-full" />
-              <p className="text-xs text-muted-foreground">85% of goal</p>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col items-center text-center space-y-2">
-              <Brain className="h-8 w-8 text-purple-500 mb-1" />
-              <h3 className="font-medium text-sm">Mindfulness</h3>
-              <Progress value={50} className="h-2 w-full" />
-              <p className="text-xs text-muted-foreground">50% of goal</p>
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Main Content - Use collapsible sections with lazy loading */}
