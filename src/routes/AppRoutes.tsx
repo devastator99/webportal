@@ -1,4 +1,3 @@
-
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Suspense, lazy } from "react";
@@ -6,6 +5,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import DummyPage from "@/pages/DummyPage";
+import PatientHabitsPage from "@/pages/PatientHabitsPage";
 
 // Use a dummy page for missing components
 const HomePage = () => <DummyPage title="Home Page" />;

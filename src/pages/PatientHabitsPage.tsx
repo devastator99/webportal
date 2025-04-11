@@ -16,7 +16,8 @@ import {
   Brain, 
   AlertCircle, 
   CheckCircle2,
-  Bell
+  Bell,
+  Pill
 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { HabitsProgressCharts } from "@/components/dashboard/patient/HabitsProgressCharts";
