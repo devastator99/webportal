@@ -3,13 +3,15 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Brain, Loader2, Send, CheckCircle, ArrowDown } from "lucide-react";
+import { Brain, Loader2, Send, CheckCircle, ArrowDown, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { useAuth } from "@/contexts/AuthContext";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import html2pdf from 'html2pdf.js';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -31,6 +33,17 @@ interface UserProfile {
   last_name: string | null;
 }
 
+interface Prescription {
+  id: string;
+  created_at: string;
+  diagnosis: string;
+  prescription: string;
+  notes: string;
+  doctor_id: string;
+  doctor_first_name: string;
+  doctor_last_name: string;
+}
+
 export const CareTeamAIChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -41,6 +54,8 @@ export const CareTeamAIChat = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
 
   // Add initial welcome message when component mounts
   useEffect(() => {
@@ -162,6 +177,52 @@ export const CareTeamAIChat = () => {
         console.error("Error fetching patient profile:", err);
       }
 
+      // Special case: if user is asking for prescription
+      if (input.toLowerCase().includes('prescription') || 
+          input.toLowerCase().includes('medicine') || 
+          input.toLowerCase().includes('medication')) {
+        // Get patient's doctor
+        const { data: doctorAssignment, error: doctorError } = await supabase
+          .from('patient_assignments')
+          .select('doctor_id')
+          .eq('patient_id', user.id)
+          .single();
+          
+        if (!doctorError && doctorAssignment?.doctor_id) {
+          // Get prescriptions
+          const { data: prescriptions, error: prescriptionError } = await supabase
+            .rpc('get_patient_prescriptions', {
+              p_patient_id: user.id,
+              p_doctor_id: doctorAssignment.doctor_id
+            });
+            
+          if (!prescriptionError && prescriptions && prescriptions.length > 0) {
+            // Check if user is asking for a PDF
+            if (input.toLowerCase().includes('pdf') || 
+                input.toLowerCase().includes('download') || 
+                input.toLowerCase().includes('file')) {
+              setSelectedPrescription(prescriptions[0] as Prescription);
+              
+              // Add AI response about the PDF
+              const aiResponse = { 
+                role: 'assistant' as const, 
+                content: `I've found your latest prescription from Dr. ${prescriptions[0].doctor_first_name} ${prescriptions[0].doctor_last_name}. Let me show you a preview that you can download as a PDF.`, 
+                timestamp: new Date() 
+              };
+              
+              setMessages(prev => [...prev, aiResponse]);
+              
+              // Show PDF preview
+              setPdfPreviewOpen(true);
+              
+              setIsLoading(false);
+              setTimeout(scrollToBottom, 100);
+              return;
+            }
+          }
+        }
+      }
+
       // Call the Supabase Edge Function for AI response with enhanced context
       const { data, error } = await supabase.functions.invoke('doctor-ai-assistant', {
         body: { 
@@ -218,6 +279,35 @@ export const CareTeamAIChat = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const generatePdf = async (prescription: Prescription) => {
+    try {
+      const element = document.getElementById('prescription-pdf-content');
+      if (!element) return;
+      
+      const opt = {
+        margin: 10,
+        filename: `prescription-${prescription.id.slice(0, 8)}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      await html2pdf().set(opt).from(element).save();
+      
+      toast({
+        title: "PDF Generated",
+        description: "Your prescription PDF has been generated successfully.",
+      });
+    } catch (err) {
+      console.error("Error generating PDF:", err);
+      toast({
+        title: "PDF Generation Failed",
+        description: "There was an error generating your prescription PDF.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -375,6 +465,81 @@ export const CareTeamAIChat = () => {
           )}
         </Button>
       </div>
+      
+      {/* PDF Preview Dialog */}
+      <Dialog open={pdfPreviewOpen} onOpenChange={setPdfPreviewOpen}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Prescription PDF Preview
+            </DialogTitle>
+          </DialogHeader>
+          {selectedPrescription && (
+            <div className="max-h-[70vh] overflow-y-auto">
+              <div id="prescription-pdf-content" className="p-8 bg-white">
+                <div className="text-center mb-6">
+                  <h1 className="text-xl font-bold mb-2">Medical Prescription</h1>
+                  <p className="text-sm text-gray-500">
+                    Issued on: {new Date(selectedPrescription.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4 mb-6">
+                  <div>
+                    <h3 className="font-bold text-sm">Doctor</h3>
+                    <p>Dr. {selectedPrescription.doctor_first_name} {selectedPrescription.doctor_last_name}</p>
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm">Patient</h3>
+                    <p>{user?.user_metadata?.first_name} {user?.user_metadata?.last_name}</p>
+                  </div>
+                </div>
+                
+                <hr className="my-4" />
+                
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-bold">Diagnosis</h3>
+                    <p>{selectedPrescription.diagnosis || "No diagnosis provided"}</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-bold">Prescription</h3>
+                    <p className="whitespace-pre-wrap">{selectedPrescription.prescription || "No specific medications prescribed"}</p>
+                  </div>
+                  
+                  {selectedPrescription.notes && (
+                    <div>
+                      <h3 className="font-bold">Additional Notes</h3>
+                      <p className="whitespace-pre-wrap">{selectedPrescription.notes}</p>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="mt-8 pt-4 border-t text-xs text-gray-500">
+                  <p>This prescription is valid from {new Date(selectedPrescription.created_at).toLocaleDateString()}</p>
+                  <p className="mt-2">Digitally issued via Anubhuti Care System</p>
+                </div>
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end space-x-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setPdfPreviewOpen(false)}
+            >
+              Close
+            </Button>
+            <Button 
+              onClick={() => selectedPrescription && generatePdf(selectedPrescription)}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              Download PDF
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

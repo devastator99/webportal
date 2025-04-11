@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, Settings, MessageCircle } from 'lucide-react';
+import { Home, User, Settings, MessageCircle, FileText, Activity } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { WhatsAppStyleChatInterface } from '@/components/chat/WhatsAppStyleChatInterface';
@@ -68,16 +68,27 @@ export const MobileNavigation: React.FC = () => {
       active: location.pathname === '/dashboard'
     },
     {
-      label: 'Patients',
-      icon: User,
-      action: () => navigate('/patients'),
-      active: location.pathname === '/patients'
-    },
-    {
       label: 'Chat',
       icon: MessageCircle,
       action: handleChatClick,
       active: chatOpen || location.pathname === '/chat'
+    }
+  ];
+  
+  // Create patient-specific navigation items
+  const patientNavItems = [
+    ...baseNavItems,
+    {
+      label: 'Prescription',
+      icon: FileText,
+      action: () => navigate('/patient/prescriptions'),
+      active: location.pathname === '/patient/prescriptions'
+    },
+    {
+      label: 'Habits',
+      icon: Activity,
+      action: () => navigate('/patient/habits'),
+      active: location.pathname === '/patient/habits'
     },
     {
       label: 'Profile',
@@ -87,8 +98,25 @@ export const MobileNavigation: React.FC = () => {
     }
   ];
   
-  // Create the final navigation items array - no longer adding calendar item for any role
-  let navItems = [...baseNavItems];
+  // Create items for other roles
+  const otherRoleNavItems = [
+    ...baseNavItems,
+    {
+      label: 'Patients',
+      icon: User,
+      action: () => navigate('/patients'),
+      active: location.pathname === '/patients'
+    },
+    {
+      label: 'Profile',
+      icon: Settings,
+      action: () => navigate('/dashboard-alt'),
+      active: location.pathname === '/dashboard-alt'
+    }
+  ];
+  
+  // Use the appropriate navigation items based on role
+  let navItems = userRole === 'patient' ? patientNavItems : otherRoleNavItems;
 
   return (
     <>
