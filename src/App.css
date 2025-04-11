@@ -241,21 +241,22 @@
   stroke-width: 2.5;
 }
 
-/* Content area - Fix the content padding to avoid thin line */
+/* Content area - NEW IMPROVED STYLES */
 .mobile-content {
   padding: 16px;
-  padding-top: 85px; /* Increased to avoid thin line */
+  padding-top: 24px; /* Fix thin line by reducing padding */
   padding-bottom: calc(var(--bottom-nav-height) + 16px);
   overflow-y: auto;
   height: calc(100vh - 24px);
   -webkit-overflow-scrolling: touch;
   background-color: #f8f9fa; /* Ensure background consistency */
+  position: relative; /* Added for better positioning */
 }
 
 /* Desktop content padding adjustments */
 @media screen and (min-width: 1025px) {
   .mobile-content {
-    padding-top: 100px;
+    padding-top: 70px; /* Adjusted to account for navbar height */
   }
 }
 
@@ -345,11 +346,16 @@
   transition: opacity 300ms, transform 300ms;
 }
 
-/* Add specific styles for the prescription and habits pages to fix the thin line */
+/* NEW: Improved content spacing for patient pages */
+.container.mx-auto {
+  position: relative;
+  z-index: 10;
+}
+
+/* Remove traces of the previous page-specific containers */
 .prescription-page-container,
 .habits-page-container {
-  padding-top: 0;
-  margin-top: 0;
+  /* No specific styles needed - using the container class instead */
 }
 
 /* Ensure full content loading */
