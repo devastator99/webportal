@@ -50,8 +50,7 @@ export const MobileNavigation: React.FC = () => {
   const handleChatClick = (e: React.MouseEvent) => {
     e.preventDefault();
     
-    // For patients, open the chat dialog with their care team room
-    // For other users, navigate to the chat page
+    // For patients, always open the chat dialog with their care team room
     if (userRole === 'patient' && patientRoomId) {
       setChatOpen(true);
     } else {
@@ -71,16 +70,10 @@ export const MobileNavigation: React.FC = () => {
       icon: Home,
       action: () => navigate('/dashboard'),
       active: location.pathname === '/dashboard'
-    },
-    {
-      label: 'Chat',
-      icon: MessageCircle,
-      action: handleChatClick,
-      active: chatOpen || location.pathname === '/chat'
     }
   ];
   
-  // Create patient-specific navigation items
+  // Create patient-specific navigation items - make Chat more prominent
   const patientNavItems = [
     ...baseNavItems,
     {
@@ -88,6 +81,12 @@ export const MobileNavigation: React.FC = () => {
       icon: FileText,
       action: () => navigate('/patient/prescriptions'),
       active: location.pathname === '/patient/prescriptions'
+    },
+    {
+      label: 'Chat',
+      icon: MessageCircle,
+      action: handleChatClick,
+      active: chatOpen || location.pathname === '/chat'
     },
     {
       label: 'Habits',
@@ -111,6 +110,12 @@ export const MobileNavigation: React.FC = () => {
       icon: User,
       action: () => navigate('/patients'),
       active: location.pathname === '/patients'
+    },
+    {
+      label: 'Chat',
+      icon: MessageCircle,
+      action: handleChatClick,
+      active: chatOpen || location.pathname === '/chat'
     },
     {
       label: 'Profile',
