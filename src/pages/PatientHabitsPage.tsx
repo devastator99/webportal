@@ -25,20 +25,24 @@ import { format } from 'date-fns';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 
 interface HealthPlanItem {
-  id: string;
-  type: 'food' | 'exercise' | 'meditation' | 'sleep';
+  id?: string;
+  type: 'food' | 'exercise' | 'medication';
   scheduled_time: string;
   description: string;
   frequency: string;
   duration: string | null;
+  patient_id?: string;
+  nutritionist_id?: string;
 }
 
 interface ProgressLog {
   id: string;
-  habit_id: string;
-  completed_at: string;
+  habit_id: string | null;
+  habit_type: string;
+  value: number;
+  date: string;
   notes: string | null;
-  rating: number;
+  created_at: string;
 }
 
 const typeIcons = {
@@ -48,23 +52,21 @@ const typeIcons = {
   sleep: <Moon className="h-5 w-5 text-indigo-500" />
 };
 
-// Mock progress logs for UI demonstration purposes
-const mockProgressLogs: ProgressLog[] = [
-  {
-    id: "1",
-    habit_id: "123",
-    completed_at: new Date().toISOString(),
-    notes: "Completed morning exercise",
-    rating: 5
-  },
-  {
-    id: "2",
-    habit_id: "124",
-    completed_at: new Date(Date.now() - 86400000).toISOString(), // Yesterday
-    notes: "Finished meditation session",
-    rating: 4
+// Helper function to convert database habit type to UI type
+const mapHabitTypeToUIType = (habitType: string): 'food' | 'exercise' | 'meditation' | 'sleep' => {
+  switch (habitType) {
+    case 'nutrition':
+      return 'food';
+    case 'physical':
+      return 'exercise';
+    case 'sleep':
+      return 'sleep';
+    case 'mindfulness':
+      return 'meditation';
+    default:
+      return 'exercise';
   }
-];
+};
 
 const PatientHabitsPage = () => {
   const { user } = useAuth();
@@ -73,11 +75,13 @@ const PatientHabitsPage = () => {
   const [reminderDialogOpen, setReminderDialogOpen] = useState(false);
   const [selectedReminder, setSelectedReminder] = useState<HealthPlanItem | null>(null);
   const [completionDialogOpen, setCompletionDialogOpen] = useState(false);
+  const [newLogValue, setNewLogValue] = useState<number>(0);
+  const [newLogNotes, setNewLogNotes] = useState<string>("");
   
   const today = format(new Date(), 'yyyy-MM-dd');
 
   // Fetch health plan items
-  const { data: healthPlanItems, isLoading, error } = useQuery({
+  const { data: healthPlanItems, isLoading: isLoadingPlan, error: planError } = useQuery({
     queryKey: ["patient_health_plan", user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error("User not authenticated");
@@ -97,8 +101,48 @@ const PatientHabitsPage = () => {
     enabled: !!user?.id
   });
 
-  // Using mock data instead of trying to fetch from a non-existent table
-  const progressLogs = mockProgressLogs;
+  // Fetch habit logs using our new RPC function
+  const { data: progressLogs, isLoading: isLoadingLogs, refetch: refetchLogs } = useQuery({
+    queryKey: ["patient_habit_logs", user?.id],
+    queryFn: async () => {
+      if (!user?.id) throw new Error("User not authenticated");
+      
+      const { data, error } = await supabase
+        .rpc("get_patient_habit_logs", {
+          p_user_id: user.id,
+          p_habit_type: null
+        });
+      
+      if (error) {
+        console.error("Error fetching habit logs:", error);
+        throw error;
+      }
+      
+      return data as ProgressLog[];
+    },
+    enabled: !!user?.id
+  });
+
+  // Fetch habit summary using our new RPC function
+  const { data: habitSummary, isLoading: isLoadingSummary } = useQuery({
+    queryKey: ["patient_habit_summary", user?.id],
+    queryFn: async () => {
+      if (!user?.id) throw new Error("User not authenticated");
+      
+      const { data, error } = await supabase
+        .rpc("get_patient_habit_summary", {
+          p_user_id: user.id
+        });
+      
+      if (error) {
+        console.error("Error fetching habit summary:", error);
+        throw error;
+      }
+      
+      return data || [];
+    },
+    enabled: !!user?.id
+  });
 
   const setupReminder = (item: HealthPlanItem) => {
     setSelectedReminder(item);
@@ -131,8 +175,37 @@ const PatientHabitsPage = () => {
     try {
       if (!selectedItem || !user?.id) return;
       
-      // In a real implementation, this would save to the database
-      // For now, just show a toast message
+      // Map the type to habit_type
+      let habitType: string;
+      switch (selectedItem.type) {
+        case 'food':
+          habitType = 'nutrition';
+          break;
+        case 'exercise':
+          habitType = 'physical';
+          break;
+        default:
+          habitType = selectedItem.type;
+      }
+      
+      // Use our RPC function to record the habit log
+      const { data, error } = await supabase
+        .rpc("save_habit_progress_log", {
+          p_user_id: user.id,
+          p_habit_type: habitType,
+          p_value: newLogValue,
+          p_date: new Date().toISOString().slice(0, 10),
+          p_notes: newLogNotes,
+          p_habit_id: selectedItem.id
+        });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Refetch the logs
+      refetchLogs();
+      
       toast({
         title: "Habit Completed",
         description: "Your progress has been recorded.",
@@ -149,6 +222,8 @@ const PatientHabitsPage = () => {
     }
   };
 
+  const isLoading = isLoadingPlan || isLoadingLogs || isLoadingSummary;
+
   if (isLoading) {
     return (
       <div className="container pt-16 pb-8 flex justify-center items-center h-[60vh]">
@@ -157,7 +232,7 @@ const PatientHabitsPage = () => {
     );
   }
 
-  if (error) {
+  if (planError) {
     return (
       <div className="container pt-16 pb-8">
         <Card className="border-destructive">
@@ -166,7 +241,7 @@ const PatientHabitsPage = () => {
           </CardHeader>
           <CardContent>
             <p>There was an error loading your health plan. Please try again later.</p>
-            <p className="text-sm text-muted-foreground mt-2">{(error as Error).message}</p>
+            <p className="text-sm text-muted-foreground mt-2">{(planError as Error).message}</p>
           </CardContent>
         </Card>
       </div>
@@ -182,6 +257,29 @@ const PatientHabitsPage = () => {
     }
     groupedItems[item.type].push(item);
   });
+
+  // Prepare summary data
+  const summaryData = {
+    physical: habitSummary?.find(item => item.habit_type === 'physical')?.avg_value || 0,
+    nutrition: habitSummary?.find(item => item.habit_type === 'nutrition')?.avg_value || 0,
+    sleep: habitSummary?.find(item => item.habit_type === 'sleep')?.avg_value || 0,
+    mindfulness: habitSummary?.find(item => item.habit_type === 'mindfulness')?.avg_value || 0
+  };
+
+  // Calculate percentages (assuming some target values)
+  const targetValues = {
+    physical: 60, // 60 minutes per day
+    nutrition: 8, // score out of 10
+    sleep: 8, // 8 hours
+    mindfulness: 20 // 20 minutes
+  };
+
+  const percentages = {
+    physical: Math.min(100, Math.round((summaryData.physical / targetValues.physical) * 100)),
+    nutrition: Math.min(100, Math.round((summaryData.nutrition / targetValues.nutrition) * 100)),
+    sleep: Math.min(100, Math.round((summaryData.sleep / targetValues.sleep) * 100)),
+    mindfulness: Math.min(100, Math.round((summaryData.mindfulness / targetValues.mindfulness) * 100))
+  };
 
   return (
     <div className="container pt-16 pb-8">
@@ -241,6 +339,8 @@ const PatientHabitsPage = () => {
                             size="sm"
                             onClick={() => {
                               setSelectedItem(item);
+                              setNewLogValue(0);
+                              setNewLogNotes("");
                               setCompletionDialogOpen(true);
                             }}
                           >
@@ -284,9 +384,9 @@ const PatientHabitsPage = () => {
                         <Dumbbell className="h-4 w-4 text-blue-500" />
                         Physical Activity
                       </h4>
-                      <Badge variant="outline">75%</Badge>
+                      <Badge variant="outline">{percentages.physical}%</Badge>
                     </div>
-                    <Progress value={75} className="h-2" />
+                    <Progress value={percentages.physical} className="h-2" />
                   </div>
                   
                   <div>
@@ -295,9 +395,9 @@ const PatientHabitsPage = () => {
                         <Utensils className="h-4 w-4 text-green-500" />
                         Nutrition
                       </h4>
-                      <Badge variant="outline">60%</Badge>
+                      <Badge variant="outline">{percentages.nutrition}%</Badge>
                     </div>
-                    <Progress value={60} className="h-2" />
+                    <Progress value={percentages.nutrition} className="h-2" />
                   </div>
                   
                   <div>
@@ -306,9 +406,9 @@ const PatientHabitsPage = () => {
                         <Moon className="h-4 w-4 text-indigo-500" />
                         Sleep
                       </h4>
-                      <Badge variant="outline">85%</Badge>
+                      <Badge variant="outline">{percentages.sleep}%</Badge>
                     </div>
-                    <Progress value={85} className="h-2" />
+                    <Progress value={percentages.sleep} className="h-2" />
                   </div>
                   
                   <div>
@@ -317,9 +417,9 @@ const PatientHabitsPage = () => {
                         <Brain className="h-4 w-4 text-purple-500" />
                         Mindfulness
                       </h4>
-                      <Badge variant="outline">50%</Badge>
+                      <Badge variant="outline">{percentages.mindfulness}%</Badge>
                     </div>
-                    <Progress value={50} className="h-2" />
+                    <Progress value={percentages.mindfulness} className="h-2" />
                   </div>
                 </div>
               </CardContent>
@@ -382,6 +482,8 @@ const PatientHabitsPage = () => {
                             size="sm"
                             onClick={() => {
                               setSelectedItem(item);
+                              setNewLogValue(0);
+                              setNewLogNotes("");
                               setCompletionDialogOpen(true);
                             }}
                           >
@@ -459,9 +561,33 @@ const PatientHabitsPage = () => {
                 </div>
               </div>
               
-              <p className="text-sm text-muted-foreground">
-                You're about to mark this item as completed for today. This helps track your progress.
-              </p>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Record Value:
+                  <input 
+                    type="number" 
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 mt-1" 
+                    value={newLogValue} 
+                    onChange={(e) => setNewLogValue(parseFloat(e.target.value))}
+                    min="0"
+                    step="0.1"
+                    placeholder={selectedItem.type === 'exercise' ? "Minutes" : 
+                      selectedItem.type === 'food' ? "Rating (1-10)" : 
+                      selectedItem.type === 'sleep' ? "Hours" : "Minutes"}
+                  />
+                </label>
+                
+                <label className="text-sm font-medium">
+                  Notes:
+                  <textarea 
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 mt-1" 
+                    value={newLogNotes} 
+                    onChange={(e) => setNewLogNotes(e.target.value)}
+                    placeholder="Add any notes about this activity..."
+                    rows={2}
+                  />
+                </label>
+              </div>
             </div>
           )}
           

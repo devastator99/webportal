@@ -1252,6 +1252,27 @@ export type Database = {
           doctor_id: string
         }[]
       }
+      get_patient_habit_logs: {
+        Args: { p_user_id: string; p_habit_type?: string }
+        Returns: {
+          id: string
+          habit_id: string
+          habit_type: string
+          value: number
+          date: string
+          notes: string
+          created_at: string
+        }[]
+      }
+      get_patient_habit_summary: {
+        Args: { p_user_id: string }
+        Returns: {
+          habit_type: string
+          avg_value: number
+          last_7_days: number[]
+          last_date: string
+        }[]
+      }
       get_patient_health_plan: {
         Args: { p_patient_id: string }
         Returns: {
@@ -1444,6 +1465,17 @@ export type Database = {
       mark_messages_as_read: {
         Args: { p_user_id: string; p_sender_id: string }
         Returns: boolean
+      }
+      save_habit_progress_log: {
+        Args: {
+          p_user_id: string
+          p_habit_type: string
+          p_value: number
+          p_date: string
+          p_notes?: string
+          p_habit_id?: string
+        }
+        Returns: string
       }
       save_health_plan_items: {
         Args: { p_patient_id: string; p_nutritionist_id: string; p_items: Json }

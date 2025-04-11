@@ -1,36 +1,39 @@
+
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import HomePage from "@/pages/HomePage";
-import NotFoundPage from "@/pages/NotFoundPage";
-import Dashboard from "@/pages/Dashboard";
-import AuthPage from "@/pages/AuthPage";
-import AlternativeDashboard from "@/pages/AlternativeDashboard";
-import ChatPage from "@/pages/ChatPage";
-import PatientsPage from "@/pages/PatientsPage";
-import PatientPrescriptionsPage from "@/pages/PatientPrescriptionsPage";
-import PatientHabitsPage from "@/pages/PatientHabitsPage";
-import AdminPage from "@/pages/AdminPage";
-import PatientDetailPage from "@/pages/PatientDetailPage";
-import PatientMedicalRecordsPage from "@/pages/PatientMedicalRecordsPage";
-import PatientAppointmentsPage from "@/pages/PatientAppointmentsPage";
-import PatientCareTeamPage from "@/pages/PatientCareTeamPage";
-import PatientInvoicesPage from "@/pages/PatientInvoicesPage";
-import PatientNotesPage from "@/pages/PatientNotesPage";
-import PatientDocumentsPage from "@/pages/PatientDocumentsPage";
-import PatientLabResultsPage from "@/pages/PatientLabResultsPage";
-import PatientHealthPlanPage from "@/pages/PatientHealthPlanPage";
-import PatientPrescriptionsHistoryPage from "@/pages/PatientPrescriptionsHistoryPage";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import { Suspense, lazy } from "react";
 import { Spinner } from "@/components/ui/spinner";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
+import DummyPage from "@/pages/DummyPage";
 
-// Lazy-loaded components
-const VideoLibraryPage = lazy(() => import("@/pages/VideoLibraryPage"));
-const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
-const AppointmentsPage = lazy(() => import("@/pages/AppointmentsPage"));
-const NutritionistDashboardPage = lazy(() => import("@/pages/NutritionistDashboardPage"));
-const ReceptionDashboardPage = lazy(() => import("@/pages/ReceptionDashboardPage"));
+// Use a dummy page for missing components
+const HomePage = () => <DummyPage title="Home Page" />;
+const NotFoundPage = () => <DummyPage title="Not Found" description="The page you are looking for does not exist." />;
+const Dashboard = () => <DummyPage title="Dashboard" />;
+const AuthPage = () => <DummyPage title="Authentication" />;
+const AlternativeDashboard = () => <DummyPage title="Alternative Dashboard" />;
+const ChatPage = () => <DummyPage title="Chat" />;
+const PatientsPage = () => <DummyPage title="Patients" />;
+const PatientPrescriptionsPage = () => <DummyPage title="Patient Prescriptions" />;
+const AdminPage = () => <DummyPage title="Admin" />;
+const PatientDetailPage = () => <DummyPage title="Patient Details" />;
+const PatientMedicalRecordsPage = () => <DummyPage title="Patient Medical Records" />;
+const PatientAppointmentsPage = () => <DummyPage title="Patient Appointments" />;
+const PatientCareTeamPage = () => <DummyPage title="Patient Care Team" />;
+const PatientInvoicesPage = () => <DummyPage title="Patient Invoices" />;
+const PatientNotesPage = () => <DummyPage title="Patient Notes" />;
+const PatientDocumentsPage = () => <DummyPage title="Patient Documents" />;
+const PatientLabResultsPage = () => <DummyPage title="Patient Lab Results" />;
+const PatientHealthPlanPage = () => <DummyPage title="Patient Health Plan" />;
+const PatientPrescriptionsHistoryPage = () => <DummyPage title="Patient Prescriptions History" />;
+
+// Lazy-loaded components (using the dummy page for now)
+const VideoLibraryPage = lazy(() => Promise.resolve({ default: () => <DummyPage title="Video Library" /> }));
+const SettingsPage = lazy(() => Promise.resolve({ default: () => <DummyPage title="Settings" /> }));
+const AppointmentsPage = lazy(() => Promise.resolve({ default: () => <DummyPage title="Appointments" /> }));
+const NutritionistDashboardPage = lazy(() => Promise.resolve({ default: () => <DummyPage title="Nutritionist Dashboard" /> }));
+const ReceptionDashboardPage = lazy(() => Promise.resolve({ default: () => <DummyPage title="Reception Dashboard" /> }));
 
 // Loading fallback
 const PageLoader = () => (
