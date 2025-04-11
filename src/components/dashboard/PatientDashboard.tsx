@@ -231,14 +231,13 @@ export const PatientDashboard = () => {
           </CollapsibleSection>
           
           {/* Renamed "Latest Report" to "View Reports" and moved below update section */}
-          <Card>
-            <CardHeader>
-              <CardTitle>View Reports</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <MedicalRecordsList />
-            </CardContent>
-          </Card>
+          <CollapsibleSection 
+            title="View Reports" 
+            defaultOpen={false}
+            className={isIPad ? "overflow-x-visible" : ""}
+          >
+            <MedicalRecordsList />
+          </CollapsibleSection>
           
           {/* Display prescription summary */}
           {patientData?.latestPrescription && (
@@ -338,3 +337,4 @@ export const PatientDashboard = () => {
     </div>
   );
 };
+
