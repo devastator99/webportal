@@ -27,7 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 
 interface HealthPlanItem {
   id?: string;
-  type: 'food' | 'exercise' | 'medication';
+  type: 'food' | 'exercise' | 'medication' | 'sleep' | 'mindfulness';
   scheduled_time: string;
   description: string;
   frequency: string;
@@ -50,7 +50,8 @@ const typeIcons = {
   food: <Utensils className="h-5 w-5 text-green-500" />,
   exercise: <Dumbbell className="h-5 w-5 text-blue-500" />,
   meditation: <Brain className="h-5 w-5 text-purple-500" />,
-  sleep: <Moon className="h-5 w-5 text-indigo-500" />
+  sleep: <Moon className="h-5 w-5 text-indigo-500" />,
+  medication: <Pill className="h-5 w-5 text-red-500" />
 };
 
 // Helper function to convert database habit type to UI type
@@ -184,6 +185,12 @@ const PatientHabitsPage = () => {
           break;
         case 'exercise':
           habitType = 'physical';
+          break;
+        case 'sleep':
+          habitType = 'sleep';
+          break;
+        case 'medication':
+          habitType = 'medication';
           break;
         default:
           habitType = selectedItem.type;
