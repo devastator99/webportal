@@ -98,9 +98,16 @@ const PatientPrescriptionsPage = () => {
     }
   };
 
+  // Responsive class adjustments
+  const containerClass = isMobile 
+    ? "container pt-16 pb-8 px-2 prescription-page-container" 
+    : isIPad 
+      ? "container pt-16 pb-8 px-4 prescription-page-container" 
+      : "container pt-16 pb-8 prescription-page-container";
+
   if (isLoading) {
     return (
-      <div className="container pt-16 pb-8 flex justify-center items-center h-[60vh]">
+      <div className={`${containerClass} loading-container`}>
         <Spinner size="lg" />
       </div>
     );
@@ -108,7 +115,7 @@ const PatientPrescriptionsPage = () => {
 
   if (error) {
     return (
-      <div className="container pt-16 pb-8">
+      <div className={containerClass}>
         <Card className="border-destructive">
           <CardHeader>
             <CardTitle className="text-destructive">Error Loading Prescriptions</CardTitle>
@@ -126,13 +133,6 @@ const PatientPrescriptionsPage = () => {
     setSelectedPrescription(prescription);
     setPdfPreviewOpen(true);
   };
-
-  // Responsive class adjustments
-  const containerClass = isMobile 
-    ? "container pt-16 pb-8 px-2" 
-    : isIPad 
-      ? "container pt-16 pb-8 px-4" 
-      : "container pt-16 pb-8";
 
   return (
     <div className={containerClass}>

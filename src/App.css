@@ -162,6 +162,7 @@
   background-color: #ffffff;
   font-size: 12px;
   font-weight: 500;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .status-bar-time {
@@ -240,14 +241,15 @@
   stroke-width: 2.5;
 }
 
-/* Content area */
+/* Content area - Fix the content padding to avoid thin line */
 .mobile-content {
   padding: 16px;
-  padding-top: 85px;
+  padding-top: 85px; /* Increased to avoid thin line */
   padding-bottom: calc(var(--bottom-nav-height) + 16px);
   overflow-y: auto;
   height: calc(100vh - 24px);
   -webkit-overflow-scrolling: touch;
+  background-color: #f8f9fa; /* Ensure background consistency */
 }
 
 /* Desktop content padding adjustments */
@@ -341,4 +343,19 @@
   opacity: 0;
   transform: translateX(-100%);
   transition: opacity 300ms, transform 300ms;
+}
+
+/* Add specific styles for the prescription and habits pages to fix the thin line */
+.prescription-page-container,
+.habits-page-container {
+  padding-top: 0;
+  margin-top: 0;
+}
+
+/* Ensure full content loading */
+.loading-container {
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

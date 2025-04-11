@@ -50,14 +50,14 @@ const PatientHabitsPage = () => {
 
   // Responsive container class
   const containerClass = isMobile 
-    ? "container pt-16 pb-8 px-2" 
+    ? "container pt-16 pb-8 px-2 habits-page-container" 
     : isIPad 
-      ? "container pt-16 pb-8 px-4" 
-      : "container pt-16 pb-8";
+      ? "container pt-16 pb-8 px-4 habits-page-container" 
+      : "container pt-16 pb-8 habits-page-container";
 
   if (isLoading) {
     return (
-      <div className={containerClass + " flex justify-center items-center h-[60vh]"}>
+      <div className={`${containerClass} loading-container`}>
         <Spinner size="lg" />
       </div>
     );
@@ -93,7 +93,7 @@ const PatientHabitsPage = () => {
           <TabsTrigger value="plan" className={isMobile ? 'flex-1' : ''}>Full Plan</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="overview">
+        <TabsContent value="overview" className="animate-fade-up">
           <div className="grid gap-6 md:grid-cols-2">
             <HealthPlanSummary 
               healthPlanItems={healthPlanItems}
@@ -113,7 +113,7 @@ const PatientHabitsPage = () => {
           </div>
         </TabsContent>
         
-        <TabsContent value="progress">
+        <TabsContent value="progress" className="animate-fade-up">
           <Card>
             <CardHeader>
               <CardTitle>Progress Charts</CardTitle>
@@ -125,7 +125,7 @@ const PatientHabitsPage = () => {
           </Card>
         </TabsContent>
         
-        <TabsContent value="plan" id="plan-section">
+        <TabsContent value="plan" id="plan-section" className="animate-fade-up">
           <DetailedHealthPlan
             groupedItems={groupedItems}
             typeIcons={typeIcons}

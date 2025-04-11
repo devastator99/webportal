@@ -18,6 +18,8 @@ import React, { useEffect, useState } from 'react';
 import { MobileStatusBar } from './components/mobile/MobileStatusBar';
 import { MobileNavigation } from './components/mobile/MobileNavigation';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import PatientPrescriptionsPage from './pages/PatientPrescriptionsPage';
+import PatientHabitsPage from './pages/PatientHabitsPage';
 
 function App() {
   // Initialize state with current feature flags
@@ -62,7 +64,6 @@ function App() {
         <MobileStatusBar />
         <Router>
           <AuthProvider>
-            {/* Move Navbar here to ensure it's available on all routes */}
             <Navbar />
             <div className="mobile-content">
               <ErrorBoundary>
@@ -74,6 +75,8 @@ function App() {
                   <Route path="/admin/*" element={<Admin />} />
                   <Route path="/patients" element={<PatientsView />} />
                   <Route path="/chat" element={<ChatPage />} />
+                  <Route path="/patient/prescriptions" element={<PatientPrescriptionsPage />} />
+                  <Route path="/patient/habits" element={<PatientHabitsPage />} />
                 </Routes>
               </ErrorBoundary>
             </div>
