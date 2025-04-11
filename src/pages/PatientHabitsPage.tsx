@@ -11,6 +11,7 @@ import { ProgressSummary } from '@/components/dashboard/patient/ProgressSummary'
 import { DetailedHealthPlan } from '@/components/dashboard/patient/DetailedHealthPlan';
 import { ReminderDialog } from '@/components/dashboard/patient/ReminderDialog';
 import { CompletionDialog } from '@/components/dashboard/patient/CompletionDialog';
+import { useIsIPad, useIsMobile } from "@/hooks/use-mobile";
 
 const typeIcons = {
   food: <Utensils className="h-5 w-5 text-green-500" />,
@@ -44,9 +45,19 @@ const PatientHabitsPage = () => {
     markAsCompleted,
   } = usePatientHabits();
 
+  const isIPad = useIsIPad();
+  const isMobile = useIsMobile();
+
+  // Responsive container class
+  const containerClass = isMobile 
+    ? "container pt-16 pb-8 px-2" 
+    : isIPad 
+      ? "container pt-16 pb-8 px-4" 
+      : "container pt-16 pb-8";
+
   if (isLoading) {
     return (
-      <div className="container pt-16 pb-8 flex justify-center items-center h-[60vh]">
+      <div className={containerClass + " flex justify-center items-center h-[60vh]"}>
         <Spinner size="lg" />
       </div>
     );
@@ -54,7 +65,7 @@ const PatientHabitsPage = () => {
 
   if (planError) {
     return (
-      <div className="container pt-16 pb-8">
+      <div className={containerClass}>
         <Card className="border-destructive">
           <CardHeader>
             <CardTitle className="text-destructive">Error Loading Health Plan</CardTitle>
@@ -69,17 +80,17 @@ const PatientHabitsPage = () => {
   }
 
   return (
-    <div className="container pt-16 pb-8">
+    <div className={containerClass}>
       <h1 className="text-2xl font-bold mb-2">My Health Plan</h1>
       <p className="text-muted-foreground mb-6">
         Track your habits and follow your personalized health plan
       </p>
 
       <Tabs defaultValue="overview" className="mb-8">
-        <TabsList className="mb-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="progress">Progress</TabsTrigger>
-          <TabsTrigger value="plan">Full Plan</TabsTrigger>
+        <TabsList className={`mb-4 ${isMobile ? 'w-full flex' : ''}`}>
+          <TabsTrigger value="overview" className={isMobile ? 'flex-1' : ''}>Overview</TabsTrigger>
+          <TabsTrigger value="progress" className={isMobile ? 'flex-1' : ''}>Progress</TabsTrigger>
+          <TabsTrigger value="plan" className={isMobile ? 'flex-1' : ''}>Full Plan</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview">
@@ -108,7 +119,7 @@ const PatientHabitsPage = () => {
               <CardTitle>Progress Charts</CardTitle>
               <CardDescription>Visual representation of your health habits</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className={isIPad || isMobile ? 'px-1 py-2' : ''}>
               <HabitsProgressCharts />
             </CardContent>
           </Card>
