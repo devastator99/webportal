@@ -30,6 +30,7 @@ import {
   ArrowRight
 } from "lucide-react";
 import { PatientHealthTips } from "./patient/PatientHealthTips";
+import { MedicalRecordsList } from './patient/MedicalRecordsList';
 
 // Lazy load components
 const LazyMedicalRecordsUpload = lazy(() => 
@@ -143,29 +144,6 @@ export const PatientDashboard = () => {
         <PatientStats />
       </div>
 
-      {/* Next Appointment Highlight */}
-      {patientData?.nextAppointment && (
-        <Card className="border-[#E5DEFF]">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-[#E5DEFF] p-2 rounded-full">
-                <Calendar className="h-5 w-5 text-[#9b87f5]" />
-              </div>
-              <div>
-                <h3 className="font-medium text-sm">Next Appointment</h3>
-                <p className="text-xs text-muted-foreground">
-                  {new Date(patientData.nextAppointment.scheduled_at).toLocaleDateString()} at {new Date(patientData.nextAppointment.scheduled_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                </p>
-                <p className="text-xs">With Dr. {patientData.nextAppointment.doctor_first_name} {patientData.nextAppointment.doctor_last_name}</p>
-              </div>
-            </div>
-            <Button variant="ghost" size="sm" className="text-[#9b87f5]">
-              View Details
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Health Progress Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
@@ -216,6 +194,52 @@ export const PatientDashboard = () => {
       {/* Main Content - Use collapsible sections with lazy loading */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
+          {/* Next Appointment Highlight - Moved above medical reports upload */}
+          {patientData?.nextAppointment && (
+            <Card className="border-[#E5DEFF]">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="bg-[#E5DEFF] p-2 rounded-full">
+                    <Calendar className="h-5 w-5 text-[#9b87f5]" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-sm">Next Appointment</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(patientData.nextAppointment.scheduled_at).toLocaleDateString()} at {new Date(patientData.nextAppointment.scheduled_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    </p>
+                    <p className="text-xs">With Dr. {patientData.nextAppointment.doctor_first_name} {patientData.nextAppointment.doctor_last_name}</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" className="text-[#9b87f5]">
+                  View Details
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+          
+          {/* Renamed "Update Medical Record" to "Update Medical Report" */}
+          <CollapsibleSection 
+            title="Update Medical Report" 
+            defaultOpen={true}
+            className={isIPad ? "overflow-x-visible" : ""}
+          >
+            <Suspense fallback={<LoadingFallback />}>
+              <div className={isIPad ? "p-2" : ""}>
+                <LazyMedicalRecordsUpload showUploadOnly />
+              </div>
+            </Suspense>
+          </CollapsibleSection>
+          
+          {/* Renamed "Latest Report" to "View Reports" and moved below update section */}
+          <Card>
+            <CardHeader>
+              <CardTitle>View Reports</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <MedicalRecordsList />
+            </CardContent>
+          </Card>
+          
           {/* Display prescription summary */}
           {patientData?.latestPrescription && (
             <Card>
@@ -288,18 +312,6 @@ export const PatientDashboard = () => {
               </CardFooter>
             </Card>
           )}
-          
-          <CollapsibleSection 
-            title="Upload Medical Records" 
-            defaultOpen={true}
-            className={isIPad ? "overflow-x-visible" : ""}
-          >
-            <Suspense fallback={<LoadingFallback />}>
-              <div className={isIPad ? "p-2" : ""}>
-                <LazyMedicalRecordsUpload showUploadOnly />
-              </div>
-            </Suspense>
-          </CollapsibleSection>
           
           <PatientHealthTips />
         </div>
