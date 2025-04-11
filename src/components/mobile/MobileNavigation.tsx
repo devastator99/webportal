@@ -58,6 +58,11 @@ export const MobileNavigation: React.FC = () => {
       navigate('/chat');
     }
   };
+
+  const handleHabitsClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    navigate('/patient/habits');
+  };
   
   // Base navigation items that are always shown
   const baseNavItems = [
@@ -87,7 +92,7 @@ export const MobileNavigation: React.FC = () => {
     {
       label: 'Habits',
       icon: Activity,
-      action: () => navigate('/patient/habits'),
+      action: handleHabitsClick,
       active: location.pathname === '/patient/habits'
     },
     {

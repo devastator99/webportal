@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -57,7 +56,6 @@ export const CareTeamAIChat = () => {
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
 
-  // Add initial welcome message when component mounts
   useEffect(() => {
     if (messages.length === 0 && user?.id) {
       setMessages([
@@ -70,14 +68,12 @@ export const CareTeamAIChat = () => {
     }
   }, [user?.id, messages.length]);
 
-  // Auto-scroll to bottom when messages change
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
 
-  // Handle scroll to detect when to show scroll-to-bottom button
   useEffect(() => {
     const handleScroll = () => {
       if (!scrollViewportRef.current) return;
@@ -112,7 +108,6 @@ export const CareTeamAIChat = () => {
     try {
       setIsLoading(true);
       
-      // Add user message to the chat
       const userMessage = { 
         role: 'user' as const, 
         content: input, 
@@ -122,18 +117,95 @@ export const CareTeamAIChat = () => {
       setMessages(prev => [...prev, userMessage]);
       setInput("");
 
-      // Store all previous messages for context
       const messageHistory = [...messages, userMessage].map(m => ({
         role: m.role,
         content: m.content
       }));
 
-      // Build patient context with verified information from secure RPC function
+      if (input.toLowerCase().includes('prescription') && 
+          (input.toLowerCase().includes('pdf') || 
+           input.toLowerCase().includes('download') || 
+           input.toLowerCase().includes('file') || 
+           input.toLowerCase().includes('share'))) {
+        
+        const { data: doctorAssignment, error: doctorError } = await supabase
+          .from('patient_assignments')
+          .select('doctor_id')
+          .eq('patient_id', user.id)
+          .single();
+          
+        if (!doctorError && doctorAssignment?.doctor_id) {
+          const { data: prescriptions, error: prescriptionError } = await supabase
+            .rpc('get_patient_prescriptions', {
+              p_patient_id: user.id,
+              p_doctor_id: doctorAssignment.doctor_id
+            });
+            
+          if (!prescriptionError && prescriptions && prescriptions.length > 0) {
+            setSelectedPrescription(prescriptions[0] as Prescription);
+            
+            const aiResponse = { 
+              role: 'assistant' as const, 
+              content: `I've found your latest prescription from Dr. ${prescriptions[0].doctor_first_name} ${prescriptions[0].doctor_last_name}. Here's a preview that you can download as a PDF.`, 
+              timestamp: new Date() 
+            };
+            
+            setMessages(prev => [...prev, aiResponse]);
+            
+            setTimeout(() => {
+              setPdfPreviewOpen(true);
+              setIsLoading(false);
+            }, 500);
+            
+            return;
+          }
+        }
+      } else if (input.toLowerCase().includes('health plan') || 
+               input.toLowerCase().includes('habit') || 
+               input.toLowerCase().includes('routine') || 
+               input.toLowerCase().includes('exercise') || 
+               input.toLowerCase().includes('diet')) {
+        
+        const { data: healthPlan, error: healthPlanError } = await supabase
+          .rpc('get_patient_health_plan', { p_patient_id: user.id });
+          
+        if (!healthPlanError && healthPlan && healthPlan.length > 0) {
+          let healthPlanResponse = "Here's a summary of your health plan:\n\n";
+          
+          const groupedItems: Record<string, any[]> = {};
+          healthPlan.forEach(item => {
+            if (!groupedItems[item.type]) {
+              groupedItems[item.type] = [];
+            }
+            groupedItems[item.type].push(item);
+          });
+          
+          for (const [type, items] of Object.entries(groupedItems)) {
+            healthPlanResponse += `${type.charAt(0).toUpperCase() + type.slice(1)}:\n`;
+            for (const item of items) {
+              healthPlanResponse += `• ${item.description} - ${item.scheduled_time} (${item.frequency})\n`;
+            }
+            healthPlanResponse += "\n";
+          }
+          
+          healthPlanResponse += "You can view your complete health plan and track your progress in the Habits section of the app.";
+          
+          const aiResponse = { 
+            role: 'assistant' as const, 
+            content: healthPlanResponse, 
+            timestamp: new Date() 
+          };
+          
+          setMessages(prev => [...prev, aiResponse]);
+          setIsLoading(false);
+          setTimeout(scrollToBottom, 100);
+          return;
+        }
+      }
+
       let patientContext: Record<string, any> = {};
       
       try {
-        // Use RPC function to get care team members securely with SECURITY DEFINER
-        // Using type assertion to handle the TypeScript error
         const { data: careTeamData, error: careTeamError } = await supabase
           .rpc('get_patient_care_team_members', { p_patient_id: user.id }) as unknown as { 
             data: CareTeamMember[] | null, 
@@ -143,7 +215,6 @@ export const CareTeamAIChat = () => {
         if (careTeamError) {
           console.error("Error checking care team with RPC:", careTeamError);
         } else if (careTeamData && Array.isArray(careTeamData)) {
-          // Check for doctor in the care team
           const doctorMember = careTeamData.find(member => member.role === 'doctor');
           if (doctorMember) {
             patientContext.hasDoctorAssigned = true;
@@ -157,7 +228,6 @@ export const CareTeamAIChat = () => {
         patientContext.hasDoctorAssigned = false;
       }
 
-      // Get patient's profile info using secure RPC call
       try {
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
@@ -177,65 +247,17 @@ export const CareTeamAIChat = () => {
         console.error("Error fetching patient profile:", err);
       }
 
-      // Special case: if user is asking for prescription
-      if (input.toLowerCase().includes('prescription') || 
-          input.toLowerCase().includes('medicine') || 
-          input.toLowerCase().includes('medication')) {
-        // Get patient's doctor
-        const { data: doctorAssignment, error: doctorError } = await supabase
-          .from('patient_assignments')
-          .select('doctor_id')
-          .eq('patient_id', user.id)
-          .single();
-          
-        if (!doctorError && doctorAssignment?.doctor_id) {
-          // Get prescriptions
-          const { data: prescriptions, error: prescriptionError } = await supabase
-            .rpc('get_patient_prescriptions', {
-              p_patient_id: user.id,
-              p_doctor_id: doctorAssignment.doctor_id
-            });
-            
-          if (!prescriptionError && prescriptions && prescriptions.length > 0) {
-            // Check if user is asking for a PDF
-            if (input.toLowerCase().includes('pdf') || 
-                input.toLowerCase().includes('download') || 
-                input.toLowerCase().includes('file')) {
-              setSelectedPrescription(prescriptions[0] as Prescription);
-              
-              // Add AI response about the PDF
-              const aiResponse = { 
-                role: 'assistant' as const, 
-                content: `I've found your latest prescription from Dr. ${prescriptions[0].doctor_first_name} ${prescriptions[0].doctor_last_name}. Let me show you a preview that you can download as a PDF.`, 
-                timestamp: new Date() 
-              };
-              
-              setMessages(prev => [...prev, aiResponse]);
-              
-              // Show PDF preview
-              setPdfPreviewOpen(true);
-              
-              setIsLoading(false);
-              setTimeout(scrollToBottom, 100);
-              return;
-            }
-          }
-        }
-      }
-
-      // Call the Supabase Edge Function for AI response with enhanced context
       const { data, error } = await supabase.functions.invoke('doctor-ai-assistant', {
         body: { 
           messages: messageHistory,
           patientId: user.id,
           isCareTeamChat: true,
-          patientContext: patientContext // Pass verified patient and doctor info
+          patientContext: patientContext
         },
       });
 
       if (error) throw error;
 
-      // Add AI response to the chat
       const aiResponse = { 
         role: 'assistant' as const, 
         content: data.response, 
@@ -244,18 +266,15 @@ export const CareTeamAIChat = () => {
       
       setMessages(prev => [...prev, aiResponse]);
       
-      // Forward the AI's response to the care team chat
       try {
-        // First get the care team members
         const { data: careTeamData } = await supabase
           .rpc('get_patient_care_team_members', { p_patient_id: user.id });
           
         if (careTeamData && Array.isArray(careTeamData)) {
-          // Send AI message to patient's care team
           for (const member of careTeamData) {
-            if (member.id !== '00000000-0000-0000-0000-000000000000') { // Skip sending to AI itself
+            if (member.id !== '00000000-0000-0000-0000-000000000000') {
               await supabase.rpc('send_chat_message', {
-                p_sender_id: '00000000-0000-0000-0000-000000000000', // AI bot ID
+                p_sender_id: '00000000-0000-0000-0000-000000000000',
                 p_receiver_id: member.id,
                 p_message: data.response,
                 p_message_type: 'text'
@@ -267,7 +286,6 @@ export const CareTeamAIChat = () => {
         console.error("Error forwarding AI message to care team:", err);
       }
       
-      // Ensure scroll to bottom after new message
       setTimeout(scrollToBottom, 100);
       
     } catch (error: any) {
@@ -311,11 +329,9 @@ export const CareTeamAIChat = () => {
     }
   };
 
-  // Split messages into recent (last 5) and history
   const recentMessages = messages.length > 5 ? messages.slice(-5) : messages;
   const historyMessages = messages.length > 5 ? messages.slice(0, -5) : [];
 
-  // Group history messages by day for WhatsApp-style UI
   const groupedHistoryMessages: Record<string, Message[]> = {};
   historyMessages.forEach(message => {
     const day = format(message.timestamp, "MMMM d, yyyy");
@@ -333,7 +349,6 @@ export const CareTeamAIChat = () => {
       </div>
       
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* History section - accordion style similar to WhatsApp */}
         {Object.keys(groupedHistoryMessages).length > 0 && (
           <Accordion type="single" collapsible className="mb-2 border rounded-md">
             <AccordionItem value="history">
@@ -382,7 +397,6 @@ export const CareTeamAIChat = () => {
           </Accordion>
         )}
         
-        {/* Recent messages - WhatsApp style */}
         <div className="relative flex-1 h-full">
           <ScrollArea 
             className="h-full pr-3" 
@@ -412,7 +426,7 @@ export const CareTeamAIChat = () => {
                         <span className="text-xs font-medium text-blue-500">AI Assistant</span>
                       </div>
                     )}
-                    <p className="text-sm">{message.content}</p>
+                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                     <p className="text-xs opacity-70 mt-1">
                       {format(message.timestamp, "p")}
                     </p>
@@ -423,7 +437,6 @@ export const CareTeamAIChat = () => {
             </div>
           </ScrollArea>
           
-          {/* Scroll to bottom button - WhatsApp style */}
           {showScrollButton && (
             <Button
               size="icon"
@@ -437,7 +450,6 @@ export const CareTeamAIChat = () => {
         </div>
       </div>
       
-      {/* Input area - WhatsApp style */}
       <div className="flex gap-2 mt-4 bg-background border-t pt-3">
         <Textarea
           placeholder="Type a message..."
@@ -466,7 +478,6 @@ export const CareTeamAIChat = () => {
         </Button>
       </div>
       
-      {/* PDF Preview Dialog */}
       <Dialog open={pdfPreviewOpen} onOpenChange={setPdfPreviewOpen}>
         <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>

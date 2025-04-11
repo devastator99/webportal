@@ -14,6 +14,7 @@ import { FileText, Download, Calendar, User, Pill } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import html2pdf from 'html2pdf.js';
+import { useIsIPad, useIsMobile } from "@/hooks/use-mobile";
 
 interface Prescription {
   id: string;
@@ -31,6 +32,8 @@ const PatientPrescriptionsPage = () => {
   const { toast } = useToast();
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const isIPad = useIsIPad();
+  const isMobile = useIsMobile();
 
   const { data: prescriptions, isLoading, error } = useQuery({
     queryKey: ["patient_prescriptions", user?.id],
@@ -124,8 +127,15 @@ const PatientPrescriptionsPage = () => {
     setPdfPreviewOpen(true);
   };
 
+  // Responsive class adjustments
+  const containerClass = isMobile 
+    ? "container pt-16 pb-8 px-2" 
+    : isIPad 
+      ? "container pt-16 pb-8 px-4" 
+      : "container pt-16 pb-8";
+
   return (
-    <div className="container pt-16 pb-8">
+    <div className={containerClass}>
       <h1 className="text-2xl font-bold mb-4">My Prescriptions</h1>
       <p className="text-muted-foreground mb-8">
         View and download your prescriptions from your doctor.
@@ -143,9 +153,9 @@ const PatientPrescriptionsPage = () => {
       ) : (
         <div className="grid gap-6">
           <Tabs defaultValue="list" className="w-full">
-            <TabsList className="mb-4">
-              <TabsTrigger value="list">List View</TabsTrigger>
-              <TabsTrigger value="timeline">Timeline</TabsTrigger>
+            <TabsList className={`mb-4 ${isMobile ? 'w-full' : ''}`}>
+              <TabsTrigger value="list" className={isMobile ? 'flex-1' : ''}>List View</TabsTrigger>
+              <TabsTrigger value="timeline" className={isMobile ? 'flex-1' : ''}>Timeline</TabsTrigger>
             </TabsList>
             
             <TabsContent value="list">
@@ -153,7 +163,7 @@ const PatientPrescriptionsPage = () => {
                 {prescriptions.map((prescription) => (
                   <Card key={prescription.id} className="overflow-hidden">
                     <CardHeader className="pb-2">
-                      <div className="flex justify-between items-start">
+                      <div className="flex flex-col md:flex-row md:justify-between md:items-start">
                         <div>
                           <CardTitle className="text-lg">
                             Prescription
@@ -162,7 +172,7 @@ const PatientPrescriptionsPage = () => {
                             {new Date(prescription.created_at).toLocaleDateString()} by Dr. {prescription.doctor_first_name} {prescription.doctor_last_name}
                           </CardDescription>
                         </div>
-                        <Badge variant="outline" className="ml-auto">
+                        <Badge variant="outline" className="mt-2 md:mt-0 w-fit">
                           {formatDistance(new Date(prescription.created_at), new Date(), { addSuffix: true })}
                         </Badge>
                       </div>
@@ -196,11 +206,12 @@ const PatientPrescriptionsPage = () => {
                         )}
                       </div>
                     </CardContent>
-                    <div className="px-6 py-4 bg-muted/20 flex justify-end space-x-2">
+                    <div className={`px-6 py-4 bg-muted/20 flex ${isMobile ? 'flex-col' : 'justify-end'} space-y-2 md:space-y-0 md:space-x-2`}>
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => openPdfPreview(prescription)}
+                        className={isMobile ? 'w-full' : ''}
                       >
                         <FileText className="mr-2 h-4 w-4" />
                         PDF Preview
@@ -211,6 +222,7 @@ const PatientPrescriptionsPage = () => {
                           setSelectedPrescription(prescription);
                           generatePdf(prescription);
                         }}
+                        className={isMobile ? 'w-full' : ''}
                       >
                         <Download className="mr-2 h-4 w-4" />
                         Download
@@ -244,11 +256,12 @@ const PatientPrescriptionsPage = () => {
                           <div className="text-sm">
                             <strong>Diagnosis:</strong> {prescription.diagnosis || "No diagnosis provided"}
                           </div>
-                          <div className="mt-2 flex space-x-2">
+                          <div className={`mt-2 flex ${isMobile ? 'flex-col' : 'flex-row'} ${isMobile ? 'space-y-2' : 'space-x-2'}`}>
                             <Button 
                               variant="outline" 
                               size="sm"
                               onClick={() => openPdfPreview(prescription)}
+                              className={isMobile ? 'w-full' : ''}
                             >
                               View Details
                             </Button>
@@ -259,6 +272,7 @@ const PatientPrescriptionsPage = () => {
                                 setSelectedPrescription(prescription);
                                 generatePdf(prescription);
                               }}
+                              className={isMobile ? 'w-full' : ''}
                             >
                               <Download className="mr-2 h-4 w-4" />
                               Download
@@ -277,7 +291,7 @@ const PatientPrescriptionsPage = () => {
       
       {/* PDF Preview Dialog */}
       <Dialog open={pdfPreviewOpen} onOpenChange={setPdfPreviewOpen}>
-        <DialogContent className="sm:max-w-[800px]">
+        <DialogContent className={`sm:max-w-[800px] ${isMobile ? 'w-[95vw] p-3' : ''}`}>
           <DialogHeader>
             <DialogTitle>Prescription PDF Preview</DialogTitle>
           </DialogHeader>
@@ -330,15 +344,17 @@ const PatientPrescriptionsPage = () => {
               </div>
             </div>
           )}
-          <div className="flex justify-end space-x-2">
+          <div className={`flex ${isMobile ? 'flex-col' : 'justify-end'} space-y-2 md:space-y-0 md:space-x-2`}>
             <Button 
               variant="outline" 
               onClick={() => setPdfPreviewOpen(false)}
+              className={isMobile ? 'w-full' : ''}
             >
               Close
             </Button>
             <Button 
               onClick={() => selectedPrescription && generatePdf(selectedPrescription)}
+              className={isMobile ? 'w-full' : ''}
             >
               <Download className="mr-2 h-4 w-4" />
               Download PDF

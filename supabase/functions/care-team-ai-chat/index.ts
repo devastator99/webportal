@@ -51,21 +51,113 @@ serve(async (req: Request) => {
       );
     }
     
-    // Create and send AI response
+    const patientId = roomData.patient_id;
     let aiResponse = "I'm your healthcare AI assistant. I can help answer general health questions, but please consult with your healthcare providers for medical advice.";
     
-    if (message.toLowerCase().includes('hello') || message.toLowerCase().includes('hi')) {
-      aiResponse = "Hello! I'm your healthcare AI assistant. How can I help you today?";
+    // Handle prescription-related queries
+    if (message.toLowerCase().includes('prescription') || 
+        message.toLowerCase().includes('medicine') || 
+        message.toLowerCase().includes('medication')) {
+      
+      try {
+        // Get the doctor assigned to this patient
+        const { data: assignment, error: assignmentError } = await supabaseClient
+          .from('patient_assignments')
+          .select('doctor_id')
+          .eq('patient_id', patientId)
+          .single();
+        
+        if (assignmentError || !assignment?.doctor_id) {
+          aiResponse = "I don't see any prescriptions in your records. Please ask your doctor about prescriptions during your next appointment.";
+        } else {
+          // Get prescriptions
+          const { data: prescriptions, error: prescriptionError } = await supabaseClient
+            .rpc('get_patient_prescriptions', {
+              p_patient_id: patientId,
+              p_doctor_id: assignment.doctor_id
+            });
+          
+          if (prescriptionError || !prescriptions || prescriptions.length === 0) {
+            aiResponse = "I don't see any prescriptions in your records yet. Please ask your doctor about prescriptions during your next appointment.";
+          } else {
+            // If they want the prescription as PDF, let them know how to view it
+            if (message.toLowerCase().includes('pdf') || 
+                message.toLowerCase().includes('download') || 
+                message.toLowerCase().includes('file') ||
+                message.toLowerCase().includes('share')) {
+              aiResponse = `I can help you access your prescription. Your latest prescription was from Dr. ${prescriptions[0].doctor_first_name} ${prescriptions[0].doctor_last_name} on ${new Date(prescriptions[0].created_at).toLocaleDateString()}. You can view and download it as a PDF from the AI chat in your dashboard or from the prescriptions page.`;
+            } else {
+              // Just provide prescription details
+              const latestPrescription = prescriptions[0];
+              aiResponse = `Your latest prescription from Dr. ${latestPrescription.doctor_first_name} ${latestPrescription.doctor_last_name} (${new Date(latestPrescription.created_at).toLocaleDateString()}):\n\nDiagnosis: ${latestPrescription.diagnosis}\n\nPrescribed medications: ${latestPrescription.prescription}`;
+              
+              if (latestPrescription.notes) {
+                aiResponse += `\n\nAdditional notes: ${latestPrescription.notes}`;
+              }
+              
+              aiResponse += "\n\nYou can also view and download this as a PDF from the Prescriptions section in your app.";
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching prescription data:", error);
+        aiResponse = "I'm having trouble accessing your prescription information right now. Please try again later or check the Prescriptions section in your app.";
+      }
+    } 
+    // Handle health plan related queries
+    else if (message.toLowerCase().includes('health plan') || 
+             message.toLowerCase().includes('routine') || 
+             message.toLowerCase().includes('diet') || 
+             message.toLowerCase().includes('exercise') ||
+             message.toLowerCase().includes('habit')) {
+      
+      try {
+        // Get health plan
+        const { data: healthPlan, error: healthPlanError } = await supabaseClient
+          .rpc('get_patient_health_plan', {
+            p_patient_id: patientId
+          });
+        
+        if (healthPlanError || !healthPlan || healthPlan.length === 0) {
+          aiResponse = "I don't see a health plan in your records yet. Your nutritionist can create one for you during your next appointment.";
+        } else {
+          // Group by type for a more organized response
+          const groupedItems: Record<string, any[]> = {};
+          healthPlan.forEach(item => {
+            if (!groupedItems[item.type]) {
+              groupedItems[item.type] = [];
+            }
+            groupedItems[item.type].push(item);
+          });
+          
+          aiResponse = "Here's a summary of your health plan:\n\n";
+          
+          for (const [type, items] of Object.entries(groupedItems)) {
+            aiResponse += `${type.charAt(0).toUpperCase() + type.slice(1)}:\n`;
+            for (const item of items) {
+              aiResponse += `• ${item.description} - ${item.scheduled_time} (${item.frequency})\n`;
+            }
+            aiResponse += "\n";
+          }
+          
+          aiResponse += "You can view your complete health plan and track your progress in the Habits section of the app.";
+        }
+      } catch (error) {
+        console.error("Error fetching health plan data:", error);
+        aiResponse = "I'm having trouble accessing your health plan information right now. Please try again later or check the Habits section in your app.";
+      }
+    }
+    // Handle basic greetings and other queries
+    else if (message.toLowerCase().includes('hello') || message.toLowerCase().includes('hi')) {
+      aiResponse = "Hello! I'm your healthcare AI assistant. I can help with information about your prescriptions, health plan, or general health questions. How can I help you today?";
     } else if (message.toLowerCase().includes('help')) {
-      aiResponse = "I can help answer general health questions, provide information about your care team, or assist with basic healthcare guidance. What do you need help with?";
+      aiResponse = "I can help with:\n• Information about your prescriptions\n• Details of your health plan\n• Answering general health questions\n• Connecting you with your care team\n\nWhat would you like to know about?";
     } else if (message.toLowerCase().includes('doctor') || message.toLowerCase().includes('appointment')) {
       aiResponse = "Your care team is available to assist you. If you need to schedule an appointment or have specific medical questions, please let your doctor know directly through this chat.";
-    } else if (message.toLowerCase().includes('diet') || message.toLowerCase().includes('food') || message.toLowerCase().includes('nutrition')) {
-      aiResponse = "For diet and nutrition questions, your nutritionist is here to help. They can provide personalized guidance based on your health needs. Feel free to ask specific questions!";
-    } else if (message.toLowerCase().includes('medication') || message.toLowerCase().includes('medicine')) {
-      aiResponse = "Medication questions should be directed to your doctor. They can provide accurate information about your prescriptions, dosages, and potential side effects.";
     } else if (message.toLowerCase().includes('thank')) {
       aiResponse = "You're welcome! I'm here to help you and your care team communicate effectively.";
+    } else if (message.toLowerCase().includes('reminder') || message.toLowerCase().includes('notify')) {
+      aiResponse = "I can send you reminders for your health plan activities. You can set these up in the Habits section of the app by tapping on an activity and selecting 'Set Reminder'.";
     }
     
     // Insert AI response as a message
