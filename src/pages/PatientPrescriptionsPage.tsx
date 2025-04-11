@@ -1,16 +1,15 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { formatDistance } from "date-fns";
-import { FileText, Download, Calendar, User, Pill } from "lucide-react";
+import { FileText, Download, Calendar, User, Pill, Eye } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import html2pdf from 'html2pdf.js';
@@ -64,6 +63,7 @@ const PatientPrescriptionsPage = () => {
         throw error;
       }
       
+      console.log("Fetched prescriptions:", data);
       return data as Prescription[];
     },
     enabled: !!user?.id
@@ -98,7 +98,11 @@ const PatientPrescriptionsPage = () => {
     }
   };
 
-  // Responsive class adjustments
+  const openPdfPreview = (prescription: Prescription) => {
+    setSelectedPrescription(prescription);
+    setPdfPreviewOpen(true);
+  };
+
   const containerClass = isMobile 
     ? "container pt-16 pb-8 px-2 prescription-page-container" 
     : isIPad 
@@ -107,7 +111,7 @@ const PatientPrescriptionsPage = () => {
 
   if (isLoading) {
     return (
-      <div className={`${containerClass} loading-container`}>
+      <div className={`${containerClass} flex items-center justify-center min-h-[50vh]`}>
         <Spinner size="lg" />
       </div>
     );
@@ -129,11 +133,6 @@ const PatientPrescriptionsPage = () => {
     );
   }
 
-  const openPdfPreview = (prescription: Prescription) => {
-    setSelectedPrescription(prescription);
-    setPdfPreviewOpen(true);
-  };
-
   return (
     <div className={containerClass}>
       <h1 className="text-2xl font-bold mb-4">My Prescriptions</h1>
@@ -151,145 +150,203 @@ const PatientPrescriptionsPage = () => {
           </CardHeader>
         </Card>
       ) : (
-        <div className="grid gap-6">
-          <Tabs defaultValue="list" className="w-full">
-            <TabsList className={`mb-4 ${isMobile ? 'w-full' : ''}`}>
-              <TabsTrigger value="list" className={isMobile ? 'flex-1' : ''}>List View</TabsTrigger>
-              <TabsTrigger value="timeline" className={isMobile ? 'flex-1' : ''}>Timeline</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="list">
-              <div className="grid gap-4">
-                {prescriptions.map((prescription) => (
-                  <Card key={prescription.id} className="overflow-hidden">
-                    <CardHeader className="pb-2">
-                      <div className="flex flex-col md:flex-row md:justify-between md:items-start">
-                        <div>
-                          <CardTitle className="text-lg">
-                            Prescription
-                          </CardTitle>
-                          <CardDescription>
-                            {new Date(prescription.created_at).toLocaleDateString()} by Dr. {prescription.doctor_first_name} {prescription.doctor_last_name}
-                          </CardDescription>
-                        </div>
-                        <Badge variant="outline" className="mt-2 md:mt-0 w-fit">
-                          {formatDistance(new Date(prescription.created_at), new Date(), { addSuffix: true })}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="font-medium text-sm flex items-center gap-2 mb-1">
-                            <Pill className="h-4 w-4 text-blue-500" />
-                            Diagnosis
-                          </h3>
-                          <p className="text-sm">{prescription.diagnosis || "No diagnosis provided"}</p>
-                        </div>
-                        
-                        <div>
-                          <h3 className="font-medium text-sm flex items-center gap-2 mb-1">
-                            <FileText className="h-4 w-4 text-green-500" />
-                            Prescription
-                          </h3>
-                          <p className="text-sm whitespace-pre-wrap">{prescription.prescription || "No specific medications prescribed"}</p>
-                        </div>
-                        
-                        {prescription.notes && (
-                          <div>
-                            <h3 className="font-medium text-sm flex items-center gap-2 mb-1">
-                              <User className="h-4 w-4 text-purple-500" />
-                              Notes
-                            </h3>
-                            <p className="text-sm whitespace-pre-wrap">{prescription.notes}</p>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                    <div className={`px-6 py-4 bg-muted/20 flex ${isMobile ? 'flex-col' : 'justify-end'} space-y-2 md:space-y-0 md:space-x-2`}>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => openPdfPreview(prescription)}
-                        className={isMobile ? 'w-full' : ''}
-                      >
-                        <FileText className="mr-2 h-4 w-4" />
-                        PDF Preview
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setSelectedPrescription(prescription);
-                          generatePdf(prescription);
-                        }}
-                        className={isMobile ? 'w-full' : ''}
-                      >
-                        <Download className="mr-2 h-4 w-4" />
-                        Download
-                      </Button>
+        <Tabs defaultValue="grid" className="w-full">
+          <TabsList className={`mb-4 ${isMobile ? 'w-full' : ''}`}>
+            <TabsTrigger value="grid" className={isMobile ? 'flex-1' : ''}>Grid View</TabsTrigger>
+            <TabsTrigger value="list" className={isMobile ? 'flex-1' : ''}>List View</TabsTrigger>
+            <TabsTrigger value="timeline" className={isMobile ? 'flex-1' : ''}>Timeline</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="grid">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {prescriptions.map((prescription) => (
+                <Card key={prescription.id} className="h-full flex flex-col">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg flex justify-between items-start">
+                      <span className="flex items-center gap-2">
+                        <FileText className="h-5 w-5 text-purple-500" />
+                        Prescription
+                      </span>
+                      <Badge variant="outline" className="ml-2">
+                        {formatDistance(new Date(prescription.created_at), new Date(), { addSuffix: true })}
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription>
+                      {new Date(prescription.created_at).toLocaleDateString()}
+                    </CardDescription>
+                    <CardDescription>
+                      Dr. {prescription.doctor_first_name} {prescription.doctor_last_name}
+                    </CardDescription>
+                  </CardHeader>
+                  
+                  <CardContent className="flex-grow">
+                    <div>
+                      <h3 className="font-medium text-sm flex items-center gap-2 mb-1">
+                        <Pill className="h-4 w-4 text-blue-500" />
+                        Diagnosis
+                      </h3>
+                      <p className="text-sm line-clamp-2">{prescription.diagnosis || "No diagnosis provided"}</p>
                     </div>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="timeline">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Prescription Timeline</CardTitle>
-                  <CardDescription>View your prescription history over time</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-border">
-                    {prescriptions.map((prescription, index) => (
-                      <div key={prescription.id} className="relative pl-8">
-                        <div className="absolute left-0 top-0 bg-primary rounded-full w-10 h-10 flex items-center justify-center text-white">
-                          <FileText className="h-5 w-5" />
+                  </CardContent>
+                  
+                  <CardFooter className="pt-2 flex justify-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      className="w-full flex items-center gap-2"
+                      onClick={() => openPdfPreview(prescription)}
+                    >
+                      <Eye className="h-4 w-4" />
+                      View
+                    </Button>
+                    
+                    <Button
+                      variant="secondary"
+                      className="w-full flex items-center gap-2"
+                      onClick={() => {
+                        setSelectedPrescription(prescription);
+                        generatePdf(prescription);
+                      }}
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="list">
+            <div className="grid gap-4">
+              {prescriptions.map((prescription) => (
+                <Card key={prescription.id} className="overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-start">
+                      <div>
+                        <CardTitle className="text-lg">
+                          Prescription
+                        </CardTitle>
+                        <CardDescription>
+                          {new Date(prescription.created_at).toLocaleDateString()} by Dr. {prescription.doctor_first_name} {prescription.doctor_last_name}
+                        </CardDescription>
+                      </div>
+                      <Badge variant="outline" className="mt-2 md:mt-0 w-fit">
+                        {formatDistance(new Date(prescription.created_at), new Date(), { addSuffix: true })}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="font-medium text-sm flex items-center gap-2 mb-1">
+                          <Pill className="h-4 w-4 text-blue-500" />
+                          Diagnosis
+                        </h3>
+                        <p className="text-sm">{prescription.diagnosis || "No diagnosis provided"}</p>
+                      </div>
+                      
+                      <div>
+                        <h3 className="font-medium text-sm flex items-center gap-2 mb-1">
+                          <FileText className="h-4 w-4 text-green-500" />
+                          Prescription
+                        </h3>
+                        <p className="text-sm whitespace-pre-wrap">{prescription.prescription || "No specific medications prescribed"}</p>
+                      </div>
+                      
+                      {prescription.notes && (
+                        <div>
+                          <h3 className="font-medium text-sm flex items-center gap-2 mb-1">
+                            <User className="h-4 w-4 text-purple-500" />
+                            Notes
+                          </h3>
+                          <p className="text-sm whitespace-pre-wrap">{prescription.notes}</p>
                         </div>
-                        <div className="pt-2">
-                          <div className="font-semibold text-md mb-1">
-                            Prescription from Dr. {prescription.doctor_first_name} {prescription.doctor_last_name}
-                          </div>
-                          <time className="block text-xs text-gray-500 mb-2">
-                            {new Date(prescription.created_at).toLocaleDateString()} at {new Date(prescription.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                          </time>
-                          <div className="text-sm">
-                            <strong>Diagnosis:</strong> {prescription.diagnosis || "No diagnosis provided"}
-                          </div>
-                          <div className={`mt-2 flex ${isMobile ? 'flex-col' : 'flex-row'} ${isMobile ? 'space-y-2' : 'space-x-2'}`}>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => openPdfPreview(prescription)}
-                              className={isMobile ? 'w-full' : ''}
-                            >
-                              View Details
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => {
-                                setSelectedPrescription(prescription);
-                                generatePdf(prescription);
-                              }}
-                              className={isMobile ? 'w-full' : ''}
-                            >
-                              <Download className="mr-2 h-4 w-4" />
-                              Download
-                            </Button>
-                          </div>
+                      )}
+                    </div>
+                  </CardContent>
+                  <div className={`px-6 py-4 bg-muted/20 flex ${isMobile ? 'flex-col' : 'justify-end'} space-y-2 md:space-y-0 md:space-x-2`}>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => openPdfPreview(prescription)}
+                      className={isMobile ? 'w-full' : ''}
+                    >
+                      <Eye className="mr-2 h-4 w-4" />
+                      View PDF
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setSelectedPrescription(prescription);
+                        generatePdf(prescription);
+                      }}
+                      className={isMobile ? 'w-full' : ''}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="timeline">
+            <Card>
+              <CardHeader>
+                <CardTitle>Prescription Timeline</CardTitle>
+                <CardDescription>View your prescription history over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-border">
+                  {prescriptions.map((prescription, index) => (
+                    <div key={prescription.id} className="relative pl-8">
+                      <div className="absolute left-0 top-0 bg-primary rounded-full w-10 h-10 flex items-center justify-center text-white">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <div className="pt-2">
+                        <div className="font-semibold text-md mb-1">
+                          Prescription from Dr. {prescription.doctor_first_name} {prescription.doctor_last_name}
+                        </div>
+                        <time className="block text-xs text-gray-500 mb-2">
+                          {new Date(prescription.created_at).toLocaleDateString()} at {new Date(prescription.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                        </time>
+                        <div className="text-sm">
+                          <strong>Diagnosis:</strong> {prescription.diagnosis || "No diagnosis provided"}
+                        </div>
+                        <div className={`mt-2 flex ${isMobile ? 'flex-col' : 'flex-row'} ${isMobile ? 'space-y-2' : 'space-x-2'}`}>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => openPdfPreview(prescription)}
+                            className={isMobile ? 'w-full' : ''}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            View
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              setSelectedPrescription(prescription);
+                              generatePdf(prescription);
+                            }}
+                            className={isMobile ? 'w-full' : ''}
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Download
+                          </Button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       )}
       
-      {/* PDF Preview Dialog */}
       <Dialog open={pdfPreviewOpen} onOpenChange={setPdfPreviewOpen}>
         <DialogContent className={`sm:max-w-[800px] ${isMobile ? 'w-[95vw] p-3' : ''}`}>
           <DialogHeader>
