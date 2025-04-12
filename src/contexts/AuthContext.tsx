@@ -5,6 +5,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
 
+// Define valid role types
+export type UserRoleType = "patient" | "doctor" | "nutritionist" | "administrator" | "reception" | "aibot";
+
 interface AuthContextProps {
   user: User | null;
   userRole: string | null;
@@ -49,20 +52,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Function to fetch user role using the security definer function
+  // Function to fetch user role using a direct query
   const fetchUserRole = async (userId: string) => {
     try {
-      // Use our security definer function to safely get user role
-      const { data, error } = await supabase.rpc('get_user_role_safe', {
-        p_user_id: userId
-      });
+      // Use a direct query from user_roles table
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
       
       if (error) {
         console.error('Error fetching user role:', error);
         return null;
       }
       
-      return data;
+      return data?.role;
     } catch (error) {
       console.error('Error in fetchUserRole:', error);
       return null;
@@ -134,10 +139,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       if (data.user) {
-        // Create user role entry
-        await supabase.from('user_roles').insert([
-          { user_id: data.user.id, role: role },
-        ]);
+        // Create user role entry - use a single object, not an array
+        await supabase.from('user_roles').insert({
+          user_id: data.user.id, 
+          role: role as UserRoleType
+        });
 
         // Update user metadata
         await supabase.auth.updateUser({
@@ -211,7 +217,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Update the refreshUser function to use our safe role fetching
+  // Update the refreshUser function to use our direct query
   const refreshUser = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -224,9 +230,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (currentUser) {
         setUser(currentUser);
         
-        // Fetch user role using the security definer function
+        // Fetch user role using the direct query function
         const role = await fetchUserRole(currentUser.id);
-        setUserRole(role);
+        if (role) {
+          setUserRole(role);
+        }
         
         console.log("User authenticated with role:", role);
       } else {
@@ -300,13 +308,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
 
     // Subscribe to auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setSession(session);
       if (session?.user) {
         setUser(session.user);
-        fetchUserRole(session.user.id).then(role => {
+        const role = await fetchUserRole(session.user.id);
+        if (role) {
           setUserRole(role);
-        });
+        }
       } else {
         setUser(null);
         setUserRole(null);

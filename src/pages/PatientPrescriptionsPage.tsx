@@ -44,7 +44,7 @@ const PatientPrescriptionsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Function to fetch patient prescriptions from the patient_prescriptions view
+  // Function to fetch patient prescriptions directly from the prescriptions table
   const fetchPatientPrescriptions = async () => {
     if (!user) {
       return [];
@@ -53,10 +53,19 @@ const PatientPrescriptionsPage = () => {
     try {
       console.log("Fetching prescriptions for patient:", user.id);
       
-      // Get the view directly - it has the proper RLS policies to avoid recursion
+      // Query prescriptions table directly with a join to get doctor names
       const { data: prescriptionsData, error } = await supabase
-        .from('patient_prescriptions')
-        .select('*')
+        .from('prescriptions')
+        .select(`
+          id,
+          created_at,
+          patient_id,
+          doctor_id,
+          diagnosis,
+          prescription,
+          notes,
+          profiles!prescriptions_doctor_id_fkey(first_name, last_name)
+        `)
         .eq('patient_id', user.id)
         .order('created_at', { ascending: false });
         
@@ -67,8 +76,20 @@ const PatientPrescriptionsPage = () => {
       
       console.log(`Fetched ${prescriptionsData.length} prescriptions for patient ${user.id}`);
       
-      // Cast to the Prescription type
-      return prescriptionsData as Prescription[];
+      // Transform the data to match our Prescription interface
+      const transformedData = prescriptionsData.map(item => ({
+        id: item.id,
+        created_at: item.created_at,
+        diagnosis: item.diagnosis,
+        prescription: item.prescription,
+        notes: item.notes || '',
+        doctor_id: item.doctor_id,
+        doctor_first_name: item.profiles ? item.profiles.first_name : 'Unknown',
+        doctor_last_name: item.profiles ? item.profiles.last_name : 'Doctor',
+        patient_id: item.patient_id
+      }));
+      
+      return transformedData as Prescription[];
     } catch (error) {
       console.error("Error in prescription fetching:", error);
       throw error;
