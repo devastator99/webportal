@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +17,7 @@ type AuthContextType = {
   retryRoleFetch: () => Promise<void>;
 };
 
-const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutes in milliseconds
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // Increasing to 30 minutes to prevent premature logout
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -42,12 +41,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const inactivityTimerRef = useRef<number | null>(null);
 
   const resetInactivityTimer = () => {
-    // Clear the existing timer if there is one
     if (inactivityTimerRef.current) {
       window.clearTimeout(inactivityTimerRef.current);
     }
     
-    // Only set a new timer if the user is logged in
     if (user) {
       inactivityTimerRef.current = window.setTimeout(() => {
         signOut();
@@ -59,11 +56,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Fetch user role function
   const fetchUserRole = async (userId: string) => {
     try {
       console.log("[AuthContext] Fetching role for user:", userId);
-      setAuthError(null); // Clear any previous errors
+      setAuthError(null);
       
       const { data, error } = await supabase
         .rpc('get_user_role', {
@@ -85,6 +81,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (!data || data.length === 0) {
         console.warn("[AuthContext] No role data returned for user:", userId);
+        setAuthError("No role assigned to your account");
         toast({
           title: "Role not found",
           description: "Your account doesn't have an assigned role. Please contact an administrator.",
@@ -120,14 +117,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const retryRoleFetch = async () => {
     if (!user) return;
     
+    console.log("[AuthContext] Retrying role fetch for user:", user.id);
     setIsLoading(true);
     setAuthError(null);
     
     try {
       const role = await fetchUserRole(user.id);
       if (role) {
+        console.log("[AuthContext] Role fetch retry successful:", role);
         setUserRole(role);
         setAuthError(null);
+      } else {
+        console.log("[AuthContext] Role fetch retry failed: No role found");
       }
     } catch (error) {
       console.error("[AuthContext] Error in retryRoleFetch:", error);
@@ -163,7 +164,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setAuthError(`Error fetching role: ${roleError instanceof Error ? roleError.message : 'Unknown error'}`);
         }
         
-        // Reset the inactivity timer when auth state changes to logged in
         resetInactivityTimer();
       } else {
         console.log("[AuthContext] No user in session, clearing user and role");
@@ -171,7 +171,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUserRole(null);
         setAuthError(null);
         
-        // Clear any existing inactivity timer when logged out
         if (inactivityTimerRef.current) {
           window.clearTimeout(inactivityTimerRef.current);
           inactivityTimerRef.current = null;
@@ -180,7 +179,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       console.error("[AuthContext] Error in handleAuthStateChange:", error);
       setAuthError(`Authentication error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      // Silent error handling
     } finally {
       console.log("[AuthContext] Auth state change processing complete");
       setIsLoading(false);
@@ -198,7 +196,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setTimeout(() => {
             console.log("[AuthContext] Session check timed out");
             resolve({data: {session: null}});
-          }, 3000);
+          }, 5000);
         });
         
         console.log("[AuthContext] Awaiting session from Supabase");
@@ -233,7 +231,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       return () => {
         console.log("[AuthContext] Cleaning up auth subscription");
         
-        // Clean up the inactivity timer when the component unmounts
         if (inactivityTimerRef.current) {
           window.clearTimeout(inactivityTimerRef.current);
         }
@@ -245,7 +242,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(false);
       setAuthInitialized(true);
       return () => {
-        // Clean up the inactivity timer when the component unmounts
         if (inactivityTimerRef.current) {
           window.clearTimeout(inactivityTimerRef.current);
         }
@@ -253,12 +249,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   }, []);
 
-  // Set up event listeners for user activity to reset the timer
   useEffect(() => {
-    // Only set up listeners if we have a user
     if (!user) return;
     
-    // List of events to listen for
     const events = [
       'mousedown',
       'mousemove',
@@ -268,20 +261,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       'click'
     ];
     
-    // Event handler to reset the timer
     const handleUserActivity = () => {
       resetInactivityTimer();
     };
     
-    // Add event listeners
     events.forEach(event => {
       window.addEventListener(event, handleUserActivity);
     });
     
-    // Initialize the timer
     resetInactivityTimer();
     
-    // Clean up event listeners on unmount
     return () => {
       events.forEach(event => {
         window.removeEventListener(event, handleUserActivity);
@@ -315,7 +304,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
       }
       
-      // Clear the inactivity timer when signing out
       if (inactivityTimerRef.current) {
         window.clearTimeout(inactivityTimerRef.current);
         inactivityTimerRef.current = null;
@@ -329,28 +317,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // Add a more aggressive force sign out method
   const forceSignOut = async () => {
     try {
       console.log("[AuthContext] Force sign out initiated");
       setUser(null);
       setUserRole(null);
       
-      // Clear local storage directly to ensure session is removed
       localStorage.removeItem('supabase.auth.token');
       sessionStorage.removeItem('supabase.auth.token');
       
-      // Attempt normal sign out
       await supabase.auth.signOut();
       
-      // Force page reload to clear any cached state
       window.location.href = '/';
       
       return Promise.resolve();
     } catch (error) {
       console.error("[AuthContext] Force sign out error:", error);
       
-      // Even if there's an error, redirect to home
       window.location.href = '/';
       
       return Promise.resolve();
@@ -358,7 +341,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   if (!authInitialized) {
-    console.log("[AuthContext] Auth not initialized yet, returning loading state");
     return (
       <AuthContext.Provider value={{ 
         user: null, 
@@ -374,13 +356,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       </AuthContext.Provider>
     );
   }
-
-  console.log("[AuthContext] Rendering provider with state:", { 
-    userId: user?.id, 
-    userRole, 
-    isLoading,
-    hasError: authError !== null
-  });
 
   return (
     <AuthContext.Provider value={{ 

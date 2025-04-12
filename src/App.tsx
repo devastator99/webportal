@@ -18,6 +18,8 @@ import React, { useEffect, useState } from 'react';
 import { MobileStatusBar } from './components/mobile/MobileStatusBar';
 import { MobileNavigation } from './components/mobile/MobileNavigation';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { ProtectedRoute } from './components/auth/ProtectedRoute';
+import { RoleProtectedRoute } from './components/auth/RoleProtectedRoute';
 
 function App() {
   // Initialize state with current feature flags
@@ -69,11 +71,35 @@ function App() {
                 <Routes>
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/auth" element={<Auth />} />
-                  <Route path="/dashboard/*" element={<Dashboard />} />
-                  <Route path="/dashboard-alt" element={<AlternativeDashboard />} />
-                  <Route path="/admin/*" element={<Admin />} />
-                  <Route path="/patients" element={<PatientsView />} />
-                  <Route path="/chat" element={<ChatPage />} />
+                  
+                  {/* Protected routes that require authentication */}
+                  <Route path="/dashboard/*" element={
+                    <ProtectedRoute>
+                      <Dashboard />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/dashboard-alt" element={
+                    <ProtectedRoute>
+                      <AlternativeDashboard />
+                    </ProtectedRoute>
+                  } />
+                  
+                  {/* Role-protected routes */}
+                  <Route path="/admin/*" element={
+                    <RoleProtectedRoute allowedRoles={["administrator"]}>
+                      <Admin />
+                    </RoleProtectedRoute>
+                  } />
+                  <Route path="/patients" element={
+                    <RoleProtectedRoute allowedRoles={["doctor", "nutritionist", "administrator", "reception"]}>
+                      <PatientsView />
+                    </RoleProtectedRoute>
+                  } />
+                  <Route path="/chat" element={
+                    <ProtectedRoute>
+                      <ChatPage />
+                    </ProtectedRoute>
+                  } />
                 </Routes>
               </ErrorBoundary>
             </div>

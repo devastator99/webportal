@@ -17,6 +17,7 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
 }) => {
   const { user, userRole, isLoading } = useAuth();
   
+  // Show loading state while authentication is being checked
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -25,13 +26,19 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
     );
   }
   
+  // If no user is logged in, redirect to auth page
   if (!user) {
+    console.log("RoleProtectedRoute: No user found, redirecting to", redirectTo);
     return <Navigate to={redirectTo} />;
   }
   
-  if (!allowedRoles.includes(userRole)) {
+  // If user doesn't have required role, redirect to dashboard
+  if (!userRole || !allowedRoles.includes(userRole)) {
+    console.log("RoleProtectedRoute: User does not have required role, redirecting to dashboard");
+    console.log("User role:", userRole, "Allowed roles:", allowedRoles);
     return <Navigate to="/dashboard" />;
   }
   
+  // User has required role, render children
   return <>{children}</>;
 };

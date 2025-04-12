@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,7 +12,7 @@ import { DoctorProfileForm } from "@/components/auth/DoctorProfileForm";
 import { toast } from "sonner";
 
 const Auth = () => {
-  const { user, isLoading, userRole } = useAuth();
+  const { user, isLoading, userRole, authError, retryRoleFetch } = useAuth();
   const navigate = useNavigate();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const { loading, error, handleLogin, handleSignUp, handleTestLogin, setError } = useAuthHandlers();
@@ -54,12 +53,19 @@ const Auth = () => {
     };
 
     if (!isLoading) {
-      console.log("Auth state resolved:", { user, userRole });
-      if (user) {
+      console.log("Auth state resolved:", { user, userRole, authError });
+      
+      // If we have an auth error but also have a user, try to recover by fetching the role again
+      if (user && authError && !userRole) {
+        console.log("Detected auth error with user present, trying to fetch role");
+        retryRoleFetch();
+        toast.info("Attempting to recover your session information...");
+      } else if (user) {
+        // Only proceed to check profile if we have a user and their role
         checkDoctorProfile();
       }
     }
-  }, [user, userRole, navigate, isLoading]);
+  }, [user, userRole, navigate, isLoading, authError, retryRoleFetch]);
 
   // Show loading state while checking auth
   if (isLoading) {

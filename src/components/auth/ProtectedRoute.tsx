@@ -16,6 +16,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const { user, isLoading } = useAuth();
   
   if (isLoading) {
+    console.log("ProtectedRoute: Loading auth state");
     return (
       <div className="flex items-center justify-center h-screen">
         <Spinner size="lg" />
@@ -24,8 +25,10 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
   
   if (!user) {
+    console.log("ProtectedRoute: No user found, redirecting to auth page");
     return <Navigate to={redirectTo} />;
   }
   
+  console.log("ProtectedRoute: User authenticated, rendering children");
   return <>{children}</>;
 };
