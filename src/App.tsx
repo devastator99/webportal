@@ -1,4 +1,3 @@
-
 import './App.css';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -20,6 +19,7 @@ import { MobileNavigation } from './components/mobile/MobileNavigation';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import PatientPrescriptionsPage from './pages/PatientPrescriptionsPage';
 import PatientHabitsPage from './pages/PatientHabitsPage';
+import DummyPrescriptionsPage from './pages/DummyPrescriptionsPage';
 
 function App() {
   // Initialize state with current feature flags
@@ -75,7 +75,8 @@ function App() {
                   <Route path="/admin/*" element={<Admin />} />
                   <Route path="/patients" element={<PatientsView />} />
                   <Route path="/chat" element={<ChatPage />} />
-                  <Route path="/patient/prescriptions" element={<PatientPrescriptionsPage />} />
+                  {/* Use the dummy prescriptions page for now */}
+                  <Route path="/patient/prescriptions" element={<DummyPrescriptionsPage />} />
                   <Route path="/patient/habits" element={<PatientHabitsPage />} />
                 </Routes>
               </ErrorBoundary>

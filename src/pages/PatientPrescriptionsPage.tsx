@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,21 +46,9 @@ const PatientPrescriptionsPage = () => {
       console.log("Fetching prescriptions for user:", user.id);
       
       try {
-        // Use a direct query to medical_records with a join to get necessary information
+        // Use the RPC function we created
         const { data, error } = await supabase
-          .from('medical_records')
-          .select(`
-            id,
-            created_at,
-            diagnosis,
-            prescription,
-            notes,
-            doctor_id,
-            patient_id,
-            doctors:doctor_id(first_name:first_name, last_name:last_name)
-          `)
-          .eq('patient_id', user.id)
-          .order('created_at', { ascending: false });
+          .rpc('get_patient_prescriptions', { p_patient_id: user.id });
         
         if (error) {
           console.error("Error fetching prescriptions:", error);
@@ -75,20 +62,7 @@ const PatientPrescriptionsPage = () => {
         
         console.log(`Fetched ${data.length} prescriptions for patient ${user.id}`);
         
-        // Transform the data to match our Prescription interface
-        const formattedPrescriptions = data.map(record => ({
-          id: record.id,
-          created_at: record.created_at,
-          diagnosis: record.diagnosis || '',
-          prescription: record.prescription || '',
-          notes: record.notes || '',
-          doctor_id: record.doctor_id,
-          doctor_first_name: record.doctors?.first_name || 'Unknown',
-          doctor_last_name: record.doctors?.last_name || 'Doctor',
-          patient_id: record.patient_id
-        }));
-        
-        return formattedPrescriptions as Prescription[];
+        return data as Prescription[];
       } catch (error) {
         console.error("Error in prescription fetching:", error);
         throw error;
