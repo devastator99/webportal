@@ -52,19 +52,14 @@ export function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/auth" element={<AuthPage />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/dashboard-alt" element={<AlternativeDashboard />} />
-      <Route path="/patients" element={<PatientsPage />} />
-      <Route path="/chat" element={<ChatPage />} />
-      
-      {/* Patient specific routes */}
+      {/* Patient specific routes - moved up for better priority */}
       <Route 
         path="/patient/prescriptions" 
         element={
           <ProtectedRoute>
-            <PatientPrescriptionsPage />
+            <Suspense fallback={<PageLoader />}>
+              <PatientPrescriptionsPage />
+            </Suspense>
           </ProtectedRoute>
         } 
       />
@@ -72,10 +67,20 @@ export function AppRoutes() {
         path="/patient/habits" 
         element={
           <ProtectedRoute>
-            <PatientHabitsPage />
+            <Suspense fallback={<PageLoader />}>
+              <PatientHabitsPage />
+            </Suspense>
           </ProtectedRoute>
         }
       />
+      
+      {/* Basic routes */}
+      <Route path="/" element={<HomePage />} />
+      <Route path="/auth" element={<AuthPage />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/dashboard-alt" element={<AlternativeDashboard />} />
+      <Route path="/patients" element={<PatientsPage />} />
+      <Route path="/chat" element={<ChatPage />} />
       
       {/* Admin routes */}
       <Route 

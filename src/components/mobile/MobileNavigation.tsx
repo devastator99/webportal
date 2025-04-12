@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { WhatsAppStyleChatInterface } from '@/components/chat/WhatsAppStyleChatInterface';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export const MobileNavigation: React.FC = () => {
   const location = useLocation();
@@ -13,6 +14,7 @@ export const MobileNavigation: React.FC = () => {
   const { user, userRole } = useAuth();
   const [chatOpen, setChatOpen] = useState(false);
   const [patientRoomId, setPatientRoomId] = useState<string | null>(null);
+  const { toast } = useToast();
   
   // Use useEffect hook regardless of user being logged in or not
   useEffect(() => {
@@ -60,9 +62,25 @@ export const MobileNavigation: React.FC = () => {
 
   const handlePrescriptionsClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    // Log that we're navigating to the prescriptions page
-    console.log("Navigating to prescriptions page");
-    navigate('/patient/prescriptions');
+    // Add more logging to debug navigation
+    console.log("Attempting to navigate to prescriptions page");
+    console.log("Current location:", location.pathname);
+    
+    try {
+      // Use navigate and then show a toast for feedback
+      navigate('/patient/prescriptions');
+      toast({
+        title: "Navigating to prescriptions",
+        description: "Opening your prescription history",
+      });
+    } catch (error) {
+      console.error("Navigation error:", error);
+      toast({
+        title: "Navigation error",
+        description: "Could not navigate to prescriptions page",
+        variant: "destructive"
+      });
+    }
   };
   
   const handleHabitsClick = (e: React.MouseEvent) => {
@@ -134,6 +152,10 @@ export const MobileNavigation: React.FC = () => {
   
   // Use the appropriate navigation items based on role
   let navItems = userRole === 'patient' ? patientNavItems : otherRoleNavItems;
+  
+  console.log("Navigation items:", navItems);
+  console.log("Current path:", location.pathname);
+  console.log("User role:", userRole);
 
   return (
     <>

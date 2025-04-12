@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -26,7 +27,9 @@ interface Prescription {
   doctor_last_name: string;
 }
 
-const PatientPrescriptionsPage = () => {
+const PatientPrescriptionsPage: React.FC = () => {
+  console.log("Rendering PatientPrescriptionsPage component");
+  
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
@@ -34,10 +37,17 @@ const PatientPrescriptionsPage = () => {
   const isIPad = useIsIPad();
   const isMobile = useIsMobile();
 
+  console.log("User authenticated:", !!user);
+  
   const { data: prescriptions, isLoading, error } = useQuery({
     queryKey: ["patient_prescriptions", user?.id],
     queryFn: async () => {
-      if (!user?.id) throw new Error("User not authenticated");
+      if (!user?.id) {
+        console.error("User not authenticated in prescription page");
+        throw new Error("User not authenticated");
+      }
+      
+      console.log("Fetching prescriptions for user:", user.id);
       
       // Use the new RPC function to get all prescriptions
       const { data, error } = await supabase
@@ -50,6 +60,7 @@ const PatientPrescriptionsPage = () => {
         throw error;
       }
       
+      console.log("Prescriptions fetched successfully:", data?.length || 0);
       return data as Prescription[];
     },
     enabled: !!user?.id
@@ -84,6 +95,9 @@ const PatientPrescriptionsPage = () => {
     }
   };
 
+  console.log("Loading state:", isLoading);
+  console.log("Error state:", !!error);
+
   if (isLoading) {
     return (
       <div className="container pt-16 pb-8 flex justify-center items-center h-[60vh]">
@@ -93,6 +107,7 @@ const PatientPrescriptionsPage = () => {
   }
 
   if (error) {
+    console.error("Prescription error details:", error);
     return (
       <div className="container pt-16 pb-8">
         <Card className="border-destructive">
@@ -107,6 +122,8 @@ const PatientPrescriptionsPage = () => {
       </div>
     );
   }
+
+  console.log("Prescriptions data:", prescriptions);
 
   const openPdfPreview = (prescription: Prescription) => {
     setSelectedPrescription(prescription);
