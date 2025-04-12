@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +43,7 @@ const PatientPrescriptionsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Function to fetch patient prescriptions directly from the prescriptions table
+  // Function to fetch patient prescriptions directly from the medical_records table
   const fetchPatientPrescriptions = async () => {
     if (!user) {
       return [];
@@ -53,9 +52,9 @@ const PatientPrescriptionsPage = () => {
     try {
       console.log("Fetching prescriptions for patient:", user.id);
       
-      // Query prescriptions table directly with a join to get doctor names
+      // Query medical_records table directly with a join to get doctor names
       const { data: prescriptionsData, error } = await supabase
-        .from('prescriptions')
+        .from('medical_records')
         .select(`
           id,
           created_at,
@@ -64,7 +63,7 @@ const PatientPrescriptionsPage = () => {
           diagnosis,
           prescription,
           notes,
-          profiles!prescriptions_doctor_id_fkey(first_name, last_name)
+          profiles!medical_records_doctor_id_fkey(first_name, last_name)
         `)
         .eq('patient_id', user.id)
         .order('created_at', { ascending: false });
@@ -74,7 +73,7 @@ const PatientPrescriptionsPage = () => {
         throw error;
       }
       
-      console.log(`Fetched ${prescriptionsData.length} prescriptions for patient ${user.id}`);
+      console.log(`Fetched ${prescriptionsData?.length || 0} prescriptions for patient ${user.id}`);
       
       // Transform the data to match our Prescription interface
       const transformedData = prescriptionsData.map(item => ({

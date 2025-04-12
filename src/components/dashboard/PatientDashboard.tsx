@@ -79,31 +79,38 @@ export const PatientDashboard = () => {
       }
 
       // Get latest prescription
-      const { data: doctorAssignment } = await supabase
-        .from("patient_assignments")
-        .select("doctor_id")
+      const { data: latestPrescriptions, error: prescriptionError } = await supabase
+        .from("medical_records")
+        .select(`
+          id,
+          created_at,
+          diagnosis,
+          prescription,
+          doctor_id,
+          profiles!medical_records_doctor_id_fkey(first_name, last_name)
+        `)
         .eq("patient_id", user.id)
-        .single();
+        .order("created_at", { ascending: false })
+        .limit(1);
         
+      if (prescriptionError) {
+        console.error("Error fetching prescriptions:", prescriptionError);
+      }
+      
       let latestPrescription = null;
-      if (doctorAssignment?.doctor_id) {
-        // Using the database RPC function to fetch prescriptions, which should work for patient Prakash
-        const { data: prescriptions, error: prescriptionError } = await supabase
-          .rpc("get_patient_prescriptions", {
-            p_patient_id: user.id,
-            p_doctor_id: doctorAssignment.doctor_id
-          });
-          
-        if (prescriptionError) {
-          console.error("Error fetching prescriptions:", prescriptionError);
-        }
-        
-        if (prescriptions && prescriptions.length > 0) {
-          latestPrescription = prescriptions[0];
-          console.log("Retrieved latest prescription:", latestPrescription);
-        } else {
-          console.log("No prescriptions found for patient:", user.id);
-        }
+      if (latestPrescriptions && latestPrescriptions.length > 0) {
+        latestPrescription = {
+          id: latestPrescriptions[0].id,
+          created_at: latestPrescriptions[0].created_at,
+          diagnosis: latestPrescriptions[0].diagnosis,
+          prescription: latestPrescriptions[0].prescription,
+          doctor_id: latestPrescriptions[0].doctor_id,
+          doctor_first_name: latestPrescriptions[0].profiles?.first_name || 'Unknown',
+          doctor_last_name: latestPrescriptions[0].profiles?.last_name || 'Doctor'
+        };
+        console.log("Retrieved latest prescription:", latestPrescription);
+      } else {
+        console.log("No prescriptions found for patient:", user.id);
       }
 
       // Get health plan items
