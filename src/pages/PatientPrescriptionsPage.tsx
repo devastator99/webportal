@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +27,7 @@ interface Prescription {
   doctor_id: string;
   doctor_first_name: string;
   doctor_last_name: string;
+  patient_id: string;
 }
 
 const PatientPrescriptionsPage = () => {
@@ -46,35 +46,11 @@ const PatientPrescriptionsPage = () => {
       console.log("Fetching prescriptions for user:", user.id);
       
       try {
-        // First get the doctor ID assigned to patient
-        const { data: assignment, error: assignmentError } = await supabase
-          .from("patient_assignments")
-          .select("doctor_id")
-          .eq("patient_id", user.id)
-          .single();
-        
-        if (assignmentError) {
-          console.error("Error fetching doctor assignment:", assignmentError);
-          // Check if it's a not found error
-          if (assignmentError.code === 'PGRST116') {
-            throw new Error("No doctor assigned to this patient. Please contact support.");
-          }
-          throw assignmentError;
-        }
-        
-        if (!assignment?.doctor_id) {
-          console.error("No doctor assigned to patient");
-          throw new Error("No doctor assigned to this patient. Please contact support.");
-        }
-        
-        console.log("Found doctor assignment:", assignment.doctor_id);
-        
-        // Directly call the function that bypasses RLS instead of using rpc
-        // which was causing the infinite recursion
-        const { data: prescriptionsData, error } = await supabase
-          .from('patient_prescriptions')
-          .select('*')
-          .eq('patient_id', user.id);
+        // Get prescriptions using RPC instead of the view
+        const { data: prescriptionsData, error } = await supabase.rpc(
+          'get_patient_prescriptions',
+          { p_patient_id: user.id }
+        );
         
         if (error) {
           console.error("Error fetching prescriptions:", error);
@@ -87,6 +63,8 @@ const PatientPrescriptionsPage = () => {
         }
         
         console.log(`Fetched ${prescriptionsData.length} prescriptions for patient ${user.id}`);
+        
+        // Cast the data to the Prescription interface
         return prescriptionsData as Prescription[];
       } catch (error) {
         console.error("Error in prescription fetching:", error);
@@ -371,7 +349,6 @@ const PatientPrescriptionsPage = () => {
                             </Button>
                             <Button
                               size="sm"
-                              variant="secondary"
                               onClick={() => {
                                 setSelectedPrescription(prescription);
                                 generatePdf(prescription);
@@ -390,7 +367,6 @@ const PatientPrescriptionsPage = () => {
               </Card>
             </TabsContent>
             
-            {/* New Table View Tab */}
             <TabsContent value="table">
               <Card>
                 <CardHeader>

@@ -14,8 +14,10 @@ interface AuthContextProps {
   login: (email: string) => Promise<void>;
   signUp: (email: string, password: string, firstName: string, lastName: string, role: string) => Promise<any>;
   signOut: () => Promise<void>;
+  forceSignOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateUser: (firstName: string, lastName: string) => Promise<void>;
+  resetInactivityTimer: () => void;
 }
 
 interface AuthProviderProps {
@@ -31,8 +33,10 @@ const AuthContext = createContext<AuthContextProps>({
   login: async () => {},
   signUp: async () => Promise.resolve(),
   signOut: async () => {},
+  forceSignOut: async () => {},
   refreshUser: async () => {},
   updateUser: async () => {},
+  resetInactivityTimer: () => {},
 });
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
@@ -42,6 +46,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [initialized, setInitialized] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  
+  // Add inactivity timer
+  const [inactivityTimer, setInactivityTimer] = useState<NodeJS.Timeout | null>(null);
+  const INACTIVITY_TIMEOUT = 1800000; // 30 minutes in milliseconds
 
   // Simplified function to fetch user role directly from the user_roles table
   const fetchUserRole = async (userId: string) => {
@@ -110,10 +118,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       if (data.user) {
-        // Create user role entry
-        await supabase.from('user_roles').insert([
-          { user_id: data.user.id, role: role },
-        ]);
+        // Create user role entry - handle as a single object, not an array
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: data.user.id,
+            role: role
+          });
+
+        if (roleError) {
+          console.error("Error setting user role:", roleError);
+        }
 
         // Update user metadata
         await supabase.auth.updateUser({
@@ -156,6 +171,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Add a force sign out method for admins
+  const forceSignOut = async () => {
+    setIsLoading(true);
+    try {
+      await supabase.auth.signOut({ scope: 'global' });
+      setUser(null);
+      setUserRole(null);
+      navigate('/auth');
+      return { success: true };
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      return { error: error.message };
     } finally {
       setIsLoading(false);
     }
@@ -238,10 +274,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Add reset inactivity timer function
+  const resetInactivityTimer = useCallback(() => {
+    if (inactivityTimer) {
+      clearTimeout(inactivityTimer);
+    }
+    
+    // Only set the timer if a user is logged in
+    if (user) {
+      const timer = setTimeout(() => {
+        console.log("Session expired due to inactivity");
+        signOut(); // Auto sign out after inactivity
+        toast({
+          title: "Session Expired",
+          description: "You've been signed out due to inactivity",
+        });
+      }, INACTIVITY_TIMEOUT);
+      
+      setInactivityTimer(timer);
+    }
+  }, [user, inactivityTimer]);
+
+  // Clear the timer when component unmounts
+  useEffect(() => {
+    return () => {
+      if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+      }
+    };
+  }, [inactivityTimer]);
+
   useEffect(() => {
     const initializeAuth = async () => {
       await refreshUser();
       setInitialized(true);
+      
+      // Initialize inactivity timer on first load
+      resetInactivityTimer();
     };
 
     initializeAuth();
@@ -250,6 +319,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         refreshUser();
+        resetInactivityTimer();
       } else {
         setUser(null);
         setUserRole(null);
@@ -259,19 +329,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => {
       subscription?.unsubscribe();
     };
-  }, [refreshUser]);
+  }, [refreshUser, resetInactivityTimer]);
 
   const contextValue: AuthContextProps = {
     user,
     userRole,
-    session: supabase.auth.session(),
+    session: null, // Fixed: removed the invalid reference to supabase.auth.session()
     isLoading,
     initialized,
     login,
     signUp,
     signOut,
+    forceSignOut,
     refreshUser,
     updateUser,
+    resetInactivityTimer,
   };
 
   return (

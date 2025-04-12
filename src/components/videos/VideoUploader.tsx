@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { UserRole } from "@/integrations/supabase/client";
 
 export const VideoUploader = () => {
   const [title, setTitle] = useState("");
@@ -46,6 +47,9 @@ export const VideoUploader = () => {
     try {
       setUploading(true);
 
+      // Cast userRole to UserRole type for type safety
+      const typedRole = userRole as UserRole;
+
       const { error: dbError } = await supabase
         .from('knowledge_videos')
         .insert({
@@ -53,7 +57,7 @@ export const VideoUploader = () => {
           description,
           video_path: youtubeUrl,
           uploaded_by: user.id,
-          uploader_role: userRole,
+          uploader_role: typedRole,
           is_youtube: true
         });
 
