@@ -58,6 +58,11 @@ export const MobileNavigation: React.FC = () => {
     }
   };
 
+  const handlePrescriptionsClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    navigate('/patient/prescriptions');
+  };
+  
   const handleHabitsClick = (e: React.MouseEvent) => {
     e.preventDefault();
     navigate('/patient/habits');
@@ -79,7 +84,7 @@ export const MobileNavigation: React.FC = () => {
     {
       label: 'Prescription',
       icon: FileText,
-      action: () => navigate('/patient/prescriptions'),
+      action: handlePrescriptionsClick,
       active: location.pathname === '/patient/prescriptions'
     },
     {
