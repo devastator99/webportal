@@ -75,7 +75,7 @@ function App() {
                   <Route path="/admin/*" element={<Admin />} />
                   <Route path="/patients" element={<PatientsView />} />
                   <Route path="/chat" element={<ChatPage />} />
-                  {/* Use the dummy prescriptions page for now */}
+                  {/* Use the dummy prescriptions page for now until the RPC is fixed */}
                   <Route path="/patient/prescriptions" element={<DummyPrescriptionsPage />} />
                   <Route path="/patient/habits" element={<PatientHabitsPage />} />
                 </Routes>
