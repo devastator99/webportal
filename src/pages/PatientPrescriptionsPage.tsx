@@ -69,24 +69,25 @@ const PatientPrescriptionsPage = () => {
         
         console.log("Found doctor assignment:", assignment.doctor_id);
         
-        // Then get prescriptions using the RPC function with security definer
-        const { data, error } = await supabase.rpc('get_patient_prescriptions', {
-          p_patient_id: user.id,
-          p_doctor_id: assignment.doctor_id
-        });
+        // Directly call the function that bypasses RLS instead of using rpc
+        // which was causing the infinite recursion
+        const { data: prescriptionsData, error } = await supabase
+          .from('patient_prescriptions')
+          .select('*')
+          .eq('patient_id', user.id);
         
         if (error) {
           console.error("Error fetching prescriptions:", error);
           throw error;
         }
         
-        if (!data || !Array.isArray(data)) {
-          console.error("Invalid prescription data format:", data);
+        if (!prescriptionsData || !Array.isArray(prescriptionsData)) {
+          console.error("Invalid prescription data format:", prescriptionsData);
           throw new Error("Invalid data format received from server");
         }
         
-        console.log(`Fetched ${data.length} prescriptions for patient ${user.id}`);
-        return data as Prescription[];
+        console.log(`Fetched ${prescriptionsData.length} prescriptions for patient ${user.id}`);
+        return prescriptionsData as Prescription[];
       } catch (error) {
         console.error("Error in prescription fetching:", error);
         throw error;
