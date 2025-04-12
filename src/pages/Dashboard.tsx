@@ -47,8 +47,7 @@ const Dashboard = () => {
 
   console.log(`[Dashboard] Rendering ${userRole} dashboard`);
   
-  // IMPORTANT: Make sure to render the correct dashboard based on the role
-  // Here we're ensuring that the PatientDashboard is rendered for patients
+  // Render the appropriate dashboard based on user role
   return (
     <div className="pt-16 md:pt-20">
       {(() => {

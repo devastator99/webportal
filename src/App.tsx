@@ -19,7 +19,6 @@ import { MobileNavigation } from './components/mobile/MobileNavigation';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import PatientPrescriptionsPage from './pages/PatientPrescriptionsPage';
 import PatientHabitsPage from './pages/PatientHabitsPage';
-import DummyPrescriptionsPage from './pages/DummyPrescriptionsPage';
 
 function App() {
   // Initialize state with current feature flags
@@ -75,8 +74,7 @@ function App() {
                   <Route path="/admin/*" element={<Admin />} />
                   <Route path="/patients" element={<PatientsView />} />
                   <Route path="/chat" element={<ChatPage />} />
-                  {/* Use the dummy prescriptions page for now until the RPC is fixed */}
-                  <Route path="/patient/prescriptions" element={<DummyPrescriptionsPage />} />
+                  <Route path="/patient/prescriptions" element={<PatientPrescriptionsPage />} />
                   <Route path="/patient/habits" element={<PatientHabitsPage />} />
                 </Routes>
               </ErrorBoundary>
@@ -84,7 +82,6 @@ function App() {
             
             <MobileNavigation />
             
-            {/* Only render the chatbot widget as a chat link button */}
             {chatEnabled && chatbotWidgetEnabled && (
               <div className="fixed right-6 bottom-6 z-40">
                 <ChatModule showChatInterface={false} showChatbotWidget={true} />
