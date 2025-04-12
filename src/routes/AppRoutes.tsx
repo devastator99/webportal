@@ -68,7 +68,14 @@ export function AppRoutes() {
           </ProtectedRoute>
         } 
       />
-      <Route path="/patient/habits" element={<PatientHabitsPage />} />
+      <Route 
+        path="/patient/habits" 
+        element={
+          <ProtectedRoute>
+            <PatientHabitsPage />
+          </ProtectedRoute>
+        }
+      />
       
       {/* Admin routes */}
       <Route 
