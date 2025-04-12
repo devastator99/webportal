@@ -14,8 +14,10 @@ interface AuthContextProps {
   login: (email: string) => Promise<void>;
   signUp: (email: string, password: string, firstName: string, lastName: string, role: string) => Promise<any>;
   signOut: () => Promise<void>;
+  forceSignOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateUser: (firstName: string, lastName: string) => Promise<void>;
+  resetInactivityTimer: () => void;
 }
 
 interface AuthProviderProps {
@@ -31,8 +33,10 @@ const AuthContext = createContext<AuthContextProps>({
   login: async () => {},
   signUp: async () => Promise.resolve(),
   signOut: async () => {},
+  forceSignOut: async () => {},
   refreshUser: async () => {},
   updateUser: async () => {},
+  resetInactivityTimer: () => {},
 });
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
@@ -41,6 +45,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
+  const [inactivityTimeout, setInactivityTimeout] = useState<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -63,6 +68,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return null;
     }
   };
+
+  // Reset inactivity timer
+  const resetInactivityTimer = useCallback(() => {
+    // Clear any existing timeout
+    if (inactivityTimeout) {
+      clearTimeout(inactivityTimeout);
+    }
+    
+    // Only set a new timeout if the user is logged in
+    if (user) {
+      // Set a new timeout - log out after 30 minutes of inactivity
+      const timeout = setTimeout(() => {
+        console.log("User inactive for too long, logging out");
+        signOut();
+      }, 30 * 60 * 1000); // 30 minutes
+      
+      setInactivityTimeout(timeout);
+    }
+  }, [user, inactivityTimeout]);
 
   const login = async (email: string) => {
     setIsLoading(true);
@@ -151,6 +175,31 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUserRole(null);
       setSession(null);
       navigate('/auth');
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Force signout for admin use
+  const forceSignOut = async () => {
+    setIsLoading(true);
+    try {
+      // Add any additional force logout logic here if needed
+      await supabase.auth.signOut();
+      setUser(null);
+      setUserRole(null);
+      setSession(null);
+      navigate('/auth');
+      toast({
+        title: "Force logout successful",
+        description: "You have been logged out by admin action",
+      });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -266,8 +315,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     return () => {
       subscription?.unsubscribe();
+      // Clear any inactivity timeout when component unmounts
+      if (inactivityTimeout) {
+        clearTimeout(inactivityTimeout);
+      }
     };
-  }, [refreshUser]);
+  }, [refreshUser, inactivityTimeout]);
+
+  // Start the inactivity timer when the user logs in
+  useEffect(() => {
+    if (user) {
+      resetInactivityTimer();
+    }
+  }, [user, resetInactivityTimer]);
 
   const contextValue: AuthContextProps = {
     user,
@@ -278,8 +338,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     signUp,
     signOut,
+    forceSignOut,
     refreshUser,
     updateUser,
+    resetInactivityTimer,
   };
 
   return (
