@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,7 +44,7 @@ const PatientPrescriptionsPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Function to fetch patient prescriptions directly from the medical_records table
+  // Function to fetch patient prescriptions safely, avoiding RLS recursion
   const fetchPatientPrescriptions = async () => {
     if (!user) {
       return [];
@@ -52,8 +53,8 @@ const PatientPrescriptionsPage = () => {
     try {
       console.log("Fetching prescriptions for patient:", user.id);
       
-      // Query medical_records table directly with a join to get doctor names
-      const { data: prescriptionsData, error } = await supabase
+      // Get medical records first
+      const { data: records, error: recordsError } = await supabase
         .from('medical_records')
         .select(`
           id,
@@ -62,32 +63,53 @@ const PatientPrescriptionsPage = () => {
           doctor_id,
           diagnosis,
           prescription,
-          notes,
-          profiles!medical_records_doctor_id_fkey(first_name, last_name)
+          notes
         `)
         .eq('patient_id', user.id)
         .order('created_at', { ascending: false });
-        
-      if (error) {
-        console.error("Error fetching prescriptions:", error);
-        throw error;
+      
+      if (recordsError) {
+        console.error("Error fetching medical records:", recordsError);
+        throw recordsError;
       }
       
-      console.log(`Fetched ${prescriptionsData?.length || 0} prescriptions for patient ${user.id}`);
+      // Early return if no records
+      if (!records || records.length === 0) {
+        return [];
+      }
+      
+      // Get doctor profiles separately to avoid RLS recursion
+      const doctorIds = [...new Set(records.map(record => record.doctor_id))];
+      
+      const { data: doctorProfiles, error: doctorError } = await supabase
+        .from('profiles')
+        .select('id, first_name, last_name')
+        .in('id', doctorIds);
+      
+      if (doctorError) {
+        console.error("Error fetching doctor profiles:", doctorError);
+      }
+      
+      // Create a doctor lookup map
+      const doctorMap = (doctorProfiles || []).reduce((map, doctor) => {
+        map[doctor.id] = doctor;
+        return map;
+      }, {} as Record<string, any>);
       
       // Transform the data to match our Prescription interface
-      const transformedData = prescriptionsData.map(item => ({
+      const transformedData = records.map(item => ({
         id: item.id,
         created_at: item.created_at,
         diagnosis: item.diagnosis,
         prescription: item.prescription,
         notes: item.notes || '',
         doctor_id: item.doctor_id,
-        doctor_first_name: item.profiles ? item.profiles.first_name : 'Unknown',
-        doctor_last_name: item.profiles ? item.profiles.last_name : 'Doctor',
+        doctor_first_name: doctorMap[item.doctor_id]?.first_name || 'Unknown',
+        doctor_last_name: doctorMap[item.doctor_id]?.last_name || 'Doctor',
         patient_id: item.patient_id
       }));
       
+      console.log(`Processed ${transformedData.length} prescriptions for patient ${user.id}`);
       return transformedData as Prescription[];
     } catch (error) {
       console.error("Error in prescription fetching:", error);

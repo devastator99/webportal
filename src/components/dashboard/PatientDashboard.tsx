@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -78,35 +79,47 @@ export const PatientDashboard = () => {
         console.error("Error fetching appointments:", appointmentsError);
       }
 
-      // Get latest prescription
-      const { data: latestPrescriptions, error: prescriptionError } = await supabase
+      // Get latest prescription using medical_records
+      const { data: latestRecords, error: recordsError } = await supabase
         .from("medical_records")
         .select(`
           id,
           created_at,
           diagnosis,
           prescription,
-          doctor_id,
-          profiles!medical_records_doctor_id_fkey(first_name, last_name)
+          notes,
+          doctor_id
         `)
         .eq("patient_id", user.id)
         .order("created_at", { ascending: false })
         .limit(1);
         
-      if (prescriptionError) {
-        console.error("Error fetching prescriptions:", prescriptionError);
+      if (recordsError) {
+        console.error("Error fetching medical records:", recordsError);
       }
       
       let latestPrescription = null;
-      if (latestPrescriptions && latestPrescriptions.length > 0) {
+      if (latestRecords && latestRecords.length > 0) {
+        // Get doctor info separately to avoid RLS recursion issues
+        const { data: doctorProfile, error: doctorError } = await supabase
+          .from("profiles")
+          .select("first_name, last_name")
+          .eq("id", latestRecords[0].doctor_id)
+          .single();
+        
+        if (doctorError) {
+          console.error("Error fetching doctor profile:", doctorError);
+        }
+        
         latestPrescription = {
-          id: latestPrescriptions[0].id,
-          created_at: latestPrescriptions[0].created_at,
-          diagnosis: latestPrescriptions[0].diagnosis,
-          prescription: latestPrescriptions[0].prescription,
-          doctor_id: latestPrescriptions[0].doctor_id,
-          doctor_first_name: latestPrescriptions[0].profiles?.first_name || 'Unknown',
-          doctor_last_name: latestPrescriptions[0].profiles?.last_name || 'Doctor'
+          id: latestRecords[0].id,
+          created_at: latestRecords[0].created_at,
+          diagnosis: latestRecords[0].diagnosis,
+          prescription: latestRecords[0].prescription,
+          notes: latestRecords[0].notes || '',
+          doctor_id: latestRecords[0].doctor_id,
+          doctor_first_name: doctorProfile?.first_name || 'Unknown',
+          doctor_last_name: doctorProfile?.last_name || 'Doctor'
         };
         console.log("Retrieved latest prescription:", latestPrescription);
       } else {
