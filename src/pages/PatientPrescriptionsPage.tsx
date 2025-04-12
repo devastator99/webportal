@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -28,7 +28,7 @@ interface Prescription {
 }
 
 const PatientPrescriptionsPage: React.FC = () => {
-  console.log("Rendering PatientPrescriptionsPage component");
+  console.log("==== PRESCRIPTIONS PAGE RENDER ====");
   
   const { user } = useAuth();
   const { toast } = useToast();
@@ -36,8 +36,45 @@ const PatientPrescriptionsPage: React.FC = () => {
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
   const isIPad = useIsIPad();
   const isMobile = useIsMobile();
+  const [manualError, setManualError] = useState<Error | null>(null);
 
   console.log("User authenticated:", !!user);
+  console.log("User ID:", user?.id);
+  
+  // Effect to check if component is rendered
+  useEffect(() => {
+    console.log("PatientPrescriptionsPage mounted");
+    return () => {
+      console.log("PatientPrescriptionsPage unmounted");
+    };
+  }, []);
+  
+  // Directly try fetching data to debug
+  useEffect(() => {
+    if (user?.id) {
+      const fetchDirectly = async () => {
+        try {
+          console.log("Directly fetching prescriptions for user:", user.id);
+          const { data, error } = await supabase
+            .rpc("get_all_patient_prescriptions", {
+              p_patient_id: user.id
+            });
+          
+          if (error) {
+            console.error("Direct fetch error:", error);
+            setManualError(new Error(`Direct fetch error: ${error.message}`));
+          } else {
+            console.log("Direct fetch success, found:", data?.length || 0, "prescriptions");
+            console.log("Sample data:", data?.[0]);
+          }
+        } catch (err) {
+          console.error("Direct fetch exception:", err);
+        }
+      };
+      
+      fetchDirectly();
+    }
+  }, [user?.id]);
   
   const { data: prescriptions, isLoading, error } = useQuery({
     queryKey: ["patient_prescriptions", user?.id],
@@ -49,7 +86,7 @@ const PatientPrescriptionsPage: React.FC = () => {
       
       console.log("Fetching prescriptions for user:", user.id);
       
-      // Use the new RPC function to get all prescriptions
+      // Use the RPC function to get all prescriptions
       const { data, error } = await supabase
         .rpc("get_all_patient_prescriptions", {
           p_patient_id: user.id
@@ -61,9 +98,17 @@ const PatientPrescriptionsPage: React.FC = () => {
       }
       
       console.log("Prescriptions fetched successfully:", data?.length || 0);
+      if (data && data.length > 0) {
+        console.log("First prescription sample:", data[0]);
+      } else {
+        console.log("No prescriptions found");
+      }
+      
       return data as Prescription[];
     },
-    enabled: !!user?.id
+    enabled: !!user?.id,
+    retry: 2,
+    staleTime: 30000
   });
   
   const generatePdf = async (prescription: Prescription) => {
@@ -97,6 +142,7 @@ const PatientPrescriptionsPage: React.FC = () => {
 
   console.log("Loading state:", isLoading);
   console.log("Error state:", !!error);
+  console.log("Prescriptions count:", prescriptions?.length || 0);
 
   if (isLoading) {
     return (
@@ -106,8 +152,9 @@ const PatientPrescriptionsPage: React.FC = () => {
     );
   }
 
-  if (error) {
-    console.error("Prescription error details:", error);
+  if (error || manualError) {
+    const displayError = error || manualError;
+    console.error("Prescription error details:", displayError);
     return (
       <div className="container pt-16 pb-8">
         <Card className="border-destructive">
@@ -116,7 +163,13 @@ const PatientPrescriptionsPage: React.FC = () => {
           </CardHeader>
           <CardContent>
             <p>There was an error loading your prescriptions. Please try again later.</p>
-            <p className="text-sm text-muted-foreground mt-2">{(error as Error).message}</p>
+            <p className="text-sm text-muted-foreground mt-2">{(displayError as Error).message}</p>
+            <Button 
+              className="mt-4"
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </Button>
           </CardContent>
         </Card>
       </div>

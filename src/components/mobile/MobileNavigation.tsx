@@ -62,22 +62,28 @@ export const MobileNavigation: React.FC = () => {
 
   const handlePrescriptionsClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    // Add more logging to debug navigation
-    console.log("Attempting to navigate to prescriptions page");
+    // Enhanced logging for prescription navigation
+    console.log("====== PRESCRIPTION NAVIGATION DEBUG ======");
+    console.log("Current user:", user?.id);
+    console.log("User role:", userRole);
     console.log("Current location:", location.pathname);
+    console.log("Target location: /patient/prescriptions");
     
     try {
-      // Use navigate and then show a toast for feedback
-      navigate('/patient/prescriptions');
+      // Navigate to prescriptions page with a reload to ensure fresh data
+      navigate('/patient/prescriptions', { replace: true });
       toast({
-        title: "Navigating to prescriptions",
-        description: "Opening your prescription history",
+        title: "Loading prescriptions",
+        description: "Opening your prescription history...",
       });
+      
+      // Log after navigation attempt
+      console.log("Navigation completed to: /patient/prescriptions");
     } catch (error) {
       console.error("Navigation error:", error);
       toast({
         title: "Navigation error",
-        description: "Could not navigate to prescriptions page",
+        description: "Could not navigate to prescriptions page. Please try again.",
         variant: "destructive"
       });
     }

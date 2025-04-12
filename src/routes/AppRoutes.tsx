@@ -50,9 +50,13 @@ export function AppRoutes() {
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
+  console.log("=== AppRoutes Component Rendering ===");
+  console.log("User authenticated:", !!user);
+  console.log("User ID:", user?.id);
+
   return (
     <Routes>
-      {/* Patient specific routes - moved up for better priority */}
+      {/* Patient specific routes - highest priority for direct access */}
       <Route 
         path="/patient/prescriptions" 
         element={
@@ -77,20 +81,35 @@ export function AppRoutes() {
       {/* Basic routes */}
       <Route path="/" element={<HomePage />} />
       <Route path="/auth" element={<AuthPage />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/dashboard-alt" element={<AlternativeDashboard />} />
-      <Route path="/patients" element={<PatientsPage />} />
-      <Route path="/chat" element={<ChatPage />} />
       
-      {/* Admin routes */}
-      <Route 
-        path="/admin" 
-        element={
-          <RoleProtectedRoute allowedRoles={["administrator"]}>
-            <AdminPage />
-          </RoleProtectedRoute>
-        } 
-      />
+      {/* Protected routes that require authentication */}
+      <Route path="/dashboard/*" element={
+        <ProtectedRoute>
+          <Dashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/dashboard-alt" element={
+        <ProtectedRoute>
+          <AlternativeDashboard />
+        </ProtectedRoute>
+      } />
+      
+      {/* Role-protected routes */}
+      <Route path="/admin/*" element={
+        <RoleProtectedRoute allowedRoles={["administrator"]}>
+          <AdminPage />
+        </RoleProtectedRoute>
+      } />
+      <Route path="/patients" element={
+        <RoleProtectedRoute allowedRoles={["doctor", "nutritionist", "administrator", "reception"]}>
+          <PatientsPage />
+        </RoleProtectedRoute>
+      } />
+      <Route path="/chat" element={
+        <ProtectedRoute>
+          <ChatPage />
+        </ProtectedRoute>
+      } />
       
       {/* Protected routes */}
       <Route 
