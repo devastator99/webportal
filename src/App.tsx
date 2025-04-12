@@ -1,25 +1,17 @@
 
 import './App.css';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from './contexts/ThemeProvider';
 import { AuthProvider } from './contexts/AuthContext';
 import { Navbar } from './components/Navbar';
-import LandingPage from './pages/LandingPage';
-import Auth from './pages/Auth';
-import Dashboard from './pages/Dashboard';
-import AlternativeDashboard from './pages/AlternativeDashboard';
-import Admin from './pages/Admin';
-import PatientsView from './pages/PatientsView';
-import ChatPage from './pages/ChatPage';
+import { AppRoutes } from './routes/AppRoutes';
 import { featureFlags } from './config/features';
 import { ChatModule } from './modules/chat/ChatModule';
 import React, { useEffect, useState } from 'react';
 import { MobileStatusBar } from './components/mobile/MobileStatusBar';
 import { MobileNavigation } from './components/mobile/MobileNavigation';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { ProtectedRoute } from './components/auth/ProtectedRoute';
-import { RoleProtectedRoute } from './components/auth/RoleProtectedRoute';
 
 function App() {
   // Initialize state with current feature flags
@@ -64,43 +56,12 @@ function App() {
         <MobileStatusBar />
         <Router>
           <AuthProvider>
-            {/* Move Navbar here to ensure it's available on all routes */}
+            {/* Navbar is available on all routes */}
             <Navbar />
             <div className="mobile-content">
               <ErrorBoundary>
-                <Routes>
-                  <Route path="/" element={<LandingPage />} />
-                  <Route path="/auth" element={<Auth />} />
-                  
-                  {/* Protected routes that require authentication */}
-                  <Route path="/dashboard/*" element={
-                    <ProtectedRoute>
-                      <Dashboard />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/dashboard-alt" element={
-                    <ProtectedRoute>
-                      <AlternativeDashboard />
-                    </ProtectedRoute>
-                  } />
-                  
-                  {/* Role-protected routes */}
-                  <Route path="/admin/*" element={
-                    <RoleProtectedRoute allowedRoles={["administrator"]}>
-                      <Admin />
-                    </RoleProtectedRoute>
-                  } />
-                  <Route path="/patients" element={
-                    <RoleProtectedRoute allowedRoles={["doctor", "nutritionist", "administrator", "reception"]}>
-                      <PatientsView />
-                    </RoleProtectedRoute>
-                  } />
-                  <Route path="/chat" element={
-                    <ProtectedRoute>
-                      <ChatPage />
-                    </ProtectedRoute>
-                  } />
-                </Routes>
+                {/* Use AppRoutes component for all routing */}
+                <AppRoutes />
               </ErrorBoundary>
             </div>
             
