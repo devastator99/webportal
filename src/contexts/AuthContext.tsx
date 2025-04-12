@@ -1,12 +1,8 @@
-
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
-
-// Define valid role types
-export type UserRoleType = "patient" | "doctor" | "nutritionist" | "administrator" | "reception" | "aibot";
 
 interface AuthContextProps {
   user: User | null;
@@ -17,10 +13,8 @@ interface AuthContextProps {
   login: (email: string) => Promise<void>;
   signUp: (email: string, password: string, firstName: string, lastName: string, role: string) => Promise<any>;
   signOut: () => Promise<void>;
-  forceSignOut: () => Promise<void>;
   refreshUser: () => Promise<void>;
   updateUser: (firstName: string, lastName: string) => Promise<void>;
-  resetInactivityTimer: () => void;
 }
 
 interface AuthProviderProps {
@@ -36,10 +30,8 @@ const AuthContext = createContext<AuthContextProps>({
   login: async () => {},
   signUp: async () => Promise.resolve(),
   signOut: async () => {},
-  forceSignOut: async () => {},
   refreshUser: async () => {},
   updateUser: async () => {},
-  resetInactivityTimer: () => {},
 });
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
@@ -47,53 +39,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
-  const [session, setSession] = useState<Session | null>(null);
-  const [inactivityTimeout, setInactivityTimeout] = useState<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Function to fetch user role directly from the user_roles table
+  // Function to fetch user role using the security definer function
   const fetchUserRole = async (userId: string) => {
     try {
-      console.log("Fetching user role for:", userId);
-      // Direct query from user_roles table
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
+      // Use our security definer function to safely get user role
+      const { data, error } = await supabase.rpc('get_user_role_safe', {
+        p_user_id: userId
+      });
       
       if (error) {
         console.error('Error fetching user role:', error);
         return null;
       }
       
-      console.log("Fetched role data:", data);
-      return data?.role;
+      return data;
     } catch (error) {
       console.error('Error in fetchUserRole:', error);
       return null;
     }
   };
-
-  // Reset inactivity timer
-  const resetInactivityTimer = useCallback(() => {
-    // Clear any existing timeout
-    if (inactivityTimeout) {
-      clearTimeout(inactivityTimeout);
-    }
-    
-    // Only set a new timeout if the user is logged in
-    if (user) {
-      // Set a new timeout - log out after 30 minutes of inactivity
-      const timeout = setTimeout(() => {
-        console.log("User inactive for too long, logging out");
-        signOut();
-      }, 30 * 60 * 1000); // 30 minutes
-      
-      setInactivityTimeout(timeout);
-    }
-  }, [user, inactivityTimeout]);
 
   const login = async (email: string) => {
     setIsLoading(true);
@@ -141,11 +108,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       if (data.user) {
-        // Create user role entry - use a single object, not an array
-        await supabase.from('user_roles').insert({
-          user_id: data.user.id, 
-          role: role as UserRoleType
-        });
+        // Create user role entry
+        await supabase.from('user_roles').insert([
+          { user_id: data.user.id, role: role },
+        ]);
 
         // Update user metadata
         await supabase.auth.updateUser({
@@ -181,7 +147,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await supabase.auth.signOut();
       setUser(null);
       setUserRole(null);
-      setSession(null);
       navigate('/auth');
     } catch (error: any) {
       toast({
@@ -194,58 +159,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Force signout for admin use
-  const forceSignOut = async () => {
-    setIsLoading(true);
-    try {
-      // Add any additional force logout logic here if needed
-      await supabase.auth.signOut();
-      setUser(null);
-      setUserRole(null);
-      setSession(null);
-      navigate('/auth');
-      toast({
-        title: "Force logout successful",
-        description: "You have been logged out by admin action",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Revert to the previous implementation of refreshUser that directly queries the user_roles table
+  // Update the refreshUser function to use our safe role fetching
   const refreshUser = useCallback(async () => {
     try {
       setIsLoading(true);
-      console.log("Refreshing user data");
       
       const { data: { user: currentUser } } = await supabase.auth.getUser();
-      const { data: { session: currentSession } } = await supabase.auth.getSession();
-      
-      setSession(currentSession);
       
       if (currentUser) {
-        console.log("Found authenticated user:", currentUser.id);
         setUser(currentUser);
         
-        // Direct query from user_roles table
+        // Fetch user role using the security definer function
         const role = await fetchUserRole(currentUser.id);
-        console.log("Fetched user role:", role);
+        setUserRole(role);
         
-        if (role) {
-          setUserRole(role);
-        } else {
-          console.warn("No role found for user:", currentUser.id);
-          setUserRole(null);
-        }
+        console.log("User authenticated with role:", role);
       } else {
-        console.log("No authenticated user found");
         setUser(null);
         setUserRole(null);
       }
@@ -316,14 +245,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     initializeAuth();
 
     // Subscribe to auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        setUser(session.user);
-        const role = await fetchUserRole(session.user.id);
-        if (role) {
-          setUserRole(role);
-        }
+        refreshUser();
       } else {
         setUser(null);
         setUserRole(null);
@@ -332,33 +256,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     return () => {
       subscription?.unsubscribe();
-      // Clear any inactivity timeout when component unmounts
-      if (inactivityTimeout) {
-        clearTimeout(inactivityTimeout);
-      }
     };
-  }, [refreshUser, inactivityTimeout]);
-
-  // Start the inactivity timer when the user logs in
-  useEffect(() => {
-    if (user) {
-      resetInactivityTimer();
-    }
-  }, [user, resetInactivityTimer]);
+  }, [refreshUser]);
 
   const contextValue: AuthContextProps = {
     user,
     userRole,
-    session,
+    session: supabase.auth.session(),
     isLoading,
     initialized,
     login,
     signUp,
     signOut,
-    forceSignOut,
     refreshUser,
     updateUser,
-    resetInactivityTimer,
   };
 
   return (

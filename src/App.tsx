@@ -20,7 +20,6 @@ import { MobileNavigation } from './components/mobile/MobileNavigation';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import PatientPrescriptionsPage from './pages/PatientPrescriptionsPage';
 import PatientHabitsPage from './pages/PatientHabitsPage';
-import { ProtectedRoute } from './components/auth/ProtectedRoute';
 
 function App() {
   // Initialize state with current feature flags
@@ -71,41 +70,13 @@ function App() {
                 <Routes>
                   <Route path="/" element={<LandingPage />} />
                   <Route path="/auth" element={<Auth />} />
-                  <Route 
-                    path="/dashboard/*" 
-                    element={
-                      <ProtectedRoute>
-                        <Dashboard />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/dashboard-alt" 
-                    element={
-                      <ProtectedRoute>
-                        <AlternativeDashboard />
-                      </ProtectedRoute>
-                    } 
-                  />
+                  <Route path="/dashboard/*" element={<Dashboard />} />
+                  <Route path="/dashboard-alt" element={<AlternativeDashboard />} />
                   <Route path="/admin/*" element={<Admin />} />
                   <Route path="/patients" element={<PatientsView />} />
                   <Route path="/chat" element={<ChatPage />} />
-                  <Route 
-                    path="/patient/prescriptions" 
-                    element={
-                      <ProtectedRoute>
-                        <PatientPrescriptionsPage />
-                      </ProtectedRoute>
-                    } 
-                  />
-                  <Route 
-                    path="/patient/habits" 
-                    element={
-                      <ProtectedRoute>
-                        <PatientHabitsPage />
-                      </ProtectedRoute>
-                    } 
-                  />
+                  <Route path="/patient/prescriptions" element={<PatientPrescriptionsPage />} />
+                  <Route path="/patient/habits" element={<PatientHabitsPage />} />
                 </Routes>
               </ErrorBoundary>
             </div>

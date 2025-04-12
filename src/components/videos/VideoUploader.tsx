@@ -9,9 +9,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 
-// Define the valid role types to match the database enum
-type UserRoleType = "patient" | "doctor" | "nutritionist" | "administrator" | "reception" | "aibot";
-
 export const VideoUploader = () => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -49,9 +46,6 @@ export const VideoUploader = () => {
     try {
       setUploading(true);
 
-      // Cast userRole to the valid enum type
-      const userRoleEnum = userRole as UserRoleType;
-      
       const { error: dbError } = await supabase
         .from('knowledge_videos')
         .insert({
@@ -59,7 +53,7 @@ export const VideoUploader = () => {
           description,
           video_path: youtubeUrl,
           uploaded_by: user.id,
-          uploader_role: userRoleEnum,
+          uploader_role: userRole,
           is_youtube: true
         });
 

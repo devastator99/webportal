@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -79,51 +78,32 @@ export const PatientDashboard = () => {
         console.error("Error fetching appointments:", appointmentsError);
       }
 
-      // Get latest prescription using medical_records
-      const { data: latestRecords, error: recordsError } = await supabase
-        .from("medical_records")
-        .select(`
-          id,
-          created_at,
-          diagnosis,
-          prescription,
-          notes,
-          doctor_id
-        `)
+      // Get latest prescription
+      const { data: doctorAssignment } = await supabase
+        .from("patient_assignments")
+        .select("doctor_id")
         .eq("patient_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1);
+        .single();
         
-      if (recordsError) {
-        console.error("Error fetching medical records:", recordsError);
-      }
-      
       let latestPrescription = null;
-      if (latestRecords && latestRecords.length > 0) {
-        // Get doctor info separately to avoid RLS recursion issues
-        const { data: doctorProfile, error: doctorError } = await supabase
-          .from("profiles")
-          .select("first_name, last_name")
-          .eq("id", latestRecords[0].doctor_id)
-          .single();
-        
-        if (doctorError) {
-          console.error("Error fetching doctor profile:", doctorError);
+      if (doctorAssignment?.doctor_id) {
+        // Using the database RPC function to fetch prescriptions, which should work for patient Prakash
+        const { data: prescriptions, error: prescriptionError } = await supabase
+          .rpc("get_patient_prescriptions", {
+            p_patient_id: user.id,
+            p_doctor_id: doctorAssignment.doctor_id
+          });
+          
+        if (prescriptionError) {
+          console.error("Error fetching prescriptions:", prescriptionError);
         }
         
-        latestPrescription = {
-          id: latestRecords[0].id,
-          created_at: latestRecords[0].created_at,
-          diagnosis: latestRecords[0].diagnosis,
-          prescription: latestRecords[0].prescription,
-          notes: latestRecords[0].notes || '',
-          doctor_id: latestRecords[0].doctor_id,
-          doctor_first_name: doctorProfile?.first_name || 'Unknown',
-          doctor_last_name: doctorProfile?.last_name || 'Doctor'
-        };
-        console.log("Retrieved latest prescription:", latestPrescription);
-      } else {
-        console.log("No prescriptions found for patient:", user.id);
+        if (prescriptions && prescriptions.length > 0) {
+          latestPrescription = prescriptions[0];
+          console.log("Retrieved latest prescription:", latestPrescription);
+        } else {
+          console.log("No prescriptions found for patient:", user.id);
+        }
       }
 
       // Get health plan items
