@@ -45,47 +45,52 @@ const PatientPrescriptionsPage = () => {
       
       console.log("Fetching prescriptions for user:", user.id);
       
-      // First get the doctor ID assigned to patient
-      const { data: assignment, error: assignmentError } = await supabase
-        .from("patient_assignments")
-        .select("doctor_id")
-        .eq("patient_id", user.id)
-        .single();
-      
-      if (assignmentError) {
-        console.error("Error fetching doctor assignment:", assignmentError);
-        // Check if it's a not found error
-        if (assignmentError.code === 'PGRST116') {
+      try {
+        // First get the doctor ID assigned to patient
+        const { data: assignment, error: assignmentError } = await supabase
+          .from("patient_assignments")
+          .select("doctor_id")
+          .eq("patient_id", user.id)
+          .single();
+        
+        if (assignmentError) {
+          console.error("Error fetching doctor assignment:", assignmentError);
+          // Check if it's a not found error
+          if (assignmentError.code === 'PGRST116') {
+            throw new Error("No doctor assigned to this patient. Please contact support.");
+          }
+          throw assignmentError;
+        }
+        
+        if (!assignment?.doctor_id) {
+          console.error("No doctor assigned to patient");
           throw new Error("No doctor assigned to this patient. Please contact support.");
         }
-        throw assignmentError;
-      }
-      
-      if (!assignment?.doctor_id) {
-        console.error("No doctor assigned to patient");
-        throw new Error("No doctor assigned to this patient. Please contact support.");
-      }
-      
-      console.log("Found doctor assignment:", assignment.doctor_id);
-      
-      // Then get prescriptions using the RPC function
-      const { data, error } = await supabase.rpc('get_patient_prescriptions', {
-        p_patient_id: user.id,
-        p_doctor_id: assignment.doctor_id
-      });
-      
-      if (error) {
-        console.error("Error fetching prescriptions:", error);
+        
+        console.log("Found doctor assignment:", assignment.doctor_id);
+        
+        // Then get prescriptions using the RPC function with security definer
+        const { data, error } = await supabase.rpc('get_patient_prescriptions', {
+          p_patient_id: user.id,
+          p_doctor_id: assignment.doctor_id
+        });
+        
+        if (error) {
+          console.error("Error fetching prescriptions:", error);
+          throw error;
+        }
+        
+        if (!data || !Array.isArray(data)) {
+          console.error("Invalid prescription data format:", data);
+          throw new Error("Invalid data format received from server");
+        }
+        
+        console.log(`Fetched ${data.length} prescriptions for patient ${user.id}`);
+        return data as Prescription[];
+      } catch (error) {
+        console.error("Error in prescription fetching:", error);
         throw error;
       }
-      
-      if (!data || !Array.isArray(data)) {
-        console.error("Invalid prescription data format:", data);
-        throw new Error("Invalid data format received from server");
-      }
-      
-      console.log(`Fetched ${data.length} prescriptions for patient ${user.id}`);
-      return data as Prescription[];
     },
     enabled: !!user?.id,
     retry: 2,
