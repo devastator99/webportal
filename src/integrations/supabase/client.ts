@@ -289,3 +289,42 @@ export async function getPatientInvoices(patientId: string): Promise<PatientInvo
     throw error;
   }
 }
+
+// Add new helper function to check user role using security definer function
+export async function getUserRole(userId: string): Promise<string | null> {
+  try {
+    const { data, error } = await supabase.rpc('get_user_role_safe', {
+      p_user_id: userId
+    });
+    
+    if (error) {
+      console.error('Error getting user role:', error);
+      return null;
+    }
+    
+    return data;
+  } catch (error: any) {
+    console.error('Exception in getUserRole:', error);
+    return null;
+  }
+}
+
+// Add helper function to check if user has a specific role
+export async function checkUserHasRole(userId: string, role: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('user_has_role', {
+      p_user_id: userId,
+      p_role: role
+    });
+    
+    if (error) {
+      console.error('Error checking user role:', error);
+      return false;
+    }
+    
+    return !!data;
+  } catch (error: any) {
+    console.error('Exception in checkUserHasRole:', error);
+    return false;
+  }
+}

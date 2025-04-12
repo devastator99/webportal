@@ -3,6 +3,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Spinner } from '@/components/ui/spinner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface RoleProtectedRouteProps {
   children: React.ReactNode;
@@ -29,7 +30,9 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
     return <Navigate to={redirectTo} />;
   }
   
-  if (!allowedRoles.includes(userRole)) {
+  // If no role found or role not in allowed roles, redirect to dashboard
+  if (!userRole || !allowedRoles.includes(userRole)) {
+    console.log("User role not allowed:", userRole, "Allowed roles:", allowedRoles);
     return <Navigate to="/dashboard" />;
   }
   
