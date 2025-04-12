@@ -60,6 +60,8 @@ export const MobileNavigation: React.FC = () => {
 
   const handlePrescriptionsClick = (e: React.MouseEvent) => {
     e.preventDefault();
+    // Log that we're navigating to the prescriptions page
+    console.log("Navigating to prescriptions page");
     navigate('/patient/prescriptions');
   };
   
