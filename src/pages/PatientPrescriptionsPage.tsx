@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,23 +39,10 @@ const PatientPrescriptionsPage = () => {
     queryFn: async () => {
       if (!user?.id) throw new Error("User not authenticated");
       
-      // Get doctor ID assigned to patient first
-      const { data: assignment, error: assignmentError } = await supabase
-        .from("patient_assignments")
-        .select("doctor_id")
-        .eq("patient_id", user.id)
-        .single();
-      
-      if (assignmentError || !assignment?.doctor_id) {
-        console.error("Error fetching doctor assignment:", assignmentError);
-        return [];
-      }
-      
-      // Then get prescriptions using the RPC function
+      // Use the new RPC function to get all prescriptions
       const { data, error } = await supabase
-        .rpc("get_patient_prescriptions", {
-          p_patient_id: user.id,
-          p_doctor_id: assignment.doctor_id
+        .rpc("get_all_patient_prescriptions", {
+          p_patient_id: user.id
         });
       
       if (error) {
@@ -138,7 +124,7 @@ const PatientPrescriptionsPage = () => {
     <div className={containerClass}>
       <h1 className="text-2xl font-bold mb-4">My Prescriptions</h1>
       <p className="text-muted-foreground mb-8">
-        View and download your prescriptions from your doctor.
+        View and download your prescriptions from your doctors.
       </p>
 
       {(!prescriptions || prescriptions.length === 0) ? (
