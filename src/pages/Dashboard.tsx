@@ -12,12 +12,14 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { AuthDebugger } from "@/components/auth/AuthDebugger";
 
 const Dashboard = () => {
   const { user, userRole, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [dashboardError, setDashboardError] = useState<string | null>(null);
+  const [showDebugger, setShowDebugger] = useState(false);
 
   console.log("Dashboard render:", { 
     user: user?.id, 
@@ -37,6 +39,19 @@ const Dashboard = () => {
       console.log("[Dashboard] No user found, redirecting to /");
       navigate("/");
     }
+    
+    // Enable debugger with key combination
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Ctrl+Shift+D to toggle debugger
+      if (e.ctrlKey && e.shiftKey && e.key === 'D') {
+        setShowDebugger(prev => !prev);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyPress);
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+    };
   }, [user, isLoading, navigate]);
 
   // Render error state
@@ -64,6 +79,11 @@ const Dashboard = () => {
             Sign Out
           </button>
         </div>
+        
+        {/* Always show debugger on error */}
+        <div className="mt-8">
+          <AuthDebugger />
+        </div>
       </div>
     );
   }
@@ -71,19 +91,29 @@ const Dashboard = () => {
   // Show loading state
   if (isLoading) {
     console.log("[Dashboard] Showing loading skeleton");
-    return <DashboardSkeleton />;
+    return (
+      <>
+        <DashboardSkeleton />
+        {showDebugger && <AuthDebugger />}
+      </>
+    );
   }
 
   // After loading, if no user is found, useEffect will handle redirect
   if (!user) {
     console.log("[Dashboard] No user, returning null");
-    return null;
+    return showDebugger ? <AuthDebugger /> : null;
   }
 
   // Handle no role case
   if (!userRole) {
     console.log("[Dashboard] No role assigned, showing NoRoleWarning");
-    return <NoRoleWarning onSignOut={signOut} />;
+    return (
+      <>
+        <NoRoleWarning onSignOut={signOut} />
+        {showDebugger && <AuthDebugger />}
+      </>
+    );
   }
 
   console.log(`[Dashboard] Attempting to render ${userRole} dashboard`);
@@ -91,6 +121,7 @@ const Dashboard = () => {
   // Render appropriate dashboard based on role with Navbar
   return (
     <div className="pt-16 md:pt-20">
+      {showDebugger && <AuthDebugger />}
       {(() => {
         try {
           switch (userRole) {

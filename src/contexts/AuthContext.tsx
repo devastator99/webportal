@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -55,6 +54,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Function to fetch user role using a direct query
   const fetchUserRole = async (userId: string) => {
     try {
+      console.log("Fetching user role for:", userId);
       // Use a direct query from user_roles table
       const { data, error } = await supabase
         .from('user_roles')
@@ -67,6 +67,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return null;
       }
       
+      console.log("Fetched role data:", data);
       return data?.role;
     } catch (error) {
       console.error('Error in fetchUserRole:', error);
@@ -217,10 +218,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Update the refreshUser function to use our direct query
+  // Update the refreshUser function to use our direct query and add more logging
   const refreshUser = useCallback(async () => {
     try {
       setIsLoading(true);
+      console.log("Refreshing user data");
       
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       const { data: { session: currentSession } } = await supabase.auth.getSession();
@@ -228,16 +230,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setSession(currentSession);
       
       if (currentUser) {
+        console.log("Found authenticated user:", currentUser.id);
         setUser(currentUser);
         
         // Fetch user role using the direct query function
         const role = await fetchUserRole(currentUser.id);
+        console.log("Fetched user role:", role);
+        
         if (role) {
           setUserRole(role);
+        } else {
+          console.warn("No role found for user:", currentUser.id);
+          setUserRole(null);
         }
-        
-        console.log("User authenticated with role:", role);
       } else {
+        console.log("No authenticated user found");
         setUser(null);
         setUserRole(null);
       }
