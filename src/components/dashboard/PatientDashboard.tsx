@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -6,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import { PatientStats } from "./patient/PatientStats";
 import { DashboardHeader } from "./DashboardHeader";
-import { Suspense, lazy, useState } from "react";
+import { useState } from "react";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -15,7 +14,6 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
-import { featureFlags } from "@/config/features";
 import { useIsIPad } from "@/hooks/use-mobile";
 import { 
   Calendar, 
@@ -29,13 +27,7 @@ import {
 } from "lucide-react";
 import { PatientHealthTips } from "./patient/PatientHealthTips";
 import { MedicalRecordsList } from './patient/MedicalRecordsList';
-
-// Lazy load components
-const LazyMedicalRecordsUpload = lazy(() => 
-  import('./patient/MedicalRecordsUpload').then(module => ({ 
-    default: module.MedicalRecordsUpload 
-  }))
-);
+import { MedicalRecordsUpload } from './patient/MedicalRecordsUpload';
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -188,7 +180,7 @@ export const PatientDashboard = () => {
         </Card>
       </div>
 
-      {/* Main Content - Use collapsible sections with lazy loading */}
+      {/* Main Content - Use collapsible sections but without lazy loading */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-3 space-y-6">
           {/* Next Appointment Highlight - Moved above medical reports upload */}
@@ -214,20 +206,18 @@ export const PatientDashboard = () => {
             </Card>
           )}
           
-          {/* Renamed "Update Medical Record" to "Update Medical Report" */}
+          {/* Update Medical Report */}
           <CollapsibleSection 
             title="Update Medical Report" 
             defaultOpen={true}
             className={isIPad ? "overflow-x-visible" : ""}
           >
-            <Suspense fallback={<LoadingFallback />}>
-              <div className={isIPad ? "p-2" : ""}>
-                <LazyMedicalRecordsUpload showUploadOnly />
-              </div>
-            </Suspense>
+            <div className={isIPad ? "p-2" : ""}>
+              <MedicalRecordsUpload showUploadOnly />
+            </div>
           </CollapsibleSection>
           
-          {/* Renamed "Latest Report" to "View Reports" and moved below update section */}
+          {/* View Reports */}
           <CollapsibleSection 
             title="View Reports" 
             defaultOpen={false}
