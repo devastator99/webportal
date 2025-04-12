@@ -1,4 +1,3 @@
-
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Suspense, lazy } from "react";
@@ -7,7 +6,6 @@ import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import DummyPage from "@/pages/DummyPage";
 import PatientHabitsPage from "@/pages/PatientHabitsPage";
-import PatientPrescriptionsPage from "@/pages/PatientPrescriptionsPage";
 
 // Use a dummy page for missing components
 const HomePage = () => <DummyPage title="Home Page" />;
@@ -17,6 +15,7 @@ const AuthPage = () => <DummyPage title="Authentication" />;
 const AlternativeDashboard = () => <DummyPage title="Alternative Dashboard" />;
 const ChatPage = () => <DummyPage title="Chat" />;
 const PatientsPage = () => <DummyPage title="Patients" />;
+const PatientPrescriptionsPage = () => <DummyPage title="Patient Prescriptions" />;
 const AdminPage = () => <DummyPage title="Admin" />;
 const PatientDetailPage = () => <DummyPage title="Patient Details" />;
 const PatientMedicalRecordsPage = () => <DummyPage title="Patient Medical Records" />;

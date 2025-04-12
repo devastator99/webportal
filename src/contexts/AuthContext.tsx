@@ -1,357 +1,407 @@
 
-import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
-import { Session, User } from '@supabase/supabase-js';
-import { supabase, UserRole } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { createContext, useContext, useEffect, useState, useRef } from "react";
+import { User } from "@supabase/supabase-js";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
-interface AuthContextProps {
+type UserRole = "doctor" | "patient" | "administrator" | "nutritionist" | "reception";
+
+type AuthContextType = {
   user: User | null;
   userRole: UserRole | null;
-  session: Session | null;
   isLoading: boolean;
-  initialized: boolean;
-  login: (email: string) => Promise<void>;
-  signUp: (email: string, password: string, firstName: string, lastName: string, role: string) => Promise<any>;
   signOut: () => Promise<void>;
-  forceSignOut: () => Promise<void>;
-  refreshUser: () => Promise<void>;
-  updateUser: (firstName: string, lastName: string) => Promise<void>;
   resetInactivityTimer: () => void;
-}
+  forceSignOut: () => Promise<void>;
+  authError: string | null;
+  retryRoleFetch: () => Promise<void>;
+};
 
-interface AuthProviderProps {
-  children: React.ReactNode;
-}
+const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutes in milliseconds
 
-const AuthContext = createContext<AuthContextProps>({
+const AuthContext = createContext<AuthContextType>({
   user: null,
   userRole: null,
-  session: null,
   isLoading: true,
-  initialized: false,
-  login: async () => {},
-  signUp: async () => Promise.resolve(),
   signOut: async () => {},
-  forceSignOut: async () => {},
-  refreshUser: async () => {},
-  updateUser: async () => {},
   resetInactivityTimer: () => {},
+  forceSignOut: async () => {},
+  authError: null,
+  retryRoleFetch: async () => {},
 });
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [initialized, setInitialized] = useState(false);
+  const [authInitialized, setAuthInitialized] = useState(false);
+  const [authError, setAuthError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
-  
-  // Add inactivity timer
-  const [inactivityTimer, setInactivityTimer] = useState<NodeJS.Timeout | null>(null);
-  const INACTIVITY_TIMEOUT = 1800000; // 30 minutes in milliseconds
+  const inactivityTimerRef = useRef<number | null>(null);
 
-  // Simplified function to fetch user role directly from the user_roles table
+  const resetInactivityTimer = () => {
+    // Clear the existing timer if there is one
+    if (inactivityTimerRef.current) {
+      window.clearTimeout(inactivityTimerRef.current);
+    }
+    
+    // Only set a new timer if the user is logged in
+    if (user) {
+      inactivityTimerRef.current = window.setTimeout(() => {
+        signOut();
+        toast({
+          title: "Session expired",
+          description: "You have been logged out due to inactivity",
+        });
+      }, INACTIVITY_TIMEOUT);
+    }
+  };
+
+  // Fetch user role function
   const fetchUserRole = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
+      console.log("[AuthContext] Fetching role for user:", userId);
+      setAuthError(null); // Clear any previous errors
       
+      const { data, error } = await supabase
+        .rpc('get_user_role', {
+          lookup_user_id: userId
+        });
+
+      console.log("[AuthContext] Role fetch response:", { data, error });
+
       if (error) {
-        console.error('Error fetching user role:', error);
+        console.error("[AuthContext] Error fetching user role:", error);
+        setAuthError(`Error fetching user role: ${error.message}`);
+        toast({
+          title: "Error fetching role",
+          description: `We couldn't determine your user role: ${error.message}`,
+          variant: "destructive",
+        });
         return null;
       }
+
+      if (!data || data.length === 0) {
+        console.warn("[AuthContext] No role data returned for user:", userId);
+        toast({
+          title: "Role not found",
+          description: "Your account doesn't have an assigned role. Please contact an administrator.",
+          variant: "destructive",
+        });
+        return null;
+      }
+
+      const roleValue = data[0]?.role;
+      console.log("[AuthContext] Resolved role:", roleValue);
       
-      return data.role as UserRole;
-    } catch (error) {
-      console.error('Error in fetchUserRole:', error);
+      if (roleValue) {
+        toast({
+          title: "Role detected",
+          description: `You are logged in as: ${roleValue}`,
+        });
+      }
+      
+      return roleValue as UserRole;
+    } catch (error: any) {
+      console.error("[AuthContext] Exception in fetchUserRole:", error);
+      const errorMessage = error?.message || "Unknown error fetching role";
+      setAuthError(`Error fetching user role: ${errorMessage}`);
+      toast({
+        title: "Error",
+        description: `Failed to get your user role: ${errorMessage}`,
+        variant: "destructive",
+      });
       return null;
     }
   };
 
-  const login = async (email: string) => {
+  const retryRoleFetch = async () => {
+    if (!user) return;
+    
     setIsLoading(true);
+    setAuthError(null);
+    
     try {
-      const { error } = await supabase.auth.signInWithOtp({ email });
-      if (error) throw error;
-      toast({
-        title: "Check your email",
-        description: "We've sent you a magic link to log in.",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.error_description || error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signUp = async (email: string, password: string, firstName: string, lastName: string, role: string) => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        email: email,
-        password: password,
-        options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-            role: role,
-          },
-        },
-      });
-
-      if (error) {
-        console.error("Signup error:", error);
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-        return { error: error.message };
-      }
-
-      if (data.user) {
-        // Create user role entry - using the role as a valid UserRole type
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: data.user.id,
-            role: role as UserRole
-          });
-
-        if (roleError) {
-          console.error("Error setting user role:", roleError);
-        }
-
-        // Update user metadata
-        await supabase.auth.updateUser({
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-            role: role,
-          },
-        });
-
-        toast({
-          title: "Success",
-          description: "Account created successfully. Please check your email to verify your account.",
-        });
-        navigate('/auth');
-      }
-    } catch (error: any) {
-      console.error("Signup error:", error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-      return { error: error.message };
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const signOut = async () => {
-    setIsLoading(true);
-    try {
-      await supabase.auth.signOut();
-      setUser(null);
-      setUserRole(null);
-      navigate('/auth');
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Add a force sign out method for admins
-  const forceSignOut = async (): Promise<void> => {
-    setIsLoading(true);
-    try {
-      await supabase.auth.signOut({ scope: 'global' });
-      setUser(null);
-      setUserRole(null);
-      navigate('/auth');
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-      throw error; // Propagate the error
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Update the refreshUser function to use direct table query
-  const refreshUser = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      
-      const { data: { user: currentUser } } = await supabase.auth.getUser();
-      
-      if (currentUser) {
-        setUser(currentUser);
-        
-        // Fetch user role directly from the user_roles table
-        const role = await fetchUserRole(currentUser.id);
+      const role = await fetchUserRole(user.id);
+      if (role) {
         setUserRole(role);
-        
-        console.log("User authenticated with role:", role);
-      } else {
-        setUser(null);
-        setUserRole(null);
+        setAuthError(null);
       }
     } catch (error) {
-      console.error('Error refreshing user:', error);
-      setUser(null);
-      setUserRole(null);
+      console.error("[AuthContext] Error in retryRoleFetch:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleAuthStateChange = async (session: any) => {
+    console.log("[AuthContext] Auth state changed:", session ? "session exists" : "no session");
+    
+    try {
+      if (session?.user) {
+        console.log("[AuthContext] User in session:", session.user.id);
+        setUser(session.user);
+        
+        try {
+          console.log("[AuthContext] Attempting to fetch role");
+          const role = await fetchUserRole(session.user.id);
+          
+          console.log("[AuthContext] Role after fetch:", role);
+          
+          if (role) {
+            console.log("[AuthContext] Setting role to:", role);
+            setUserRole(role);
+          } else {
+            console.warn("[AuthContext] No role found, setting to null");
+            setUserRole(null);
+          }
+        } catch (roleError) {
+          console.error("[AuthContext] Error in role fetching process:", roleError);
+          setUserRole(null);
+          setAuthError(`Error fetching role: ${roleError instanceof Error ? roleError.message : 'Unknown error'}`);
+        }
+        
+        // Reset the inactivity timer when auth state changes to logged in
+        resetInactivityTimer();
+      } else {
+        console.log("[AuthContext] No user in session, clearing user and role");
+        setUser(null);
+        setUserRole(null);
+        setAuthError(null);
+        
+        // Clear any existing inactivity timer when logged out
+        if (inactivityTimerRef.current) {
+          window.clearTimeout(inactivityTimerRef.current);
+          inactivityTimerRef.current = null;
+        }
+      }
+    } catch (error) {
+      console.error("[AuthContext] Error in handleAuthStateChange:", error);
+      setAuthError(`Authentication error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Silent error handling
+    } finally {
+      console.log("[AuthContext] Auth state change processing complete");
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    console.log("[AuthContext] Initializing auth context");
+    
+    const checkSession = async () => {
+      console.log("[AuthContext] Checking session");
+      
+      try {
+        const timeoutPromise = new Promise<{data: {session: null}}>((resolve) => {
+          setTimeout(() => {
+            console.log("[AuthContext] Session check timed out");
+            resolve({data: {session: null}});
+          }, 3000);
+        });
+        
+        console.log("[AuthContext] Awaiting session from Supabase");
+        const { data: { session } } = await Promise.race([
+          supabase.auth.getSession(),
+          timeoutPromise
+        ]);
+        
+        console.log("[AuthContext] Session check result:", session ? "session exists" : "no session");
+        await handleAuthStateChange(session);
+      } catch (error) {
+        console.error("[AuthContext] Error checking session:", error);
+        setAuthError(`Session check error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        setIsLoading(false);
+      } finally {
+        console.log("[AuthContext] Auth initialization complete");
+        setAuthInitialized(true);
+        setIsLoading(false);
+      }
+    };
+    
+    checkSession();
+
+    try {
+      console.log("[AuthContext] Setting up auth state change subscription");
+      
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        console.log("[AuthContext] Auth state change event:", _event);
+        handleAuthStateChange(session);
+      });
+
+      return () => {
+        console.log("[AuthContext] Cleaning up auth subscription");
+        
+        // Clean up the inactivity timer when the component unmounts
+        if (inactivityTimerRef.current) {
+          window.clearTimeout(inactivityTimerRef.current);
+        }
+        subscription.unsubscribe();
+      };
+    } catch (error) {
+      console.error("[AuthContext] Error setting up auth subscription:", error);
+      setAuthError(`Auth subscription error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setIsLoading(false);
+      setAuthInitialized(true);
+      return () => {
+        // Clean up the inactivity timer when the component unmounts
+        if (inactivityTimerRef.current) {
+          window.clearTimeout(inactivityTimerRef.current);
+        }
+      };
     }
   }, []);
 
-  const updateUser = async (firstName: string, lastName: string) => {
-    setIsLoading(true);
-    try {
-      const { data, error } = await supabase.auth.updateUser({
-        data: {
-          first_name: firstName,
-          last_name: lastName,
-        },
+  // Set up event listeners for user activity to reset the timer
+  useEffect(() => {
+    // Only set up listeners if we have a user
+    if (!user) return;
+    
+    // List of events to listen for
+    const events = [
+      'mousedown',
+      'mousemove',
+      'keypress',
+      'scroll',
+      'touchstart',
+      'click'
+    ];
+    
+    // Event handler to reset the timer
+    const handleUserActivity = () => {
+      resetInactivityTimer();
+    };
+    
+    // Add event listeners
+    events.forEach(event => {
+      window.addEventListener(event, handleUserActivity);
+    });
+    
+    // Initialize the timer
+    resetInactivityTimer();
+    
+    // Clean up event listeners on unmount
+    return () => {
+      events.forEach(event => {
+        window.removeEventListener(event, handleUserActivity);
       });
+      
+      if (inactivityTimerRef.current) {
+        window.clearTimeout(inactivityTimerRef.current);
+      }
+    };
+  }, [user]);
 
+  const signOut = async () => {
+    try {
+      console.log("[AuthContext] Sign out initiated");
+      setIsLoading(true);
+      
+      setUser(null);
+      setUserRole(null);
+      setAuthError(null);
+      
+      const { error } = await supabase.auth.signOut();
+      
+      navigate('/', { replace: true });
+      
       if (error) {
-        console.error("Update user error:", error);
+        console.error("[AuthContext] Error during sign out:", error);
         toast({
-          title: "Error",
-          description: error.message,
           variant: "destructive",
-        });
-      } else {
-        // Optimistically update the user object in the context
-        setUser((prevUser) => {
-          if (prevUser && prevUser.user_metadata) {
-            return {
-              ...prevUser,
-              user_metadata: {
-                ...prevUser.user_metadata,
-                first_name: firstName,
-                last_name: lastName,
-              },
-            };
-          }
-          return prevUser;
-        });
-        toast({
-          title: "Success",
-          description: "Profile updated successfully!",
+          title: "Warning",
+          description: "Sign out completed, but there was an API error."
         });
       }
+      
+      // Clear the inactivity timer when signing out
+      if (inactivityTimerRef.current) {
+        window.clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = null;
+      }
     } catch (error: any) {
-      console.error("Update user error:", error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.error("[AuthContext] Exception during sign out:", error);
+      navigate('/', { replace: true });
     } finally {
+      console.log("[AuthContext] Sign out complete");
       setIsLoading(false);
     }
   };
 
-  // Add reset inactivity timer function
-  const resetInactivityTimer = useCallback(() => {
-    if (inactivityTimer) {
-      clearTimeout(inactivityTimer);
-    }
-    
-    // Only set the timer if a user is logged in
-    if (user) {
-      const timer = setTimeout(() => {
-        console.log("Session expired due to inactivity");
-        signOut(); // Auto sign out after inactivity
-        toast({
-          title: "Session Expired",
-          description: "You've been signed out due to inactivity",
-        });
-      }, INACTIVITY_TIMEOUT);
+  // Add a more aggressive force sign out method
+  const forceSignOut = async () => {
+    try {
+      console.log("[AuthContext] Force sign out initiated");
+      setUser(null);
+      setUserRole(null);
       
-      setInactivityTimer(timer);
-    }
-  }, [user, inactivityTimer]);
-
-  // Clear the timer when component unmounts
-  useEffect(() => {
-    return () => {
-      if (inactivityTimer) {
-        clearTimeout(inactivityTimer);
-      }
-    };
-  }, [inactivityTimer]);
-
-  useEffect(() => {
-    const initializeAuth = async () => {
-      await refreshUser();
-      setInitialized(true);
+      // Clear local storage directly to ensure session is removed
+      localStorage.removeItem('supabase.auth.token');
+      sessionStorage.removeItem('supabase.auth.token');
       
-      // Initialize inactivity timer on first load
-      resetInactivityTimer();
-    };
-
-    initializeAuth();
-
-    // Subscribe to auth state changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        refreshUser();
-        resetInactivityTimer();
-      } else {
-        setUser(null);
-        setUserRole(null);
-      }
-    });
-
-    return () => {
-      subscription?.unsubscribe();
-    };
-  }, [refreshUser, resetInactivityTimer]);
-
-  const contextValue: AuthContextProps = {
-    user,
-    userRole,
-    session: null, // Fixed: removed the invalid reference
-    isLoading,
-    initialized,
-    login,
-    signUp,
-    signOut,
-    forceSignOut,
-    refreshUser,
-    updateUser,
-    resetInactivityTimer,
+      // Attempt normal sign out
+      await supabase.auth.signOut();
+      
+      // Force page reload to clear any cached state
+      window.location.href = '/';
+      
+      return Promise.resolve();
+    } catch (error) {
+      console.error("[AuthContext] Force sign out error:", error);
+      
+      // Even if there's an error, redirect to home
+      window.location.href = '/';
+      
+      return Promise.resolve();
+    }
   };
 
+  if (!authInitialized) {
+    console.log("[AuthContext] Auth not initialized yet, returning loading state");
+    return (
+      <AuthContext.Provider value={{ 
+        user: null, 
+        userRole: null, 
+        isLoading: true, 
+        signOut: async () => {}, 
+        resetInactivityTimer: () => {}, 
+        forceSignOut: async () => {},
+        authError: null,
+        retryRoleFetch: async () => {},
+      }}>
+        {children}
+      </AuthContext.Provider>
+    );
+  }
+
+  console.log("[AuthContext] Rendering provider with state:", { 
+    userId: user?.id, 
+    userRole, 
+    isLoading,
+    hasError: authError !== null
+  });
+
   return (
-    <AuthContext.Provider value={contextValue}>
+    <AuthContext.Provider value={{ 
+      user, 
+      userRole, 
+      isLoading, 
+      signOut, 
+      resetInactivityTimer, 
+      forceSignOut,
+      authError,
+      retryRoleFetch
+    }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
 export const useAuth = () => {
-  return useContext(AuthContext);
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
 };

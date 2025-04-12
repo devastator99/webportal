@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -12,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { featureFlags } from "@/config/features";
 import { useIsIPad } from "@/hooks/use-mobile";
@@ -19,11 +21,11 @@ import {
   Calendar, 
   FileText, 
   Activity, 
-  ArrowRight,
-  Utensils,
-  Dumbbell,
+  Dumbbell, 
+  Utensils, 
+  Moon, 
   Brain,
-  Moon
+  ArrowRight
 } from "lucide-react";
 import { PatientHealthTips } from "./patient/PatientHealthTips";
 import { MedicalRecordsList } from './patient/MedicalRecordsList';
@@ -87,22 +89,14 @@ export const PatientDashboard = () => {
         
       let latestPrescription = null;
       if (doctorAssignment?.doctor_id) {
-        // Using the database RPC function to fetch prescriptions, which should work for patient Prakash
-        const { data: prescriptions, error: prescriptionError } = await supabase
+        const { data: prescriptions } = await supabase
           .rpc("get_patient_prescriptions", {
             p_patient_id: user.id,
             p_doctor_id: doctorAssignment.doctor_id
           });
           
-        if (prescriptionError) {
-          console.error("Error fetching prescriptions:", prescriptionError);
-        }
-        
         if (prescriptions && prescriptions.length > 0) {
           latestPrescription = prescriptions[0];
-          console.log("Retrieved latest prescription:", latestPrescription);
-        } else {
-          console.log("No prescriptions found for patient:", user.id);
         }
       }
 
@@ -138,18 +132,6 @@ export const PatientDashboard = () => {
     ? "container mx-auto pt-20 pb-6 px-4 space-y-6 max-w-[95%]" 
     : "container mx-auto pt-20 pb-6 px-6 space-y-6";
 
-  // Helper function to get the correct icon for each health plan type
-  const getIconForType = (type) => {
-    switch (type) {
-      case 'food': return <Utensils className="h-4 w-4 text-green-500" />;
-      case 'exercise': return <Dumbbell className="h-4 w-4 text-blue-500" />;
-      case 'meditation': 
-      case 'mindfulness': return <Brain className="h-4 w-4 text-purple-500" />;
-      case 'sleep': return <Moon className="h-4 w-4 text-indigo-500" />;
-      default: return <Activity className="h-4 w-4 text-gray-500" />;
-    }
-  };
-
   return (
     <div className={containerClasses}>
       <DashboardHeader />
@@ -157,6 +139,53 @@ export const PatientDashboard = () => {
       {/* Stats Row - Enhanced for iPad */}
       <div className={isIPad ? "overflow-x-auto pb-2" : ""}>
         <PatientStats />
+      </div>
+
+      {/* Health Progress Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col items-center text-center space-y-2">
+              <Dumbbell className="h-8 w-8 text-blue-500 mb-1" />
+              <h3 className="font-medium text-sm">Physical Activity</h3>
+              <Progress value={75} className="h-2 w-full" />
+              <p className="text-xs text-muted-foreground">75% of goal</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col items-center text-center space-y-2">
+              <Utensils className="h-8 w-8 text-green-500 mb-1" />
+              <h3 className="font-medium text-sm">Nutrition</h3>
+              <Progress value={60} className="h-2 w-full" />
+              <p className="text-xs text-muted-foreground">60% of goal</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col items-center text-center space-y-2">
+              <Moon className="h-8 w-8 text-indigo-500 mb-1" />
+              <h3 className="font-medium text-sm">Sleep</h3>
+              <Progress value={85} className="h-2 w-full" />
+              <p className="text-xs text-muted-foreground">85% of goal</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col items-center text-center space-y-2">
+              <Brain className="h-8 w-8 text-purple-500 mb-1" />
+              <h3 className="font-medium text-sm">Mindfulness</h3>
+              <Progress value={50} className="h-2 w-full" />
+              <p className="text-xs text-muted-foreground">50% of goal</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Main Content - Use collapsible sections with lazy loading */}
@@ -261,7 +290,10 @@ export const PatientDashboard = () => {
                   {patientData.healthPlanItems.slice(0, 3).map((item, index) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        {getIconForType(item.type)}
+                        {item.type === 'food' && <Utensils className="h-4 w-4 text-green-500" />}
+                        {item.type === 'exercise' && <Dumbbell className="h-4 w-4 text-blue-500" />}
+                        {item.type === 'meditation' && <Brain className="h-4 w-4 text-purple-500" />}
+                        {item.type === 'sleep' && <Moon className="h-4 w-4 text-indigo-500" />}
                         <p className="text-sm">{item.description}</p>
                       </div>
                       <Badge variant="outline">{item.scheduled_time}</Badge>

@@ -1,4 +1,3 @@
-
 /* Base styles */
 #root {
   max-width: 100%;
@@ -162,7 +161,6 @@
   background-color: #ffffff;
   font-size: 12px;
   font-weight: 500;
-  border-bottom: 1px solid #f0f0f0;
 }
 
 .status-bar-time {
@@ -189,7 +187,6 @@
   z-index: 40;
   max-width: 430px;
   margin: 0 auto;
-  border-top: 1px solid #E5DEFF;
 }
 
 /* On iPad, allow full width navigation */
@@ -210,26 +207,10 @@
   transition: color 0.2s ease;
   width: 60px;  /* Set fixed width */
   padding: 8px 0;  /* Add padding */
-  background: transparent;
-  border: none;
-  outline: none;
-  position: relative;
 }
 
 .mobile-nav-item.active {
   color: #9b87f5;
-}
-
-.mobile-nav-item.active::after {
-  content: '';
-  position: absolute;
-  bottom: -1px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 16px;
-  height: 2px;
-  background-color: #9b87f5;
-  border-radius: 2px;
 }
 
 .mobile-nav-icon {
@@ -241,22 +222,20 @@
   stroke-width: 2.5;
 }
 
-/* Content area - NEW IMPROVED STYLES */
+/* Content area */
 .mobile-content {
   padding: 16px;
-  padding-top: 24px; /* Fix thin line by reducing padding */
+  padding-top: 85px;
   padding-bottom: calc(var(--bottom-nav-height) + 16px);
   overflow-y: auto;
   height: calc(100vh - 24px);
   -webkit-overflow-scrolling: touch;
-  background-color: #f8f9fa; /* Ensure background consistency */
-  position: relative; /* Added for better positioning */
 }
 
 /* Desktop content padding adjustments */
 @media screen and (min-width: 1025px) {
   .mobile-content {
-    padding-top: 70px; /* Adjusted to account for navbar height */
+    padding-top: 100px;
   }
 }
 
@@ -344,24 +323,4 @@
   opacity: 0;
   transform: translateX(-100%);
   transition: opacity 300ms, transform 300ms;
-}
-
-/* NEW: Improved content spacing for patient pages */
-.container.mx-auto {
-  position: relative;
-  z-index: 10;
-}
-
-/* Remove traces of the previous page-specific containers */
-.prescription-page-container,
-.habits-page-container {
-  /* No specific styles needed - using the container class instead */
-}
-
-/* Ensure full content loading */
-.loading-container {
-  min-height: 70vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
