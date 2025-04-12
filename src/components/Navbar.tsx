@@ -24,22 +24,18 @@ export const Navbar = () => {
   const isAlternativeDashboard = location.pathname === '/dashboard-alt';
   const isAuthPage = location.pathname === '/auth';
 
-  // Enhanced navbar styling with improved visibility and spacing
   const navbarClass = "fixed top-0 w-full bg-white dark:bg-gray-900 z-50 border-b border-[#D6BCFA] shadow-lg";
 
   useEffect(() => {
     resetInactivityTimer();
   }, [location.pathname, resetInactivityTimer]);
 
-  // Close mobile menu when changing routes
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
-  // Use either mobile or iPad display logic
   const useResponsiveDisplay = isMobile || isIPad;
 
-  // Simplified loading state
   if (isLoading && !isSigningOut) {
     return (
       <nav className={navbarClass}>
@@ -55,10 +51,8 @@ export const Navbar = () => {
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <Logo />
         
-        {/* Mobile/iPad menu button */}
         {useResponsiveDisplay && (
           <div className="flex items-center gap-2">
-            {/* Always show login button for mobile/iPad when menu is closed and user is not logged in */}
             {!user && (
               <div className="flex-shrink-0 mr-2">
                 <LoginDialog />
@@ -74,7 +68,6 @@ export const Navbar = () => {
           </div>
         )}
         
-        {/* Desktop navigation */}
         <div className={`${useResponsiveDisplay ? 'hidden' : 'flex'} items-center gap-4`}>
           {user && <DashboardButton />}
           {user && <DoctorActions />}
@@ -90,7 +83,6 @@ export const Navbar = () => {
           />}
         </div>
         
-        {/* Mobile/iPad navigation */}
         {useResponsiveDisplay && mobileMenuOpen && (
           <div className="absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-b border-[#D6BCFA] shadow-lg z-50 py-4 px-4">
             <div className="flex flex-col gap-3">

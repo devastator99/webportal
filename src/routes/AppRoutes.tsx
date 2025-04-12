@@ -8,16 +8,17 @@ import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 import DummyPage from "@/pages/DummyPage";
 import PatientHabitsPage from "@/pages/PatientHabitsPage";
 import PatientPrescriptionsPage from "@/pages/PatientPrescriptionsPage";
+import LandingPage from "@/pages/LandingPage";
+import Auth from "@/pages/Auth";
+import Dashboard from "@/pages/Dashboard";
+import AlternativeDashboard from "@/pages/AlternativeDashboard";
+import Admin from "@/pages/Admin";
+import PatientsView from "@/pages/PatientsView";
+import ChatPage from "@/pages/ChatPage";
+import MessageSearchPage from "@/pages/MessageSearchPage";
 
 // Use a dummy page for missing components
-const HomePage = () => <DummyPage title="Home Page" />;
 const NotFoundPage = () => <DummyPage title="Not Found" description="The page you are looking for does not exist." />;
-const Dashboard = () => <DummyPage title="Dashboard" />;
-const AuthPage = () => <DummyPage title="Authentication" />;
-const AlternativeDashboard = () => <DummyPage title="Alternative Dashboard" />;
-const ChatPage = () => <DummyPage title="Chat" />;
-const PatientsPage = () => <DummyPage title="Patients" />;
-const AdminPage = () => <DummyPage title="Admin" />;
 const PatientDetailPage = () => <DummyPage title="Patient Details" />;
 const PatientMedicalRecordsPage = () => <DummyPage title="Patient Medical Records" />;
 const PatientAppointmentsPage = () => <DummyPage title="Patient Appointments" />;
@@ -56,6 +57,10 @@ export function AppRoutes() {
 
   return (
     <Routes>
+      {/* Landing page and authentication */}
+      <Route path="/" element={<LandingPage />} />
+      <Route path="/auth" element={<Auth />} />
+      
       {/* Patient specific routes - highest priority for direct access */}
       <Route 
         path="/patient/prescriptions" 
@@ -78,10 +83,6 @@ export function AppRoutes() {
         }
       />
       
-      {/* Basic routes */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/auth" element={<AuthPage />} />
-      
       {/* Protected routes that require authentication */}
       <Route path="/dashboard/*" element={
         <ProtectedRoute>
@@ -97,18 +98,23 @@ export function AppRoutes() {
       {/* Role-protected routes */}
       <Route path="/admin/*" element={
         <RoleProtectedRoute allowedRoles={["administrator"]}>
-          <AdminPage />
+          <Admin />
         </RoleProtectedRoute>
       } />
       <Route path="/patients" element={
         <RoleProtectedRoute allowedRoles={["doctor", "nutritionist", "administrator", "reception"]}>
-          <PatientsPage />
+          <PatientsView />
         </RoleProtectedRoute>
       } />
       <Route path="/chat" element={
         <ProtectedRoute>
           <ChatPage />
         </ProtectedRoute>
+      } />
+      <Route path="/message-search" element={
+        <RoleProtectedRoute allowedRoles={["administrator", "doctor"]}>
+          <MessageSearchPage />
+        </RoleProtectedRoute>
       } />
       
       {/* Protected routes */}
