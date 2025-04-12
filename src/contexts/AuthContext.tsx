@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,6 +40,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -147,6 +149,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       await supabase.auth.signOut();
       setUser(null);
       setUserRole(null);
+      setSession(null);
       navigate('/auth');
     } catch (error: any) {
       toast({
@@ -165,6 +168,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       
       const { data: { user: currentUser } } = await supabase.auth.getUser();
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      
+      setSession(currentSession);
       
       if (currentUser) {
         setUser(currentUser);
@@ -246,8 +252,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     // Subscribe to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
       if (session?.user) {
-        refreshUser();
+        setUser(session.user);
+        fetchUserRole(session.user.id).then(role => {
+          setUserRole(role);
+        });
       } else {
         setUser(null);
         setUserRole(null);
@@ -262,7 +272,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const contextValue: AuthContextProps = {
     user,
     userRole,
-    session: supabase.auth.session(),
+    session,
     isLoading,
     initialized,
     login,

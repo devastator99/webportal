@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +27,7 @@ interface Prescription {
   doctor_id: string;
   doctor_first_name: string;
   doctor_last_name: string;
+  patient_id: string;
 }
 
 const PatientPrescriptionsPage = () => {
@@ -69,8 +69,7 @@ const PatientPrescriptionsPage = () => {
         
         console.log("Found doctor assignment:", assignment.doctor_id);
         
-        // Directly call the function that bypasses RLS instead of using rpc
-        // which was causing the infinite recursion
+        // Use the view that bypasses the recursion issue
         const { data: prescriptionsData, error } = await supabase
           .from('patient_prescriptions')
           .select('*')
@@ -87,7 +86,7 @@ const PatientPrescriptionsPage = () => {
         }
         
         console.log(`Fetched ${prescriptionsData.length} prescriptions for patient ${user.id}`);
-        return prescriptionsData as Prescription[];
+        return prescriptionsData as unknown as Prescription[];
       } catch (error) {
         console.error("Error in prescription fetching:", error);
         throw error;
@@ -97,7 +96,7 @@ const PatientPrescriptionsPage = () => {
     retry: 2,
     retryDelay: 1000
   });
-  
+
   const generatePdf = async (prescription: Prescription) => {
     try {
       const element = document.getElementById('prescription-pdf-content');
@@ -371,7 +370,6 @@ const PatientPrescriptionsPage = () => {
                             </Button>
                             <Button
                               size="sm"
-                              variant="secondary"
                               onClick={() => {
                                 setSelectedPrescription(prescription);
                                 generatePdf(prescription);
@@ -390,7 +388,6 @@ const PatientPrescriptionsPage = () => {
               </Card>
             </TabsContent>
             
-            {/* New Table View Tab */}
             <TabsContent value="table">
               <Card>
                 <CardHeader>
