@@ -1,4 +1,4 @@
-
+import React, { useEffect, useState } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { NoRoleWarning } from "@/components/auth/NoRoleWarning";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
@@ -7,14 +7,13 @@ import { DoctorDashboard } from "@/components/dashboard/DoctorDashboard";
 import { NutritionistDashboard } from "@/components/dashboard/NutritionistDashboard";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { ReceptionDashboard } from "@/components/dashboard/ReceptionDashboard";
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthDebugger } from "@/components/auth/AuthDebugger";
 
 const Dashboard = () => {
   const { user, userRole, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
-  const [showDebugger, setShowDebugger] = React.useState(false);
+  const [showDebugger, setShowDebugger] = useState(false);
 
   console.log("Dashboard render:", { 
     user: user?.id, 
