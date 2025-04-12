@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,20 +43,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Function to fetch user role using the security definer function
+  // Simplified function to fetch user role directly from the user_roles table
   const fetchUserRole = async (userId: string) => {
     try {
-      // Use our security definer function to safely get user role
-      const { data, error } = await supabase.rpc('get_user_role_safe', {
-        p_user_id: userId
-      });
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
       
       if (error) {
         console.error('Error fetching user role:', error);
         return null;
       }
       
-      return data;
+      return data.role;
     } catch (error) {
       console.error('Error in fetchUserRole:', error);
       return null;
@@ -159,7 +161,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Update the refreshUser function to use our safe role fetching
+  // Update the refreshUser function to use direct table query
   const refreshUser = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -169,7 +171,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (currentUser) {
         setUser(currentUser);
         
-        // Fetch user role using the security definer function
+        // Fetch user role directly from the user_roles table
         const role = await fetchUserRole(currentUser.id);
         setUserRole(role);
         
