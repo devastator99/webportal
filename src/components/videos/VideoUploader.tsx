@@ -4,11 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, UserRole } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { UserRole } from "@/integrations/supabase/client";
 
 export const VideoUploader = () => {
   const [title, setTitle] = useState("");
@@ -47,8 +46,10 @@ export const VideoUploader = () => {
     try {
       setUploading(true);
 
-      // Cast userRole to UserRole type for type safety
-      const typedRole = userRole as UserRole;
+      // Ensure userRole is a valid UserRole type
+      if (!userRole) {
+        throw new Error("User role is not defined");
+      }
 
       const { error: dbError } = await supabase
         .from('knowledge_videos')
@@ -57,7 +58,7 @@ export const VideoUploader = () => {
           description,
           video_path: youtubeUrl,
           uploaded_by: user.id,
-          uploader_role: typedRole,
+          uploader_role: userRole,
           is_youtube: true
         });
 

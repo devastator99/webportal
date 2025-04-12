@@ -46,7 +46,7 @@ const PatientPrescriptionsPage = () => {
       console.log("Fetching prescriptions for user:", user.id);
       
       try {
-        // Get prescriptions using RPC instead of the view
+        // Get prescriptions using RPC without the doctor_id parameter
         const { data: prescriptionsData, error } = await supabase.rpc(
           'get_patient_prescriptions',
           { p_patient_id: user.id }

@@ -1,13 +1,13 @@
 
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, UserRole } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
 
 interface AuthContextProps {
   user: User | null;
-  userRole: string | null;
+  userRole: UserRole | null;
   session: Session | null;
   isLoading: boolean;
   initialized: boolean;
@@ -41,7 +41,7 @@ const AuthContext = createContext<AuthContextProps>({
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [userRole, setUserRole] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
   const navigate = useNavigate();
@@ -65,7 +65,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return null;
       }
       
-      return data.role;
+      return data.role as UserRole;
     } catch (error) {
       console.error('Error in fetchUserRole:', error);
       return null;
@@ -118,12 +118,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       if (data.user) {
-        // Create user role entry - handle as a single object, not an array
+        // Create user role entry - using the role as a valid UserRole type
         const { error: roleError } = await supabase
           .from('user_roles')
           .insert({
             user_id: data.user.id,
-            role: role
+            role: role as UserRole
           });
 
         if (roleError) {
@@ -177,21 +177,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   // Add a force sign out method for admins
-  const forceSignOut = async () => {
+  const forceSignOut = async (): Promise<void> => {
     setIsLoading(true);
     try {
       await supabase.auth.signOut({ scope: 'global' });
       setUser(null);
       setUserRole(null);
       navigate('/auth');
-      return { success: true };
     } catch (error: any) {
       toast({
         title: "Error",
         description: error.message,
         variant: "destructive",
       });
-      return { error: error.message };
+      throw error; // Propagate the error
     } finally {
       setIsLoading(false);
     }
@@ -334,7 +333,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const contextValue: AuthContextProps = {
     user,
     userRole,
-    session: null, // Fixed: removed the invalid reference to supabase.auth.session()
+    session: null, // Fixed: removed the invalid reference
     isLoading,
     initialized,
     login,
