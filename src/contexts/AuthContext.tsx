@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
 import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -51,11 +52,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Function to fetch user role using a direct query
+  // Function to fetch user role directly from the user_roles table
   const fetchUserRole = async (userId: string) => {
     try {
       console.log("Fetching user role for:", userId);
-      // Use a direct query from user_roles table
+      // Direct query from user_roles table
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
@@ -218,7 +219,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Update the refreshUser function to use our direct query and add more logging
+  // Revert to the previous implementation of refreshUser that directly queries the user_roles table
   const refreshUser = useCallback(async () => {
     try {
       setIsLoading(true);
@@ -233,7 +234,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         console.log("Found authenticated user:", currentUser.id);
         setUser(currentUser);
         
-        // Fetch user role using the direct query function
+        // Direct query from user_roles table
         const role = await fetchUserRole(currentUser.id);
         console.log("Fetched user role:", role);
         

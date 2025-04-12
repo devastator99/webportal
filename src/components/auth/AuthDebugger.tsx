@@ -25,7 +25,7 @@ export const AuthDebugger = () => {
       <CardContent className="space-y-4">
         <div>
           <p className="text-sm font-medium mb-1">User Status:</p>
-          <Badge variant={user ? "success" : "destructive"}>
+          <Badge variant={user ? "default" : "destructive"}>
             {user ? "Authenticated" : "Not Authenticated"}
           </Badge>
         </div>
