@@ -14,7 +14,8 @@ interface NotificationPreferences {
   quiet_hours_end?: string;
 }
 
-export interface PushSubscription {
+// Define our custom subscription type that matches what we store in the database
+export interface PushSubscriptionData {
   endpoint: string;
   keys: {
     p256dh: string;
@@ -26,7 +27,7 @@ export const useNotifications = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [vapidPublicKey, setVapidPublicKey] = useState<string | null>(null);
-  const [subscription, setSubscription] = useState<PushSubscription | null>(null);
+  const [subscription, setSubscription] = useState<PushSubscriptionData | null>(null);
   const [serviceWorkerRegistration, setServiceWorkerRegistration] = useState<ServiceWorkerRegistration | null>(null);
   const [permissionState, setPermissionState] = useState<NotificationPermission | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -207,15 +208,24 @@ export const useNotifications = () => {
         });
       }
       
+      // Convert browser PushSubscription to our PushSubscriptionData type
+      const subscriptionJson = currentSubscription.toJSON();
+      const subscriptionData: PushSubscriptionData = {
+        endpoint: currentSubscription.endpoint,
+        keys: {
+          p256dh: subscriptionJson.keys.p256dh,
+          auth: subscriptionJson.keys.auth
+        }
+      };
+      
       // Save to state
-      setSubscription(currentSubscription);
+      setSubscription(subscriptionData);
       
       // Save to database
-      const jsonSubscription = currentSubscription.toJSON();
       const { error } = await supabase.rpc('upsert_push_subscription', {
-        p_endpoint: currentSubscription.endpoint,
-        p_p256dh: jsonSubscription.keys.p256dh,
-        p_auth: jsonSubscription.keys.auth,
+        p_endpoint: subscriptionData.endpoint,
+        p_p256dh: subscriptionData.keys.p256dh,
+        p_auth: subscriptionData.keys.auth,
         p_user_agent: navigator.userAgent,
       });
       
@@ -246,31 +256,31 @@ export const useNotifications = () => {
     setIsLoading(true);
     
     try {
-      // Get subscription
-      let currentSubscription = subscription;
-      if (!currentSubscription && serviceWorkerRegistration) {
-        currentSubscription = await serviceWorkerRegistration.pushManager.getSubscription();
+      // Get browser's push subscription
+      let currentBrowserSubscription = null;
+      if (serviceWorkerRegistration) {
+        currentBrowserSubscription = await serviceWorkerRegistration.pushManager.getSubscription();
       }
       
-      if (currentSubscription) {
-        // Unsubscribe from the browser
-        await currentSubscription.unsubscribe();
-        
-        // Delete from database
-        if (currentSubscription.endpoint) {
-          await supabase.rpc('delete_push_subscription', {
-            p_endpoint: currentSubscription.endpoint,
-          });
-        }
-        
-        setSubscription(null);
-        setIsSubscribed(false);
-        
-        toast({
-          title: 'Notifications Disabled',
-          description: 'You have unsubscribed from notifications',
+      // If we have a browser subscription, unsubscribe from it
+      if (currentBrowserSubscription) {
+        await currentBrowserSubscription.unsubscribe();
+      }
+      
+      // If we have our subscription data, delete it from the database
+      if (subscription && subscription.endpoint) {
+        await supabase.rpc('delete_push_subscription', {
+          p_endpoint: subscription.endpoint,
         });
       }
+      
+      setSubscription(null);
+      setIsSubscribed(false);
+      
+      toast({
+        title: 'Notifications Disabled',
+        description: 'You have unsubscribed from notifications',
+      });
     } catch (error) {
       console.error('Error unsubscribing from push notifications:', error);
       toast({
@@ -349,11 +359,27 @@ export const useNotifications = () => {
     if (!user || !serviceWorkerRegistration) return;
     
     try {
-      const subscription = await serviceWorkerRegistration.pushManager.getSubscription();
-      setSubscription(subscription);
-      setIsSubscribed(!!subscription);
+      const browserSubscription = await serviceWorkerRegistration.pushManager.getSubscription();
       
-      return !!subscription;
+      if (browserSubscription) {
+        // Convert browser PushSubscription to our PushSubscriptionData format
+        const subscriptionJson = browserSubscription.toJSON();
+        const subscriptionData: PushSubscriptionData = {
+          endpoint: browserSubscription.endpoint,
+          keys: {
+            p256dh: subscriptionJson.keys.p256dh,
+            auth: subscriptionJson.keys.auth
+          }
+        };
+        
+        setSubscription(subscriptionData);
+        setIsSubscribed(true);
+        return true;
+      } else {
+        setSubscription(null);
+        setIsSubscribed(false);
+        return false;
+      }
     } catch (error) {
       console.error('Error checking subscription status:', error);
       return false;

@@ -25,10 +25,10 @@ export const AppRoutes = () => {
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<Auth />} />
-        <Route path="/dummy" element={<DummyPage />} />
+        <Route path="/dummy" element={<DummyPage title="Dummy Page" description="This is a placeholder page" />} />
 
         {/* Protected routes (require authentication) */}
-        <Route element={<ProtectedRoute />}>
+        <Route element={<ProtectedRoute>{/* Children passed as prop */}</ProtectedRoute>}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/alt-dashboard" element={<AlternativeDashboard />} />
           <Route path="/chat" element={<ChatPage />} />
@@ -39,11 +39,11 @@ export const AppRoutes = () => {
         </Route>
 
         {/* Role-specific routes */}
-        <Route element={<RoleProtectedRoute allowedRoles={['doctor', 'administrator']} />}>
+        <Route element={<RoleProtectedRoute allowedRoles={['doctor', 'administrator']}>{/* Children passed as prop */}</RoleProtectedRoute>}>
           <Route path="/patients" element={<PatientsView />} />
         </Route>
 
-        <Route element={<RoleProtectedRoute allowedRoles={['administrator']} />}>
+        <Route element={<RoleProtectedRoute allowedRoles={['administrator']}>{/* Children passed as prop */}</RoleProtectedRoute>}>
           <Route path="/admin" element={<Admin />} />
         </Route>
 
