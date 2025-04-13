@@ -1,6 +1,6 @@
 
 import { lazy, Suspense } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, Outlet } from 'react-router-dom';
 import LandingPage from '../pages/LandingPage';
 import Dashboard from '../pages/Dashboard';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
@@ -25,10 +25,13 @@ export const AppRoutes = () => {
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<Auth />} />
-        <Route path="/dummy" element={<DummyPage title="Dummy Page" description="This is a placeholder page" />} />
+        <Route 
+          path="/dummy" 
+          element={<DummyPage title="Dummy Page" description="This is a placeholder page" />} 
+        />
 
         {/* Protected routes (require authentication) */}
-        <Route element={<ProtectedRoute>{/* Children passed as prop */}</ProtectedRoute>}>
+        <Route element={<ProtectedRoute>{children => children}</ProtectedRoute>}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/alt-dashboard" element={<AlternativeDashboard />} />
           <Route path="/chat" element={<ChatPage />} />
@@ -39,11 +42,23 @@ export const AppRoutes = () => {
         </Route>
 
         {/* Role-specific routes */}
-        <Route element={<RoleProtectedRoute allowedRoles={['doctor', 'administrator']}>{/* Children passed as prop */}</RoleProtectedRoute>}>
+        <Route 
+          element={
+            <RoleProtectedRoute allowedRoles={['doctor', 'administrator']}>
+              {children => children}
+            </RoleProtectedRoute>
+          }
+        >
           <Route path="/patients" element={<PatientsView />} />
         </Route>
 
-        <Route element={<RoleProtectedRoute allowedRoles={['administrator']}>{/* Children passed as prop */}</RoleProtectedRoute>}>
+        <Route 
+          element={
+            <RoleProtectedRoute allowedRoles={['administrator']}>
+              {children => children}
+            </RoleProtectedRoute>
+          }
+        >
           <Route path="/admin" element={<Admin />} />
         </Route>
 

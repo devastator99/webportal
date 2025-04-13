@@ -9,7 +9,7 @@ const corsHeaders = {
 }
 
 // Get VAPID public key from environment
-const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY') || ''
+const VAPID_PUBLIC_KEY = 'BObz8nKixHXF_PxdcJJCDE5joZ3NowjQi6LST2SRl_R_P8DkV6lPmaf-b6Sd62aDyeEVWrV-R4lR9YjXdkqFBQE'
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
