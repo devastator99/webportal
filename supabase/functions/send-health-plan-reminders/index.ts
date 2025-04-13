@@ -35,81 +35,125 @@ serve(async (req: Request) => {
       .select(`
         id,
         type,
-        description,
         scheduled_time,
+        description,
         frequency,
+        duration,
         patient_id,
-        reminders_enabled
+        nutritionist_id
       `)
-      .eq('reminders_enabled', true)
-      .filter('scheduled_time', 'ilike', `${currentTimeString}%`);
+      .or(`scheduled_time.ilike.%${currentTimeString}%,scheduled_time.ilike.%${currentHour.toString().padStart(2, '0')}:${Math.floor(currentMinute / 5) * 5}%`);
     
     if (healthPlanError) {
       console.error("Error fetching health plan items:", healthPlanError);
-      throw healthPlanError;
+      return new Response(
+        JSON.stringify({ error: "Failed to fetch health plan items" }),
+        { 
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
     }
     
-    console.log(`Found ${healthPlanItems?.length || 0} health plan items scheduled for current time`);
+    console.log(`Found ${healthPlanItems?.length || 0} health plan items for the current time`);
     
+    if (!healthPlanItems || healthPlanItems.length === 0) {
+      return new Response(
+        JSON.stringify({ message: "No reminders to send at this time" }),
+        { 
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+    
+    // Group health plan items by patient for consolidated messages
+    const patientItemsMap: Record<string, any[]> = {};
+    healthPlanItems.forEach(item => {
+      if (!patientItemsMap[item.patient_id]) {
+        patientItemsMap[item.patient_id] = [];
+      }
+      patientItemsMap[item.patient_id].push(item);
+    });
+    
+    // Process each patient's reminders
     const results = [];
-    
-    // Process each health plan item
-    for (const item of healthPlanItems || []) {
+    for (const [patientId, items] of Object.entries(patientItemsMap)) {
       try {
-        // Get the patient's care team room
-        const { data: roomData, error: roomError } = await supabaseAdmin
-          .from('chat_rooms')
-          .select('id')
-          .eq('patient_id', item.patient_id)
-          .eq('room_type', 'care_team')
+        // Get patient info
+        const { data: patient, error: patientError } = await supabaseAdmin
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', patientId)
           .single();
         
-        if (roomError) {
-          console.error(`Error finding care team room for patient ${item.patient_id}:`, roomError);
-          results.push({
-            item_id: item.id,
-            status: 'error',
-            message: `Error finding care team room: ${roomError.message}`
-          });
+        if (patientError || !patient) {
+          console.error(`Error getting patient details for ID ${patientId}:`, patientError);
           continue;
         }
         
-        // Create the reminder message
-        const reminderMessage = `REMINDER: It's time for your ${item.type} activity: ${item.description}`;
+        // Format items for reminder message
+        const typeEmojis = {
+          'food': '🍎',
+          'exercise': '🏃‍♂️',
+          'medication': '💊'
+        };
         
-        // Send the reminder as an AI message in the care team chat
-        const { data: messageData, error: messageError } = await supabaseAdmin
-          .from('room_messages')
-          .insert({
-            room_id: roomData.id,
-            sender_id: '00000000-0000-0000-0000-000000000000', // AI bot ID
+        let reminderMessage = `Hello ${patient.first_name}, here are your health plan reminders:\n\n`;
+        
+        items.forEach(item => {
+          const emoji = typeEmojis[item.type as keyof typeof typeEmojis] || '✅';
+          reminderMessage += `${emoji} **${item.type.toUpperCase()}**: ${item.description}\n`;
+          if (item.frequency) {
+            reminderMessage += `   Frequency: ${item.frequency}\n`;
+          }
+          if (item.duration) {
+            reminderMessage += `   Duration: ${item.duration}\n`;
+          }
+          reminderMessage += '\n';
+        });
+        
+        reminderMessage += "Remember to follow your health plan regularly for the best results. If you have any questions, please message your care team.";
+        
+        // Send message via AI assistant 
+        const response = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-ai-care-team-message`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`
+          },
+          body: JSON.stringify({
+            patient_id: patientId,
+            title: "Health Plan Reminder",
             message: reminderMessage,
-            is_ai_message: true
+            message_type: "health_plan_reminder"
           })
-          .select()
-          .single();
+        });
         
-        if (messageError) {
-          console.error(`Error sending reminder message for item ${item.id}:`, messageError);
+        const result = await response.json();
+        
+        if (response.ok) {
+          console.log(`Successfully sent reminder to patient ${patientId}`);
           results.push({
-            item_id: item.id,
-            status: 'error',
-            message: `Error sending reminder: ${messageError.message}`
+            patient_id: patientId,
+            success: true,
+            items_count: items.length,
+            message_id: result.message_id
           });
         } else {
-          console.log(`Successfully sent reminder for item ${item.id} to room ${roomData.id}`);
+          console.error(`Error sending reminder to patient ${patientId}:`, result.error);
           results.push({
-            item_id: item.id,
-            status: 'success',
-            message_id: messageData.id
+            patient_id: patientId,
+            success: false,
+            error: result.error
           });
         }
       } catch (error) {
-        console.error(`Error processing health plan item ${item.id}:`, error);
+        console.error(`Error processing patient ${patientId}:`, error);
         results.push({
-          item_id: item.id,
-          status: 'error',
-          message: `Exception: ${error instanceof Error ? error.message : String(error)}`
+          patient_id: patientId,
+          success: false,
+          error: 'Internal processing error'
         });
       }
     }
@@ -117,16 +161,23 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        processed: healthPlanItems?.length || 0,
-        results
+        results,
+        timestamp: new Date().toISOString(),
+        reminders_processed: results.length
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { 
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
     );
   } catch (error) {
-    console.error("Error in send-health-plan-reminders:", error);
+    console.error('Error in health plan reminder function:', error);
     return new Response(
-      JSON.stringify({ error: "Internal server error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: 'Internal server error' }),
+      { 
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
     );
   }
 });

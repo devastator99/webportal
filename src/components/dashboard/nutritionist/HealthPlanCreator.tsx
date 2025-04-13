@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -199,12 +200,13 @@ export const HealthPlanCreator = ({ patientId }: { patientId: string }) => {
         description: "Health plan saved successfully",
       });
 
-      // Notify patient via edge function
+      // Notify patient via edge function with the entire item list
       try {
         await supabase.functions.invoke('send-health-plan-notification', {
           body: { 
             patientId: patientId,
-            nutritionistId: user.id
+            nutritionistId: user.id,
+            planItems: items
           }
         });
       } catch (notifyError) {
