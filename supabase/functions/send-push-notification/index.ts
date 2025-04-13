@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.21.0'
 import webpush from 'https://esm.sh/web-push@3.6.6'
 
@@ -14,7 +13,7 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || ''
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || ''
 const VAPID_PUBLIC_KEY = 'BObz8nKixHXF_PxdcJJCDE5joZ3NowjQi6LST2SRl_R_P8DkV6lPmaf-b6Sd62aDyeEVWrV-R4lR9YjXdkqFBQE'
 const VAPID_PRIVATE_KEY = 'TTkFcWYkXLYPRmRILvtsXDFt1792bGLKQ2Y2ZcmMvGo'
-const VAPID_SUBJECT = 'mailto:contact@anubhuti.com'
+const VAPID_SUBJECT = 'mailto:mihir.chandra@gmail.com'
 
 // Create Supabase client with service role key for admin access
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)

@@ -10,6 +10,7 @@ const corsHeaders = {
 
 // Get VAPID public key from environment
 const VAPID_PUBLIC_KEY = 'BObz8nKixHXF_PxdcJJCDE5joZ3NowjQi6LST2SRl_R_P8DkV6lPmaf-b6Sd62aDyeEVWrV-R4lR9YjXdkqFBQE'
+const VAPID_SUBJECT = 'mailto:mihir.chandra@gmail.com'
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
@@ -43,7 +44,10 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ vapidPublicKey: VAPID_PUBLIC_KEY }),
+      JSON.stringify({ 
+        vapidPublicKey: VAPID_PUBLIC_KEY,
+        vapidSubject: VAPID_SUBJECT 
+      }),
       {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
