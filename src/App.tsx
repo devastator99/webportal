@@ -12,6 +12,7 @@ import React, { useEffect, useState } from 'react';
 import { MobileStatusBar } from './components/mobile/MobileStatusBar';
 import { MobileNavigation } from './components/mobile/MobileNavigation';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { NotificationBell } from './components/notifications/NotificationBell';
 
 function App() {
   // Initialize state with current feature flags
@@ -67,12 +68,17 @@ function App() {
             
             <MobileNavigation />
             
-            {/* Only render the chatbot widget as a chat link button */}
-            {chatEnabled && chatbotWidgetEnabled && (
-              <div className="fixed right-6 bottom-6 z-40">
-                <ChatModule showChatInterface={false} showChatbotWidget={true} />
+            {/* Add notification bell alongside chatbot widget */}
+            <div className="fixed right-6 bottom-6 z-40 flex flex-col gap-2">
+              <div className="self-end">
+                <NotificationBell />
               </div>
-            )}
+              
+              {/* Only render the chatbot widget as a chat link button */}
+              {chatEnabled && chatbotWidgetEnabled && (
+                <ChatModule showChatInterface={false} showChatbotWidget={true} />
+              )}
+            </div>
             
             <Toaster position="top-center" />
           </AuthProvider>

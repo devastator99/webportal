@@ -466,6 +466,92 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_logs: {
+        Row: {
+          body: string
+          created_at: string
+          data: Json | null
+          error: string | null
+          id: string
+          status: string
+          subscription_id: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          data?: Json | null
+          error?: string | null
+          id?: string
+          status: string
+          subscription_id?: string | null
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          user_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          data?: Json | null
+          error?: string | null
+          id?: string
+          status?: string
+          subscription_id?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_logs_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "push_subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          appointment_enabled: boolean | null
+          created_at: string
+          general_enabled: boolean | null
+          health_plan_enabled: boolean | null
+          id: string
+          medication_enabled: boolean | null
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          appointment_enabled?: boolean | null
+          created_at?: string
+          general_enabled?: boolean | null
+          health_plan_enabled?: boolean | null
+          id?: string
+          medication_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          appointment_enabled?: boolean | null
+          created_at?: string
+          general_enabled?: boolean | null
+          health_plan_enabled?: boolean | null
+          id?: string
+          medication_enabled?: boolean | null
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       patient_assignments: {
         Row: {
           created_at: string
@@ -730,6 +816,42 @@ export type Database = {
           specialty?: string | null
           updated_at?: string
           visiting_hours?: string | null
+        }
+        Relationships: []
+      }
+      push_subscriptions: {
+        Row: {
+          auth: string
+          created_at: string
+          endpoint: string
+          id: string
+          last_used_at: string | null
+          p256dh: string
+          updated_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth: string
+          created_at?: string
+          endpoint: string
+          id?: string
+          last_used_at?: string | null
+          p256dh: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth?: string
+          created_at?: string
+          endpoint?: string
+          id?: string
+          last_used_at?: string | null
+          p256dh?: string
+          updated_at?: string
+          user_agent?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -1006,6 +1128,10 @@ export type Database = {
       create_test_users: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      delete_push_subscription: {
+        Args: { p_endpoint: string }
+        Returns: boolean
       }
       generate_patient_invoice: {
         Args: {
@@ -1430,6 +1556,30 @@ export type Database = {
           receiver: Json
         }[]
       }
+      get_user_notification_logs: {
+        Args: { p_limit?: number; p_offset?: number; p_user_id?: string }
+        Returns: {
+          id: string
+          type: Database["public"]["Enums"]["notification_type"]
+          title: string
+          body: string
+          data: Json
+          status: string
+          created_at: string
+        }[]
+      }
+      get_user_notification_preferences: {
+        Args: { p_user_id?: string }
+        Returns: {
+          id: string
+          health_plan_enabled: boolean
+          appointment_enabled: boolean
+          medication_enabled: boolean
+          general_enabled: boolean
+          quiet_hours_start: string
+          quiet_hours_end: string
+        }[]
+      }
       get_user_role: {
         Args: { lookup_user_id: string }
         Returns: {
@@ -1460,6 +1610,10 @@ export type Database = {
         Args: { user_id: string }
         Returns: boolean
       }
+      is_admin_user: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
       is_current_user_admin_fixed: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -1475,6 +1629,19 @@ export type Database = {
       is_room_member: {
         Args: { p_room_id: string; p_user_id: string }
         Returns: boolean
+      }
+      log_notification: {
+        Args: {
+          p_user_id: string
+          p_subscription_id: string
+          p_type: Database["public"]["Enums"]["notification_type"]
+          p_title: string
+          p_body: string
+          p_data?: Json
+          p_status?: string
+          p_error?: string
+        }
+        Returns: string
       }
       mark_messages_as_read: {
         Args: { p_user_id: string; p_sender_id: string }
@@ -1533,6 +1700,26 @@ export type Database = {
         }
         Returns: string
       }
+      update_notification_preferences: {
+        Args: {
+          p_health_plan_enabled?: boolean
+          p_appointment_enabled?: boolean
+          p_medication_enabled?: boolean
+          p_general_enabled?: boolean
+          p_quiet_hours_start?: string
+          p_quiet_hours_end?: string
+        }
+        Returns: string
+      }
+      upsert_push_subscription: {
+        Args: {
+          p_endpoint: string
+          p_p256dh: string
+          p_auth: string
+          p_user_agent?: string
+        }
+        Returns: string
+      }
       user_can_sync_rooms: {
         Args: Record<PropertyKey, never>
         Returns: boolean
@@ -1546,6 +1733,11 @@ export type Database = {
       appointment_status: "scheduled" | "completed" | "cancelled"
       chat_room_type: "care_team" | "direct" | "group"
       message_type: "text" | "file" | "video"
+      notification_type:
+        | "health_plan"
+        | "appointment"
+        | "medication"
+        | "general"
       payment_status: "pending" | "completed" | "failed"
       user_type:
         | "patient"
@@ -1672,6 +1864,12 @@ export const Constants = {
       appointment_status: ["scheduled", "completed", "cancelled"],
       chat_room_type: ["care_team", "direct", "group"],
       message_type: ["text", "file", "video"],
+      notification_type: [
+        "health_plan",
+        "appointment",
+        "medication",
+        "general",
+      ],
       payment_status: ["pending", "completed", "failed"],
       user_type: [
         "patient",

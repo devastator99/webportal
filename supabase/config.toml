@@ -84,3 +84,9 @@ verify_jwt = false
 
 [functions.send-health-plan-reminders]
 verify_jwt = false
+
+[functions.send-push-notification]
+verify_jwt = false
+
+[functions.get-vapid-public-key]
+verify_jwt = false

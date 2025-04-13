@@ -1,272 +1,55 @@
 
-import { Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { Suspense, lazy } from "react";
-import { Spinner } from "@/components/ui/spinner";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
-import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
-import DummyPage from "@/pages/DummyPage";
-import PatientHabitsPage from "@/pages/PatientHabitsPage";
-import PatientPrescriptionsPage from "@/pages/PatientPrescriptionsPage";
-import LandingPage from "@/pages/LandingPage";
-import Auth from "@/pages/Auth";
-import Dashboard from "@/pages/Dashboard";
-import AlternativeDashboard from "@/pages/AlternativeDashboard";
-import Admin from "@/pages/Admin";
-import PatientsView from "@/pages/PatientsView";
-import ChatPage from "@/pages/ChatPage";
-import MessageSearchPage from "@/pages/MessageSearchPage";
+import { lazy, Suspense } from 'react';
+import { Route, Routes } from 'react-router-dom';
+import LandingPage from '../pages/LandingPage';
+import Dashboard from '../pages/Dashboard';
+import { ProtectedRoute } from '../components/auth/ProtectedRoute';
+import { RoleProtectedRoute } from '../components/auth/RoleProtectedRoute';
+import ChatPage from '@/pages/ChatPage';
+import Auth from '@/pages/Auth';
+import PatientsView from '@/pages/PatientsView';
+import PatientHabitsPage from '@/pages/PatientHabitsPage';
+import PatientPrescriptionsPage from '@/pages/PatientPrescriptionsPage';
+import Admin from '@/pages/Admin';
+import MessageSearchPage from '@/pages/MessageSearchPage';
+import DummyPage from '@/pages/DummyPage';
+import AlternativeDashboard from '@/pages/AlternativeDashboard';
 
-// Use a dummy page for missing components
-const NotFoundPage = () => <DummyPage title="Not Found" description="The page you are looking for does not exist." />;
-const PatientDetailPage = () => <DummyPage title="Patient Details" />;
-const PatientMedicalRecordsPage = () => <DummyPage title="Patient Medical Records" />;
-const PatientAppointmentsPage = () => <DummyPage title="Patient Appointments" />;
-const PatientCareTeamPage = () => <DummyPage title="Patient Care Team" />;
-const PatientInvoicesPage = () => <DummyPage title="Patient Invoices" />;
-const PatientNotesPage = () => <DummyPage title="Patient Notes" />;
-const PatientDocumentsPage = () => <DummyPage title="Patient Documents" />;
-const PatientLabResultsPage = () => <DummyPage title="Patient Lab Results" />;
-const PatientHealthPlanPage = () => <DummyPage title="Patient Health Plan" />;
-const PatientPrescriptionsHistoryPage = () => <DummyPage title="Patient Prescriptions History" />;
+// Lazy load the notifications page
+const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 
-// Lazy-loaded components (using the dummy page for now)
-const VideoLibraryPage = lazy(() => Promise.resolve({ default: () => <DummyPage title="Video Library" /> }));
-const SettingsPage = lazy(() => Promise.resolve({ default: () => <DummyPage title="Settings" /> }));
-const AppointmentsPage = lazy(() => Promise.resolve({ default: () => <DummyPage title="Appointments" /> }));
-const NutritionistDashboardPage = lazy(() => Promise.resolve({ default: () => <DummyPage title="Nutritionist Dashboard" /> }));
-const ReceptionDashboardPage = lazy(() => Promise.resolve({ default: () => <DummyPage title="Reception Dashboard" /> }));
-
-// Loading fallback
-const PageLoader = () => (
-  <div className="flex items-center justify-center h-screen">
-    <Spinner size="lg" />
-  </div>
-);
-
-export function AppRoutes() {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
-  }
-
-  console.log("=== AppRoutes Component Rendering ===");
-  console.log("User authenticated:", !!user);
-  console.log("User ID:", user?.id);
-
+export const AppRoutes = () => {
   return (
-    <Routes>
-      {/* Landing page and authentication */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/auth" element={<Auth />} />
-      
-      {/* Patient specific routes - highest priority for direct access */}
-      <Route 
-        path="/patient/prescriptions" 
-        element={
-          <ProtectedRoute>
-            <Suspense fallback={<PageLoader />}>
-              <PatientPrescriptionsPage />
-            </Suspense>
-          </ProtectedRoute>
-        } 
-      />
-      <Route 
-        path="/patient/habits" 
-        element={
-          <ProtectedRoute>
-            <Suspense fallback={<PageLoader />}>
-              <PatientHabitsPage />
-            </Suspense>
-          </ProtectedRoute>
-        }
-      />
-      
-      {/* Protected routes that require authentication */}
-      <Route path="/dashboard/*" element={
-        <ProtectedRoute>
-          <Dashboard />
-        </ProtectedRoute>
-      } />
-      <Route path="/dashboard-alt" element={
-        <ProtectedRoute>
-          <AlternativeDashboard />
-        </ProtectedRoute>
-      } />
-      
-      {/* Role-protected routes */}
-      <Route path="/admin/*" element={
-        <RoleProtectedRoute allowedRoles={["administrator"]}>
-          <Admin />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/patients" element={
-        <RoleProtectedRoute allowedRoles={["doctor", "nutritionist", "administrator", "reception"]}>
-          <PatientsView />
-        </RoleProtectedRoute>
-      } />
-      <Route path="/chat" element={
-        <ProtectedRoute>
-          <ChatPage />
-        </ProtectedRoute>
-      } />
-      <Route path="/message-search" element={
-        <RoleProtectedRoute allowedRoles={["administrator", "doctor"]}>
-          <MessageSearchPage />
-        </RoleProtectedRoute>
-      } />
-      
-      {/* Protected routes */}
-      <Route 
-        path="/settings" 
-        element={
-          <ProtectedRoute>
-            <Suspense fallback={<PageLoader />}>
-              <SettingsPage />
-            </Suspense>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/appointments" 
-        element={
-          <ProtectedRoute>
-            <Suspense fallback={<PageLoader />}>
-              <AppointmentsPage />
-            </Suspense>
-          </ProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/videos" 
-        element={
-          <ProtectedRoute>
-            <Suspense fallback={<PageLoader />}>
-              <VideoLibraryPage />
-            </Suspense>
-          </ProtectedRoute>
-        } 
-      />
-      
-      {/* Patient detail routes */}
-      <Route 
-        path="/patients/:patientId" 
-        element={
-          <RoleProtectedRoute allowedRoles={["doctor", "nutritionist", "administrator", "reception"]}>
-            <PatientDetailPage />
-          </RoleProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/patients/:patientId/medical-records" 
-        element={
-          <RoleProtectedRoute allowedRoles={["doctor", "administrator"]}>
-            <PatientMedicalRecordsPage />
-          </RoleProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/patients/:patientId/appointments" 
-        element={
-          <RoleProtectedRoute allowedRoles={["doctor", "nutritionist", "administrator", "reception"]}>
-            <PatientAppointmentsPage />
-          </RoleProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/patients/:patientId/care-team" 
-        element={
-          <RoleProtectedRoute allowedRoles={["doctor", "administrator"]}>
-            <PatientCareTeamPage />
-          </RoleProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/patients/:patientId/invoices" 
-        element={
-          <RoleProtectedRoute allowedRoles={["administrator", "reception"]}>
-            <PatientInvoicesPage />
-          </RoleProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/patients/:patientId/notes" 
-        element={
-          <RoleProtectedRoute allowedRoles={["doctor", "nutritionist"]}>
-            <PatientNotesPage />
-          </RoleProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/patients/:patientId/documents" 
-        element={
-          <RoleProtectedRoute allowedRoles={["doctor", "administrator"]}>
-            <PatientDocumentsPage />
-          </RoleProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/patients/:patientId/lab-results" 
-        element={
-          <RoleProtectedRoute allowedRoles={["doctor", "administrator"]}>
-            <PatientLabResultsPage />
-          </RoleProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/patients/:patientId/health-plan" 
-        element={
-          <RoleProtectedRoute allowedRoles={["doctor", "nutritionist"]}>
-            <PatientHealthPlanPage />
-          </RoleProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/patients/:patientId/prescriptions" 
-        element={
-          <RoleProtectedRoute allowedRoles={["doctor", "administrator"]}>
-            <PatientPrescriptionsHistoryPage />
-          </RoleProtectedRoute>
-        } 
-      />
-      
-      {/* Role-specific dashboards */}
-      <Route 
-        path="/nutritionist-dashboard" 
-        element={
-          <RoleProtectedRoute allowedRoles={["nutritionist"]}>
-            <Suspense fallback={<PageLoader />}>
-              <NutritionistDashboardPage />
-            </Suspense>
-          </RoleProtectedRoute>
-        } 
-      />
-      
-      <Route 
-        path="/reception-dashboard" 
-        element={
-          <RoleProtectedRoute allowedRoles={["reception"]}>
-            <Suspense fallback={<PageLoader />}>
-              <ReceptionDashboardPage />
-            </Suspense>
-          </RoleProtectedRoute>
-        } 
-      />
-      
-      {/* Catch-all route for 404 */}
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+    <Suspense fallback={<div>Loading...</div>}>
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/dummy" element={<DummyPage />} />
+
+        {/* Protected routes (require authentication) */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/alt-dashboard" element={<AlternativeDashboard />} />
+          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/habits" element={<PatientHabitsPage />} />
+          <Route path="/prescriptions" element={<PatientPrescriptionsPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/messages/search" element={<MessageSearchPage />} />
+        </Route>
+
+        {/* Role-specific routes */}
+        <Route element={<RoleProtectedRoute allowedRoles={['doctor', 'administrator']} />}>
+          <Route path="/patients" element={<PatientsView />} />
+        </Route>
+
+        <Route element={<RoleProtectedRoute allowedRoles={['administrator']} />}>
+          <Route path="/admin" element={<Admin />} />
+        </Route>
+
+        {/* Fallback route */}
+        <Route path="*" element={<LandingPage />} />
+      </Routes>
+    </Suspense>
   );
-}
+};
