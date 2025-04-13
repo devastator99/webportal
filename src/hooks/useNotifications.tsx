@@ -199,8 +199,14 @@ export const NotificationProvider = ({ children }: { children: ReactNode }) => {
       }
 
       // Get VAPID public key from Edge Function
-      const vapidResponse = await fetch(`${supabase.functions.url}/get-vapid-public-key`);
-      const { vapidPublicKey } = await vapidResponse.json();
+      // Fix: Use invoke instead of directly accessing the URL
+      const { data: vapidData, error: vapidError } = await supabase.functions.invoke('get-vapid-public-key');
+      
+      if (vapidError) {
+        throw new Error(`Failed to get VAPID key: ${vapidError.message}`);
+      }
+      
+      const { vapidPublicKey } = vapidData || {};
       
       if (!vapidPublicKey) {
         throw new Error('VAPID public key not available');
@@ -375,3 +381,4 @@ export const useNotifications = (): NotificationContextType => {
   }
   return context;
 };
+
