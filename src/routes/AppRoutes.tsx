@@ -31,7 +31,7 @@ export const AppRoutes = () => {
         />
 
         {/* Protected routes (require authentication) */}
-        <Route element={<ProtectedRoute>{children => children}</ProtectedRoute>}>
+        <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/alt-dashboard" element={<AlternativeDashboard />} />
           <Route path="/chat" element={<ChatPage />} />
@@ -45,7 +45,7 @@ export const AppRoutes = () => {
         <Route 
           element={
             <RoleProtectedRoute allowedRoles={['doctor', 'administrator']}>
-              {children => children}
+              <Outlet />
             </RoleProtectedRoute>
           }
         >
@@ -55,7 +55,7 @@ export const AppRoutes = () => {
         <Route 
           element={
             <RoleProtectedRoute allowedRoles={['administrator']}>
-              {children => children}
+              <Outlet />
             </RoleProtectedRoute>
           }
         >
