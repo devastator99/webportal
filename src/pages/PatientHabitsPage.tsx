@@ -11,6 +11,8 @@ import { ProgressSummary } from '@/components/dashboard/patient/ProgressSummary'
 import { DetailedHealthPlan } from '@/components/dashboard/patient/DetailedHealthPlan';
 import { ReminderDialog } from '@/components/dashboard/patient/ReminderDialog';
 import { CompletionDialog } from '@/components/dashboard/patient/CompletionDialog';
+import { useBreakpoint, useResponsiveLayout } from '@/hooks/use-responsive';
+import { ResponsiveText } from '@/components/ui/responsive-typography';
 
 const typeIcons = {
   food: <Utensils className="h-5 w-5 text-green-500" />,
@@ -44,9 +46,12 @@ const PatientHabitsPage = () => {
     markAsCompleted,
   } = usePatientHabits();
 
+  const { isSmallScreen, isMediumScreen } = useBreakpoint();
+  const { padding, margin, gapSize } = useResponsiveLayout();
+
   if (isLoading) {
     return (
-      <div className="container pt-16 pb-8 flex justify-center items-center h-[60vh]">
+      <div className="container pt-12 sm:pt-16 pb-6 sm:pb-8 flex justify-center items-center h-[60vh]">
         <Spinner size="lg" />
       </div>
     );
@@ -54,7 +59,7 @@ const PatientHabitsPage = () => {
 
   if (planError) {
     return (
-      <div className="container pt-16 pb-8">
+      <div className="container pt-12 sm:pt-16 pb-6 sm:pb-8">
         <Card className="border-destructive">
           <CardHeader>
             <CardTitle className="text-destructive">Error Loading Health Plan</CardTitle>
@@ -69,21 +74,31 @@ const PatientHabitsPage = () => {
   }
 
   return (
-    <div className="container pt-16 pb-8">
-      <h1 className="text-2xl font-bold mb-2">My Health Plan</h1>
-      <p className="text-muted-foreground mb-6">
+    <div className="container pt-12 sm:pt-16 pb-6 sm:pb-8">
+      <ResponsiveText
+        as="h1"
+        className="mb-2"
+        mobileSize="xl"
+        tabletSize="2xl"
+        desktopSize="2xl"
+        weight="bold"
+      >
+        My Health Plan
+      </ResponsiveText>
+      
+      <p className="text-muted-foreground mb-4 sm:mb-6 text-sm sm:text-base">
         Track your habits and follow your personalized health plan
       </p>
 
-      <Tabs defaultValue="overview" className="mb-8">
-        <TabsList className="mb-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="progress">Progress</TabsTrigger>
-          <TabsTrigger value="plan">Full Plan</TabsTrigger>
+      <Tabs defaultValue="overview" className="mb-6 sm:mb-8">
+        <TabsList className={`mb-4 ${isSmallScreen ? 'w-full' : ''}`}>
+          <TabsTrigger value="overview" className={isSmallScreen ? 'text-xs' : ''}>Overview</TabsTrigger>
+          <TabsTrigger value="progress" className={isSmallScreen ? 'text-xs' : ''}>Progress</TabsTrigger>
+          <TabsTrigger value="plan" className={isSmallScreen ? 'text-xs' : ''}>Full Plan</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview">
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className={`grid gap-4 sm:gap-6 ${isSmallScreen ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
             <HealthPlanSummary 
               healthPlanItems={healthPlanItems}
               onSetupReminder={setupReminder}
@@ -104,11 +119,11 @@ const PatientHabitsPage = () => {
         
         <TabsContent value="progress">
           <Card>
-            <CardHeader>
-              <CardTitle>Progress Charts</CardTitle>
+            <CardHeader className={isSmallScreen ? 'p-3' : ''}>
+              <CardTitle className={isSmallScreen ? 'text-lg' : ''}>Progress Charts</CardTitle>
               <CardDescription>Visual representation of your health habits</CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className={isSmallScreen ? 'p-3 pt-0' : ''}>
               <HabitsProgressCharts />
             </CardContent>
           </Card>

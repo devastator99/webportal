@@ -11,7 +11,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { FileText, Grid3X3, PlusCircle, ArrowLeft } from 'lucide-react';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { useResponsive } from '@/contexts/ResponsiveContext';
-import { useResponsiveValue, useResponsiveButtonSize } from '@/hooks/use-responsive';
+import { useBreakpoint, useResponsiveValue, useResponsiveButtonSize } from '@/hooks/use-responsive';
+import { ResponsiveText } from '@/components/ui/responsive-typography';
 
 interface NutritionistHealthPlanTabsProps {
   patientId: string;
@@ -20,7 +21,7 @@ interface NutritionistHealthPlanTabsProps {
 
 export const NutritionistHealthPlanTabs = ({ patientId, onClose }: NutritionistHealthPlanTabsProps) => {
   const [activeTab, setActiveTab] = useState('items');
-  const { isMobile, isTablet } = useResponsive();
+  const { isSmallScreen, isMediumScreen } = useBreakpoint();
   
   // Responsive class adaptations
   const iconSize = useResponsiveValue({
@@ -77,33 +78,46 @@ export const NutritionistHealthPlanTabs = ({ patientId, onClose }: NutritionistH
   return (
     <Card className="w-full">
       <CardHeader className={`flex flex-row items-center justify-between ${headerPadding}`}>
-        <CardTitle className={`flex items-center ${isMobile ? 'text-base' : ''}`}>
+        <CardTitle className={`flex items-center ${isSmallScreen ? 'text-base' : ''}`}>
           <Button variant="ghost" size={buttonSize} onClick={onClose} className="mr-2">
             <ArrowLeft className={iconSize} />
           </Button>
-          {isLoading ? 'Loading...' : `Health Plan for ${patientName}`}
+          {isLoading ? (
+            <span className="flex items-center">
+              <LoadingSpinner size="sm" className="mr-2" />
+              Loading...
+            </span>
+          ) : (
+            <ResponsiveText 
+              mobileSize="base" 
+              tabletSize="lg" 
+              weight="bold"
+            >
+              Health Plan for {patientName}
+            </ResponsiveText>
+          )}
         </CardTitle>
       </CardHeader>
       
-      <CardContent className={isMobile ? 'p-3' : 'p-4'}>
+      <CardContent className={isSmallScreen ? 'p-3' : isMediumScreen ? 'p-4' : 'p-6'}>
         {isLoading ? (
           <div className="flex justify-center py-8">
             <LoadingSpinner size="md" />
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className={`grid grid-cols-3 mb-4 ${isMobile ? 'h-10' : ''}`}>
-              <TabsTrigger value="items" className={isMobile ? 'px-2 py-1.5 text-xs' : ''}>
-                <Grid3X3 className={`${iconSize} ${isMobile ? 'mr-1' : 'mr-2'}`} />
-                {isMobile ? 'Items' : 'Plan Items'}
+            <TabsList className={`grid grid-cols-3 mb-4 ${isSmallScreen ? 'h-10' : ''}`}>
+              <TabsTrigger value="items" className={isSmallScreen ? 'px-2 py-1.5 text-xs' : ''}>
+                <Grid3X3 className={`${iconSize} ${isSmallScreen ? 'mr-1' : 'mr-2'}`} />
+                {isSmallScreen ? 'Items' : 'Plan Items'}
               </TabsTrigger>
-              <TabsTrigger value="create" className={isMobile ? 'px-2 py-1.5 text-xs' : ''}>
-                <PlusCircle className={`${iconSize} ${isMobile ? 'mr-1' : 'mr-2'}`} />
+              <TabsTrigger value="create" className={isSmallScreen ? 'px-2 py-1.5 text-xs' : ''}>
+                <PlusCircle className={`${iconSize} ${isSmallScreen ? 'mr-1' : 'mr-2'}`} />
                 Create
               </TabsTrigger>
-              <TabsTrigger value="pdf" className={isMobile ? 'px-2 py-1.5 text-xs' : ''}>
-                <FileText className={`${iconSize} ${isMobile ? 'mr-1' : 'mr-2'}`} />
-                {isMobile ? 'PDF' : 'PDF View'}
+              <TabsTrigger value="pdf" className={isSmallScreen ? 'px-2 py-1.5 text-xs' : ''}>
+                <FileText className={`${iconSize} ${isSmallScreen ? 'mr-1' : 'mr-2'}`} />
+                {isSmallScreen ? 'PDF' : 'PDF View'}
               </TabsTrigger>
             </TabsList>
             

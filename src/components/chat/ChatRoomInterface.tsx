@@ -7,12 +7,14 @@ import { CareTeamRoomChat } from "./CareTeamRoomChat";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card, CardContent } from "@/components/ui/card";
-import { useMediaQuery } from "@/hooks/use-media-query";
-import { Loader2, Users, Clock, ChevronLeft } from "lucide-react";
+import { Loader2, Users, Clock, ChevronLeft, MessageSquare } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useBreakpoint } from "@/hooks/use-responsive";
+import { ResponsiveText } from "@/components/ui/responsive-typography";
+import { ResponsiveChatContainer, ResponsiveChatHeader } from "./ResponsiveChatContainer";
 
 interface ChatRoom {
   room_id: string;
@@ -30,7 +32,7 @@ interface ChatRoom {
 export const ChatRoomInterface = () => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
-  const isMobile = useMediaQuery("(max-width: 640px)");
+  const { isSmallScreen, isMediumScreen } = useBreakpoint();
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
   const [showRoomsList, setShowRoomsList] = useState(true);
 
@@ -142,7 +144,7 @@ export const ChatRoomInterface = () => {
 
   const handleRoomSelect = (roomId: string) => {
     setSelectedRoomId(roomId);
-    if (isMobile) {
+    if (isSmallScreen) {
       setShowRoomsList(false);
     }
   };
@@ -152,12 +154,12 @@ export const ChatRoomInterface = () => {
     setShowRoomsList(true);
   };
 
-  // Auto-select first room on mobile
+  // Auto-select first room on larger screens
   useEffect(() => {
-    if (!isMobile && rooms?.length && !selectedRoomId) {
+    if (!isSmallScreen && rooms?.length && !selectedRoomId) {
       setSelectedRoomId(rooms[0].room_id);
     }
-  }, [rooms, isMobile, selectedRoomId]);
+  }, [rooms, isSmallScreen, selectedRoomId]);
 
   const formatTimestamp = (timestamp: string | null) => {
     if (!timestamp) return '';
@@ -165,13 +167,18 @@ export const ChatRoomInterface = () => {
   };
 
   return (
-    <div className="flex h-full rounded-md border">
+    <ResponsiveChatContainer className="flex rounded-md border overflow-hidden">
       {/* Rooms list - show on desktop or when not in chat view on mobile */}
-      {(!isMobile || showRoomsList) && (
-        <div className={`${isMobile ? 'w-full' : 'w-80'} border-r flex flex-col`}>
-          <div className="p-3 border-b bg-muted/30">
-            <h3 className="font-semibold">Care Team Rooms</h3>
-          </div>
+      {(!isSmallScreen || showRoomsList) && (
+        <div className={`${isSmallScreen ? 'w-full' : (isMediumScreen ? 'w-64' : 'w-80')} border-r flex flex-col`}>
+          <ResponsiveChatHeader>
+            <div className="flex items-center">
+              <MessageSquare className="h-4 w-4 mr-2 text-primary" />
+              <ResponsiveText weight="semibold">
+                Care Team Rooms
+              </ResponsiveText>
+            </div>
+          </ResponsiveChatHeader>
           
           <ScrollArea className="flex-1">
             {isLoading ? (
@@ -194,7 +201,7 @@ export const ChatRoomInterface = () => {
                     onClick={() => handleRoomSelect(room.room_id)}
                   >
                     <div className="flex items-start gap-3 w-full">
-                      <Avatar className="h-10 w-10 flex-shrink-0">
+                      <Avatar className={isSmallScreen ? "h-8 w-8" : "h-10 w-10"}>
                         <AvatarFallback className="bg-primary/10">
                           {room.patient_name.substring(0, 2).toUpperCase()}
                         </AvatarFallback>
@@ -202,26 +209,28 @@ export const ChatRoomInterface = () => {
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start">
-                          <div className="font-medium truncate">{room.room_name}</div>
+                          <div className={`font-medium truncate ${isSmallScreen ? 'text-sm' : ''}`}>
+                            {room.room_name}
+                          </div>
                           {room.last_message_time && (
-                            <div className="text-xs text-muted-foreground whitespace-nowrap ml-2">
+                            <div className={`text-muted-foreground whitespace-nowrap ml-2 ${isSmallScreen ? 'text-[10px]' : 'text-xs'}`}>
                               {formatTimestamp(room.last_message_time)}
                             </div>
                           )}
                         </div>
                         
-                        <div className="text-xs text-muted-foreground truncate">
+                        <div className={`text-muted-foreground truncate ${isSmallScreen ? 'text-xs' : 'text-sm'}`}>
                           {room.last_message || "No messages yet"}
                         </div>
                         
                         <div className="flex items-center mt-1">
-                          <Badge variant="outline" className="text-xs h-5">
-                            <Users className="h-3 w-3 mr-1" />
+                          <Badge variant="outline" className={`${isSmallScreen ? 'text-[10px] h-4' : 'text-xs h-5'}`}>
+                            <Users className={isSmallScreen ? "h-2.5 w-2.5 mr-0.5" : "h-3 w-3 mr-1"} />
                             {room.member_count}
                           </Badge>
                           
-                          <Badge variant="outline" className="text-xs h-5 ml-1">
-                            <Clock className="h-3 w-3 mr-1" />
+                          <Badge variant="outline" className={`ml-1 ${isSmallScreen ? 'text-[10px] h-4' : 'text-xs h-5'}`}>
+                            <Clock className={isSmallScreen ? "h-2.5 w-2.5 mr-0.5" : "h-3 w-3 mr-1"} />
                             {format(new Date(room.created_at), 'MMM d')}
                           </Badge>
                         </div>
@@ -236,8 +245,8 @@ export const ChatRoomInterface = () => {
       )}
       
       {/* Chat area - show on desktop or when in chat view on mobile */}
-      <div className={`${isMobile && showRoomsList ? 'hidden' : 'flex'} flex-1 flex-col bg-muted/20`}>
-        {isMobile && selectedRoomId && (
+      <div className={`${isSmallScreen && showRoomsList ? 'hidden' : 'flex'} flex-1 flex-col bg-muted/20`}>
+        {isSmallScreen && selectedRoomId && (
           <Button 
             variant="ghost" 
             size="sm" 
@@ -252,15 +261,15 @@ export const ChatRoomInterface = () => {
         {selectedRoomId ? (
           <CareTeamRoomChat 
             selectedRoomId={selectedRoomId} 
-            onBack={isMobile ? handleBackToRooms : undefined}
-            isMobileView={isMobile}
+            onBack={isSmallScreen ? handleBackToRooms : undefined}
+            isMobileView={isSmallScreen}
           />
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground p-4">
-            {!isMobile && "Select a care team on the left to start chatting"}
+            {!isSmallScreen && "Select a care team on the left to start chatting"}
           </div>
         )}
       </div>
-    </div>
+    </ResponsiveChatContainer>
   );
 };

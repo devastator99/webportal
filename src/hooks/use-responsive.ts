@@ -103,6 +103,24 @@ export function useResponsiveRendering() {
     renderOnDesktop: (content: React.ReactNode) => isDesktop ? content : null,
     renderOnLargeScreen: (content: React.ReactNode) => (isLaptop || isDesktop) ? content : null,
     renderOnSmallScreen: (content: React.ReactNode) => (isMobile || isTablet) ? content : null,
+    renderAboveMobile: (content: React.ReactNode) => (!isMobile) ? content : null,
+    renderBelowDesktop: (content: React.ReactNode) => (isMobile || isTablet || isLaptop) ? content : null,
   };
 }
 
+// New helper for responsive layouts
+export function useResponsiveLayout() {
+  const { isMobile, isTablet } = useResponsive();
+  
+  return {
+    gridCols: isMobile ? 1 : isTablet ? 2 : 3,
+    contentWidth: isMobile ? 'w-full' : isTablet ? 'w-[90%]' : 'w-[85%]',
+    gapSize: isMobile ? 'gap-3' : isTablet ? 'gap-4' : 'gap-6',
+    padding: isMobile ? 'p-3' : isTablet ? 'p-4' : 'p-6',
+    margin: isMobile ? 'my-3' : isTablet ? 'my-4' : 'my-6',
+    rounded: isMobile ? 'rounded-lg' : 'rounded-xl',
+    stackOnMobile: isMobile ? 'flex-col' : 'flex-row',
+    hideOnMobile: isMobile ? 'hidden' : 'block',
+    showOnlyOnMobile: isMobile ? 'block' : 'hidden',
+  };
+}
