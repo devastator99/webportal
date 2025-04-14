@@ -12,6 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HealthPlanItem } from "@/interfaces/HealthPlan";
+import { TimePicker } from "@/components/ui/time-picker";
 
 // Component for creating and managing a patient's health plan
 export const HealthPlanCreator = ({ patientId }: { patientId: string }) => {
@@ -19,7 +20,7 @@ export const HealthPlanCreator = ({ patientId }: { patientId: string }) => {
   const [patientDetails, setPatientDetails] = useState<{ firstName: string; lastName: string } | null>(null);
   const [currentItem, setCurrentItem] = useState<HealthPlanItem>({
     type: 'food',
-    scheduled_time: '',
+    scheduled_time: '9:00 AM',
     description: '',
     frequency: 'Daily',
     duration: null
@@ -110,6 +111,10 @@ export const HealthPlanCreator = ({ patientId }: { patientId: string }) => {
 
   const handleSelectChange = (name: string, value: string) => {
     setCurrentItem(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleTimeChange = (time: string) => {
+    setCurrentItem(prev => ({ ...prev, scheduled_time: time }));
   };
 
   const addItem = () => {
@@ -275,16 +280,12 @@ export const HealthPlanCreator = ({ patientId }: { patientId: string }) => {
 
           <div className="space-y-4 mt-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="scheduled_time">Time <span className="text-red-500">*</span></Label>
-                <Input
-                  id="scheduled_time"
-                  name="scheduled_time"
-                  value={currentItem.scheduled_time}
-                  onChange={handleInputChange}
-                  placeholder="e.g. Morning, 8:00 AM, After lunch"
-                />
-              </div>
+              <TimePicker
+                id="scheduled_time"
+                label="Time"
+                value={currentItem.scheduled_time}
+                onChange={handleTimeChange}
+              />
               <div className="space-y-2">
                 <Label htmlFor="frequency">Frequency <span className="text-red-500">*</span></Label>
                 <Select 
