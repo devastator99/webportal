@@ -1,9 +1,10 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { getNutritionistPatients } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, ArrowRight, Salad, Calendar, FileText, MessageCircle } from "lucide-react";
+import { Users, ArrowRight, Salad, Calendar, FileText, MessageCircle, Grid3X3 } from "lucide-react";
 import { DashboardHeader } from "./DashboardHeader";
 import { useState } from "react";
 import { HealthPlanCreator } from "./nutritionist/HealthPlanCreator";
@@ -13,6 +14,7 @@ import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { NutritionistCareTeamChat } from "@/components/chat/NutritionistCareTeamChat";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNutritionistStats } from "@/hooks/useNutritionistStats";
+import { HealthPlanItemsGrid } from "./nutritionist/HealthPlanItemsGrid";
 
 interface PatientProfile {
   id: string;
@@ -24,7 +26,7 @@ export const NutritionistDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'create' | 'pdf' | 'chat'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'create' | 'pdf' | 'chat' | 'manage'>('list');
   const { data: stats, isLoading: isLoadingStats } = useNutritionistStats();
 
   const { data: patients = [], isLoading } = useQuery({
@@ -53,7 +55,7 @@ export const NutritionistDashboard = () => {
     staleTime: 60000
   });
 
-  const handlePatientAction = (patientId: string, mode: 'create' | 'pdf') => {
+  const handlePatientAction = (patientId: string, mode: 'create' | 'pdf' | 'manage') => {
     setSelectedPatientId(patientId);
     setViewMode(mode);
   };
@@ -137,6 +139,17 @@ export const NutritionistDashboard = () => {
           {viewMode === 'pdf' && selectedPatientId && (
             <HealthPlanPDF patientId={selectedPatientId} onClose={handleBackToList} />
           )}
+          
+          {viewMode === 'manage' && selectedPatientId && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Manage Health Plan</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <HealthPlanItemsGrid patientId={selectedPatientId} />
+              </CardContent>
+            </Card>
+          )}
         </>
       ) : (
         <>
@@ -179,6 +192,14 @@ export const NutritionistDashboard = () => {
                         >
                           <FileText className="h-4 w-4 mr-1" />
                           View Plan
+                        </Button>
+                        <Button
+                          onClick={() => handlePatientAction(patient.id, 'manage')}
+                          variant="outline"
+                          size="sm"
+                        >
+                          <Grid3X3 className="h-4 w-4 mr-1" />
+                          Manage Plan
                         </Button>
                         <Button
                           onClick={() => handlePatientAction(patient.id, 'create')}
