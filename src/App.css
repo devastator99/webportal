@@ -1,3 +1,4 @@
+
 /* Base styles */
 #root {
   max-width: 100%;
@@ -8,13 +9,18 @@
 
 /* Mobile app container */
 .app-container {
-  max-width: 430px;
+  max-width: 100%;
   margin: 0 auto;
   min-height: 100vh;
   position: relative;
   background-color: #f8f9fa;
   overflow: hidden;
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  
+  /* Responsive sizing based on device */
+  @media screen and (min-width: 640px) {
+    max-width: 430px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  }
 }
 
 /* iPad and desktop styles */
@@ -151,6 +157,50 @@
   }
 }
 
+/* Phone-specific styles */
+@media screen and (max-width: 640px) {
+  .app-container {
+    max-width: 100%;
+    border-radius: 0;
+    margin: 0;
+    height: 100vh;
+  }
+  
+  .mobile-content {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  
+  /* Optimize touch targets for mobile */
+  button, 
+  a, 
+  input, 
+  select, 
+  textarea {
+    min-height: 44px; /* Apple's recommended minimum */
+  }
+  
+  /* Smaller text on smaller screens */
+  .text-2xl {
+    font-size: 1.5rem;
+  }
+  
+  .text-xl {
+    font-size: 1.25rem;
+  }
+  
+  /* Reduced spacing for mobile */
+  .space-y-6 {
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  /* Adjust card padding for mobile */
+  .card {
+    padding: 12px;
+  }
+}
+
 /* Status bar styling */
 .status-bar {
   height: 24px;
@@ -185,15 +235,12 @@
   align-items: center;
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
   z-index: 40;
+  width: 100%;
   max-width: 430px;
   margin: 0 auto;
-}
-
-/* On iPad, allow full width navigation */
-@media screen and (min-width: 768px) and (max-width: 1024px) {
-  .mobile-nav {
+  
+  @media screen and (min-width: 768px) {
     max-width: 100%;
-    width: 100%;
   }
 }
 
@@ -217,12 +264,7 @@
   margin-bottom: 4px;
 }
 
-/* Specific styling for Calendar icon */
-.mobile-nav-item button[aria-label="Calendar"] .mobile-nav-icon {
-  stroke-width: 2.5;
-}
-
-/* Content area */
+/* Responsive content area */
 .mobile-content {
   padding: 16px;
   padding-top: 85px;
@@ -230,22 +272,39 @@
   overflow-y: auto;
   height: calc(100vh - 24px);
   -webkit-overflow-scrolling: touch;
-}
-
-/* Desktop content padding adjustments */
-@media screen and (min-width: 1025px) {
-  .mobile-content {
+  
+  @media screen and (min-width: 768px) {
+    padding: 24px;
+    padding-top: 90px;
+    padding-bottom: calc(var(--bottom-nav-height) + 24px);
+  }
+  
+  @media screen and (min-width: 1025px) {
+    padding: 32px;
     padding-top: 100px;
+    padding-bottom: calc(var(--bottom-nav-height) + 32px);
   }
 }
 
-/* Mobile card styling */
+/* Responsive card styling */
 .mobile-card {
   background-color: #ffffff;
   border-radius: 16px;
   padding: 16px;
   margin-bottom: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  
+  @media screen and (min-width: 768px) {
+    padding: 20px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+  }
+  
+  @media screen and (min-width: 1025px) {
+    padding: 24px;
+    border-radius: 24px;
+    margin-bottom: 24px;
+  }
 }
 
 /* Animation keyframes */
@@ -323,4 +382,97 @@
   opacity: 0;
   transform: translateX(-100%);
   transition: opacity 300ms, transform 300ms;
+}
+
+/* Custom media queries for better responsive design */
+@media (hover: hover) {
+  /* Only apply hover effects on devices that support hover */
+  .hover-effect:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Print styles */
+@media print {
+  .app-container {
+    max-width: 100%;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    box-shadow: none;
+    height: auto;
+  }
+  
+  .mobile-nav,
+  .mobile-header,
+  .status-bar {
+    display: none !important;
+  }
+  
+  .mobile-content {
+    padding: 0;
+    height: auto;
+    overflow: visible;
+  }
+  
+  /* Optimize card appearance for print */
+  .card, .mobile-card {
+    box-shadow: none;
+    border: 1px solid #e2e8f0;
+    break-inside: avoid;
+  }
+}
+
+/* Utility classes for responsive design */
+.responsive-text {
+  font-size: 14px;
+  
+  @media screen and (min-width: 768px) {
+    font-size: 16px;
+  }
+  
+  @media screen and (min-width: 1024px) {
+    font-size: 18px;
+  }
+}
+
+.responsive-heading {
+  font-size: 1.5rem;
+  line-height: 1.2;
+  
+  @media screen and (min-width: 768px) {
+    font-size: 1.75rem;
+  }
+  
+  @media screen and (min-width: 1024px) {
+    font-size: 2rem;
+  }
+}
+
+.responsive-padding {
+  padding: 16px;
+  
+  @media screen and (min-width: 768px) {
+    padding: 24px;
+  }
+  
+  @media screen and (min-width: 1024px) {
+    padding: 32px;
+  }
+}
+
+.responsive-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  
+  @media screen and (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  @media screen and (min-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
 }

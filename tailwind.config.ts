@@ -18,6 +18,22 @@ export default {
         "2xl": "1400px",
       },
     },
+    screens: {
+      xs: "375px",
+      sm: "640px",
+      md: "768px",
+      lg: "1024px",
+      xl: "1280px",
+      "2xl": "1536px",
+      // Device-specific breakpoints
+      mobile: "640px",
+      tablet: "1024px",
+      laptop: "1440px",
+      desktop: "1536px", 
+      // Orientation-specific breakpoints
+      portrait: { raw: "(orientation: portrait)" },
+      landscape: { raw: "(orientation: landscape)" },
+    },
     extend: {
       colors: {
         border: "hsl(var(--border))",
@@ -68,6 +84,12 @@ export default {
           muted: "#64748b",
           border: "#e2e8f0",
         },
+      },
+      spacing: {
+        // Responsive-specific spacing
+        'mobile-container': '16px',
+        'tablet-container': '24px',
+        'desktop-container': '32px',
       },
       keyframes: {
         "fade-up": {

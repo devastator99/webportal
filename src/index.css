@@ -43,6 +43,16 @@
     --mobile-border-radius: 1rem;
     --mobile-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     --bottom-nav-height: 4rem;
+    /* Responsive spacing/sizing variables */
+    --container-padding-mobile: 1rem;
+    --container-padding-tablet: 1.5rem;
+    --container-padding-desktop: 2rem;
+    --text-base-size-mobile: 16px;
+    --text-base-size-tablet: 16px;
+    --text-base-size-desktop: 18px;
+    --card-padding-mobile: 1rem;
+    --card-padding-tablet: 1.5rem;
+    --card-padding-desktop: 2rem;
   }
 
   .dark {
@@ -88,9 +98,35 @@
     @apply border-border;
   }
   
+  html {
+    -webkit-text-size-adjust: 100%;
+    font-size: 16px;
+    text-size-adjust: 100%;
+    
+    @screen tablet {
+      font-size: 16px;
+    }
+    
+    @screen desktop {
+      font-size: 18px;
+    }
+  }
+  
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-bold tracking-tight;
+  }
+  
+  /* Improved focus styles for accessibility */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2;
   }
   
   /* Mobile app specific global styles */
@@ -170,5 +206,79 @@
   .sheet-animation-exit-active {
     transform: translateY(100%);
     transition: transform 300ms ease-in;
+  }
+  
+  /* Responsive utility classes */
+  .responsive-container {
+    @apply w-full px-4 mx-auto;
+    
+    @screen tablet {
+      @apply px-6 max-w-6xl;
+    }
+    
+    @screen desktop {
+      @apply px-8 max-w-7xl;
+    }
+  }
+  
+  .card-responsive {
+    @apply p-4 rounded-lg;
+    
+    @screen tablet {
+      @apply p-6 rounded-xl;
+    }
+    
+    @screen desktop {
+      @apply p-8 rounded-2xl;
+    }
+  }
+  
+  /* Responsive typography utility classes */
+  .text-heading-1 {
+    @apply text-3xl font-bold;
+    
+    @screen tablet {
+      @apply text-4xl;
+    }
+    
+    @screen desktop {
+      @apply text-5xl;
+    }
+  }
+  
+  .text-heading-2 {
+    @apply text-2xl font-bold;
+    
+    @screen tablet {
+      @apply text-3xl;
+    }
+    
+    @screen desktop {
+      @apply text-4xl;
+    }
+  }
+  
+  .text-heading-3 {
+    @apply text-xl font-bold;
+    
+    @screen tablet {
+      @apply text-2xl;
+    }
+    
+    @screen desktop {
+      @apply text-3xl;
+    }
+  }
+  
+  .text-body {
+    @apply text-base;
+    
+    @screen tablet {
+      @apply text-base;
+    }
+    
+    @screen desktop {
+      @apply text-lg;
+    }
   }
 }
