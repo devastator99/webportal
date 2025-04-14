@@ -3,6 +3,7 @@ import React from 'react';
 import { Button, ButtonProps } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useBreakpoint } from '@/hooks/use-responsive';
+import { useResponsive } from '@/contexts/ResponsiveContext';
 
 interface MobileActionButtonProps extends ButtonProps {
   icon: React.ReactNode;
@@ -19,7 +20,8 @@ export const MobileActionButton = ({
   className,
   ...props
 }: MobileActionButtonProps) => {
-  const { isSmallScreen } = useBreakpoint();
+  const { isSmallScreen, isMediumScreen } = useBreakpoint();
+  const { isTablet, isMobile } = useResponsive();
   
   // Determine button styling based on color prop
   const colorStyles = {
@@ -28,9 +30,16 @@ export const MobileActionButton = ({
     outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
   };
   
+  // Determine appropriate size for different devices
+  const buttonSize = isSmallScreen || isMobile
+    ? 'sm'
+    : isTablet || isMediumScreen
+      ? 'sm'
+      : 'default';
+  
   return (
     <Button
-      size={isSmallScreen ? 'sm' : 'default'}
+      size={buttonSize}
       className={cn(
         'rounded-full',
         colorStyles[color],
@@ -40,11 +49,11 @@ export const MobileActionButton = ({
       {...props}
     >
       {icon && (
-        <span className={`${isSmallScreen ? 'mr-1' : 'mr-2'}`}>
+        <span className={`${isSmallScreen || isMobile ? 'mr-1' : isTablet || isMediumScreen ? 'mr-1.5' : 'mr-2'}`}>
           {icon}
         </span>
       )}
-      <span className={isSmallScreen ? 'text-xs' : ''}>
+      <span className={isSmallScreen || isMobile ? 'text-xs' : isTablet || isMediumScreen ? 'text-sm' : ''}>
         {label}
       </span>
     </Button>
@@ -60,18 +69,25 @@ export const MobileActionButtonGroup = ({
   className?: string;
   withEqualWidth?: boolean;
 }) => {
-  const { isSmallScreen } = useBreakpoint();
+  const { isSmallScreen, isMediumScreen } = useBreakpoint();
+  const { isTablet, isMobile } = useResponsive();
   
   return (
     <div
       className={cn(
         'flex items-center',
-        isSmallScreen ? 'gap-2' : 'gap-3',
+        isSmallScreen || isMobile 
+          ? 'gap-2' 
+          : isTablet || isMediumScreen 
+            ? 'gap-2.5' 
+            : 'gap-3',
         withEqualWidth && 'grid',
         withEqualWidth && (
-          isSmallScreen 
-            ? 'grid-cols-2 sm:grid-cols-3'
-            : 'grid-cols-3 md:grid-cols-4'
+          isSmallScreen || isMobile 
+            ? 'grid-cols-2 sm:grid-cols-2'
+            : isTablet || isMediumScreen
+              ? 'grid-cols-3'
+              : 'grid-cols-3 md:grid-cols-4'
         ),
         className
       )}

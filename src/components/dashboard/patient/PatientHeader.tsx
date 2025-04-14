@@ -1,12 +1,20 @@
 
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
-import { useIsIPad } from "@/hooks/use-mobile";
+import { useResponsive } from "@/contexts/ResponsiveContext";
+import { useBreakpoint } from "@/hooks/use-responsive";
 
 export const PatientHeader = () => {
-  const isIPad = useIsIPad();
+  const { isTablet, isMobile } = useResponsive();
+  const { isSmallScreen, isMediumScreen } = useBreakpoint();
   
   return (
-    <div className={`${isIPad ? "pt-16" : "pt-16 md:pt-20"}`}>
+    <div className={`${
+      isSmallScreen || isMobile 
+        ? "pt-14" 
+        : isTablet || isMediumScreen 
+          ? "pt-16" 
+          : "pt-16 md:pt-20"
+    }`}>
       <DashboardHeader />
     </div>
   );

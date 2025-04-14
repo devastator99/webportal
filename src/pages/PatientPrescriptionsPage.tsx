@@ -14,7 +14,9 @@ import { FileText, Download, Calendar, User, Pill } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import html2pdf from 'html2pdf.js';
-import { useIsIPad, useIsMobile } from "@/hooks/use-mobile";
+import { useResponsive } from "@/contexts/ResponsiveContext";
+import { useBreakpoint } from "@/hooks/use-responsive";
+import { DashboardResponsiveLayout } from "@/components/layout/DashboardResponsiveLayout";
 
 interface Prescription {
   id: string;
@@ -28,18 +30,13 @@ interface Prescription {
 }
 
 const PatientPrescriptionsPage: React.FC = () => {
-  console.log("==== PRESCRIPTIONS PAGE RENDER ====");
-  
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
-  const isIPad = useIsIPad();
-  const isMobile = useIsMobile();
+  const { isTablet, isMobile } = useResponsive();
+  const { isSmallScreen, isMediumScreen, isLargeScreen } = useBreakpoint();
   const [manualError, setManualError] = useState<Error | null>(null);
-
-  console.log("User authenticated:", !!user);
-  console.log("User ID:", user?.id);
   
   // Effect to check if component is rendered
   useEffect(() => {
@@ -140,15 +137,18 @@ const PatientPrescriptionsPage: React.FC = () => {
     }
   };
 
-  console.log("Loading state:", isLoading);
-  console.log("Error state:", !!error);
-  console.log("Prescriptions count:", prescriptions?.length || 0);
+  const openPdfPreview = (prescription: Prescription) => {
+    setSelectedPrescription(prescription);
+    setPdfPreviewOpen(true);
+  };
 
   if (isLoading) {
     return (
-      <div className="container pt-16 pb-8 flex justify-center items-center h-[60vh]">
-        <Spinner size="lg" />
-      </div>
+      <DashboardResponsiveLayout>
+        <div className="flex justify-center items-center h-[60vh]">
+          <Spinner size="lg" />
+        </div>
+      </DashboardResponsiveLayout>
     );
   }
 
@@ -156,7 +156,7 @@ const PatientPrescriptionsPage: React.FC = () => {
     const displayError = error || manualError;
     console.error("Prescription error details:", displayError);
     return (
-      <div className="container pt-16 pb-8">
+      <DashboardResponsiveLayout>
         <Card className="border-destructive">
           <CardHeader>
             <CardTitle className="text-destructive">Error Loading Prescriptions</CardTitle>
@@ -172,46 +172,34 @@ const PatientPrescriptionsPage: React.FC = () => {
             </Button>
           </CardContent>
         </Card>
-      </div>
+      </DashboardResponsiveLayout>
     );
   }
 
-  console.log("Prescriptions data:", prescriptions);
-
-  const openPdfPreview = (prescription: Prescription) => {
-    setSelectedPrescription(prescription);
-    setPdfPreviewOpen(true);
-  };
-
-  // Responsive class adjustments
-  const containerClass = isMobile 
-    ? "container pt-16 pb-8 px-2" 
-    : isIPad 
-      ? "container pt-16 pb-8 px-4" 
-      : "container pt-16 pb-8";
-
   return (
-    <div className={containerClass}>
-      <h1 className="text-2xl font-bold mb-4">My Prescriptions</h1>
-      <p className="text-muted-foreground mb-8">
-        View and download your prescriptions from your doctors.
-      </p>
-
-      {(!prescriptions || prescriptions.length === 0) ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>No Prescriptions Found</CardTitle>
-            <CardDescription>
-              You don't have any prescriptions yet. Once your doctor writes a prescription, it will appear here.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      ) : (
-        <div className="grid gap-6">
+    <DashboardResponsiveLayout>
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-2xl font-bold">My Prescriptions</h1>
+          <p className="text-muted-foreground">
+            View and download your prescriptions from your doctors.
+          </p>
+        </div>
+        
+        {(!prescriptions || prescriptions.length === 0) ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>No Prescriptions Found</CardTitle>
+              <CardDescription>
+                You don't have any prescriptions yet. Once your doctor writes a prescription, it will appear here.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        ) : (
           <Tabs defaultValue="list" className="w-full">
-            <TabsList className={`mb-4 ${isMobile ? 'w-full' : ''}`}>
-              <TabsTrigger value="list" className={isMobile ? 'flex-1' : ''}>List View</TabsTrigger>
-              <TabsTrigger value="timeline" className={isMobile ? 'flex-1' : ''}>Timeline</TabsTrigger>
+            <TabsList className={`mb-4 ${isSmallScreen || isMediumScreen ? 'w-full grid grid-cols-2' : ''}`}>
+              <TabsTrigger value="list" className={isSmallScreen || isMediumScreen ? 'w-full' : ''}>List View</TabsTrigger>
+              <TabsTrigger value="timeline" className={isSmallScreen || isMediumScreen ? 'w-full' : ''}>Timeline</TabsTrigger>
             </TabsList>
             
             <TabsContent value="list">
@@ -262,12 +250,12 @@ const PatientPrescriptionsPage: React.FC = () => {
                         )}
                       </div>
                     </CardContent>
-                    <div className={`px-6 py-4 bg-muted/20 flex ${isMobile ? 'flex-col' : 'justify-end'} space-y-2 md:space-y-0 md:space-x-2`}>
+                    <div className={`px-6 py-4 bg-muted/20 flex ${isSmallScreen || isMediumScreen ? 'flex-col space-y-2' : 'justify-end space-x-2'}`}>
                       <Button 
                         variant="outline" 
                         size="sm"
                         onClick={() => openPdfPreview(prescription)}
-                        className={isMobile ? 'w-full' : ''}
+                        className={isSmallScreen || isMediumScreen ? 'w-full' : ''}
                       >
                         <FileText className="mr-2 h-4 w-4" />
                         PDF Preview
@@ -278,7 +266,7 @@ const PatientPrescriptionsPage: React.FC = () => {
                           setSelectedPrescription(prescription);
                           generatePdf(prescription);
                         }}
-                        className={isMobile ? 'w-full' : ''}
+                        className={isSmallScreen || isMediumScreen ? 'w-full' : ''}
                       >
                         <Download className="mr-2 h-4 w-4" />
                         Download
@@ -297,7 +285,7 @@ const PatientPrescriptionsPage: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-border">
-                    {prescriptions.map((prescription, index) => (
+                    {prescriptions.map((prescription) => (
                       <div key={prescription.id} className="relative pl-8">
                         <div className="absolute left-0 top-0 bg-primary rounded-full w-10 h-10 flex items-center justify-center text-white">
                           <FileText className="h-5 w-5" />
@@ -312,12 +300,12 @@ const PatientPrescriptionsPage: React.FC = () => {
                           <div className="text-sm">
                             <strong>Diagnosis:</strong> {prescription.diagnosis || "No diagnosis provided"}
                           </div>
-                          <div className={`mt-2 flex ${isMobile ? 'flex-col' : 'flex-row'} ${isMobile ? 'space-y-2' : 'space-x-2'}`}>
+                          <div className={`mt-2 flex ${isSmallScreen || isMediumScreen ? 'flex-col space-y-2' : 'flex-row space-x-2'}`}>
                             <Button 
                               variant="outline" 
                               size="sm"
                               onClick={() => openPdfPreview(prescription)}
-                              className={isMobile ? 'w-full' : ''}
+                              className={isSmallScreen || isMediumScreen ? 'w-full' : ''}
                             >
                               View Details
                             </Button>
@@ -328,7 +316,7 @@ const PatientPrescriptionsPage: React.FC = () => {
                                 setSelectedPrescription(prescription);
                                 generatePdf(prescription);
                               }}
-                              className={isMobile ? 'w-full' : ''}
+                              className={isSmallScreen || isMediumScreen ? 'w-full' : ''}
                             >
                               <Download className="mr-2 h-4 w-4" />
                               Download
@@ -342,17 +330,17 @@ const PatientPrescriptionsPage: React.FC = () => {
               </Card>
             </TabsContent>
           </Tabs>
-        </div>
-      )}
+        )}
+      </div>
       
       {/* PDF Preview Dialog */}
       <Dialog open={pdfPreviewOpen} onOpenChange={setPdfPreviewOpen}>
-        <DialogContent className={`sm:max-w-[800px] ${isMobile ? 'w-[95vw] p-3' : ''}`}>
+        <DialogContent className={`sm:max-w-[800px] ${isSmallScreen ? 'w-[95vw] p-3' : isMediumScreen ? 'w-[90vw] max-h-[80vh]' : ''}`}>
           <DialogHeader>
             <DialogTitle>Prescription PDF Preview</DialogTitle>
           </DialogHeader>
           {selectedPrescription && (
-            <div className="max-h-[70vh] overflow-y-auto">
+            <div className={`${isMediumScreen ? 'max-h-[60vh]' : 'max-h-[70vh]'} overflow-y-auto`}>
               <div id="prescription-pdf-content" className="p-8 bg-white">
                 <div className="text-center mb-6">
                   <h1 className="text-xl font-bold mb-2">Medical Prescription</h1>
@@ -400,17 +388,17 @@ const PatientPrescriptionsPage: React.FC = () => {
               </div>
             </div>
           )}
-          <div className={`flex ${isMobile ? 'flex-col' : 'justify-end'} space-y-2 md:space-y-0 md:space-x-2`}>
+          <div className={`flex ${isSmallScreen || isMediumScreen ? 'flex-col space-y-2' : 'justify-end space-x-2'}`}>
             <Button 
               variant="outline" 
               onClick={() => setPdfPreviewOpen(false)}
-              className={isMobile ? 'w-full' : ''}
+              className={isSmallScreen || isMediumScreen ? 'w-full' : ''}
             >
               Close
             </Button>
             <Button 
               onClick={() => selectedPrescription && generatePdf(selectedPrescription)}
-              className={isMobile ? 'w-full' : ''}
+              className={isSmallScreen || isMediumScreen ? 'w-full' : ''}
             >
               <Download className="mr-2 h-4 w-4" />
               Download PDF
@@ -418,7 +406,7 @@ const PatientPrescriptionsPage: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </DashboardResponsiveLayout>
   );
 };
 

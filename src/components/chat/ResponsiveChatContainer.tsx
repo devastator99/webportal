@@ -2,6 +2,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { useBreakpoint, useResponsiveLayout } from '@/hooks/use-responsive';
+import { useResponsive } from '@/contexts/ResponsiveContext';
 
 interface ResponsiveChatContainerProps {
   children: React.ReactNode;
@@ -19,6 +20,7 @@ export const ResponsiveChatContainer = ({
   maxWidth = 'max-w-screen-lg',
 }: ResponsiveChatContainerProps) => {
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
+  const { isTablet, isMobile } = useResponsive();
   const { padding } = useResponsiveLayout();
   
   return (
@@ -26,8 +28,20 @@ export const ResponsiveChatContainer = ({
       className={cn(
         'w-full mx-auto',
         maxWidth,
-        fullHeight && (isSmallScreen ? 'h-[calc(100vh-120px)]' : 'h-[calc(100vh-160px)]'),
-        withPadding && (isSmallScreen ? 'px-2' : isMediumScreen ? 'px-4' : 'px-6'),
+        fullHeight && (
+          isSmallScreen || isMobile 
+            ? 'h-[calc(100vh-120px)]' 
+            : isTablet || isMediumScreen 
+              ? 'h-[calc(100vh-140px)]' 
+              : 'h-[calc(100vh-160px)]'
+        ),
+        withPadding && (
+          isSmallScreen || isMobile 
+            ? 'px-2' 
+            : isTablet || isMediumScreen 
+              ? 'px-3' 
+              : 'px-6'
+        ),
         className
       )}
     >
@@ -47,7 +61,8 @@ export const ResponsiveChatHeader = ({
   sticky?: boolean;
   withBorder?: boolean;
 }) => {
-  const { isSmallScreen } = useBreakpoint();
+  const { isSmallScreen, isMediumScreen } = useBreakpoint();
+  const { isTablet, isMobile } = useResponsive();
   
   return (
     <div
@@ -55,7 +70,11 @@ export const ResponsiveChatHeader = ({
         'w-full bg-background/95 backdrop-blur-sm z-10',
         sticky && 'sticky top-0',
         withBorder && 'border-b',
-        isSmallScreen ? 'py-2 px-3' : 'py-3 px-4',
+        isSmallScreen || isMobile 
+          ? 'py-2 px-3' 
+          : isTablet || isMediumScreen 
+            ? 'py-2.5 px-3.5' 
+            : 'py-3 px-4',
         className
       )}
     >
@@ -75,7 +94,8 @@ export const ResponsiveChatFooter = ({
   sticky?: boolean;
   withBorder?: boolean;
 }) => {
-  const { isSmallScreen } = useBreakpoint();
+  const { isSmallScreen, isMediumScreen } = useBreakpoint();
+  const { isTablet, isMobile } = useResponsive();
   
   return (
     <div
@@ -83,7 +103,11 @@ export const ResponsiveChatFooter = ({
         'w-full bg-background/95 backdrop-blur-sm z-10',
         sticky && 'sticky bottom-0',
         withBorder && 'border-t',
-        isSmallScreen ? 'py-2 px-3' : 'py-3 px-4',
+        isSmallScreen || isMobile 
+          ? 'py-2 px-3' 
+          : isTablet || isMediumScreen 
+            ? 'py-2.5 px-3.5' 
+            : 'py-3 px-4',
         className
       )}
     >
@@ -101,14 +125,19 @@ export const ResponsiveChatBody = ({
   className?: string;
   scrollable?: boolean;
 }) => {
-  const { isSmallScreen } = useBreakpoint();
+  const { isSmallScreen, isMediumScreen } = useBreakpoint();
+  const { isTablet, isMobile } = useResponsive();
   
   return (
     <div
       className={cn(
         'w-full',
         scrollable && 'overflow-y-auto',
-        isSmallScreen ? 'px-2 py-2' : 'px-4 py-3',
+        isSmallScreen || isMobile 
+          ? 'px-2 py-2' 
+          : isTablet || isMediumScreen 
+            ? 'px-3 py-2.5' 
+            : 'px-4 py-3',
         className
       )}
     >

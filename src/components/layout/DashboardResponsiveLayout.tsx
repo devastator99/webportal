@@ -3,6 +3,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { useBreakpoint, useResponsiveLayout } from '@/hooks/use-responsive';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { useResponsive } from '@/contexts/ResponsiveContext';
 
 interface DashboardResponsiveLayoutProps {
   children: React.ReactNode;
@@ -10,6 +11,7 @@ interface DashboardResponsiveLayoutProps {
   withPadding?: boolean;
   withScrollArea?: boolean;
   fullHeight?: boolean;
+  maxWidth?: string;
 }
 
 export const DashboardResponsiveLayout = ({
@@ -18,16 +20,31 @@ export const DashboardResponsiveLayout = ({
   withPadding = true,
   withScrollArea = true,
   fullHeight = true,
+  maxWidth = 'max-w-screen-xl',
 }: DashboardResponsiveLayoutProps) => {
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
+  const { isTablet, isMobile } = useResponsive();
   const { padding } = useResponsiveLayout();
   
   const content = (
     <div
       className={cn(
         'w-full mx-auto',
-        withPadding && (isSmallScreen ? 'px-2 py-3' : isMediumScreen ? 'px-4 py-4' : 'px-6 py-6'),
-        fullHeight && 'min-h-[calc(100vh-180px)]',
+        maxWidth,
+        withPadding && (
+          isSmallScreen 
+            ? 'px-2 py-3' 
+            : isMediumScreen || isTablet 
+              ? 'px-4 py-4' 
+              : 'px-6 py-6'
+        ),
+        fullHeight && (
+          isSmallScreen || isMobile 
+            ? 'min-h-[calc(100vh-130px)]' 
+            : isTablet || isMediumScreen 
+              ? 'min-h-[calc(100vh-150px)]' 
+              : 'min-h-[calc(100vh-180px)]'
+        ),
         className
       )}
     >
@@ -63,17 +80,28 @@ export const DashboardResponsiveSection = ({
   descriptionClassName?: string;
   withMargin?: boolean;
 }) => {
-  const { isSmallScreen } = useBreakpoint();
+  const { isSmallScreen, isMediumScreen } = useBreakpoint();
+  const { isTablet } = useResponsive();
   
   return (
     <section className={cn(
-      withMargin && (isSmallScreen ? 'mb-4' : 'mb-6'),
+      withMargin && (
+        isSmallScreen || isMobile 
+          ? 'mb-4' 
+          : isTablet || isMediumScreen 
+            ? 'mb-5' 
+            : 'mb-6'
+      ),
       className
     )}>
       {title && (
         <h2 className={cn(
           'font-semibold mb-2',
-          isSmallScreen ? 'text-lg' : 'text-xl',
+          isSmallScreen 
+            ? 'text-lg' 
+            : isTablet || isMediumScreen 
+              ? 'text-xl' 
+              : 'text-2xl',
           titleClassName
         )}>
           {title}
@@ -83,7 +111,11 @@ export const DashboardResponsiveSection = ({
       {description && (
         <p className={cn(
           'text-muted-foreground mb-3',
-          isSmallScreen ? 'text-sm' : 'text-base',
+          isSmallScreen 
+            ? 'text-sm' 
+            : isTablet || isMediumScreen 
+              ? 'text-base' 
+              : 'text-lg',
           descriptionClassName
         )}>
           {description}
@@ -107,14 +139,19 @@ export const DashboardResponsiveGrid = ({
   className?: string;
 }) => {
   const { isSmallScreen, isMediumScreen, isLargeScreen } = useBreakpoint();
+  const { isTablet, isMobile } = useResponsive();
   
-  const cols = isSmallScreen ? columns.mobile : 
-               isMediumScreen ? (columns.tablet || columns.mobile) : 
-               (columns.desktop || columns.tablet || columns.mobile);
+  const cols = isSmallScreen || isMobile 
+    ? columns.mobile 
+    : isTablet || isMediumScreen 
+      ? (columns.tablet || columns.mobile) 
+      : (columns.desktop || columns.tablet || columns.mobile);
                
-  const gapSize = isSmallScreen ? gap.mobile : 
-                 isMediumScreen ? (gap.tablet || gap.mobile) : 
-                 (gap.desktop || gap.tablet || gap.mobile);
+  const gapSize = isSmallScreen || isMobile 
+    ? gap.mobile 
+    : isTablet || isMediumScreen 
+      ? (gap.tablet || gap.mobile) 
+      : (gap.desktop || gap.tablet || gap.mobile);
   
   return (
     <div
