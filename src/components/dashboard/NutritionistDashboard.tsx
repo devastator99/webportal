@@ -4,7 +4,7 @@ import { getNutritionistPatients } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, ArrowRight, Salad, Calendar, FileText, MessageCircle, Grid3X3 } from "lucide-react";
+import { Users, ArrowRight, Salad, Calendar, FileText, MessageCircle, Grid3X3, Layout } from "lucide-react";
 import { DashboardHeader } from "./DashboardHeader";
 import { useState } from "react";
 import { HealthPlanCreator } from "./nutritionist/HealthPlanCreator";
@@ -15,6 +15,7 @@ import { NutritionistCareTeamChat } from "@/components/chat/NutritionistCareTeam
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNutritionistStats } from "@/hooks/useNutritionistStats";
 import { HealthPlanItemsGrid } from "./nutritionist/HealthPlanItemsGrid";
+import { NutritionistHealthPlanTabs } from "./nutritionist/NutritionistHealthPlanTabs";
 
 interface PatientProfile {
   id: string;
@@ -26,7 +27,7 @@ export const NutritionistDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'create' | 'pdf' | 'chat' | 'manage'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'healthplan' | 'chat'>('list');
   const { data: stats, isLoading: isLoadingStats } = useNutritionistStats();
 
   const { data: patients = [], isLoading } = useQuery({
@@ -55,9 +56,9 @@ export const NutritionistDashboard = () => {
     staleTime: 60000
   });
 
-  const handlePatientAction = (patientId: string, mode: 'create' | 'pdf' | 'manage') => {
+  const handlePatientAction = (patientId: string) => {
     setSelectedPatientId(patientId);
-    setViewMode(mode);
+    setViewMode('healthplan');
   };
 
   const handleBackToList = () => {
@@ -126,30 +127,13 @@ export const NutritionistDashboard = () => {
             <NutritionistCareTeamChat />
           </div>
         </>
-      ) : viewMode !== 'list' ? (
+      ) : viewMode === 'healthplan' && selectedPatientId ? (
         <>
           <Button variant="outline" onClick={handleBackToList} className="mb-4">
             Back to Patient List
           </Button>
           
-          {viewMode === 'create' && selectedPatientId && (
-            <HealthPlanCreator patientId={selectedPatientId} />
-          )}
-          
-          {viewMode === 'pdf' && selectedPatientId && (
-            <HealthPlanPDF patientId={selectedPatientId} onClose={handleBackToList} />
-          )}
-          
-          {viewMode === 'manage' && selectedPatientId && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Manage Health Plan</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <HealthPlanItemsGrid patientId={selectedPatientId} />
-              </CardContent>
-            </Card>
-          )}
+          <NutritionistHealthPlanTabs patientId={selectedPatientId} onClose={handleBackToList} />
         </>
       ) : (
         <>
@@ -185,29 +169,13 @@ export const NutritionistDashboard = () => {
                         </p>
                       </div>
                       <div className="flex gap-2">
-                        <Button 
-                          onClick={() => handlePatientAction(patient.id, 'pdf')}
-                          variant="outline"
-                          size="sm"
-                        >
-                          <FileText className="h-4 w-4 mr-1" />
-                          View Plan
-                        </Button>
                         <Button
-                          onClick={() => handlePatientAction(patient.id, 'manage')}
-                          variant="outline"
-                          size="sm"
-                        >
-                          <Grid3X3 className="h-4 w-4 mr-1" />
-                          Manage Plan
-                        </Button>
-                        <Button
-                          onClick={() => handlePatientAction(patient.id, 'create')}
+                          onClick={() => handlePatientAction(patient.id)}
                           size="sm"
                           className="bg-green-500 hover:bg-green-600"
                         >
-                          <Salad className="h-4 w-4 mr-1" />
-                          Create Plan
+                          <Layout className="h-4 w-4 mr-1" />
+                          Manage Health Plan
                         </Button>
                       </div>
                     </div>
