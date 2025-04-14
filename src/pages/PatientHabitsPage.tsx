@@ -1,10 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { HabitsProgressCharts } from "@/components/dashboard/patient/HabitsProgressCharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Activity, Dumbbell, Utensils, Moon, Brain, Pill } from 'lucide-react';
+import { Activity, Dumbbell, Utensils, Moon, Brain, Pill, Plus } from 'lucide-react';
 import { usePatientHabits } from '@/hooks/usePatientHabits';
 import { HealthPlanSummary } from '@/components/dashboard/patient/HealthPlanSummary';
 import { ProgressSummary } from '@/components/dashboard/patient/ProgressSummary';
@@ -15,6 +15,8 @@ import { useBreakpoint, useResponsiveLayout } from '@/hooks/use-responsive';
 import { ResponsiveText } from '@/components/ui/responsive-typography';
 import { useResponsive } from '@/contexts/ResponsiveContext';
 import { PatientHeader } from '@/components/dashboard/patient/PatientHeader';
+import { Button } from '@/components/ui/button';
+import { AddHabitDialog } from '@/components/dashboard/patient/AddHabitDialog';
 
 const typeIcons = {
   food: <Utensils className="h-5 w-5 text-green-500" />,
@@ -46,11 +48,32 @@ const PatientHabitsPage = () => {
     setupReminder,
     saveReminder,
     markAsCompleted,
+    refetchHealthPlanItems
   } = usePatientHabits();
 
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
   const { isTablet, isMobile } = useResponsive();
   const { padding, margin, gapSize } = useResponsiveLayout();
+  
+  const [addHabitDialogOpen, setAddHabitDialogOpen] = useState(false);
+
+  // Separate health plan items by creator
+  const nutritionistItems = {};
+  const patientItems = {};
+  
+  healthPlanItems?.forEach(item => {
+    if (item.creator_type === 'patient') {
+      if (!patientItems[item.type]) {
+        patientItems[item.type] = [];
+      }
+      patientItems[item.type].push(item);
+    } else {
+      if (!nutritionistItems[item.type]) {
+        nutritionistItems[item.type] = [];
+      }
+      nutritionistItems[item.type].push(item);
+    }
+  });
 
   if (isLoading) {
     return (
@@ -81,16 +104,28 @@ const PatientHabitsPage = () => {
       <PatientHeader />
       
       <div className={`px-${isSmallScreen || isMobile ? '3' : isTablet || isMediumScreen ? '4' : '6'} pb-16 flex-1 overflow-y-auto`}>
-        <ResponsiveText
-          as="h1"
-          className="mt-2 mb-2"
-          mobileSize="xl"
-          tabletSize="2xl"
-          desktopSize="2xl"
-          weight="bold"
-        >
-          My Health Plan
-        </ResponsiveText>
+        <div className="flex justify-between items-center mt-2 mb-4">
+          <ResponsiveText
+            as="h1"
+            className="mt-2"
+            mobileSize="xl"
+            tabletSize="2xl"
+            desktopSize="2xl"
+            weight="bold"
+          >
+            My Health Plan
+          </ResponsiveText>
+          
+          <Button 
+            variant="default" 
+            size={isSmallScreen || isMobile ? "sm" : "default"} 
+            onClick={() => setAddHabitDialogOpen(true)}
+            className="bg-[#9b87f5] hover:bg-[#8a74e8]"
+          >
+            <Plus className="h-4 w-4 mr-1" />
+            Add Habit
+          </Button>
+        </div>
         
         <p className={`text-muted-foreground mb-${isSmallScreen || isMobile ? '3' : '5'} text-sm sm:text-base`}>
           Track your habits and follow your personalized health plan
@@ -100,7 +135,8 @@ const PatientHabitsPage = () => {
           <TabsList className={`mb-4 ${isSmallScreen || isMobile ? 'w-full' : ''}`}>
             <TabsTrigger value="overview" className={isSmallScreen || isMobile ? 'text-xs py-1.5' : ''}>Overview</TabsTrigger>
             <TabsTrigger value="progress" className={isSmallScreen || isMobile ? 'text-xs py-1.5' : ''}>Progress</TabsTrigger>
-            <TabsTrigger value="plan" className={isSmallScreen || isMobile ? 'text-xs py-1.5' : ''}>Full Plan</TabsTrigger>
+            <TabsTrigger value="plan" className={isSmallScreen || isMobile ? 'text-xs py-1.5' : ''}>Recommended Plan</TabsTrigger>
+            <TabsTrigger value="my-habits" className={isSmallScreen || isMobile ? 'text-xs py-1.5' : ''}>My Habits</TabsTrigger>
           </TabsList>
           
           <TabsContent value="overview" className="min-h-[60vh]">
@@ -136,8 +172,20 @@ const PatientHabitsPage = () => {
           </TabsContent>
           
           <TabsContent value="plan" id="plan-section" className="min-h-[60vh]">
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-green-500" />
+                  Recommended Health Plan
+                </CardTitle>
+                <CardDescription>
+                  Personalized recommendations from your care team
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            
             <DetailedHealthPlan
-              groupedItems={groupedItems}
+              groupedItems={nutritionistItems}
               typeIcons={typeIcons}
               onSetupReminder={setupReminder}
               onMarkComplete={(item) => {
@@ -146,6 +194,35 @@ const PatientHabitsPage = () => {
                 setNewLogNotes("");
                 setCompletionDialogOpen(true);
               }}
+              emptyMessage="No recommendations from your care team yet."
+            />
+          </TabsContent>
+          
+          <TabsContent value="my-habits" id="my-habits-section" className="min-h-[60vh]">
+            <Card className="mb-4">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Activity className="h-5 w-5 text-[#9b87f5]" />
+                  My Personal Habits
+                </CardTitle>
+                <CardDescription>
+                  Habits you've created to track your personal health goals
+                </CardDescription>
+              </CardHeader>
+            </Card>
+            
+            <DetailedHealthPlan
+              groupedItems={patientItems}
+              typeIcons={typeIcons}
+              onSetupReminder={setupReminder}
+              onMarkComplete={(item) => {
+                setSelectedItem(item);
+                setNewLogValue(0);
+                setNewLogNotes("");
+                setCompletionDialogOpen(true);
+              }}
+              emptyMessage="You haven't added any personal habits yet. Click the 'Add Habit' button to get started."
+              isPatientCreated={true}
             />
           </TabsContent>
         </Tabs>
@@ -170,6 +247,13 @@ const PatientHabitsPage = () => {
           setNewLogNotes={setNewLogNotes}
           onMarkAsCompleted={markAsCompleted}
           typeIcons={typeIcons}
+        />
+        
+        {/* Add Habit Dialog */}
+        <AddHabitDialog
+          open={addHabitDialogOpen}
+          onOpenChange={setAddHabitDialogOpen}
+          onHabitAdded={refetchHealthPlanItems}
         />
       </div>
     </div>

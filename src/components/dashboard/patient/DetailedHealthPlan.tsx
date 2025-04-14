@@ -3,8 +3,12 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Activity, Bell, CheckCircle2 } from "lucide-react";
+import { Activity, Bell, CheckCircle2, Trash2, Edit } from "lucide-react";
 import { HealthPlanItem } from '@/interfaces/HealthHabits';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 interface TypeIconsProps {
   [key: string]: React.ReactNode;
@@ -15,16 +19,70 @@ interface DetailedHealthPlanProps {
   typeIcons: TypeIconsProps;
   onSetupReminder: (item: HealthPlanItem) => void;
   onMarkComplete: (item: HealthPlanItem) => void;
+  emptyMessage?: string;
+  isPatientCreated?: boolean;
 }
 
 export const DetailedHealthPlan: React.FC<DetailedHealthPlanProps> = ({ 
   groupedItems, 
   typeIcons, 
   onSetupReminder, 
-  onMarkComplete 
+  onMarkComplete,
+  emptyMessage = "No health plan items available.",
+  isPatientCreated = false
 }) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const deleteHabit = async (itemId: string) => {
+    if (!user?.id || !itemId) return;
+    
+    try {
+      const { error } = await supabase
+        .from('health_plan_items')
+        .delete()
+        .eq('id', itemId)
+        .eq('patient_id', user.id)
+        .eq('created_by', user.id);
+        
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Habit Deleted",
+        description: "Your habit has been deleted successfully.",
+      });
+      
+      // Reload the page or refetch data
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      
+    } catch (error) {
+      console.error("Error deleting habit:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete the habit. Please try again.",
+      });
+    }
+  };
+
+  // Check if there are any items
+  const hasItems = Object.keys(groupedItems).length > 0;
+
   return (
     <div className="space-y-6">
+      {!hasItems && (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+            <Activity className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">{emptyMessage}</p>
+          </CardContent>
+        </Card>
+      )}
+      
       {Object.entries(groupedItems).map(([type, items]) => (
         <Card key={type}>
           <CardHeader>
@@ -33,7 +91,8 @@ export const DetailedHealthPlan: React.FC<DetailedHealthPlanProps> = ({
               {type.charAt(0).toUpperCase() + type.slice(1)} Plan
             </CardTitle>
             <CardDescription>
-              Your personalized {type} recommendations
+              {isPatientCreated ? "Your personal " : "Your personalized "} 
+              {type} recommendations
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -55,15 +114,43 @@ export const DetailedHealthPlan: React.FC<DetailedHealthPlanProps> = ({
                       onClick={() => onSetupReminder(item)}
                     >
                       <Bell className="mr-2 h-4 w-4" />
-                      Set Reminder
+                      Remind
                     </Button>
                     <Button
                       size="sm"
                       onClick={() => onMarkComplete(item)}
                     >
                       <CheckCircle2 className="mr-2 h-4 w-4" />
-                      Mark Complete
+                      Complete
                     </Button>
+                    
+                    {isPatientCreated && item.created_by === user?.id && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This will permanently delete this habit from your health plan.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => item.id && deleteHabit(item.id)}>
+                              Delete
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 </div>
               ))}

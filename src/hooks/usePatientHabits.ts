@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,12 @@ export const usePatientHabits = () => {
   const today = format(new Date(), 'yyyy-MM-dd');
 
   // Fetch health plan items
-  const { data: healthPlanItems, isLoading: isLoadingPlan, error: planError } = useQuery({
+  const { 
+    data: healthPlanItems, 
+    isLoading: isLoadingPlan, 
+    error: planError,
+    refetch: refetchHealthPlanItems
+  } = useQuery({
     queryKey: ["patient_health_plan", user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error("User not authenticated");
@@ -225,5 +230,8 @@ export const usePatientHabits = () => {
     setupReminder,
     saveReminder,
     markAsCompleted,
+    refetchHealthPlanItems: useCallback(() => {
+      refetchHealthPlanItems();
+    }, [refetchHealthPlanItems])
   };
 };
