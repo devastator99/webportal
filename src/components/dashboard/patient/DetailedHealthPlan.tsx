@@ -87,7 +87,7 @@ export const DetailedHealthPlan: React.FC<DetailedHealthPlanProps> = ({
         <Card key={type}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              {typeIcons[type as keyof typeof typeIcons] || <Activity className="h-5 w-5" />}
+              {typeIcons[type] || <Activity className="h-5 w-5" />}
               {type.charAt(0).toUpperCase() + type.slice(1)} Plan
             </CardTitle>
             <CardDescription>
