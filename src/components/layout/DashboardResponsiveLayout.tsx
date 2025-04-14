@@ -33,17 +33,17 @@ export const DashboardResponsiveLayout = ({
         maxWidth,
         withPadding && (
           isSmallScreen || isMobile
-            ? 'px-3 py-3' 
+            ? 'px-2 py-2' 
             : isTablet || isMediumScreen 
-              ? 'px-4 py-4' 
-              : 'px-6 py-6'
+              ? 'px-3 py-3' 
+              : 'px-5 py-5'
         ),
         fullHeight && (
           isSmallScreen || isMobile 
-            ? 'min-h-[calc(100vh-130px)]' 
+            ? 'min-h-[calc(100vh-100px)]' 
             : isTablet || isMediumScreen 
-              ? 'min-h-[calc(100vh-150px)]' 
-              : 'min-h-[calc(100vh-180px)]'
+              ? 'min-h-[calc(100vh-120px)]' 
+              : 'min-h-[calc(100vh-150px)]'
         ),
         className
       )}
@@ -54,7 +54,7 @@ export const DashboardResponsiveLayout = ({
   
   if (withScrollArea) {
     return (
-      <ScrollArea className="mb-16">
+      <ScrollArea className="mb-12">
         {content}
       </ScrollArea>
     );
@@ -87,10 +87,10 @@ export const DashboardResponsiveSection = ({
     <section className={cn(
       withMargin && (
         isSmallScreen || isMobile 
-          ? 'mb-4' 
+          ? 'mb-3' 
           : isTablet || isMediumScreen 
-            ? 'mb-5' 
-            : 'mb-6'
+            ? 'mb-4' 
+            : 'mb-5'
       ),
       className
     )}>

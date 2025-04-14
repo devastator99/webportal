@@ -10,10 +10,10 @@ export const PatientHeader = () => {
   return (
     <div className={`${
       isSmallScreen || isMobile 
-        ? "pt-4 pb-2" 
+        ? "pt-3 pb-2" 
         : isTablet || isMediumScreen 
-          ? "pt-6 pb-3" 
-          : "pt-8 pb-4"
+          ? "pt-4 pb-2" 
+          : "pt-6 pb-3"
     }`}>
       <DashboardHeader />
     </div>

@@ -13,6 +13,8 @@ import { ReminderDialog } from '@/components/dashboard/patient/ReminderDialog';
 import { CompletionDialog } from '@/components/dashboard/patient/CompletionDialog';
 import { useBreakpoint, useResponsiveLayout } from '@/hooks/use-responsive';
 import { ResponsiveText } from '@/components/ui/responsive-typography';
+import { useResponsive } from '@/contexts/ResponsiveContext';
+import { PatientHeader } from '@/components/dashboard/patient/PatientHeader';
 
 const typeIcons = {
   food: <Utensils className="h-5 w-5 text-green-500" />,
@@ -47,11 +49,12 @@ const PatientHabitsPage = () => {
   } = usePatientHabits();
 
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
+  const { isTablet, isMobile } = useResponsive();
   const { padding, margin, gapSize } = useResponsiveLayout();
 
   if (isLoading) {
     return (
-      <div className="container pt-12 sm:pt-16 pb-6 sm:pb-8 flex justify-center items-center h-[60vh]">
+      <div className="flex-1 flex justify-center items-center h-[60vh]">
         <Spinner size="lg" />
       </div>
     );
@@ -59,7 +62,7 @@ const PatientHabitsPage = () => {
 
   if (planError) {
     return (
-      <div className="container pt-12 sm:pt-16 pb-6 sm:pb-8">
+      <div className="px-4 pt-6 pb-4">
         <Card className="border-destructive">
           <CardHeader>
             <CardTitle className="text-destructive">Error Loading Health Plan</CardTitle>
@@ -74,33 +77,68 @@ const PatientHabitsPage = () => {
   }
 
   return (
-    <div className="container pt-12 sm:pt-16 pb-6 sm:pb-8">
-      <ResponsiveText
-        as="h1"
-        className="mb-2"
-        mobileSize="xl"
-        tabletSize="2xl"
-        desktopSize="2xl"
-        weight="bold"
-      >
-        My Health Plan
-      </ResponsiveText>
+    <div className="flex flex-col h-full">
+      <PatientHeader />
       
-      <p className="text-muted-foreground mb-4 sm:mb-6 text-sm sm:text-base">
-        Track your habits and follow your personalized health plan
-      </p>
-
-      <Tabs defaultValue="overview" className="mb-6 sm:mb-8">
-        <TabsList className={`mb-4 ${isSmallScreen ? 'w-full' : ''}`}>
-          <TabsTrigger value="overview" className={isSmallScreen ? 'text-xs' : ''}>Overview</TabsTrigger>
-          <TabsTrigger value="progress" className={isSmallScreen ? 'text-xs' : ''}>Progress</TabsTrigger>
-          <TabsTrigger value="plan" className={isSmallScreen ? 'text-xs' : ''}>Full Plan</TabsTrigger>
-        </TabsList>
+      <div className={`px-${isSmallScreen || isMobile ? '3' : isTablet || isMediumScreen ? '4' : '6'} pb-16 flex-1`}>
+        <ResponsiveText
+          as="h1"
+          className="mb-2"
+          mobileSize="xl"
+          tabletSize="2xl"
+          desktopSize="2xl"
+          weight="bold"
+        >
+          My Health Plan
+        </ResponsiveText>
         
-        <TabsContent value="overview">
-          <div className={`grid gap-4 sm:gap-6 ${isSmallScreen ? 'grid-cols-1' : 'md:grid-cols-2'}`}>
-            <HealthPlanSummary 
-              healthPlanItems={healthPlanItems}
+        <p className={`text-muted-foreground mb-${isSmallScreen || isMobile ? '3' : '5'} text-sm sm:text-base`}>
+          Track your habits and follow your personalized health plan
+        </p>
+
+        <Tabs defaultValue="overview" className={`mb-${isSmallScreen || isMobile ? '4' : '6'}`}>
+          <TabsList className={`mb-4 ${isSmallScreen || isMobile ? 'w-full' : ''}`}>
+            <TabsTrigger value="overview" className={isSmallScreen || isMobile ? 'text-xs' : ''}>Overview</TabsTrigger>
+            <TabsTrigger value="progress" className={isSmallScreen || isMobile ? 'text-xs' : ''}>Progress</TabsTrigger>
+            <TabsTrigger value="plan" className={isSmallScreen || isMobile ? 'text-xs' : ''}>Full Plan</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="overview">
+            <div className={`grid gap-${isSmallScreen || isMobile ? '3' : isTablet || isMediumScreen ? '4' : '6'} ${isSmallScreen || isMobile ? 'grid-cols-1' : isTablet || isMediumScreen ? 'grid-cols-1 md:grid-cols-2' : 'md:grid-cols-2'}`}>
+              <HealthPlanSummary 
+                healthPlanItems={healthPlanItems}
+                onSetupReminder={setupReminder}
+                onMarkComplete={(item) => {
+                  setSelectedItem(item);
+                  setNewLogValue(0);
+                  setNewLogNotes("");
+                  setCompletionDialogOpen(true);
+                }}
+              />
+              
+              <ProgressSummary
+                summaryData={summaryData}
+                percentages={percentages}
+              />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="progress">
+            <Card>
+              <CardHeader className={isSmallScreen || isMobile ? 'p-3' : ''}>
+                <CardTitle className={isSmallScreen || isMobile ? 'text-lg' : ''}>Progress Charts</CardTitle>
+                <CardDescription>Visual representation of your health habits</CardDescription>
+              </CardHeader>
+              <CardContent className={isSmallScreen || isMobile ? 'p-3 pt-0' : ''}>
+                <HabitsProgressCharts />
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="plan" id="plan-section">
+            <DetailedHealthPlan
+              groupedItems={groupedItems}
+              typeIcons={typeIcons}
               onSetupReminder={setupReminder}
               onMarkComplete={(item) => {
                 setSelectedItem(item);
@@ -109,62 +147,31 @@ const PatientHabitsPage = () => {
                 setCompletionDialogOpen(true);
               }}
             />
-            
-            <ProgressSummary
-              summaryData={summaryData}
-              percentages={percentages}
-            />
-          </div>
-        </TabsContent>
+          </TabsContent>
+        </Tabs>
         
-        <TabsContent value="progress">
-          <Card>
-            <CardHeader className={isSmallScreen ? 'p-3' : ''}>
-              <CardTitle className={isSmallScreen ? 'text-lg' : ''}>Progress Charts</CardTitle>
-              <CardDescription>Visual representation of your health habits</CardDescription>
-            </CardHeader>
-            <CardContent className={isSmallScreen ? 'p-3 pt-0' : ''}>
-              <HabitsProgressCharts />
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {/* Set Reminder Dialog */}
+        <ReminderDialog
+          open={reminderDialogOpen}
+          onOpenChange={setReminderDialogOpen}
+          selectedReminder={selectedReminder}
+          onSaveReminder={saveReminder}
+          typeIcons={typeIcons}
+        />
         
-        <TabsContent value="plan" id="plan-section">
-          <DetailedHealthPlan
-            groupedItems={groupedItems}
-            typeIcons={typeIcons}
-            onSetupReminder={setupReminder}
-            onMarkComplete={(item) => {
-              setSelectedItem(item);
-              setNewLogValue(0);
-              setNewLogNotes("");
-              setCompletionDialogOpen(true);
-            }}
-          />
-        </TabsContent>
-      </Tabs>
-      
-      {/* Set Reminder Dialog */}
-      <ReminderDialog
-        open={reminderDialogOpen}
-        onOpenChange={setReminderDialogOpen}
-        selectedReminder={selectedReminder}
-        onSaveReminder={saveReminder}
-        typeIcons={typeIcons}
-      />
-      
-      {/* Mark as Complete Dialog */}
-      <CompletionDialog
-        open={completionDialogOpen}
-        onOpenChange={setCompletionDialogOpen}
-        selectedItem={selectedItem}
-        newLogValue={newLogValue}
-        setNewLogValue={setNewLogValue}
-        newLogNotes={newLogNotes}
-        setNewLogNotes={setNewLogNotes}
-        onMarkAsCompleted={markAsCompleted}
-        typeIcons={typeIcons}
-      />
+        {/* Mark as Complete Dialog */}
+        <CompletionDialog
+          open={completionDialogOpen}
+          onOpenChange={setCompletionDialogOpen}
+          selectedItem={selectedItem}
+          newLogValue={newLogValue}
+          setNewLogValue={setNewLogValue}
+          newLogNotes={newLogNotes}
+          setNewLogNotes={setNewLogNotes}
+          onMarkAsCompleted={markAsCompleted}
+          typeIcons={typeIcons}
+        />
+      </div>
     </div>
   );
 };

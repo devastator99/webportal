@@ -30,17 +30,17 @@ export const ResponsiveChatContainer = ({
         maxWidth,
         fullHeight && (
           isSmallScreen || isMobile 
-            ? 'h-[calc(100vh-120px)]' 
+            ? 'h-[calc(100vh-100px)]' 
             : isTablet || isMediumScreen 
-              ? 'h-[calc(100vh-140px)]' 
-              : 'h-[calc(100vh-160px)]'
+              ? 'h-[calc(100vh-120px)]' 
+              : 'h-[calc(100vh-140px)]'
         ),
         withPadding && (
           isSmallScreen || isMobile 
             ? 'px-2' 
             : isTablet || isMediumScreen 
               ? 'px-3' 
-              : 'px-6'
+              : 'px-5'
         ),
         className
       )}
@@ -71,9 +71,9 @@ export const ResponsiveChatHeader = ({
         sticky && 'sticky top-0',
         withBorder && 'border-b',
         isSmallScreen || isMobile 
-          ? 'py-2 px-3' 
+          ? 'py-2 px-2' 
           : isTablet || isMediumScreen 
-            ? 'py-2.5 px-3.5' 
+            ? 'py-2 px-3' 
             : 'py-3 px-4',
         className
       )}
@@ -104,9 +104,9 @@ export const ResponsiveChatFooter = ({
         sticky && 'sticky bottom-0',
         withBorder && 'border-t',
         isSmallScreen || isMobile 
-          ? 'py-2 px-3' 
+          ? 'py-2 px-2' 
           : isTablet || isMediumScreen 
-            ? 'py-2.5 px-3.5' 
+            ? 'py-2 px-3' 
             : 'py-3 px-4',
         className
       )}
@@ -136,7 +136,7 @@ export const ResponsiveChatBody = ({
         isSmallScreen || isMobile 
           ? 'px-2 py-2' 
           : isTablet || isMediumScreen 
-            ? 'px-3 py-2.5' 
+            ? 'px-3 py-2' 
             : 'px-4 py-3',
         className
       )}
