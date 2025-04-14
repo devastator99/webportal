@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { FileText, Grid3X3, PlusCircle, ArrowLeft } from 'lucide-react';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
 import { useResponsive } from '@/contexts/ResponsiveContext';
-import { useResponsiveValue } from '@/hooks/use-responsive';
+import { useResponsiveValue, useResponsiveButtonSize } from '@/hooks/use-responsive';
 
 interface NutritionistHealthPlanTabsProps {
   patientId: string;
@@ -29,7 +29,7 @@ export const NutritionistHealthPlanTabs = ({ patientId, onClose }: NutritionistH
     default: 'h-4 w-4'
   });
   
-  const buttonSize = useResponsiveValue({
+  const buttonSize = useResponsiveButtonSize({
     mobile: 'sm',
     default: 'default'
   });

@@ -17,7 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { TodaySchedule } from "@/components/dashboard/doctor/TodaySchedule";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import { ResponsiveCard } from "@/components/ui/responsive-card";
-import { useResponsiveValue } from "@/hooks/use-responsive";
+import { useResponsiveValue, useResponsiveButtonSize } from "@/hooks/use-responsive";
 
 export const AlternativeDoctorDashboard = () => {
   const { user } = useAuth();
@@ -41,8 +41,8 @@ export const AlternativeDoctorDashboard = () => {
   });
   
   // Responsive button sizes
-  const buttonSize = useResponsiveValue({
-    mobile: 'xs',
+  const buttonSize = useResponsiveButtonSize({
+    mobile: 'sm',
     tablet: 'sm',
     default: 'default'
   });

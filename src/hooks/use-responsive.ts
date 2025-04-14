@@ -1,6 +1,9 @@
 
 import { useResponsive } from '@/contexts/ResponsiveContext';
 
+type DeviceType = 'mobile' | 'tablet' | 'laptop' | 'desktop';
+type ButtonSize = 'sm' | 'lg' | 'default' | 'icon';
+
 export function useResponsiveValue<T>(
   options: {
     mobile?: T;
@@ -24,6 +27,19 @@ export function useResponsiveValue<T>(
     default:
       return options.default;
   }
+}
+
+// Helper function specifically for button sizes to ensure type safety
+export function useResponsiveButtonSize(
+  options: {
+    mobile?: ButtonSize;
+    tablet?: ButtonSize;
+    laptop?: ButtonSize;
+    desktop?: ButtonSize;
+    default: ButtonSize;
+  }
+): ButtonSize {
+  return useResponsiveValue(options);
 }
 
 // Helper for responsive spacing
@@ -89,3 +105,4 @@ export function useResponsiveRendering() {
     renderOnSmallScreen: (content: React.ReactNode) => (isMobile || isTablet) ? content : null,
   };
 }
+
