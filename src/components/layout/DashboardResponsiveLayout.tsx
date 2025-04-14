@@ -81,7 +81,7 @@ export const DashboardResponsiveSection = ({
   withMargin?: boolean;
 }) => {
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
-  const { isTablet } = useResponsive();
+  const { isTablet, isMobile } = useResponsive();
   
   return (
     <section className={cn(
