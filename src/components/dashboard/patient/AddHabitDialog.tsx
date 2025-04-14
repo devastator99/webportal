@@ -54,14 +54,16 @@ export const AddHabitDialog: React.FC<AddHabitDialogProps> = ({
     try {
       setIsSubmitting(true);
       
-      // Use the RPC function to add a health plan item
-      const { data, error } = await supabase.rpc('add_patient_health_plan_item', {
-        p_patient_id: user.id,
-        p_type: habitType,
-        p_scheduled_time: scheduledTime,
-        p_description: description,
-        p_frequency: frequency,
-        p_duration: duration || null
+      // Call our custom RPC function
+      const { error } = await supabase.from('health_plan_items').insert({
+        patient_id: user.id,
+        type: habitType,
+        scheduled_time: scheduledTime,
+        description: description,
+        frequency: frequency,
+        duration: duration || null,
+        created_by: user.id,
+        creator_type: 'patient'
       });
       
       if (error) {

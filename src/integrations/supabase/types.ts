@@ -1031,6 +1031,17 @@ export type Database = {
       }
     }
     Functions: {
+      add_patient_health_plan_item: {
+        Args: {
+          p_patient_id: string
+          p_type: string
+          p_scheduled_time: string
+          p_description: string
+          p_frequency: string
+          p_duration?: string
+        }
+        Returns: string
+      }
       admin_assign_care_team: {
         Args: {
           p_patient_id: string
@@ -1128,6 +1139,10 @@ export type Database = {
       create_test_users: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      delete_health_plan_item: {
+        Args: { p_item_id: string }
+        Returns: boolean
       }
       delete_push_subscription: {
         Args: { p_endpoint: string }

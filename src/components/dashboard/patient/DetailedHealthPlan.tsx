@@ -38,10 +38,10 @@ export const DetailedHealthPlan: React.FC<DetailedHealthPlanProps> = ({
     if (!user?.id || !itemId) return;
     
     try {
-      const { error } = await supabase
-        .rpc('delete_health_plan_item', {
-          p_item_id: itemId
-        });
+      const { error } = await supabase.from('health_plan_items')
+        .delete()
+        .eq('id', itemId)
+        .eq('created_by', user.id);
         
       if (error) {
         throw error;
