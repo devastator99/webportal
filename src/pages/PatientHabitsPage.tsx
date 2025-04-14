@@ -77,13 +77,13 @@ const PatientHabitsPage = () => {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col min-h-screen">
       <PatientHeader />
       
-      <div className={`px-${isSmallScreen || isMobile ? '3' : isTablet || isMediumScreen ? '4' : '6'} pb-16 flex-1`}>
+      <div className={`px-${isSmallScreen || isMobile ? '3' : isTablet || isMediumScreen ? '4' : '6'} pb-16 flex-1 overflow-y-auto`}>
         <ResponsiveText
           as="h1"
-          className="mb-2"
+          className="mt-2 mb-2"
           mobileSize="xl"
           tabletSize="2xl"
           desktopSize="2xl"
@@ -98,13 +98,13 @@ const PatientHabitsPage = () => {
 
         <Tabs defaultValue="overview" className={`mb-${isSmallScreen || isMobile ? '4' : '6'}`}>
           <TabsList className={`mb-4 ${isSmallScreen || isMobile ? 'w-full' : ''}`}>
-            <TabsTrigger value="overview" className={isSmallScreen || isMobile ? 'text-xs' : ''}>Overview</TabsTrigger>
-            <TabsTrigger value="progress" className={isSmallScreen || isMobile ? 'text-xs' : ''}>Progress</TabsTrigger>
-            <TabsTrigger value="plan" className={isSmallScreen || isMobile ? 'text-xs' : ''}>Full Plan</TabsTrigger>
+            <TabsTrigger value="overview" className={isSmallScreen || isMobile ? 'text-xs py-1.5' : ''}>Overview</TabsTrigger>
+            <TabsTrigger value="progress" className={isSmallScreen || isMobile ? 'text-xs py-1.5' : ''}>Progress</TabsTrigger>
+            <TabsTrigger value="plan" className={isSmallScreen || isMobile ? 'text-xs py-1.5' : ''}>Full Plan</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="overview">
-            <div className={`grid gap-${isSmallScreen || isMobile ? '3' : isTablet || isMediumScreen ? '4' : '6'} ${isSmallScreen || isMobile ? 'grid-cols-1' : isTablet || isMediumScreen ? 'grid-cols-1 md:grid-cols-2' : 'md:grid-cols-2'}`}>
+          <TabsContent value="overview" className="min-h-[60vh]">
+            <div className={`grid gap-${isSmallScreen || isMobile ? '3' : isTablet || isMediumScreen ? '4' : '6'} ${isSmallScreen || isMobile ? 'grid-cols-1' : isTablet || isMediumScreen ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-2'}`}>
               <HealthPlanSummary 
                 healthPlanItems={healthPlanItems}
                 onSetupReminder={setupReminder}
@@ -123,7 +123,7 @@ const PatientHabitsPage = () => {
             </div>
           </TabsContent>
           
-          <TabsContent value="progress">
+          <TabsContent value="progress" className="min-h-[60vh]">
             <Card>
               <CardHeader className={isSmallScreen || isMobile ? 'p-3' : ''}>
                 <CardTitle className={isSmallScreen || isMobile ? 'text-lg' : ''}>Progress Charts</CardTitle>
@@ -135,7 +135,7 @@ const PatientHabitsPage = () => {
             </Card>
           </TabsContent>
           
-          <TabsContent value="plan" id="plan-section">
+          <TabsContent value="plan" id="plan-section" className="min-h-[60vh]">
             <DetailedHealthPlan
               groupedItems={groupedItems}
               typeIcons={typeIcons}

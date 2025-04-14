@@ -40,9 +40,9 @@ export const DashboardResponsiveLayout = ({
         ),
         fullHeight && (
           isSmallScreen || isMobile 
-            ? 'min-h-[calc(100vh-100px)]' 
+            ? 'min-h-[calc(100vh-110px)]' 
             : isTablet || isMediumScreen 
-              ? 'min-h-[calc(100vh-120px)]' 
+              ? 'min-h-[calc(100vh-130px)]' 
               : 'min-h-[calc(100vh-150px)]'
         ),
         className
@@ -54,7 +54,7 @@ export const DashboardResponsiveLayout = ({
   
   if (withScrollArea) {
     return (
-      <ScrollArea className="mb-12">
+      <ScrollArea className="mb-12 h-full">
         {content}
       </ScrollArea>
     );

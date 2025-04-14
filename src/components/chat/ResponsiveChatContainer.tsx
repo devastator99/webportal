@@ -30,10 +30,10 @@ export const ResponsiveChatContainer = ({
         maxWidth,
         fullHeight && (
           isSmallScreen || isMobile 
-            ? 'h-[calc(100vh-100px)]' 
+            ? 'min-h-[calc(100vh-120px)]' 
             : isTablet || isMediumScreen 
-              ? 'h-[calc(100vh-120px)]' 
-              : 'h-[calc(100vh-140px)]'
+              ? 'min-h-[calc(100vh-140px)]' 
+              : 'min-h-[calc(100vh-160px)]'
         ),
         withPadding && (
           isSmallScreen || isMobile 

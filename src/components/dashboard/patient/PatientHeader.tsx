@@ -8,12 +8,12 @@ export const PatientHeader = () => {
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
   
   return (
-    <div className={`${
+    <div className={`sticky top-0 z-10 bg-background/95 backdrop-blur-sm w-full ${
       isSmallScreen || isMobile 
-        ? "pt-3 pb-2" 
+        ? "pt-2 pb-2" 
         : isTablet || isMediumScreen 
-          ? "pt-4 pb-2" 
-          : "pt-6 pb-3"
+          ? "pt-3 pb-2" 
+          : "pt-4 pb-2"
     }`}>
       <DashboardHeader />
     </div>
