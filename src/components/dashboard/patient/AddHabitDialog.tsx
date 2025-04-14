@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { TimePicker } from "@/components/ui/time-picker";
 
 interface AddHabitDialogProps {
   open: boolean;
@@ -26,7 +27,7 @@ export const AddHabitDialog: React.FC<AddHabitDialogProps> = ({
   const [description, setDescription] = useState('');
   const [habitType, setHabitType] = useState<string>('');
   const [frequency, setFrequency] = useState('');
-  const [scheduledTime, setScheduledTime] = useState('');
+  const [scheduledTime, setScheduledTime] = useState('9:00 AM');
   const [duration, setDuration] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -79,7 +80,7 @@ export const AddHabitDialog: React.FC<AddHabitDialogProps> = ({
       setDescription('');
       setHabitType('');
       setFrequency('');
-      setScheduledTime('');
+      setScheduledTime('9:00 AM');
       setDuration('');
       
       // Close dialog and notify parent
@@ -153,15 +154,12 @@ export const AddHabitDialog: React.FC<AddHabitDialogProps> = ({
             </Select>
           </div>
           
-          <div className="space-y-2">
-            <Label htmlFor="scheduled-time">Scheduled Time</Label>
-            <Input
-              id="scheduled-time"
-              value={scheduledTime}
-              onChange={(e) => setScheduledTime(e.target.value)}
-              placeholder="e.g. Morning, 9:00 AM"
-            />
-          </div>
+          <TimePicker 
+            id="scheduled-time"
+            label="Scheduled Time"
+            value={scheduledTime}
+            onChange={setScheduledTime}
+          />
           
           <div className="space-y-2">
             <Label htmlFor="duration">Duration (optional)</Label>

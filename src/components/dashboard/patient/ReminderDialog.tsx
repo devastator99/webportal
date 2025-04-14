@@ -1,9 +1,11 @@
 
-import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import React, { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Activity } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { HealthPlanItem } from '@/interfaces/HealthHabits';
+import { TimePicker } from '@/components/ui/time-picker';
 
 interface ReminderDialogProps {
   open: boolean;
@@ -18,43 +20,65 @@ export const ReminderDialog: React.FC<ReminderDialogProps> = ({
   onOpenChange,
   selectedReminder,
   onSaveReminder,
-  typeIcons
+  typeIcons,
 }) => {
+  const [reminderTime, setReminderTime] = useState(selectedReminder?.scheduled_time || '9:00 AM');
+  const [frequency, setFrequency] = useState<string>('daily');
+
+  const handleSave = () => {
+    // Here you'd normally save to a database
+    onSaveReminder();
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Set Reminder</DialogTitle>
-          <DialogDescription>
-            Set a reminder for this health plan item
-          </DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            {selectedReminder && typeIcons[selectedReminder.type]}
+            Set Reminder
+          </DialogTitle>
         </DialogHeader>
-        
-        {selectedReminder && (
-          <div className="space-y-4 py-4">
-            <div className="flex items-center gap-3 p-3 bg-muted rounded-md">
-              {typeIcons[selectedReminder.type as keyof typeof typeIcons] || 
-                <Activity className="h-5 w-5 text-gray-500" />}
-              <div>
-                <p className="font-medium">{selectedReminder.description}</p>
-                <p className="text-sm text-muted-foreground">{selectedReminder.scheduled_time} • {selectedReminder.frequency}</p>
-              </div>
+
+        <div className="py-4">
+          {selectedReminder && (
+            <div className="mb-4">
+              <h3 className="font-medium">{selectedReminder.description}</h3>
+              <p className="text-sm text-muted-foreground">
+                Scheduled for: {selectedReminder.scheduled_time}
+              </p>
             </div>
-            
-            <p className="text-sm text-muted-foreground">
-              You'll receive a notification reminder for this health plan item.
-              For now, this is a placeholder as the notification system needs to be implemented.
-            </p>
+          )}
+
+          <div className="space-y-4">
+            <TimePicker
+              id="reminder-time"
+              label="Reminder Time"
+              value={reminderTime}
+              onChange={setReminderTime}
+            />
+
+            <div className="space-y-2">
+              <Label htmlFor="reminder-frequency">Frequency</Label>
+              <Select value={frequency} onValueChange={setFrequency}>
+                <SelectTrigger id="reminder-frequency">
+                  <SelectValue placeholder="Select frequency" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="once">Just once</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        )}
-        
+        </div>
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={onSaveReminder}>
-            Set Reminder
-          </Button>
+          <Button onClick={handleSave}>Save Reminder</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
