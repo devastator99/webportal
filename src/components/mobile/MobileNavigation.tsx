@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, User, Settings, MessageCircle, FileText, Activity } from 'lucide-react';
@@ -67,18 +66,18 @@ export const MobileNavigation: React.FC = () => {
     console.log("Current user:", user?.id);
     console.log("User role:", userRole);
     console.log("Current location:", location.pathname);
-    console.log("Target location: /patient/prescriptions");
+    console.log("Target location: /prescriptions");
     
     try {
-      // Navigate to prescriptions page with a reload to ensure fresh data
-      navigate('/patient/prescriptions', { replace: true });
+      // Update to use the correct route path
+      navigate('/prescriptions', { replace: true });
       toast({
         title: "Loading prescriptions",
         description: "Opening your prescription history...",
       });
       
       // Log after navigation attempt
-      console.log("Navigation completed to: /patient/prescriptions");
+      console.log("Navigation completed to: /prescriptions");
     } catch (error) {
       console.error("Navigation error:", error);
       toast({
@@ -91,7 +90,7 @@ export const MobileNavigation: React.FC = () => {
   
   const handleHabitsClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    navigate('/patient/habits');
+    navigate('/habits');
   };
   
   // Base navigation items that are always shown
@@ -111,7 +110,8 @@ export const MobileNavigation: React.FC = () => {
       label: 'Prescription',
       icon: FileText,
       action: handlePrescriptionsClick,
-      active: location.pathname === '/patient/prescriptions'
+      // Update active state check to match the correct route
+      active: location.pathname === '/prescriptions'
     },
     {
       label: 'Chat',
@@ -123,7 +123,7 @@ export const MobileNavigation: React.FC = () => {
       label: 'Habits',
       icon: Activity,
       action: handleHabitsClick,
-      active: location.pathname === '/patient/habits'
+      active: location.pathname === '/habits'
     },
     {
       label: 'Profile',
