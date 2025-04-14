@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
@@ -17,6 +16,7 @@ import { useResponsive } from '@/contexts/ResponsiveContext';
 import { PatientHeader } from '@/components/dashboard/patient/PatientHeader';
 import { Button } from '@/components/ui/button';
 import { AddHabitDialog } from '@/components/dashboard/patient/AddHabitDialog';
+import { useAuth } from '@/contexts/AuthContext';
 
 const typeIcons = {
   food: <Utensils className="h-5 w-5 text-green-500" />,
@@ -51,23 +51,27 @@ const PatientHabitsPage = () => {
     refetchHealthPlanItems
   } = usePatientHabits();
 
+  const { user } = useAuth();
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
   const { isTablet, isMobile } = useResponsive();
   const { padding, margin, gapSize } = useResponsiveLayout();
   
   const [addHabitDialogOpen, setAddHabitDialogOpen] = useState(false);
 
-  // Separate health plan items by creator
+  // Separate health plan items between patient-created and nutritionist-created
+  // based on whether nutritionist_id matches patient_id
   const nutritionistItems = {};
   const patientItems = {};
   
   healthPlanItems?.forEach(item => {
-    if (item.creator_type === 'patient') {
+    if (item.nutritionist_id === user?.id) {
+      // If nutritionist_id is the same as the user's id, it was created by the patient
       if (!patientItems[item.type]) {
         patientItems[item.type] = [];
       }
       patientItems[item.type].push(item);
     } else {
+      // Otherwise it was created by a nutritionist or doctor
       if (!nutritionistItems[item.type]) {
         nutritionistItems[item.type] = [];
       }
