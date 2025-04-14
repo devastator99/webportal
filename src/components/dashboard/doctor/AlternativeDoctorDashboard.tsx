@@ -6,7 +6,7 @@ import { DoctorAppointmentCalendar } from "@/components/dashboard/doctor/DoctorA
 import { VideoUploader } from "@/components/videos/VideoUploader";
 import { VideoList } from "@/components/videos/VideoList";
 import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWriter";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useResponsive } from "@/contexts/ResponsiveContext";
 import { Button } from "@/components/ui/button";
 import { Users, Mic, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -16,10 +16,12 @@ import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TodaySchedule } from "@/components/dashboard/doctor/TodaySchedule";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import { ResponsiveCard } from "@/components/ui/responsive-card";
+import { useResponsiveValue } from "@/hooks/use-responsive";
 
 export const AlternativeDoctorDashboard = () => {
   const { user } = useAuth();
-  const isMobile = useIsMobile();
+  const { isMobile, isTablet } = useResponsive();
   const navigate = useNavigate();
   const [showVoiceScheduler, setShowVoiceScheduler] = useState(false);
   const [showChatOverlay, setShowChatOverlay] = useState(false);
@@ -30,29 +32,46 @@ export const AlternativeDoctorDashboard = () => {
   const doctorName = `${doctorFirstName} ${doctorLastName}`.trim();
   const greeting = doctorName ? `Hello, Dr. ${doctorFirstName} 👋` : "Hello, Doctor 👋";
   
+  // Responsive spacing between sections
+  const sectionSpacing = useResponsiveValue({
+    mobile: 'space-y-3', 
+    tablet: 'space-y-4',
+    desktop: 'space-y-5',
+    default: 'space-y-4'
+  });
+  
+  // Responsive button sizes
+  const buttonSize = useResponsiveValue({
+    mobile: 'xs',
+    tablet: 'sm',
+    default: 'default'
+  });
+  
   return (
     <div className="animate-fade-up">
       {/* Greeting and quick action buttons */}
-      <div className="mobile-card mb-4">
-        <h1 className="text-xl font-bold mb-2 text-left">{greeting}</h1>
+      <ResponsiveCard withShadow className="mb-4" compact={isMobile}>
+        <h1 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold mb-2 text-left`}>{greeting}</h1>
         <p className="text-sm text-gray-500 text-left mb-4">Welcome back to your dashboard</p>
         
         <div className="grid grid-cols-3 gap-2">
           <Button 
+            size={buttonSize}
             className="rounded-full bg-[#9b87f5] hover:bg-[#7E69AB] text-white"
             onClick={() => navigate("/patients")}
           >
-            <Users className="mr-2 h-4 w-4" />
-            <span>Patients</span>
+            <Users className={`${isMobile ? 'mr-1 h-3.5 w-3.5' : 'mr-2 h-4 w-4'}`} />
+            <span className={`${isMobile ? 'text-xs' : ''}`}>Patients</span>
           </Button>
           
           <Dialog open={showVoiceScheduler} onOpenChange={setShowVoiceScheduler}>
             <DialogTrigger asChild>
               <Button
+                size={buttonSize}
                 className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
               >
-                <Mic className="mr-2 h-4 w-4" />
-                <span>Voice</span>
+                <Mic className={`${isMobile ? 'mr-1 h-3.5 w-3.5' : 'mr-2 h-4 w-4'}`} />
+                <span className={`${isMobile ? 'text-xs' : ''}`}>Voice</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[800px] max-h-[80vh] p-0">
@@ -63,21 +82,22 @@ export const AlternativeDoctorDashboard = () => {
           </Dialog>
           
           <Button
+            size={buttonSize}
             className="rounded-full bg-[#E5DEFF] text-[#9b87f5] hover:bg-[#d1c9ff]"
             onClick={() => window.open("/chat", "_blank")}
           >
-            <MessageCircle className="mr-2 h-4 w-4" />
-            <span>Chat</span>
+            <MessageCircle className={`${isMobile ? 'mr-1 h-3.5 w-3.5' : 'mr-2 h-4 w-4'}`} />
+            <span className={`${isMobile ? 'text-xs' : ''}`}>Chat</span>
           </Button>
         </div>
-      </div>
+      </ResponsiveCard>
       
       {/* Stats cards in a more compact design */}
       <StatsCards />
       
       {/* Main content with collapsible sections for mobile */}
       <ScrollArea className="mb-16">
-        <div className="space-y-4">
+        <div className={sectionSpacing}>
           <CollapsibleSection 
             title="Today's Appointments" 
             defaultOpen={true}

@@ -10,6 +10,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText, Grid3X3, PlusCircle, ArrowLeft } from 'lucide-react';
 import { LoadingSpinner } from '@/components/common/LoadingSpinner';
+import { useResponsive } from '@/contexts/ResponsiveContext';
+import { useResponsiveValue } from '@/hooks/use-responsive';
 
 interface NutritionistHealthPlanTabsProps {
   patientId: string;
@@ -18,6 +20,25 @@ interface NutritionistHealthPlanTabsProps {
 
 export const NutritionistHealthPlanTabs = ({ patientId, onClose }: NutritionistHealthPlanTabsProps) => {
   const [activeTab, setActiveTab] = useState('items');
+  const { isMobile, isTablet } = useResponsive();
+  
+  // Responsive class adaptations
+  const iconSize = useResponsiveValue({
+    mobile: 'h-3.5 w-3.5',
+    tablet: 'h-4 w-4',
+    default: 'h-4 w-4'
+  });
+  
+  const buttonSize = useResponsiveValue({
+    mobile: 'sm',
+    default: 'default'
+  });
+  
+  const headerPadding = useResponsiveValue({
+    mobile: 'py-3 px-4',
+    tablet: 'py-4 px-5',
+    default: 'py-5 px-6'
+  });
 
   // Fetch patient details for header
   const { data: patientDetails, isLoading: isLoadingPatient } = useQuery({
@@ -55,34 +76,34 @@ export const NutritionistHealthPlanTabs = ({ patientId, onClose }: NutritionistH
 
   return (
     <Card className="w-full">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center">
-          <Button variant="ghost" size="sm" onClick={onClose} className="mr-2">
-            <ArrowLeft className="h-4 w-4" />
+      <CardHeader className={`flex flex-row items-center justify-between ${headerPadding}`}>
+        <CardTitle className={`flex items-center ${isMobile ? 'text-base' : ''}`}>
+          <Button variant="ghost" size={buttonSize} onClick={onClose} className="mr-2">
+            <ArrowLeft className={iconSize} />
           </Button>
           {isLoading ? 'Loading...' : `Health Plan for ${patientName}`}
         </CardTitle>
       </CardHeader>
       
-      <CardContent>
+      <CardContent className={isMobile ? 'p-3' : 'p-4'}>
         {isLoading ? (
           <div className="flex justify-center py-8">
             <LoadingSpinner size="md" />
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-3 mb-4">
-              <TabsTrigger value="items">
-                <Grid3X3 className="h-4 w-4 mr-2" />
-                Plan Items
+            <TabsList className={`grid grid-cols-3 mb-4 ${isMobile ? 'h-10' : ''}`}>
+              <TabsTrigger value="items" className={isMobile ? 'px-2 py-1.5 text-xs' : ''}>
+                <Grid3X3 className={`${iconSize} ${isMobile ? 'mr-1' : 'mr-2'}`} />
+                {isMobile ? 'Items' : 'Plan Items'}
               </TabsTrigger>
-              <TabsTrigger value="create">
-                <PlusCircle className="h-4 w-4 mr-2" />
+              <TabsTrigger value="create" className={isMobile ? 'px-2 py-1.5 text-xs' : ''}>
+                <PlusCircle className={`${iconSize} ${isMobile ? 'mr-1' : 'mr-2'}`} />
                 Create
               </TabsTrigger>
-              <TabsTrigger value="pdf">
-                <FileText className="h-4 w-4 mr-2" />
-                PDF View
+              <TabsTrigger value="pdf" className={isMobile ? 'px-2 py-1.5 text-xs' : ''}>
+                <FileText className={`${iconSize} ${isMobile ? 'mr-1' : 'mr-2'}`} />
+                {isMobile ? 'PDF' : 'PDF View'}
               </TabsTrigger>
             </TabsList>
             

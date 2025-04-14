@@ -2,12 +2,37 @@
 import { useResponsive } from '@/contexts/ResponsiveContext';
 import { ResponsiveText, ResponsiveHeading } from '@/components/ui/responsive-typography';
 import { ResponsiveContainer } from '@/components/layout/ResponsiveContainer';
+import { useResponsiveValue } from '@/hooks/use-responsive';
 
 export const Hero = () => {
   const { isMobile, isTablet } = useResponsive();
   
+  // Use responsive values for adjusting padding
+  const paddingY = useResponsiveValue({
+    mobile: 'py-8',
+    tablet: 'py-12',
+    desktop: 'py-20',
+    default: 'py-10'
+  });
+  
+  // Heading sizes can be more dynamic
+  const headingSize = useResponsiveValue({
+    mobile: '3xl',
+    tablet: '4xl',
+    desktop: '6xl',
+    default: '4xl'
+  });
+  
+  // Responsive margin values
+  const marginBottom = useResponsiveValue({
+    mobile: 'mb-4',
+    tablet: 'mb-6',
+    desktop: 'mb-8',
+    default: 'mb-6'
+  });
+  
   return (
-    <section className="relative py-10 md:py-16 lg:py-24 overflow-hidden">
+    <section className={`relative ${paddingY} overflow-hidden`}>
       <ResponsiveContainer>
         <div className="max-w-3xl mx-auto text-center">
           <ResponsiveHeading
@@ -15,7 +40,7 @@ export const Hero = () => {
             mobileSize="3xl"
             tabletSize="4xl"
             desktopSize="6xl"
-            className="text-[#6E59A5] mb-4 md:mb-6"
+            className={`text-[#6E59A5] ${marginBottom}`}
           >
             Expert Endocrinology Care for Your Health
           </ResponsiveHeading>

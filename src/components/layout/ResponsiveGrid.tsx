@@ -24,12 +24,6 @@ export const ResponsiveGrid = ({
 }: ResponsiveGridProps) => {
   const { deviceType } = useResponsive();
   
-  // Determine cols based on current device
-  const cols = 
-    deviceType === 'mobile' ? mobileColumns :
-    deviceType === 'tablet' ? tabletColumns :
-    desktopColumns;
-  
   // Map gap to Tailwind classes
   const gapClass = 
     gap === 'none' ? 'gap-0' :
@@ -43,7 +37,9 @@ export const ResponsiveGrid = ({
     <div
       className={cn(
         'grid',
-        `grid-cols-${cols}`,
+        `grid-cols-${mobileColumns}`,
+        `sm:grid-cols-${tabletColumns}`,
+        `lg:grid-cols-${desktopColumns}`,
         gapClass,
         className
       )}

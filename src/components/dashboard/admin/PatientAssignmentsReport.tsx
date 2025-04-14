@@ -8,13 +8,14 @@ import { usePatientAssignments } from "@/hooks/usePatientAssignments";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useIsIPad } from "@/hooks/use-mobile";
+import { useResponsive } from "@/contexts/ResponsiveContext";
+import { useBreakpoint } from "@/hooks/use-responsive";
 
 export const PatientAssignmentsReport = () => {
   const { toast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
   const { data: assignments = [], isLoading, error, refetch } = usePatientAssignments();
-  const isIPad = useIsIPad();
+  const { isSmallScreen, isMediumScreen } = useBreakpoint();
 
   const handleRefresh = async () => {
     try {
@@ -36,9 +37,9 @@ export const PatientAssignmentsReport = () => {
   };
   
   return (
-    <Card className={isIPad ? "overflow-x-auto max-w-full" : ""}>
+    <Card className={isSmallScreen || isMediumScreen ? "overflow-x-auto max-w-full" : ""}>
       <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
           <div className="bg-[#D3E4FD] p-1.5 rounded-full">
             <Users className="h-4 w-4 text-[#0EA5E9]" />
           </div>
@@ -46,16 +47,16 @@ export const PatientAssignmentsReport = () => {
         </CardTitle>
         <Button 
           variant="outline" 
-          size="sm" 
+          size={isSmallScreen ? "sm" : "default"} 
           onClick={handleRefresh} 
           disabled={isLoading || refreshing}
           className="gap-1"
         >
           <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh
+          {!isSmallScreen && "Refresh"}
         </Button>
       </CardHeader>
-      <CardContent className={isIPad ? "pb-6 overflow-x-auto" : ""}>
+      <CardContent className={isSmallScreen || isMediumScreen ? "pb-6 overflow-x-auto" : ""}>
         {error ? (
           <Alert variant="destructive">
             <AlertTriangle className="h-4 w-4" />
@@ -72,7 +73,7 @@ export const PatientAssignmentsReport = () => {
             </AlertDescription>
           </Alert>
         ) : (
-          <div className={isIPad ? "max-w-full overflow-x-auto -mx-2 px-2" : ""}>
+          <div className={isSmallScreen || isMediumScreen ? "max-w-full overflow-x-auto -mx-2 px-2" : ""}>
             <PatientAssignmentsTable assignments={assignments} />
           </div>
         )}

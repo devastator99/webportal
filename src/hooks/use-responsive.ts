@@ -46,3 +46,46 @@ export function useResponsiveSpacing(
       return baseSpacing;
   }
 }
+
+// New utility functions for responsive design
+export function useBreakpoint() {
+  const { isMobile, isTablet, isLaptop, isDesktop } = useResponsive();
+  
+  return {
+    isMobile,
+    isTablet,
+    isLaptop,
+    isDesktop,
+    isSmallScreen: isMobile,
+    isMediumScreen: isTablet,
+    isLargeScreen: isLaptop || isDesktop,
+    current: isMobile ? 'mobile' : isTablet ? 'tablet' : isLaptop ? 'laptop' : 'desktop'
+  };
+}
+
+// Helper for responsive font sizes
+export function useResponsiveFontSize(
+  sizes: {
+    mobile?: number;
+    tablet?: number;
+    laptop?: number;
+    desktop?: number;
+    default: number;
+  }
+): number {
+  return useResponsiveValue(sizes);
+}
+
+// Helper for conditional rendering based on screen size
+export function useResponsiveRendering() {
+  const { isMobile, isTablet, isLaptop, isDesktop } = useResponsive();
+  
+  return {
+    renderOnMobile: (content: React.ReactNode) => isMobile ? content : null,
+    renderOnTablet: (content: React.ReactNode) => isTablet ? content : null,
+    renderOnLaptop: (content: React.ReactNode) => isLaptop ? content : null,
+    renderOnDesktop: (content: React.ReactNode) => isDesktop ? content : null,
+    renderOnLargeScreen: (content: React.ReactNode) => (isLaptop || isDesktop) ? content : null,
+    renderOnSmallScreen: (content: React.ReactNode) => (isMobile || isTablet) ? content : null,
+  };
+}
