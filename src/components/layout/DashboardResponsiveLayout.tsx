@@ -32,9 +32,9 @@ export const DashboardResponsiveLayout = ({
         'w-full mx-auto',
         maxWidth,
         withPadding && (
-          isSmallScreen 
-            ? 'px-2 py-3' 
-            : isMediumScreen || isTablet 
+          isSmallScreen || isMobile
+            ? 'px-3 py-3' 
+            : isTablet || isMediumScreen 
               ? 'px-4 py-4' 
               : 'px-6 py-6'
         ),
@@ -97,7 +97,7 @@ export const DashboardResponsiveSection = ({
       {title && (
         <h2 className={cn(
           'font-semibold mb-2',
-          isSmallScreen 
+          isSmallScreen || isMobile
             ? 'text-lg' 
             : isTablet || isMediumScreen 
               ? 'text-xl' 
@@ -111,7 +111,7 @@ export const DashboardResponsiveSection = ({
       {description && (
         <p className={cn(
           'text-muted-foreground mb-3',
-          isSmallScreen 
+          isSmallScreen || isMobile
             ? 'text-sm' 
             : isTablet || isMediumScreen 
               ? 'text-base' 
