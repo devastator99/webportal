@@ -139,13 +139,7 @@ export const NutritionistDashboard = () => {
         <>
           <div className="flex justify-between mb-4">
             <h2 className="text-2xl font-bold">Patient Management</h2>
-            <Button 
-              onClick={() => setViewMode('chat')}
-              className="bg-green-500 hover:bg-green-600"
-            >
-              <MessageCircle className="mr-2 h-4 w-4" />
-              Care Team Chat
-            </Button>
+            {/* Care Team Chat button removed as requested */}
           </div>
         
           <Card>
@@ -168,15 +162,14 @@ export const NutritionistDashboard = () => {
                           {patient.first_name} {patient.last_name}
                         </p>
                       </div>
-                      <div className="flex gap-2">
-                        <Button
+                      <div>
+                        <span 
                           onClick={() => handlePatientAction(patient.id)}
-                          size="sm"
-                          className="bg-green-500 hover:bg-green-600"
+                          className="text-green-500 hover:text-green-600 hover:underline cursor-pointer flex items-center gap-1 transition-colors"
                         >
-                          <Layout className="h-4 w-4 mr-1" />
+                          <Layout className="h-4 w-4" />
                           Manage Health Plan
-                        </Button>
+                        </span>
                       </div>
                     </div>
                   ))}
