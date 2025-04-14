@@ -8,8 +8,7 @@ export interface HealthPlanItem {
   duration: string | null;
   patient_id?: string;
   nutritionist_id?: string;
-  created_by?: string;
-  creator_type?: 'patient' | 'nutritionist' | 'doctor';
+  created_at?: string;
 }
 
 export interface ProgressLog {

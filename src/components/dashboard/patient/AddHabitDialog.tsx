@@ -54,7 +54,7 @@ export const AddHabitDialog: React.FC<AddHabitDialogProps> = ({
     try {
       setIsSubmitting(true);
       
-      // Call our custom RPC function
+      // Insert data using available fields in the health_plan_items table
       const { error } = await supabase.from('health_plan_items').insert({
         patient_id: user.id,
         type: habitType,
@@ -62,8 +62,7 @@ export const AddHabitDialog: React.FC<AddHabitDialogProps> = ({
         description: description,
         frequency: frequency,
         duration: duration || null,
-        created_by: user.id,
-        creator_type: 'patient'
+        nutritionist_id: user.id // Use the same user.id since the patient is creating it
       });
       
       if (error) {

@@ -38,10 +38,11 @@ export const DetailedHealthPlan: React.FC<DetailedHealthPlanProps> = ({
     if (!user?.id || !itemId) return;
     
     try {
+      // Delete the habit directly from the database
       const { error } = await supabase.from('health_plan_items')
         .delete()
         .eq('id', itemId)
-        .eq('created_by', user.id);
+        .eq('patient_id', user.id);
         
       if (error) {
         throw error;
@@ -122,7 +123,7 @@ export const DetailedHealthPlan: React.FC<DetailedHealthPlanProps> = ({
                       Complete
                     </Button>
                     
-                    {isPatientCreated && item.created_by === user?.id && (
+                    {isPatientCreated && item.patient_id === user?.id && (
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
                           <Button
