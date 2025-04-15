@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserManagement } from "@/components/dashboard/admin/UserManagement";
@@ -6,7 +5,7 @@ import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAs
 import { PatientAssignmentsReport } from "@/components/dashboard/admin/PatientAssignmentsReport";
 import { UserRegistration } from "@/components/dashboard/admin/UserRegistration";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { Settings, Users, FileText, Database, UserPlus, Building, CreditCard } from "lucide-react";
+import { Settings, Users, FileText, Database, UserPlus, Building, CreditCard, FileDown } from "lucide-react";
 import { SyncCareTeamsButton } from "@/components/dashboard/admin/SyncCareTeamsButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
@@ -14,8 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminStats } from "@/hooks/useAdminStats";
 import { NumericFormat } from "react-number-format";
 import { PatientPaymentManager } from "@/components/dashboard/admin/PatientPaymentManager";
+import { UserTrainingDocumentPDF } from "@/components/dashboard/admin/UserTrainingDocumentPDF";
 
-// Updated system settings component that imports and uses AdminSettings
 const SystemSettings = () => {
   return (
     <div>
@@ -114,13 +113,23 @@ export const AdminDashboard = () => {
         </CardContent>
       </Card>
       
+      <Card className="mb-4">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileDown className="h-5 w-5" />
+            User Training Documentation
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <UserTrainingDocumentPDF />
+        </CardContent>
+      </Card>
+      
       <div className="space-y-6">
-        {/* Assign Care Team section - Now collapsible with only one label */}
         <CollapsibleSection title="Assign Care Team">
           <PatientAssignmentManager />
         </CollapsibleSection>
         
-        {/* Separate Care Team Report section */}
         <CollapsibleSection title="Care Team Reports" defaultOpen={false}>
           <Card>
             <CardHeader>
@@ -135,7 +144,6 @@ export const AdminDashboard = () => {
           </Card>
         </CollapsibleSection>
         
-        {/* User Management - Now stacked vertically */}
         <CollapsibleSection title="User Management">
           <div className="space-y-6">
             <Card>
@@ -164,7 +172,6 @@ export const AdminDashboard = () => {
           </div>
         </CollapsibleSection>
         
-        {/* Patient Payment and Invoice Section */}
         <CollapsibleSection title="Patient Payments">
           <Card>
             <CardHeader>
