@@ -6,7 +6,7 @@ import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAs
 import { PatientAssignmentsReport } from "@/components/dashboard/admin/PatientAssignmentsReport";
 import { UserRegistration } from "@/components/dashboard/admin/UserRegistration";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { Settings, Users, FileText, Database, UserPlus, Building, CreditCard, FileDown, Home } from "lucide-react";
+import { Settings, Users, FileText, Database, UserPlus, Building, CreditCard, FileDown, Home, LogOut } from "lucide-react";
 import { SyncCareTeamsButton } from "@/components/dashboard/admin/SyncCareTeamsButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
@@ -16,6 +16,9 @@ import { NumericFormat } from "react-number-format";
 import { PatientPaymentManager } from "@/components/dashboard/admin/PatientPaymentManager";
 import { UserTrainingDocumentPDF } from "@/components/dashboard/admin/UserTrainingDocumentPDF";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
+import { SignOutButton } from "@/components/navbar/SignOutButton";
+import { ForceLogoutButton } from "@/components/navbar/ForceLogoutButton";
 
 const SystemSettings = () => {
   return (
@@ -62,7 +65,7 @@ export const AdminDashboard = () => {
 
   return (
     <div className="space-y-4 animate-fade-up">
-      <div className="sticky top-16 z-10 bg-white dark:bg-gray-950 pt-2 pb-3">
+      <div className="sticky top-16 z-30 bg-white dark:bg-gray-950 pt-2 pb-3 border-b">
         <Breadcrumb className="mb-3">
           <BreadcrumbList>
             <BreadcrumbItem>
@@ -80,7 +83,11 @@ export const AdminDashboard = () => {
         
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
-          <SyncCareTeamsButton />
+          <div className="flex items-center gap-2">
+            <SyncCareTeamsButton />
+            <SignOutButton />
+            <ForceLogoutButton />
+          </div>
         </div>
         
         {/* Quick navigation buttons */}
@@ -169,7 +176,7 @@ export const AdminDashboard = () => {
         </CardContent>
       </Card>
       
-      <div className="space-y-6">
+      <div className="space-y-6 pb-20">
         <CollapsibleSection title="Assign Care Team" id="care-team">
           <PatientAssignmentManager />
         </CollapsibleSection>
@@ -247,6 +254,20 @@ export const AdminDashboard = () => {
             </CardContent>
           </Card>
         </CollapsibleSection>
+      </div>
+      
+      {/* Floating action bar for mobile */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-950 border-t p-3 flex justify-end gap-2 z-50 md:hidden">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="flex items-center gap-1"
+          onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
+        >
+          <Home className="h-4 w-4" />
+          <span>Top</span>
+        </Button>
+        <SignOutButton />
       </div>
     </div>
   );
