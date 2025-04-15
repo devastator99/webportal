@@ -1,12 +1,14 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import html2pdf from "html2pdf.js";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const UserTrainingDocumentPDF = () => {
   const { toast } = useToast();
+  const [isViewOpen, setIsViewOpen] = useState(false);
 
   const handleDownloadPDF = () => {
     const element = document.getElementById('training-document');
@@ -59,13 +61,126 @@ export const UserTrainingDocumentPDF = () => {
         </p>
       </div>
       
-      <Button 
-        onClick={handleDownloadPDF}
-        className="flex items-center gap-2"
-      >
-        <Download className="h-4 w-4" />
-        Download User Training Document (PDF)
-      </Button>
+      <div className="flex items-center gap-3">
+        <Button 
+          onClick={() => setIsViewOpen(true)}
+          variant="outline"
+          className="flex items-center gap-2"
+        >
+          <Eye className="h-4 w-4" />
+          View Document
+        </Button>
+        
+        <Button 
+          onClick={handleDownloadPDF}
+          className="flex items-center gap-2"
+        >
+          <Download className="h-4 w-4" />
+          Download PDF
+        </Button>
+      </div>
+      
+      {/* Document View Dialog */}
+      <Dialog open={isViewOpen} onOpenChange={setIsViewOpen}>
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>HealthSync User Training Manual</DialogTitle>
+          </DialogHeader>
+          
+          <ScrollArea className="flex-grow">
+            <div className="p-6">
+              <div id="preview-document" className="prose max-w-none">
+                <h1 className="text-3xl font-bold mb-6 text-center">HealthSync User Training Manual</h1>
+                
+                {/* Test Account Section */}
+                <div className="mb-10">
+                  <h2 className="text-2xl font-bold mb-4">Test Account Credentials</h2>
+                  <table className="w-full border-collapse mb-6">
+                    <thead>
+                      <tr className="bg-muted">
+                        <th className="border p-2 text-left">Role</th>
+                        <th className="border p-2 text-left">Email</th>
+                        <th className="border p-2 text-left">Password</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td className="border p-2">Administrator</td>
+                        <td className="border p-2">admin@example.com</td>
+                        <td className="border p-2">password123</td>
+                      </tr>
+                      <tr>
+                        <td className="border p-2">Doctor</td>
+                        <td className="border p-2">doctor@example.com</td>
+                        <td className="border p-2">password123</td>
+                      </tr>
+                      <tr>
+                        <td className="border p-2">Nutritionist</td>
+                        <td className="border p-2">nutritionist@example.com</td>
+                        <td className="border p-2">password123</td>
+                      </tr>
+                      <tr>
+                        <td className="border p-2">Patient</td>
+                        <td className="border p-2">patient@example.com</td>
+                        <td className="border p-2">password123</td>
+                      </tr>
+                      <tr>
+                        <td className="border p-2">Reception</td>
+                        <td className="border p-2">reception@example.com</td>
+                        <td className="border p-2">password123</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Administrator Dashboard Section - abbreviated version for preview */}
+                <div className="mb-10">
+                  <h2 className="text-2xl font-bold mb-4">Administrator Dashboard</h2>
+                  <p className="mb-4">
+                    The Administrator Dashboard provides a comprehensive overview of the system and allows administrators to manage users, 
+                    assign care teams, view reports, and configure system settings.
+                  </p>
+                  
+                  {/* Preview only shows section headers */}
+                  <div className="mb-4">
+                    <h3 className="text-xl font-semibold mb-2">Main Dashboard</h3>
+                    <div className="mb-2 p-4 bg-muted/20 border rounded text-center">
+                      [Admin Dashboard Screenshot Preview]
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <h3 className="text-xl font-semibold mb-2">User Management</h3>
+                    <div className="mb-2 p-4 bg-muted/20 border rounded text-center">
+                      [User Management Screenshot Preview]
+                    </div>
+                  </div>
+                  
+                  <div className="mb-4">
+                    <h3 className="text-xl font-semibold mb-2">Care Team Assignment</h3>
+                    <div className="mb-2 p-4 bg-muted/20 border rounded text-center">
+                      [Care Team Assignment Screenshot Preview]
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Other dashboard sections - abbreviated for preview */}
+                <div className="my-6 text-center text-muted-foreground">
+                  <p>— Preview abbreviated —</p>
+                  <p>The full document contains detailed instructions for all user roles.</p>
+                </div>
+              </div>
+            </div>
+          </ScrollArea>
+          
+          <DialogFooter>
+            <Button onClick={handleDownloadPDF} className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Download Full PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* Hidden content that will be converted to PDF */}
       <div id="training-document" className="hidden">
