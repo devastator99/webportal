@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -557,4 +558,84 @@ export const LowLevelDesignDocument = () => {
                   <li><code>get_patient_medical_records(p_patient_id UUID, p_doctor_id UUID)</code>: Retrieves records for a patient</li>
                   <li><code>get_patient_prescriptions(p_patient_id UUID, p_doctor_id UUID)</code>: Gets prescription history</li>
                   <li><code>get_doctor_patient_records(p_doctor_id UUID, p_patient_id UUID)</code>: Gets records for doctor-patient relationship</li>
-                  <li><code>save_prescription(p_patient_id UUID, p_doctor_id UUID, p_diagnosis TEXT, p_
+                  <li><code>save_prescription(p_patient_id UUID, p_doctor_id UUID, p_diagnosis TEXT, p_prescription TEXT, p_notes TEXT)</code>: Saves a new prescription</li>
+                </ul>
+              </TabsContent>
+              
+              <TabsContent value="architecture" className="mt-0">
+                <h2>System Architecture</h2>
+                
+                <h3>Authentication and Authorization</h3>
+                <p>The system uses Supabase Authentication with custom JWT claims for role-based access control:</p>
+                <ul>
+                  <li>JWT tokens contain user role information for client-side role checks</li>
+                  <li>Row-Level Security enforces data access rules at the database level</li>
+                  <li>Security-definer functions provide controlled access to sensitive operations</li>
+                  <li>Webhook triggers automatically create user profiles on signup</li>
+                </ul>
+                
+                <h3>Realtime Communication</h3>
+                <p>The application leverages Supabase Realtime for instant updates:</p>
+                <ul>
+                  <li>Chat messages use broadcast channels for instant delivery</li>
+                  <li>Appointment updates trigger realtime notifications</li>
+                  <li>Medical record changes are synchronized across devices</li>
+                  <li>Realtime presence tracking for online status</li>
+                </ul>
+                
+                <h3>Storage and Media Handling</h3>
+                <p>The application uses Supabase Storage for file management:</p>
+                <ul>
+                  <li>Secure medical document storage with access controls</li>
+                  <li>Image optimization for profile pictures and medical images</li>
+                  <li>Automated cleanup of temporary files</li>
+                  <li>Content-type validation for security</li>
+                </ul>
+                
+                <h3>Edge Functions</h3>
+                <p>The system uses Edge Functions for specialized processing:</p>
+                <ul>
+                  <li>Document analysis using AI services</li>
+                  <li>Payment gateway integration</li>
+                  <li>Push notification delivery</li>
+                  <li>Email and WhatsApp communication</li>
+                </ul>
+                
+                <h3>High-Level System Flow</h3>
+                <ol>
+                  <li>User authentication and role assignment</li>
+                  <li>Role-based dashboard presentation</li>
+                  <li>Data access filtered through RLS policies</li>
+                  <li>Real-time updates via subscriptions</li>
+                  <li>Specialized processing via Edge Functions</li>
+                  <li>External integrations through webhooks</li>
+                </ol>
+                
+                <h3>Security Architecture</h3>
+                <p>The system implements a defense-in-depth security strategy:</p>
+                <ul>
+                  <li>JWT-based authentication with refresh tokens</li>
+                  <li>Database-level access controls (RLS)</li>
+                  <li>Parameterized queries to prevent SQL injection</li>
+                  <li>Content Security Policy for XSS protection</li>
+                  <li>API rate limiting to prevent abuse</li>
+                  <li>Audit logging for security events</li>
+                </ul>
+                
+                <h3>System Integration Points</h3>
+                <ul>
+                  <li>Razorpay payment gateway</li>
+                  <li>Push notification services</li>
+                  <li>Email delivery services</li>
+                  <li>WhatsApp Business API</li>
+                  <li>AI document analysis services</li>
+                  <li>External monitoring tools</li>
+                </ul>
+              </TabsContent>
+            </div>
+          </ScrollArea>
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+};
