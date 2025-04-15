@@ -6,7 +6,7 @@ import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAs
 import { PatientAssignmentsReport } from "@/components/dashboard/admin/PatientAssignmentsReport";
 import { UserRegistration } from "@/components/dashboard/admin/UserRegistration";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { Settings, Users, FileText, Database, UserPlus, Building, CreditCard, FileDown } from "lucide-react";
+import { Settings, Users, FileText, Database, UserPlus, Building, CreditCard, FileDown, Home } from "lucide-react";
 import { SyncCareTeamsButton } from "@/components/dashboard/admin/SyncCareTeamsButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
@@ -15,6 +15,7 @@ import { useAdminStats } from "@/hooks/useAdminStats";
 import { NumericFormat } from "react-number-format";
 import { PatientPaymentManager } from "@/components/dashboard/admin/PatientPaymentManager";
 import { UserTrainingDocumentPDF } from "@/components/dashboard/admin/UserTrainingDocumentPDF";
+import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 
 const SystemSettings = () => {
   return (
@@ -38,12 +39,66 @@ export const AdminDashboard = () => {
   const [syncSuccess, setSyncSuccess] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const { data: stats, isLoading: isLoadingStats } = useAdminStats();
+  const [activeSection, setActiveSection] = useState<string | null>(null);
+
+  // Sections data for easy navigation
+  const sections = [
+    { id: "care-team", title: "Assign Care Team", icon: <Users className="h-4 w-4" /> },
+    { id: "reports", title: "Care Team Reports", icon: <FileText className="h-4 w-4" /> },
+    { id: "user-management", title: "User Management", icon: <Users className="h-4 w-4" /> },
+    { id: "payments", title: "Patient Payments", icon: <CreditCard className="h-4 w-4" /> },
+    { id: "settings", title: "System Settings", icon: <Settings className="h-4 w-4" /> },
+    { id: "training", title: "User Training Documentation", icon: <FileDown className="h-4 w-4" /> }
+  ];
+
+  // Handle scroll to section
+  const scrollToSection = (sectionId: string) => {
+    setActiveSection(sectionId);
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
 
   return (
     <div className="space-y-4 animate-fade-up">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
-        <SyncCareTeamsButton />
+      <div className="sticky top-16 z-10 bg-white dark:bg-gray-950 pt-2 pb-3">
+        <Breadcrumb className="mb-3">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/dashboard">
+                <Home className="h-4 w-4 mr-1" />
+                Dashboard
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Admin Dashboard</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+        
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
+          <SyncCareTeamsButton />
+        </div>
+        
+        {/* Quick navigation buttons */}
+        <div className="flex overflow-x-auto pb-2 gap-2 mt-4 no-scrollbar">
+          {sections.map((section) => (
+            <button
+              key={section.id}
+              onClick={() => scrollToSection(section.id)}
+              className={`inline-flex items-center px-3 py-1.5 text-sm whitespace-nowrap rounded-full border 
+                ${activeSection === section.id 
+                  ? 'bg-primary text-primary-foreground border-primary' 
+                  : 'bg-background hover:bg-muted/50'}`}
+            >
+              <span className="mr-1.5">{section.icon}</span>
+              {section.title}
+            </button>
+          ))}
+        </div>
       </div>
       
       {syncSuccess && (
@@ -115,11 +170,11 @@ export const AdminDashboard = () => {
       </Card>
       
       <div className="space-y-6">
-        <CollapsibleSection title="Assign Care Team">
+        <CollapsibleSection title="Assign Care Team" id="care-team">
           <PatientAssignmentManager />
         </CollapsibleSection>
         
-        <CollapsibleSection title="Care Team Reports" defaultOpen={false}>
+        <CollapsibleSection title="Care Team Reports" defaultOpen={false} id="reports">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -133,7 +188,7 @@ export const AdminDashboard = () => {
           </Card>
         </CollapsibleSection>
         
-        <CollapsibleSection title="User Management">
+        <CollapsibleSection title="User Management" id="user-management">
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -161,7 +216,7 @@ export const AdminDashboard = () => {
           </div>
         </CollapsibleSection>
         
-        <CollapsibleSection title="Patient Payments">
+        <CollapsibleSection title="Patient Payments" id="payments">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -175,11 +230,11 @@ export const AdminDashboard = () => {
           </Card>
         </CollapsibleSection>
         
-        <CollapsibleSection title="System Settings">
+        <CollapsibleSection title="System Settings" id="settings">
           <SystemSettings />
         </CollapsibleSection>
         
-        <CollapsibleSection title="User Training Documentation" defaultOpen={false}>
+        <CollapsibleSection title="User Training Documentation" defaultOpen={false} id="training">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
