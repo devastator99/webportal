@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -8,11 +9,11 @@ import { LoginDialog } from "@/components/auth/LoginDialog";
 import { SignOutButton } from "@/components/navbar/SignOutButton";
 import { ForceLogoutButton } from "@/components/navbar/ForceLogoutButton";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Navbar = () => {
-  const { user, isLoading, resetInactivityTimer } = useAuth();
+  const { user, isLoading, resetInactivityTimer, userRole } = useAuth();
   const location = useLocation();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -69,30 +70,38 @@ export const Navbar = () => {
         )}
         
         <div className={`${useResponsiveDisplay ? 'hidden' : 'flex'} items-center gap-4`}>
-          {user && <DashboardButton />}
-          {user && <DoctorActions />}
-          {user && isAdminPage && <ForceLogoutButton />}
+          {user && (
+            <>
+              <DashboardButton />
+              <DoctorActions />
+              {userRole === "administrator" && <ForceLogoutButton />}
+              <SignOutButton 
+                onSignOutStart={() => setIsSigningOut(true)} 
+                onSignOutEnd={() => setIsSigningOut(false)} 
+              />
+            </>
+          )}
           {!user && (
             <div className="flex-shrink-0">
               <LoginDialog />
             </div>
           )}
-          {user && <SignOutButton 
-            onSignOutStart={() => setIsSigningOut(true)} 
-            onSignOutEnd={() => setIsSigningOut(false)} 
-          />}
         </div>
         
         {useResponsiveDisplay && mobileMenuOpen && (
           <div className="absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-b border-[#D6BCFA] shadow-lg z-50 py-4 px-4">
             <div className="flex flex-col gap-3">
-              {user && <DashboardButton />}
-              {user && <DoctorActions />}
-              {user && isAdminPage && <ForceLogoutButton />}
-              {user && <SignOutButton 
-                onSignOutStart={() => setIsSigningOut(true)} 
-                onSignOutEnd={() => setIsSigningOut(false)} 
-              />}
+              {user && (
+                <>
+                  <DashboardButton />
+                  <DoctorActions />
+                  {userRole === "administrator" && <ForceLogoutButton />}
+                  <SignOutButton 
+                    onSignOutStart={() => setIsSigningOut(true)} 
+                    onSignOutEnd={() => setIsSigningOut(false)} 
+                  />
+                </>
+              )}
             </div>
           </div>
         )}

@@ -6,7 +6,7 @@ import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAs
 import { PatientAssignmentsReport } from "@/components/dashboard/admin/PatientAssignmentsReport";
 import { UserRegistration } from "@/components/dashboard/admin/UserRegistration";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { Settings, Users, FileText, Database, UserPlus, Building, CreditCard, FileDown, Home, LogOut, ArrowRight } from "lucide-react";
+import { Settings, Users, FileText, Database, UserPlus, Building, CreditCard, FileDown, Home } from "lucide-react";
 import { SyncCareTeamsButton } from "@/components/dashboard/admin/SyncCareTeamsButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
@@ -17,8 +17,6 @@ import { PatientPaymentManager } from "@/components/dashboard/admin/PatientPayme
 import { UserTrainingDocumentPDF } from "@/components/dashboard/admin/UserTrainingDocumentPDF";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
-import { SignOutButton } from "@/components/navbar/SignOutButton";
-import { ForceLogoutButton } from "@/components/navbar/ForceLogoutButton";
 
 const SystemSettings = () => {
   return (
@@ -105,10 +103,6 @@ export const AdminDashboard = () => {
               >
                 <SyncCareTeamsButton />
               </Button>
-              
-              <SignOutButton />
-              
-              <ForceLogoutButton />
             </div>
           </div>
           
@@ -274,22 +268,7 @@ export const AdminDashboard = () => {
                   User Training Documentation
                 </CardTitle>
               </CardHeader>
-              <CardContent className="relative">
-                {/* The fixed logout button that stays visible inside documentation */}
-                <div className="absolute top-2 right-2 z-30 flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex items-center gap-1 border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
-                    onClick={() => {
-                      window.location.href = '/dashboard';
-                    }}
-                  >
-                    <Home className="h-4 w-4" />
-                    <span>Dashboard</span>
-                  </Button>
-                  <SignOutButton />
-                </div>
+              <CardContent>
                 <UserTrainingDocumentPDF />
               </CardContent>
             </Card>
@@ -308,19 +287,6 @@ export const AdminDashboard = () => {
           <Home className="h-4 w-4" />
           <span>Dashboard</span>
         </Button>
-        
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex items-center gap-1"
-            onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
-          >
-            <ArrowRight className="h-4 w-4 rotate-270" />
-            <span>Top</span>
-          </Button>
-          <SignOutButton />
-        </div>
       </div>
     </div>
   );

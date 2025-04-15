@@ -62,7 +62,8 @@ export const CollapsibleSection = ({
 
   return (
     <div 
-      className={cn("rounded-lg border bg-card shadow-sm relative", 
+      className={cn(
+        "rounded-lg border bg-card shadow-sm relative", 
         isIPad ? "overflow-hidden max-w-full" : "", 
         className
       )} 
