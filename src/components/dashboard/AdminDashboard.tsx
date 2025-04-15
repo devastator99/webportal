@@ -6,7 +6,7 @@ import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAs
 import { PatientAssignmentsReport } from "@/components/dashboard/admin/PatientAssignmentsReport";
 import { UserRegistration } from "@/components/dashboard/admin/UserRegistration";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { Settings, Users, FileText, Database, UserPlus, Building, CreditCard, FileDown, Home, LogOut } from "lucide-react";
+import { Settings, Users, FileText, Database, UserPlus, Building, CreditCard, FileDown, Home, LogOut, ArrowRight } from "lucide-react";
 import { SyncCareTeamsButton } from "@/components/dashboard/admin/SyncCareTeamsButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
@@ -81,12 +81,44 @@ export const AdminDashboard = () => {
           </BreadcrumbList>
         </Breadcrumb>
         
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
           <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
-          <div className="flex items-center gap-2">
-            <SyncCareTeamsButton />
-            <SignOutButton />
-            <ForceLogoutButton />
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-1 border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
+              onClick={() => {
+                window.location.href = '/dashboard';
+              }}
+            >
+              <Home className="h-4 w-4" />
+              <span className="hidden sm:inline">Dashboard</span>
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="flex items-center gap-1 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+            >
+              <SyncCareTeamsButton />
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-1 border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
+            >
+              <SignOutButton />
+            </Button>
+            
+            <Button
+              variant="destructive"
+              size="sm"
+              className="flex items-center gap-1 shadow-sm"
+            >
+              <ForceLogoutButton />
+            </Button>
           </div>
         </div>
         
@@ -257,17 +289,29 @@ export const AdminDashboard = () => {
       </div>
       
       {/* Floating action bar for mobile */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-950 border-t p-3 flex justify-end gap-2 z-50 md:hidden">
+      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-950 border-t p-3 flex justify-between gap-2 z-50 md:hidden">
         <Button 
           variant="outline" 
           size="sm" 
           className="flex items-center gap-1"
-          onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
+          onClick={() => window.location.href = '/dashboard'}
         >
           <Home className="h-4 w-4" />
-          <span>Top</span>
+          <span>Dashboard</span>
         </Button>
-        <SignOutButton />
+        
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex items-center gap-1"
+            onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}
+          >
+            <ArrowRight className="h-4 w-4 rotate-270" />
+            <span>Top</span>
+          </Button>
+          <SignOutButton />
+        </div>
       </div>
     </div>
   );
