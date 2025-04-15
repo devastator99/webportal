@@ -82,6 +82,224 @@ export const LowLevelDesignDocument = () => {
               <TabsContent value="overview" className="mt-0">
                 <h2>Supabase Low-Level Design</h2>
                 
+                <h3>Dashboard Components Overview</h3>
+                <p>The application includes role-specific dashboards with components tailored to each user role's needs:</p>
+                
+                <h4>Doctor Dashboard</h4>
+                <ol>
+                  <li>
+                    <strong>Stats Cards</strong>
+                    <ul>
+                      <li>Displays key metrics for doctors: patient count, today's appointments, upcoming appointments.</li>
+                      <li>Data is fetched in real-time from the doctor_stats view.</li>
+                      <li>Provides a quick overview of the doctor's practice and workload.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Today's Schedule</strong>
+                    <ul>
+                      <li>Shows all appointments scheduled for the current day.</li>
+                      <li>Real-time updates when appointments are added or status changes.</li>
+                      <li>Includes patient details, appointment time, and status indicators.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Appointment Calendar</strong>
+                    <ul>
+                      <li>Monthly calendar view of all scheduled appointments.</li>
+                      <li>Allows adding new appointments and viewing details of existing ones.</li>
+                      <li>Color-coded to indicate appointment status (scheduled, completed, cancelled).</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Document Analyzer</strong>
+                    <ul>
+                      <li>AI-powered tool to analyze medical documents, reports, and images.</li>
+                      <li>Processes uploaded files to extract useful information and provide summaries.</li>
+                      <li>Stores analysis in the analyzed_documents and document_summaries tables.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Prescription Writer</strong>
+                    <ul>
+                      <li>Interface for creating structured prescriptions for patients.</li>
+                      <li>Includes medication details, dosage, duration, and special instructions.</li>
+                      <li>Stores prescriptions in medical_records table with appropriate doctor and patient IDs.</li>
+                      <li>Allows printing or digitally sharing prescriptions with patients.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>AI Assistant</strong>
+                    <ul>
+                      <li>Conversational AI interface for medical queries and research assistance.</li>
+                      <li>Provides evidence-based responses to clinical questions.</li>
+                      <li>Assists with diagnostic suggestions based on symptom descriptions.</li>
+                      <li>Accesses medical knowledge base from chatbot_knowledge table.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Knowledge Sharing</strong>
+                    <ul>
+                      <li>Tool for uploading educational videos and materials for patients and other doctors.</li>
+                      <li>Manages content in knowledge_videos and educational_resources tables.</li>
+                      <li>Supports various file formats for comprehensive medical education.</li>
+                    </ul>
+                  </li>
+                </ol>
+                
+                <h4>Patient Dashboard</h4>
+                <ol>
+                  <li>
+                    <strong>Health Plan Summary</strong>
+                    <ul>
+                      <li>Overview of patient's health plan with categorized items (diet, exercise, medications).</li>
+                      <li>Visual progress tracking for health plan adherence.</li>
+                      <li>Direct access to detailed plans created by doctors and nutritionists.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Appointments List</strong>
+                    <ul>
+                      <li>Shows past, current, and upcoming appointments.</li>
+                      <li>Provides appointment status and payment information.</li>
+                      <li>Allows patients to request new appointments.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Medical Records</strong>
+                    <ul>
+                      <li>Access to personal medical history and test results.</li>
+                      <li>Interface for uploading new medical documents.</li>
+                      <li>View prescriptions and treatment history chronologically.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Progress Summary</strong>
+                    <ul>
+                      <li>Charts and visualizations of health metrics over time.</li>
+                      <li>Habit tracking for water intake, sleep, exercise, and medication.</li>
+                      <li>Aggregated data from habit_progress_logs table.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Chat Interface</strong>
+                    <ul>
+                      <li>Direct communication with assigned care team (doctors, nutritionists).</li>
+                      <li>Access to care team chat room for collaborative discussions.</li>
+                      <li>AI-assisted responses for common health queries.</li>
+                    </ul>
+                  </li>
+                </ol>
+                
+                <h4>Nutritionist Dashboard</h4>
+                <ol>
+                  <li>
+                    <strong>Patient Management</strong>
+                    <ul>
+                      <li>List of all assigned patients with basic health information.</li>
+                      <li>Quick access to individual patient health plans.</li>
+                      <li>Patient search and filtering capabilities.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Health Plan Creator</strong>
+                    <ul>
+                      <li>Comprehensive tool for creating customized nutrition and exercise plans.</li>
+                      <li>Meal scheduling, recipe suggestions, and dietary restrictions management.</li>
+                      <li>Stores plan items in health_plan_items table with appropriate categorization.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Care Team Chat</strong>
+                    <ul>
+                      <li>Communication interface for participating in patient care discussions.</li>
+                      <li>Collaboration with doctors and other care providers.</li>
+                      <li>Ability to share nutrition-specific documents and recommendations.</li>
+                      <li>All participants include patient, assigned doctor, nutritionist and AI assistant.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Health Plan PDF Generator</strong>
+                    <ul>
+                      <li>Tool to generate professional PDF documents from health plans.</li>
+                      <li>Includes meal schedules, recipes, and exercise routines.</li>
+                      <li>Customizable templates for different patient needs.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Health Plan Items Grid</strong>
+                    <ul>
+                      <li>Visual interface for managing multiple aspects of a patient's health plan.</li>
+                      <li>Organized by categories (meals, exercises, supplements, etc.).</li>
+                      <li>Drag-and-drop functionality for rearranging plan elements.</li>
+                    </ul>
+                  </li>
+                </ol>
+                
+                <h4>Administrator Dashboard</h4>
+                <ol>
+                  <li>
+                    <strong>User Management</strong>
+                    <ul>
+                      <li>Interface for creating and managing all system users.</li>
+                      <li>Role assignment and modification capabilities.</li>
+                      <li>Access control management across the system.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Patient Assignment Manager</strong>
+                    <ul>
+                      <li>Tool for assigning patients to appropriate doctors and nutritionists.</li>
+                      <li>Care team composition and reorganization.</li>
+                      <li>Load balancing across healthcare providers.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Patient Payment Manager</strong>
+                    <ul>
+                      <li>Financial tracking for patient payments and invoices.</li>
+                      <li>Integration with Razorpay payment system.</li>
+                      <li>Invoice generation and payment reconciliation.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Care Team Sync</strong>
+                    <ul>
+                      <li>Tools to ensure chat rooms and care teams stay synchronized.</li>
+                      <li>Fixing potential inconsistencies in the system.</li>
+                      <li>Reporting on care team configurations.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>System Documentation</strong>
+                    <ul>
+                      <li>Comprehensive documentation of system architecture and components.</li>
+                      <li>Database schema, functions, and security design.</li>
+                      <li>Training materials for system users.</li>
+                    </ul>
+                  </li>
+                </ol>
+                
+                <h4>Reception Dashboard</h4>
+                <ol>
+                  <li>
+                    <strong>Appointment Scheduling</strong>
+                    <ul>
+                      <li>Interface for managing doctor appointments and schedules.</li>
+                      <li>Patient check-in and registration.</li>
+                      <li>Waiting room management and notifications.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Payment Processing</strong>
+                    <ul>
+                      <li>Tools for handling patient payments and generating receipts.</li>
+                      <li>Invoice creation and tracking.</li>
+                      <li>Integration with payment_settings for fee management.</li>
+                    </ul>
+                  </li>
+                </ol>
+                
                 <h3>Database Schema Overview</h3>
                 <p>The database contains multiple interconnected tables for managing a healthcare application with patients, doctors, nutritionists, appointments, medical records, and various communication features.</p>
                 
