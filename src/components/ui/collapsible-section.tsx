@@ -13,6 +13,7 @@ interface CollapsibleSectionProps {
   defaultOpen?: boolean;
   children: React.ReactNode;
   lazyLoad?: boolean;
+  id?: string; // Add this optional id prop
 }
 
 export const CollapsibleSection = ({
@@ -21,6 +22,7 @@ export const CollapsibleSection = ({
   defaultOpen = false,
   children,
   lazyLoad = true,
+  id, // Include id in component props
 }: CollapsibleSectionProps) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [hasLoaded, setHasLoaded] = useState(defaultOpen);
@@ -65,6 +67,7 @@ export const CollapsibleSection = ({
         className
       )} 
       style={{contain: "content"}}
+      id={id} // Add the id prop here
     >
       <div
         className="flex items-center justify-between p-4 cursor-pointer"
