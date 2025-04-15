@@ -1,7 +1,6 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Download } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import html2pdf from "html2pdf.js";
@@ -52,9 +51,17 @@ export const UserTrainingDocumentPDF = () => {
 
   return (
     <div>
+      <div className="mb-4">
+        <p className="text-sm text-gray-600 mb-2">
+          Click the button below to download a comprehensive training manual for all user roles 
+          in the HealthSync system. The document includes test account credentials and detailed 
+          instructions for each dashboard.
+        </p>
+      </div>
+      
       <Button 
         onClick={handleDownloadPDF}
-        className="mb-6 flex items-center gap-2"
+        className="flex items-center gap-2"
       >
         <Download className="h-4 w-4" />
         Download User Training Document (PDF)

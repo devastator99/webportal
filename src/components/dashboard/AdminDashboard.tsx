@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserManagement } from "@/components/dashboard/admin/UserManagement";
@@ -113,18 +114,6 @@ export const AdminDashboard = () => {
         </CardContent>
       </Card>
       
-      <Card className="mb-4">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileDown className="h-5 w-5" />
-            User Training Documentation
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <UserTrainingDocumentPDF />
-        </CardContent>
-      </Card>
-      
       <div className="space-y-6">
         <CollapsibleSection title="Assign Care Team">
           <PatientAssignmentManager />
@@ -188,6 +177,20 @@ export const AdminDashboard = () => {
         
         <CollapsibleSection title="System Settings">
           <SystemSettings />
+        </CollapsibleSection>
+        
+        <CollapsibleSection title="User Training Documentation" defaultOpen={false}>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileDown className="h-5 w-5" />
+                User Training Documentation
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <UserTrainingDocumentPDF />
+            </CardContent>
+          </Card>
         </CollapsibleSection>
       </div>
     </div>
