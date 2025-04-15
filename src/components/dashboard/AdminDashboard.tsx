@@ -40,31 +40,11 @@ export const AdminDashboard = () => {
   const [syncSuccess, setSyncSuccess] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const { data: stats, isLoading: isLoadingStats } = useAdminStats();
-  const [activeSection, setActiveSection] = useState<string | null>(null);
-
-  // Sections data for easy navigation
-  const sections = [
-    { id: "care-team", title: "Assign Care Team", icon: <Users className="h-4 w-4" /> },
-    { id: "reports", title: "Care Team Reports", icon: <FileText className="h-4 w-4" /> },
-    { id: "user-management", title: "User Management", icon: <Users className="h-4 w-4" /> },
-    { id: "payments", title: "Patient Payments", icon: <CreditCard className="h-4 w-4" /> },
-    { id: "settings", title: "System Settings", icon: <Settings className="h-4 w-4" /> },
-    { id: "training", title: "User Training Documentation", icon: <FileDown className="h-4 w-4" /> }
-  ];
-
-  // Handle scroll to section
-  const scrollToSection = (sectionId: string) => {
-    setActiveSection(sectionId);
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  };
 
   return (
     <div className="space-y-4 animate-fade-up">
-      {/* Fixed header that stays visible even when scrolling through documentation */}
-      <div className="fixed top-16 left-0 right-0 z-40 bg-white dark:bg-gray-950 pt-2 pb-3 border-b shadow-sm">
+      {/* Simple header */}
+      <div className="bg-white dark:bg-gray-950 pt-2 pb-3 border-b shadow-sm">
         <div className="container mx-auto px-4">
           <Breadcrumb className="mb-3">
             <BreadcrumbList>
@@ -81,65 +61,36 @@ export const AdminDashboard = () => {
             </BreadcrumbList>
           </Breadcrumb>
           
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+          <div className="flex flex-row items-center justify-between gap-3 mb-3">
             <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center">
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="flex items-center gap-1 border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
-                onClick={() => {
-                  window.location.href = '/dashboard';
-                }}
-              >
-                <Home className="h-4 w-4" />
-                <span className="hidden sm:inline">Dashboard</span>
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="flex items-center gap-1 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                className="flex items-center gap-1 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 ml-2"
               >
                 <SyncCareTeamsButton />
               </Button>
             </div>
           </div>
-          
-          {/* Quick navigation buttons */}
-          <div className="flex overflow-x-auto pb-2 gap-2 mt-2 no-scrollbar">
-            {sections.map((section) => (
-              <button
-                key={section.id}
-                onClick={() => scrollToSection(section.id)}
-                className={`inline-flex items-center px-3 py-1.5 text-sm whitespace-nowrap rounded-full border 
-                  ${activeSection === section.id 
-                    ? 'bg-primary text-primary-foreground border-primary' 
-                    : 'bg-background hover:bg-muted/50'}`}
-              >
-                <span className="mr-1.5">{section.icon}</span>
-                {section.title}
-              </button>
-            ))}
-          </div>
         </div>
       </div>
       
-      {/* Content area with proper padding to account for fixed header */}
-      <div className="content-container pt-36 pb-20">
+      {/* Content area with stat cards */}
+      <div className="container mx-auto px-4 pb-20">
         {syncSuccess && (
-          <Alert className="bg-green-50 border-green-200 text-green-800">
+          <Alert className="bg-green-50 border-green-200 text-green-800 mb-4">
             <AlertDescription>{syncSuccess}</AlertDescription>
           </Alert>
         )}
         
         {syncError && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="mb-4">
             <AlertDescription>{syncError}</AlertDescription>
           </Alert>
         )}
         
-        <Card className="mb-4">
+        <Card className="mb-6">
           <CardContent className="p-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex flex-col items-center">
@@ -274,19 +225,6 @@ export const AdminDashboard = () => {
             </Card>
           </CollapsibleSection>
         </div>
-      </div>
-      
-      {/* Floating action bar for mobile */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-950 border-t p-3 flex justify-between gap-2 z-50 md:hidden">
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="flex items-center gap-1"
-          onClick={() => window.location.href = '/dashboard'}
-        >
-          <Home className="h-4 w-4" />
-          <span>Dashboard</span>
-        </Button>
       </div>
     </div>
   );
