@@ -307,4 +307,26 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+  
+  /* Ensure document content doesn't overlap with fixed nav */
+  .document-content {
+    position: relative;
+    overflow: auto;
+    height: 100%;
+    padding-top: 3rem;
+  }
+  
+  /* Z-index utilities for proper layering */
+  .z-nav {
+    z-index: 50;
+  }
+  
+  .z-content {
+    z-index: 10;
+  }
+  
+  /* Helper class to provide spacing for fixed headers */
+  .pt-fixed-header {
+    padding-top: 9rem;
+  }
 }

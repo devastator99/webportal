@@ -13,7 +13,7 @@ interface CollapsibleSectionProps {
   defaultOpen?: boolean;
   children: React.ReactNode;
   lazyLoad?: boolean;
-  id?: string; // Add this optional id prop
+  id?: string;
 }
 
 export const CollapsibleSection = ({
@@ -22,7 +22,7 @@ export const CollapsibleSection = ({
   defaultOpen = false,
   children,
   lazyLoad = true,
-  id, // Include id in component props
+  id,
 }: CollapsibleSectionProps) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [hasLoaded, setHasLoaded] = useState(defaultOpen);
@@ -62,12 +62,12 @@ export const CollapsibleSection = ({
 
   return (
     <div 
-      className={cn("rounded-lg border bg-card shadow-sm", 
+      className={cn("rounded-lg border bg-card shadow-sm relative", 
         isIPad ? "overflow-hidden max-w-full" : "", 
         className
       )} 
       style={{contain: "content"}}
-      id={id} // Add the id prop here
+      id={id}
     >
       <div
         className="flex items-center justify-between p-4 cursor-pointer"
@@ -103,7 +103,11 @@ export const CollapsibleSection = ({
             </div>
           )}
           
-          {hasLoaded && !isLoading && children}
+          {hasLoaded && !isLoading && (
+            <div className="relative">
+              {children}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -65,8 +65,9 @@ export const AdminDashboard = () => {
 
   return (
     <div className="space-y-4 animate-fade-up">
-      <div className="sticky top-16 z-30 bg-white dark:bg-gray-950 pt-2 pb-3 border-b mb-4">
-        <div className="bg-white dark:bg-gray-950">
+      {/* Fixed header that stays visible even when scrolling through documentation */}
+      <div className="fixed top-16 left-0 right-0 z-40 bg-white dark:bg-gray-950 pt-2 pb-3 border-b shadow-sm">
+        <div className="container mx-auto px-4">
           <Breadcrumb className="mb-3">
             <BreadcrumbList>
               <BreadcrumbItem>
@@ -105,26 +106,14 @@ export const AdminDashboard = () => {
                 <SyncCareTeamsButton />
               </Button>
               
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-1 border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
-              >
-                <SignOutButton />
-              </Button>
+              <SignOutButton />
               
-              <Button
-                variant="destructive"
-                size="sm"
-                className="flex items-center gap-1 shadow-sm"
-              >
-                <ForceLogoutButton />
-              </Button>
+              <ForceLogoutButton />
             </div>
           </div>
           
           {/* Quick navigation buttons */}
-          <div className="flex overflow-x-auto pb-2 gap-2 mt-4 no-scrollbar">
+          <div className="flex overflow-x-auto pb-2 gap-2 mt-2 no-scrollbar">
             {sections.map((section) => (
               <button
                 key={section.id}
@@ -142,7 +131,8 @@ export const AdminDashboard = () => {
         </div>
       </div>
       
-      <div className="content-container pt-2">
+      {/* Content area with proper padding to account for fixed header */}
+      <div className="content-container pt-36 pb-20">
         {syncSuccess && (
           <Alert className="bg-green-50 border-green-200 text-green-800">
             <AlertDescription>{syncSuccess}</AlertDescription>
@@ -211,7 +201,7 @@ export const AdminDashboard = () => {
           </CardContent>
         </Card>
         
-        <div className="space-y-6 pb-20">
+        <div className="space-y-6">
           <CollapsibleSection title="Assign Care Team" id="care-team">
             <PatientAssignmentManager />
           </CollapsibleSection>
@@ -284,7 +274,22 @@ export const AdminDashboard = () => {
                   User Training Documentation
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="relative">
+                {/* The fixed logout button that stays visible inside documentation */}
+                <div className="absolute top-2 right-2 z-30 flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex items-center gap-1 border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]"
+                    onClick={() => {
+                      window.location.href = '/dashboard';
+                    }}
+                  >
+                    <Home className="h-4 w-4" />
+                    <span>Dashboard</span>
+                  </Button>
+                  <SignOutButton />
+                </div>
                 <UserTrainingDocumentPDF />
               </CardContent>
             </Card>
