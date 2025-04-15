@@ -675,4 +675,58 @@ export const UserTrainingDocumentPDF = () => {
           {/* Administrative Dashboard Section */}
           <div className="mb-12">
             <h2 className="text-2xl font-bold mb-4">Administrator Dashboard</h2>
-            <p className="mb-4
+            <p className="mb-4">
+              The Administrator Dashboard provides a comprehensive overview of the system and 
+              allows administrators to manage users, assign care teams, view reports, and configure system settings.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Architecture Document */}
+      <div id="architecture-document" className="hidden">
+        <div className="p-8">
+          <h1 className="text-3xl font-bold mb-6 text-center">HealthSync Architecture Diagram</h1>
+          
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold mb-4">System Overview</h2>
+            <p className="mb-4">
+              The HealthSync system uses a modern architecture with a React frontend and Supabase backend.
+              This document outlines the high-level architecture and component relationships.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      {/* High Level Design Document */}
+      <div id="highLevel-document" className="hidden">
+        <div className="p-8">
+          <h1 className="text-3xl font-bold mb-6 text-center">HealthSync High Level Design</h1>
+          
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold mb-4">System Components</h2>
+            <p className="mb-4">
+              This document describes the high-level design of the HealthSync system, including
+              modules, interactions, API endpoints, and data models.
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Low Level Design Document */}
+      <div id="lowLevel-document" className="hidden">
+        <div className="p-8">
+          <h1 className="text-3xl font-bold mb-6 text-center">HealthSync Low Level Design</h1>
+          
+          <div className="mb-12">
+            <h2 className="text-2xl font-bold mb-4">Database Schema</h2>
+            <p className="mb-4">
+              This document provides detailed technical specifications including database schemas,
+              webhooks, edge functions, and component details.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
