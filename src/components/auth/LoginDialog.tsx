@@ -54,10 +54,18 @@ export const LoginDialog = () => {
 
   // Handle forgot password
   const handleForgotPassword = async (email: string) => {
+    if (!email) {
+      toast.error("Please enter your email address to reset password");
+      return;
+    }
+    
     try {
       await handleResetPassword(email);
+      toast.success("Password reset link sent to your email");
+      setIsDialogOpen(false); // Close the dialog after sending reset email
     } catch (error: any) {
       console.error("Reset password error:", error);
+      toast.error(`Reset password failed: ${error.message || "Unknown error"}`);
     }
   };
 

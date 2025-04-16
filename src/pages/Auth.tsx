@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,19 +33,18 @@ const Auth = () => {
   const [shouldShowDoctorForm, setShouldShowDoctorForm] = useState(false);
 
   useEffect(() => {
-    // If URL contains reset=true parameter, show the update password form
+    console.log("Checking reset parameter, isResetMode:", isResetMode);
     if (isResetMode) {
       setIsPasswordResetMode(true);
       setIsLoginMode(true); // Make sure we're in login mode
+      toast.info("Please enter your new password");
     }
   }, [isResetMode]);
 
   useEffect(() => {
     const checkDoctorProfile = async () => {
-      // If user is logged in and is a doctor
       if (user && userRole === "doctor") {
         console.log("Checking doctor profile for:", user.id);
-        // Check if doctor profile is complete
         const { data, error } = await supabase
           .from("profiles")
           .select("specialty, visiting_hours, clinic_location")
@@ -58,18 +56,15 @@ const Auth = () => {
           return;
         }
 
-        // If profile is incomplete (missing required fields), show doctor form
         if (!data.specialty || !data.visiting_hours || !data.clinic_location) {
           console.log("Doctor profile incomplete, showing form");
           setShouldShowDoctorForm(true);
           return;
         }
 
-        // If profile is complete, redirect to dashboard
         console.log("Doctor profile is complete, redirecting to dashboard");
         navigate("/dashboard");
       } else if (user) {
-        // Non-doctor users go straight to dashboard
         console.log("User found in Auth, redirecting to dashboard");
         navigate("/dashboard");
       }
@@ -78,19 +73,16 @@ const Auth = () => {
     if (!isLoading) {
       console.log("Auth state resolved:", { user, userRole, authError });
       
-      // If we have an auth error but also have a user, try to recover by fetching the role again
       if (user && authError && !userRole) {
         console.log("Detected auth error with user present, trying to fetch role");
         retryRoleFetch();
         toast.info("Attempting to recover your session information...");
       } else if (user) {
-        // Only proceed to check profile if we have a user and their role
         checkDoctorProfile();
       }
     }
   }, [user, userRole, navigate, isLoading, authError, retryRoleFetch]);
 
-  // Show loading state while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center pt-16 md:pt-20">
@@ -99,7 +91,6 @@ const Auth = () => {
     );
   }
 
-  // If user is a doctor who needs to complete profile, show the doctor profile form
   if (user && shouldShowDoctorForm) {
     return (
       <div className="pt-16 md:pt-20">
@@ -108,12 +99,10 @@ const Auth = () => {
     );
   }
 
-  // If user is logged in, useEffect will handle redirect (or has already shown doctor form)
   if (user && !isPasswordResetMode) {
     return null;
   }
 
-  // Handle password reset form submission
   const handlePasswordResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword.length < 6) {
@@ -123,12 +112,13 @@ const Auth = () => {
     
     try {
       await handleUpdatePassword(newPassword);
-    } catch (error) {
+      toast.success("Password updated successfully! You can now log in.");
+    } catch (error: any) {
       console.error("Password update error:", error);
+      toast.error(`Failed to update password: ${error.message || "Unknown error"}`);
     }
   };
 
-  // Handle form submission with better error handling and feedback
   const handleFormSubmit = async (
     email: string, 
     password: string, 
@@ -143,7 +133,6 @@ const Auth = () => {
       console.log("Patient data received:", patientData);
     }
     
-    // Clear any previous errors
     setError(null);
     
     if (isLoginMode) {
@@ -156,7 +145,6 @@ const Auth = () => {
       }
     } else {
       try {
-        // For signup we'll show a toast with progress
         await toast.promise(
           handleSignUp(email, password, userType as any, firstName, lastName, patientData),
           {
@@ -166,14 +154,12 @@ const Auth = () => {
           }
         );
       } catch (error: any) {
-        // This catch will handle any uncaught errors
         console.error("Sign up error:", error);
         toast.error(`Sign up failed: ${error.message || 'Please try again'}`);
       }
     }
   };
 
-  // Handle forgot password
   const handleForgotPassword = async (email: string) => {
     try {
       await handleResetPassword(email);
@@ -182,7 +168,6 @@ const Auth = () => {
     }
   };
 
-  // If reset mode is active, show password reset form
   if (isPasswordResetMode) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">

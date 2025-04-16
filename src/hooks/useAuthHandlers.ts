@@ -136,8 +136,12 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
+      // Create a proper redirect URL that includes the reset=true parameter
+      const redirectUrl = `${window.location.origin}/auth?reset=true`;
+      console.log("Reset password redirect URL:", redirectUrl);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/auth?reset=true',
+        redirectTo: redirectUrl,
       });
 
       if (error) {
@@ -149,6 +153,8 @@ export const useAuthHandlers = () => {
         description: "Check your email for a password reset link"
       });
       
+      toast.success("Password reset email sent. Please check your inbox.");
+      
       return true;
     } catch (error: any) {
       console.error('Password reset error:', error);
@@ -158,6 +164,8 @@ export const useAuthHandlers = () => {
         title: "Password reset failed",
         description: error.message || "Failed to send reset email. Please try again."
       });
+      
+      toast.error(`Password reset failed: ${error.message || "Failed to send reset email"}`);
       throw error;
     } finally {
       setLoading(false);
