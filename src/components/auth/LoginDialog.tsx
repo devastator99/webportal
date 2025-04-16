@@ -61,11 +61,11 @@ export const LoginDialog = () => {
     
     try {
       await handleResetPassword(email);
-      toast.success("Password reset link sent to your email");
+      toast.success("Password reset link sent. Check both your inbox and spam folders.");
       setIsDialogOpen(false); // Close the dialog after sending reset email
     } catch (error: any) {
       console.error("Reset password error:", error);
-      toast.error(`Reset password failed: ${error.message || "Unknown error"}`);
+      // User will see the error from the handler, no need to show another toast here
     }
   };
 

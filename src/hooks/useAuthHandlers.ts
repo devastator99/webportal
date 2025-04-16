@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase, createUserRole, createPatientDetails } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -136,8 +137,9 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      // Create a proper redirect URL that includes the reset=true parameter
-      const redirectUrl = `${window.location.origin}/auth?reset=true`;
+      // Get the current origin but handle both development and production cases
+      const origin = window.location.origin;
+      const redirectUrl = `${origin}/auth?reset=true`;
       console.log("Reset password redirect URL:", redirectUrl);
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -153,7 +155,7 @@ export const useAuthHandlers = () => {
         description: "Check your email for a password reset link"
       });
       
-      toast.success("Password reset email sent. Please check your inbox.");
+      toast.success("Password reset email sent. Please check your inbox and spam folders.");
       
       return true;
     } catch (error: any) {
@@ -191,6 +193,7 @@ export const useAuthHandlers = () => {
       });
       
       navigate('/auth');
+      toast.success("Password updated successfully. You can now login with your new password.");
       return true;
     } catch (error: any) {
       console.error('Password update error:', error);

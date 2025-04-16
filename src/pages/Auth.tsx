@@ -1,25 +1,27 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { TestLoginButtons } from "@/components/auth/TestLoginButtons";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { LucideLoader2 } from "lucide-react";
+import { LucideLoader2, AlertTriangle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DoctorProfileForm } from "@/components/auth/DoctorProfileForm";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const Auth = () => {
   const { user, isLoading, userRole, authError, retryRoleFetch } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
-  const isResetMode = searchParams.get('reset') === 'true';
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [isPasswordResetMode, setIsPasswordResetMode] = useState(false);
   const [newPassword, setNewPassword] = useState("");
+  const [tokenExpired, setTokenExpired] = useState(false);
   const { 
     loading, 
     error, 
@@ -33,13 +35,45 @@ const Auth = () => {
   const [shouldShowDoctorForm, setShouldShowDoctorForm] = useState(false);
 
   useEffect(() => {
-    console.log("Checking reset parameter, isResetMode:", isResetMode);
+    const isResetMode = searchParams.get('reset') === 'true';
+    
+    const errorParam = searchParams.get('error');
+    const errorCode = searchParams.get('error_code');
+    const errorDescription = searchParams.get('error_description');
+    
+    console.log("URL params check:", { 
+      isResetMode, 
+      errorParam, 
+      errorCode, 
+      errorDescription, 
+      hash: location.hash
+    });
+    
+    if (location.hash) {
+      const hashParams = new URLSearchParams(location.hash.substring(1));
+      const hashError = hashParams.get('error');
+      const hashErrorCode = hashParams.get('error_code');
+      const hashErrorDesc = hashParams.get('error_description');
+      
+      console.log("Hash params:", { hashError, hashErrorCode, hashErrorDesc });
+      
+      if (hashError === 'access_denied' || hashErrorCode === 'otp_expired') {
+        setTokenExpired(true);
+        setError(hashErrorDesc || "Password reset link has expired. Please request a new one.");
+        toast.error("Password reset link has expired. Please request a new one.");
+        setIsPasswordResetMode(false);
+        setIsLoginMode(true);
+        return;
+      }
+    }
+    
     if (isResetMode) {
+      console.log("Reset mode detected, showing password reset form");
       setIsPasswordResetMode(true);
       setIsLoginMode(true); // Make sure we're in login mode
       toast.info("Please enter your new password");
     }
-  }, [isResetMode]);
+  }, [location, searchParams, setError]);
 
   useEffect(() => {
     const checkDoctorProfile = async () => {
@@ -113,6 +147,7 @@ const Auth = () => {
     try {
       await handleUpdatePassword(newPassword);
       toast.success("Password updated successfully! You can now log in.");
+      setIsPasswordResetMode(false);
     } catch (error: any) {
       console.error("Password update error:", error);
       toast.error(`Failed to update password: ${error.message || "Unknown error"}`);
@@ -161,12 +196,104 @@ const Auth = () => {
   };
 
   const handleForgotPassword = async (email: string) => {
+    if (!email) {
+      toast.error("Please enter your email address to reset password");
+      return;
+    }
+    
     try {
       await handleResetPassword(email);
     } catch (error: any) {
       console.error("Reset password error:", error);
     }
   };
+
+  if (tokenExpired) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-saas-dark">
+              Password Reset Link Expired
+            </h2>
+          </motion.div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mt-8 sm:mx-auto sm:w-full sm:max-w-md"
+        >
+          <div className="bg-white py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10">
+            <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Expired Link</AlertTitle>
+              <AlertDescription>
+                Your password reset link has expired. Please request a new one.
+              </AlertDescription>
+            </Alert>
+            
+            <form className="space-y-6">
+              <div>
+                <label htmlFor="reset-email" className="block text-sm font-medium text-gray-700">
+                  Email
+                </label>
+                <div className="mt-1">
+                  <Input
+                    id="reset-email"
+                    name="email"
+                    type="email"
+                    autoComplete="email"
+                    required
+                    className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400"
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Button
+                  type="button"
+                  className="w-full bg-gradient-to-r from-[#9b87f5] to-[#8B5CF6] hover:from-[#8B5CF6] hover:to-[#7C3AED] text-white"
+                  onClick={() => handleForgotPassword(
+                    (document.getElementById('reset-email') as HTMLInputElement)?.value || ''
+                  )}
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center">
+                      <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </span>
+                  ) : (
+                    "Request New Reset Link"
+                  )}
+                </Button>
+              </div>
+              
+              <div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="w-full"
+                  onClick={() => {
+                    setTokenExpired(false);
+                    navigate('/auth');
+                  }}
+                >
+                  Back to Login
+                </Button>
+              </div>
+            </form>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (isPasswordResetMode) {
     return (
