@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase, createUserRole, createPatientDetails } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -127,6 +126,78 @@ export const useAuthHandlers = () => {
     }
   };
 
+  const handleResetPassword = async (email: string) => {
+    if (!email) {
+      setError("Please enter your email address");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/auth?reset=true',
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      uiToast({
+        title: "Password reset email sent",
+        description: "Check your email for a password reset link"
+      });
+      
+      return true;
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      setError(error.message);
+      uiToast({
+        variant: "destructive",
+        title: "Password reset failed",
+        description: error.message || "Failed to send reset email. Please try again."
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async (newPassword: string) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      uiToast({
+        title: "Password updated",
+        description: "Your password has been successfully updated"
+      });
+      
+      navigate('/auth');
+      return true;
+    } catch (error: any) {
+      console.error('Password update error:', error);
+      setError(error.message);
+      uiToast({
+        variant: "destructive",
+        title: "Password update failed",
+        description: error.message || "Failed to update password. Please try again."
+      });
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSignUp = async (
     email: string, 
     password: string, 
@@ -234,6 +305,8 @@ export const useAuthHandlers = () => {
     handleLogin,
     handleSignUp,
     handleTestLogin,
+    handleResetPassword,
+    handleUpdatePassword,
     setError,
   };
 };

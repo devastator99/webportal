@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 export const LoginDialog = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
-  const { loading, error, handleLogin, handleSignUp, setError } = useAuthHandlers();
+  const { loading, error, handleLogin, handleSignUp, handleResetPassword, setError } = useAuthHandlers();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { resetInactivityTimer } = useAuth();
 
@@ -52,6 +52,15 @@ export const LoginDialog = () => {
     }
   };
 
+  // Handle forgot password
+  const handleForgotPassword = async (email: string) => {
+    try {
+      await handleResetPassword(email);
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+    }
+  };
+
   return (
     <Dialog open={isDialogOpen} onOpenChange={(open) => {
       setIsDialogOpen(open);
@@ -80,6 +89,7 @@ export const LoginDialog = () => {
           <AuthForm
             type={isLoginMode ? "login" : "register"}
             onSubmit={handleFormSubmit}
+            onResetPassword={handleForgotPassword}
             error={error}
             loading={loading}
           />

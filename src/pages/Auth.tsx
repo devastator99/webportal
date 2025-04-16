@@ -1,5 +1,6 @@
+
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
@@ -10,13 +11,35 @@ import { LucideLoader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DoctorProfileForm } from "@/components/auth/DoctorProfileForm";
 import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
 
 const Auth = () => {
   const { user, isLoading, userRole, authError, retryRoleFetch } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isResetMode = searchParams.get('reset') === 'true';
   const [isLoginMode, setIsLoginMode] = useState(true);
-  const { loading, error, handleLogin, handleSignUp, handleTestLogin, setError } = useAuthHandlers();
+  const [isPasswordResetMode, setIsPasswordResetMode] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const { 
+    loading, 
+    error, 
+    handleLogin, 
+    handleSignUp, 
+    handleTestLogin, 
+    handleResetPassword,
+    handleUpdatePassword,
+    setError 
+  } = useAuthHandlers();
   const [shouldShowDoctorForm, setShouldShowDoctorForm] = useState(false);
+
+  useEffect(() => {
+    // If URL contains reset=true parameter, show the update password form
+    if (isResetMode) {
+      setIsPasswordResetMode(true);
+      setIsLoginMode(true); // Make sure we're in login mode
+    }
+  }, [isResetMode]);
 
   useEffect(() => {
     const checkDoctorProfile = async () => {
@@ -86,9 +109,24 @@ const Auth = () => {
   }
 
   // If user is logged in, useEffect will handle redirect (or has already shown doctor form)
-  if (user) {
+  if (user && !isPasswordResetMode) {
     return null;
   }
+
+  // Handle password reset form submission
+  const handlePasswordResetSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return;
+    }
+    
+    try {
+      await handleUpdatePassword(newPassword);
+    } catch (error) {
+      console.error("Password update error:", error);
+    }
+  };
 
   // Handle form submission with better error handling and feedback
   const handleFormSubmit = async (
@@ -135,6 +173,89 @@ const Auth = () => {
     }
   };
 
+  // Handle forgot password
+  const handleForgotPassword = async (email: string) => {
+    try {
+      await handleResetPassword(email);
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+    }
+  };
+
+  // If reset mode is active, show password reset form
+  if (isPasswordResetMode) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-saas-dark">
+              Reset Your Password
+            </h2>
+            <p className="mt-2 text-center text-sm text-gray-600">
+              Enter your new password below
+            </p>
+          </motion.div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mt-8 sm:mx-auto sm:w-full sm:max-w-md"
+        >
+          <div className="bg-white py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10">
+            <form onSubmit={handlePasswordResetSubmit} className="space-y-6">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                  {error}
+                </div>
+              )}
+              <div>
+                <label htmlFor="new-password" className="block text-sm font-medium text-gray-700">
+                  New Password
+                </label>
+                <div className="mt-1">
+                  <Input
+                    id="new-password"
+                    name="new-password"
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400"
+                    minLength={6}
+                  />
+                </div>
+              </div>
+              
+              <div>
+                <Button
+                  type="submit"
+                  className="w-full bg-gradient-to-r from-[#9b87f5] to-[#8B5CF6] hover:from-[#8B5CF6] hover:to-[#7C3AED] text-white"
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <span className="flex items-center justify-center">
+                      <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating Password...
+                    </span>
+                  ) : (
+                    "Update Password"
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -159,6 +280,7 @@ const Auth = () => {
           <AuthForm
             type={isLoginMode ? "login" : "register"}
             onSubmit={handleFormSubmit}
+            onResetPassword={handleForgotPassword}
             error={error}
             loading={loading}
           />

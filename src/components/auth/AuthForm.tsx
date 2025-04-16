@@ -20,8 +20,9 @@ import { formatDateForDisplay, parseDateFromDisplay } from "@/utils/dateUtils";
 import { Checkbox } from "@/components/ui/checkbox";
 
 interface AuthFormProps {
-  type: "login" | "register";
+  type: "login" | "register" | "resetPassword";
   onSubmit: (email: string, password: string, userType?: string, firstName?: string, lastName?: string, patientData?: PatientData) => Promise<void>;
+  onResetPassword?: (email: string) => Promise<void>;
   error: string | null;
   loading: boolean;
 }
@@ -70,7 +71,7 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
+export const AuthForm = ({ type, onSubmit, onResetPassword, error, loading }: AuthFormProps) => {
   const [userType, setUserType] = useState<"patient" | "doctor" | "nutritionist">("patient");
   const [showPatientFields, setShowPatientFields] = useState(type === "register" && userType === "patient");
   const [dateInputValue, setDateInputValue] = useState("");
@@ -79,6 +80,8 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
 
   const activeSchema = type === "login" 
     ? loginSchema 
+    : type === "resetPassword" 
+    ? z.object({ email: z.string().email("Invalid email address") })
     : (userType === "patient" ? patientSignupSchema : standardSignupSchema);
 
   const form = useForm({
@@ -129,6 +132,11 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
     if (loading) return;
 
     try {
+      if (type === "resetPassword" && onResetPassword) {
+        await onResetPassword(data.email);
+        return;
+      }
+
       const { email, password, firstName, lastName } = data;
       
       if (type === "register" && userType === "patient") {
@@ -259,42 +267,58 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           />
         </motion.div>
 
-        <motion.div variants={itemVariants}>
-          <FormField
-            control={form.control}
-            name="password"
-            render={({ field }) => (
-              <FormItem>
-                <FormControl>
-                  <div className="relative">
-                    <Input
-                      {...field}
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Password"
-                      disabled={loading}
-                      className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
-                      minLength={6}
+        {type !== "resetPassword" && (
+          <motion.div variants={itemVariants}>
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormControl>
+                    <div className="relative">
+                      <Input
+                        {...field}
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Password"
+                        disabled={loading}
+                        className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
+                        minLength={6}
+                      />
+                    </div>
+                  </FormControl>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <Checkbox 
+                      id="showPassword" 
+                      checked={showPassword} 
+                      onCheckedChange={(checked) => setShowPassword(checked === true)}
+                      className="border-purple-300"
                     />
+                    <label 
+                      htmlFor="showPassword" 
+                      className="text-xs cursor-pointer text-purple-700"
+                    >
+                      Show password
+                    </label>
                   </div>
-                </FormControl>
-                <div className="flex items-center space-x-2 mt-1">
-                  <Checkbox 
-                    id="showPassword" 
-                    checked={showPassword} 
-                    onCheckedChange={(checked) => setShowPassword(checked === true)}
-                    className="border-purple-300"
-                  />
-                  <label 
-                    htmlFor="showPassword" 
-                    className="text-xs cursor-pointer text-purple-700"
-                  >
-                    Show password
-                  </label>
-                </div>
-              </FormItem>
-            )}
-          />
-        </motion.div>
+                </FormItem>
+              )}
+            />
+          </motion.div>
+        )}
+
+        {type === "login" && (
+          <motion.div variants={itemVariants}>
+            <Button
+              type="button"
+              variant="link"
+              className="px-0 text-sm text-purple-600 hover:text-purple-800 font-medium"
+              onClick={() => onResetPassword && onResetPassword(form.getValues().email)}
+              disabled={loading}
+            >
+              Forgot password?
+            </Button>
+          </motion.div>
+        )}
 
         {type === "register" && (
           <motion.div variants={itemVariants}>
@@ -564,10 +588,12 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
             {loading ? (
               <span className="flex items-center justify-center">
                 <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
-                {type === "login" ? "Signing in..." : "Creating account..."}
+                {type === "login" ? "Signing in..." : 
+                 type === "resetPassword" ? "Sending reset link..." : "Creating account..."}
               </span>
             ) : (
-              type === "login" ? "Sign In" : "Sign Up"
+              type === "login" ? "Sign In" : 
+              type === "resetPassword" ? "Send Reset Link" : "Sign Up"
             )}
           </Button>
         </motion.div>
