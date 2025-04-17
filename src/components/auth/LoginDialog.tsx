@@ -9,6 +9,7 @@ import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { createUrlWithParams } from "@/utils/environmentUtils";
 
 export const LoginDialog = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -66,7 +67,7 @@ export const LoginDialog = () => {
       toast.success("Password reset link sent. Check both your inbox and spam folders.");
       setIsDialogOpen(false); // Close the dialog after sending reset email
       
-      // Redirect to auth page with a helpful message
+      // Create URL with query parameter using utility
       navigate('/auth?reset_sent=true');
     } catch (error: any) {
       console.error("Reset password error:", error);

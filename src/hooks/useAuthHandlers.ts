@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import { supabase, createUserRole, createPatientDetails } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatDateForDatabase } from "@/utils/dateUtils";
+import { getAuthRedirectUrl } from "@/utils/environmentUtils";
 
 type UserRole = "patient" | "doctor" | "nutritionist" | "administrator";
 
@@ -140,8 +142,8 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      const origin = window.location.origin;
-      const redirectUrl = `${origin}/auth?reset=true`;
+      // Use the environment utility to get the correct redirect URL
+      const redirectUrl = getAuthRedirectUrl('/auth?reset=true');
       console.log("Reset password redirect URL:", redirectUrl);
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {

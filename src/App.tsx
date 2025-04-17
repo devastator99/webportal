@@ -14,6 +14,7 @@ import { MobileStatusBar } from './components/mobile/MobileStatusBar';
 import { MobileNavigation } from './components/mobile/MobileNavigation';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { NotificationBell } from './components/notifications/NotificationBell';
+import { AuthDebugMonitor } from './components/auth/AuthDebugMonitor';
 
 function App() {
   // Initialize state with current feature flags
@@ -81,6 +82,9 @@ function App() {
                   <ChatModule showChatInterface={false} showChatbotWidget={true} />
                 )}
               </div>
+              
+              {/* Auth debug monitor for development */}
+              <AuthDebugMonitor />
               
               <Toaster position="top-center" />
             </AuthProvider>
