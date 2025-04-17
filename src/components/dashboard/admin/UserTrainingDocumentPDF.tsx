@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Download, Eye, FileText, ChevronLeft, Home, Book, ArrowLeft, Menu, Bot } from "lucide-react";
@@ -409,7 +410,7 @@ export const UserTrainingDocumentPDF = () => {
                 <TabsContent value="userTraining" className="flex-grow p-0 m-0">
                   <ScrollArea className="h-[calc(90vh-180px)]">
                     <div className="p-6">
-                      <div id="preview-userTraining-document" className="prose max-w-none">
+                      <div id="userTraining-document" className="prose max-w-none">
                         <h1 className="text-3xl font-bold mb-6 text-center">HealthSync User Training Manual</h1>
                         
                         {/* Test Account Section */}
@@ -529,7 +530,7 @@ export const UserTrainingDocumentPDF = () => {
                 <TabsContent value="architecture" className="flex-grow p-0 m-0">
                   <ScrollArea className="h-[calc(90vh-180px)]">
                     <div className="p-6">
-                      <div id="preview-architecture-document" className="prose max-w-none">
+                      <div id="architecture-document" className="prose max-w-none">
                         <h1 className="text-3xl font-bold mb-6 text-center">HealthSync Architecture Diagram</h1>
                         
                         <div className="mb-10" id="system-overview">
@@ -630,7 +631,7 @@ export const UserTrainingDocumentPDF = () => {
                 <TabsContent value="highLevel" className="flex-grow p-0 m-0">
                   <ScrollArea className="h-[calc(90vh-180px)]">
                     <div className="p-6">
-                      <div id="preview-highLevel-document" className="prose max-w-none">
+                      <div id="highLevel-document" className="prose max-w-none">
                         <h1 className="text-3xl font-bold mb-6 text-center">HealthSync High Level Design</h1>
                         
                         <div className="mb-10" id="system-components">
@@ -734,7 +735,7 @@ export const UserTrainingDocumentPDF = () => {
                 <TabsContent value="lowLevel" className="flex-grow p-0 m-0">
                   <ScrollArea className="h-[calc(90vh-180px)]">
                     <div className="p-6">
-                      <div id="preview-lowLevel-document" className="prose max-w-none">
+                      <div id="lowLevel-document" className="prose max-w-none">
                         <h1 className="text-3xl font-bold mb-6 text-center">HealthSync Low Level Design</h1>
                         
                         <div className="mb-10" id="database-schema">
@@ -799,3 +800,226 @@ export const UserTrainingDocumentPDF = () => {
                                 <tr>
                                   <td className="border p-2">admin-assign-care-team</td>
                                   <td className="border p-2">Assigns doctor and nutritionist to a patient</td>
+                                </tr>
+                                <tr>
+                                  <td className="border p-2">create-razorpay-order</td>
+                                  <td className="border p-2">Creates payment orders for patient appointments</td>
+                                </tr>
+                                <tr>
+                                  <td className="border p-2">doctor-ai-assistant</td>
+                                  <td className="border p-2">AI-powered assistance for medical document analysis</td>
+                                </tr>
+                                <tr>
+                                  <td className="border p-2">sync-care-team-rooms</td>
+                                  <td className="border p-2">Ensures care team chat rooms are properly configured</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                        
+                        <div className="mb-10" id="webhooks">
+                          <h2 className="text-2xl font-bold mb-4">Webhooks</h2>
+                          <p className="mb-4">The system uses the following webhooks to integrate with external services:</p>
+                          <ul className="list-disc ml-6">
+                            <li className="mb-2">
+                              <strong>Payment Webhook:</strong> Handles successful and failed payment notifications
+                            </li>
+                            <li className="mb-2">
+                              <strong>Auth Webhook:</strong> Processes authentication events
+                            </li>
+                          </ul>
+                        </div>
+                        
+                        <div className="mb-10" id="security">
+                          <h2 className="text-2xl font-bold mb-4">Security</h2>
+                          <p className="mb-4">The system implements the following security measures:</p>
+                          <ul className="list-disc ml-6">
+                            <li className="mb-2">
+                              <strong>Row-Level Security:</strong> Database policies to enforce access control
+                            </li>
+                            <li className="mb-2">
+                              <strong>JWT Authentication:</strong> Secure user authentication
+                            </li>
+                            <li className="mb-2">
+                              <strong>Role-Based Access Control:</strong> Different permissions for different user roles
+                            </li>
+                            <li className="mb-2">
+                              <strong>HTTPS:</strong> Encrypted connections for all communications
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+                
+                <TabsContent value="aiEnhancement" className="flex-grow p-0 m-0">
+                  <ScrollArea className="h-[calc(90vh-180px)]">
+                    <div className="p-6">
+                      <div id="aiEnhancement-document" className="prose max-w-none">
+                        <h1 className="text-3xl font-bold mb-6 text-center">HealthSync AI Enhancement Plan</h1>
+                        
+                        <div className="mb-10" id="overview">
+                          <h2 className="text-2xl font-bold mb-4">Overview</h2>
+                          <p className="mb-4">
+                            This document outlines a comprehensive plan to enhance the AI capabilities 
+                            in the care team chat for the Indian healthcare context, addressing specific needs 
+                            and cultural considerations for better patient outcomes.
+                          </p>
+                          <p className="mb-4">
+                            The goal is to create a more contextual, culturally sensitive AI assistant 
+                            that can provide advice tailored to Indian patients, considering local diets, 
+                            practices, and healthcare approaches.
+                          </p>
+                        </div>
+                        
+                        <div className="mb-10" id="model-optimization">
+                          <h2 className="text-2xl font-bold mb-4">Model Optimization</h2>
+                          <div className="mb-6">
+                            <h3 className="text-xl font-semibold mb-2">Current Limitations</h3>
+                            <ul className="list-disc ml-6 mb-4">
+                              <li>Limited understanding of Indian diets and traditional practices</li>
+                              <li>Generic health advice not tailored to local context</li>
+                              <li>Insufficient integration of Ayurvedic and homeopathic considerations</li>
+                              <li>Limited regional language support</li>
+                            </ul>
+                          </div>
+                          
+                          <div className="mb-6">
+                            <h3 className="text-xl font-semibold mb-2">Proposed Enhancements</h3>
+                            <ol className="list-decimal ml-6">
+                              <li className="mb-2">
+                                <strong>Model Parameter Adjustments:</strong> Lower temperature settings for more conservative medical advice
+                              </li>
+                              <li className="mb-2">
+                                <strong>Context Window Expansion:</strong> Include more patient history and cultural context
+                              </li>
+                              <li className="mb-2">
+                                <strong>Enhanced System Prompts:</strong> Indian medical protocols and guidelines
+                              </li>
+                              <li className="mb-2">
+                                <strong>Specialized Model Exploration:</strong> Evaluate domain-specific models for Indian healthcare
+                              </li>
+                            </ol>
+                          </div>
+                        </div>
+                        
+                        <div className="mb-10" id="knowledge-base">
+                          <h2 className="text-2xl font-bold mb-4">Knowledge Base Enhancements</h2>
+                          <div className="mb-6">
+                            <h3 className="text-xl font-semibold mb-2">Content Expansion Areas</h3>
+                            <ul className="list-disc ml-6">
+                              <li className="mb-2">
+                                <strong>Indian Diet Guidelines:</strong> Region-specific nutritional advice
+                                <ul className="list-circle ml-6 mt-1">
+                                  <li>South Indian vegetarian diets</li>
+                                  <li>North Indian dietary patterns</li>
+                                  <li>East and West regional considerations</li>
+                                </ul>
+                              </li>
+                              <li className="mb-2">
+                                <strong>Traditional Practices:</strong> Integration with modern medicine
+                                <ul className="list-circle ml-6 mt-1">
+                                  <li>Yoga and exercise recommendations</li>
+                                  <li>Ayurvedic considerations</li>
+                                  <li>Homeopathic integration points</li>
+                                </ul>
+                              </li>
+                              <li className="mb-2">
+                                <strong>Medication References:</strong> Indian pharmaceuticals and alternatives
+                              </li>
+                              <li className="mb-2">
+                                <strong>Religious and Cultural Considerations:</strong> Faith-based dietary restrictions and practices
+                              </li>
+                              <li className="mb-2">
+                                <strong>Family-Centered Care:</strong> Extended family involvement in healthcare decisions
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                        
+                        <div className="mb-10" id="implementation">
+                          <h2 className="text-2xl font-bold mb-4">Implementation Phases</h2>
+                          <div className="mb-6">
+                            <table className="w-full border-collapse">
+                              <thead>
+                                <tr className="bg-muted">
+                                  <th className="border p-2 text-left">Phase</th>
+                                  <th className="border p-2 text-left">Timeline</th>
+                                  <th className="border p-2 text-left">Activities</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                <tr>
+                                  <td className="border p-2">Phase 1</td>
+                                  <td className="border p-2">1-2 months</td>
+                                  <td className="border p-2">
+                                    <ul className="list-disc ml-4">
+                                      <li>Update system prompts with Indian healthcare context</li>
+                                      <li>Add basic diet and exercise knowledge for Indian context</li>
+                                      <li>Implement parameter adjustments</li>
+                                    </ul>
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td className="border p-2">Phase 2</td>
+                                  <td className="border p-2">3-4 months</td>
+                                  <td className="border p-2">
+                                    <ul className="list-disc ml-4">
+                                      <li>Expand knowledge base with region-specific content</li>
+                                      <li>Integrate traditional medicine references</li>
+                                      <li>Develop enhanced context handling</li>
+                                    </ul>
+                                  </td>
+                                </tr>
+                                <tr>
+                                  <td className="border p-2">Phase 3</td>
+                                  <td className="border p-2">5-6 months</td>
+                                  <td className="border p-2">
+                                    <ul className="list-disc ml-4">
+                                      <li>Implement multi-language support</li>
+                                      <li>Add family-centered care approaches</li>
+                                      <li>Finalize specialized model integration</li>
+                                    </ul>
+                                  </td>
+                                </tr>
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                        
+                        <div className="mb-10" id="success-metrics">
+                          <h2 className="text-2xl font-bold mb-4">Success Metrics</h2>
+                          <p className="mb-4">The enhanced AI capabilities will be evaluated using the following metrics:</p>
+                          <div className="mb-4">
+                            <h3 className="text-xl font-semibold mb-2">Quantitative Measures</h3>
+                            <ul className="list-disc ml-6">
+                              <li>Increase in patient satisfaction ratings by 25%</li>
+                              <li>30% improvement in contextually appropriate responses</li>
+                              <li>20% reduction in generic advice without cultural context</li>
+                              <li>50% increase in care team utilization of AI recommendations</li>
+                            </ul>
+                          </div>
+                          
+                          <div className="mb-4">
+                            <h3 className="text-xl font-semibold mb-2">Qualitative Assessments</h3>
+                            <ul className="list-disc ml-6">
+                              <li>Doctor feedback on clinical relevance for Indian patients</li>
+                              <li>Patient perception of culturally appropriate advice</li>
+                              <li>Nutritionist evaluation of dietary recommendations</li>
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </ScrollArea>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
