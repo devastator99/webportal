@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthForm } from "@/components/auth/AuthForm";
-import { useAuthHandlers } from "@/hooks/useAuthHandlers";
+import { useAuthHandlers, PasswordUpdateResult } from "@/hooks/useAuthHandlers";
 import { TestLoginButtons } from "@/components/auth/TestLoginButtons";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -156,8 +156,8 @@ const Auth = () => {
     try {
       const result = await handleUpdatePassword(newPassword);
       
-      // Check if token expired
-      if (result && result.tokenExpired) {
+      // Check if result is an object with tokenExpired property
+      if (typeof result === 'object' && 'tokenExpired' in result && result.tokenExpired) {
         setTokenExpired(true);
       } else {
         toast.success("Password updated successfully! You can now log in.");

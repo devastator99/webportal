@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase, createUserRole, createPatientDetails } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +18,11 @@ export interface PatientData {
   foodHabit?: string;
   knownAllergies?: string;
   currentMedicalConditions?: string;
+}
+
+export interface PasswordUpdateResult {
+  tokenExpired?: boolean;
+  success?: boolean;
 }
 
 export const useAuthHandlers = () => {
@@ -49,7 +53,6 @@ export const useAuthHandlers = () => {
 
       console.log('Login successful:', data.user);
       
-      // Get user role
       const { data: roleData, error: roleError } = await supabase
         .rpc('get_user_role', {
           lookup_user_id: data.user.id
@@ -137,7 +140,6 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      // Get the current origin but handle both development and production cases
       const origin = window.location.origin;
       const redirectUrl = `${origin}/auth?reset=true`;
       console.log("Reset password redirect URL:", redirectUrl);
@@ -174,7 +176,7 @@ export const useAuthHandlers = () => {
     }
   };
 
-  const handleUpdatePassword = async (newPassword: string) => {
+  const handleUpdatePassword = async (newPassword: string): Promise<boolean | PasswordUpdateResult> => {
     setLoading(true);
     setError(null);
 
@@ -194,11 +196,10 @@ export const useAuthHandlers = () => {
       
       navigate('/auth');
       toast.success("Password updated successfully. You can now login with your new password.");
-      return true;
+      return { success: true };
     } catch (error: any) {
       console.error('Password update error:', error);
       
-      // Check if it's a token expired error
       if (error.message.includes('token is expired') || error.message.includes('Invalid user')) {
         setError("Your password reset link has expired. Please request a new one.");
         
@@ -208,7 +209,6 @@ export const useAuthHandlers = () => {
           description: "Your password reset link has expired. Please request a new one."
         });
         
-        // Signal that we should show the expired token UI
         return { tokenExpired: true };
       }
       
@@ -241,7 +241,6 @@ export const useAuthHandlers = () => {
         console.log('Patient data to be saved:', patientData);
       }
       
-      // Step 1: Create the user in Auth
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -266,28 +265,22 @@ export const useAuthHandlers = () => {
 
       console.log('User created successfully:', authData.user);
 
-      // Step 2: Create user role using RPC function
       try {
         const roleResult = await createUserRole(authData.user.id, userType);
         console.log('User role created successfully:', roleResult);
       } catch (roleError: any) {
         console.error('Role creation error:', roleError);
-        // Continue with the registration but notify the user
         toast.warning("Account created but role assignment had an issue. Some features may be limited.");
       }
 
-      // Step 3: If it's a patient, save the additional patient data using RPC function
       if (userType === 'patient' && patientData) {
         console.log('Creating patient details for user:', authData.user.id);
         
         try {
-          // Parse the age as a number for the database
           const ageNumber = parseInt(patientData.age, 10);
           
-          // Parse the height as a number if provided
           const heightNumber = patientData.height ? parseFloat(patientData.height) : null;
           
-          // Create the patient details using the RPC function
           const patientResult = await createPatientDetails(
             authData.user.id,
             ageNumber,
@@ -308,7 +301,6 @@ export const useAuthHandlers = () => {
         }
       }
 
-      // Navigate to dashboard after successful registration
       navigate('/dashboard');
       return authData;
     } catch (error: any) {
