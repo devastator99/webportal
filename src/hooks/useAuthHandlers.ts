@@ -1,11 +1,10 @@
-
 import { useState } from "react";
 import { supabase, createUserRole, createPatientDetails } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatDateForDatabase } from "@/utils/dateUtils";
-import { getAuthRedirectUrl } from "@/utils/environmentUtils";
+import { getAuthRedirectUrl, getProjectId } from "@/utils/environmentUtils";
 
 type UserRole = "patient" | "doctor" | "nutritionist" | "administrator";
 
