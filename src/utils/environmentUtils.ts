@@ -16,6 +16,11 @@ export const getBaseUrl = (): string => {
     return `${window.location.protocol}//${hostname}:${window.location.port}`;
   }
   
+  // Check if we're on a lovable.dev domain - ensure we use this exact domain
+  if (hostname.includes('lovable.dev')) {
+    return `${window.location.protocol}//${hostname}`;
+  }
+  
   // Handle production or preview environments with custom domains
   return `${window.location.protocol}//${hostname}`;
 };

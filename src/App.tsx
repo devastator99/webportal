@@ -1,4 +1,3 @@
-
 import './App.css';
 import { BrowserRouter as Router } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -83,7 +82,7 @@ function App() {
                 )}
               </div>
               
-              {/* Auth debug monitor for development */}
+              {/* Always show Auth debug monitor to help diagnose auth issues */}
               <AuthDebugMonitor />
               
               <Toaster position="top-center" />

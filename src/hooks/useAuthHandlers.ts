@@ -149,6 +149,7 @@ export const useAuthHandlers = () => {
       // Log additional debug information
       console.log("Current hostname:", window.location.hostname);
       console.log("Current origin:", window.location.origin);
+      console.log("Project ID:", getProjectId());
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
