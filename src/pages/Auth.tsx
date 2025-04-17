@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,7 +7,7 @@ import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { TestLoginButtons } from "@/components/auth/TestLoginButtons";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { LucideLoader2, AlertTriangle } from "lucide-react";
+import { LucideLoader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DoctorProfileForm } from "@/components/auth/DoctorProfileForm";
 import { toast } from "sonner";
@@ -22,6 +23,7 @@ const Auth = () => {
   const [isPasswordResetMode, setIsPasswordResetMode] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [tokenExpired, setTokenExpired] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
   const { 
     loading, 
     error, 
@@ -36,6 +38,7 @@ const Auth = () => {
 
   useEffect(() => {
     const isResetMode = searchParams.get('reset') === 'true';
+    const isResetSent = searchParams.get('reset_sent') === 'true';
     
     const errorParam = searchParams.get('error');
     const errorCode = searchParams.get('error_code');
@@ -43,11 +46,17 @@ const Auth = () => {
     
     console.log("URL params check:", { 
       isResetMode, 
+      isResetSent,
       errorParam, 
       errorCode, 
       errorDescription, 
       hash: location.hash
     });
+
+    if (isResetSent) {
+      setResetEmailSent(true);
+      toast.success("Password reset link was sent to your email");
+    }
     
     if (location.hash) {
       const hashParams = new URLSearchParams(location.hash.substring(1));
@@ -111,11 +120,11 @@ const Auth = () => {
         console.log("Detected auth error with user present, trying to fetch role");
         retryRoleFetch();
         toast.info("Attempting to recover your session information...");
-      } else if (user) {
+      } else if (user && !isPasswordResetMode) {
         checkDoctorProfile();
       }
     }
-  }, [user, userRole, navigate, isLoading, authError, retryRoleFetch]);
+  }, [user, userRole, navigate, isLoading, authError, retryRoleFetch, isPasswordResetMode]);
 
   if (isLoading) {
     return (
@@ -145,9 +154,15 @@ const Auth = () => {
     }
     
     try {
-      await handleUpdatePassword(newPassword);
-      toast.success("Password updated successfully! You can now log in.");
-      setIsPasswordResetMode(false);
+      const result = await handleUpdatePassword(newPassword);
+      
+      // Check if token expired
+      if (result && result.tokenExpired) {
+        setTokenExpired(true);
+      } else {
+        toast.success("Password updated successfully! You can now log in.");
+        setIsPasswordResetMode(false);
+      }
     } catch (error: any) {
       console.error("Password update error:", error);
       toast.error(`Failed to update password: ${error.message || "Unknown error"}`);
@@ -203,10 +218,64 @@ const Auth = () => {
     
     try {
       await handleResetPassword(email);
+      setResetEmailSent(true);
     } catch (error: any) {
       console.error("Reset password error:", error);
     }
   };
+
+  if (resetEmailSent) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+          >
+            <h2 className="mt-6 text-center text-3xl font-extrabold text-saas-dark">
+              Check Your Email
+            </h2>
+          </motion.div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="mt-8 sm:mx-auto sm:w-full sm:max-w-md"
+        >
+          <div className="bg-white py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10">
+            <Alert className="mb-4 bg-green-50 border-green-200">
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
+              <AlertTitle className="text-green-800">Email Sent</AlertTitle>
+              <AlertDescription className="text-green-700">
+                We've sent a password reset link to your email address. Please check both your inbox and spam folders.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="text-center mt-4 space-y-4">
+              <p className="text-sm text-gray-600">
+                The link will expire in 1 hour. If you don't see the email, check your spam folder or request a new link.
+              </p>
+              
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full mt-4"
+                onClick={() => {
+                  setResetEmailSent(false);
+                  navigate('/auth');
+                }}
+              >
+                Back to Login
+              </Button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   if (tokenExpired) {
     return (

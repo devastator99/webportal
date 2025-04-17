@@ -8,12 +8,14 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export const LoginDialog = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
   const { loading, error, handleLogin, handleSignUp, handleResetPassword, setError } = useAuthHandlers();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { resetInactivityTimer } = useAuth();
+  const navigate = useNavigate();
 
   // Handle form submission
   const handleFormSubmit = async (
@@ -63,6 +65,9 @@ export const LoginDialog = () => {
       await handleResetPassword(email);
       toast.success("Password reset link sent. Check both your inbox and spam folders.");
       setIsDialogOpen(false); // Close the dialog after sending reset email
+      
+      // Redirect to auth page with a helpful message
+      navigate('/auth?reset_sent=true');
     } catch (error: any) {
       console.error("Reset password error:", error);
       // User will see the error from the handler, no need to show another toast here

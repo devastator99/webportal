@@ -152,10 +152,10 @@ export const useAuthHandlers = () => {
 
       uiToast({
         title: "Password reset email sent",
-        description: "Check your email for a password reset link"
+        description: "Check your email for a password reset link. It will expire in 1 hour."
       });
       
-      toast.success("Password reset email sent. Please check your inbox and spam folders.");
+      toast.success("Password reset email sent. Check your inbox and spam folders.");
       
       return true;
     } catch (error: any) {
@@ -197,6 +197,21 @@ export const useAuthHandlers = () => {
       return true;
     } catch (error: any) {
       console.error('Password update error:', error);
+      
+      // Check if it's a token expired error
+      if (error.message.includes('token is expired') || error.message.includes('Invalid user')) {
+        setError("Your password reset link has expired. Please request a new one.");
+        
+        uiToast({
+          variant: "destructive",
+          title: "Link expired",
+          description: "Your password reset link has expired. Please request a new one."
+        });
+        
+        // Signal that we should show the expired token UI
+        return { tokenExpired: true };
+      }
+      
       setError(error.message);
       uiToast({
         variant: "destructive",
