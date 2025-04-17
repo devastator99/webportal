@@ -27,6 +27,9 @@ export const getBaseUrl = (): string => {
 export const getAuthRedirectUrl = (path: string = '/auth'): string => {
   const baseUrl = getBaseUrl();
   const redirectPath = path.startsWith('/') ? path : `/${path}`;
+  
+  // Log for debugging purposes
+  console.log(`Creating auth redirect URL: ${baseUrl}${redirectPath}`);
   return `${baseUrl}${redirectPath}`;
 };
 
@@ -39,4 +42,23 @@ export const createUrlWithParams = (baseUrl: string, params: Record<string, stri
     url.searchParams.append(key, value);
   });
   return url.toString();
+};
+
+/**
+ * Gets the current project ID from the hostname
+ * This is useful for constructing domain-specific resources
+ */
+export const getProjectId = (): string | null => {
+  const hostname = window.location.hostname;
+  
+  // Check if we're on a lovable.dev domain
+  if (hostname.includes('lovable.dev')) {
+    // Extract the project ID from the subdomain
+    const match = hostname.match(/^([a-z0-9-]+)\.lovable\.dev$/);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  
+  return null;
 };

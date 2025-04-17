@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getBaseUrl } from "@/utils/environmentUtils";
+import { getBaseUrl, getAuthRedirectUrl, getProjectId } from "@/utils/environmentUtils";
 
 /**
  * This component provides auth debugging information in dev mode
@@ -11,8 +11,10 @@ export const AuthDebugMonitor = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [debugInfo, setDebugInfo] = useState<Record<string, any>>({});
   
-  // Only collect debug info in development mode
-  const isDev = import.meta.env.DEV || window.location.hostname === 'localhost';
+  // Show debug info in development mode or when explicitly enabled via URL
+  const isDev = import.meta.env.DEV || 
+                window.location.hostname === 'localhost' || 
+                window.location.search.includes('debug=true');
   
   useEffect(() => {
     if (!isDev) return;
@@ -21,9 +23,12 @@ export const AuthDebugMonitor = () => {
       // Get current Supabase URL
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'Not available';
       
-      // Get current origin
+      // Get current origin and URLs
       const origin = window.location.origin;
       const baseUrl = getBaseUrl();
+      const authRedirectUrl = getAuthRedirectUrl();
+      const resetPasswordUrl = getAuthRedirectUrl('/auth?reset=true');
+      const projectId = getProjectId();
       
       // Get auth session
       const { data: sessionData } = await supabase.auth.getSession();
@@ -34,14 +39,31 @@ export const AuthDebugMonitor = () => {
         origin,
         currentUrl: window.location.href,
         baseUrl,
+        authRedirectUrl,
+        resetPasswordUrl,
+        projectId,
+        lovableDomain: projectId ? `${projectId}.lovable.dev` : 'Not on lovable domain',
         supabaseUrl,
         hostname: window.location.hostname,
+        port: window.location.port,
         hasSession,
         userAgent: navigator.userAgent,
+        queryParams: Object.fromEntries(new URLSearchParams(window.location.search)),
+        hash: window.location.hash,
       });
     };
     
     collectDebugInfo();
+    
+    // Setup a listener for hash changes which might indicate auth redirects
+    const handleHashChange = () => {
+      collectDebugInfo();
+    };
+    
+    window.addEventListener('hashchange', handleHashChange);
+    return () => {
+      window.removeEventListener('hashchange', handleHashChange);
+    };
   }, [isDev]);
   
   if (!isDev) return null;
