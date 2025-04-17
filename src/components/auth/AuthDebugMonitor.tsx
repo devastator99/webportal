@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getBaseUrl, getAuthRedirectUrl, getProjectId } from "@/utils/environmentUtils";
+import { getBaseUrl, getAuthRedirectUrl, getProjectId, getEnvironmentInfo } from "@/utils/environmentUtils";
 
 /**
  * This component provides auth debugging information in dev mode
@@ -22,33 +22,29 @@ export const AuthDebugMonitor = () => {
       // Get current Supabase URL
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'Not available';
       
-      // Get current origin and URLs
-      const origin = window.location.origin;
-      const baseUrl = getBaseUrl();
-      const authRedirectUrl = getAuthRedirectUrl();
-      const resetPasswordUrl = getAuthRedirectUrl('/auth?reset=true');
-      const projectId = getProjectId();
+      // Get comprehensive environment information
+      const envInfo = getEnvironmentInfo();
       
       // Get auth session
       const { data: sessionData } = await supabase.auth.getSession();
       const hasSession = !!sessionData?.session;
       
+      // Get URL hash for deeper auth redirect debugging
+      const hashParams = window.location.hash ? 
+        Object.fromEntries(new URLSearchParams(window.location.hash.substring(1))) : 
+        {};
+      
+      // Enhanced debugging info
       setDebugInfo({
-        environment: import.meta.env.MODE,
-        origin,
-        currentUrl: window.location.href,
-        baseUrl,
-        authRedirectUrl,
-        resetPasswordUrl,
-        projectId,
-        lovableDomain: projectId ? `${projectId}.lovable.dev` : 'Not on lovable domain',
+        ...envInfo,
         supabaseUrl,
-        hostname: window.location.hostname,
-        port: window.location.port,
         hasSession,
         userAgent: navigator.userAgent,
         queryParams: Object.fromEntries(new URLSearchParams(window.location.search)),
         hash: window.location.hash,
+        hashParams,
+        redirectPath: window.location.pathname.includes('/auth') ? 'On auth page' : 'Not on auth page',
+        resetPasswordMode: window.location.search.includes('reset=true') ? 'Active' : 'Inactive',
         today: new Date().toISOString(),
       });
     };
@@ -57,6 +53,7 @@ export const AuthDebugMonitor = () => {
     
     // Setup a listener for hash changes which might indicate auth redirects
     const handleHashChange = () => {
+      console.log("Hash changed, updating debug info");
       collectDebugInfo();
     };
     
@@ -71,7 +68,7 @@ export const AuthDebugMonitor = () => {
     <div className="fixed bottom-4 left-4 z-50">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="bg-yellow-500 text-black px-2 py-1 text-xs rounded"
+        className={`${isDev ? 'bg-yellow-500' : 'bg-blue-500'} text-black px-2 py-1 text-xs rounded`}
       >
         {isOpen ? 'Hide Auth Debug' : 'Auth Debug'}
       </button>
@@ -82,6 +79,29 @@ export const AuthDebugMonitor = () => {
           <pre className="text-xs whitespace-pre-wrap">
             {JSON.stringify(debugInfo, null, 2)}
           </pre>
+          
+          <div className="mt-4 pt-2 border-t border-gray-700">
+            <h4 className="font-bold text-xs mb-1">Debug Actions</h4>
+            <button 
+              onClick={() => {
+                console.log("Auth debug refresh triggered");
+                window.location.reload();
+              }}
+              className="bg-blue-600 text-white text-xs px-2 py-1 rounded mr-2"
+            >
+              Refresh Page
+            </button>
+            <button
+              onClick={() => {
+                console.log("Auth debug clear session triggered");
+                supabase.auth.signOut();
+                window.location.reload();
+              }}
+              className="bg-red-600 text-white text-xs px-2 py-1 rounded"
+            >
+              Clear Session
+            </button>
+          </div>
         </div>
       )}
     </div>
