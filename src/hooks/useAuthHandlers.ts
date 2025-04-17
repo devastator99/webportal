@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatDateForDatabase } from "@/utils/dateUtils";
-import { getAuthRedirectUrl, getProjectId } from "@/utils/environmentUtils";
+import { getAuthRedirectUrl, getProjectId, getBaseUrl } from "@/utils/environmentUtils";
 
 type UserRole = "patient" | "doctor" | "nutritionist" | "administrator";
 
@@ -141,14 +141,16 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      // Use the environment utility to get the correct redirect URL
-      const redirectUrl = getAuthRedirectUrl('/auth?reset=true');
-      console.log("Reset password redirect URL:", redirectUrl);
+      const baseUrl = getBaseUrl();
+      const redirectUrl = `${baseUrl}/auth?reset=true`;
       
-      // Log additional debug information
-      console.log("Current hostname:", window.location.hostname);
-      console.log("Current origin:", window.location.origin);
-      console.log("Project ID:", getProjectId());
+      console.log("Reset password details:");
+      console.log("- Base URL:", baseUrl);
+      console.log("- Redirect URL:", redirectUrl);
+      console.log("- Current origin:", window.location.origin);
+      console.log("- Current hostname:", window.location.hostname);
+      console.log("- Current pathname:", window.location.pathname);
+      console.log("- Project ID:", getProjectId());
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,

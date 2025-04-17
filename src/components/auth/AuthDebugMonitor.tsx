@@ -17,8 +17,7 @@ export const AuthDebugMonitor = () => {
                 window.location.search.includes('debug=true');
   
   useEffect(() => {
-    if (!isDev) return;
-    
+    // Always collect debug info, even in production, to help diagnose issues
     const collectDebugInfo = async () => {
       // Get current Supabase URL
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'Not available';
@@ -50,6 +49,7 @@ export const AuthDebugMonitor = () => {
         userAgent: navigator.userAgent,
         queryParams: Object.fromEntries(new URLSearchParams(window.location.search)),
         hash: window.location.hash,
+        today: new Date().toISOString(),
       });
     };
     
@@ -64,10 +64,9 @@ export const AuthDebugMonitor = () => {
     return () => {
       window.removeEventListener('hashchange', handleHashChange);
     };
-  }, [isDev]);
+  }, []);
   
-  if (!isDev) return null;
-  
+  // Always return the debug monitor in case it's needed
   return (
     <div className="fixed bottom-4 left-4 z-50">
       <button

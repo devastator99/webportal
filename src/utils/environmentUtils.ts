@@ -31,6 +31,7 @@ export const getBaseUrl = (): string => {
  */
 export const getAuthRedirectUrl = (path: string = '/auth'): string => {
   const baseUrl = getBaseUrl();
+  // Ensure path starts with a slash if not already
   const redirectPath = path.startsWith('/') ? path : `/${path}`;
   
   // Log for debugging purposes
