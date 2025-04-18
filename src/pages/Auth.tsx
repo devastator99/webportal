@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthForm } from "@/components/auth/AuthForm";
-import { useAuthHandlers, PasswordUpdateResult } from "@/hooks/useAuthHandlers";
+import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { TestLoginButtons } from "@/components/auth/TestLoginButtons";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,6 @@ import { LucideLoader2, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DoctorProfileForm } from "@/components/auth/DoctorProfileForm";
 import { toast } from "sonner";
-import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PasswordResetForm } from "@/components/auth/PasswordResetForm";
 import { UpdatePasswordForm } from "@/components/auth/UpdatePasswordForm";
@@ -37,7 +36,7 @@ const Auth = () => {
   useEffect(() => {
     const isResetSent = searchParams.get('reset_sent') === 'true';
     const isRecoveryMode = searchParams.get('type') === 'recovery';
-    const isResetMode = searchParams.get('reset') === 'true';
+    const isResetMode = searchParams.get('mode') === 'reset';
     
     if (isResetSent) {
       setResetEmailSent(true);
@@ -48,42 +47,6 @@ const Auth = () => {
       console.log("Recovery mode detected in URL params");
     }
   }, [location, searchParams]);
-
-  useEffect(() => {
-    const handleAuthRedirect = async () => {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
-      const type = hashParams.get('type');
-      
-      if (accessToken && type === 'recovery') {
-        console.log("Recovery token detected in URL hash");
-        
-        try {
-          const { data, error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken || '',
-          });
-          
-          if (error) {
-            console.error("Error setting session:", error);
-            toast.error("Password reset link is invalid or has expired");
-            navigate("/auth?mode=reset");
-            return;
-          }
-          
-          console.log("Successfully processed recovery token");
-          navigate("/auth?type=recovery", { replace: true });
-        } catch (err) {
-          console.error("Error processing auth redirect:", err);
-          toast.error("There was an error processing your password reset request");
-          navigate("/auth");
-        }
-      }
-    };
-    
-    handleAuthRedirect();
-  }, [navigate]);
 
   useEffect(() => {
     const checkDoctorProfile = async () => {
@@ -108,7 +71,7 @@ const Auth = () => {
 
         console.log("Doctor profile is complete, redirecting to dashboard");
         navigate("/dashboard");
-      } else if (user) {
+      } else if (user && !searchParams.get('type')) {
         console.log("User found in Auth, redirecting to dashboard");
         navigate("/dashboard");
       }

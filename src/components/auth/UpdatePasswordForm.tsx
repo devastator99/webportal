@@ -14,44 +14,76 @@ export const UpdatePasswordForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Check if we have a valid session before showing this form
+  // Enhanced session check that also handles recovery tokens
   useEffect(() => {
-    const checkSession = async () => {
+    const processRecoveryToken = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        console.log("Session check result:", { session, error });
+        // First check if we have a hash with access_token (recovery flow)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token');
+        const type = hashParams.get('type');
+
+        console.log("Recovery flow check:", { 
+          hasAccessToken: !!accessToken,
+          type,
+          currentPath: location.pathname
+        });
+
+        if (accessToken && type === 'recovery') {
+          console.log("Found recovery token, setting session");
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || ''
+          });
+
+          if (error) {
+            console.error("Error setting recovery session:", error);
+            toast.error("Password reset link is invalid or has expired");
+            navigate("/auth?mode=reset");
+            return;
+          }
+
+          console.log("Successfully set recovery session");
+          return;
+        }
+
+        // If no recovery token, verify we have a valid session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (error || !session) {
-          console.error("No valid session for password reset:", error);
+        console.log("Regular session check:", { 
+          hasSession: !!session,
+          error: sessionError
+        });
+
+        if (sessionError || !session) {
+          console.error("No valid session for password reset:", sessionError);
           toast.error("Password reset link is invalid or has expired", {
             description: "Please request a new password reset link"
           });
           navigate("/auth?mode=reset");
-        } else {
-          console.log("Valid session found for password reset");
         }
       } catch (error) {
-        console.error("Error checking session:", error);
-        toast.error("Error verifying reset session");
+        console.error("Error in recovery flow:", error);
+        toast.error("Error processing reset link");
         navigate("/auth?mode=reset");
       }
     };
-    
-    checkSession();
-  }, [navigate]);
+
+    processRecoveryToken();
+  }, [navigate, location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     
-    // Validate passwords match
     if (newPassword !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
     
-    // Validate password length
     if (newPassword.length < 6) {
       setError("Password must be at least 6 characters");
       return;
