@@ -148,7 +148,7 @@ export const useAuthHandlers = () => {
       console.log("- Current hostname:", window.location.hostname);
       console.log("- Current pathname:", window.location.pathname);
       
-      const redirectUrl = `${currentOrigin}/auth?reset=true`;
+      const redirectUrl = `${currentOrigin}/auth`;
       
       console.log("Password reset configuration:");
       console.log("- Redirect URL:", redirectUrl);

@@ -25,8 +25,8 @@ export const PasswordResetForm = () => {
       const currentUrl = window.location.origin;
       console.log("Using current origin for password reset:", currentUrl);
       
-      // The hash parameter is needed for Supabase auth redirects
-      const redirectTo = `${currentUrl}/auth#recovery=true`;
+      // The redirectTo should point to the auth page, not root with hash
+      const redirectTo = `${currentUrl}/auth`;
       console.log("Password reset redirect URL:", redirectTo);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
