@@ -163,7 +163,7 @@ export const useAuthHandlers = () => {
         throw error;
       }
 
-      toast({
+      uiToast({
         title: "Password reset email sent",
         description: "Check your email for a password reset link. It will expire in 1 hour."
       });
@@ -181,7 +181,7 @@ export const useAuthHandlers = () => {
       
       setError(errorMessage);
       
-      toast({
+      uiToast({
         variant: "destructive",
         title: "Password reset failed",
         description: errorMessage
