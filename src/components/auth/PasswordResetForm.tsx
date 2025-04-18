@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { LucideLoader2 } from "lucide-react";
+import { getAuthRedirectUrl, getEnvironmentInfo } from "@/utils/environmentUtils";
 
 export const PasswordResetForm = () => {
   const [email, setEmail] = useState("");
@@ -20,14 +21,15 @@ export const PasswordResetForm = () => {
     setLoading(true);
     
     try {
-      const currentUrl = window.location.origin;
-      console.log("Using current origin for password reset:", currentUrl);
+      // Log environment info for debugging
+      console.log("Environment information for password reset:", getEnvironmentInfo());
       
-      const redirectTo = `${currentUrl}/auth`;
-      console.log("Password reset redirect URL:", redirectTo);
+      // Use the helper function to get a validated redirect URL
+      const redirectUrl = getAuthRedirectUrl('/auth');
+      console.log("Password reset redirect URL:", redirectUrl);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo
+        redirectTo: redirectUrl
       });
 
       if (error) throw error;
