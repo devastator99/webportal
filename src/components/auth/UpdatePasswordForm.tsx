@@ -19,12 +19,23 @@ export const UpdatePasswordForm = () => {
   useEffect(() => {
     const checkSession = async () => {
       const { data, error } = await supabase.auth.getSession();
+      console.log("Session check result:", { data, error });
+      
       if (error || !data.session) {
         console.error("No valid session for password reset:", error);
-        toast.error("Password reset session expired", {
-          description: "Please request a new password reset link"
-        });
-        navigate("/auth?mode=reset");
+        
+        // Check for recovery token in URL hash
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const hasRecoveryToken = hashParams.get('recovery') === 'true';
+        
+        if (hasRecoveryToken) {
+          console.log("Recovery token found in URL hash, proceeding with password reset");
+        } else {
+          toast.error("Password reset session expired", {
+            description: "Please request a new password reset link"
+          });
+          navigate("/auth?mode=reset");
+        }
       } else {
         console.log("Valid session found for password reset");
       }

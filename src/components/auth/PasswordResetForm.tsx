@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,12 +21,12 @@ export const PasswordResetForm = () => {
     setLoading(true);
     
     try {
-      // Get base URL for redirection
-      const baseUrl = getBaseUrl();
-      console.log("Using base URL for password reset:", baseUrl);
+      // Get current URL for redirection
+      const currentUrl = window.location.origin;
+      console.log("Using current origin for password reset:", currentUrl);
       
       // The hash parameter is needed for Supabase auth redirects
-      const redirectTo = `${baseUrl}/auth#recovery=true`;
+      const redirectTo = `${currentUrl}/auth#recovery=true`;
       console.log("Password reset redirect URL:", redirectTo);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {

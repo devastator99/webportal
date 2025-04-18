@@ -141,22 +141,17 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      // Get comprehensive environment information for debugging
-      const envInfo = getEnvironmentInfo();
-      console.log("Environment information for password reset:", envInfo);
-      
-      const baseUrl = getBaseUrl();
-      const redirectUrl = `${baseUrl}/auth?reset=true`;
-      
-      console.log("Password reset configuration:");
-      console.log("- Base URL:", baseUrl);
-      console.log("- Redirect URL:", redirectUrl);
-      console.log("- Current origin:", window.location.origin);
+      // Get current origin for more reliable redirects
+      const currentOrigin = window.location.origin;
+      console.log("Environment information for password reset:");
+      console.log("- Current origin:", currentOrigin);
       console.log("- Current hostname:", window.location.hostname);
       console.log("- Current pathname:", window.location.pathname);
-      console.log("- Current query string:", window.location.search);
-      console.log("- Current hash:", window.location.hash);
-      console.log("- Project ID:", getProjectId());
+      
+      const redirectUrl = `${currentOrigin}/auth?reset=true`;
+      
+      console.log("Password reset configuration:");
+      console.log("- Redirect URL:", redirectUrl);
       
       // Use the resetPasswordForEmail API with explicit redirectTo
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
