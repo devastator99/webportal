@@ -1,10 +1,11 @@
+
 import { useState } from "react";
 import { supabase, createUserRole, createPatientDetails } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatDateForDatabase } from "@/utils/dateUtils";
-import { getAuthRedirectUrl, getProjectId, getBaseUrl } from "@/utils/environmentUtils";
+import { getAuthRedirectUrl, getProjectId, getBaseUrl, getEnvironmentInfo } from "@/utils/environmentUtils";
 
 type UserRole = "patient" | "doctor" | "nutritionist" | "administrator";
 
@@ -141,25 +142,36 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
+      // Get comprehensive environment information for debugging
+      const envInfo = getEnvironmentInfo();
+      console.log("Environment information for password reset:", envInfo);
+      
       const baseUrl = getBaseUrl();
       const redirectUrl = `${baseUrl}/auth?reset=true`;
       
-      console.log("Reset password details:");
+      console.log("Password reset configuration:");
       console.log("- Base URL:", baseUrl);
       console.log("- Redirect URL:", redirectUrl);
       console.log("- Current origin:", window.location.origin);
       console.log("- Current hostname:", window.location.hostname);
       console.log("- Current pathname:", window.location.pathname);
+      console.log("- Current query string:", window.location.search);
+      console.log("- Current hash:", window.location.hash);
       console.log("- Project ID:", getProjectId());
       
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      // Use the resetPasswordForEmail API with explicit redirectTo
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       });
 
+      console.log("Reset password response:", { data, error });
+
       if (error) {
+        console.error("Reset password API error:", error);
         throw error;
       }
 
+      // Show success messages to the user
       uiToast({
         title: "Password reset email sent",
         description: "Check your email for a password reset link. It will expire in 1 hour."
@@ -167,17 +179,28 @@ export const useAuthHandlers = () => {
       
       toast.success("Password reset email sent. Check your inbox and spam folders.");
       
+      // Navigate to the reset_sent confirmation page
+      navigate('/auth?reset_sent=true');
+      
       return true;
     } catch (error: any) {
       console.error('Password reset error:', error);
-      setError(error.message);
+      
+      // Show detailed error information
+      let errorMessage = error.message || "Failed to send reset email";
+      if (error.status) {
+        errorMessage += ` (Status: ${error.status})`;
+      }
+      
+      setError(errorMessage);
+      
       uiToast({
         variant: "destructive",
         title: "Password reset failed",
-        description: error.message || "Failed to send reset email. Please try again."
+        description: errorMessage
       });
       
-      toast.error(`Password reset failed: ${error.message || "Failed to send reset email"}`);
+      toast.error(`Password reset failed: ${errorMessage}`);
       throw error;
     } finally {
       setLoading(false);
@@ -189,14 +212,20 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.updateUser({
+      console.log("Attempting to update password");
+      const { data, error } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
+      console.log("Update password response:", { data, error });
+
       if (error) {
+        console.error("Update password API error:", error);
         throw error;
       }
 
+      console.log("Password updated successfully");
+      
       uiToast({
         title: "Password updated",
         description: "Your password has been successfully updated"
@@ -208,13 +237,20 @@ export const useAuthHandlers = () => {
     } catch (error: any) {
       console.error('Password update error:', error);
       
-      if (error.message.includes('token is expired') || error.message.includes('Invalid user')) {
-        setError("Your password reset link has expired. Please request a new one.");
+      // Handle known error cases with explicit messages
+      if (error.message && (
+        error.message.includes('token is expired') || 
+        error.message.includes('JWT expired') ||
+        error.message.includes('Invalid user') ||
+        error.message.includes('invalid JWT')
+      )) {
+        const expiredMessage = "Your password reset link has expired. Please request a new one.";
+        setError(expiredMessage);
         
         uiToast({
           variant: "destructive",
           title: "Link expired",
-          description: "Your password reset link has expired. Please request a new one."
+          description: expiredMessage
         });
         
         return { tokenExpired: true };

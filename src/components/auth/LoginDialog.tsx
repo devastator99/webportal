@@ -9,7 +9,7 @@ import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { createUrlWithParams } from "@/utils/environmentUtils";
+import { createUrlWithParams, getEnvironmentInfo } from "@/utils/environmentUtils";
 
 export const LoginDialog = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
@@ -63,14 +63,16 @@ export const LoginDialog = () => {
     }
     
     try {
+      // Log environment info for debugging
+      console.log("Environment info before password reset:", getEnvironmentInfo());
+      
       await handleResetPassword(email);
-      toast.success("Password reset link sent. Check both your inbox and spam folders.");
       setIsDialogOpen(false); // Close the dialog after sending reset email
       
-      // Create URL with query parameter using utility
+      // Navigate to auth page with reset_sent parameter
       navigate('/auth?reset_sent=true');
     } catch (error: any) {
-      console.error("Reset password error:", error);
+      console.error("Reset password error from LoginDialog:", error);
       // User will see the error from the handler, no need to show another toast here
     }
   };

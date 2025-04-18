@@ -1,13 +1,16 @@
+
 import { createContext, useContext, useEffect, useState, useRef } from "react";
-import { User } from "@supabase/supabase-js";
+import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 type UserRole = "doctor" | "patient" | "administrator" | "nutritionist" | "reception";
 
 type AuthContextType = {
   user: User | null;
+  session: Session | null;
   userRole: UserRole | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
@@ -17,10 +20,11 @@ type AuthContextType = {
   retryRoleFetch: () => Promise<void>;
 };
 
-const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // Increasing to 30 minutes to prevent premature logout
+const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
+  session: null,
   userRole: null,
   isLoading: true,
   signOut: async () => {},
@@ -32,13 +36,16 @@ const AuthContext = createContext<AuthContextType>({
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [authInitialized, setAuthInitialized] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { toast: uiToast } = useToast();
   const inactivityTimerRef = useRef<number | null>(null);
+  const retryCountRef = useRef(0);
+  const maxRetries = 3;
 
   const resetInactivityTimer = () => {
     if (inactivityTimerRef.current) {
@@ -71,18 +78,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (error) {
         console.error("[AuthContext] Error fetching user role:", error);
         setAuthError(`Error fetching user role: ${error.message}`);
-        toast({
-          title: "Error fetching role",
-          description: `We couldn't determine your user role: ${error.message}`,
-          variant: "destructive",
-        });
+        if (retryCountRef.current < maxRetries) {
+          retryCountRef.current++;
+          console.log(`[AuthContext] Retry attempt ${retryCountRef.current}/${maxRetries}`);
+          return await new Promise((resolve) => {
+            setTimeout(async () => {
+              const retryResult = await fetchUserRole(userId);
+              resolve(retryResult);
+            }, 1000); // Wait 1 second before retrying
+          });
+        } else {
+          uiToast({
+            title: "Error fetching role",
+            description: `We couldn't determine your user role: ${error.message}`,
+            variant: "destructive",
+          });
+        }
         return null;
       }
+
+      // Reset retry counter on success
+      retryCountRef.current = 0;
 
       if (!data || data.length === 0) {
         console.warn("[AuthContext] No role data returned for user:", userId);
         setAuthError("No role assigned to your account");
-        toast({
+        uiToast({
           title: "Role not found",
           description: "Your account doesn't have an assigned role. Please contact an administrator.",
           variant: "destructive",
@@ -105,7 +126,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error("[AuthContext] Exception in fetchUserRole:", error);
       const errorMessage = error?.message || "Unknown error fetching role";
       setAuthError(`Error fetching user role: ${errorMessage}`);
-      toast({
+      uiToast({
         title: "Error",
         description: `Failed to get your user role: ${errorMessage}`,
         variant: "destructive",
@@ -137,17 +158,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const handleAuthStateChange = async (session: any) => {
-    console.log("[AuthContext] Auth state changed:", session ? "session exists" : "no session");
+  const handleAuthStateChange = async (currentSession: Session | null) => {
+    console.log("[AuthContext] Auth state changed:", currentSession ? "session exists" : "no session");
     
     try {
-      if (session?.user) {
-        console.log("[AuthContext] User in session:", session.user.id);
-        setUser(session.user);
+      if (currentSession?.user) {
+        console.log("[AuthContext] User in session:", currentSession.user.id);
+        setUser(currentSession.user);
+        setSession(currentSession);
         
         try {
           console.log("[AuthContext] Attempting to fetch role");
-          const role = await fetchUserRole(session.user.id);
+          const role = await fetchUserRole(currentSession.user.id);
           
           console.log("[AuthContext] Role after fetch:", role);
           
@@ -168,6 +190,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         console.log("[AuthContext] No user in session, clearing user and role");
         setUser(null);
+        setSession(null);
         setUserRole(null);
         setAuthError(null);
         
@@ -188,45 +211,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     console.log("[AuthContext] Initializing auth context");
     
-    const checkSession = async () => {
-      console.log("[AuthContext] Checking session");
-      
-      try {
-        const timeoutPromise = new Promise<{data: {session: null}}>((resolve) => {
-          setTimeout(() => {
-            console.log("[AuthContext] Session check timed out");
-            resolve({data: {session: null}});
-          }, 5000);
-        });
-        
-        console.log("[AuthContext] Awaiting session from Supabase");
-        const { data: { session } } = await Promise.race([
-          supabase.auth.getSession(),
-          timeoutPromise
-        ]);
-        
-        console.log("[AuthContext] Session check result:", session ? "session exists" : "no session");
-        await handleAuthStateChange(session);
-      } catch (error) {
-        console.error("[AuthContext] Error checking session:", error);
-        setAuthError(`Session check error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        setIsLoading(false);
-      } finally {
-        console.log("[AuthContext] Auth initialization complete");
-        setAuthInitialized(true);
-        setIsLoading(false);
-      }
-    };
-    
-    checkSession();
-
+    // First, setup auth state change subscription
     try {
       console.log("[AuthContext] Setting up auth state change subscription");
       
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         console.log("[AuthContext] Auth state change event:", _event);
+        // Always handle the session synchronously to avoid race conditions
+        if (_event === 'PASSWORD_RECOVERY') {
+          console.log("[AuthContext] Password recovery event detected");
+        }
+        
         handleAuthStateChange(session);
       });
+
+      // Then, get the initial session
+      const checkSession = async () => {
+        console.log("[AuthContext] Checking session");
+        
+        try {
+          console.log("[AuthContext] Awaiting session from Supabase");
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          console.log("[AuthContext] Session check result:", session ? "session exists" : "no session");
+          await handleAuthStateChange(session);
+        } catch (error) {
+          console.error("[AuthContext] Error checking session:", error);
+          setAuthError(`Session check error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          setIsLoading(false);
+        } finally {
+          console.log("[AuthContext] Auth initialization complete");
+          setAuthInitialized(true);
+          setIsLoading(false);
+        }
+      };
+      
+      checkSession();
 
       return () => {
         console.log("[AuthContext] Cleaning up auth subscription");
@@ -288,6 +308,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setIsLoading(true);
       
       setUser(null);
+      setSession(null);
       setUserRole(null);
       setAuthError(null);
       
@@ -321,6 +342,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log("[AuthContext] Force sign out initiated");
       setUser(null);
+      setSession(null);
       setUserRole(null);
       
       localStorage.removeItem('supabase.auth.token');
@@ -344,6 +366,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return (
       <AuthContext.Provider value={{ 
         user: null, 
+        session: null,
         userRole: null, 
         isLoading: true, 
         signOut: async () => {}, 
@@ -360,6 +383,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   return (
     <AuthContext.Provider value={{ 
       user, 
+      session,
       userRole, 
       isLoading, 
       signOut, 
