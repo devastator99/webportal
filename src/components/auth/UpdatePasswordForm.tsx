@@ -14,62 +14,32 @@ export const UpdatePasswordForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  const location = useLocation();
 
   // Check if we have a valid session before showing this form
   useEffect(() => {
     const checkSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      console.log("Session check result:", { data, error });
-      
-      if (error || !data.session) {
-        console.error("No valid session for password reset:", error);
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+        console.log("Session check result:", { session, error });
         
-        // If we don't have a session but we're on the recovery page, 
-        // the user probably clicked the link but the token wasn't properly processed
-        if (location.search.includes('type=recovery')) {
-          console.log("On recovery page but no session, checking URL hash for token");
-          const hash = window.location.hash;
-          if (hash && hash.includes('access_token')) {
-            // Try to process the token again
-            const hashParams = new URLSearchParams(hash.substring(1));
-            const accessToken = hashParams.get('access_token');
-            const refreshToken = hashParams.get('refresh_token');
-            
-            if (accessToken) {
-              try {
-                console.log("Found access token in URL, attempting to set session");
-                const { error: sessionError } = await supabase.auth.setSession({
-                  access_token: accessToken,
-                  refresh_token: refreshToken || '',
-                });
-                
-                if (sessionError) {
-                  console.error("Error setting session from hash:", sessionError);
-                  toast.error("Password reset link is invalid or has expired");
-                  navigate("/auth?mode=reset");
-                }
-              } catch (err) {
-                console.error("Error processing recovery token:", err);
-                toast.error("There was an error processing your password reset");
-                navigate("/auth?mode=reset");
-              }
-            }
-          } else {
-            console.log("No recovery token found in URL hash");
-            toast.error("Password reset session expired", {
-              description: "Please request a new password reset link"
-            });
-            navigate("/auth?mode=reset");
-          }
+        if (error || !session) {
+          console.error("No valid session for password reset:", error);
+          toast.error("Password reset link is invalid or has expired", {
+            description: "Please request a new password reset link"
+          });
+          navigate("/auth?mode=reset");
+        } else {
+          console.log("Valid session found for password reset");
         }
-      } else {
-        console.log("Valid session found for password reset");
+      } catch (error) {
+        console.error("Error checking session:", error);
+        toast.error("Error verifying reset session");
+        navigate("/auth?mode=reset");
       }
     };
     
     checkSession();
-  }, [navigate, location.search]);
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,7 +71,7 @@ export const UpdatePasswordForm = () => {
         description: "You can now log in with your new password"
       });
       
-      // Clear any recovery tokens from URL and redirect to login
+      // Sign out and redirect to login
       await supabase.auth.signOut();
       navigate("/auth", { replace: true });
     } catch (error: any) {
@@ -114,6 +84,7 @@ export const UpdatePasswordForm = () => {
         toast.error("Reset link expired", {
           description: "Please request a new password reset link"
         });
+        navigate("/auth?mode=reset");
         return;
       }
 

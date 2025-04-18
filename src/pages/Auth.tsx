@@ -44,7 +44,7 @@ const Auth = () => {
       toast.success("Password reset link was sent to your email");
     }
     
-    if (isRecoveryMode || isResetMode) {
+    if (isRecoveryMode) {
       console.log("Recovery mode detected in URL params");
     }
   }, [location, searchParams]);
@@ -68,12 +68,12 @@ const Auth = () => {
           if (error) {
             console.error("Error setting session:", error);
             toast.error("Password reset link is invalid or has expired");
-            navigate("/auth");
+            navigate("/auth?mode=reset");
             return;
           }
           
           console.log("Successfully processed recovery token");
-          navigate("/auth?type=recovery");
+          navigate("/auth?type=recovery", { replace: true });
         } catch (err) {
           console.error("Error processing auth redirect:", err);
           toast.error("There was an error processing your password reset request");
