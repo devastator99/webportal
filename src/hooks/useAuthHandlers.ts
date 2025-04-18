@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase, createUserRole, createPatientDetails } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -141,17 +142,17 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      const currentOrigin = window.location.origin;
-      console.log("Environment information for password reset:");
-      console.log("- Current origin:", currentOrigin);
-      console.log("- Current hostname:", window.location.hostname);
-      console.log("- Current pathname:", window.location.pathname);
-      
-      const redirectUrl = `${currentOrigin}/auth`;
-      
-      console.log("Password reset configuration:");
-      console.log("- Redirect URL:", redirectUrl);
-      
+      // Log environment information
+      console.log("Environment information for password reset:", getEnvironmentInfo());
+
+      // Get the base URL dynamically
+      const baseUrl = getBaseUrl();
+      console.log("Base URL for reset:", baseUrl);
+
+      // Create the full redirect URL
+      const redirectUrl = `${baseUrl}/auth`;
+      console.log("Final redirect URL for password reset:", redirectUrl);
+
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       });
