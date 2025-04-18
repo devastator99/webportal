@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase, createUserRole, createPatientDetails } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -132,7 +131,7 @@ export const useAuthHandlers = () => {
     }
   };
 
-  const handleResetPassword = async (email: string) => {
+  const handleResetPassword = async (email: string): Promise<void> => {
     if (!email) {
       setError("Please enter your email address");
       return;
@@ -181,8 +180,6 @@ export const useAuthHandlers = () => {
       
       // Navigate to the reset_sent confirmation page
       navigate('/auth?reset_sent=true');
-      
-      return true;
     } catch (error: any) {
       console.error('Password reset error:', error);
       
