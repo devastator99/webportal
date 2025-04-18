@@ -141,7 +141,6 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      // Get current origin for more reliable redirects
       const currentOrigin = window.location.origin;
       console.log("Environment information for password reset:");
       console.log("- Current origin:", currentOrigin);
@@ -153,7 +152,6 @@ export const useAuthHandlers = () => {
       console.log("Password reset configuration:");
       console.log("- Redirect URL:", redirectUrl);
       
-      // Use the resetPasswordForEmail API with explicit redirectTo
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       });
@@ -165,20 +163,17 @@ export const useAuthHandlers = () => {
         throw error;
       }
 
-      // Show success messages to the user
-      uiToast({
+      toast({
         title: "Password reset email sent",
         description: "Check your email for a password reset link. It will expire in 1 hour."
       });
       
       toast.success("Password reset email sent. Check your inbox and spam folders.");
       
-      // Navigate to the reset_sent confirmation page
       navigate('/auth?reset_sent=true');
     } catch (error: any) {
       console.error('Password reset error:', error);
       
-      // Show detailed error information
       let errorMessage = error.message || "Failed to send reset email";
       if (error.status) {
         errorMessage += ` (Status: ${error.status})`;
@@ -186,7 +181,7 @@ export const useAuthHandlers = () => {
       
       setError(errorMessage);
       
-      uiToast({
+      toast({
         variant: "destructive",
         title: "Password reset failed",
         description: errorMessage
@@ -229,7 +224,6 @@ export const useAuthHandlers = () => {
     } catch (error: any) {
       console.error('Password update error:', error);
       
-      // Handle known error cases with explicit messages
       if (error.message && (
         error.message.includes('token is expired') || 
         error.message.includes('JWT expired') ||

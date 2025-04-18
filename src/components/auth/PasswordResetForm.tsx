@@ -7,7 +7,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { LucideLoader2 } from "lucide-react";
-import { getBaseUrl } from "@/utils/environmentUtils";
 
 export const PasswordResetForm = () => {
   const [email, setEmail] = useState("");
@@ -21,11 +20,9 @@ export const PasswordResetForm = () => {
     setLoading(true);
     
     try {
-      // Get current URL for redirection
       const currentUrl = window.location.origin;
       console.log("Using current origin for password reset:", currentUrl);
       
-      // The redirectTo should point to the auth page, not root with hash
       const redirectTo = `${currentUrl}/auth`;
       console.log("Password reset redirect URL:", redirectTo);
 
@@ -39,7 +36,6 @@ export const PasswordResetForm = () => {
         description: "Check your email for the password reset link"
       });
       
-      // Redirect to confirmation page
       navigate("/auth?reset_sent=true");
     } catch (error: any) {
       console.error("Reset password error:", error);
