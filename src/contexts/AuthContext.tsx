@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,8 +54,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (user) {
       inactivityTimerRef.current = window.setTimeout(() => {
         signOut();
-        toast({
-          title: "Session expired",
+        toast("Session expired", {
           description: "You have been logged out due to inactivity",
         });
       }, INACTIVITY_TIMEOUT);
@@ -89,9 +87,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           });
         } else {
           uiToast({
-            title: "Error fetching role",
-            description: `We couldn't determine your user role: ${error.message}`,
             variant: "destructive",
+            description: `We couldn't determine your user role: ${error.message}`,
           });
         }
         return null;
@@ -104,9 +101,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.warn("[AuthContext] No role data returned for user:", userId);
         setAuthError("No role assigned to your account");
         uiToast({
-          title: "Role not found",
-          description: "Your account doesn't have an assigned role. Please contact an administrator.",
           variant: "destructive",
+          description: "Your account doesn't have an assigned role. Please contact an administrator.",
         });
         return null;
       }
@@ -115,8 +111,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.log("[AuthContext] Resolved role:", roleValue);
       
       if (roleValue) {
-        toast({
-          title: "Role detected",
+        toast("Role detected", {
           description: `You are logged in as: ${roleValue}`,
         });
       }
@@ -127,9 +122,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const errorMessage = error?.message || "Unknown error fetching role";
       setAuthError(`Error fetching user role: ${errorMessage}`);
       uiToast({
-        title: "Error",
-        description: `Failed to get your user role: ${errorMessage}`,
         variant: "destructive",
+        description: `Failed to get your user role: ${errorMessage}`,
       });
       return null;
     }
@@ -146,7 +140,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const role = await fetchUserRole(user.id);
       if (role) {
         console.log("[AuthContext] Role fetch retry successful:", role);
-        setUserRole(role);
+        setUserRole(role as UserRole);
         setAuthError(null);
       } else {
         console.log("[AuthContext] Role fetch retry failed: No role found");
@@ -175,7 +169,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           
           if (role) {
             console.log("[AuthContext] Setting role to:", role);
-            setUserRole(role);
+            setUserRole(role as UserRole);
           } else {
             console.warn("[AuthContext] No role found, setting to null");
             setUserRole(null);
@@ -318,9 +312,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       if (error) {
         console.error("[AuthContext] Error during sign out:", error);
-        toast({
-          variant: "destructive",
-          title: "Warning",
+        toast("Warning", {
           description: "Sign out completed, but there was an API error."
         });
       }
