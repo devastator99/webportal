@@ -18,6 +18,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDateForDisplay, parseDateFromDisplay } from "@/utils/dateUtils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { navigate } from "react-router-dom";
 
 interface AuthFormProps {
   type: "login" | "register" | "resetPassword";
@@ -312,7 +313,7 @@ export const AuthForm = ({ type, onSubmit, onResetPassword, error, loading }: Au
               type="button"
               variant="link"
               className="px-0 text-sm text-purple-600 hover:text-purple-800 font-medium"
-              onClick={() => onResetPassword && onResetPassword(form.getValues().email)}
+              onClick={() => navigate("/auth?mode=reset")}
               disabled={loading}
             >
               Forgot password?
