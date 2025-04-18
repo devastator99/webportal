@@ -25,6 +25,7 @@ export const AppRoutes = () => {
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<Auth />} />
+        <Route path="/auth/reset" element={<Auth />} />
         <Route 
           path="/dummy" 
           element={<DummyPage title="Dummy Page" description="This is a placeholder page" />} 

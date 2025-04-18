@@ -25,7 +25,7 @@ export const PasswordResetForm = () => {
       console.log("Environment information for password reset:", getEnvironmentInfo());
       
       // Use the helper function to get a validated redirect URL
-      const redirectUrl = getAuthRedirectUrl('/auth');
+      const redirectUrl = getAuthRedirectUrl('/auth?type=recovery');
       console.log("Password reset redirect URL:", redirectUrl);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
