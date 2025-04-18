@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { LucideLoader2 } from "lucide-react";
+import { getBaseUrl } from "@/utils/environmentUtils";
 
 export const PasswordResetForm = () => {
   const [email, setEmail] = useState("");
@@ -21,9 +22,13 @@ export const PasswordResetForm = () => {
     setLoading(true);
     
     try {
-      // Get base URL from current location
-      const baseUrl = window.location.origin;
-      const redirectTo = `${baseUrl}/auth?type=recovery`;
+      // Get base URL for redirection
+      const baseUrl = getBaseUrl();
+      console.log("Using base URL for password reset:", baseUrl);
+      
+      // The hash parameter is needed for Supabase auth redirects
+      const redirectTo = `${baseUrl}/auth#recovery=true`;
+      console.log("Password reset redirect URL:", redirectTo);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo

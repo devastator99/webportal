@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -28,24 +29,66 @@ const Auth = () => {
     handleLogin, 
     handleSignUp, 
     handleTestLogin,
-    setError 
+    setError,
+    handleResetPassword,
+    handleUpdatePassword
   } = useAuthHandlers();
   const [shouldShowDoctorForm, setShouldShowDoctorForm] = useState(false);
 
   useEffect(() => {
     const isResetSent = searchParams.get('reset_sent') === 'true';
     const isRecoveryMode = searchParams.get('type') === 'recovery';
+    const isResetMode = searchParams.get('reset') === 'true';
     
     if (isResetSent) {
       setResetEmailSent(true);
       toast.success("Password reset link was sent to your email");
     }
     
-    // Handle recovery mode
-    if (isRecoveryMode) {
-      console.log("Recovery mode detected");
+    // Handle recovery mode (from email link)
+    if (isRecoveryMode || isResetMode) {
+      console.log("Recovery mode detected in URL params");
     }
   }, [location, searchParams]);
+
+  useEffect(() => {
+    // Check for access_token in URL (Supabase auth redirect)
+    const handleAuthRedirect = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const type = hashParams.get('type');
+      
+      if (accessToken && type === 'recovery') {
+        console.log("Recovery token detected in URL hash");
+        
+        try {
+          // Set the session from the hash parameters
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || '',
+          });
+          
+          if (error) {
+            console.error("Error setting session:", error);
+            toast.error("Password reset link is invalid or has expired");
+            navigate("/auth");
+            return;
+          }
+          
+          // If successful, redirect to the recovery page
+          console.log("Successfully processed recovery token");
+          navigate("/auth?type=recovery");
+        } catch (err) {
+          console.error("Error processing auth redirect:", err);
+          toast.error("There was an error processing your password reset request");
+          navigate("/auth");
+        }
+      }
+    };
+    
+    handleAuthRedirect();
+  }, [navigate]);
 
   useEffect(() => {
     const checkDoctorProfile = async () => {
@@ -109,7 +152,7 @@ const Auth = () => {
     return null;
   }
 
-  // Show password reset form
+  // Show password reset form (after clicking link in email)
   if (searchParams.get('type') === 'recovery') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
@@ -266,6 +309,7 @@ const Auth = () => {
                 }
               }
             }
+            onResetPassword={handleResetPassword}
             error={error}
             loading={loading}
           />

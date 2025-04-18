@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,16 +10,49 @@ import { LucideLoader2 } from "lucide-react";
 
 export const UpdatePasswordForm = () => {
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  // Check if we have a valid session before showing this form
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data, error } = await supabase.auth.getSession();
+      if (error || !data.session) {
+        console.error("No valid session for password reset:", error);
+        toast.error("Password reset session expired", {
+          description: "Please request a new password reset link"
+        });
+        navigate("/auth?mode=reset");
+      } else {
+        console.log("Valid session found for password reset");
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    
+    // Validate passwords match
+    if (newPassword !== confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+    
+    // Validate password length
+    if (newPassword.length < 6) {
+      setError("Password must be at least 6 characters");
+      return;
+    }
+    
     setLoading(true);
 
     try {
+      console.log("Attempting to update password");
       const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
@@ -30,13 +63,15 @@ export const UpdatePasswordForm = () => {
         description: "You can now log in with your new password"
       });
       
-      // Clear any recovery tokens from URL
+      // Clear any recovery tokens from URL and redirect to login
+      await supabase.auth.signOut();
       navigate("/auth", { replace: true });
     } catch (error: any) {
       console.error("Update password error:", error);
       
       // Handle expired/invalid recovery token
-      if (error.message?.toLowerCase().includes('invalid')) {
+      if (error.message?.toLowerCase().includes('invalid') || 
+          error.message?.toLowerCase().includes('expired')) {
         setError("Password reset link has expired. Please request a new one.");
         toast.error("Reset link expired", {
           description: "Please request a new password reset link"
@@ -67,6 +102,19 @@ export const UpdatePasswordForm = () => {
           placeholder="Enter new password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
+          required
+          minLength={6}
+          className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400"
+          disabled={loading}
+        />
+      </div>
+      
+      <div>
+        <Input
+          type="password"
+          placeholder="Confirm new password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
           required
           minLength={6}
           className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400"
