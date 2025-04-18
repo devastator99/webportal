@@ -94,7 +94,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return null;
       }
 
-      // Reset retry counter on success
       retryCountRef.current = 0;
 
       if (!data || data.length === 0) {
@@ -205,13 +204,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     console.log("[AuthContext] Initializing auth context");
     
-    // First, setup auth state change subscription
     try {
       console.log("[AuthContext] Setting up auth state change subscription");
       
       const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
         console.log("[AuthContext] Auth state change event:", _event);
-        // Always handle the session synchronously to avoid race conditions
         if (_event === 'PASSWORD_RECOVERY') {
           console.log("[AuthContext] Password recovery event detected");
         }
@@ -219,7 +216,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         handleAuthStateChange(session);
       });
 
-      // Then, get the initial session
       const checkSession = async () => {
         console.log("[AuthContext] Checking session");
         
