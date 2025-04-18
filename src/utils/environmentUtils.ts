@@ -110,7 +110,7 @@ export const getProjectId = (): string | null => {
   // Check if we're on a lovable.dev domain
   if (hostname.includes('lovable.dev')) {
     // Extract the project ID from the subdomain
-    const match = hostname.match(/^([a-z0-9-]+)\.lovable\.dev$/);
+    const match = hostname.match(/^([a-z0-9-]+)(-preview|-[a-z0-9]+)?\.lovable\.dev$/);
     if (match && match[1]) {
       return match[1];
     }
