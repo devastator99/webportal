@@ -18,7 +18,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDateForDisplay, parseDateFromDisplay } from "@/utils/dateUtils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { navigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 interface AuthFormProps {
   type: "login" | "register" | "resetPassword";
@@ -78,6 +78,7 @@ export const AuthForm = ({ type, onSubmit, onResetPassword, error, loading }: Au
   const [dateInputValue, setDateInputValue] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const activeSchema = type === "login" 
     ? loginSchema 
