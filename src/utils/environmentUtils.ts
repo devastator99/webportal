@@ -1,8 +1,9 @@
 
 /**
  * Returns the base URL for the current environment.
+ * This is used internally by getEnvironmentInfo.
  */
-export const getBaseUrl = (): string => {
+const getBaseUrl = (): string => {
   const protocol = window.location.protocol;
   const hostname = window.location.hostname;
   const port = window.location.port ? `:${window.location.port}` : '';
@@ -11,9 +12,9 @@ export const getBaseUrl = (): string => {
 
 /**
  * Extracts the Supabase project ID from the environment.
+ * This is used internally by getEnvironmentInfo.
  */
-export const getProjectId = (): string => {
-  // Extract project ID from Supabase URL if available
+const getProjectId = (): string => {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
   const match = supabaseUrl.match(/https:\/\/([a-zA-Z0-9-]+)\.supabase\.co/);
   return match ? match[1] : 'unknown-project';
@@ -49,16 +50,11 @@ export const getEnvironmentInfo = (): Record<string, any> => {
 
 /**
  * Returns the appropriate auth redirect URL based on the current environment.
- * This ensures that development and production environments use the correct URLs.
  */
 export const getAuthRedirectUrl = (path: string = '/auth'): string => {
-  // Get the base URL from the window location
   const baseUrl = window.location.origin;
-  
-  // Combine with the path
   const fullUrl = `${baseUrl}${path}`;
-  
   console.log(`Generated redirect URL: ${fullUrl}`);
-  
   return fullUrl;
 };
+

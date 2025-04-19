@@ -1,7 +1,6 @@
-
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { getBaseUrl, getAuthRedirectUrl, getProjectId, getEnvironmentInfo } from "@/utils/environmentUtils";
+import { getEnvironmentInfo } from "@/utils/environmentUtils";
 
 /**
  * This component provides auth debugging information in dev mode
@@ -19,9 +18,6 @@ export const AuthDebugMonitor = () => {
   useEffect(() => {
     // Always collect debug info, even in production, to help diagnose issues
     const collectDebugInfo = async () => {
-      // Get current Supabase URL
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'Not available';
-      
       // Get comprehensive environment information
       const envInfo = getEnvironmentInfo();
       
@@ -37,7 +33,6 @@ export const AuthDebugMonitor = () => {
       // Enhanced debugging info
       setDebugInfo({
         ...envInfo,
-        supabaseUrl,
         hasSession,
         userAgent: navigator.userAgent,
         queryParams: Object.fromEntries(new URLSearchParams(window.location.search)),
