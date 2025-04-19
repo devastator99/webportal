@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
-import { cn } from "@/lib/utils";
+import { getAuthRedirectUrl } from "@/utils/environmentUtils";
 
 interface PasswordResetFormProps {
   onClose: () => void;

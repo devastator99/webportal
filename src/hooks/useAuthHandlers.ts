@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, createUserRole, createPatientDetails } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { User } from '@supabase/supabase-js';
+import { getAuthRedirectUrl } from '@/utils/environmentUtils';
 
 export interface PatientData {
   age: string;
@@ -58,8 +59,10 @@ export const useAuthHandlers = () => {
     setError(null);
     
     try {
+      const redirectUrl = getAuthRedirectUrl('/auth/reset-password');
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+        redirectTo: redirectUrl,
       });
       
       if (error) throw error;
