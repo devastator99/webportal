@@ -4,7 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
+import { OTPInput, OTPInputContext } from "input-otp";
+import { cn } from "@/lib/utils";
 
 interface PasswordResetFormProps {
   onClose: () => void;
@@ -87,18 +88,21 @@ export const PasswordResetForm = ({ onClose }: PasswordResetFormProps) => {
           <p className="text-sm text-gray-600">
             Enter the 6-digit code sent to your email
           </p>
-          <InputOTP
+          
+          {/* Use a simple input for the code instead of the OTP component */}
+          <Input
+            type="text"
+            placeholder="Enter 6-digit code"
             value={code}
-            onChange={(value) => setCode(value)}
+            onChange={(e) => setCode(e.target.value.slice(0, 6))}
+            disabled={loading}
+            pattern="[0-9]{6}"
             maxLength={6}
-            render={({ slots }) => (
-              <InputOTPGroup className="gap-2">
-                {slots.map((slot, index) => (
-                  <InputOTPSlot key={index} {...slot} index={index} />
-                ))}
-              </InputOTPGroup>
-            )}
+            inputMode="numeric"
+            className="text-center text-lg tracking-widest"
+            required
           />
+          
           <Button type="submit" className="w-full" disabled={code.length !== 6}>
             Verify Code
           </Button>
