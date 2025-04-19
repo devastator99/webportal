@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase, createPatientDetails } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { User } from '@supabase/supabase-js';
 
@@ -18,7 +18,7 @@ export interface PatientData {
   currentMedicalConditions?: string;
 }
 
-export type UserRole = 'patient' | 'doctor' | 'nutritionist' | 'admin' | 'administrator';
+export type UserRole = 'patient' | 'doctor' | 'nutritionist' | 'admin';
 
 export const useAuthHandlers = () => {
   const [loading, setLoading] = useState(false);
@@ -121,38 +121,31 @@ export const useAuthHandlers = () => {
       
       if (profileError) throw profileError;
       
-      // Convert userType if it's 'admin' to 'administrator' to match the schema
-      const roleForDb = userType === 'admin' ? 'administrator' : userType;
-      
-      // Create user role using a direct table insert instead of RPC
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: user.id,
-          role: roleForDb
-        });
+      // Create user role - using an RPC call properly typed in the database
+      const { error: roleError } = await supabase.rpc("upsert_user_role", {
+        p_user_id: user.id,
+        p_role_name: userType
+      });
       
       if (roleError) throw roleError;
       
       if (userType === 'patient' && patientData) {
-        // Use the createPatientDetails function from supabase/client.ts
-        try {
-          await createPatientDetails(
-            user.id,
-            parseInt(patientData.age, 10),
-            patientData.gender,
-            patientData.bloodGroup,
-            patientData.allergies || null,
-            patientData.emergencyContact,
-            patientData.height ? parseFloat(patientData.height) : null,
-            patientData.birthDate || null,
-            patientData.foodHabit || null,
-            patientData.currentMedicalConditions || null
-          );
-        } catch (patientError: any) {
-          console.error("Error creating patient details:", patientError);
-          throw patientError;
-        }
+        // Using an RPC call properly typed in the database
+        const { error: patientError } = await supabase.rpc("upsert_patient_details", {
+          p_patient_id: user.id,
+          p_age: patientData.age,
+          p_gender: patientData.gender,
+          p_blood_group: patientData.bloodGroup,
+          p_allergies: patientData.allergies || '',
+          p_emergency_contact: patientData.emergencyContact,
+          p_height: patientData.height || null,
+          p_birth_date: patientData.birthDate || null,
+          p_food_habit: patientData.foodHabit || null,
+          p_known_allergies: patientData.knownAllergies || null,
+          p_medical_conditions: patientData.currentMedicalConditions || null
+        });
+        
+        if (patientError) throw patientError;
       }
       
       return user;
