@@ -21,34 +21,26 @@ export const SupabaseAuthUI = ({
   onSuccess, 
   initialEmail = "" 
 }: SupabaseAuthUIProps) => {
-  const [currentView, setCurrentView] = useState<SupabaseAuthUIView>(view);
   const location = useLocation();
+  const [currentView, setCurrentView] = useState<SupabaseAuthUIView>(view);
 
   useEffect(() => {
-    const envInfo = getEnvironmentInfo();
-    const pathname = location.pathname;
+    // Simple check for recovery token in URL
     const hash = window.location.hash;
-    const search = window.location.search;
-    const urlParams = new URLSearchParams(search);
-    const type = urlParams.get('type');
+    const searchParams = new URLSearchParams(window.location.search);
+    const type = searchParams.get('type');
     
-    console.log("SupabaseAuthUI - URL recovery detection:", { 
-      pathname, 
+    console.log("SupabaseAuthUI - URL detection:", { 
       hash, 
       type,
-      envInfo 
+      pathname: location.pathname
     });
-    
-    const isPasswordReset = 
-      pathname === '/auth/update-password' ||
-      (hash && hash.includes('type=recovery')) || 
-      (type === 'recovery');
-    
-    if (isPasswordReset && currentView !== 'update_password') {
-      console.log("Setting view to update_password due to recovery flow detection");
+
+    if (type === 'recovery' || hash.includes('type=recovery') || location.pathname === '/auth/update-password') {
+      console.log("Setting view to update_password");
       setCurrentView('update_password');
     }
-  }, [currentView, location]);
+  }, [location]);
 
   // Create proper props for the Auth component
   const authProps = {
@@ -57,9 +49,8 @@ export const SupabaseAuthUI = ({
     providers: [],
     view: currentView,
     redirectTo: redirectTo,
-    magicLink: false,
     showLinks: false,
-    socialLayout: "horizontal" as const,
+    onlyThirdPartyProviders: false,
     forgotPasswordProps: {
       emailInputProps: {
         defaultValue: initialEmail,
