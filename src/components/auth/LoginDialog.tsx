@@ -57,23 +57,28 @@ export const LoginDialog = () => {
 
   // Handle forgot password
   const handleForgotPassword = async (email: string) => {
-    if (!email) {
-      toast.error("Please enter your email address to reset password");
-      return;
-    }
-    
     try {
+      // Close the dialog before navigating
+      setIsDialogOpen(false);
+      
       // Log environment info for debugging
       console.log("Environment info before password reset:", getEnvironmentInfo());
       
+      if (!email) {
+        // Navigate to dedicated reset page if no email is provided
+        navigate('/auth?mode=reset');
+        return;
+      }
+      
+      // If email is provided, try to send reset link
       await handleResetPassword(email);
-      setIsDialogOpen(false); // Close the dialog after sending reset email
       
       // Navigate to auth page with reset_sent parameter
       navigate('/auth?reset_sent=true');
     } catch (error: any) {
       console.error("Reset password error from LoginDialog:", error);
-      // User will see the error from the handler, no need to show another toast here
+      // Navigate to reset page on error
+      navigate('/auth?mode=reset');
     }
   };
 
