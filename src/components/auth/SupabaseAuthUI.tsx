@@ -17,10 +17,20 @@ export const SupabaseAuthUI = ({
   return (
     <Auth
       supabaseClient={supabase}
-      appearance={{ theme: ThemeSupa }}
+      appearance={{ 
+        theme: ThemeSupa,
+        style: {
+          button: { 
+            background: '#9b87f5',
+            color: 'white',
+          },
+          anchor: { color: '#7E69AB' }
+        }
+      }}
       providers={[]}
       view={view}
-      redirectTo={redirectTo || `${window.location.origin}/auth`}
+      redirectTo={redirectTo}
+      showLinks={true}
     />
   );
 };

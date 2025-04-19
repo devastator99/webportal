@@ -14,7 +14,6 @@ import { MobileNavigation } from './components/mobile/MobileNavigation';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { NotificationBell } from './components/notifications/NotificationBell';
 import { AuthDebugMonitor } from './components/auth/AuthDebugMonitor';
-import { DeploymentDomainChecker } from './components/auth/DeploymentDomainChecker';
 
 function App() {
   // Initialize state with current feature flags
@@ -80,8 +79,6 @@ function App() {
               </div>
               
               <AuthDebugMonitor />
-              <DeploymentDomainChecker />
-              
               <Toaster position="top-center" />
             </AuthProvider>
           </Router>

@@ -42,7 +42,7 @@ const Auth = () => {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10">
           <SupabaseAuthUI 
-            view={view} 
+            view={view}
             redirectTo={`${window.location.origin}/auth`}
           />
         </div>
