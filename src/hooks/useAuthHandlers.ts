@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, createPatientDetails } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { User } from '@supabase/supabase-js';
 
@@ -135,24 +135,24 @@ export const useAuthHandlers = () => {
       if (roleError) throw roleError;
       
       if (userType === 'patient' && patientData) {
-        // For patient details - retain the original implementation that was working
-        const { error: patientError } = await supabase
-          .from('patient_details')
-          .insert({
-            patient_id: user.id,
-            age: patientData.age,
-            gender: patientData.gender,
-            blood_group: patientData.bloodGroup,
-            allergies: patientData.allergies || '',
-            emergency_contact: patientData.emergencyContact,
-            height: patientData.height || null,
-            birth_date: patientData.birthDate || null,
-            food_habit: patientData.foodHabit || null,
-            known_allergies: patientData.knownAllergies || null,
-            current_medical_conditions: patientData.currentMedicalConditions || null
-          });
-        
-        if (patientError) throw patientError;
+        // Use the createPatientDetails function from supabase/client.ts
+        try {
+          await createPatientDetails(
+            user.id,
+            parseInt(patientData.age, 10),
+            patientData.gender,
+            patientData.bloodGroup,
+            patientData.allergies || null,
+            patientData.emergencyContact,
+            patientData.height ? parseFloat(patientData.height) : null,
+            patientData.birthDate || null,
+            patientData.foodHabit || null,
+            patientData.currentMedicalConditions || null
+          );
+        } catch (patientError: any) {
+          console.error("Error creating patient details:", patientError);
+          throw patientError;
+        }
       }
       
       return user;
