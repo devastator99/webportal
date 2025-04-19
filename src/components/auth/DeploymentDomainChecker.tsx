@@ -26,8 +26,20 @@ export const DeploymentDomainChecker: React.FC = () => {
       });
     }
     
-    if (queryParams.has('type') && queryParams.get('type') === 'recovery') {
+    // Enhanced recovery detection and debugging
+    const recoveryToken = queryParams.get('token');
+    const recoveryType = queryParams.get('type');
+    
+    if (recoveryType === 'recovery') {
       console.log("Recovery flow detected in URL");
+      console.log("Recovery token present:", !!recoveryToken);
+      console.log("Expected redirect to:", `${window.location.origin}/auth?view=update_password`);
+      
+      // Debug Supabase recovery URL format
+      const referrer = document.referrer;
+      if (referrer && referrer.includes('supabase')) {
+        console.log("Referred from Supabase:", referrer);
+      }
     }
     
     // Log auth configuration
