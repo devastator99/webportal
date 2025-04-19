@@ -3,9 +3,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useAuthHandlers } from "@/hooks/useAuthHandlers";
-import { getAuthRedirectUrl } from "@/utils/environmentUtils";
 import { LucideLoader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { getAuthRedirectUrl } from "@/utils/environmentUtils";
 
 interface PasswordResetFormProps {
   onClose: () => void;
@@ -15,7 +15,6 @@ export const PasswordResetForm = ({ onClose }: PasswordResetFormProps) => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const { handleResetPassword } = useAuthHandlers();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,8 +29,12 @@ export const PasswordResetForm = ({ onClose }: PasswordResetFormProps) => {
       const redirectUrl = getAuthRedirectUrl('/auth/reset-password');
       console.log("Using redirect URL:", redirectUrl);
       
-      // No need to pass redirectUrl, it will be configured in Supabase
-      await handleResetPassword(email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl
+      });
+      
+      if (error) throw error;
+      
       setSent(true);
       toast.success("Password reset link sent to your email!");
       

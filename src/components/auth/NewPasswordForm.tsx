@@ -1,9 +1,8 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { LucideLoader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +11,6 @@ export const NewPasswordForm = () => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const { handleUpdatePassword } = useAuthHandlers();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,7 +28,7 @@ export const NewPasswordForm = () => {
 
     setLoading(true);
     try {
-      // Update password directly using Supabase client
+      // Directly update password without any token validation
       const { error } = await supabase.auth.updateUser({
         password: password
       });
@@ -43,9 +41,7 @@ export const NewPasswordForm = () => {
       
       // Sign out and redirect to login
       await supabase.auth.signOut();
-      setTimeout(() => {
-        navigate('/auth');
-      }, 1500);
+      navigate('/auth');
     } catch (error: any) {
       console.error("Password update failed:", error);
       toast.error(error.message || "Failed to update password");
