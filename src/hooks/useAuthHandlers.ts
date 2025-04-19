@@ -18,7 +18,7 @@ export interface PatientData {
   currentMedicalConditions?: string;
 }
 
-export type UserRole = 'patient' | 'doctor' | 'nutritionist' | 'admin';
+export type UserRole = 'patient' | 'doctor' | 'nutritionist' | 'admin' | 'administrator';
 
 export const useAuthHandlers = () => {
   const [loading, setLoading] = useState(false);
@@ -121,35 +121,36 @@ export const useAuthHandlers = () => {
       
       if (profileError) throw profileError;
       
+      // Convert userType if it's 'admin' to 'administrator' to match the schema
+      const roleForDb = userType === 'admin' ? 'administrator' : userType;
+      
       // Create user role using a direct table insert instead of RPC
       const { error: roleError } = await supabase
         .from('user_roles')
         .insert({
           user_id: user.id,
-          role: userType
+          role: roleForDb
         });
       
       if (roleError) throw roleError;
       
       if (userType === 'patient' && patientData) {
-        // For patient details, use direct insert instead of RPC
-        const patientDetailsData = {
-          patient_id: user.id,
-          age: patientData.age,
-          gender: patientData.gender,
-          blood_group: patientData.bloodGroup,
-          allergies: patientData.allergies || '',
-          emergency_contact: patientData.emergencyContact,
-          height: patientData.height || null,
-          birth_date: patientData.birthDate || null,
-          food_habit: patientData.foodHabit || null,
-          known_allergies: patientData.knownAllergies || null,
-          current_medical_conditions: patientData.currentMedicalConditions || null
-        };
-        
+        // For patient details - retain the original implementation that was working
         const { error: patientError } = await supabase
           .from('patient_details')
-          .insert(patientDetailsData);
+          .insert({
+            patient_id: user.id,
+            age: patientData.age,
+            gender: patientData.gender,
+            blood_group: patientData.bloodGroup,
+            allergies: patientData.allergies || '',
+            emergency_contact: patientData.emergencyContact,
+            height: patientData.height || null,
+            birth_date: patientData.birthDate || null,
+            food_habit: patientData.foodHabit || null,
+            known_allergies: patientData.knownAllergies || null,
+            current_medical_conditions: patientData.currentMedicalConditions || null
+          });
         
         if (patientError) throw patientError;
       }
