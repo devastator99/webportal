@@ -14,7 +14,6 @@ import Admin from '@/pages/Admin';
 import MessageSearchPage from '@/pages/MessageSearchPage';
 import DummyPage from '@/pages/DummyPage';
 import AlternativeDashboard from '@/pages/AlternativeDashboard';
-import ResetPassword from '@/pages/ResetPassword';
 
 // Lazy load the notifications page
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
@@ -29,7 +28,6 @@ export const AppRoutes = () => {
         {/* Auth routes */}
         <Route path="/auth" element={<Auth />} />
         <Route path="/auth/register" element={<Auth />} />
-        <Route path="/auth/reset-password" element={<ResetPassword />} />
         
         {/* Protected routes */}
         <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
