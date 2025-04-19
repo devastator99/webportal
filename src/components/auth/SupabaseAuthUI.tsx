@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
@@ -21,33 +21,39 @@ export const SupabaseAuthUI = ({
   initialEmail = ''
 }: SupabaseAuthUIProps) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState(view);
   
-  // Log environment info on component mount
+  // Log environment info and URL info on component mount
   useEffect(() => {
     const envInfo = getEnvironmentInfo();
-    console.log("SupabaseAuthUI environment info:", envInfo);
-    
-    // Check for password reset hash in URL
+    const pathname = location.pathname;
     const hash = window.location.hash;
-    const urlParams = new URLSearchParams(window.location.search);
+    const search = window.location.search;
+    const urlParams = new URLSearchParams(search);
     const type = urlParams.get('type');
     
-    // Detect password reset flow from either hash or query params
+    console.log("SupabaseAuthUI - URL and environment info:", { 
+      pathname, hash, search, type,
+      envInfo 
+    });
+    
+    // Detect password reset flow from URL path, hash or query params
     const isPasswordReset = 
+      pathname === '/auth/update-password' ||
       (hash && hash.includes('type=recovery')) || 
       (type === 'recovery');
     
     if (isPasswordReset && view !== 'update_password') {
-      console.log("Setting view to update_password due to recovery flow");
+      console.log("Setting view to update_password due to recovery flow detection");
       setCurrentView('update_password');
     }
-  }, [view]);
+  }, [view, location]);
   
   useEffect(() => {
-    const handleAuthStateChange = async (event: string) => {
-      console.log("Auth state change:", event);
+    const handleAuthStateChange = async (event: string, session: any) => {
+      console.log("Auth state change:", { event, session });
       
       if (event === 'PASSWORD_RECOVERY') {
         toast.success('Password recovery email sent', {
@@ -70,9 +76,7 @@ export const SupabaseAuthUI = ({
       }
     };
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      handleAuthStateChange(event);
-    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(handleAuthStateChange);
 
     setIsLoading(false);
 
@@ -89,11 +93,10 @@ export const SupabaseAuthUI = ({
   const finalRedirectTo = redirectTo 
     ? getAuthRedirectUrl(redirectTo)
     : currentView === 'update_password'
-      ? getAuthRedirectUrl('/auth') // After password update, redirect to login
-      : getAuthRedirectUrl('/auth?type=recovery');
+      ? getAuthRedirectUrl('/auth/update-password') // After password update, redirect to the update-password path
+      : getAuthRedirectUrl('/auth/recovery?type=recovery'); // For password recovery, include the type
 
-  console.log("Rendering SupabaseAuthUI with view:", currentView, "and initialEmail:", initialEmail);
-  console.log("Using redirect URL:", finalRedirectTo);
+  console.log("Rendering SupabaseAuthUI with view:", currentView, "and redirectTo:", finalRedirectTo);
 
   return (
     <Auth

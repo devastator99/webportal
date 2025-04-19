@@ -40,17 +40,29 @@ const Auth = () => {
   useEffect(() => {
     const checkForPasswordReset = () => {
       const hash = window.location.hash;
-      console.log("URL hash:", hash);
+      const urlParams = new URLSearchParams(window.location.search);
+      const type = urlParams.get('type');
+      const pathname = window.location.pathname;
       
-      // Check if hash contains access_token and type=recovery
-      if (hash && hash.includes('type=recovery') && hash.includes('access_token=')) {
-        console.log("Password reset hash detected in URL");
+      console.log("Auth component - URL check:", { 
+        pathname,
+        hash, 
+        search: window.location.search,
+        type
+      });
+      
+      // Check for update-password path or recovery type
+      const isUpdatePasswordPath = pathname === '/auth/update-password';
+      const isRecoveryParam = type === 'recovery' || (hash && hash.includes('type=recovery'));
+      
+      if (isUpdatePasswordPath || isRecoveryParam) {
+        console.log("Password reset mode detected:", { isUpdatePasswordPath, isRecoveryParam });
         setIsPasswordResetMode(true);
       }
     };
     
     checkForPasswordReset();
-  }, []);
+  }, [location]);
 
   useEffect(() => {
     const isResetSent = searchParams.get('reset_sent') === 'true';
@@ -61,20 +73,24 @@ const Auth = () => {
     // Also check URL hash for type=recovery
     const urlHash = window.location.hash;
     const hashContainsRecovery = urlHash && urlHash.includes('type=recovery');
+    const pathname = window.location.pathname;
     
-    if (hashContainsRecovery) {
-      console.log("Recovery mode detected in URL hash");
+    console.log("Auth search params check:", { 
+      isResetSent, 
+      isRecoveryMode, 
+      isResetMode, 
+      pathname,
+      hashContainsRecovery 
+    });
+    
+    if (hashContainsRecovery || isRecoveryMode || pathname === '/auth/update-password') {
+      console.log("Recovery mode detected, showing password reset form");
       setIsPasswordResetMode(true);
     }
     
     if (isResetSent) {
       setResetEmailSent(true);
       toast.success("Password reset link was sent to your email");
-    }
-    
-    if (isRecoveryMode) {
-      console.log("Recovery mode detected in URL params");
-      setIsPasswordResetMode(true);
     }
 
     if (isResetMode) {
@@ -145,11 +161,12 @@ const Auth = () => {
     );
   }
 
-  if (user && !isPasswordResetMode && !searchParams.get('type')) {
+  if (user && !isPasswordResetMode && !searchParams.get('type') && window.location.pathname !== '/auth/update-password') {
     return null;
   }
 
-  if (isPasswordResetMode || searchParams.get('type') === 'recovery') {
+  if (isPasswordResetMode || searchParams.get('type') === 'recovery' || window.location.pathname === '/auth/update-password') {
+    console.log("Rendering password reset form");
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
