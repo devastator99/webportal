@@ -9,16 +9,20 @@ type SupabaseAuthUIView = "sign_in" | "magic_link" | "forgotten_password" | "upd
 interface SupabaseAuthUIProps {
   view?: SupabaseAuthUIView;
   redirectTo?: string;
+  token?: string | null;
 }
 
 export const SupabaseAuthUI = ({ 
   view = "sign_in", 
   redirectTo,
+  token
 }: SupabaseAuthUIProps) => {
   return (
     <div className="space-y-6">
       <Auth
         supabaseClient={supabase}
+        view={view}
+        showLinks={true}
         appearance={{ 
           theme: ThemeSupa,
           style: {
@@ -30,9 +34,8 @@ export const SupabaseAuthUI = ({
           }
         }}
         providers={[]}
-        view={view}
         redirectTo={redirectTo}
-        showLinks={true}
+        queryParams={token ? { token } : undefined}
         localization={{
           variables: {
             sign_in: {

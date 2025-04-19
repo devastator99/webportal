@@ -14,6 +14,7 @@ const Auth = () => {
   // Get the auth view and registration flag from URL params
   const view = searchParams.get('view') as "sign_in" | "magic_link" | "forgotten_password" | "update_password" || "sign_in";
   const isRegistration = window.location.pathname.includes('/register');
+  const token = searchParams.get('token'); // Get recovery token if present
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -21,6 +22,7 @@ const Auth = () => {
     }
   }, [user, isLoading, navigate]);
 
+  // Show loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center pt-16 md:pt-20">
@@ -54,6 +56,7 @@ const Auth = () => {
             <SupabaseAuthUI 
               view={view}
               redirectTo={`${window.location.origin}/auth`}
+              token={token} // Pass the recovery token if present
             />
           )}
         </div>

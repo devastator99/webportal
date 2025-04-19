@@ -24,21 +24,15 @@ export const AppRoutes = () => {
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         
-        {/* Auth routes */}
+        {/* Auth routes - consolidated to handle all auth flows */}
         <Route path="/auth" element={<Auth />} />
         <Route path="/auth/register" element={<Auth />} />
-        <Route path="/auth/update-password" element={<Auth />} />
         
-        {/* Unified verification handling */}
-        <Route path="/verification" element={<Navigate to="/auth/update-password" replace />} />
-        <Route path="/auth/callback" element={<Navigate to="/auth/update-password" replace />} />
-        <Route path="/reset-password" element={<Navigate to="/auth/update-password" replace />} />
-        <Route path="/auth/recovery" element={<Navigate to="/auth/update-password" replace />} />
-        <Route path="/auth/v1/verify" element={<Navigate to="/auth/update-password" replace />} />
-        <Route path="/verify" element={<Navigate to="/auth/update-password" replace />} />
+        {/* Handle all Supabase auth redirects */}
+        <Route path="/auth/callback" element={<Auth />} />
+        <Route path="/verify" element={<Auth />} />
+        <Route path="/auth/v1/verify" element={<Auth />} />
         
-        <Route path="/dummy" element={<DummyPage title="Dummy Page" description="This is a placeholder page" />} />
-
         {/* Protected routes */}
         <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
           <Route path="/dashboard" element={<Dashboard />} />
