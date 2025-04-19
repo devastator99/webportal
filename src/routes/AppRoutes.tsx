@@ -1,3 +1,4 @@
+
 import { lazy, Suspense } from 'react';
 import { Route, Routes, Outlet, Navigate } from 'react-router-dom';
 import LandingPage from '../pages/LandingPage';
@@ -31,6 +32,8 @@ export const AppRoutes = () => {
         {/* Support for verification redirects - keep these for compatibility */}
         <Route path="/verification" element={<Navigate to="/auth/update-password" replace />} />
         <Route path="/auth/callback" element={<Navigate to="/auth/update-password" replace />} />
+        <Route path="/reset-password" element={<Navigate to="/auth/update-password" replace />} />
+        <Route path="/auth/recovery" element={<Navigate to="/auth/update-password" replace />} />
         
         <Route path="/dummy" element={<DummyPage title="Dummy Page" description="This is a placeholder page" />} />
 

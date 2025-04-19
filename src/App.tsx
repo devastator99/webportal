@@ -25,52 +25,59 @@ const AuthTokenProcessor = () => {
   
   useEffect(() => {
     const processAuthToken = async () => {
-      // Check URL parameters for recovery token
-      const urlParams = new URLSearchParams(window.location.search);
-      const type = urlParams.get('type');
-      const token = urlParams.get('token');
-      const hash = location.hash;
-      
-      console.log("URL check for auth token:", { 
-        pathname: location.pathname,
-        search: location.search, 
-        hash,
-        type,
-        token: token ? "Token present" : "No token"
-      });
-      
-      // Handle recovery tokens regardless of where they appear in the URL
-      if ((type === 'recovery' && token) || (hash && hash.includes('type=recovery'))) {
-        console.log("Recovery token detected - processing for password update");
+      try {
+        // Check URL parameters for recovery token
+        const urlParams = new URLSearchParams(window.location.search);
+        const type = urlParams.get('type');
+        const token = urlParams.get('token');
+        const hash = location.hash;
         
-        try {
-          // Process the token and get the session
-          const { data, error } = await supabase.auth.getSession();
+        console.log("URL check for auth token:", { 
+          pathname: location.pathname,
+          search: location.search, 
+          hash,
+          type,
+          hasToken: token ? "Token present" : "No token"
+        });
+        
+        // Handle recovery tokens regardless of where they appear in the URL
+        if (type === 'recovery' || 
+            (hash && hash.includes('type=recovery')) || 
+            location.pathname.includes('/auth/recovery')) {
+          console.log("Recovery token detected - redirecting to password update form");
           
-          if (error) {
-            console.error("Error processing token:", error);
-            toast.error("Password reset link is invalid or has expired");
-          } else if (data?.session) {
-            console.log("Successfully processed recovery token");
-            toast.success("Password reset link is valid. Please set your new password.");
+          // For tokens in the URL parameters
+          if (token) {
+            // Verify the token with Supabase
+            const { data, error } = await supabase.auth.verifyOtp({
+              token_hash: token,
+              type: 'recovery'
+            });
             
-            // Always redirect to update password form
-            navigate('/auth/update-password', { replace: true });
+            if (error) {
+              console.error("Error verifying token:", error);
+              toast.error("Password reset link is invalid or has expired");
+            } else {
+              console.log("Successfully verified recovery token");
+              toast.success("Please set your new password");
+              navigate('/auth/update-password', { replace: true });
+            }
           } else {
-            console.log("No session found after token processing");
-            toast.error("Could not verify your password reset link");
+            // For hash fragments or specific paths
+            console.log("Recovery flow detected in path or hash");
+            navigate('/auth/update-password', { replace: true });
           }
-        } catch (error) {
-          console.error("Exception processing token:", error);
-          toast.error("Failed to process password reset link");
         }
-      }
-      // Handle other redirects that might be part of verification flow
-      else if (location.pathname === '/verification' || 
-               location.pathname === '/reset-password' || 
-               location.pathname === '/auth/callback') {
-        console.log("Processing verification redirect");
-        navigate('/auth/update-password', { replace: true });
+        // Handle other redirects that might be part of verification flow
+        else if (location.pathname === '/verification' || 
+                location.pathname === '/reset-password' || 
+                location.pathname === '/auth/callback') {
+          console.log("Processing verification redirect");
+          navigate('/auth/update-password', { replace: true });
+        }
+      } catch (error) {
+        console.error("Exception processing token:", error);
+        toast.error("Failed to process password reset link");
       }
     };
     
@@ -136,6 +143,7 @@ function App() {
                 </ErrorBoundary>
               </div>
               
+              {/* Mobile Navigation and other UI elements */}
               <MobileNavigation />
               
               {/* Add notification bell alongside chatbot widget */}

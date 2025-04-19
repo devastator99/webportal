@@ -150,7 +150,7 @@ export const useAuthHandlers = () => {
       if (error) throw error;
 
       toast.success("Password reset email sent. Check your inbox and spam folders.");
-      navigate('/auth');
+      navigate('/auth?reset_sent=true');
     } catch (error: any) {
       console.error('Password reset error:', error);
       setError(error.message);
@@ -166,11 +166,26 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      const { error } = await supabase.auth.updateUser({
+      console.log("Attempting to update password");
+      const { data, error } = await supabase.auth.updateUser({
         password: newPassword
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Password update error:", error);
+        throw error;
+      }
+
+      console.log("Password update result:", data ? "Success" : "No data returned");
+      
+      // Signal session change to force re-authentication
+      const { error: signOutError } = await supabase.auth.signOut({ 
+        scope: 'local' 
+      });
+      
+      if (signOutError) {
+        console.warn("Warning: Error during signout after password update:", signOutError);
+      }
 
       toast.success("Password updated successfully!");
       navigate('/auth');
