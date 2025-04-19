@@ -1,6 +1,5 @@
-
 import { lazy, Suspense } from 'react';
-import { Route, Routes, Outlet } from 'react-router-dom';
+import { Route, Routes, Outlet, Navigate } from 'react-router-dom';
 import LandingPage from '../pages/LandingPage';
 import Dashboard from '../pages/Dashboard';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
@@ -24,14 +23,19 @@ export const AppRoutes = () => {
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
+        
+        {/* Auth routes with support for password reset */}
         <Route path="/auth" element={<Auth />} />
         <Route path="/auth/reset" element={<Auth />} />
+        <Route path="/auth/recovery" element={<Auth />} />
+        <Route path="/auth/update-password" element={<Auth />} />
+        
         <Route 
           path="/dummy" 
           element={<DummyPage title="Dummy Page" description="This is a placeholder page" />} 
         />
 
-        {/* Protected routes (require authentication) */}
+        {/* Protected routes */}
         <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/alt-dashboard" element={<AlternativeDashboard />} />
@@ -64,7 +68,7 @@ export const AppRoutes = () => {
         </Route>
 
         {/* Fallback route */}
-        <Route path="*" element={<LandingPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
   );

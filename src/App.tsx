@@ -17,6 +17,7 @@ import { NotificationBell } from './components/notifications/NotificationBell';
 import { AuthDebugMonitor } from './components/auth/AuthDebugMonitor';
 import { DeploymentDomainChecker } from './components/auth/DeploymentDomainChecker';
 import { supabase } from './integrations/supabase/client';
+import { toast } from 'sonner';
 
 function App() {
   // Initialize state with current feature flags
@@ -29,22 +30,31 @@ function App() {
     const processAuthToken = async () => {
       // Check for URL hash (used in password reset links)
       const hash = window.location.hash;
-      if (hash && hash.includes('access_token=')) {
-        console.log("Auth token detected in URL hash, processing...");
+      const urlParams = new URLSearchParams(window.location.search);
+      const type = urlParams.get('type');
+      
+      // Detect password reset flow
+      const isPasswordReset = 
+        (hash && hash.includes('type=recovery')) || 
+        (type === 'recovery');
+      
+      if (isPasswordReset) {
+        console.log("Password reset flow detected");
         
         try {
-          // Use the correct method to process the auth token in the URL
-          // getSessionFromUrl is not available, instead we should just call getSession
-          // The client will automatically read from the URL if a token is present
+          // Get the session which will automatically process the token
           const { data, error } = await supabase.auth.getSession();
           
           if (error) {
-            console.error("Error processing auth token from URL:", error);
+            console.error("Error processing password reset token:", error);
+            toast.error("Password reset link is invalid or has expired");
           } else if (data?.session) {
-            console.log("Successfully processed auth token from URL");
+            console.log("Successfully processed password reset token");
+            toast.success("Password reset link is valid. Please set your new password.");
           }
         } catch (error) {
-          console.error("Exception while processing auth token from URL:", error);
+          console.error("Exception while processing password reset token:", error);
+          toast.error("Failed to process password reset link");
         }
       }
     };

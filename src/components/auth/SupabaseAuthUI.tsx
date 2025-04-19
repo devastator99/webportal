@@ -22,20 +22,29 @@ export const SupabaseAuthUI = ({
 }: SupabaseAuthUIProps) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  const [currentView, setCurrentView] = useState(view);
   
   // Log environment info on component mount
   useEffect(() => {
     const envInfo = getEnvironmentInfo();
     console.log("SupabaseAuthUI environment info:", envInfo);
     
-    // Check for password reset hash in URL and set view if found
+    // Check for password reset hash in URL
     const hash = window.location.hash;
-    if (hash && hash.includes('type=recovery') && view !== 'update_password') {
-      console.log("Hash contains recovery, but view is not update_password. Current view:", view);
+    const urlParams = new URLSearchParams(window.location.search);
+    const type = urlParams.get('type');
+    
+    // Detect password reset flow from either hash or query params
+    const isPasswordReset = 
+      (hash && hash.includes('type=recovery')) || 
+      (type === 'recovery');
+    
+    if (isPasswordReset && view !== 'update_password') {
+      console.log("Setting view to update_password due to recovery flow");
+      setCurrentView('update_password');
     }
   }, [view]);
   
-  // We use this effect to detect auth state changes including password resets
   useEffect(() => {
     const handleAuthStateChange = async (event: string) => {
       console.log("Auth state change:", event);
@@ -50,16 +59,8 @@ export const SupabaseAuthUI = ({
         } else {
           navigate('/auth?reset_sent=true');
         }
-      } else if (event === 'SIGNED_IN' && view === 'update_password') {
+      } else if (event === 'SIGNED_IN' && currentView === 'update_password') {
         toast.success('Password has been updated successfully!');
-        
-        if (onSuccess) {
-          onSuccess();
-        } else {
-          navigate('/auth');
-        }
-      } else if (event === 'PASSWORD_RESET') {
-        toast.success('Password has been reset successfully!');
         
         if (onSuccess) {
           onSuccess();
@@ -78,7 +79,7 @@ export const SupabaseAuthUI = ({
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, onSuccess, view]);
+  }, [navigate, onSuccess, currentView]);
 
   if (isLoading) {
     return <div className="p-4 text-center">Loading auth UI...</div>;
@@ -87,17 +88,17 @@ export const SupabaseAuthUI = ({
   // Get the proper redirect URL for auth flow
   const finalRedirectTo = redirectTo 
     ? getAuthRedirectUrl(redirectTo)
-    : view === 'update_password'
+    : currentView === 'update_password'
       ? getAuthRedirectUrl('/auth') // After password update, redirect to login
       : getAuthRedirectUrl('/auth?type=recovery');
 
-  console.log("Rendering SupabaseAuthUI with view:", view, "and initialEmail:", initialEmail);
+  console.log("Rendering SupabaseAuthUI with view:", currentView, "and initialEmail:", initialEmail);
   console.log("Using redirect URL:", finalRedirectTo);
 
   return (
     <Auth
       supabaseClient={supabase}
-      view={view}
+      view={currentView}
       appearance={{ 
         theme: ThemeSupa,
         variables: {
