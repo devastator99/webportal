@@ -16,12 +16,39 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { NotificationBell } from './components/notifications/NotificationBell';
 import { AuthDebugMonitor } from './components/auth/AuthDebugMonitor';
 import { DeploymentDomainChecker } from './components/auth/DeploymentDomainChecker';
+import { supabase } from './integrations/supabase/client';
 
 function App() {
   // Initialize state with current feature flags
   const [chatEnabled, setChatEnabled] = useState(featureFlags.enableChat);
   const [chatbotWidgetEnabled, setChatbotWidgetEnabled] = useState(featureFlags.enableChatbotWidget);
   const [chatbotVoiceEnabled, setChatbotVoiceEnabled] = useState(featureFlags.enableChatbotVoice);
+  
+  // Process auth token in URL if present
+  useEffect(() => {
+    const processAuthToken = async () => {
+      // Check for URL hash (used in password reset links)
+      const hash = window.location.hash;
+      if (hash && hash.includes('access_token=')) {
+        console.log("Auth token detected in URL hash, processing...");
+        
+        try {
+          // Process the auth token in the URL
+          const { data, error } = await supabase.auth.getSessionFromUrl();
+          
+          if (error) {
+            console.error("Error processing auth token from URL:", error);
+          } else if (data?.session) {
+            console.log("Successfully processed auth token from URL");
+          }
+        } catch (error) {
+          console.error("Exception while processing auth token from URL:", error);
+        }
+      }
+    };
+    
+    processAuthToken();
+  }, []);
   
   // Listen for changes to feature flags in localStorage
   useEffect(() => {

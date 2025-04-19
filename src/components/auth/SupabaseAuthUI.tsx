@@ -27,7 +27,13 @@ export const SupabaseAuthUI = ({
   useEffect(() => {
     const envInfo = getEnvironmentInfo();
     console.log("SupabaseAuthUI environment info:", envInfo);
-  }, []);
+    
+    // Check for password reset hash in URL and set view if found
+    const hash = window.location.hash;
+    if (hash && hash.includes('type=recovery') && view !== 'update_password') {
+      console.log("Hash contains recovery, but view is not update_password. Current view:", view);
+    }
+  }, [view]);
   
   // We use this effect to detect auth state changes including password resets
   useEffect(() => {
@@ -44,21 +50,21 @@ export const SupabaseAuthUI = ({
         } else {
           navigate('/auth?reset_sent=true');
         }
-      } else if (event === 'PASSWORD_RESET') {
-        toast.success('Password has been reset successfully!');
+      } else if (event === 'SIGNED_IN' && view === 'update_password') {
+        toast.success('Password has been updated successfully!');
+        
         if (onSuccess) {
           onSuccess();
         } else {
           navigate('/auth');
         }
-      } else if (event === 'SIGNED_IN') {
-        if (view === 'update_password') {
-          toast.success('Password has been updated successfully!');
-          if (onSuccess) {
-            onSuccess();
-          } else {
-            navigate('/auth');
-          }
+      } else if (event === 'PASSWORD_RESET') {
+        toast.success('Password has been reset successfully!');
+        
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          navigate('/auth');
         }
       }
     };

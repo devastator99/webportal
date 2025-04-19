@@ -50,6 +50,8 @@ export const UpdatePasswordForm = () => {
   useEffect(() => {
     const envInfo = getEnvironmentInfo();
     console.log("UpdatePasswordForm environment info:", envInfo);
+    console.log("Current URL:", window.location.href);
+    console.log("URL hash:", window.location.hash);
   }, []);
   
   // Check if the token in the URL is valid
@@ -83,9 +85,15 @@ export const UpdatePasswordForm = () => {
       }
     };
     
-    if (searchParams.get('type') === 'recovery') {
+    // Check for recovery type in both search params and URL hash
+    const isRecoveryInParams = searchParams.get('type') === 'recovery';
+    const isRecoveryInHash = window.location.hash.includes('type=recovery');
+    
+    if (isRecoveryInParams || isRecoveryInHash) {
+      console.log("Recovery mode detected, checking token");
       checkResetToken();
     } else {
+      console.log("Not in recovery mode");
       setIsChecking(false);
     }
   }, [searchParams]);
@@ -157,6 +165,14 @@ export const UpdatePasswordForm = () => {
   if (useCustomForm) {
     return (
       <div className="space-y-4">
+        <Alert className="bg-blue-50 border-blue-200 mb-4">
+          <AlertCircle className="h-4 w-4 text-blue-500" />
+          <AlertTitle className="text-blue-800">Set Your New Password</AlertTitle>
+          <AlertDescription className="text-blue-700">
+            Please create a new password for your account. Make sure it's at least 8 characters long.
+          </AlertDescription>
+        </Alert>
+        
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField

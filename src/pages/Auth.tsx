@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -22,6 +23,7 @@ const Auth = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [showPasswordResetForm, setShowPasswordResetForm] = useState(false);
+  const [isPasswordResetMode, setIsPasswordResetMode] = useState(false);
   const { 
     loading, 
     error, 
@@ -34,11 +36,36 @@ const Auth = () => {
   } = useAuthHandlers();
   const [shouldShowDoctorForm, setShouldShowDoctorForm] = useState(false);
 
+  // Check for password reset hash in URL
+  useEffect(() => {
+    const checkForPasswordReset = () => {
+      const hash = window.location.hash;
+      console.log("URL hash:", hash);
+      
+      // Check if hash contains access_token and type=recovery
+      if (hash && hash.includes('type=recovery') && hash.includes('access_token=')) {
+        console.log("Password reset hash detected in URL");
+        setIsPasswordResetMode(true);
+      }
+    };
+    
+    checkForPasswordReset();
+  }, []);
+
   useEffect(() => {
     const isResetSent = searchParams.get('reset_sent') === 'true';
     const isRecoveryMode = searchParams.get('type') === 'recovery';
     const isResetMode = searchParams.get('mode') === 'reset';
     const emailParam = searchParams.get('email');
+    
+    // Also check URL hash for type=recovery
+    const urlHash = window.location.hash;
+    const hashContainsRecovery = urlHash && urlHash.includes('type=recovery');
+    
+    if (hashContainsRecovery) {
+      console.log("Recovery mode detected in URL hash");
+      setIsPasswordResetMode(true);
+    }
     
     if (isResetSent) {
       setResetEmailSent(true);
@@ -47,6 +74,7 @@ const Auth = () => {
     
     if (isRecoveryMode) {
       console.log("Recovery mode detected in URL params");
+      setIsPasswordResetMode(true);
     }
 
     if (isResetMode) {
@@ -82,7 +110,7 @@ const Auth = () => {
 
         console.log("Doctor profile is complete, redirecting to dashboard");
         navigate("/dashboard");
-      } else if (user && !searchParams.get('type')) {
+      } else if (user && !isPasswordResetMode && !searchParams.get('type')) {
         console.log("User found in Auth, redirecting to dashboard");
         navigate("/dashboard");
       }
@@ -95,11 +123,11 @@ const Auth = () => {
         console.log("Detected auth error with user present, trying to fetch role");
         retryRoleFetch();
         toast.info("Attempting to recover your session information...");
-      } else if (user && !searchParams.get('type')) {
+      } else if (user && !isPasswordResetMode && !searchParams.get('type')) {
         checkDoctorProfile();
       }
     }
-  }, [user, userRole, navigate, isLoading, authError, retryRoleFetch, searchParams]);
+  }, [user, userRole, navigate, isLoading, authError, retryRoleFetch, searchParams, isPasswordResetMode]);
 
   if (isLoading) {
     return (
@@ -117,11 +145,11 @@ const Auth = () => {
     );
   }
 
-  if (user && !searchParams.get('type')) {
+  if (user && !isPasswordResetMode && !searchParams.get('type')) {
     return null;
   }
 
-  if (searchParams.get('type') === 'recovery') {
+  if (isPasswordResetMode || searchParams.get('type') === 'recovery') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
