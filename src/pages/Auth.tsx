@@ -38,6 +38,7 @@ const Auth = () => {
     const isResetSent = searchParams.get('reset_sent') === 'true';
     const isRecoveryMode = searchParams.get('type') === 'recovery';
     const isResetMode = searchParams.get('mode') === 'reset';
+    const emailParam = searchParams.get('email');
     
     if (isResetSent) {
       setResetEmailSent(true);
@@ -49,7 +50,12 @@ const Auth = () => {
     }
 
     if (isResetMode) {
+      console.log("Reset mode detected in URL params, showing password reset form");
       setShowPasswordResetForm(true);
+      
+      if (emailParam) {
+        console.log("Email parameter found:", emailParam);
+      }
     }
   }, [location, searchParams]);
 
@@ -190,6 +196,8 @@ const Auth = () => {
   }
 
   if (searchParams.get('mode') === 'reset' || showPasswordResetForm) {
+    const emailParam = searchParams.get('email') || '';
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -203,7 +211,7 @@ const Auth = () => {
 
         <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
           <div className="bg-white py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10">
-            <PasswordResetForm />
+            <PasswordResetForm initialEmail={emailParam} />
           </div>
         </div>
       </div>

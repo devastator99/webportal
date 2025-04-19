@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DialogTrigger } from "@radix-ui/react-dialog";
@@ -60,9 +61,10 @@ export const LoginDialog = () => {
       // Close the dialog before navigating
       setIsDialogOpen(false);
       
-      // Always navigate to the dedicated reset page
-      // This ensures we use the Supabase Auth UI for password reset
-      navigate('/auth?mode=reset');
+      // Navigate to the password reset page with the email as a parameter if provided
+      navigate(email ? `/auth?mode=reset&email=${encodeURIComponent(email)}` : '/auth?mode=reset');
+      
+      console.log("Navigating to password reset page with email:", email);
     } catch (error: any) {
       console.error("Reset password error from LoginDialog:", error);
       navigate('/auth?mode=reset');

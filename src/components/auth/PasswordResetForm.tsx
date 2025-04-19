@@ -6,9 +6,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LucideLoader2 } from "lucide-react";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 
-export const PasswordResetForm = () => {
+interface PasswordResetFormProps {
+  initialEmail?: string;
+}
+
+export const PasswordResetForm = ({ initialEmail = "" }: PasswordResetFormProps) => {
   const [useCustomForm, setUseCustomForm] = useState(false);
   const navigate = useNavigate();
+  
+  console.log("PasswordResetForm rendered with initialEmail:", initialEmail);
   
   if (!useCustomForm) {
     return (
@@ -16,6 +22,7 @@ export const PasswordResetForm = () => {
         <SupabaseAuthUI 
           view="forgotten_password" 
           onSuccess={() => navigate('/auth?reset_sent=true')}
+          initialEmail={initialEmail}
         />
         
         <div className="text-center mt-4">

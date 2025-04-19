@@ -11,12 +11,14 @@ interface SupabaseAuthUIProps {
   view?: 'sign_in' | 'sign_up' | 'magic_link' | 'forgotten_password' | 'update_password';
   redirectTo?: string;
   onSuccess?: () => void;
+  initialEmail?: string;
 }
 
 export const SupabaseAuthUI = ({ 
   view = 'sign_in', 
   redirectTo,
-  onSuccess 
+  onSuccess,
+  initialEmail = ''
 }: SupabaseAuthUIProps) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
@@ -62,6 +64,8 @@ export const SupabaseAuthUI = ({
     ? getAuthRedirectUrl(redirectTo)
     : getAuthRedirectUrl('/auth?type=recovery');
 
+  console.log("Rendering SupabaseAuthUI with view:", view, "and initialEmail:", initialEmail);
+
   return (
     <Auth
       supabaseClient={supabase}
@@ -82,6 +86,7 @@ export const SupabaseAuthUI = ({
       providers={[]}
       redirectTo={finalRedirectTo}
       magicLink={false}
+      defaultEmail={initialEmail}
     />
   );
 };
