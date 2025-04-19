@@ -21,9 +21,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useNavigate } from "react-router-dom";
 
 interface AuthFormProps {
-  type: "login" | "register" | "resetPassword";
+  type: "login" | "register";
   onSubmit: (email: string, password: string, userType?: string, firstName?: string, lastName?: string, patientData?: PatientData) => Promise<void>;
-  onResetPassword?: (email: string) => Promise<void>;
   error: string | null;
   loading: boolean;
 }
@@ -72,18 +71,15 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-export const AuthForm = ({ type, onSubmit, onResetPassword, error, loading }: AuthFormProps) => {
+export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
   const [userType, setUserType] = useState<"patient" | "doctor" | "nutritionist">("patient");
   const [showPatientFields, setShowPatientFields] = useState(type === "register" && userType === "patient");
   const [dateInputValue, setDateInputValue] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const activeSchema = type === "login" 
     ? loginSchema 
-    : type === "resetPassword" 
-    ? z.object({ email: z.string().email("Invalid email address") })
     : (userType === "patient" ? patientSignupSchema : standardSignupSchema);
 
   const form = useForm({
@@ -134,11 +130,6 @@ export const AuthForm = ({ type, onSubmit, onResetPassword, error, loading }: Au
     if (loading) return;
 
     try {
-      if (type === "resetPassword" && onResetPassword) {
-        await onResetPassword(data.email);
-        return;
-      }
-
       const { email, password, firstName, lastName } = data;
       
       if (type === "register" && userType === "patient") {
@@ -172,20 +163,6 @@ export const AuthForm = ({ type, onSubmit, onResetPassword, error, loading }: Au
         title: "Error",
         description: error instanceof Error ? error.message : "An error occurred"
       });
-    }
-  };
-
-  const handleForgotPasswordClick = async () => {
-    if (onResetPassword) {
-      const email = form.getValues().email || "";
-      console.log("Forgot password clicked with email:", email);
-      try {
-        await onResetPassword(email);
-      } catch (err) {
-        console.error("Error during password reset redirect:", err);
-      }
-    } else {
-      navigate("/auth?mode=reset");
     }
   };
 
@@ -323,276 +300,7 @@ export const AuthForm = ({ type, onSubmit, onResetPassword, error, loading }: Au
         )}
 
         {type === "login" && (
-          <motion.div variants={itemVariants}>
-            <Button
-              type="button"
-              variant="link"
-              className="px-0 text-sm text-purple-600 hover:text-purple-800 font-medium"
-              onClick={handleForgotPasswordClick}
-              disabled={loading}
-            >
-              Forgot password?
-            </Button>
-          </motion.div>
-        )}
-
-        {type === "register" && (
-          <motion.div variants={itemVariants}>
-            <Select
-              value={userType}
-              onValueChange={(value: "patient" | "doctor" | "nutritionist") => handleUserTypeChange(value)}
-              disabled={loading}
-            >
-              <SelectTrigger className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900">
-                <SelectValue placeholder="Select user type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="patient">Patient</SelectItem>
-                <SelectItem value="doctor">Doctor</SelectItem>
-                <SelectItem value="nutritionist">Nutritionist</SelectItem>
-              </SelectContent>
-            </Select>
-          </motion.div>
-        )}
-
-        {showPatientFields && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-4 pt-2 border-t border-purple-200"
-          >
-            <h3 className="text-sm font-medium text-purple-800">Patient Information</h3>
-            
-            <ScrollArea className="h-[300px] pr-4">
-              <div className="space-y-4 pr-2">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="age"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="number"
-                            placeholder="Age"
-                            disabled={loading}
-                            className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="height"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type="text"
-                            placeholder="Height (cm)"
-                            disabled={loading}
-                            className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="gender"
-                    render={({ field }) => (
-                      <FormItem>
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          disabled={loading}
-                        >
-                          <SelectTrigger className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900">
-                            <SelectValue placeholder="Select gender" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="male">Male</SelectItem>
-                            <SelectItem value="female">Female</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="birthDate"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-col gap-0.5">
-                        <FormLabel className="text-sm font-medium text-purple-800">Birth Date</FormLabel>
-                        <div className="relative">
-                          <Input
-                            placeholder="DD/MM/YYYY"
-                            value={dateInputValue || (field.value ? formatDateForDisplay(field.value) : "")}
-                            onChange={handleDateInputChange}
-                            className="w-full bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
-                          />
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="absolute right-0 top-0 h-full px-3 text-purple-500 hover:text-purple-600"
-                              >
-                                <CalendarIcon className="h-4 w-4" />
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0 z-50" align="end">
-                              <Calendar
-                                mode="single"
-                                selected={field.value ? new Date(field.value) : undefined}
-                                onSelect={(date) => {
-                                  console.log("Date selected:", date);
-                                  if (date) {
-                                    field.onChange(date.toISOString());
-                                    setDateInputValue(formatDateForDisplay(date));
-                                  } else {
-                                    field.onChange("");
-                                    setDateInputValue("");
-                                  }
-                                }}
-                                disabled={(date) => 
-                                  date > new Date() || date < new Date("1900-01-01")
-                                }
-                                captionLayout="dropdown-buttons"
-                                fromYear={1900}
-                                toYear={new Date().getFullYear()}
-                                className="pointer-events-auto"
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-                        <div className="text-xs text-purple-500 mt-1">
-                          Format: DD/MM/YYYY (e.g., 03/04/1972)
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="bloodGroup"
-                    render={({ field }) => (
-                      <FormItem>
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          disabled={loading}
-                        >
-                          <SelectTrigger className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900">
-                            <SelectValue placeholder="Blood group" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="A+">A+</SelectItem>
-                            <SelectItem value="A-">A-</SelectItem>
-                            <SelectItem value="B+">B+</SelectItem>
-                            <SelectItem value="B-">B-</SelectItem>
-                            <SelectItem value="AB+">AB+</SelectItem>
-                            <SelectItem value="AB-">AB-</SelectItem>
-                            <SelectItem value="O+">O+</SelectItem>
-                            <SelectItem value="O-">O-</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="foodHabit"
-                    render={({ field }) => (
-                      <FormItem>
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                          disabled={loading}
-                        >
-                          <SelectTrigger className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900">
-                            <SelectValue placeholder="Food Habit" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="vegetarian">Vegetarian</SelectItem>
-                            <SelectItem value="vegan">Vegan</SelectItem>
-                            <SelectItem value="non-vegetarian">Non-Vegetarian</SelectItem>
-                            <SelectItem value="pescatarian">Pescatarian</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="knownAllergies"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="Known Allergies (if any)"
-                          disabled={loading}
-                          className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="currentMedicalConditions"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Textarea
-                          {...field}
-                          placeholder="Current Medical Conditions (if any)"
-                          disabled={loading}
-                          className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400 min-h-[80px]"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="emergencyContact"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          placeholder="Emergency Contact Number"
-                          disabled={loading}
-                          className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400 text-purple-900 placeholder:text-purple-400"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </ScrollArea>
-          </motion.div>
+          <div className="h-6"></div>
         )}
 
         <motion.div variants={itemVariants}>
@@ -604,12 +312,10 @@ export const AuthForm = ({ type, onSubmit, onResetPassword, error, loading }: Au
             {loading ? (
               <span className="flex items-center justify-center">
                 <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
-                {type === "login" ? "Signing in..." : 
-                 type === "resetPassword" ? "Sending reset link..." : "Creating account..."}
+                {type === "login" ? "Signing in..." : "Creating account..."}
               </span>
             ) : (
-              type === "login" ? "Sign In" : 
-              type === "resetPassword" ? "Send Reset Link" : "Sign Up"
+              type === "login" ? "Sign In" : "Sign Up"
             )}
           </Button>
         </motion.div>
