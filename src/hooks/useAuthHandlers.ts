@@ -1,10 +1,8 @@
 import { useState } from "react";
-import { supabase, createUserRole, createPatientDetails } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { getAuthRedirectUrl } from "@/utils/environmentUtils";
-import { TokenService } from "@/services/tokenService";
 
 type UserRole = "patient" | "doctor" | "nutritionist" | "administrator";
 
@@ -141,11 +139,8 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      const resetRedirectUrl = TokenService.getPasswordResetRedirectUrl();
-      console.log("Password reset redirect URL:", resetRedirectUrl);
-
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: resetRedirectUrl
+        redirectTo: `${window.location.origin}/auth?type=recovery`,
       });
 
       if (error) throw error;
@@ -167,28 +162,16 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      console.log("Attempting to update password");
       const { data, error } = await supabase.auth.updateUser({
         password: newPassword
       });
 
       if (error) {
-        console.error("Password update error:", error);
         throw error;
       }
 
-      console.log("Password update result:", data ? "Success" : "No data returned");
-      
-      // Signal session change to force re-authentication
-      const { error: signOutError } = await supabase.auth.signOut({ 
-        scope: 'local' 
-      });
-      
-      if (signOutError) {
-        console.warn("Warning: Error during signout after password update:", signOutError);
-      }
-
-      toast.success("Password updated successfully!");
+      await supabase.auth.signOut();
+      toast.success("Password updated successfully! Please log in with your new password.");
       navigate('/auth');
       return true;
     } catch (error: any) {

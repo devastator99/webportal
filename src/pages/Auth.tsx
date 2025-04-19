@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
@@ -11,7 +11,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { DoctorProfileForm } from "@/components/auth/DoctorProfileForm";
 import { toast } from "sonner";
 import { UpdatePasswordForm } from "@/components/auth/UpdatePasswordForm";
-import { TokenService } from "@/services/tokenService";
 
 const Auth = () => {
   const { user, isLoading, userRole } = useAuth();
@@ -19,22 +18,10 @@ const Auth = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [shouldShowDoctorForm, setShouldShowDoctorForm] = useState(false);
   const { loading, error, handleLogin, handleSignUp, handleTestLogin, setError, handleResetPassword } = useAuthHandlers();
+  const location = useLocation();
 
-  const isPasswordUpdatePath = TokenService.isPasswordUpdatePath();
-
-  useEffect(() => {
-    const checkUserAccess = async () => {
-      if (isPasswordUpdatePath) {
-        const hasValidSession = await TokenService.checkUserSession();
-        if (!hasValidSession) {
-          toast.error("Please log in to update your password");
-          navigate('/auth');
-        }
-      }
-    };
-
-    checkUserAccess();
-  }, [navigate, isPasswordUpdatePath]);
+  const isPasswordUpdateMode = location.pathname === '/auth/update-password' || 
+                             new URLSearchParams(location.search).get('type') === 'recovery';
 
   useEffect(() => {
     const checkDoctorProfile = async () => {
@@ -56,7 +43,7 @@ const Auth = () => {
         }
 
         navigate("/dashboard");
-      } else if (user && !isPasswordUpdatePath) {
+      } else if (user && !isPasswordUpdateMode) {
         navigate("/dashboard");
       }
     };
@@ -64,7 +51,7 @@ const Auth = () => {
     if (!isLoading) {
       checkDoctorProfile();
     }
-  }, [user, userRole, navigate, isLoading, isPasswordUpdatePath]);
+  }, [user, userRole, navigate, isLoading, isPasswordUpdateMode]);
 
   if (isLoading) {
     return (
@@ -74,12 +61,12 @@ const Auth = () => {
     );
   }
 
-  if (isPasswordUpdatePath) {
+  if (isPasswordUpdateMode) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <h2 className="mt-6 text-center text-3xl font-extrabold text-saas-dark">
-            Update Your Password
+            Set New Password
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Enter your new password below
@@ -95,7 +82,7 @@ const Auth = () => {
     );
   }
 
-  if (user && !isPasswordUpdatePath) {
+  if (user && !isPasswordUpdateMode) {
     return null;
   }
 

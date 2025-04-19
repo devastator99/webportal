@@ -39,14 +39,9 @@ export const UpdatePasswordForm = () => {
 
   const onSubmit = async (data: PasswordFormValues) => {
     try {
-      const success = await handleUpdatePassword(data.password);
-      if (success) {
-        toast.success("Password updated successfully! Please log in with your new password.");
-        navigate('/auth');
-      }
+      await handleUpdatePassword(data.password);
     } catch (error: any) {
       console.error('Error updating password:', error);
-      toast.error(error.message || "Failed to update password");
     }
   };
 
