@@ -21,10 +21,16 @@ const Auth = () => {
   const { loading, error, handleLogin, handleSignUp, handleTestLogin: testLoginHandler, setError, handleResetPassword } = useAuthHandlers();
   const location = useLocation();
 
+  // Check if we're in password update mode based on URL
   const isPasswordUpdateMode = location.pathname === '/auth/update-password' || 
-                             new URLSearchParams(location.search).get('type') === 'recovery';
+                             new URLSearchParams(location.search).get('type') === 'recovery' ||
+                             window.location.hash.includes('type=recovery');
 
   useEffect(() => {
+    console.log("Auth page rendered with path:", location.pathname);
+    console.log("Is password update mode:", isPasswordUpdateMode);
+    console.log("Current URL:", window.location.href);
+    
     const checkDoctorProfile = async () => {
       if (user && userRole === "doctor") {
         const { data, error } = await supabase
@@ -52,7 +58,7 @@ const Auth = () => {
     if (!isLoading) {
       checkDoctorProfile();
     }
-  }, [user, userRole, navigate, isLoading, isPasswordUpdateMode]);
+  }, [user, userRole, navigate, isLoading, isPasswordUpdateMode, location]);
 
   if (isLoading) {
     return (
