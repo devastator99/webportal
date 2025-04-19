@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DialogTrigger } from "@radix-ui/react-dialog";
@@ -9,11 +8,10 @@ import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { createUrlWithParams, getEnvironmentInfo } from "@/utils/environmentUtils";
 
 export const LoginDialog = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
-  const { loading, error, handleLogin, handleSignUp, handleResetPassword, setError } = useAuthHandlers();
+  const { loading, error, handleLogin, handleSignUp, setError } = useAuthHandlers();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { resetInactivityTimer } = useAuth();
   const navigate = useNavigate();
@@ -55,18 +53,22 @@ export const LoginDialog = () => {
     }
   };
 
-  // Handle forgot password - redirect to dedicated page
+  // Handle forgot password - close dialog and redirect to dedicated page
   const handleForgotPassword = async (email: string) => {
     try {
-      // Close the dialog before navigating
-      setIsDialogOpen(false);
+      setIsDialogOpen(false); // Close dialog first
       
-      // Navigate to the password reset page with the email as a parameter if provided
-      navigate(email ? `/auth?mode=reset&email=${encodeURIComponent(email)}` : '/auth?mode=reset');
+      // Navigate to password reset page with email parameter if provided
+      const resetUrl = email 
+        ? `/auth?mode=reset&email=${encodeURIComponent(email)}`
+        : '/auth?mode=reset';
       
-      console.log("Navigating to password reset page with email:", email);
+      console.log("Navigating to password reset page:", resetUrl);
+      navigate(resetUrl);
+      
     } catch (error: any) {
-      console.error("Reset password error from LoginDialog:", error);
+      console.error("Reset password error:", error);
+      toast.error("Failed to navigate to password reset page");
       navigate('/auth?mode=reset');
     }
   };

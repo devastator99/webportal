@@ -1,10 +1,10 @@
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { LucideLoader2 } from "lucide-react";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
+import { toast } from "sonner";
 
 interface PasswordResetFormProps {
   initialEmail?: string;
@@ -13,15 +13,41 @@ interface PasswordResetFormProps {
 export const PasswordResetForm = ({ initialEmail = "" }: PasswordResetFormProps) => {
   const [useCustomForm, setUseCustomForm] = useState(false);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const resetSent = searchParams.get('reset_sent') === 'true';
   
-  console.log("PasswordResetForm rendered with initialEmail:", initialEmail);
+  console.log("PasswordResetForm rendered with initialEmail:", initialEmail, "resetSent:", resetSent);
   
+  if (resetSent) {
+    return (
+      <div className="space-y-4">
+        <Alert className="bg-green-50 border-green-200">
+          <AlertDescription className="text-green-800">
+            A password reset link has been sent to your email address. Please check your inbox and spam folders.
+          </AlertDescription>
+        </Alert>
+        
+        <Button
+          type="button"
+          variant="default"
+          className="w-full"
+          onClick={() => navigate("/auth")}
+        >
+          Back to Login
+        </Button>
+      </div>
+    );
+  }
+
   if (!useCustomForm) {
     return (
       <div className="space-y-4">
         <SupabaseAuthUI 
           view="forgotten_password" 
-          onSuccess={() => navigate('/auth?reset_sent=true')}
+          onSuccess={() => {
+            console.log("Password reset email sent successfully");
+            navigate('/auth?reset_sent=true');
+          }}
           initialEmail={initialEmail}
         />
         
@@ -35,20 +61,10 @@ export const PasswordResetForm = ({ initialEmail = "" }: PasswordResetFormProps)
             Back to Login
           </Button>
         </div>
-        
-        <div className="text-center mt-2 text-xs text-gray-500">
-          <button 
-            className="underline text-xs hover:text-gray-800" 
-            onClick={() => setUseCustomForm(true)}
-          >
-            Use alternative form
-          </button>
-        </div>
       </div>
     );
   }
   
-  // The original custom form implementation would go here as a fallback option
   return (
     <div className="space-y-4">
       <Alert variant="destructive">
