@@ -10,19 +10,21 @@ interface SupabaseAuthUIProps {
   view?: SupabaseAuthUIView;
   redirectTo?: string;
   token?: string | null;
+  showLinks?: boolean;
 }
 
 export const SupabaseAuthUI = ({ 
   view = "sign_in", 
   redirectTo,
-  token
+  token,
+  showLinks = true
 }: SupabaseAuthUIProps) => {
   return (
     <div className="space-y-6">
       <Auth
         supabaseClient={supabase}
         view={view}
-        showLinks={true}
+        showLinks={showLinks}
         appearance={{ 
           theme: ThemeSupa,
           style: {
@@ -43,10 +45,15 @@ export const SupabaseAuthUI = ({
               password_input_placeholder: "Your password",
               button_label: "Sign in",
             },
+            update_password: {
+              password_label: "New password",
+              password_input_placeholder: "Enter your new password",
+              button_label: "Update password",
+            }
           }
         }}
       />
-      {view === 'sign_in' && (
+      {view === 'sign_in' && showLinks && (
         <div className="text-center">
           <Link 
             to="/auth/register" 

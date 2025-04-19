@@ -25,9 +25,11 @@ export const AppRoutes = () => {
         <Route path="/" element={<LandingPage />} />
         
         {/* Auth routes - consolidated to handle all auth flows */}
-        <Route path="/auth/*" element={<Auth />} />
+        <Route path="/auth" element={<Auth />} />
         <Route path="/auth/register" element={<Auth />} />
         <Route path="/auth/callback" element={<Auth />} />
+        <Route path="/auth/reset" element={<Auth />} />
+        <Route path="/auth/update-password" element={<Auth />} />
         <Route path="/verify" element={<Auth />} />
         <Route path="/auth/v1/verify" element={<Auth />} />
         

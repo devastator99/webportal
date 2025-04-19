@@ -11,15 +11,18 @@ const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
+  // Extract all possible auth parameters
   const view = searchParams.get('view') as "sign_in" | "magic_link" | "forgotten_password" | "update_password" || "sign_in";
+  const token = searchParams.get('token') || searchParams.get('access_token'); // Handle both token formats
+  const type = searchParams.get('type');
   const isRegistration = window.location.pathname.includes('/register');
-  const token = searchParams.get('token');
+  const isPasswordReset = type === 'recovery' || view === 'update_password';
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     
-    if (!isLoading && user) {
-      // Add a small delay before navigation to ensure state is properly updated
+    // Only redirect if user is authenticated and not in password reset flow
+    if (!isLoading && user && !isPasswordReset) {
       timeoutId = setTimeout(() => {
         navigate("/dashboard");
       }, 100);
@@ -30,13 +33,16 @@ const Auth = () => {
         clearTimeout(timeoutId);
       }
     };
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, navigate, isPasswordReset]);
 
+  // Show loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center pt-16 md:pt-20">
         <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
-        <p className="mt-4 text-sm text-gray-600">Verifying your authentication...</p>
+        <p className="mt-4 text-sm text-gray-600">
+          {isPasswordReset ? "Preparing password reset..." : "Verifying your authentication..."}
+        </p>
       </div>
     );
   }
@@ -46,6 +52,7 @@ const Auth = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-saas-dark">
           {isRegistration ? 'Create your account' :
+           isPasswordReset ? 'Reset your password' :
            view === 'sign_in' ? 'Welcome back' :
            view === 'forgotten_password' ? 'Reset your password' :
            view === 'update_password' ? 'Set new password' : 'Welcome'}
@@ -63,9 +70,10 @@ const Auth = () => {
             />
           ) : (
             <SupabaseAuthUI 
-              view={view}
+              view={isPasswordReset ? "update_password" : view}
               redirectTo={`${window.location.origin}/auth`}
-              token={token} // Pass the recovery token if present
+              token={token} // Pass the recovery token
+              showLinks={!isPasswordReset} // Hide links during password reset
             />
           )}
         </div>
