@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LucideLoader2 } from "lucide-react";
 import { NewPasswordForm } from "@/components/auth/NewPasswordForm";
 import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 const ResetPassword = () => {
   const { user, isLoading } = useAuth();

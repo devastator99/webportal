@@ -1,58 +1,16 @@
 
-export const getBaseUrl = (): string => {
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = window.location.port ? `:${window.location.port}` : '';
-  return `${protocol}//${hostname}${port}`;
-};
-
-export const getProjectId = (): string => {
-  // Extract project ID from Supabase URL if available
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-  const match = supabaseUrl.match(/https:\/\/([a-zA-Z0-9-]+)\.supabase\.co/);
-  return match ? match[1] : 'unknown-project';
-};
-
-export const getEnvironmentInfo = (): Record<string, any> => {
-  const baseUrl = getBaseUrl();
-  const isDev = import.meta.env.DEV || window.location.hostname === 'localhost';
-  const isLovableApp = window.location.hostname.includes('lovable.app');
-  const isNetlify = window.location.hostname.includes('netlify.app');
-  const projectId = getProjectId();
+/**
+ * Returns the appropriate auth redirect URL based on the current environment.
+ * This ensures that development and production environments use the correct URLs.
+ */
+export const getAuthRedirectUrl = (path: string = '/auth'): string => {
+  // Get the base URL from the window location
+  const baseUrl = window.location.origin;
   
-  return {
-    baseUrl,
-    isDev,
-    isLovableApp,
-    isNetlify,
-    projectId,
-    hostname: window.location.hostname,
-    pathname: window.location.pathname,
-    protocol: window.location.protocol,
-    port: window.location.port || 'default',
-    fullUrl: window.location.href,
-    search: window.location.search,
-    hash: window.location.hash,
-    userAgent: navigator.userAgent,
-    timestamp: new Date().toISOString(),
-  };
-};
-
-export const getAuthRedirectUrl = (path: string = '/auth', view: string = 'update_password'): string => {
-  const baseUrl = getBaseUrl();
-  const fullOrigin = window.location.origin;
-  const redirectPath = path.startsWith('/') ? path : `/${path}`;
+  // Combine with the path
+  const fullUrl = `${baseUrl}${path}`;
   
-  // For auth redirects, always include view parameter for password reset flow
-  // Check if path already contains view parameter or another query parameter
-  const hasQueryParams = redirectPath.includes('?');
-  const viewParam = hasQueryParams 
-    ? redirectPath.includes('view=') ? '' : '&view=' + view
-    : '?view=' + view;
+  console.log(`Generated redirect URL: ${fullUrl}`);
   
-  // Using origin instead of baseUrl for more reliable behavior
-  const fullUrl = `${fullOrigin}${redirectPath}${viewParam}`;
-  
-  console.log(`Creating auth redirect URL: ${fullUrl}`);
   return fullUrl;
 };
