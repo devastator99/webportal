@@ -50,21 +50,22 @@ export const SupabaseAuthUI = ({
     }
   }, [currentView, location]);
 
-  return (
-    <Auth
-      supabaseClient={supabase}
-      appearance={{ theme: ThemeSupa }}
-      providers={[]}
-      view={currentView}
-      redirectTo={redirectTo}
-      defaultProps={{
-        forgotten_password: {
-          emailInputProps: {
-            defaultValue: initialEmail,
-          },
-        },
-      }}
-      onlyThirdPartyProviders={false}
-    />
-  );
+  // Create proper props for the Auth component
+  const authProps = {
+    supabaseClient: supabase,
+    appearance: { theme: ThemeSupa },
+    providers: [],
+    view: currentView,
+    redirectTo: redirectTo,
+    magicLink: false,
+    showLinks: false,
+    socialLayout: "horizontal" as const,
+    forgotPasswordProps: {
+      emailInputProps: {
+        defaultValue: initialEmail,
+      },
+    }
+  };
+
+  return <Auth {...authProps} />;
 };

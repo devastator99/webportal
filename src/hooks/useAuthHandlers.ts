@@ -121,8 +121,8 @@ export const useAuthHandlers = () => {
       
       if (profileError) throw profileError;
       
-      // Create user role using RPC
-      const { error: roleError } = await supabase.rpc('create_user_role', {
+      // Create user role - using an RPC call properly typed in the database
+      const { error: roleError } = await supabase.rpc("upsert_user_role", {
         p_user_id: user.id,
         p_role_name: userType
       });
@@ -130,7 +130,8 @@ export const useAuthHandlers = () => {
       if (roleError) throw roleError;
       
       if (userType === 'patient' && patientData) {
-        const { error: patientError } = await supabase.rpc('create_patient_details', {
+        // Using an RPC call properly typed in the database
+        const { error: patientError } = await supabase.rpc("upsert_patient_details", {
           p_patient_id: user.id,
           p_age: patientData.age,
           p_gender: patientData.gender,
@@ -181,7 +182,7 @@ export const useAuthHandlers = () => {
   };
 
   // Handle Test Login
-  const handleTestLogin = async (userType: 'doctor' | 'patient' | 'nutritionist' | 'admin') => {
+  const handleTestLogin = async (userType: 'doctor' | 'patient' | 'nutritionist' | 'admin'): Promise<User> => {
     setLoading(true);
     setError(null);
     

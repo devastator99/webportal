@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,7 +18,7 @@ const Auth = () => {
   const navigate = useNavigate();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [shouldShowDoctorForm, setShouldShowDoctorForm] = useState(false);
-  const { loading, error, handleLogin, handleSignUp, handleTestLogin, setError, handleResetPassword } = useAuthHandlers();
+  const { loading, error, handleLogin, handleSignUp, handleTestLogin: testLoginHandler, setError, handleResetPassword } = useAuthHandlers();
   const location = useLocation();
 
   const isPasswordUpdateMode = location.pathname === '/auth/update-password' || 
@@ -86,9 +87,10 @@ const Auth = () => {
     return null;
   }
 
+  // Handle test login using the imported function
   const handleTestLogin = async (userType: 'doctor' | 'patient' | 'nutritionist' | 'admin') => {
     try {
-      await handleTestLogin(userType);
+      await testLoginHandler(userType);
       toast.success('Logged in successfully!');
     } catch (error: any) {
       console.error("Test login error:", error);

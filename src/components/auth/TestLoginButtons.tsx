@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { User, Stethoscope, Apple, ShieldCheck } from "lucide-react";
 
 interface TestLoginButtonsProps {
-  onTestLogin: (userType: "patient" | "doctor" | "nutritionist" | "administrator") => Promise<void>;
+  onTestLogin: (userType: "patient" | "doctor" | "nutritionist" | "admin") => Promise<void>;
   loading: boolean;
 }
 
@@ -39,7 +39,7 @@ export const TestLoginButtons = ({ onTestLogin, loading }: TestLoginButtonsProps
       </Button>
       <Button
         variant="outline"
-        onClick={() => onTestLogin("administrator")}
+        onClick={() => onTestLogin("admin")}
         disabled={loading}
         className="flex items-center justify-center gap-2"
       >
