@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase, createUserRole, createPatientDetails } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -144,93 +143,42 @@ export const useAuthHandlers = () => {
       const resetRedirectUrl = getAuthRedirectUrl('/auth/update-password');
       console.log("Password reset redirect URL:", resetRedirectUrl);
 
-      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: resetRedirectUrl
       });
 
-      if (error) {
-        console.error("Reset password API error:", error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log("Password reset response:", { data });
-      
-      uiToast({
-        title: "Password reset email sent",
-        description: "Check your email for a password reset link. It will expire in 1 hour."
-      });
-      
       toast.success("Password reset email sent. Check your inbox and spam folders.");
-      
-      navigate('/auth?reset_sent=true');
+      navigate('/auth');
     } catch (error: any) {
       console.error('Password reset error:', error);
       setError(error.message);
-      uiToast({
-        variant: "destructive",
-        title: "Password reset failed",
-        description: error.message
-      });
+      toast.error(error.message || "Failed to send reset email");
       throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  const handleUpdatePassword = async (newPassword: string): Promise<boolean | PasswordUpdateResult> => {
+  const handleUpdatePassword = async (newPassword: string): Promise<boolean> => {
     setLoading(true);
     setError(null);
 
     try {
-      console.log("Attempting to update password");
-      const { data, error } = await supabase.auth.updateUser({
-        password: newPassword,
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
       });
 
-      console.log("Update password response:", { data, error });
+      if (error) throw error;
 
-      if (error) {
-        console.error("Update password API error:", error);
-        throw error;
-      }
-
-      console.log("Password updated successfully");
-      
-      uiToast({
-        title: "Password updated",
-        description: "Your password has been successfully updated"
-      });
-      
+      toast.success("Password updated successfully!");
       navigate('/auth');
-      toast.success("Password updated successfully. You can now login with your new password.");
-      return { success: true };
+      return true;
     } catch (error: any) {
       console.error('Password update error:', error);
-      
-      if (error.message && (
-        error.message.includes('token is expired') || 
-        error.message.includes('JWT expired') ||
-        error.message.includes('Invalid user') ||
-        error.message.includes('invalid JWT')
-      )) {
-        const expiredMessage = "Your password reset link has expired. Please request a new one.";
-        setError(expiredMessage);
-        
-        uiToast({
-          variant: "destructive",
-          title: "Link expired",
-          description: expiredMessage
-        });
-        
-        return { tokenExpired: true };
-      }
-      
+      toast.error(error.message || "Failed to update password");
       setError(error.message);
-      uiToast({
-        variant: "destructive",
-        title: "Password update failed",
-        description: error.message || "Failed to update password. Please try again."
-      });
       throw error;
     } finally {
       setLoading(false);

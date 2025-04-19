@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,106 +6,27 @@ import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { TestLoginButtons } from "@/components/auth/TestLoginButtons";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { LucideLoader2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { LucideLoader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { DoctorProfileForm } from "@/components/auth/DoctorProfileForm";
 import { toast } from "sonner";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { PasswordResetForm } from "@/components/auth/PasswordResetForm";
 import { UpdatePasswordForm } from "@/components/auth/UpdatePasswordForm";
 
 const Auth = () => {
-  const { user, isLoading, userRole, authError, retryRoleFetch } = useAuth();
+  const { user, isLoading, userRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const [isLoginMode, setIsLoginMode] = useState(true);
-  const [resetEmailSent, setResetEmailSent] = useState(false);
-  const [showPasswordResetForm, setShowPasswordResetForm] = useState(false);
-  const [isPasswordResetMode, setIsPasswordResetMode] = useState(false);
-  const { 
-    loading, 
-    error, 
-    handleLogin, 
-    handleSignUp, 
-    handleTestLogin,
-    setError,
-    handleResetPassword,
-    handleUpdatePassword
-  } = useAuthHandlers();
   const [shouldShowDoctorForm, setShouldShowDoctorForm] = useState(false);
+  const { loading, error, handleLogin, handleSignUp, handleTestLogin, setError } = useAuthHandlers();
 
-  // Check for password reset hash in URL
-  useEffect(() => {
-    const checkForPasswordReset = () => {
-      const hash = window.location.hash;
-      const urlParams = new URLSearchParams(window.location.search);
-      const type = urlParams.get('type');
-      const pathname = window.location.pathname;
-      
-      console.log("Auth component - URL check:", { 
-        pathname,
-        hash, 
-        search: window.location.search,
-        type
-      });
-      
-      // Check for update-password path or recovery type
-      const isUpdatePasswordPath = pathname === '/auth/update-password';
-      const isRecoveryParam = type === 'recovery' || (hash && hash.includes('type=recovery'));
-      
-      if (isUpdatePasswordPath || isRecoveryParam) {
-        console.log("Password reset mode detected:", { isUpdatePasswordPath, isRecoveryParam });
-        setIsPasswordResetMode(true);
-      }
-    };
-    
-    checkForPasswordReset();
-  }, [location]);
-
-  useEffect(() => {
-    const isResetSent = searchParams.get('reset_sent') === 'true';
-    const isRecoveryMode = searchParams.get('type') === 'recovery';
-    const isResetMode = searchParams.get('mode') === 'reset';
-    const emailParam = searchParams.get('email');
-    
-    // Also check URL hash for type=recovery
-    const urlHash = window.location.hash;
-    const hashContainsRecovery = urlHash && urlHash.includes('type=recovery');
-    const pathname = window.location.pathname;
-    
-    console.log("Auth search params check:", { 
-      isResetSent, 
-      isRecoveryMode, 
-      isResetMode, 
-      pathname,
-      hashContainsRecovery 
-    });
-    
-    if (hashContainsRecovery || isRecoveryMode || pathname === '/auth/update-password') {
-      console.log("Recovery mode detected, showing password reset form");
-      setIsPasswordResetMode(true);
-    }
-    
-    if (isResetSent) {
-      setResetEmailSent(true);
-      toast.success("Password reset link was sent to your email");
-    }
-
-    if (isResetMode) {
-      console.log("Reset mode detected in URL params, showing password reset form");
-      setShowPasswordResetForm(true);
-      
-      if (emailParam) {
-        console.log("Email parameter found:", emailParam);
-      }
-    }
-  }, [location, searchParams]);
+  // Check if we're on the update password path
+  const isPasswordUpdateMode = location.pathname === '/auth/update-password';
 
   useEffect(() => {
     const checkDoctorProfile = async () => {
       if (user && userRole === "doctor") {
-        console.log("Checking doctor profile for:", user.id);
         const { data, error } = await supabase
           .from("profiles")
           .select("specialty, visiting_hours, clinic_location")
@@ -119,31 +39,20 @@ const Auth = () => {
         }
 
         if (!data.specialty || !data.visiting_hours || !data.clinic_location) {
-          console.log("Doctor profile incomplete, showing form");
           setShouldShowDoctorForm(true);
           return;
         }
 
-        console.log("Doctor profile is complete, redirecting to dashboard");
         navigate("/dashboard");
-      } else if (user && !isPasswordResetMode && !searchParams.get('type')) {
-        console.log("User found in Auth, redirecting to dashboard");
+      } else if (user && !isPasswordUpdateMode) {
         navigate("/dashboard");
       }
     };
 
     if (!isLoading) {
-      console.log("Auth state resolved:", { user, userRole, authError });
-      
-      if (user && authError && !userRole) {
-        console.log("Detected auth error with user present, trying to fetch role");
-        retryRoleFetch();
-        toast.info("Attempting to recover your session information...");
-      } else if (user && !isPasswordResetMode && !searchParams.get('type')) {
-        checkDoctorProfile();
-      }
+      checkDoctorProfile();
     }
-  }, [user, userRole, navigate, isLoading, authError, retryRoleFetch, searchParams, isPasswordResetMode]);
+  }, [user, userRole, navigate, isLoading, isPasswordUpdateMode]);
 
   if (isLoading) {
     return (
@@ -161,12 +70,7 @@ const Auth = () => {
     );
   }
 
-  if (user && !isPasswordResetMode && !searchParams.get('type') && window.location.pathname !== '/auth/update-password') {
-    return null;
-  }
-
-  if (isPasswordResetMode || searchParams.get('type') === 'recovery' || window.location.pathname === '/auth/update-password') {
-    console.log("Rendering password reset form");
+  if (isPasswordUpdateMode) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -187,80 +91,8 @@ const Auth = () => {
     );
   }
 
-  if (resetEmailSent) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-saas-dark">
-              Check Your Email
-            </h2>
-          </motion.div>
-        </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="mt-8 sm:mx-auto sm:w-full sm:max-w-md"
-        >
-          <div className="bg-white py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10">
-            <Alert className="mb-4 bg-green-50 border-green-200">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <AlertTitle className="text-green-800">Email Sent</AlertTitle>
-              <AlertDescription className="text-green-700">
-                We've sent a password reset link to your email address. Please check both your inbox and spam folders.
-              </AlertDescription>
-            </Alert>
-            
-            <div className="text-center mt-4 space-y-4">
-              <p className="text-sm text-gray-600">
-                The link will expire in 1 hour. If you don't see the email, check your spam folder or request a new link.
-              </p>
-              
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full mt-4"
-                onClick={() => {
-                  setResetEmailSent(false);
-                  navigate('/auth');
-                }}
-              >
-                Back to Login
-              </Button>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
-  if (searchParams.get('mode') === 'reset' || showPasswordResetForm) {
-    const emailParam = searchParams.get('email') || '';
-    
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-saas-dark">
-            Reset Your Password
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Enter your email to receive a password reset link
-          </p>
-        </div>
-
-        <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="bg-white py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10">
-            <PasswordResetForm initialEmail={emailParam} />
-          </div>
-        </div>
-      </div>
-    );
+  if (user && !isPasswordUpdateMode) {
+    return null;
   }
 
   return (

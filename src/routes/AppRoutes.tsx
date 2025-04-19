@@ -24,21 +24,15 @@ export const AppRoutes = () => {
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         
-        {/* Auth routes with comprehensive support for password reset paths */}
+        {/* Auth routes - simplified */}
         <Route path="/auth" element={<Auth />} />
-        <Route path="/auth/reset" element={<Auth />} />
-        <Route path="/auth/recovery" element={<Auth />} />
         <Route path="/auth/update-password" element={<Auth />} />
         
-        {/* Support for various URL formats that might be used in links */}
+        {/* Support for verification redirects */}
         <Route path="/verification" element={<Navigate to="/auth/update-password" replace />} />
         <Route path="/auth/callback" element={<Navigate to="/auth/update-password" replace />} />
-        <Route path="/reset-password" element={<Navigate to="/auth/update-password" replace />} />
         
-        <Route 
-          path="/dummy" 
-          element={<DummyPage title="Dummy Page" description="This is a placeholder page" />} 
-        />
+        <Route path="/dummy" element={<DummyPage title="Dummy Page" description="This is a placeholder page" />} />
 
         {/* Protected routes */}
         <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
