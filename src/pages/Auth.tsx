@@ -5,15 +5,17 @@ import { useAuth } from "@/contexts/AuthContext";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { LucideLoader2 } from "lucide-react";
+import { AuthView } from "@/types/auth";
 
 const Auth = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
-  // Extract all possible auth parameters
-  const view = searchParams.get('view') as "sign_in" | "magic_link" | "forgotten_password" | "update_password" || "sign_in";
-  const token = searchParams.get('token') || searchParams.get('access_token'); // Handle both token formats
+  // Extract and validate auth parameters
+  const rawView = searchParams.get('view');
+  const view = (rawView as AuthView) || "sign_in";
+  const token = searchParams.get('token') || searchParams.get('access_token');
   const type = searchParams.get('type');
   const isRegistration = window.location.pathname.includes('/register');
   const isPasswordReset = type === 'recovery' || view === 'update_password';
@@ -72,8 +74,8 @@ const Auth = () => {
             <SupabaseAuthUI 
               view={isPasswordReset ? "update_password" : view}
               redirectTo={`${window.location.origin}/auth`}
-              token={token} // Pass the recovery token
-              showLinks={!isPasswordReset} // Hide links during password reset
+              token={token}
+              showLinks={!isPasswordReset}
             />
           )}
         </div>

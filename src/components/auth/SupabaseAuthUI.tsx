@@ -3,11 +3,10 @@ import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
-
-type SupabaseAuthUIView = "sign_in" | "magic_link" | "forgotten_password" | "update_password";
+import { AuthView } from "@/types/auth";
 
 interface SupabaseAuthUIProps {
-  view?: SupabaseAuthUIView;
+  view?: AuthView;
   redirectTo?: string;
   token?: string | null;
   showLinks?: boolean;
