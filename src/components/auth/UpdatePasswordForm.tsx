@@ -3,13 +3,13 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Eye, EyeOff } from 'lucide-react';
 import { useAuthHandlers } from '@/hooks/useAuthHandlers';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { toast } from 'sonner';
 
 const passwordSchema = z.object({
   password: z.string()
@@ -39,9 +39,14 @@ export const UpdatePasswordForm = () => {
 
   const onSubmit = async (data: PasswordFormValues) => {
     try {
-      await handleUpdatePassword(data.password);
-    } catch (error) {
+      const success = await handleUpdatePassword(data.password);
+      if (success) {
+        toast.success("Password updated successfully!");
+        navigate('/auth');
+      }
+    } catch (error: any) {
       console.error('Error updating password:', error);
+      toast.error(error.message || "Failed to update password");
     }
   };
 

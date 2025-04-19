@@ -1,3 +1,4 @@
+
 /**
  * Utilities for handling environment-specific configuration
  * and URL management across different deployment environments.
@@ -42,6 +43,12 @@ export const getBaseUrl = (): string => {
     return `${protocol}//${hostname}`;
   }
   
+  // For lovableproject.com environments
+  if (hostname.includes('lovableproject.com')) {
+    console.log(`Detected lovableproject.com environment: ${hostname}`);
+    return `${protocol}//${hostname}`;
+  }
+  
   // For all other cases in production, use the production URL
   console.log(`Using production URL: ${PRODUCTION_URL}`);
   return PRODUCTION_URL;
@@ -64,8 +71,8 @@ export const validateUrl = (url: string): string | null => {
  * Creates a fully qualified URL for authentication redirects
  */
 export const getAuthRedirectUrl = (path: string = '/auth'): string => {
-  // Always use production URL for auth-related operations
-  const baseUrl = PRODUCTION_URL;
+  // Get the appropriate base URL for the current environment
+  const baseUrl = getBaseUrl();
   const redirectPath = path.startsWith('/') ? path : `/${path}`;
   const fullUrl = `${baseUrl}${redirectPath}`;
   
