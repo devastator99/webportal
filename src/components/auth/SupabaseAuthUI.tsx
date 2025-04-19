@@ -25,18 +25,24 @@ export const SupabaseAuthUI = ({
   const [currentView, setCurrentView] = useState<SupabaseAuthUIView>(view);
 
   useEffect(() => {
-    // Simple check for recovery token in URL
+    // Check for recovery token in URL
     const hash = window.location.hash;
     const searchParams = new URLSearchParams(window.location.search);
     const type = searchParams.get('type');
+    const token = searchParams.get('token');
     
     console.log("SupabaseAuthUI - URL detection:", { 
       hash, 
       type,
+      token: token ? "token present" : "no token",
       pathname: location.pathname
     });
 
-    if (type === 'recovery' || hash.includes('type=recovery') || location.pathname === '/auth/update-password') {
+    if (
+      (type === 'recovery' || hash.includes('type=recovery')) || 
+      (token && type === 'recovery') ||
+      location.pathname === '/auth/update-password'
+    ) {
       console.log("Setting view to update_password");
       setCurrentView('update_password');
     }
@@ -48,7 +54,7 @@ export const SupabaseAuthUI = ({
     appearance: { theme: ThemeSupa },
     providers: [],
     view: currentView,
-    redirectTo: redirectTo,
+    redirectTo: redirectTo || `${window.location.origin}/auth/update-password`,
     showLinks: false,
     onlyThirdPartyProviders: false,
     forgotPasswordProps: {
