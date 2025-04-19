@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, createUserRole, createPatientDetails } from '@/integrations/supabase/client';
@@ -31,16 +32,25 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
+      console.log("Attempting to update password");
       const { data, error } = await supabase.auth.updateUser({
         password: newPassword
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Password update error:", error);
+        throw error;
+      }
 
+      console.log("Password updated successfully");
+      
+      // Sign out the user after successful password change
       await supabase.auth.signOut();
       
       toast.success("Password updated successfully! Please log in with your new password.");
-      navigate('/auth');
+      setTimeout(() => {
+        navigate('/auth');
+      }, 1500);
       
       return true;
     } catch (error: any) {
@@ -59,14 +69,21 @@ export const useAuthHandlers = () => {
     setError(null);
     
     try {
+      // Get the correct redirect URL for the current environment
       const redirectUrl = getAuthRedirectUrl('/auth/reset-password');
+      
+      console.log("Sending password reset email with redirect URL:", redirectUrl);
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Password reset email error:", error);
+        throw error;
+      }
       
+      console.log("Password reset email sent successfully");
       toast.success("Password reset instructions sent to your email");
     } catch (err: any) {
       console.error("Password reset error:", err);
