@@ -1,3 +1,4 @@
+
 export const getBaseUrl = (): string => {
   const protocol = window.location.protocol;
   const hostname = window.location.hostname;
