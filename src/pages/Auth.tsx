@@ -14,7 +14,10 @@ const Auth = () => {
   
   // Extract and validate auth parameters
   const rawView = searchParams.get('view');
-  const view = (rawView as AuthView) || "sign_in";
+  // Ensure view is a valid AuthView type or default to sign_in
+  const view: AuthView = rawView as AuthView && ['sign_in', 'sign_up', 'magic_link', 'forgotten_password', 'update_password'].includes(rawView as string) 
+    ? (rawView as AuthView) 
+    : "sign_in";
   const token = searchParams.get('token') || searchParams.get('access_token');
   const type = searchParams.get('type');
   const isRegistration = window.location.pathname.includes('/register');
