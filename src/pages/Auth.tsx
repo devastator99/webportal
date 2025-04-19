@@ -1,13 +1,16 @@
 
 import { useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { LucideLoader2 } from "lucide-react";
+import { useAuthHandlers } from "@/hooks/useAuthHandlers";
+import { toast } from "sonner";
 
 const Auth = () => {
   const { user, isLoading } = useAuth();
+  const { handleSignUp, error, loading, setError } = useAuthHandlers();
   const navigate = useNavigate();
   const isRegistration = window.location.pathname.includes('/register');
 
@@ -26,6 +29,29 @@ const Auth = () => {
       }
     };
   }, [user, isLoading, navigate]);
+
+  // Handle signup form submission
+  const handleFormSubmit = async (
+    email: string, 
+    password: string, 
+    userType?: string, 
+    firstName?: string, 
+    lastName?: string,
+    patientData?: any
+  ) => {
+    try {
+      await toast.promise(
+        handleSignUp(email, password, userType as any, firstName, lastName, patientData),
+        {
+          loading: 'Creating your account...',
+          success: 'Account created successfully! Redirecting to dashboard...',
+          error: (err) => `Registration failed: ${err.message || 'Please try again'}`
+        }
+      );
+    } catch (error: any) {
+      console.error("Registration error:", error);
+    }
+  };
 
   // Show loading state
   if (isLoading) {
@@ -52,9 +78,9 @@ const Auth = () => {
           {isRegistration ? (
             <AuthForm 
               type="register"
-              onSubmit={async () => {}} // Will be handled by AuthForm's internal logic
-              error={null}
-              loading={false}
+              onSubmit={handleFormSubmit}
+              error={error}
+              loading={loading}
             />
           ) : (
             <SupabaseAuthUI 

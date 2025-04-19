@@ -54,28 +54,6 @@ export const LoginDialog = () => {
     }
   };
 
-  // Handle forgot password - close dialog and redirect to dedicated page
-  const handleForgotPassword = async (email: string): Promise<void> => {
-    console.log("Forgot password clicked, closing dialog...");
-    
-    // Set dialog to closed immediately
-    setIsDialogOpen(false);
-    
-    // Use a promise to ensure the dialog is closed before navigating
-    return new Promise<void>((resolve) => {
-      // Use a small timeout to ensure the state update has processed
-      setTimeout(() => {
-        const resetUrl = email 
-          ? `/auth?mode=reset&email=${encodeURIComponent(email)}`
-          : '/auth?mode=reset';
-        
-        console.log("Navigating to password reset page:", resetUrl);
-        navigate(resetUrl);
-        resolve();
-      }, 150); // Increased delay to ensure dialog closes first
-    });
-  };
-
   return (
     <Dialog 
       open={isDialogOpen} 
@@ -112,7 +90,6 @@ export const LoginDialog = () => {
           <AuthForm
             type={isLoginMode ? "login" : "register"}
             onSubmit={handleFormSubmit}
-            onResetPassword={handleForgotPassword}
             error={error}
             loading={loading}
           />
