@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
@@ -17,31 +16,25 @@ import { TokenService } from "@/services/tokenService";
 const Auth = () => {
   const { user, isLoading, userRole } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  const [searchParams] = useSearchParams();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [shouldShowDoctorForm, setShouldShowDoctorForm] = useState(false);
   const { loading, error, handleLogin, handleSignUp, handleTestLogin, setError, handleResetPassword } = useAuthHandlers();
 
-  const isResetFlow = TokenService.isRecoveryFlow();
-  const isPasswordResetPath = TokenService.isPasswordResetPath();
-  const showPasswordUpdateForm = isResetFlow || isPasswordResetPath;
+  const isPasswordUpdatePath = TokenService.isPasswordUpdatePath();
 
   useEffect(() => {
-    const checkPasswordReset = async () => {
-      if (isResetFlow) {
-        const token = TokenService.extractRecoveryToken();
-        if (token) {
-          const isValid = await TokenService.verifyRecoveryToken(token);
-          if (!isValid) {
-            navigate('/auth');
-          }
+    const checkUserAccess = async () => {
+      if (isPasswordUpdatePath) {
+        const hasValidSession = await TokenService.checkUserSession();
+        if (!hasValidSession) {
+          toast.error("Please log in to update your password");
+          navigate('/auth');
         }
       }
     };
 
-    checkPasswordReset();
-  }, [navigate]);
+    checkUserAccess();
+  }, [navigate, isPasswordUpdatePath]);
 
   useEffect(() => {
     const checkDoctorProfile = async () => {
@@ -63,7 +56,7 @@ const Auth = () => {
         }
 
         navigate("/dashboard");
-      } else if (user && !showPasswordUpdateForm) {
+      } else if (user && !isPasswordUpdatePath) {
         navigate("/dashboard");
       }
     };
@@ -71,7 +64,7 @@ const Auth = () => {
     if (!isLoading) {
       checkDoctorProfile();
     }
-  }, [user, userRole, navigate, isLoading, showPasswordUpdateForm]);
+  }, [user, userRole, navigate, isLoading, isPasswordUpdatePath]);
 
   if (isLoading) {
     return (
@@ -81,7 +74,7 @@ const Auth = () => {
     );
   }
 
-  if (showPasswordUpdateForm) {
+  if (isPasswordUpdatePath) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -102,15 +95,7 @@ const Auth = () => {
     );
   }
 
-  if (user && shouldShowDoctorForm) {
-    return (
-      <div className="pt-16 md:pt-20">
-        <DoctorProfileForm />
-      </div>
-    );
-  }
-
-  if (user && !showPasswordUpdateForm) {
+  if (user && !isPasswordUpdatePath) {
     return null;
   }
 

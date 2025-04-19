@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,8 +10,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { TokenService } from '@/services/tokenService';
 
 const passwordSchema = z.object({
   password: z.string()
@@ -30,33 +28,6 @@ export const UpdatePasswordForm = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { handleUpdatePassword, loading: isSubmitting } = useAuthHandlers();
-  const [sessionVerified, setSessionVerified] = useState(false);
-  
-  useEffect(() => {
-    const verifySession = async () => {
-      const token = TokenService.extractRecoveryToken();
-      
-      if (token) {
-        const isValid = await TokenService.verifyRecoveryToken(token);
-        if (isValid) {
-          setSessionVerified(true);
-          toast.success("Recovery verified. Please set your new password.");
-        } else {
-          navigate('/auth');
-        }
-      } else {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          toast.error("No valid reset session found");
-          navigate('/auth');
-        } else {
-          setSessionVerified(true);
-        }
-      }
-    };
-    
-    verifySession();
-  }, [navigate]);
 
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
@@ -67,11 +38,6 @@ export const UpdatePasswordForm = () => {
   });
 
   const onSubmit = async (data: PasswordFormValues) => {
-    if (!sessionVerified) {
-      toast.error("Please wait while we verify your session");
-      return;
-    }
-
     try {
       const success = await handleUpdatePassword(data.password);
       if (success) {
@@ -83,15 +49,6 @@ export const UpdatePasswordForm = () => {
       toast.error(error.message || "Failed to update password");
     }
   };
-
-  if (!sessionVerified) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <div className="animate-spin h-8 w-8 border-4 border-purple-500 rounded-full border-t-transparent"></div>
-        <span className="ml-3">Verifying session...</span>
-      </div>
-    );
-  }
 
   return (
     <Form {...form}>
@@ -153,7 +110,7 @@ export const UpdatePasswordForm = () => {
         <Button 
           type="submit" 
           className="w-full mt-6" 
-          disabled={isSubmitting || !sessionVerified}
+          disabled={isSubmitting}
         >
           {isSubmitting ? (
             <>
