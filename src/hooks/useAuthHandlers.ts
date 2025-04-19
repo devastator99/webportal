@@ -145,8 +145,8 @@ export const useAuthHandlers = () => {
       const envInfo = getEnvironmentInfo();
       console.log("Environment information for password reset:", envInfo);
 
-      // Use getAuthRedirectUrl which has validation and fallbacks
-      const redirectUrl = getAuthRedirectUrl('/auth?type=recovery');
+      // Use the direct update-password path for reset
+      const redirectUrl = getAuthRedirectUrl('/auth/update-password');
       console.log("Final redirect URL for password reset:", redirectUrl);
 
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
