@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, createUserRole, createPatientDetails } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { User } from '@supabase/supabase-js';
-import { getAuthRedirectUrl } from '@/utils/environmentUtils';
 
 export interface PatientData {
   age: string;
@@ -24,63 +23,6 @@ export const useAuthHandlers = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
-  
-  // Handle password update
-  const handleUpdatePassword = async (newPassword: string): Promise<boolean> => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      console.log("Attempting to update password");
-      const { data, error } = await supabase.auth.updateUser({
-        password: newPassword
-      });
-
-      if (error) {
-        console.error("Password update error:", error);
-        throw error;
-      }
-
-      console.log("Password updated successfully");
-      return true;
-    } catch (error: any) {
-      console.error('Password update error:', error);
-      setError(error.message);
-      throw error;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Handle password reset
-  const handleResetPassword = async (email: string) => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Get the correct redirect URL for the current environment
-      const redirectUrl = getAuthRedirectUrl('/auth/reset-password');
-      
-      console.log("Sending password reset email with redirect URL:", redirectUrl);
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
-      });
-      
-      if (error) {
-        console.error("Password reset email error:", error);
-        throw error;
-      }
-      
-      console.log("Password reset email sent successfully");
-    } catch (err: any) {
-      console.error("Password reset error:", err);
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Handle Sign Up
   const handleSignUp = async (
@@ -230,8 +172,6 @@ export const useAuthHandlers = () => {
     error,
     handleLogin,
     handleSignUp,
-    handleResetPassword,
-    handleUpdatePassword,
     handleTestLogin,
     setError,
   };
