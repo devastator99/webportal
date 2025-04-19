@@ -7,7 +7,7 @@ export class TokenService {
   static async verifyRecoveryToken(token: string): Promise<boolean> {
     try {
       console.log("Verifying recovery token");
-      const { error } = await supabase.auth.verifyOtp({
+      const { data, error } = await supabase.auth.verifyOtp({
         token_hash: token,
         type: 'recovery'
       });
@@ -37,6 +37,18 @@ export class TokenService {
 
   static isRecoveryFlow(): boolean {
     const params = new URLSearchParams(window.location.search);
-    return params.get('type') === 'recovery';
+    const type = params.get('type');
+    const token = params.get('token');
+    const hash = window.location.hash;
+    
+    return (
+      type === 'recovery' || 
+      (hash && hash.includes('type=recovery')) ||
+      (token && type === 'recovery')
+    );
+  }
+
+  static isPasswordResetPath(): boolean {
+    return window.location.pathname === '/auth/update-password';
   }
 }

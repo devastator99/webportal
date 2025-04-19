@@ -22,12 +22,13 @@ const Auth = () => {
   const [shouldShowDoctorForm, setShouldShowDoctorForm] = useState(false);
   const { loading, error, handleLogin, handleSignUp, handleTestLogin, setError, handleResetPassword } = useAuthHandlers();
 
-  // Check if we're on the update password path
-  const isPasswordUpdateMode = location.pathname === '/auth/update-password' || TokenService.isRecoveryFlow();
+  const isResetFlow = TokenService.isRecoveryFlow();
+  const isPasswordResetPath = TokenService.isPasswordResetPath();
+  const showPasswordResetForm = isResetFlow || isPasswordResetPath;
 
   useEffect(() => {
     const checkPasswordReset = async () => {
-      if (TokenService.isRecoveryFlow()) {
+      if (isResetFlow) {
         const token = TokenService.extractRecoveryToken();
         if (token) {
           const isValid = await TokenService.verifyRecoveryToken(token);
@@ -61,7 +62,7 @@ const Auth = () => {
         }
 
         navigate("/dashboard");
-      } else if (user && !isPasswordUpdateMode) {
+      } else if (user && !showPasswordResetForm) {
         navigate("/dashboard");
       }
     };
@@ -69,7 +70,7 @@ const Auth = () => {
     if (!isLoading) {
       checkDoctorProfile();
     }
-  }, [user, userRole, navigate, isLoading, isPasswordUpdateMode]);
+  }, [user, userRole, navigate, isLoading, showPasswordResetForm]);
 
   if (isLoading) {
     return (
@@ -79,15 +80,7 @@ const Auth = () => {
     );
   }
 
-  if (user && shouldShowDoctorForm) {
-    return (
-      <div className="pt-16 md:pt-20">
-        <DoctorProfileForm />
-      </div>
-    );
-  }
-
-  if (isPasswordUpdateMode) {
+  if (showPasswordResetForm) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -108,7 +101,15 @@ const Auth = () => {
     );
   }
 
-  if (user && !isPasswordUpdateMode) {
+  if (user && shouldShowDoctorForm) {
+    return (
+      <div className="pt-16 md:pt-20">
+        <DoctorProfileForm />
+      </div>
+    );
+  }
+
+  if (user && !showPasswordResetForm) {
     return null;
   }
 

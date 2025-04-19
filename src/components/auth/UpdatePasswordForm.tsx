@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -66,11 +67,15 @@ export const UpdatePasswordForm = () => {
   });
 
   const onSubmit = async (data: PasswordFormValues) => {
+    if (!sessionVerified) {
+      toast.error("Please wait while we verify your session");
+      return;
+    }
+
     try {
-      console.log("Submitting password update");
       const success = await handleUpdatePassword(data.password);
       if (success) {
-        toast.success("Password updated successfully!");
+        toast.success("Password updated successfully! Please log in with your new password.");
         navigate('/auth');
       }
     } catch (error: any) {
@@ -79,7 +84,7 @@ export const UpdatePasswordForm = () => {
     }
   };
 
-  if (!sessionVerified && isSubmitting) {
+  if (!sessionVerified) {
     return (
       <div className="flex justify-center items-center py-8">
         <div className="animate-spin h-8 w-8 border-4 border-purple-500 rounded-full border-t-transparent"></div>
@@ -148,7 +153,7 @@ export const UpdatePasswordForm = () => {
         <Button 
           type="submit" 
           className="w-full mt-6" 
-          disabled={isSubmitting}
+          disabled={isSubmitting || !sessionVerified}
         >
           {isSubmitting ? (
             <>
