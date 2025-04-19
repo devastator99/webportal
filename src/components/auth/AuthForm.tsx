@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { LucideLoader2 } from "lucide-react";
+import { LucideLoader2, Calendar as CalendarIcon } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
