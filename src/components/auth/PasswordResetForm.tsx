@@ -94,7 +94,7 @@ export const PasswordResetForm = ({ onClose }: PasswordResetFormProps) => {
             render={({ slots }) => (
               <InputOTPGroup className="gap-2">
                 {slots.map((slot, index) => (
-                  <InputOTPSlot key={index} {...slot} />
+                  <InputOTPSlot key={index} {...slot} index={index} />
                 ))}
               </InputOTPGroup>
             )}
