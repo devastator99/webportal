@@ -1,10 +1,9 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
-import { getEnvironmentInfo } from "@/utils/environmentUtils";
+import { getAuthRedirectUrl, getEnvironmentInfo } from "@/utils/environmentUtils";
 
 interface PasswordResetFormProps {
   initialEmail?: string;
@@ -16,7 +15,6 @@ export const PasswordResetForm = ({ initialEmail = "" }: PasswordResetFormProps)
   const resetSent = searchParams.get('reset_sent') === 'true';
   
   useEffect(() => {
-    // Log environment info on component mount to help with debugging
     const envInfo = getEnvironmentInfo();
     console.log("Environment information for password reset:", envInfo);
   }, []);
@@ -48,7 +46,7 @@ export const PasswordResetForm = ({ initialEmail = "" }: PasswordResetFormProps)
     <div className="space-y-4">
       <SupabaseAuthUI 
         view="forgotten_password" 
-        redirectTo="https://anubhooti-phase1.lovable.app/auth/update-password"
+        redirectTo={getAuthRedirectUrl('/auth/update-password')}
         onSuccess={() => {
           console.log("Password reset email sent successfully");
           navigate('/auth?reset_sent=true');

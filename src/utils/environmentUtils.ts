@@ -1,17 +1,23 @@
-
 /**
  * Utilities for handling environment-specific configuration
  * and URL management across different deployment environments.
  */
 
+const PRODUCTION_URL = 'https://anubhooti-phase1.lovable.app';
+
 /**
- * Gets the appropriate base URL for auth redirects based on the current environment
+ * Gets the appropriate base URL based on the current environment
  */
 export const getBaseUrl = (): string => {
   // Get the current hostname
   const hostname = window.location.hostname;
   const protocol = window.location.protocol;
   const port = window.location.port;
+  
+  // For password reset and auth operations in production, always return production URL
+  if (hostname.includes('lovable.app')) {
+    return PRODUCTION_URL;
+  }
   
   // Handle localhost development environment
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
@@ -20,7 +26,6 @@ export const getBaseUrl = (): string => {
   
   // Check for preview/staging environments (lovable.dev subdomains)
   if (hostname.includes('lovable.dev')) {
-    // This is a lovable.dev preview environment
     console.log(`Detected lovable.dev environment: ${hostname}`);
     return `${protocol}//${hostname}`;
   }
@@ -37,30 +42,16 @@ export const getBaseUrl = (): string => {
     return `${protocol}//${hostname}`;
   }
   
-  // Check for lovableproject.com environment
-  if (hostname.includes('lovableproject.com')) {
-    console.log(`Detected lovableproject.com environment: ${hostname}`);
-    return `${protocol}//${hostname}`;
-  }
-  
-  // Check for lovable.app environment (production)
-  if (hostname.includes('lovable.app')) {
-    console.log(`Detected lovable.app production environment: ${hostname}`);
-    return `${protocol}//${hostname}`;
-  }
-  
-  // Handle production or other environments with custom domains
-  console.log(`Using production environment URL: ${protocol}//${hostname}${port ? ':' + port : ''}`);
-  return `${protocol}//${hostname}${port ? ':' + port : ''}`;
+  // For all other cases in production, use the production URL
+  console.log(`Using production URL: ${PRODUCTION_URL}`);
+  return PRODUCTION_URL;
 };
 
 /**
- * Validates a URL string to ensure it's properly formatted
- * Returns null if invalid, the URL string if valid
+ * Validates a URL string
  */
 export const validateUrl = (url: string): string | null => {
   try {
-    // Check if URL is valid by attempting to create a URL object
     new URL(url);
     return url;
   } catch (e) {
@@ -71,39 +62,15 @@ export const validateUrl = (url: string): string | null => {
 
 /**
  * Creates a fully qualified URL for authentication redirects
- * This ensures URLs work correctly across all environments
  */
 export const getAuthRedirectUrl = (path: string = '/auth'): string => {
-  // For password reset functionality, always use the production URL
-  if (path === '/auth/update-password' || path.includes('recovery')) {
-    const productionUrl = 'https://anubhooti-phase1.lovable.app';
-    const redirectPath = path.startsWith('/') ? path : `/${path}`;
-    const fullUrl = `${productionUrl}${redirectPath}`;
-    
-    console.log(`Using production URL for password reset redirect: ${fullUrl}`);
-    return fullUrl;
-  }
-  
-  const baseUrl = getBaseUrl();
-  // Ensure path starts with a slash if not already
+  // Always use production URL for auth-related operations
+  const baseUrl = PRODUCTION_URL;
   const redirectPath = path.startsWith('/') ? path : `/${path}`;
+  const fullUrl = `${baseUrl}${redirectPath}`;
   
-  const fullRedirectUrl = `${baseUrl}${redirectPath}`;
-  
-  // Validate the URL before returning
-  const validatedUrl = validateUrl(fullRedirectUrl);
-  if (!validatedUrl) {
-    console.error(`Generated invalid auth redirect URL: ${fullRedirectUrl}`);
-    
-    // Fallback to origin if we generated an invalid URL
-    const fallbackUrl = `${window.location.origin}${redirectPath}`;
-    console.log(`Using fallback URL instead: ${fallbackUrl}`);
-    return fallbackUrl;
-  }
-  
-  // Log for debugging purposes
-  console.log(`Creating auth redirect URL: ${validatedUrl}`);
-  return validatedUrl;
+  console.log(`Creating auth redirect URL: ${fullUrl}`);
+  return fullUrl;
 };
 
 /**

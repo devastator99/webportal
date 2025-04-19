@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { supabase, createUserRole, createPatientDetails } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { formatDateForDatabase } from "@/utils/dateUtils";
 import { getAuthRedirectUrl } from "@/utils/environmentUtils";
 
 type UserRole = "patient" | "doctor" | "nutritionist" | "administrator";
@@ -141,20 +140,20 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      const redirectUrl = 'https://anubhooti-phase1.lovable.app/auth/update-password';
-      console.log("Using hardcoded production URL for password reset:", redirectUrl);
+      const resetRedirectUrl = getAuthRedirectUrl('/auth/update-password');
+      console.log("Password reset redirect URL:", resetRedirectUrl);
 
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl
+        redirectTo: resetRedirectUrl
       });
-
-      console.log("Password reset response:", { data, error });
 
       if (error) {
         console.error("Reset password API error:", error);
         throw error;
       }
 
+      console.log("Password reset response:", { data });
+      
       uiToast({
         title: "Password reset email sent",
         description: "Check your email for a password reset link. It will expire in 1 hour."
@@ -165,21 +164,12 @@ export const useAuthHandlers = () => {
       navigate('/auth?reset_sent=true');
     } catch (error: any) {
       console.error('Password reset error:', error);
-      
-      let errorMessage = error.message || "Failed to send reset email";
-      if (error.status) {
-        errorMessage += ` (Status: ${error.status})`;
-      }
-      
-      setError(errorMessage);
-      
+      setError(error.message);
       uiToast({
         variant: "destructive",
         title: "Password reset failed",
-        description: errorMessage
+        description: error.message
       });
-      
-      toast.error(`Password reset failed: ${errorMessage}`);
       throw error;
     } finally {
       setLoading(false);
