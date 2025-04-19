@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Auth } from '@supabase/auth-ui-react';
@@ -25,7 +24,6 @@ export const SupabaseAuthUI = ({
   const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState(view);
   
-  // Log environment info and URL info on component mount
   useEffect(() => {
     const envInfo = getEnvironmentInfo();
     const pathname = location.pathname;
@@ -40,7 +38,6 @@ export const SupabaseAuthUI = ({
       envInfo 
     });
     
-    // Detect password reset flow from URL path, hash or query params
     const isPasswordReset = 
       pathname === '/auth/update-password' ||
       (hash && hash.includes('type=recovery')) || 
@@ -91,12 +88,11 @@ export const SupabaseAuthUI = ({
     return <div className="p-4 text-center">Loading auth UI...</div>;
   }
 
-  // Get the proper redirect URL for auth flow
   const finalRedirectTo = redirectTo 
     ? getAuthRedirectUrl(redirectTo)
     : currentView === 'update_password' || currentView === 'forgotten_password'
-      ? getAuthRedirectUrl('/auth/update-password') // Always redirect to update-password for password reset flows
-      : getAuthRedirectUrl('/auth'); // Default redirect location
+      ? getAuthRedirectUrl('/auth/update-password')
+      : getAuthRedirectUrl('/auth');
 
   console.log("Rendering SupabaseAuthUI with view:", currentView, "and redirectTo:", finalRedirectTo);
 

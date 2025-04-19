@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { supabase, createUserRole, createPatientDetails } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -145,7 +146,8 @@ export const useAuthHandlers = () => {
       const envInfo = getEnvironmentInfo();
       console.log("Environment information for password reset:", envInfo);
 
-      // Use the direct update-password path for reset
+      // Ensure we use the explicit update-password path for reset
+      // This is the critical fix - use the full URL with /auth/update-password
       const redirectUrl = getAuthRedirectUrl('/auth/update-password');
       console.log("Final redirect URL for password reset:", redirectUrl);
 
