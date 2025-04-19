@@ -37,6 +37,12 @@ export const getBaseUrl = (): string => {
     return `${protocol}//${hostname}`;
   }
   
+  // Check for lovableproject.com environment
+  if (hostname.includes('lovableproject.com')) {
+    console.log(`Detected lovableproject.com environment: ${hostname}`);
+    return `${protocol}//${hostname}`;
+  }
+  
   // Handle production or other environments with custom domains
   console.log(`Using production environment URL: ${protocol}//${hostname}${port ? ':' + port : ''}`);
   return `${protocol}//${hostname}${port ? ':' + port : ''}`;
@@ -111,6 +117,14 @@ export const getProjectId = (): string | null => {
   if (hostname.includes('lovable.dev')) {
     // Extract the project ID from the subdomain, including any preview or other variants
     const match = hostname.match(/^([a-z0-9-]+)(-preview|-[a-z0-9]+)?\.lovable\.dev$/);
+    if (match && match[1]) {
+      return match[1];
+    }
+  }
+  
+  // Check for lovableproject.com environment
+  if (hostname.includes('lovableproject.com')) {
+    const match = hostname.match(/^([a-z0-9-]+(-[a-z0-9-]+)?)\.lovableproject\.com$/);
     if (match && match[1]) {
       return match[1];
     }

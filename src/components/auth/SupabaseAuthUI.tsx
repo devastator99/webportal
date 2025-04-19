@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
-import { getAuthRedirectUrl } from '@/utils/environmentUtils';
+import { getAuthRedirectUrl, getEnvironmentInfo } from '@/utils/environmentUtils';
 import { toast } from 'sonner';
 
 interface SupabaseAuthUIProps {
@@ -22,6 +22,12 @@ export const SupabaseAuthUI = ({
 }: SupabaseAuthUIProps) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Log environment info on component mount
+  useEffect(() => {
+    const envInfo = getEnvironmentInfo();
+    console.log("SupabaseAuthUI environment info:", envInfo);
+  }, []);
   
   // We use this effect to detect password reset successes
   useEffect(() => {

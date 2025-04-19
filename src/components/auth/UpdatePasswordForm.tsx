@@ -7,6 +7,7 @@ import { SupabaseAuthUI } from '@/components/auth/SupabaseAuthUI';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { getEnvironmentInfo } from '@/utils/environmentUtils';
 
 export const UpdatePasswordForm = () => {
   const [useCustomForm, setUseCustomForm] = useState(false);
@@ -15,10 +16,22 @@ export const UpdatePasswordForm = () => {
   const [isTokenValid, setIsTokenValid] = useState<boolean | null>(null);
   const [isChecking, setIsChecking] = useState(true);
   
+  // Log environment info on mount for debugging
+  useEffect(() => {
+    const envInfo = getEnvironmentInfo();
+    console.log("UpdatePasswordForm environment info:", envInfo);
+  }, []);
+  
   // Check if the token in the URL is valid
   useEffect(() => {
     const checkResetToken = async () => {
       try {
+        // Log the URL hash if present
+        const urlHash = window.location.hash;
+        if (urlHash) {
+          console.log("URL hash detected:", urlHash);
+        }
+        
         // This will check if there's a valid hash for password reset in the URL
         const { data, error } = await supabase.auth.getUser();
         
