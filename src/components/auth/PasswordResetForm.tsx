@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { toast } from "sonner";
-import { getAuthRedirectUrl, getEnvironmentInfo } from "@/utils/environmentUtils";
+import { getAuthRedirectUrl, getEnvironmentInfo, getBaseUrl } from "@/utils/environmentUtils";
 
 interface PasswordResetFormProps {
   initialEmail?: string;
@@ -22,9 +22,15 @@ export const PasswordResetForm = ({ initialEmail = "" }: PasswordResetFormProps)
     const envInfo = getEnvironmentInfo();
     console.log("Environment information for password reset:", envInfo);
     
-    // Log the redirect URL that will be used - ensure it points to update-password
-    const redirectUrl = getAuthRedirectUrl('/auth/update-password');
-    console.log("Redirect URL for password reset:", redirectUrl);
+    // IMPORTANT: Log the exact URL that will be used for password reset redirects
+    const baseUrl = getBaseUrl();
+    const redirectPath = '/auth/update-password';
+    const redirectUrl = `${baseUrl}${redirectPath}`;
+    console.log("Direct URL for password reset redirect:", redirectUrl);
+    
+    // Also log the URL from utility function for comparison
+    const utilityRedirectUrl = getAuthRedirectUrl('/auth/update-password');
+    console.log("Utility-generated URL for password reset:", utilityRedirectUrl);
   }, []);
   
   console.log("PasswordResetForm rendered with initialEmail:", initialEmail, "resetSent:", resetSent);

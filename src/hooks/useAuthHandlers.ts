@@ -146,10 +146,12 @@ export const useAuthHandlers = () => {
       const envInfo = getEnvironmentInfo();
       console.log("Environment information for password reset:", envInfo);
 
-      // Ensure we use the explicit update-password path for reset
-      // This is the critical fix - use the full URL with /auth/update-password
-      const redirectUrl = getAuthRedirectUrl('/auth/update-password');
-      console.log("Final redirect URL for password reset:", redirectUrl);
+      // CRITICAL FIX: Explicitly use the full URL path to ensure proper redirection
+      const baseUrl = getBaseUrl();
+      const redirectPath = '/auth/update-password';
+      const redirectUrl = `${baseUrl}${redirectPath}`;
+      
+      console.log("Using direct URL for password reset redirect:", redirectUrl);
 
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
