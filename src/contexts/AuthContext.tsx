@@ -38,13 +38,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<UserRole | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [authInitialized, setAuthInitialized] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast: uiToast } = useToast();
   const inactivityTimerRef = useRef<number | null>(null);
-  const retryCountRef = useRef(0);
-  const maxRetries = 3;
+  const roleFetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitialMount = useRef(true);
 
   const resetInactivityTimer = () => {
     if (inactivityTimerRef.current) {
@@ -61,7 +60,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const fetchUserRole = async (userId: string) => {
+  const fetchUserRole = async (userId: string): Promise<UserRole | null> => {
     try {
       console.log("[AuthContext] Fetching role for user:", userId);
       setAuthError(null);
@@ -71,83 +70,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           lookup_user_id: userId
         });
 
-      console.log("[AuthContext] Role fetch response:", { data, error });
-
       if (error) {
         console.error("[AuthContext] Error fetching user role:", error);
         setAuthError(`Error fetching user role: ${error.message}`);
-        if (retryCountRef.current < maxRetries) {
-          retryCountRef.current++;
-          console.log(`[AuthContext] Retry attempt ${retryCountRef.current}/${maxRetries}`);
-          return await new Promise((resolve) => {
-            setTimeout(async () => {
-              const retryResult = await fetchUserRole(userId);
-              resolve(retryResult);
-            }, 1000); // Wait 1 second before retrying
-          });
-        } else {
-          uiToast({
-            variant: "destructive",
-            description: `We couldn't determine your user role: ${error.message}`,
-          });
-        }
         return null;
       }
-
-      retryCountRef.current = 0;
 
       if (!data || data.length === 0) {
         console.warn("[AuthContext] No role data returned for user:", userId);
         setAuthError("No role assigned to your account");
-        uiToast({
-          variant: "destructive",
-          description: "Your account doesn't have an assigned role. Please contact an administrator.",
-        });
         return null;
       }
 
-      const roleValue = data[0]?.role;
+      const roleValue = data[0]?.role as UserRole;
       console.log("[AuthContext] Resolved role:", roleValue);
       
-      if (roleValue) {
-        toast("Role detected", {
-          description: `You are logged in as: ${roleValue}`,
-        });
-      }
-      
-      return roleValue as UserRole;
+      return roleValue;
     } catch (error: any) {
       console.error("[AuthContext] Exception in fetchUserRole:", error);
-      const errorMessage = error?.message || "Unknown error fetching role";
-      setAuthError(`Error fetching user role: ${errorMessage}`);
-      uiToast({
-        variant: "destructive",
-        description: `Failed to get your user role: ${errorMessage}`,
-      });
+      setAuthError(`Error fetching user role: ${error.message}`);
       return null;
-    }
-  };
-
-  const retryRoleFetch = async () => {
-    if (!user) return;
-    
-    console.log("[AuthContext] Retrying role fetch for user:", user.id);
-    setIsLoading(true);
-    setAuthError(null);
-    
-    try {
-      const role = await fetchUserRole(user.id);
-      if (role) {
-        console.log("[AuthContext] Role fetch retry successful:", role);
-        setUserRole(role as UserRole);
-        setAuthError(null);
-      } else {
-        console.log("[AuthContext] Role fetch retry failed: No role found");
-      }
-    } catch (error) {
-      console.error("[AuthContext] Error in retryRoleFetch:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -156,107 +98,69 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     try {
       if (currentSession?.user) {
-        console.log("[AuthContext] User in session:", currentSession.user.id);
         setUser(currentSession.user);
         setSession(currentSession);
         
-        try {
-          console.log("[AuthContext] Attempting to fetch role");
-          const role = await fetchUserRole(currentSession.user.id);
-          
-          console.log("[AuthContext] Role after fetch:", role);
-          
-          if (role) {
-            console.log("[AuthContext] Setting role to:", role);
-            setUserRole(role as UserRole);
-          } else {
-            console.warn("[AuthContext] No role found, setting to null");
-            setUserRole(null);
-          }
-        } catch (roleError) {
-          console.error("[AuthContext] Error in role fetching process:", roleError);
-          setUserRole(null);
-          setAuthError(`Error fetching role: ${roleError instanceof Error ? roleError.message : 'Unknown error'}`);
+        // Clear any existing role fetch timeout
+        if (roleFetchTimeoutRef.current) {
+          clearTimeout(roleFetchTimeoutRef.current);
         }
+        
+        // Debounce role fetching
+        roleFetchTimeoutRef.current = setTimeout(async () => {
+          const role = await fetchUserRole(currentSession.user.id);
+          if (role) {
+            setUserRole(role);
+            setAuthError(null);
+          }
+          setIsLoading(false);
+        }, 100);
         
         resetInactivityTimer();
       } else {
-        console.log("[AuthContext] No user in session, clearing user and role");
         setUser(null);
         setSession(null);
         setUserRole(null);
         setAuthError(null);
+        setIsLoading(false);
         
         if (inactivityTimerRef.current) {
           window.clearTimeout(inactivityTimerRef.current);
-          inactivityTimerRef.current = null;
         }
       }
     } catch (error) {
       console.error("[AuthContext] Error in handleAuthStateChange:", error);
-      setAuthError(`Authentication error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-    } finally {
-      console.log("[AuthContext] Auth state change processing complete");
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    console.log("[AuthContext] Initializing auth context");
+    console.log("[AuthContext] Setting up auth subscription");
     
-    try {
-      console.log("[AuthContext] Setting up auth state change subscription");
-      
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        console.log("[AuthContext] Auth state change event:", _event);
-        if (_event === 'PASSWORD_RECOVERY') {
-          console.log("[AuthContext] Password recovery event detected");
-        }
-        
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      handleAuthStateChange(session);
+    });
+
+    // Only check session on initial mount
+    if (isInitialMount.current) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
         handleAuthStateChange(session);
       });
-
-      const checkSession = async () => {
-        console.log("[AuthContext] Checking session");
-        
-        try {
-          console.log("[AuthContext] Awaiting session from Supabase");
-          const { data: { session } } = await supabase.auth.getSession();
-          
-          console.log("[AuthContext] Session check result:", session ? "session exists" : "no session");
-          await handleAuthStateChange(session);
-        } catch (error) {
-          console.error("[AuthContext] Error checking session:", error);
-          setAuthError(`Session check error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-          setIsLoading(false);
-        } finally {
-          console.log("[AuthContext] Auth initialization complete");
-          setAuthInitialized(true);
-          setIsLoading(false);
-        }
-      };
-      
-      checkSession();
-
-      return () => {
-        console.log("[AuthContext] Cleaning up auth subscription");
-        
-        if (inactivityTimerRef.current) {
-          window.clearTimeout(inactivityTimerRef.current);
-        }
-        subscription.unsubscribe();
-      };
-    } catch (error) {
-      console.error("[AuthContext] Error setting up auth subscription:", error);
-      setAuthError(`Auth subscription error: ${error instanceof Error ? error.message : 'Unknown error'}`);
-      setIsLoading(false);
-      setAuthInitialized(true);
-      return () => {
-        if (inactivityTimerRef.current) {
-          window.clearTimeout(inactivityTimerRef.current);
-        }
-      };
+      isInitialMount.current = false;
     }
+
+    return () => {
+      console.log("[AuthContext] Cleaning up auth subscription");
+      subscription.unsubscribe();
+      
+      if (inactivityTimerRef.current) {
+        window.clearTimeout(inactivityTimerRef.current);
+      }
+      
+      if (roleFetchTimeoutRef.current) {
+        clearTimeout(roleFetchTimeoutRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -350,23 +254,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  if (!authInitialized) {
-    return (
-      <AuthContext.Provider value={{ 
-        user: null, 
-        session: null,
-        userRole: null, 
-        isLoading: true, 
-        signOut: async () => {}, 
-        resetInactivityTimer: () => {}, 
-        forceSignOut: async () => {},
-        authError: null,
-        retryRoleFetch: async () => {},
-      }}>
-        {children}
-      </AuthContext.Provider>
-    );
-  }
+  const retryRoleFetch = async () => {
+    if (!user) return;
+    
+    console.log("[AuthContext] Retrying role fetch for user:", user.id);
+    setIsLoading(true);
+    setAuthError(null);
+    
+    try {
+      const role = await fetchUserRole(user.id);
+      if (role) {
+        console.log("[AuthContext] Role fetch retry successful:", role);
+        setUserRole(role as UserRole);
+        setAuthError(null);
+      } else {
+        console.log("[AuthContext] Role fetch retry failed: No role found");
+      }
+    } catch (error) {
+      console.error("[AuthContext] Error in retryRoleFetch:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <AuthContext.Provider value={{ 

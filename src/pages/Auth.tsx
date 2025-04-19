@@ -11,18 +11,27 @@ const Auth = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
-  // Get the auth view and registration flag from URL params
   const view = searchParams.get('view') as "sign_in" | "magic_link" | "forgotten_password" | "update_password" || "sign_in";
   const isRegistration = window.location.pathname.includes('/register');
-  const token = searchParams.get('token'); // Get recovery token if present
+  const token = searchParams.get('token');
 
   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    
     if (!isLoading && user) {
-      navigate("/dashboard");
+      // Add a small delay before navigation to ensure state is properly updated
+      timeoutId = setTimeout(() => {
+        navigate("/dashboard");
+      }, 100);
     }
+    
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [user, isLoading, navigate]);
 
-  // Show loading state
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center pt-16 md:pt-20">
