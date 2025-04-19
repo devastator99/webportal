@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
-import { getAuthRedirectUrl, getEnvironmentInfo } from '@/utils/environmentUtils';
+import { getEnvironmentInfo } from '@/utils/environmentUtils';
 import { toast } from 'sonner';
 
 interface SupabaseAuthUIProps {
@@ -88,11 +89,10 @@ export const SupabaseAuthUI = ({
     return <div className="p-4 text-center">Loading auth UI...</div>;
   }
 
-  const finalRedirectTo = redirectTo 
-    ? getAuthRedirectUrl(redirectTo)
-    : currentView === 'update_password' || currentView === 'forgotten_password'
-      ? getAuthRedirectUrl('/auth/update-password')
-      : getAuthRedirectUrl('/auth');
+  // Always use the exact redirect URL for password reset operations
+  const finalRedirectTo = currentView === 'forgotten_password' || currentView === 'update_password'
+    ? 'https://anubhooti-phase1.lovable.app/auth/update-password'
+    : redirectTo || 'https://anubhooti-phase1.lovable.app/auth';
 
   console.log("Rendering SupabaseAuthUI with view:", currentView, "and redirectTo:", finalRedirectTo);
 

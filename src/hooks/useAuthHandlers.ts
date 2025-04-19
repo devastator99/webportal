@@ -141,8 +141,8 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      const redirectUrl = getAuthRedirectUrl('/auth/update-password');
-      console.log("Using redirect URL for password reset:", redirectUrl);
+      const redirectUrl = 'https://anubhooti-phase1.lovable.app/auth/update-password';
+      console.log("Using hardcoded production URL for password reset:", redirectUrl);
 
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl

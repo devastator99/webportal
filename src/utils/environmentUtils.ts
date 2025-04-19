@@ -74,6 +74,16 @@ export const validateUrl = (url: string): string | null => {
  * This ensures URLs work correctly across all environments
  */
 export const getAuthRedirectUrl = (path: string = '/auth'): string => {
+  // For password reset functionality, always use the production URL
+  if (path === '/auth/update-password' || path.includes('recovery')) {
+    const productionUrl = 'https://anubhooti-phase1.lovable.app';
+    const redirectPath = path.startsWith('/') ? path : `/${path}`;
+    const fullUrl = `${productionUrl}${redirectPath}`;
+    
+    console.log(`Using production URL for password reset redirect: ${fullUrl}`);
+    return fullUrl;
+  }
+  
   const baseUrl = getBaseUrl();
   // Ensure path starts with a slash if not already
   const redirectPath = path.startsWith('/') ? path : `/${path}`;
@@ -161,6 +171,7 @@ export const getEnvironmentInfo = (): Record<string, any> => {
   const href = window.location.href;
   const baseUrl = getBaseUrl();
   const authRedirectUrl = getAuthRedirectUrl();
+  const passwordResetUrl = getAuthRedirectUrl('/auth/update-password');
   const projectId = getProjectId();
 
   return {
@@ -172,9 +183,11 @@ export const getEnvironmentInfo = (): Record<string, any> => {
     currentUrl: href,
     baseUrl,
     authRedirectUrl,
+    passwordResetUrl,
     projectId,
     validBaseUrl: validateUrl(baseUrl) !== null,
     validRedirectUrl: validateUrl(authRedirectUrl) !== null,
+    validPasswordResetUrl: validateUrl(passwordResetUrl) !== null,
     timestamp: new Date().toISOString(),
   };
 };

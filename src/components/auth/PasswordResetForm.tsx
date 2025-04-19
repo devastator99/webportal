@@ -48,7 +48,7 @@ export const PasswordResetForm = ({ initialEmail = "" }: PasswordResetFormProps)
     <div className="space-y-4">
       <SupabaseAuthUI 
         view="forgotten_password" 
-        redirectTo="/auth/update-password"
+        redirectTo="https://anubhooti-phase1.lovable.app/auth/update-password"
         onSuccess={() => {
           console.log("Password reset email sent successfully");
           navigate('/auth?reset_sent=true');
