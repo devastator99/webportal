@@ -74,23 +74,11 @@ export const getAuthRedirectUrl = (path: string = '/auth'): string => {
   const baseUrl = getBaseUrl();
   const redirectPath = path.startsWith('/') ? path : `/${path}`;
   
-  // Preserve any existing query parameters or hash from the current URL
-  const currentUrl = new URL(window.location.href);
-  const token = currentUrl.searchParams.get('token');
-  const type = currentUrl.searchParams.get('type');
-  
-  // Create the new URL
+  // Create the full URL with the specific path for password recovery
   const fullUrl = `${baseUrl}${redirectPath}`;
-  const finalUrl = new URL(fullUrl);
-
-  // If we have a recovery token, preserve it in the redirect
-  if (token && type === 'recovery') {
-    finalUrl.searchParams.set('token', token);
-    finalUrl.searchParams.set('type', type);
-  }
   
-  console.log(`Creating auth redirect URL: ${finalUrl.toString()}`);
-  return finalUrl.toString();
+  console.log(`Creating auth redirect URL: ${fullUrl}`);
+  return fullUrl;
 };
 
 /**

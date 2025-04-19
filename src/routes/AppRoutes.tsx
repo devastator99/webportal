@@ -34,6 +34,8 @@ export const AppRoutes = () => {
         <Route path="/auth/callback" element={<Navigate to="/auth/update-password" replace />} />
         <Route path="/reset-password" element={<Navigate to="/auth/update-password" replace />} />
         <Route path="/auth/recovery" element={<Navigate to="/auth/update-password" replace />} />
+        <Route path="/auth/v1/verify" element={<Navigate to="/auth/update-password" replace />} />
+        <Route path="/verify" element={<Navigate to="/auth/update-password" replace />} />
         
         <Route path="/dummy" element={<DummyPage title="Dummy Page" description="This is a placeholder page" />} />
 

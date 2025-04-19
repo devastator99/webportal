@@ -89,12 +89,8 @@ export const SupabaseAuthUI = ({
     return <div className="p-4 text-center">Loading auth UI...</div>;
   }
 
-  // Use getAuthRedirectUrl for all auth operations
-  const finalRedirectTo = getAuthRedirectUrl(
-    currentView === 'forgotten_password' || currentView === 'update_password'
-      ? '/auth/update-password'
-      : redirectTo || '/auth'
-  );
+  // Use consistent and correct redirect URL for all auth operations
+  const finalRedirectTo = redirectTo || getAuthRedirectUrl('/auth/update-password');
 
   console.log("SupabaseAuthUI - Using redirect URL:", finalRedirectTo);
 

@@ -40,38 +40,26 @@ const AuthTokenProcessor = () => {
           hasToken: token ? "Token present" : "No token"
         });
         
+        // Handle direct recovery URLs from Supabase email
+        if (location.pathname === '/auth/v1/verify' || location.pathname.includes('/verify')) {
+          console.log("Detected direct Supabase auth verification URL - redirecting to password update form");
+          navigate('/auth/update-password', { replace: true });
+          return;
+        }
+        
         // Handle recovery tokens regardless of where they appear in the URL
         if (type === 'recovery' || 
             (hash && hash.includes('type=recovery')) || 
             location.pathname.includes('/auth/recovery')) {
           console.log("Recovery token detected - redirecting to password update form");
-          
-          // For tokens in the URL parameters
-          if (token) {
-            // Verify the token with Supabase
-            const { data, error } = await supabase.auth.verifyOtp({
-              token_hash: token,
-              type: 'recovery'
-            });
-            
-            if (error) {
-              console.error("Error verifying token:", error);
-              toast.error("Password reset link is invalid or has expired");
-            } else {
-              console.log("Successfully verified recovery token");
-              toast.success("Please set your new password");
-              navigate('/auth/update-password', { replace: true });
-            }
-          } else {
-            // For hash fragments or specific paths
-            console.log("Recovery flow detected in path or hash");
-            navigate('/auth/update-password', { replace: true });
-          }
+          navigate('/auth/update-password', { replace: true });
+          return;
         }
+        
         // Handle other redirects that might be part of verification flow
-        else if (location.pathname === '/verification' || 
-                location.pathname === '/reset-password' || 
-                location.pathname === '/auth/callback') {
+        if (location.pathname === '/verification' || 
+            location.pathname === '/reset-password' || 
+            location.pathname === '/auth/callback') {
           console.log("Processing verification redirect");
           navigate('/auth/update-password', { replace: true });
         }
