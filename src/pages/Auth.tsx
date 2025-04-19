@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,7 +20,7 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [shouldShowDoctorForm, setShouldShowDoctorForm] = useState(false);
-  const { loading, error, handleLogin, handleSignUp, handleTestLogin, setError } = useAuthHandlers();
+  const { loading, error, handleLogin, handleSignUp, handleTestLogin, setError, handleResetPassword } = useAuthHandlers();
 
   // Check if we're on the update password path
   const isPasswordUpdateMode = location.pathname === '/auth/update-password';
@@ -156,8 +157,6 @@ const Auth = () => {
             onResetPassword={(email) => {
               return new Promise<void>((resolve, reject) => {
                 try {
-                  setShowPasswordResetForm(true);
-                  
                   if (email) {
                     handleResetPassword(email)
                       .then(() => resolve())
