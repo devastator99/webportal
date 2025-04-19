@@ -33,8 +33,10 @@ function App() {
         console.log("Auth token detected in URL hash, processing...");
         
         try {
-          // Process the auth token in the URL
-          const { data, error } = await supabase.auth.getSessionFromUrl();
+          // Use the correct method to process the auth token in the URL
+          // getSessionFromUrl is not available, instead we should just call getSession
+          // The client will automatically read from the URL if a token is present
+          const { data, error } = await supabase.auth.getSession();
           
           if (error) {
             console.error("Error processing auth token from URL:", error);
