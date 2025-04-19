@@ -21,7 +21,8 @@ export const SupabaseAuthUI = ({
     appearance: { theme: ThemeSupa },
     providers: [],
     view: view,
-    redirectTo: redirectTo || `${window.location.origin}/auth`,
+    // Add view parameter to redirect URL for proper password reset flow
+    redirectTo: `${window.location.origin}/auth?view=update_password`,
     onlyThirdPartyProviders: false,
   };
 

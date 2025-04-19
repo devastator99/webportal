@@ -1,4 +1,3 @@
-
 # A string used to distinguish different Supabase projects on the same host. Defaults to the working
 # directory name when running `supabase init`.
 project_id = "hcaqodjylicmppxcbqbh"
@@ -44,18 +43,9 @@ file_size_limit = "50MiB"
 site_url = "https://anubhooti-phase1.lovable.app"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
 additional_redirect_urls = [
-  "https://hcaqodjylicmppxcbqbh.lovable.dev",
-  "https://hcaqodjylicmppxcbqbh-preview.lovable.dev",
-  "https://hcaqodjylicmppxcbqbh-*.lovable.dev",
   "https://anubhooti-phase1.lovable.app",
   "https://anubhooti-phase1.lovable.app/auth",
-  "https://anubhooti-phase1.lovable.app/auth/update-password",
-  "https://anubhooti-phase1.lovable.app/auth/recovery",
-  "https://anubhooti-phase1.lovable.app/auth/reset",
-  "https://anubhooti-phase1.lovable.app/verification",
-  "https://anubhooti-phase1.lovable.app/reset-password",
-  "http://localhost:3000",
-  "http://localhost:5173"
+  "https://anubhooti-phase1.lovable.app/auth?view=update_password"
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 seconds (1
 # week).
