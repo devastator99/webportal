@@ -86,7 +86,7 @@ export const SupabaseAuthUI = ({
       providers={[]}
       redirectTo={finalRedirectTo}
       magicLink={false}
-      defaultEmail={initialEmail}
+      email={initialEmail}
     />
   );
 };
