@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,7 +25,7 @@ const Auth = () => {
 
   const isResetFlow = TokenService.isRecoveryFlow();
   const isPasswordResetPath = TokenService.isPasswordResetPath();
-  const showPasswordResetForm = isResetFlow || isPasswordResetPath;
+  const showPasswordUpdateForm = isResetFlow || isPasswordResetPath;
 
   useEffect(() => {
     const checkPasswordReset = async () => {
@@ -62,7 +63,7 @@ const Auth = () => {
         }
 
         navigate("/dashboard");
-      } else if (user && !showPasswordResetForm) {
+      } else if (user && !showPasswordUpdateForm) {
         navigate("/dashboard");
       }
     };
@@ -70,7 +71,7 @@ const Auth = () => {
     if (!isLoading) {
       checkDoctorProfile();
     }
-  }, [user, userRole, navigate, isLoading, showPasswordResetForm]);
+  }, [user, userRole, navigate, isLoading, showPasswordUpdateForm]);
 
   if (isLoading) {
     return (
@@ -80,12 +81,12 @@ const Auth = () => {
     );
   }
 
-  if (showPasswordResetForm) {
+  if (showPasswordUpdateForm) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
           <h2 className="mt-6 text-center text-3xl font-extrabold text-saas-dark">
-            Reset Your Password
+            Update Your Password
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Enter your new password below
@@ -109,7 +110,7 @@ const Auth = () => {
     );
   }
 
-  if (user && !showPasswordResetForm) {
+  if (user && !showPasswordUpdateForm) {
     return null;
   }
 
