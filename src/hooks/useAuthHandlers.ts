@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase, createUserRole, createPatientDetails } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -142,22 +141,11 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      // Log environment information for debugging
-      const envInfo = getEnvironmentInfo();
-      console.log("Environment information for password reset:", envInfo);
-
-      // CRITICAL FIX: Explicitly use the full URL path to ensure proper redirection
-      const baseUrl = getBaseUrl();
-      const redirectPath = '/auth/update-password';
-      const redirectUrl = `${baseUrl}${redirectPath}`;
-      
-      console.log("Using direct URL for password reset redirect:", redirectUrl);
-
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
+        redirectTo: getAuthRedirectUrl('/auth/update-password')
       });
 
-      console.log("Reset password response:", { data, error });
+      console.log("Password reset response:", { data, error });
 
       if (error) {
         console.error("Reset password API error:", error);
