@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +18,8 @@ import { Calendar } from "@/components/ui/calendar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDateForDisplay, parseDateFromDisplay } from "@/utils/dateUtils";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { PasswordResetForm } from "./PasswordResetForm";
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -76,6 +77,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
   const [showPatientFields, setShowPatientFields] = useState(type === "register" && userType === "patient");
   const [dateInputValue, setDateInputValue] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showResetDialog, setShowResetDialog] = useState(false);
   const { toast } = useToast();
 
   const activeSchema = type === "login" 
@@ -549,6 +551,19 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
         )}
         
         {type === "login" && (
+          <div className="space-y-2">
+            <Button
+              type="button"
+              variant="ghost"
+              className="text-sm text-purple-600 hover:text-purple-500 w-full"
+              onClick={() => setShowResetDialog(true)}
+            >
+              Forgot password?
+            </Button>
+          </div>
+        )}
+
+        {type === "login" && (
           <div className="h-6">
             {/* Placeholder for spacing */}
           </div>
@@ -570,6 +585,12 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
             )}
           </Button>
         </motion.div>
+
+        <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+          <DialogContent>
+            <PasswordResetForm onClose={() => setShowResetDialog(false)} />
+          </DialogContent>
+        </Dialog>
       </motion.form>
     </Form>
   );

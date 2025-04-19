@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, createUserRole, createPatientDetails } from '@/integrations/supabase/client';
@@ -60,13 +59,12 @@ export const useAuthHandlers = () => {
     
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/update-password`
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       });
       
       if (error) throw error;
       
-      toast.success("Password reset link sent to your email");
-      navigate('/auth?reset_sent=true');
+      toast.success("Password reset instructions sent to your email");
     } catch (err: any) {
       console.error("Password reset error:", err);
       setError(err.message);
