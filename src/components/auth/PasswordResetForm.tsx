@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
-import { OTPInput, OTPInputContext } from "input-otp";
 import { cn } from "@/lib/utils";
 
 interface PasswordResetFormProps {
@@ -12,49 +11,23 @@ interface PasswordResetFormProps {
 }
 
 export const PasswordResetForm = ({ onClose }: PasswordResetFormProps) => {
-  const [step, setStep] = useState<'email' | 'code' | 'password'>('email');
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [newPassword, setNewPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const { handleResetPassword } = useAuthHandlers();
 
-  const handleEmailSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
 
     setLoading(true);
     try {
       await handleResetPassword(email);
-      toast.success("Reset code sent to your email!");
-      setStep('code');
+      toast.success("Password reset link sent to your email!");
+      setTimeout(() => {
+        onClose();
+      }, 2000);
     } catch (error: any) {
-      toast.error(error.message || "Failed to send reset code");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCodeSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (code.length !== 6) {
-      toast.error("Please enter a valid 6-digit code");
-      return;
-    }
-    setStep('password');
-  };
-
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPassword) return;
-
-    setLoading(true);
-    try {
-      await handleResetPassword(email);
-      toast.success("Password updated successfully!");
-      onClose();
-    } catch (error: any) {
-      toast.error(error.message || "Failed to update password");
+      toast.error(error.message || "Failed to send reset link");
     } finally {
       setLoading(false);
     }
@@ -62,73 +35,23 @@ export const PasswordResetForm = ({ onClose }: PasswordResetFormProps) => {
 
   return (
     <div className="space-y-4">
-      {step === 'email' && (
-        <form onSubmit={handleEmailSubmit} className="space-y-4">
-          <h2 className="text-lg font-semibold">Reset Password</h2>
-          <p className="text-sm text-gray-600">
-            Enter your email to receive a reset code
-          </p>
-          <Input
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={loading}
-            required
-          />
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Sending..." : "Send Reset Code"}
-          </Button>
-        </form>
-      )}
-
-      {step === 'code' && (
-        <form onSubmit={handleCodeSubmit} className="space-y-4">
-          <h2 className="text-lg font-semibold">Enter Reset Code</h2>
-          <p className="text-sm text-gray-600">
-            Enter the 6-digit code sent to your email
-          </p>
-          
-          {/* Use a simple input for the code instead of the OTP component */}
-          <Input
-            type="text"
-            placeholder="Enter 6-digit code"
-            value={code}
-            onChange={(e) => setCode(e.target.value.slice(0, 6))}
-            disabled={loading}
-            pattern="[0-9]{6}"
-            maxLength={6}
-            inputMode="numeric"
-            className="text-center text-lg tracking-widest"
-            required
-          />
-          
-          <Button type="submit" className="w-full" disabled={code.length !== 6}>
-            Verify Code
-          </Button>
-        </form>
-      )}
-
-      {step === 'password' && (
-        <form onSubmit={handlePasswordSubmit} className="space-y-4">
-          <h2 className="text-lg font-semibold">Set New Password</h2>
-          <p className="text-sm text-gray-600">
-            Enter your new password
-          </p>
-          <Input
-            type="password"
-            placeholder="New password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            disabled={loading}
-            required
-            minLength={6}
-          />
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Updating..." : "Update Password"}
-          </Button>
-        </form>
-      )}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <h2 className="text-lg font-semibold">Reset Password</h2>
+        <p className="text-sm text-gray-600">
+          Enter your email to receive a password reset link
+        </p>
+        <Input
+          type="email"
+          placeholder="Enter your email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          disabled={loading}
+          required
+        />
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? "Sending..." : "Send Reset Link"}
+        </Button>
+      </form>
     </div>
   );
 };
