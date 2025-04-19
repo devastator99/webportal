@@ -29,7 +29,7 @@ export const SupabaseAuthUI = ({
     console.log("SupabaseAuthUI environment info:", envInfo);
   }, []);
   
-  // We use this effect to detect password reset successes
+  // We use this effect to detect auth state changes including password resets
   useEffect(() => {
     const handleAuthStateChange = async (event: string) => {
       console.log("Auth state change:", event);
@@ -46,7 +46,20 @@ export const SupabaseAuthUI = ({
         }
       } else if (event === 'PASSWORD_RESET') {
         toast.success('Password has been reset successfully!');
-        navigate('/auth');
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          navigate('/auth');
+        }
+      } else if (event === 'SIGNED_IN') {
+        if (view === 'update_password') {
+          toast.success('Password has been updated successfully!');
+          if (onSuccess) {
+            onSuccess();
+          } else {
+            navigate('/auth');
+          }
+        }
       }
     };
 
@@ -59,7 +72,7 @@ export const SupabaseAuthUI = ({
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate, onSuccess]);
+  }, [navigate, onSuccess, view]);
 
   if (isLoading) {
     return <div className="p-4 text-center">Loading auth UI...</div>;
@@ -68,7 +81,9 @@ export const SupabaseAuthUI = ({
   // Get the proper redirect URL for auth flow
   const finalRedirectTo = redirectTo 
     ? getAuthRedirectUrl(redirectTo)
-    : getAuthRedirectUrl('/auth?type=recovery');
+    : view === 'update_password'
+      ? getAuthRedirectUrl('/auth') // After password update, redirect to login
+      : getAuthRedirectUrl('/auth?type=recovery');
 
   console.log("Rendering SupabaseAuthUI with view:", view, "and initialEmail:", initialEmail);
   console.log("Using redirect URL:", finalRedirectTo);
