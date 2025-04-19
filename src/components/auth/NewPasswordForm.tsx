@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { LucideLoader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export const NewPasswordForm = () => {
   const [password, setPassword] = useState("");
@@ -12,6 +13,7 @@ export const NewPasswordForm = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const { handleUpdatePassword } = useAuthHandlers();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,7 +35,12 @@ export const NewPasswordForm = () => {
       const result = await handleUpdatePassword(password);
       if (result) {
         setSuccess(true);
-        toast.success("Password updated successfully! Redirecting to login...");
+        toast.success("Password updated successfully!");
+        
+        // Redirect to login after a short delay
+        setTimeout(() => {
+          navigate('/auth');
+        }, 2000);
       }
     } catch (error: any) {
       console.error("Password update failed:", error);

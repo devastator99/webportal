@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,10 @@ export const PasswordResetForm = ({ onClose }: PasswordResetFormProps) => {
 
     setLoading(true);
     try {
+      // Get the correct redirect URL for the current environment
+      const redirectUrl = getAuthRedirectUrl('/auth/reset-password');
+      console.log("Using redirect URL:", redirectUrl);
+      
       await handleResetPassword(email);
       setSent(true);
       toast.success("Password reset link sent to your email!");
