@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DialogTrigger } from "@radix-ui/react-dialog";
@@ -54,23 +55,20 @@ export const LoginDialog = () => {
   };
 
   // Handle forgot password - close dialog and redirect to dedicated page
-  const handleForgotPassword = async (email: string) => {
-    try {
-      setIsDialogOpen(false); // Close dialog first
-      
-      // Navigate to password reset page with email parameter if provided
+  const handleForgotPassword = (email: string) => {
+    // First close the dialog explicitly
+    setIsDialogOpen(false);
+    
+    // Then use setTimeout to ensure dialog state is updated before navigation
+    setTimeout(() => {
+      // Construct the URL with email parameter if provided
       const resetUrl = email 
         ? `/auth?mode=reset&email=${encodeURIComponent(email)}`
         : '/auth?mode=reset';
       
       console.log("Navigating to password reset page:", resetUrl);
       navigate(resetUrl);
-      
-    } catch (error: any) {
-      console.error("Reset password error:", error);
-      toast.error("Failed to navigate to password reset page");
-      navigate('/auth?mode=reset');
-    }
+    }, 100); // Small delay to ensure dialog closes first
   };
 
   return (
