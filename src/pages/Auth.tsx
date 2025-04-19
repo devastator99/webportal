@@ -1,6 +1,6 @@
 
 import { useEffect } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { AuthForm } from "@/components/auth/AuthForm";
@@ -9,7 +9,6 @@ import { LucideLoader2 } from "lucide-react";
 const Auth = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const isRegistration = window.location.pathname.includes('/register');
 
   useEffect(() => {
@@ -58,21 +57,11 @@ const Auth = () => {
               loading={false}
             />
           ) : (
-            <>
-              <SupabaseAuthUI 
-                view="sign_in"
-                redirectTo={`${window.location.origin}/auth`}
-                showLinks={true}
-              />
-              <div className="mt-4 text-center">
-                <Link
-                  to="/auth/forgot-password"
-                  className="text-sm font-medium text-purple-600 hover:text-purple-500"
-                >
-                  Forgot your password?
-                </Link>
-              </div>
-            </>
+            <SupabaseAuthUI 
+              view="sign_in"
+              redirectTo={`${window.location.origin}/auth`}
+              showLinks={true}
+            />
           )}
         </div>
       </div>
