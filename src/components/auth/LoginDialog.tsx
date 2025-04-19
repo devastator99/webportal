@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DialogTrigger } from "@radix-ui/react-dialog";
@@ -55,29 +54,17 @@ export const LoginDialog = () => {
     }
   };
 
-  // Handle forgot password
+  // Handle forgot password - redirect to dedicated page
   const handleForgotPassword = async (email: string) => {
     try {
       // Close the dialog before navigating
       setIsDialogOpen(false);
       
-      // Log environment info for debugging
-      console.log("Environment info before password reset:", getEnvironmentInfo());
-      
-      if (!email) {
-        // Navigate to dedicated reset page if no email is provided
-        navigate('/auth?mode=reset');
-        return;
-      }
-      
-      // If email is provided, try to send reset link
-      await handleResetPassword(email);
-      
-      // Navigate to auth page with reset_sent parameter
-      navigate('/auth?reset_sent=true');
+      // Always navigate to the dedicated reset page
+      // This ensures we use the Supabase Auth UI for password reset
+      navigate('/auth?mode=reset');
     } catch (error: any) {
       console.error("Reset password error from LoginDialog:", error);
-      // Navigate to reset page on error
       navigate('/auth?mode=reset');
     }
   };
