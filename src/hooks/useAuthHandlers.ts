@@ -42,19 +42,9 @@ export const useAuthHandlers = () => {
       }
 
       console.log("Password updated successfully");
-      
-      // Sign out the user after successful password change
-      await supabase.auth.signOut();
-      
-      toast.success("Password updated successfully! Please log in with your new password.");
-      setTimeout(() => {
-        navigate('/auth');
-      }, 1500);
-      
       return true;
     } catch (error: any) {
       console.error('Password update error:', error);
-      toast.error(error.message || "Failed to update password");
       setError(error.message);
       throw error;
     } finally {
@@ -83,11 +73,9 @@ export const useAuthHandlers = () => {
       }
       
       console.log("Password reset email sent successfully");
-      toast.success("Password reset instructions sent to your email");
     } catch (err: any) {
       console.error("Password reset error:", err);
       setError(err.message);
-      toast.error(err.message || "Failed to send password reset email");
       throw err;
     } finally {
       setLoading(false);

@@ -1,11 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { LucideLoader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 export const NewPasswordForm = () => {
   const [password, setPassword] = useState("");
@@ -29,9 +30,22 @@ export const NewPasswordForm = () => {
 
     setLoading(true);
     try {
-      await handleUpdatePassword(password);
+      // Update password directly using Supabase client
+      const { error } = await supabase.auth.updateUser({
+        password: password
+      });
+
+      if (error) {
+        throw error;
+      }
+
       toast.success("Password updated successfully!");
-      navigate('/auth');
+      
+      // Sign out and redirect to login
+      await supabase.auth.signOut();
+      setTimeout(() => {
+        navigate('/auth');
+      }, 1500);
     } catch (error: any) {
       console.error("Password update failed:", error);
       toast.error(error.message || "Failed to update password");

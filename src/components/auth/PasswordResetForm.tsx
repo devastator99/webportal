@@ -30,6 +30,7 @@ export const PasswordResetForm = ({ onClose }: PasswordResetFormProps) => {
       const redirectUrl = getAuthRedirectUrl('/auth/reset-password');
       console.log("Using redirect URL:", redirectUrl);
       
+      // No need to pass redirectUrl, it will be configured in Supabase
       await handleResetPassword(email);
       setSent(true);
       toast.success("Password reset link sent to your email!");
