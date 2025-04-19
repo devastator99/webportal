@@ -6,14 +6,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LucideLoader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const ResetPassword = () => {
   const [password, setPassword] = useState('');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { handleUpdatePassword, loading, error } = useAuthHandlers();
+  const { loading, error, setError } = useAuthHandlers();
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  // Get token from URL
+  // Get token from URL - Support both token and access_token parameter names
   const token = searchParams.get('token') || searchParams.get('access_token');
 
   useEffect(() => {
@@ -28,9 +30,29 @@ const ResetPassword = () => {
     if (!token) return;
 
     try {
-      await handleUpdatePassword(password);
-    } catch (err) {
+      setIsUpdating(true);
+      setError(null);
+      
+      // Use supabase client directly with the token
+      const { error } = await supabase.auth.updateUser({ 
+        password: password 
+      });
+
+      if (error) throw error;
+      
+      toast.success("Password updated successfully! Please log in with your new password.");
+      
+      // Sign out to ensure clean state
+      await supabase.auth.signOut();
+      
+      // Redirect to login page
+      navigate('/auth');
+    } catch (err: any) {
       console.error("Update password error:", err);
+      toast.error(err.message || "Failed to update password");
+      setError(err.message);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -44,11 +66,14 @@ const ResetPassword = () => {
         <h2 className="mt-6 text-center text-3xl font-extrabold text-saas-dark">
           Set new password
         </h2>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          Enter your new password below
+        </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10">
-          {loading ? (
+          {isUpdating ? (
             <div className="flex flex-col items-center justify-center">
               <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
               <p className="mt-4 text-sm text-gray-600">Updating your password...</p>
@@ -83,7 +108,7 @@ const ResetPassword = () => {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={loading}
+                  disabled={isUpdating}
                 >
                   Update password
                 </Button>

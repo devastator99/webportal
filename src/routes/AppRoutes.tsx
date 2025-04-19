@@ -1,3 +1,4 @@
+
 import { lazy, Suspense } from 'react';
 import { Route, Routes, Outlet, Navigate } from 'react-router-dom';
 import LandingPage from '../pages/LandingPage';
