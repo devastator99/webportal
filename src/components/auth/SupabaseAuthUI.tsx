@@ -35,8 +35,7 @@ export const SupabaseAuthUI = ({
       hash, 
       type,
       token: token ? "token present" : "no token",
-      pathname: location.pathname,
-      fullUrl: window.location.href
+      pathname: location.pathname
     });
 
     if (
@@ -62,7 +61,6 @@ export const SupabaseAuthUI = ({
       emailInputProps: {
         defaultValue: initialEmail,
       },
-      redirectTo: `${window.location.origin}/auth/update-password`,
     }
   };
 

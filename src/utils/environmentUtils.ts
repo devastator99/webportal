@@ -36,10 +36,11 @@ export const getEnvironmentInfo = (): Record<string, any> => {
 };
 
 export const getAuthRedirectUrl = (path: string = '/auth/update-password'): string => {
+  const baseUrl = getBaseUrl();
   const fullOrigin = window.location.origin;
   const redirectPath = path.startsWith('/') ? path : `/${path}`;
   
-  // Using origin for more reliable behavior
+  // Using origin instead of baseUrl for more reliable behavior
   const fullUrl = `${fullOrigin}${redirectPath}`;
   
   console.log(`Creating auth redirect URL: ${fullUrl}`);

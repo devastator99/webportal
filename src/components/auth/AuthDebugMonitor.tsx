@@ -44,8 +44,7 @@ export const AuthDebugMonitor = () => {
         hash: window.location.hash,
         hashParams,
         redirectPath: window.location.pathname.includes('/auth') ? 'On auth page' : 'Not on auth page',
-        passwordResetMode: window.location.pathname === '/auth/update-password' ? 'Active' : 'Inactive',
-        recommendedRedirectUrl: `${window.location.origin}/auth/update-password`,
+        resetPasswordMode: window.location.search.includes('reset=true') ? 'Active' : 'Inactive',
         today: new Date().toISOString(),
       });
     };

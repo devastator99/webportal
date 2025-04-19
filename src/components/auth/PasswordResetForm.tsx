@@ -18,7 +18,6 @@ export const PasswordResetForm = ({ initialEmail = "" }: PasswordResetFormProps)
   useEffect(() => {
     const envInfo = getEnvironmentInfo();
     console.log("Environment information for password reset:", envInfo);
-    console.log("Reset link will redirect to:", `${window.location.origin}/auth/update-password`);
   }, []);
   
   console.log("PasswordResetForm rendered with initialEmail:", initialEmail, "resetSent:", resetSent);
