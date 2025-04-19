@@ -65,6 +65,7 @@ export const SupabaseAuthUI = ({
     : getAuthRedirectUrl('/auth?type=recovery');
 
   console.log("Rendering SupabaseAuthUI with view:", view, "and initialEmail:", initialEmail);
+  console.log("Using redirect URL:", finalRedirectTo);
 
   return (
     <Auth

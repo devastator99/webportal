@@ -1,10 +1,11 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { toast } from "sonner";
+import { getAuthRedirectUrl, getEnvironmentInfo } from "@/utils/environmentUtils";
 
 interface PasswordResetFormProps {
   initialEmail?: string;
@@ -15,6 +16,16 @@ export const PasswordResetForm = ({ initialEmail = "" }: PasswordResetFormProps)
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const resetSent = searchParams.get('reset_sent') === 'true';
+  
+  useEffect(() => {
+    // Log environment info on component mount to help with debugging
+    const envInfo = getEnvironmentInfo();
+    console.log("Environment information for password reset:", envInfo);
+    
+    // Log the redirect URL that will be used
+    const redirectUrl = getAuthRedirectUrl('/auth?type=recovery');
+    console.log("Redirect URL for password reset:", redirectUrl);
+  }, []);
   
   console.log("PasswordResetForm rendered with initialEmail:", initialEmail, "resetSent:", resetSent);
   

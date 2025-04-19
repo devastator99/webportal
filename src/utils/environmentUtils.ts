@@ -38,7 +38,7 @@ export const getBaseUrl = (): string => {
   }
   
   // Handle production or other environments with custom domains
-  console.log(`Using production environment URL: ${protocol}//${hostname}`);
+  console.log(`Using production environment URL: ${protocol}//${hostname}${port ? ':' + port : ''}`);
   return `${protocol}//${hostname}${port ? ':' + port : ''}`;
 };
 
