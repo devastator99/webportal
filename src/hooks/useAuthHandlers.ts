@@ -121,29 +121,35 @@ export const useAuthHandlers = () => {
       
       if (profileError) throw profileError;
       
-      // Create user role - using an RPC call properly typed in the database
-      const { error: roleError } = await supabase.rpc("upsert_user_role", {
-        p_user_id: user.id,
-        p_role_name: userType
-      });
+      // Create user role using a direct table insert instead of RPC
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .insert({
+          user_id: user.id,
+          role: userType
+        });
       
       if (roleError) throw roleError;
       
       if (userType === 'patient' && patientData) {
-        // Using an RPC call properly typed in the database
-        const { error: patientError } = await supabase.rpc("upsert_patient_details", {
-          p_patient_id: user.id,
-          p_age: patientData.age,
-          p_gender: patientData.gender,
-          p_blood_group: patientData.bloodGroup,
-          p_allergies: patientData.allergies || '',
-          p_emergency_contact: patientData.emergencyContact,
-          p_height: patientData.height || null,
-          p_birth_date: patientData.birthDate || null,
-          p_food_habit: patientData.foodHabit || null,
-          p_known_allergies: patientData.knownAllergies || null,
-          p_medical_conditions: patientData.currentMedicalConditions || null
-        });
+        // For patient details, use direct insert instead of RPC
+        const patientDetailsData = {
+          patient_id: user.id,
+          age: patientData.age,
+          gender: patientData.gender,
+          blood_group: patientData.bloodGroup,
+          allergies: patientData.allergies || '',
+          emergency_contact: patientData.emergencyContact,
+          height: patientData.height || null,
+          birth_date: patientData.birthDate || null,
+          food_habit: patientData.foodHabit || null,
+          known_allergies: patientData.knownAllergies || null,
+          current_medical_conditions: patientData.currentMedicalConditions || null
+        };
+        
+        const { error: patientError } = await supabase
+          .from('patient_details')
+          .insert(patientDetailsData);
         
         if (patientError) throw patientError;
       }
