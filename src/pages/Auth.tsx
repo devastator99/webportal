@@ -86,6 +86,16 @@ const Auth = () => {
     return null;
   }
 
+  const handleTestLogin = async (userType: 'doctor' | 'patient' | 'nutritionist' | 'admin') => {
+    try {
+      await handleTestLogin(userType);
+      toast.success('Logged in successfully!');
+    } catch (error: any) {
+      console.error("Test login error:", error);
+      toast.error(`Login failed: ${error.message || 'Please try again'}`);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
