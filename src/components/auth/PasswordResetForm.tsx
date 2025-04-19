@@ -6,12 +6,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { toast } from "sonner";
 import { getAuthRedirectUrl, getEnvironmentInfo, getBaseUrl } from "@/utils/environmentUtils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PasswordResetFormProps {
   initialEmail?: string;
 }
 
 export const PasswordResetForm = ({ initialEmail = "" }: PasswordResetFormProps) => {
+  const [email, setEmail] = useState(initialEmail);
+  const [loading, setLoading] = useState(false);
   const [useCustomForm, setUseCustomForm] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -34,6 +37,36 @@ export const PasswordResetForm = ({ initialEmail = "" }: PasswordResetFormProps)
   }, []);
   
   console.log("PasswordResetForm rendered with initialEmail:", initialEmail, "resetSent:", resetSent);
+
+  const handlePasswordReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error("Please enter your email address");
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const baseUrl = getBaseUrl();
+      const redirectPath = '/auth/update-password';
+      const redirectUrl = `${baseUrl}${redirectPath}`;
+      console.log("Sending password reset with redirect URL:", redirectUrl);
+      
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Password reset link sent to your email");
+      navigate('/auth?reset_sent=true');
+    } catch (error: any) {
+      console.error("Password reset error:", error);
+      toast.error(error.message || "Failed to send reset email");
+    } finally {
+      setLoading(false);
+    }
+  };
   
   if (resetSent) {
     return (
@@ -59,15 +92,44 @@ export const PasswordResetForm = ({ initialEmail = "" }: PasswordResetFormProps)
   if (!useCustomForm) {
     return (
       <div className="space-y-4">
-        <SupabaseAuthUI 
-          view="forgotten_password" 
-          redirectTo="/auth/update-password"
-          onSuccess={() => {
-            console.log("Password reset email sent successfully");
-            navigate('/auth?reset_sent=true');
-          }}
-          initialEmail={initialEmail}
-        />
+        {/* Show custom form for directly testing the reset functionality */}
+        <form onSubmit={handlePasswordReset} className="space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="email" className="block text-sm font-medium">
+              Email Address
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+          </div>
+          
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading}
+          >
+            {loading ? "Sending..." : "Send Reset Link"}
+          </Button>
+        </form>
+
+        <p className="text-sm text-center mt-4 text-gray-600">
+          Or use the Supabase UI component
+        </p>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={() => setUseCustomForm(true)}
+        >
+          Use Supabase Auth UI
+        </Button>
         
         <div className="text-center mt-4">
           <Button
@@ -85,28 +147,35 @@ export const PasswordResetForm = ({ initialEmail = "" }: PasswordResetFormProps)
   
   return (
     <div className="space-y-4">
-      <Alert variant="destructive">
-        <AlertDescription>
-          The custom password reset form is currently unavailable. 
-          Please use the Supabase Auth UI.
-        </AlertDescription>
-      </Alert>
+      <SupabaseAuthUI 
+        view="forgotten_password" 
+        redirectTo="/auth/update-password"
+        onSuccess={() => {
+          console.log("Password reset email sent successfully");
+          navigate('/auth?reset_sent=true');
+        }}
+        initialEmail={initialEmail}
+      />
       
-      <Button
-        className="w-full"
-        onClick={() => setUseCustomForm(false)}
-      >
-        Return to Password Reset
-      </Button>
-      
-      <Button
-        type="button"
-        variant="ghost"
-        className="w-full"
-        onClick={() => navigate("/auth")}
-      >
-        Back to Login
-      </Button>
+      <div className="text-center mt-4">
+        <Button
+          type="button"
+          variant="ghost"
+          className="w-full"
+          onClick={() => navigate("/auth")}
+        >
+          Back to Login
+        </Button>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full mt-2"
+          onClick={() => setUseCustomForm(false)}
+        >
+          Use Custom Form
+        </Button>
+      </div>
     </div>
   );
 };
