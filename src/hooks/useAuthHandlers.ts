@@ -141,8 +141,11 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
+      const redirectUrl = getAuthRedirectUrl('/auth/update-password');
+      console.log("Using redirect URL for password reset:", redirectUrl);
+
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: getAuthRedirectUrl('/auth/update-password')
+        redirectTo: redirectUrl
       });
 
       console.log("Password reset response:", { data, error });
