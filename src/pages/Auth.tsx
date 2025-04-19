@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -21,6 +22,7 @@ const Auth = () => {
   const [searchParams] = useSearchParams();
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [showPasswordResetForm, setShowPasswordResetForm] = useState(false);
   const { 
     loading, 
     error, 
@@ -45,6 +47,11 @@ const Auth = () => {
     
     if (isRecoveryMode) {
       console.log("Recovery mode detected in URL params");
+    }
+
+    // If reset mode is specified in URL params, show the reset form
+    if (isResetMode) {
+      setShowPasswordResetForm(true);
     }
   }, [location, searchParams]);
 
@@ -184,7 +191,7 @@ const Auth = () => {
     );
   }
 
-  if (searchParams.get('mode') === 'reset') {
+  if (searchParams.get('mode') === 'reset' || showPasswordResetForm) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -263,7 +270,14 @@ const Auth = () => {
                 }
               }
             }
-            onResetPassword={handleResetPassword}
+            onResetPassword={(email) => {
+              // When reset password is clicked, show the reset form immediately
+              setShowPasswordResetForm(true);
+              // If email is provided, pass it to handleResetPassword
+              if (email) {
+                handleResetPassword(email);
+              }
+            }}
             error={error}
             loading={loading}
           />

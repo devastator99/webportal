@@ -67,6 +67,7 @@ export const PasswordResetForm = () => {
           required
           className="bg-white/50 backdrop-blur-sm border-purple-200 focus:border-purple-400"
           disabled={loading}
+          autoFocus
         />
       </div>
 
