@@ -1,4 +1,3 @@
-
 import './App.css';
 import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -40,12 +39,15 @@ const AuthTokenProcessor = () => {
         token: token ? "Token present" : "No token"
       });
       
-      // Handle recovery URL parameter (from email links)
-      if (type === 'recovery' && token) {
-        console.log("Recovery token detected in URL parameters");
+      // Handle recovery tokens regardless of where they appear in the URL
+      if ((type === 'recovery' && token) || (hash && hash.includes('type=recovery'))) {
+        const isRecoveryInParams = type === 'recovery';
+        const isRecoveryInHash = hash && hash.includes('type=recovery');
+        
+        console.log("Recovery token detected:", { isRecoveryInParams, isRecoveryInHash });
         
         try {
-          // Get the session which will process the token
+          // Process the token and get the session
           const { data, error } = await supabase.auth.getSession();
           
           if (error) {
@@ -54,34 +56,24 @@ const AuthTokenProcessor = () => {
           } else if (data?.session) {
             console.log("Successfully processed recovery token");
             toast.success("Password reset link is valid. Please set your new password.");
-            // Redirect to update password form
-            navigate('/auth/update-password');
+            
+            // Always redirect to update password form
+            navigate('/auth/update-password', { replace: true });
+          } else {
+            console.log("No session found after token processing");
+            toast.error("Could not verify your password reset link");
           }
         } catch (error) {
           console.error("Exception processing token:", error);
           toast.error("Failed to process password reset link");
         }
       }
-      
-      // Also handle password reset tokens in URL hash
-      else if ((hash && hash.includes('type=recovery'))) {
-        console.log("Recovery token detected in URL hash");
-        
-        try {
-          const { data, error } = await supabase.auth.getSession();
-          
-          if (error) {
-            console.error("Error processing hash token:", error);
-            toast.error("Password reset link is invalid or has expired");
-          } else if (data?.session) {
-            console.log("Successfully processed recovery token from hash");
-            toast.success("Password reset link is valid. Please set your new password.");
-            navigate('/auth/update-password');
-          }
-        } catch (error) {
-          console.error("Exception processing hash token:", error);
-          toast.error("Failed to process password reset link");
-        }
+      // Handle other redirects that might be part of verification flow
+      else if (location.pathname === '/verification' || 
+               location.pathname === '/reset-password' || 
+               location.pathname === '/auth/callback') {
+        console.log("Processing verification redirect");
+        navigate('/auth/update-password', { replace: true });
       }
     };
     

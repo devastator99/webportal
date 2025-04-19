@@ -94,9 +94,9 @@ export const SupabaseAuthUI = ({
   // Get the proper redirect URL for auth flow
   const finalRedirectTo = redirectTo 
     ? getAuthRedirectUrl(redirectTo)
-    : currentView === 'update_password'
-      ? getAuthRedirectUrl('/auth/update-password') // After password update, redirect to the update-password path
-      : getAuthRedirectUrl('/auth/recovery?type=recovery'); // For password recovery, include the type
+    : currentView === 'update_password' || currentView === 'forgotten_password'
+      ? getAuthRedirectUrl('/auth/update-password') // Always redirect to update-password for password reset flows
+      : getAuthRedirectUrl('/auth'); // Default redirect location
 
   console.log("Rendering SupabaseAuthUI with view:", currentView, "and redirectTo:", finalRedirectTo);
 

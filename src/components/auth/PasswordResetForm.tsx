@@ -22,8 +22,8 @@ export const PasswordResetForm = ({ initialEmail = "" }: PasswordResetFormProps)
     const envInfo = getEnvironmentInfo();
     console.log("Environment information for password reset:", envInfo);
     
-    // Log the redirect URL that will be used
-    const redirectUrl = getAuthRedirectUrl('/auth?type=recovery');
+    // Log the redirect URL that will be used - ensure it points to update-password
+    const redirectUrl = getAuthRedirectUrl('/auth/update-password');
     console.log("Redirect URL for password reset:", redirectUrl);
   }, []);
   
@@ -55,6 +55,7 @@ export const PasswordResetForm = ({ initialEmail = "" }: PasswordResetFormProps)
       <div className="space-y-4">
         <SupabaseAuthUI 
           view="forgotten_password" 
+          redirectTo="/auth/update-password"
           onSuccess={() => {
             console.log("Password reset email sent successfully");
             navigate('/auth?reset_sent=true');
