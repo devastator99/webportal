@@ -1,4 +1,3 @@
-
 import { lazy, Suspense } from 'react';
 import { Route, Routes, Outlet, Navigate } from 'react-router-dom';
 import LandingPage from '../pages/LandingPage';
@@ -25,8 +24,9 @@ export const AppRoutes = () => {
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         
-        {/* Auth routes - simplified */}
+        {/* Auth routes */}
         <Route path="/auth" element={<Auth />} />
+        <Route path="/auth/register" element={<Auth />} />
         <Route path="/auth/update-password" element={<Auth />} />
         
         {/* Unified verification handling */}
