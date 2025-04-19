@@ -31,17 +31,23 @@ export const getEnvironmentInfo = (): Record<string, any> => {
     protocol: window.location.protocol,
     port: window.location.port || 'default',
     fullUrl: window.location.href,
+    search: window.location.search,
+    hash: window.location.hash,
+    userAgent: navigator.userAgent,
     timestamp: new Date().toISOString(),
   };
 };
 
-export const getAuthRedirectUrl = (path: string = '/auth/update-password'): string => {
+export const getAuthRedirectUrl = (path: string = '/auth'): string => {
   const baseUrl = getBaseUrl();
   const fullOrigin = window.location.origin;
   const redirectPath = path.startsWith('/') ? path : `/${path}`;
   
+  // For auth redirects, always include view parameter for password reset flow
+  const queryParams = path.includes('?') ? '' : '?view=update_password';
+  
   // Using origin instead of baseUrl for more reliable behavior
-  const fullUrl = `${fullOrigin}${redirectPath}`;
+  const fullUrl = `${fullOrigin}${redirectPath}${queryParams}`;
   
   console.log(`Creating auth redirect URL: ${fullUrl}`);
   return fullUrl;
