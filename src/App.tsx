@@ -31,7 +31,7 @@ const AuthTokenProcessor = () => {
       const token = urlParams.get('token');
       const hash = location.hash;
       
-      console.log("URL check:", { 
+      console.log("URL check for auth token:", { 
         pathname: location.pathname,
         search: location.search, 
         hash,
@@ -41,10 +41,7 @@ const AuthTokenProcessor = () => {
       
       // Handle recovery tokens regardless of where they appear in the URL
       if ((type === 'recovery' && token) || (hash && hash.includes('type=recovery'))) {
-        const isRecoveryInParams = type === 'recovery';
-        const isRecoveryInHash = hash && hash.includes('type=recovery');
-        
-        console.log("Recovery token detected:", { isRecoveryInParams, isRecoveryInHash });
+        console.log("Recovery token detected - processing for password update");
         
         try {
           // Process the token and get the session
