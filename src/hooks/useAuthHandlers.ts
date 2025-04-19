@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { formatDateForDatabase } from "@/utils/dateUtils";
-import { getAuthRedirectUrl, getProjectId, getBaseUrl, getEnvironmentInfo } from "@/utils/environmentUtils";
+import { getAuthRedirectUrl } from "@/utils/environmentUtils";
 
 type UserRole = "patient" | "doctor" | "nutritionist" | "administrator";
 
@@ -141,11 +141,8 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      const baseUrl = getBaseUrl();
-      const redirectPath = '/auth/update-password';
-      const redirectUrl = `${baseUrl}${redirectPath}`;
-      
-      console.log("Using explicit redirect URL for password reset:", redirectUrl);
+      const redirectUrl = getAuthRedirectUrl('/auth/update-password');
+      console.log("Using redirect URL for password reset:", redirectUrl);
 
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl
