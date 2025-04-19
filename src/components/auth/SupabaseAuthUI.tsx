@@ -8,14 +8,12 @@ import { AuthView } from "@/types/auth";
 interface SupabaseAuthUIProps {
   view?: AuthView;
   redirectTo?: string;
-  token?: string | null;
   showLinks?: boolean;
 }
 
 export const SupabaseAuthUI = ({ 
   view = "sign_in", 
   redirectTo,
-  token,
   showLinks = true
 }: SupabaseAuthUIProps) => {
   return (
@@ -23,7 +21,7 @@ export const SupabaseAuthUI = ({
       <Auth
         supabaseClient={supabase}
         view={view}
-        showLinks={showLinks}
+        showLinks={false}
         appearance={{ 
           theme: ThemeSupa,
           style: {
@@ -36,18 +34,12 @@ export const SupabaseAuthUI = ({
         }}
         providers={[]}
         redirectTo={redirectTo}
-        queryParams={token ? { token } : undefined}
         localization={{
           variables: {
             sign_in: {
               email_input_placeholder: "Your email address",
               password_input_placeholder: "Your password",
               button_label: "Sign in",
-            },
-            update_password: {
-              password_label: "New password",
-              password_input_placeholder: "Enter your new password",
-              button_label: "Update password",
             }
           }
         }}

@@ -13,6 +13,8 @@ import Admin from '@/pages/Admin';
 import MessageSearchPage from '@/pages/MessageSearchPage';
 import DummyPage from '@/pages/DummyPage';
 import AlternativeDashboard from '@/pages/AlternativeDashboard';
+import ForgotPassword from '@/pages/ForgotPassword';
+import ResetPassword from '@/pages/ResetPassword';
 
 // Lazy load the notifications page
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
@@ -24,14 +26,11 @@ export const AppRoutes = () => {
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         
-        {/* Auth routes - consolidated to handle all auth flows */}
+        {/* Auth routes */}
         <Route path="/auth" element={<Auth />} />
         <Route path="/auth/register" element={<Auth />} />
-        <Route path="/auth/callback" element={<Auth />} />
-        <Route path="/auth/reset" element={<Auth />} />
-        <Route path="/auth/update-password" element={<Auth />} />
-        <Route path="/verify" element={<Auth />} />
-        <Route path="/auth/v1/verify" element={<Auth />} />
+        <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+        <Route path="/auth/reset-password" element={<ResetPassword />} />
         
         {/* Protected routes */}
         <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>
