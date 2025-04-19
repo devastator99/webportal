@@ -29,7 +29,7 @@ export const AppRoutes = () => {
         <Route path="/auth" element={<Auth />} />
         <Route path="/auth/update-password" element={<Auth />} />
         
-        {/* Support for verification redirects - keep these for compatibility */}
+        {/* Unified verification handling */}
         <Route path="/verification" element={<Navigate to="/auth/update-password" replace />} />
         <Route path="/auth/callback" element={<Navigate to="/auth/update-password" replace />} />
         <Route path="/reset-password" element={<Navigate to="/auth/update-password" replace />} />

@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { supabase, createUserRole, createPatientDetails } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { getAuthRedirectUrl } from "@/utils/environmentUtils";
+import { TokenService } from "@/services/tokenService";
 
 type UserRole = "patient" | "doctor" | "nutritionist" | "administrator";
 
@@ -140,7 +141,7 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      const resetRedirectUrl = getAuthRedirectUrl('/auth/update-password');
+      const resetRedirectUrl = TokenService.getPasswordResetRedirectUrl();
       console.log("Password reset redirect URL:", resetRedirectUrl);
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {

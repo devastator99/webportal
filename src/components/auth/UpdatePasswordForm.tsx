@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Eye, EyeOff } from 'lucide-react';
@@ -11,6 +10,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { TokenService } from '@/services/tokenService';
 
 const passwordSchema = z.object({
   password: z.string()
@@ -26,12 +26,37 @@ type PasswordFormValues = z.infer<typeof passwordSchema>;
 
 export const UpdatePasswordForm = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { handleUpdatePassword, loading: isSubmitting } = useAuthHandlers();
   const [sessionVerified, setSessionVerified] = useState(false);
   
+  useEffect(() => {
+    const verifySession = async () => {
+      const token = TokenService.extractRecoveryToken();
+      
+      if (token) {
+        const isValid = await TokenService.verifyRecoveryToken(token);
+        if (isValid) {
+          setSessionVerified(true);
+          toast.success("Recovery verified. Please set your new password.");
+        } else {
+          navigate('/auth');
+        }
+      } else {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          toast.error("No valid reset session found");
+          navigate('/auth');
+        } else {
+          setSessionVerified(true);
+        }
+      }
+    };
+    
+    verifySession();
+  }, [navigate]);
+
   const form = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordSchema),
     defaultValues: {
@@ -39,54 +64,6 @@ export const UpdatePasswordForm = () => {
       confirmPassword: '',
     },
   });
-
-  useEffect(() => {
-    const verifySession = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      console.log("Current session during password reset:", data?.session ? "Active session" : "No session");
-      
-      if (error) {
-        console.error("Error checking session for password reset:", error);
-        toast.error("Unable to verify your session. Please try the reset link again.");
-      } else if (!data?.session) {
-        console.log("No active session for password reset");
-        // Check URL parameters for token
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token');
-        const type = urlParams.get('type');
-        
-        if (token && type === 'recovery') {
-          console.log("Found recovery token in URL, trying to verify");
-          try {
-            const { error: verifyError } = await supabase.auth.verifyOtp({
-              token_hash: token,
-              type: 'recovery'
-            });
-            
-            if (verifyError) {
-              console.error("Error verifying token:", verifyError);
-              toast.error("Password reset token is invalid or expired");
-              navigate('/auth');
-            } else {
-              setSessionVerified(true);
-              toast.success("Recovery verified. Please set your new password.");
-            }
-          } catch (e) {
-            console.error("Exception verifying token:", e);
-            toast.error("Failed to process reset token");
-            navigate('/auth');
-          }
-        } else {
-          toast.error("No valid reset session found");
-          navigate('/auth');
-        }
-      } else {
-        setSessionVerified(true);
-      }
-    };
-    
-    verifySession();
-  }, [navigate]);
 
   const onSubmit = async (data: PasswordFormValues) => {
     try {

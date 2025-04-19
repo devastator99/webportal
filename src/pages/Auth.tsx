@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DoctorProfileForm } from "@/components/auth/DoctorProfileForm";
 import { toast } from "sonner";
 import { UpdatePasswordForm } from "@/components/auth/UpdatePasswordForm";
+import { TokenService } from "@/services/tokenService";
 
 const Auth = () => {
   const { user, isLoading, userRole } = useAuth();
@@ -23,7 +23,23 @@ const Auth = () => {
   const { loading, error, handleLogin, handleSignUp, handleTestLogin, setError, handleResetPassword } = useAuthHandlers();
 
   // Check if we're on the update password path
-  const isPasswordUpdateMode = location.pathname === '/auth/update-password';
+  const isPasswordUpdateMode = location.pathname === '/auth/update-password' || TokenService.isRecoveryFlow();
+
+  useEffect(() => {
+    const checkPasswordReset = async () => {
+      if (TokenService.isRecoveryFlow()) {
+        const token = TokenService.extractRecoveryToken();
+        if (token) {
+          const isValid = await TokenService.verifyRecoveryToken(token);
+          if (!isValid) {
+            navigate('/auth');
+          }
+        }
+      }
+    };
+
+    checkPasswordReset();
+  }, [navigate]);
 
   useEffect(() => {
     const checkDoctorProfile = async () => {
