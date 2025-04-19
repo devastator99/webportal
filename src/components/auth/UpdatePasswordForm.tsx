@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { SupabaseAuthUI } from '@/components/auth/SupabaseAuthUI';
@@ -31,6 +31,7 @@ type PasswordFormValues = z.infer<typeof passwordSchema>;
 export const UpdatePasswordForm = () => {
   const [useCustomForm, setUseCustomForm] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const [isTokenValid, setIsTokenValid] = useState<boolean | null>(null);
   const [isChecking, setIsChecking] = useState(true);
@@ -46,36 +47,46 @@ export const UpdatePasswordForm = () => {
     },
   });
   
-  // Log environment info on mount for debugging
+  // Log environment info and URL info on mount for debugging
   useEffect(() => {
     const envInfo = getEnvironmentInfo();
-    console.log("UpdatePasswordForm environment info:", envInfo);
-    console.log("Current URL:", window.location.href);
-    console.log("URL hash:", window.location.hash);
-  }, []);
+    const urlParams = new URLSearchParams(window.location.search);
+    const type = urlParams.get('type');
+    const token = urlParams.get('token');
+    
+    console.log("UpdatePasswordForm - URL and environment info:", { 
+      pathname: location.pathname,
+      search: location.search, 
+      hash: location.hash,
+      type,
+      hasToken: !!token,
+      envInfo 
+    });
+  }, [location]);
   
   // Check if the token in the URL is valid
   useEffect(() => {
     const checkResetToken = async () => {
       try {
-        // Log the URL hash if present
-        const urlHash = window.location.hash;
-        if (urlHash) {
-          console.log("URL hash detected:", urlHash);
-        }
-        
         // This will check if there's a valid hash for password reset in the URL
         const { data, error } = await supabase.auth.getUser();
         
-        console.log("Password reset token check:", { data, error });
+        console.log("Password reset token check:", { 
+          userData: data?.user ? "User present" : "No user",
+          error
+        });
         
         if (error) {
           console.error("Invalid or expired password reset token:", error);
           setIsTokenValid(false);
           toast.error("Password reset link is invalid or has expired");
-        } else {
-          console.log("Valid password reset token detected");
+        } else if (data?.user) {
+          console.log("Valid password reset token detected, user authenticated");
           setIsTokenValid(true);
+          toast.success("You can now set your new password");
+        } else {
+          console.log("No authenticated user found for password reset");
+          setIsTokenValid(false);
         }
       } catch (error) {
         console.error("Error checking reset token:", error);
@@ -85,18 +96,29 @@ export const UpdatePasswordForm = () => {
       }
     };
     
-    // Check for recovery type in both search params and URL hash
-    const isRecoveryInParams = searchParams.get('type') === 'recovery';
-    const isRecoveryInHash = window.location.hash.includes('type=recovery');
+    // Check for recovery type in URL parameters, hash, or pathname
+    const urlParams = new URLSearchParams(window.location.search);
+    const type = urlParams.get('type');
+    const token = urlParams.get('token');
+    const isRecoveryInParams = type === 'recovery';
+    const isRecoveryInHash = location.hash.includes('type=recovery');
+    const isUpdatePasswordPath = location.pathname === '/auth/update-password';
     
-    if (isRecoveryInParams || isRecoveryInHash) {
+    console.log("Recovery detection:", { 
+      isRecoveryInParams, 
+      isRecoveryInHash,
+      isUpdatePasswordPath,
+      hasToken: !!token
+    });
+    
+    if (isRecoveryInParams || isRecoveryInHash || isUpdatePasswordPath) {
       console.log("Recovery mode detected, checking token");
       checkResetToken();
     } else {
       console.log("Not in recovery mode");
       setIsChecking(false);
     }
-  }, [searchParams]);
+  }, [location]);
   
   const onSubmit = async (data: PasswordFormValues) => {
     setIsSubmitting(true);

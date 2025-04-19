@@ -1,6 +1,6 @@
 
 import './App.css';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from './contexts/ThemeProvider';
 import { AuthProvider } from './contexts/AuthContext';
@@ -19,48 +19,83 @@ import { DeploymentDomainChecker } from './components/auth/DeploymentDomainCheck
 import { supabase } from './integrations/supabase/client';
 import { toast } from 'sonner';
 
-function App() {
-  // Initialize state with current feature flags
-  const [chatEnabled, setChatEnabled] = useState(featureFlags.enableChat);
-  const [chatbotWidgetEnabled, setChatbotWidgetEnabled] = useState(featureFlags.enableChatbotWidget);
-  const [chatbotVoiceEnabled, setChatbotVoiceEnabled] = useState(featureFlags.enableChatbotVoice);
+// Auth token processor component to handle redirects
+const AuthTokenProcessor = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
   
-  // Process auth token in URL if present
   useEffect(() => {
     const processAuthToken = async () => {
-      // Check for URL hash (used in password reset links)
-      const hash = window.location.hash;
+      // Check URL parameters for recovery token
       const urlParams = new URLSearchParams(window.location.search);
       const type = urlParams.get('type');
+      const token = urlParams.get('token');
+      const hash = location.hash;
       
-      // Detect password reset flow
-      const isPasswordReset = 
-        (hash && hash.includes('type=recovery')) || 
-        (type === 'recovery');
+      console.log("URL check:", { 
+        pathname: location.pathname,
+        search: location.search, 
+        hash,
+        type,
+        token: token ? "Token present" : "No token"
+      });
       
-      if (isPasswordReset) {
-        console.log("Password reset flow detected");
+      // Handle recovery URL parameter (from email links)
+      if (type === 'recovery' && token) {
+        console.log("Recovery token detected in URL parameters");
         
         try {
-          // Get the session which will automatically process the token
+          // Get the session which will process the token
           const { data, error } = await supabase.auth.getSession();
           
           if (error) {
-            console.error("Error processing password reset token:", error);
+            console.error("Error processing token:", error);
             toast.error("Password reset link is invalid or has expired");
           } else if (data?.session) {
-            console.log("Successfully processed password reset token");
+            console.log("Successfully processed recovery token");
             toast.success("Password reset link is valid. Please set your new password.");
+            // Redirect to update password form
+            navigate('/auth/update-password');
           }
         } catch (error) {
-          console.error("Exception while processing password reset token:", error);
+          console.error("Exception processing token:", error);
+          toast.error("Failed to process password reset link");
+        }
+      }
+      
+      // Also handle password reset tokens in URL hash
+      else if ((hash && hash.includes('type=recovery'))) {
+        console.log("Recovery token detected in URL hash");
+        
+        try {
+          const { data, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error("Error processing hash token:", error);
+            toast.error("Password reset link is invalid or has expired");
+          } else if (data?.session) {
+            console.log("Successfully processed recovery token from hash");
+            toast.success("Password reset link is valid. Please set your new password.");
+            navigate('/auth/update-password');
+          }
+        } catch (error) {
+          console.error("Exception processing hash token:", error);
           toast.error("Failed to process password reset link");
         }
       }
     };
     
     processAuthToken();
-  }, []);
+  }, [location, navigate]);
+  
+  return null;
+};
+
+function App() {
+  // Initialize state with current feature flags
+  const [chatEnabled, setChatEnabled] = useState(featureFlags.enableChat);
+  const [chatbotWidgetEnabled, setChatbotWidgetEnabled] = useState(featureFlags.enableChatbotWidget);
+  const [chatbotVoiceEnabled, setChatbotVoiceEnabled] = useState(featureFlags.enableChatbotVoice);
   
   // Listen for changes to feature flags in localStorage
   useEffect(() => {
@@ -100,6 +135,9 @@ function App() {
           <MobileStatusBar />
           <Router>
             <AuthProvider>
+              {/* Add the AuthTokenProcessor to handle token processing */}
+              <AuthTokenProcessor />
+              
               {/* Navbar is available on all routes */}
               <Navbar />
               <div className="mobile-content">

@@ -33,9 +33,10 @@ export const SupabaseAuthUI = ({
     const search = window.location.search;
     const urlParams = new URLSearchParams(search);
     const type = urlParams.get('type');
+    const token = urlParams.get('token');
     
     console.log("SupabaseAuthUI - URL and environment info:", { 
-      pathname, hash, search, type,
+      pathname, hash, search, type, hasToken: !!token,
       envInfo 
     });
     
@@ -43,7 +44,8 @@ export const SupabaseAuthUI = ({
     const isPasswordReset = 
       pathname === '/auth/update-password' ||
       (hash && hash.includes('type=recovery')) || 
-      (type === 'recovery');
+      (type === 'recovery') ||
+      pathname.includes('/auth/recovery');
     
     if (isPasswordReset && view !== 'update_password') {
       console.log("Setting view to update_password due to recovery flow detection");

@@ -50,6 +50,10 @@ additional_redirect_urls = [
   "https://anubhooti-phase1.lovable.app",
   "https://anubhooti-phase1.lovable.app/auth",
   "https://anubhooti-phase1.lovable.app/auth/update-password",
+  "https://anubhooti-phase1.lovable.app/auth/recovery",
+  "https://anubhooti-phase1.lovable.app/auth/reset",
+  "https://anubhooti-phase1.lovable.app/verification",
+  "https://anubhooti-phase1.lovable.app/reset-password",
   "http://localhost:3000",
   "http://localhost:5173"
 ]
