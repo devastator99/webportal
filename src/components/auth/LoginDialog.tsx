@@ -55,15 +55,16 @@ export const LoginDialog = () => {
   };
 
   // Handle forgot password - close dialog and redirect to dedicated page
-  // Modified to return a Promise<void> to match the expected type
   const handleForgotPassword = async (email: string): Promise<void> => {
-    return new Promise<void>(resolve => {
-      // First close the dialog explicitly
-      setIsDialogOpen(false);
-      
-      // Then use setTimeout to ensure dialog state is updated before navigation
+    console.log("Forgot password clicked, closing dialog...");
+    
+    // Set dialog to closed immediately
+    setIsDialogOpen(false);
+    
+    // Use a promise to ensure the dialog is closed before navigating
+    return new Promise<void>((resolve) => {
+      // Use a small timeout to ensure the state update has processed
       setTimeout(() => {
-        // Construct the URL with email parameter if provided
         const resetUrl = email 
           ? `/auth?mode=reset&email=${encodeURIComponent(email)}`
           : '/auth?mode=reset';
@@ -71,20 +72,28 @@ export const LoginDialog = () => {
         console.log("Navigating to password reset page:", resetUrl);
         navigate(resetUrl);
         resolve();
-      }, 100); // Small delay to ensure dialog closes first
+      }, 150); // Increased delay to ensure dialog closes first
     });
   };
 
   return (
-    <Dialog open={isDialogOpen} onOpenChange={(open) => {
-      setIsDialogOpen(open);
-      if (open) resetInactivityTimer();
-    }}>
+    <Dialog 
+      open={isDialogOpen} 
+      onOpenChange={(open) => {
+        console.log("Dialog open state changing to:", open);
+        setIsDialogOpen(open);
+        if (open) resetInactivityTimer();
+      }}
+    >
       <DialogTrigger asChild>
         <Button 
           className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
           size="sm"
-          onClick={() => resetInactivityTimer()}
+          onClick={() => {
+            console.log("Sign In button clicked, opening dialog");
+            setIsDialogOpen(true);
+            resetInactivityTimer();
+          }}
         >
           <LogIn className="h-4 w-4" />
           <span className="hidden sm:inline">Sign In</span>

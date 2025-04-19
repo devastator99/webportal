@@ -175,6 +175,20 @@ export const AuthForm = ({ type, onSubmit, onResetPassword, error, loading }: Au
     }
   };
 
+  const handleForgotPasswordClick = async () => {
+    if (onResetPassword) {
+      const email = form.getValues().email || "";
+      console.log("Forgot password clicked with email:", email);
+      try {
+        await onResetPassword(email);
+      } catch (err) {
+        console.error("Error during password reset redirect:", err);
+      }
+    } else {
+      navigate("/auth?mode=reset");
+    }
+  };
+
   const formVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { 
@@ -314,7 +328,7 @@ export const AuthForm = ({ type, onSubmit, onResetPassword, error, loading }: Au
               type="button"
               variant="link"
               className="px-0 text-sm text-purple-600 hover:text-purple-800 font-medium"
-              onClick={() => navigate("/auth?mode=reset")}
+              onClick={handleForgotPasswordClick}
               disabled={loading}
             >
               Forgot password?
