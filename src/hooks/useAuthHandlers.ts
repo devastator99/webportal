@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, createUserRole, createPatientDetails } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { User } from '@supabase/supabase-js';
 
@@ -121,31 +121,31 @@ export const useAuthHandlers = () => {
       
       if (profileError) throw profileError;
       
-      // Create user role - using an RPC call properly typed in the database
-      const { error: roleError } = await supabase.rpc("upsert_user_role", {
-        p_user_id: user.id,
-        p_role_name: userType
-      });
+      // Create user role using Edge Function instead of direct RPC
+      const roleResult = await createUserRole(user.id, userType);
       
-      if (roleError) throw roleError;
+      if (!roleResult || (roleResult as any).error) {
+        throw new Error((roleResult as any).error || 'Failed to assign user role');
+      }
       
       if (userType === 'patient' && patientData) {
-        // Using an RPC call properly typed in the database
-        const { error: patientError } = await supabase.rpc("upsert_patient_details", {
-          p_patient_id: user.id,
-          p_age: patientData.age,
-          p_gender: patientData.gender,
-          p_blood_group: patientData.bloodGroup,
-          p_allergies: patientData.allergies || '',
-          p_emergency_contact: patientData.emergencyContact,
-          p_height: patientData.height || null,
-          p_birth_date: patientData.birthDate || null,
-          p_food_habit: patientData.foodHabit || null,
-          p_known_allergies: patientData.knownAllergies || null,
-          p_medical_conditions: patientData.currentMedicalConditions || null
-        });
+        // Using Edge Function instead of direct RPC
+        const patientResult = await createPatientDetails(
+          user.id,
+          parseInt(patientData.age),
+          patientData.gender,
+          patientData.bloodGroup,
+          patientData.allergies || null,
+          patientData.emergencyContact,
+          patientData.height ? parseFloat(patientData.height) : null,
+          patientData.birthDate || null,
+          patientData.foodHabit || null,
+          patientData.currentMedicalConditions || null
+        );
         
-        if (patientError) throw patientError;
+        if (!patientResult || (patientResult as any).error) {
+          throw new Error((patientResult as any).error || 'Failed to create patient details');
+        }
       }
       
       return user;
