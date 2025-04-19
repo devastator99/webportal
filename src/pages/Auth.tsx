@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,7 +48,6 @@ const Auth = () => {
       console.log("Recovery mode detected in URL params");
     }
 
-    // If reset mode is specified in URL params, show the reset form
     if (isResetMode) {
       setShowPasswordResetForm(true);
     }
@@ -271,12 +269,21 @@ const Auth = () => {
               }
             }
             onResetPassword={(email) => {
-              // When reset password is clicked, show the reset form immediately
-              setShowPasswordResetForm(true);
-              // If email is provided, pass it to handleResetPassword
-              if (email) {
-                handleResetPassword(email);
-              }
+              return new Promise<void>((resolve, reject) => {
+                try {
+                  setShowPasswordResetForm(true);
+                  
+                  if (email) {
+                    handleResetPassword(email)
+                      .then(() => resolve())
+                      .catch(error => reject(error));
+                  } else {
+                    resolve();
+                  }
+                } catch (error) {
+                  reject(error);
+                }
+              });
             }}
             error={error}
             loading={loading}
