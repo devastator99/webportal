@@ -34,18 +34,16 @@ serve(async (req: Request) => {
     // Create a Supabase client with the service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Check if the user exists
-    const { data: userData, error: userError } = await supabase
-      .from("user_profiles") // Replace with your user profile table
-      .select("id")
-      .eq("email", email)
-      .maybeSingle();
-      
+    // Check if the user exists directly in auth.users instead of user_profiles
+    const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+    
     if (userError) {
       throw userError;
     }
     
-    if (!userData) {
+    const user = userData.users.find(u => u.email === email);
+    
+    if (!user) {
       // To prevent email enumeration attacks, don't reveal if the user exists
       // Just return success even though we didn't actually send an email
       return new Response(
@@ -55,8 +53,6 @@ serve(async (req: Request) => {
     }
     
     // Send email using Supabase's email service
-    // This bypasses the default Supabase auth email templates with tokens
-    // You need to enable SMTP in your Supabase project settings for this to work
     const { error: emailError } = await supabase.auth.admin.sendRawEmail(
       email,
       "Reset Your Password",
