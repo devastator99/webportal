@@ -18,9 +18,13 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
     try {
       console.log("Initiating password reset for:", email);
       
-      // Use origin + full path with the explicit recovery parameter
+      // Use absolute URL to avoid any path issues
+      // We're explicitly using the full URL with the type=recovery parameter
       const origin = window.location.origin;
-      const resetUrl = `${origin}/auth?type=recovery`;
+      // Important: We're using a direct path to /auth without any query parameters
+      // The recovery type will be handled from the hash fragment instead
+      const resetUrl = `${origin}/auth`;
+      
       console.log("Using reset URL:", resetUrl);
       
       const { error } = await supabase.auth.resetPasswordForEmail(email, {

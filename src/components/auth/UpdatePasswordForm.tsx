@@ -19,7 +19,6 @@ export const UpdatePasswordForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Process the recovery token from URL
   useEffect(() => {
     const processRecoveryToken = async () => {
       try {
@@ -32,41 +31,41 @@ export const UpdatePasswordForm = () => {
         const hashFragment = window.location.hash;
         
         if (hashFragment && hashFragment.includes('access_token')) {
-          console.log("Found hash with tokens in URL:", hashFragment);
+          console.log("Found hash with tokens in URL");
           
-          // Extract the tokens directly from hash
+          // Parse the hash params more reliably
           const hashParams = new URLSearchParams(hashFragment.substring(1));
           const accessToken = hashParams.get('access_token');
           const refreshToken = hashParams.get('refresh_token');
+          const type = hashParams.get('type');
+          
+          console.log("Token type:", type);
+          console.log("Access token present:", !!accessToken);
+          console.log("Refresh token present:", !!refreshToken);
           
           if (accessToken && refreshToken) {
-            console.log("Extracted tokens from URL hash, setting session");
+            console.log("Setting session with tokens from URL hash");
             
-            try {
-              const { data, error } = await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken
-              });
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
+            
+            if (error) {
+              console.error("Error setting session with token:", error);
+              setError("Error processing recovery token: " + error.message);
+              setHasSession(false);
+            } else if (data?.session) {
+              console.log("Session set successfully with recovery token");
+              setHasSession(true);
               
-              if (error) {
-                console.error("Error setting session with token:", error);
-                setError("Error processing recovery token: " + error.message);
-                setHasSession(false);
-              } else if (data?.session) {
-                console.log("Session set successfully with recovery token");
-                setHasSession(true);
-                
-                // Clear URL hash to prevent token leaking and reprocessing
-                if (window.history.replaceState) {
-                  window.history.replaceState(null, '', window.location.pathname + window.location.search);
-                }
-              } else {
-                console.error("No session returned after setting tokens");
-                setError("Failed to establish session with recovery token");
+              // Clear URL hash to prevent token leaking and reprocessing
+              if (window.history.replaceState) {
+                window.history.replaceState(null, '', window.location.pathname + window.location.search);
               }
-            } catch (err) {
-              console.error("Exception in setSession:", err);
-              setError("Error processing session: " + (err instanceof Error ? err.message : String(err)));
+            } else {
+              console.error("No session returned after setting tokens");
+              setError("Failed to establish session with recovery token");
             }
           } else {
             console.error("Could not extract complete tokens from hash");
@@ -100,7 +99,7 @@ export const UpdatePasswordForm = () => {
     };
     
     processRecoveryToken();
-  }, [location]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

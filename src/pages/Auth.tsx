@@ -21,50 +21,6 @@ const Auth = () => {
   const view = searchParams.get('view');
   const type = searchParams.get('type');
 
-  // Check for recovery tokens in the URL
-  useEffect(() => {
-    const handleRecoveryAndTokens = async () => {
-      // First check for presence of token in hash (from password reset email)
-      if (window.location.hash && window.location.hash.includes('access_token')) {
-        console.log("Detected access token in URL hash - switching to recovery mode");
-        setProcessingRecovery(true);
-        setIsRecoveryMode(true);
-        setProcessingRecovery(false);
-        return;
-      }
-      
-      // Check for type=recovery in query parameters
-      if (type === 'recovery') {
-        console.log("Recovery mode activated via URL parameter");
-        setIsRecoveryMode(true);
-        return;
-      }
-      
-      // Additional check for reset parameter for backward compatibility
-      if (searchParams.get('reset') === 'true') {
-        console.log("Recovery mode activated via reset=true parameter");
-        setIsRecoveryMode(true);
-        return;
-      }
-      
-      // Check for a session that might have been established from a recovery token
-      try {
-        const { data } = await supabase.auth.getSession();
-        if (data?.session) {
-          const authAction = new URLSearchParams(window.location.search).get('action');
-          if (authAction === 'recovery' || authAction === 'reset') {
-            console.log("Recovery session detected based on session + action parameter");
-            setIsRecoveryMode(true);
-          }
-        }
-      } catch (err) {
-        console.error("Error checking session for recovery:", err);
-      }
-    };
-    
-    handleRecoveryAndTokens();
-  }, [type, searchParams]);
-
   // Debug logging
   useEffect(() => {
     console.log("Auth page render state:", {
@@ -79,11 +35,55 @@ const Auth = () => {
     });
   }, [view, type, isRecoveryMode, user, isLoading]);
 
+  // Check for recovery tokens in the URL
+  useEffect(() => {
+    const handleRecoveryAndTokens = async () => {
+      setProcessingRecovery(true);
+      
+      try {
+        // First priority: Check for tokens in hash fragment (from password reset email)
+        if (window.location.hash && window.location.hash.includes('access_token')) {
+          console.log("Detected access token in URL hash - switching to recovery mode");
+          setIsRecoveryMode(true);
+          return;
+        }
+        
+        // Second priority: Check for type=recovery in query params
+        if (type === 'recovery') {
+          console.log("Recovery mode activated via URL parameter");
+          setIsRecoveryMode(true);
+          return;
+        }
+        
+        // Third priority: Check for reset=true (legacy parameter)
+        if (searchParams.get('reset') === 'true') {
+          console.log("Recovery mode activated via reset=true parameter");
+          setIsRecoveryMode(true);
+          return;
+        }
+        
+        // Final check: See if we have a session + action=recovery
+        const { data } = await supabase.auth.getSession();
+        const authAction = searchParams.get('action');
+        if (data?.session && (authAction === 'recovery' || authAction === 'reset')) {
+          console.log("Recovery session detected based on session + action parameter");
+          setIsRecoveryMode(true);
+        }
+      } catch (err) {
+        console.error("Error checking recovery mode:", err);
+      } finally {
+        setProcessingRecovery(false);
+      }
+    };
+    
+    handleRecoveryAndTokens();
+  }, [type, searchParams]);
+
   // Redirect to dashboard if already logged in and not in recovery mode
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     
-    if (!isLoading && user && !view && !isRecoveryMode) {
+    if (!isLoading && user && !view && !isRecoveryMode && !window.location.hash.includes('access_token')) {
       timeoutId = setTimeout(() => {
         navigate("/dashboard");
       }, 100);
@@ -108,7 +108,7 @@ const Auth = () => {
     );
   }
 
-  // Show update password form if in recovery mode
+  // Show update password form if in recovery mode or has access token in hash
   if (isRecoveryMode || window.location.hash.includes('access_token')) {
     console.log("Rendering UpdatePasswordForm for password recovery");
     return <UpdatePasswordForm />;
