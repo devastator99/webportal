@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -36,9 +37,10 @@ serve(async (req: Request) => {
     
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
     
-    if (!supabaseUrl || !supabaseServiceKey) {
-      console.error("Missing Supabase URL or service role key");
+    if (!supabaseUrl || !supabaseServiceKey || !resendApiKey) {
+      console.error("Missing required environment variables");
       return new Response(
         JSON.stringify({ success: false, error: "Server configuration error" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -71,19 +73,27 @@ serve(async (req: Request) => {
       );
     }
     
-    // Send email directly with OTP - this is the critical change
-    const { error: emailError } = await supabase.auth.admin.sendEmail(
-      email,
-      'PASSWORD_RECOVERY', // Using standard email type
-      { 
-        subject: 'Your password reset OTP', 
-        body: `Your OTP for password reset is: ${otp}\nThis code will expire in 1 hour.`,
-        data: {
-          otp: otp,
-          password_reset: true
-        }
-      }
-    );
+    // Initialize Resend
+    const resend = new Resend(resendApiKey);
+    
+    // Send email using Resend
+    const { data: emailData, error: emailError } = await resend.emails.send({
+      from: "Password Reset <onboarding@resend.dev>",
+      to: [email],
+      subject: "Your Password Reset OTP",
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2>Password Reset Request</h2>
+          <p>You have requested to reset your password. Here is your one-time password (OTP):</p>
+          <div style="background-color: #f4f4f4; padding: 20px; text-align: center; font-size: 24px; letter-spacing: 5px; margin: 20px 0;">
+            <strong>${otp}</strong>
+          </div>
+          <p>This code will expire in 1 hour.</p>
+          <p>If you didn't request this password reset, please ignore this email.</p>
+          <p>Best regards,<br/>Your Support Team</p>
+        </div>
+      `,
+    });
     
     if (emailError) {
       console.error("Error sending email:", emailError);
