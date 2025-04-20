@@ -16,20 +16,24 @@ export const UpdatePasswordForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Get email from local storage and token from URL
+  // Extract email from URL or local storage
   useEffect(() => {
-    const savedEmail = localStorage.getItem('passwordResetEmail');
-    if (savedEmail) {
-      setEmail(savedEmail);
-    }
+    // Try to get email from URL query params
+    const searchParams = new URLSearchParams(location.search);
+    const emailFromUrl = searchParams.get('email');
     
-    // Check if we have a token in the URL (from the email link)
-    const hashParams = new URLSearchParams(location.hash.substring(1));
-    const type = hashParams.get('type');
-    
-    // If we have the recovery token from URL hash, we can use the standard Supabase update password flow
-    if (type === 'recovery') {
-      console.log('Recovery token found in URL - can use standard Supabase flow');
+    if (emailFromUrl) {
+      setEmail(emailFromUrl);
+      console.log("Found email in URL:", emailFromUrl);
+    } else {
+      // Fall back to saved email from local storage
+      const savedEmail = localStorage.getItem('passwordResetEmail');
+      if (savedEmail) {
+        setEmail(savedEmail);
+        console.log("Using email from local storage:", savedEmail);
+      } else {
+        console.log("No email found in URL or local storage");
+      }
     }
   }, [location]);
   
@@ -47,31 +51,24 @@ export const UpdatePasswordForm = () => {
       return;
     }
     
+    if (!email) {
+      setError("Email is required. Please use the link from the email we sent you.");
+      return;
+    }
+    
     setLoading(true);
 
     try {
-      // Check if we're handling a direct link from email (with hash parameters)
-      const hashParams = new URLSearchParams(location.hash.substring(1));
-      const type = hashParams.get('type');
+      console.log("Updating password for email:", email);
       
-      if (type === 'recovery') {
-        // Use standard Supabase auth.updateUser when we have the recovery token
-        const { error } = await supabase.auth.updateUser({ password });
-        
-        if (error) throw error;
-      } else {
-        // Fallback to our custom edge function if no token
-        if (!email) {
-          setError("Email is required. Please use the link from the email we sent you.");
-          return;
-        }
-        
-        // Use our custom edge function for password reset without token
-        const { error: updateError } = await supabase.functions.invoke('update-password-without-token', {
-          body: { email, newPassword: password }
-        });
+      // Use our custom edge function for password reset without token
+      const { data, error: updateError } = await supabase.functions.invoke('update-password-without-token', {
+        body: { email, newPassword: password }
+      });
 
-        if (updateError) throw updateError;
+      if (updateError || (data && 'error' in data)) {
+        const errorMessage = updateError?.message || (data && 'error' in data ? data.error : null);
+        throw new Error(errorMessage || "Unable to update password");
       }
       
       toast.success('Password updated successfully');
@@ -108,22 +105,20 @@ export const UpdatePasswordForm = () => {
           )}
           
           <form onSubmit={handleSubmit} className="space-y-6">
-            {!email && (
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email Address
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Your Email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="mt-1"
-                />
-              </div>
-            )}
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email Address
+              </label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Your Email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="mt-1"
+              />
+            </div>
             
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">

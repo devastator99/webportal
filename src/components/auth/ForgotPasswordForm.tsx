@@ -19,7 +19,7 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
       
       console.log("Sending password reset email to:", email);
       
-      // Use the edge function to send a password reset email
+      // Use the edge function to send a simple password reset email
       const { data, error } = await supabase.functions.invoke('send-password-reset-email', {
         body: { 
           email, 
