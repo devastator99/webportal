@@ -38,13 +38,14 @@ export const UpdatePasswordForm = () => {
       if (error) throw error;
 
       toast.success('Password updated successfully');
+      // Redirect to login page after successful password update
       setTimeout(() => {
         navigate('/auth');
       }, 1500);
     } catch (error: any) {
       console.error("Password update error:", error);
-      setError(error.message || "Unable to update password");
-      toast.error("Unable to update password");
+      setError("Unable to update password. Please try again.");
+      toast.error("Failed to update password");
     } finally {
       setLoading(false);
     }
@@ -53,7 +54,7 @@ export const UpdatePasswordForm = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-saas-dark">
+        <h2 className="text-center text-3xl font-extrabold text-saas-dark">
           Set New Password
         </h2>
       </div>
@@ -79,7 +80,7 @@ export const UpdatePasswordForm = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={6}
-                className="mt-1 w-full"
+                className="mt-1"
               />
             </div>
             
@@ -95,7 +96,7 @@ export const UpdatePasswordForm = () => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 minLength={6}
-                className="mt-1 w-full"
+                className="mt-1"
               />
             </div>
             
@@ -107,7 +108,7 @@ export const UpdatePasswordForm = () => {
               {loading ? 'Updating...' : 'Update Password'}
             </Button>
             
-            <div className="text-center mt-4">
+            <div className="text-center">
               <Button
                 variant="ghost"
                 className="text-sm text-purple-600"

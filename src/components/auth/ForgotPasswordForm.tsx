@@ -1,10 +1,9 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
   const [email, setEmail] = useState('');
@@ -16,7 +15,6 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
     setLoading(true);
 
     try {
-      // Using a simple direct path for password reset
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/update-password`
       });
@@ -27,7 +25,7 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
       toast.success('Check your email for the password reset link');
     } catch (error: any) {
       console.error("Password reset error:", error);
-      toast.error(error.message || 'Error sending reset password email');
+      toast.error('Error sending reset password email');
     } finally {
       setLoading(false);
     }
@@ -38,11 +36,9 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
       <div className="space-y-4 text-center">
         <h2 className="text-lg font-semibold">Email Sent!</h2>
         <p className="text-sm text-gray-600">
-          Check your email for a link to reset your password.
+          Please check your email for the password reset link.
         </p>
-        <Button onClick={onClose} className="w-full">
-          Close
-        </Button>
+        <Button onClick={onClose}>Close</Button>
       </div>
     );
   }
