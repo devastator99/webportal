@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,19 +12,27 @@ export const UpdatePasswordForm = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
   const navigate = useNavigate();
   
-  // Get the email from localStorage that was set in the ForgotPasswordForm
-  const email = localStorage.getItem('reset_email') || '';
+  // Check if user has a valid session for password reset
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      setSessionChecked(true);
+      
+      // If no session and not coming from a password reset link, redirect to login
+      if (!data.session && !window.location.hash.includes('type=recovery')) {
+        setError("Invalid or expired password reset link. Please try again.");
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
-    if (!email) {
-      setError("Please start from the forgot password page");
-      return;
-    }
     
     if (password !== confirmPassword) {
       setError("Passwords don't match");
@@ -39,18 +47,6 @@ export const UpdatePasswordForm = () => {
     setLoading(true);
 
     try {
-      // Using signIn and then updatePassword as a simpler approach
-      // First try to sign in with email (this is just to identify the user)
-      const { error: signInError } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: false
-        }
-      });
-
-      if (signInError) throw new Error("Failed to identify user");
-
-      // Now update the password with a direct API call
       const { error } = await supabase.auth.updateUser({
         password: password
       });
@@ -59,21 +55,27 @@ export const UpdatePasswordForm = () => {
 
       toast.success('Password updated successfully');
       
-      // Clear the stored email
-      localStorage.removeItem('reset_email');
-      
       // Redirect to login page after successful password update
       setTimeout(() => {
         navigate('/auth');
       }, 1500);
     } catch (error: any) {
       console.error("Password update error:", error);
-      setError("Unable to update password. The reset process is simplified for demo purposes.");
-      toast.error("This is a simplified demo of password reset");
+      setError(error.message || "Unable to update password");
     } finally {
       setLoading(false);
     }
   };
+
+  if (!sessionChecked) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center">
+        <div className="text-center">
+          <p className="text-lg">Checking session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -81,11 +83,6 @@ export const UpdatePasswordForm = () => {
         <h2 className="text-center text-3xl font-extrabold text-saas-dark">
           Set New Password
         </h2>
-        {email && (
-          <p className="mt-2 text-center text-sm text-gray-600">
-            For email: {email}
-          </p>
-        )}
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
