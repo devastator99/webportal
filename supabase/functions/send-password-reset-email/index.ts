@@ -12,6 +12,11 @@ interface ResetEmailRequest {
   resetUrl: string;
 }
 
+// Generate a random 6-digit OTP
+function generateOTP(): string {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+}
+
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
@@ -40,35 +45,61 @@ serve(async (req: Request) => {
       );
     }
     
-    console.log(`Attempting to send password reset email to: ${email}`);
+    console.log(`Attempting to send password reset OTP to: ${email}`);
     
     // Create a Supabase client with the service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Use Supabase's built-in resetPasswordForEmail function which will send a magic link
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: resetUrl
-    });
+    // Generate a 6-digit OTP
+    const otp = generateOTP();
     
-    if (error) {
-      console.error("Error sending password reset email:", error);
+    // Store the OTP in the database temporarily (1 hour expiry)
+    const { error: storeError } = await supabase
+      .from('password_reset_otps')
+      .upsert({ 
+        email, 
+        otp, 
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 3600000).toISOString() // 1 hour expiry
+      });
+      
+    if (storeError) {
+      console.error("Error storing OTP:", storeError);
       return new Response(
-        JSON.stringify({ success: false, error: error.message }),
+        JSON.stringify({ success: false, error: storeError.message }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    console.log("Password reset email sent successfully");
+    // Send email with OTP using Supabase's email service
+    const { error: emailError } = await supabase.auth.admin.sendEmail(
+      email,
+      'PASSWORD_RECOVERY',
+      { 
+        subject: 'Your password reset OTP', 
+        body: `Your OTP for password reset is: ${otp}\nThis code will expire in 1 hour.` 
+      }
+    );
+    
+    if (emailError) {
+      console.error("Error sending email:", emailError);
+      return new Response(
+        JSON.stringify({ success: false, error: emailError.message }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    console.log("Password reset OTP sent successfully");
     
     return new Response(
-      JSON.stringify({ success: true, message: "Password reset email sent successfully" }),
+      JSON.stringify({ success: true, message: "Password reset OTP sent successfully" }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
     console.error("Password reset email error:", error);
     
     return new Response(
-      JSON.stringify({ success: false, error: error.message || "Failed to send password reset email" }),
+      JSON.stringify({ success: false, error: error.message || "Failed to send password reset OTP" }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -9,6 +9,7 @@ const corsHeaders = {
 
 interface UpdatePasswordRequest {
   email: string;
+  otp: string;
   newPassword: string;
 }
 
@@ -19,17 +20,18 @@ serve(async (req: Request) => {
   }
   
   try {
-    const { email, newPassword } = await req.json() as UpdatePasswordRequest;
+    const { email, otp, newPassword } = await req.json() as UpdatePasswordRequest;
     
-    if (!email || !newPassword) {
+    if (!email || !otp || !newPassword) {
+      console.error("Missing required fields in request");
       return new Response(
-        JSON.stringify({ success: false, error: "Email and password are required" }),
+        JSON.stringify({ success: false, error: "Email, OTP, and new password are required" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error("Missing Supabase URL or service role key");
@@ -42,52 +44,67 @@ serve(async (req: Request) => {
     // Create a Supabase client with the service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    console.log(`Finding user with email: ${email}`);
+    // Verify OTP from database
+    const { data: otpData, error: otpError } = await supabase
+      .from('password_reset_otps')
+      .select('*')
+      .eq('email', email)
+      .eq('otp', otp)
+      .gt('expires_at', new Date().toISOString())
+      .single();
     
-    // Find the user by email
-    const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
-    
-    if (userError) {
-      console.error("Error listing users:", userError);
+    if (otpError || !otpData) {
+      console.error("OTP validation error:", otpError || "OTP not found or expired");
       return new Response(
-        JSON.stringify({ success: false, error: userError.message }),
+        JSON.stringify({ success: false, error: "Invalid or expired OTP" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    const user = userData.users.find(u => u.email === email);
+    // Get user by email
+    const { data: userData, error: userError } = await supabase.auth.admin.listUsers({
+      filter: { 
+        email: email
+      }
+    });
     
-    if (!user) {
-      console.error(`User with email ${email} not found`);
+    if (userError || !userData || userData.users.length === 0) {
+      console.error("User lookup error:", userError || "User not found");
       return new Response(
         JSON.stringify({ success: false, error: "User not found" }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    console.log(`Updating password for user ${user.id}`);
+    const userId = userData.users[0].id;
     
-    // Update the user's password using admin functions
-    const { data, error: updateError } = await supabase.auth.admin.updateUserById(
-      user.id,
+    // Update the user's password
+    const { error: updateError } = await supabase.auth.admin.updateUserById(
+      userId,
       { password: newPassword }
     );
     
     if (updateError) {
-      console.error("Error updating password:", updateError);
+      console.error("Password update error:", updateError);
       return new Response(
         JSON.stringify({ success: false, error: updateError.message }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
+    // Delete the used OTP
+    await supabase
+      .from('password_reset_otps')
+      .delete()
+      .eq('email', email);
+    
     console.log("Password updated successfully");
     
     return new Response(
-      JSON.stringify({ success: true }),
+      JSON.stringify({ success: true, message: "Password updated successfully" }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("Password update error:", error);
     
     return new Response(
