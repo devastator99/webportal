@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,23 +14,28 @@ export const UpdatePasswordForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Get email from local storage if available (set during forgot password flow)
+  // Get email from local storage and token from URL
   useEffect(() => {
     const savedEmail = localStorage.getItem('passwordResetEmail');
     if (savedEmail) {
       setEmail(savedEmail);
     }
-  }, []);
+    
+    // Check if we have a token in the URL (from the email link)
+    const hashParams = new URLSearchParams(location.hash.substring(1));
+    const type = hashParams.get('type');
+    
+    // If we have the recovery token from URL hash, we can use the standard Supabase update password flow
+    if (type === 'recovery') {
+      console.log('Recovery token found in URL - can use standard Supabase flow');
+    }
+  }, [location]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
-    if (!email) {
-      setError("Email is required. Please use the link from the email we sent you.");
-      return;
-    }
     
     if (password !== confirmPassword) {
       setError("Passwords don't match");
@@ -45,14 +50,28 @@ export const UpdatePasswordForm = () => {
     setLoading(true);
 
     try {
-      // First, we need to sign in with email and the new password
-      // This is a workaround since we're not using tokens
-      const { error: signInError } = await supabase.functions.invoke('update-password-without-token', {
-        body: { email, newPassword: password }
-      });
+      // Check if we're handling a direct link from email (with hash parameters)
+      const hashParams = new URLSearchParams(location.hash.substring(1));
+      const type = hashParams.get('type');
+      
+      if (type === 'recovery') {
+        // Use standard Supabase auth.updateUser when we have the recovery token
+        const { error } = await supabase.auth.updateUser({ password });
+        
+        if (error) throw error;
+      } else {
+        // Fallback to our custom edge function if no token
+        if (!email) {
+          setError("Email is required. Please use the link from the email we sent you.");
+          return;
+        }
+        
+        // Use our custom edge function for password reset without token
+        const { error: updateError } = await supabase.functions.invoke('update-password-without-token', {
+          body: { email, newPassword: password }
+        });
 
-      if (signInError) {
-        throw signInError;
+        if (updateError) throw updateError;
       }
       
       toast.success('Password updated successfully');

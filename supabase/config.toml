@@ -46,12 +46,14 @@ site_url = "https://anubhooti-phase1.lovable.app"
 additional_redirect_urls = [
   "https://anubhooti-phase1.lovable.app",
   "https://anubhooti-phase1.lovable.app/auth",
+  "https://anubhooti-phase1.lovable.app/auth/update-password",
   "https://anubhooti-phase1.lovable.app/auth?type=recovery",
   "https://anubhooti-phase1.lovable.app/auth?view=update_password",
   "https://anubhooti-phase1.lovable.app/auth?reset=true",
   "https://anubhooti-phase1.lovable.app/auth?action=recovery",
   "https://f86ca2e5-f381-4a38-916a-b6b45c97002b.lovableproject.com",
   "https://f86ca2e5-f381-4a38-916a-b6b45c97002b.lovableproject.com/auth",
+  "https://f86ca2e5-f381-4a38-916a-b6b45c97002b.lovableproject.com/auth/update-password",
   "https://f86ca2e5-f381-4a38-916a-b6b45c97002b.lovableproject.com/auth?type=recovery",
   "https://f86ca2e5-f381-4a38-916a-b6b45c97002b.lovableproject.com/auth?view=update_password",
   "https://f86ca2e5-f381-4a38-916a-b6b45c97002b.lovableproject.com/auth?reset=true",
@@ -88,6 +90,12 @@ url = ""
 [functions]
 # Port to use for Functions.
 port = 54321
+
+[functions.send-password-reset-email]
+verify_jwt = false
+
+[functions.update-password-without-token]
+verify_jwt = false
 
 [functions.send-ai-care-team-message]
 verify_jwt = false

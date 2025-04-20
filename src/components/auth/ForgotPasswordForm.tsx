@@ -17,9 +17,9 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
       // Store the email in local storage for later use in update password form
       localStorage.setItem('passwordResetEmail', email);
       
-      console.log("Calling send-password-reset-email function with email:", email);
+      console.log("Sending password reset email to:", email);
       
-      // Send a custom email with a direct link to update password page
+      // Use the edge function to send a password reset email
       const { data, error } = await supabase.functions.invoke('send-password-reset-email', {
         body: { 
           email, 
@@ -29,7 +29,7 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
 
       if (error) {
         console.error("Password reset error:", error);
-        throw error;
+        throw new Error(error.message || "Failed to send password reset email");
       }
 
       console.log("Password reset response:", data);
@@ -37,7 +37,7 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
       if (onClose) onClose();
     } catch (error: any) {
       console.error("Password reset error:", error);
-      toast.error('Error sending password reset email. Please try again later.');
+      toast.error(error.message || 'Error sending password reset email. Please try again later.');
     } finally {
       setLoading(false);
     }

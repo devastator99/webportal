@@ -22,14 +22,15 @@ serve(async (req: Request) => {
     const { email, resetUrl } = await req.json() as ResetEmailRequest;
     
     if (!email) {
+      console.error("Missing email in request");
       return new Response(
         JSON.stringify({ error: "Email is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error("Missing Supabase URL or service role key");
@@ -39,46 +40,25 @@ serve(async (req: Request) => {
       );
     }
     
+    console.log(`Attempting to send password reset email to: ${email}`);
+    
     // Create a Supabase client with the service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Check if the user exists directly in auth.users instead of user_profiles
-    const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+    // Use the built-in Supabase resetPasswordForEmail function
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: resetUrl,
+    });
     
-    if (userError) {
-      console.error("Error listing users:", userError);
-      throw userError;
-    }
-    
-    const user = userData.users.find(u => u.email === email);
-    
-    if (!user) {
-      // To prevent email enumeration attacks, don't reveal if the user exists
-      // Just return success even though we didn't actually send an email
-      console.log(`User with email ${email} not found, returning success anyway`);
+    if (error) {
+      console.error("Error sending password reset:", error);
       return new Response(
-        JSON.stringify({ success: true }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: error.message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    console.log(`Generating password reset link for user ${user.id} with email ${email}`);
-    
-    // Generate a password reset link using Supabase's built-in functionality
-    const { data: linkData, error: emailError } = await supabase.auth.admin.generateLink({
-      type: "recovery",
-      email,
-      options: {
-        redirectTo: resetUrl
-      }
-    });
-    
-    if (emailError) {
-      console.error("Error generating password reset link:", emailError);
-      throw emailError;
-    }
-    
-    console.log("Password reset link generated successfully");
+    console.log("Password reset email sent successfully");
     
     return new Response(
       JSON.stringify({ success: true }),
