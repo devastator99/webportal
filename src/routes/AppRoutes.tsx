@@ -1,3 +1,4 @@
+
 import { lazy, Suspense } from 'react';
 import { Route, Routes, Outlet, Navigate } from 'react-router-dom';
 import LandingPage from '../pages/LandingPage';
@@ -46,7 +47,7 @@ export const AppRoutes = () => {
           element={
             <RoleProtectedRoute allowedRoles={['doctor', 'administrator']}>
               <Outlet />
-            </RoleProtectedRoute>
+            </RoleProtectedRole>
           }
         >
           <Route path="/patients" element={<PatientsView />} />
@@ -56,7 +57,7 @@ export const AppRoutes = () => {
           element={
             <RoleProtectedRoute allowedRoles={['administrator']}>
               <Outlet />
-            </RoleProtectedRoute>
+            </RoleProtectedRole>
           }
         >
           <Route path="/admin" element={<Admin />} />
