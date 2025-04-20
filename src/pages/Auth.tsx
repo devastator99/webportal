@@ -6,7 +6,6 @@ import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { LucideLoader2 } from "lucide-react";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
-import { UpdatePasswordForm } from "@/components/auth/UpdatePasswordForm";
 
 const Auth = () => {
   const { user, isLoading } = useAuth();
@@ -15,14 +14,13 @@ const Auth = () => {
   const location = useLocation();
   
   const isRegistration = location.pathname.includes('/register');
-  const isPasswordReset = location.pathname.includes('/update-password');
 
-  // Redirect to dashboard if already logged in and not resetting password
+  // Redirect to dashboard if already logged in
   useEffect(() => {
-    if (!isLoading && user && !isPasswordReset) {
+    if (!isLoading && user) {
       navigate("/dashboard");
     }
-  }, [user, isLoading, navigate, isPasswordReset]);
+  }, [user, isLoading, navigate]);
 
   // Show loading state
   if (isLoading) {
@@ -32,11 +30,6 @@ const Auth = () => {
         <p className="mt-4 text-sm text-gray-600">Loading...</p>
       </div>
     );
-  }
-
-  // Show update password form if in password reset mode
-  if (isPasswordReset) {
-    return <UpdatePasswordForm />;
   }
 
   // Handle signup form submission
