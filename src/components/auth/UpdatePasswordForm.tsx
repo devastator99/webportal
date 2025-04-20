@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,17 +12,33 @@ export const UpdatePasswordForm = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // Get email from URL hash params (Supabase magic link puts it there)
+  // Check if we're in a password reset flow
   useEffect(() => {
-    // Check for hash params from Supabase magic link
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    if (hashParams.get('type') === 'recovery') {
-      console.log("Found recovery parameters in URL hash");
-    }
-  }, [location]);
+    const checkForResetFlow = async () => {
+      // Get current URL hash parameters (Supabase adds these in password reset flow)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const type = hashParams.get('type');
+      
+      // If we're not in a recovery flow, check if there's a valid session
+      if (type !== 'recovery') {
+        const { data } = await supabase.auth.getSession();
+        
+        // If no session and not in recovery flow, redirect to login
+        if (!data.session) {
+          console.log("No active session and not in recovery flow, redirecting to login");
+          navigate('/auth');
+          return;
+        }
+      }
+      
+      setInitialized(true);
+    };
+    
+    checkForResetFlow();
+  }, [navigate]);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,8 +59,7 @@ export const UpdatePasswordForm = () => {
     try {
       console.log("Updating password");
       
-      // Use the built-in Supabase method to update password
-      // It will use the existing session created by the magic link
+      // Use Supabase's updateUser method which works with the hash parameters from the reset link
       const { data, error: updateError } = await supabase.auth.updateUser({
         password: password
       });
@@ -58,9 +73,6 @@ export const UpdatePasswordForm = () => {
       
       toast.success('Password updated successfully');
       
-      // Clear saved email from local storage
-      localStorage.removeItem('passwordResetEmail');
-      
       // Redirect to login page after successful password update
       setTimeout(() => {
         navigate('/auth');
@@ -72,6 +84,19 @@ export const UpdatePasswordForm = () => {
       setLoading(false);
     }
   };
+
+  // Show loading state until we've determined if we're in a valid reset flow
+  if (!initialized) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <h2 className="text-center text-3xl font-extrabold text-saas-dark">
+            Loading...
+          </h2>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
