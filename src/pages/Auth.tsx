@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,17 +6,20 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { LucideLoader2 } from "lucide-react";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { toast } from "sonner";
+import { UpdatePasswordForm } from "@/components/auth/UpdatePasswordForm";
 
 const Auth = () => {
   const { user, isLoading } = useAuth();
   const { handleSignUp, error, loading, setError } = useAuthHandlers();
   const navigate = useNavigate();
   const isRegistration = window.location.pathname.includes('/register');
+  const searchParams = new URLSearchParams(window.location.search);
+  const view = searchParams.get('view');
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     
-    if (!isLoading && user) {
+    if (!isLoading && user && !view) {
       timeoutId = setTimeout(() => {
         navigate("/dashboard");
       }, 100);
@@ -28,30 +30,7 @@ const Auth = () => {
         clearTimeout(timeoutId);
       }
     };
-  }, [user, isLoading, navigate]);
-
-  // Handle signup form submission
-  const handleFormSubmit = async (
-    email: string, 
-    password: string, 
-    userType?: string, 
-    firstName?: string, 
-    lastName?: string,
-    patientData?: any
-  ) => {
-    try {
-      await toast.promise(
-        handleSignUp(email, password, userType as any, firstName, lastName, patientData),
-        {
-          loading: 'Creating your account...',
-          success: 'Account created successfully! Redirecting to dashboard...',
-          error: (err) => `Registration failed: ${err.message || 'Please try again'}`
-        }
-      );
-    } catch (error: any) {
-      console.error("Registration error:", error);
-    }
-  };
+  }, [user, isLoading, navigate, view]);
 
   // Show loading state
   if (isLoading) {
@@ -63,6 +42,11 @@ const Auth = () => {
         </p>
       </div>
     );
+  }
+
+  // Show update password form if view is update_password
+  if (view === 'update_password') {
+    return <UpdatePasswordForm />;
   }
 
   return (
@@ -93,6 +77,28 @@ const Auth = () => {
       </div>
     </div>
   );
+};
+
+const handleFormSubmit = async (
+  email: string, 
+  password: string, 
+  userType?: string, 
+  firstName?: string, 
+  lastName?: string,
+  patientData?: any
+) => {
+  try {
+    await toast.promise(
+      handleSignUp(email, password, userType as any, firstName, lastName, patientData),
+      {
+        loading: 'Creating your account...',
+        success: 'Account created successfully! Redirecting to dashboard...',
+        error: (err) => `Registration failed: ${err.message || 'Please try again'}`
+      }
+    );
+  } catch (error: any) {
+    console.error("Registration error:", error);
+  }
 };
 
 export default Auth;
