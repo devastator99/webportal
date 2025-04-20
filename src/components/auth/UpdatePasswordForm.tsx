@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,24 +12,8 @@ export const UpdatePasswordForm = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sessionChecked, setSessionChecked] = useState(false);
   const navigate = useNavigate();
   
-  // Check if user has a valid session for password reset
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      setSessionChecked(true);
-      
-      // If no session and not coming from a password reset link, redirect to login
-      if (!data.session && !window.location.hash.includes('type=recovery')) {
-        setError("Invalid or expired password reset link. Please try again.");
-      }
-    };
-    
-    checkSession();
-  }, [navigate]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -66,16 +50,6 @@ export const UpdatePasswordForm = () => {
       setLoading(false);
     }
   };
-
-  if (!sessionChecked) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center">
-        <div className="text-center">
-          <p className="text-lg">Checking session...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">

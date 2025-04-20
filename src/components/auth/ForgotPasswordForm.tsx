@@ -3,21 +3,18 @@ import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 
 export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      // Use Supabase's password reset functionality
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/update-password`,
       });
@@ -27,7 +24,6 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
       setSuccess(true);
       toast.success('Password reset instructions sent to your email');
       
-      // Close the modal after a delay
       setTimeout(() => {
         onClose();
       }, 3000);
