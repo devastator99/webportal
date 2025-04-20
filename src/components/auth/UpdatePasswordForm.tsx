@@ -8,31 +8,15 @@ import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const UpdatePasswordForm = () => {
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   
-  // Get email from local storage
-  useEffect(() => {
-    const storedEmail = localStorage.getItem('resetPasswordEmail');
-    if (storedEmail) {
-      setEmail(storedEmail);
-    } else {
-      setError("No email found for password reset. Please try again.");
-    }
-  }, []);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
-    if (!email) {
-      setError("Email address is required");
-      return;
-    }
     
     if (password !== confirmPassword) {
       setError("Passwords don't match");
@@ -47,22 +31,12 @@ export const UpdatePasswordForm = () => {
     setLoading(true);
 
     try {
-      // First, sign in with the OTP (no password required)
-      const { error: signInError } = await supabase.auth.signInWithOtp({
-        email: email,
-      });
-
-      if (signInError) throw signInError;
-
-      // Then update the user's password
+      // Update the user's password
       const { error: updateError } = await supabase.auth.updateUser({
         password: password
       });
 
       if (updateError) throw updateError;
-
-      // Clear the email from local storage
-      localStorage.removeItem('resetPasswordEmail');
       
       toast.success('Password updated successfully');
       
@@ -95,21 +69,6 @@ export const UpdatePasswordForm = () => {
           )}
           
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email Address
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                readOnly
-                className="mt-1 bg-gray-100"
-              />
-            </div>
-            
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 New Password

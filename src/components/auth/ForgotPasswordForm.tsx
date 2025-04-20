@@ -15,21 +15,26 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
     setLoading(true);
 
     try {
+      // Send password reset email through Supabase
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/update-password`,
+      });
+
+      if (error) throw error;
+      
       // Store email in local storage for the update password form
       localStorage.setItem('resetPasswordEmail', email);
       
-      // Set success without sending email
       setSuccess(true);
-      toast.success('Password reset initiated. You can now set a new password.');
+      toast.success('Password reset link sent to your email');
       
       // Close the modal after a delay
       setTimeout(() => {
-        // Redirect to the update password page
-        window.location.href = '/auth/update-password';
+        if (onClose) onClose();
       }, 1500);
     } catch (error: any) {
       console.error("Password reset error:", error);
-      toast.error(error.message || 'Error initiating password reset');
+      toast.error(error.message || 'Error sending password reset email');
     } finally {
       setLoading(false);
     }
@@ -38,9 +43,9 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
   if (success) {
     return (
       <div className="space-y-4 text-center">
-        <h2 className="text-lg font-semibold">Reset Initiated!</h2>
+        <h2 className="text-lg font-semibold">Reset Email Sent!</h2>
         <p className="text-sm text-gray-600">
-          Please wait while we redirect you to set a new password.
+          Please check your email for a link to reset your password.
         </p>
       </div>
     );
