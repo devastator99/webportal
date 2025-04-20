@@ -47,7 +47,7 @@ export const AppRoutes = () => {
           element={
             <RoleProtectedRoute allowedRoles={['doctor', 'administrator']}>
               <Outlet />
-            </RoleProtectedRole>
+            </RoleProtectedRoute>
           }
         >
           <Route path="/patients" element={<PatientsView />} />
@@ -57,7 +57,7 @@ export const AppRoutes = () => {
           element={
             <RoleProtectedRoute allowedRoles={['administrator']}>
               <Outlet />
-            </RoleProtectedRole>
+            </RoleProtectedRoute>
           }
         >
           <Route path="/admin" element={<Admin />} />
