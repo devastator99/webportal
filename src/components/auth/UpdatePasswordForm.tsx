@@ -47,30 +47,23 @@ export const UpdatePasswordForm = () => {
     setLoading(true);
 
     try {
-      // Use signInWithPassword to authenticate the user first
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: "any-old-password" // This will likely fail, but we'll catch and ignore this error
-      });
-      
-      // Ignore the sign-in error as we're just trying to reset the password
-      console.log("Expected sign-in error:", signInError);
-      
-      // Use supabase's password recovery mechanism directly
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/update-password`,
+      // Update the user's password directly
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: password
       });
 
-      if (resetError) {
-        console.error("Reset password error:", resetError);
-        throw new Error("Unable to reset password. Please contact support.");
+      if (updateError) {
+        throw updateError;
       }
       
-      // If we get here, we'll just notify the user about the password reset
-      toast.success('Password reset link has been sent to your email');
+      // Success - clean up and redirect
+      toast.success('Password updated successfully');
       localStorage.removeItem('resetPasswordEmail');
       
-      // Redirect to login page after successful password reset request
+      // Sign out the user to force a fresh login with the new password
+      await supabase.auth.signOut();
+      
+      // Redirect to login page after successful password update
       setTimeout(() => {
         navigate('/auth');
       }, 1500);
@@ -151,7 +144,7 @@ export const UpdatePasswordForm = () => {
               className="w-full"
               disabled={loading}
             >
-              {loading ? 'Resetting...' : 'Reset Password'}
+              {loading ? 'Updating...' : 'Update Password'}
             </Button>
             
             <div className="text-center">

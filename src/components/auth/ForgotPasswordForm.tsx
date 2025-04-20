@@ -20,8 +20,9 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
       // Store email in local storage for the update password form
       localStorage.setItem('resetPasswordEmail', email);
       
+      // Don't send a reset email via Supabase, instead redirect directly
       setSuccess(true);
-      toast.success('Password reset initiated');
+      toast.success('Please update your password on the next screen');
       
       // Navigate to the update password page directly without using email link
       setTimeout(() => {
