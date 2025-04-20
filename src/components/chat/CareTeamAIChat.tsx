@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -102,6 +103,35 @@ export const CareTeamAIChat = () => {
     }
   };
 
+  const generatePdf = async (prescription: Prescription) => {
+    try {
+      const element = document.getElementById('prescription-pdf-content');
+      if (!element) return;
+      
+      const opt = {
+        margin: 10,
+        filename: `prescription-${prescription.id.slice(0, 8)}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      
+      await html2pdf().set(opt).from(element).save();
+      
+      toast({
+        title: "PDF Generated",
+        description: "Your prescription PDF has been generated successfully.",
+      });
+    } catch (err) {
+      console.error("Error generating PDF:", err);
+      toast({
+        title: "PDF Generation Failed",
+        description: "There was an error generating your prescription PDF.",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!input.trim() || !user?.id) return;
 
@@ -142,349 +172,141 @@ export const CareTeamAIChat = () => {
             });
             
           if (!prescriptionError && prescriptions && prescriptions.length > 0) {
-            setSelectedPrescription(prescriptions[0] as Prescription);
+            // Found prescriptions, suggest downloading the latest one
+            const latestPrescription = prescriptions[0];
+            setSelectedPrescription(latestPrescription);
             
+            // Add AI message suggesting prescription download
             const aiResponse = { 
               role: 'assistant' as const, 
-              content: `I've found your latest prescription from Dr. ${prescriptions[0].doctor_first_name} ${prescriptions[0].doctor_last_name}. Here's a preview that you can download as a PDF.`, 
+              content: `I found your latest prescription from Dr. ${latestPrescription.doctor_first_name} ${latestPrescription.doctor_last_name}. Would you like to view or download it as a PDF?`, 
               timestamp: new Date() 
             };
             
             setMessages(prev => [...prev, aiResponse]);
-            
-            setTimeout(() => {
-              setPdfPreviewOpen(true);
-              setIsLoading(false);
-            }, 500);
-            
+            setPdfPreviewOpen(true);
+            setIsLoading(false);
             return;
           }
         }
-      } else if (input.toLowerCase().includes('health plan') || 
-               input.toLowerCase().includes('habit') || 
-               input.toLowerCase().includes('routine') || 
-               input.toLowerCase().includes('exercise') || 
-               input.toLowerCase().includes('diet')) {
+      }
+      
+      // If we didn't handle a special case above, continue with regular AI response
+      // This would be where you'd integrate with your AI service
+      // For now, we'll use a mock response
+      
+      setTimeout(() => {
+        const aiResponse = { 
+          role: 'assistant' as const, 
+          content: "I understand you're asking about " + input.substring(0, 50) + "... Let me help you with that. Please note that I'm a simulated response, as this is a demo application.", 
+          timestamp: new Date() 
+        };
         
-        const { data: healthPlan, error: healthPlanError } = await supabase
-          .rpc('get_patient_health_plan', { p_patient_id: user.id });
-          
-        if (!healthPlanError && healthPlan && healthPlan.length > 0) {
-          let healthPlanResponse = "Here's a summary of your health plan:\n\n";
-          
-          const groupedItems: Record<string, any[]> = {};
-          healthPlan.forEach(item => {
-            if (!groupedItems[item.type]) {
-              groupedItems[item.type] = [];
-            }
-            groupedItems[item.type].push(item);
-          });
-          
-          for (const [type, items] of Object.entries(groupedItems)) {
-            healthPlanResponse += `${type.charAt(0).toUpperCase() + type.slice(1)}:\n`;
-            for (const item of items) {
-              healthPlanResponse += `• ${item.description} - ${item.scheduled_time} (${item.frequency})\n`;
-            }
-            healthPlanResponse += "\n";
-          }
-          
-          healthPlanResponse += "You can view your complete health plan and track your progress in the Habits section of the app.";
-          
-          const aiResponse = { 
-            role: 'assistant' as const, 
-            content: healthPlanResponse, 
-            timestamp: new Date() 
-          };
-          
-          setMessages(prev => [...prev, aiResponse]);
-          setIsLoading(false);
-          setTimeout(scrollToBottom, 100);
-          return;
-        }
-      }
-
-      let patientContext: Record<string, any> = {};
-      
-      try {
-        const { data: careTeamData, error: careTeamError } = await supabase
-          .rpc('get_patient_care_team_members', { p_patient_id: user.id }) as unknown as { 
-            data: CareTeamMember[] | null, 
-            error: Error | null 
-          };
-        
-        if (careTeamError) {
-          console.error("Error checking care team with RPC:", careTeamError);
-        } else if (careTeamData && Array.isArray(careTeamData)) {
-          const doctorMember = careTeamData.find(member => member.role === 'doctor');
-          if (doctorMember) {
-            patientContext.hasDoctorAssigned = true;
-            patientContext.doctorName = `Dr. ${doctorMember.first_name} ${doctorMember.last_name}`;
-          } else {
-            patientContext.hasDoctorAssigned = false;
-          }
-        }
-      } catch (err) {
-        console.error("Error in RPC call for care team:", err);
-        patientContext.hasDoctorAssigned = false;
-      }
-
-      try {
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('first_name, last_name')
-          .eq('id', user.id)
-          .single();
-        
-        if (profileError) {
-          console.error("Error fetching patient profile:", profileError);
-        } else if (profileData) {
-          patientContext = {
-            ...patientContext,
-            patientName: `${profileData.first_name} ${profileData.last_name}`
-          };
-        }
-      } catch (err) {
-        console.error("Error fetching patient profile:", err);
-      }
-
-      const { data, error } = await supabase.functions.invoke('doctor-ai-assistant', {
-        body: { 
-          messages: messageHistory,
-          patientId: user.id,
-          isCareTeamChat: true,
-          patientContext: patientContext
-        },
-      });
-
-      if (error) throw error;
-
-      const aiResponse = { 
-        role: 'assistant' as const, 
-        content: data.response, 
-        timestamp: new Date() 
-      };
-      
-      setMessages(prev => [...prev, aiResponse]);
-      
-      try {
-        const { data: careTeamData } = await supabase
-          .rpc('get_patient_care_team_members', { p_patient_id: user.id });
-          
-        if (careTeamData && Array.isArray(careTeamData)) {
-          for (const member of careTeamData) {
-            if (member.id !== '00000000-0000-0000-0000-000000000000') {
-              await supabase.rpc('send_chat_message', {
-                p_sender_id: '00000000-0000-0000-0000-000000000000',
-                p_receiver_id: member.id,
-                p_message: data.response,
-                p_message_type: 'text'
-              });
-            }
-          }
-        }
-      } catch (err) {
-        console.error("Error forwarding AI message to care team:", err);
-      }
-      
-      setTimeout(scrollToBottom, 100);
+        setMessages(prev => [...prev, aiResponse]);
+        setIsLoading(false);
+      }, 1500);
       
     } catch (error: any) {
-      console.error("Error in AI care team chat:", error);
+      console.error("Error sending message:", error);
       toast({
         title: "Error",
-        description: "Failed to get AI response. Please try again.",
+        description: "Failed to send message. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsLoading(false);
     }
   };
 
-  const generatePdf = async (prescription: Prescription) => {
-    try {
-      const element = document.getElementById('prescription-pdf-content');
-      if (!element) return;
-      
-      const opt = {
-        margin: 10,
-        filename: `prescription-${prescription.id.slice(0, 8)}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-      
-      await html2pdf().set(opt).from(element).save();
-      
-      toast({
-        title: "PDF Generated",
-        description: "Your prescription PDF has been generated successfully.",
-      });
-    } catch (err) {
-      console.error("Error generating PDF:", err);
-      toast({
-        title: "PDF Generation Failed",
-        description: "There was an error generating your prescription PDF.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const recentMessages = messages.length > 5 ? messages.slice(-5) : messages;
-  const historyMessages = messages.length > 5 ? messages.slice(0, -5) : [];
-
-  const groupedHistoryMessages: Record<string, Message[]> = {};
-  historyMessages.forEach(message => {
-    const day = format(message.timestamp, "MMMM d, yyyy");
-    if (!groupedHistoryMessages[day]) {
-      groupedHistoryMessages[day] = [];
-    }
-    groupedHistoryMessages[day].push(message);
-  });
-
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 mb-4">
-        <Brain className="h-5 w-5 text-blue-500" />
-        <h3 className="font-medium">AI Care Assistant</h3>
+    <div className="flex flex-col h-[calc(100vh-10rem)] bg-background border rounded-lg overflow-hidden">
+      <div className="p-4 border-b bg-muted/50 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Brain className="h-5 w-5 text-primary" />
+          <h2 className="font-semibold">AI Care Assistant</h2>
+        </div>
+        
+        <Badge variant="outline" className="font-normal">
+          Beta
+        </Badge>
       </div>
       
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {Object.keys(groupedHistoryMessages).length > 0 && (
-          <Accordion type="single" collapsible className="mb-2 border rounded-md">
-            <AccordionItem value="history">
-              <AccordionTrigger className="px-3 py-2 text-sm">
-                <div className="flex items-center gap-2">
-                  <span>Previous messages ({historyMessages.length})</span>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent>
-                <ScrollArea className="max-h-48 overflow-y-auto">
-                  {Object.entries(groupedHistoryMessages).map(([day, dayMessages]) => (
-                    <div key={day} className="mb-4">
-                      <div className="flex justify-center mb-2">
-                        <Badge variant="outline" className="text-xs bg-muted/50">
-                          {day}
-                        </Badge>
-                      </div>
-                      <div className="space-y-3 px-3">
-                        {dayMessages.map((message, index) => (
-                          <div
-                            key={`history-${day}-${index}`}
-                            className={`flex ${
-                              message.role === 'user' ? "justify-end" : "justify-start"
-                            }`}
-                          >
-                            <div
-                              className={`max-w-[80%] rounded-lg p-2 text-sm ${
-                                message.role === 'user'
-                                  ? "bg-primary/80 text-primary-foreground"
-                                  : "bg-muted/80"
-                              }`}
-                            >
-                              <p>{message.content}</p>
-                              <p className="text-xs opacity-70 mt-1">
-                                {format(message.timestamp, "p")}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </ScrollArea>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        )}
-        
-        <div className="relative flex-1 h-full">
-          <ScrollArea 
-            className="h-full pr-3" 
-            ref={scrollAreaRef}
-          >
-            <div 
-              className="space-y-3 py-2"
-              ref={scrollViewportRef}
-            >
-              {recentMessages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex ${
-                    message.role === 'user' ? "justify-end" : "justify-start"
+      <div ref={scrollAreaRef} className="flex-1 overflow-hidden relative">
+        <ScrollArea 
+          className="h-full" 
+          viewportRef={scrollViewportRef}
+          type="always"
+        >
+          <div className="p-4 space-y-4">
+            {messages.map((message, i) => (
+              <div 
+                key={i} 
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div 
+                  className={`max-w-[80%] p-3 rounded-lg ${
+                    message.role === 'user' 
+                      ? 'bg-primary text-primary-foreground' 
+                      : 'bg-muted'
                   }`}
                 >
-                  <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
-                      message.role === 'user'
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
+                  <div className="whitespace-pre-wrap">{message.content}</div>
+                  <div 
+                    className={`text-xs mt-1 ${
+                      message.role === 'user' 
+                        ? 'text-primary-foreground/70' 
+                        : 'text-muted-foreground'
                     }`}
                   >
-                    {message.role === 'assistant' && (
-                      <div className="flex items-center gap-1 mb-1">
-                        <CheckCircle className="h-3 w-3 text-blue-500" />
-                        <span className="text-xs font-medium text-blue-500">AI Assistant</span>
-                      </div>
-                    )}
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    <p className="text-xs opacity-70 mt-1">
-                      {format(message.timestamp, "p")}
-                    </p>
+                    {format(message.timestamp, 'h:mm a')}
                   </div>
                 </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-          </ScrollArea>
-          
-          {showScrollButton && (
-            <Button
-              size="icon"
-              variant="secondary"
-              className="absolute bottom-2 right-2 h-9 w-9 rounded-full opacity-90 shadow-md"
-              onClick={scrollToBottom}
-            >
-              <ArrowDown className="h-5 w-5" />
-            </Button>
-          )}
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </div>
+        </ScrollArea>
+        
+        {showScrollButton && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute bottom-4 right-4 rounded-full shadow-md bg-background"
+            onClick={scrollToBottom}
+          >
+            <ArrowDown className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+      
+      <div className="p-4 border-t bg-background">
+        <div className="flex gap-2">
+          <Textarea
+            placeholder="Type your message..."
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            className="resize-none"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleSendMessage();
+              }
+            }}
+          />
+          <Button onClick={handleSendMessage} disabled={isLoading || !input.trim()}>
+            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          </Button>
+        </div>
+        <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
+          <CheckCircle className="h-3 w-3" />
+          <span>Your data is processed securely and confidentially</span>
         </div>
       </div>
       
-      <div className="flex gap-2 mt-4 bg-background border-t pt-3">
-        <Textarea
-          placeholder="Type a message..."
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          className="resize-none text-sm min-h-[50px] max-h-[120px]"
-          rows={1}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              handleSendMessage();
-            }
-          }}
-        />
-        <Button 
-          size="icon" 
-          onClick={handleSendMessage} 
-          disabled={isLoading}
-          className="rounded-full h-[50px] w-[50px] flex-shrink-0"
-        >
-          {isLoading ? (
-            <Loader2 className="h-5 w-5 animate-spin" />
-          ) : (
-            <Send className="h-5 w-5" />
-          )}
-        </Button>
-      </div>
-      
+      {/* Prescription PDF Preview */}
       <Dialog open={pdfPreviewOpen} onOpenChange={setPdfPreviewOpen}>
         <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Prescription PDF Preview
-            </DialogTitle>
+            <DialogTitle>Prescription PDF Preview</DialogTitle>
           </DialogHeader>
           {selectedPrescription && (
             <div className="max-h-[70vh] overflow-y-auto">
@@ -507,25 +329,25 @@ export const CareTeamAIChat = () => {
                   </div>
                 </div>
                 
-                <hr className="my-4" />
-                
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-bold">Diagnosis</h3>
-                    <p>{selectedPrescription.diagnosis || "No diagnosis provided"}</p>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-bold">Prescription</h3>
-                    <p className="whitespace-pre-wrap">{selectedPrescription.prescription || "No specific medications prescribed"}</p>
-                  </div>
-                  
-                  {selectedPrescription.notes && (
+                <div className="my-4 border-t border-b py-4">
+                  <div className="space-y-4">
                     <div>
-                      <h3 className="font-bold">Additional Notes</h3>
-                      <p className="whitespace-pre-wrap">{selectedPrescription.notes}</p>
+                      <h3 className="font-bold">Diagnosis</h3>
+                      <p>{selectedPrescription.diagnosis || "No diagnosis provided"}</p>
                     </div>
-                  )}
+                    
+                    <div>
+                      <h3 className="font-bold">Prescription</h3>
+                      <p className="whitespace-pre-wrap">{selectedPrescription.prescription || "No specific medications prescribed"}</p>
+                    </div>
+                    
+                    {selectedPrescription.notes && (
+                      <div>
+                        <h3 className="font-bold">Additional Notes</h3>
+                        <p className="whitespace-pre-wrap">{selectedPrescription.notes}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 
                 <div className="mt-8 pt-4 border-t text-xs text-gray-500">

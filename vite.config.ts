@@ -15,6 +15,12 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  optimizeDeps: {
+    esbuildOptions: {
+      // Fix for html2pdf.js syntax issues
+      target: "es2020",
+    },
+  },
   server: {
     host: "::",
     port: 8080,
