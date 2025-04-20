@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
@@ -8,28 +8,68 @@ import { LucideLoader2 } from "lucide-react";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { toast } from "sonner";
 import { UpdatePasswordForm } from "@/components/auth/UpdatePasswordForm";
+import { supabase } from "@/integrations/supabase/client";
 
 const Auth = () => {
   const { user, isLoading } = useAuth();
   const { handleSignUp, error, loading, setError } = useAuthHandlers();
   const navigate = useNavigate();
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+  const [processingRecovery, setProcessingRecovery] = useState(false);
   const isRegistration = window.location.pathname.includes('/register');
   const searchParams = new URLSearchParams(window.location.search);
   const view = searchParams.get('view');
   const type = searchParams.get('type');
 
+  // Process the recovery token from the URL hash if present
+  useEffect(() => {
+    const handleRecoveryToken = async () => {
+      // Check if there's a hash in the URL (could contain access_token)
+      if (window.location.hash && window.location.hash.includes('access_token')) {
+        setProcessingRecovery(true);
+        
+        try {
+          console.log("Processing recovery token from URL hash");
+          
+          // The hash contains the recovery token, let Supabase handle it
+          const { data, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error("Error processing recovery token:", error);
+            toast.error("Error processing recovery token. Please try again.");
+          } else if (data?.session) {
+            console.log("Recovery token processed successfully");
+            setIsRecoveryMode(true);
+          }
+        } catch (err) {
+          console.error("Exception when processing recovery token:", err);
+          toast.error("An unexpected error occurred. Please try again.");
+        } finally {
+          setProcessingRecovery(false);
+        }
+      } else if (type === 'recovery') {
+        // If the type=recovery parameter is present, show recovery form directly
+        setIsRecoveryMode(true);
+      }
+    };
+    
+    handleRecoveryToken();
+  }, [type]);
+
   // For debugging purposes - log the URL parameters
   useEffect(() => {
     console.log("Current URL:", window.location.href);
+    console.log("URL Hash:", window.location.hash);
     console.log("View parameter:", view);
     console.log("Type parameter:", type);
+    console.log("Recovery mode:", isRecoveryMode);
     console.log("Search params:", Object.fromEntries(searchParams.entries()));
-  }, [view, type, searchParams]);
+  }, [view, type, searchParams, isRecoveryMode]);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     
-    if (!isLoading && user && !view) {
+    if (!isLoading && user && !view && !isRecoveryMode) {
       timeoutId = setTimeout(() => {
         navigate("/dashboard");
       }, 100);
@@ -40,22 +80,22 @@ const Auth = () => {
         clearTimeout(timeoutId);
       }
     };
-  }, [user, isLoading, navigate, view]);
+  }, [user, isLoading, navigate, view, isRecoveryMode]);
 
   // Show loading state
-  if (isLoading) {
+  if (isLoading || processingRecovery) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center pt-16 md:pt-20">
         <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
         <p className="mt-4 text-sm text-gray-600">
-          Verifying your authentication...
+          {processingRecovery ? "Processing your password recovery..." : "Verifying your authentication..."}
         </p>
       </div>
     );
   }
 
-  // Show update password form if type is recovery
-  if (type === 'recovery') {
+  // Show update password form if in recovery mode
+  if (isRecoveryMode) {
     console.log("Rendering UpdatePasswordForm for password recovery");
     return <UpdatePasswordForm />;
   }
