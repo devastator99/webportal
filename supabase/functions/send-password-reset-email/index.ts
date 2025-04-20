@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
@@ -24,8 +23,8 @@ serve(async (req: Request) => {
     if (!email) {
       console.error("Missing email in request");
       return new Response(
-        JSON.stringify({ error: "Email is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "Email is required" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
@@ -35,8 +34,8 @@ serve(async (req: Request) => {
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error("Missing Supabase URL or service role key");
       return new Response(
-        JSON.stringify({ error: "Server configuration error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "Server configuration error" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
@@ -98,8 +97,8 @@ serve(async (req: Request) => {
     console.error("Password reset email error:", error);
     
     return new Response(
-      JSON.stringify({ error: error.message || "Failed to send password reset email" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ success: false, error: error.message || "Failed to send password reset email" }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

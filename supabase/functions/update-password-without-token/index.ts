@@ -23,8 +23,8 @@ serve(async (req: Request) => {
     
     if (!email || !newPassword) {
       return new Response(
-        JSON.stringify({ error: "Email and password are required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "Email and password are required" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
@@ -34,8 +34,8 @@ serve(async (req: Request) => {
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error("Missing Supabase URL or service role key");
       return new Response(
-        JSON.stringify({ error: "Server configuration error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "Server configuration error" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
@@ -49,7 +49,10 @@ serve(async (req: Request) => {
     
     if (userError) {
       console.error("Error listing users:", userError);
-      throw userError;
+      return new Response(
+        JSON.stringify({ success: false, error: userError.message }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
     
     const user = userData.users.find(u => u.email === email);
@@ -57,8 +60,8 @@ serve(async (req: Request) => {
     if (!user) {
       console.error(`User with email ${email} not found`);
       return new Response(
-        JSON.stringify({ error: "User not found" }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "User not found" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
@@ -72,7 +75,10 @@ serve(async (req: Request) => {
     
     if (updateError) {
       console.error("Error updating password:", updateError);
-      throw updateError;
+      return new Response(
+        JSON.stringify({ success: false, error: updateError.message }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
     
     console.log("Password updated successfully");
@@ -85,8 +91,8 @@ serve(async (req: Request) => {
     console.error("Password update error:", error);
     
     return new Response(
-      JSON.stringify({ error: error.message || "Failed to update password" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ success: false, error: error.message || "Failed to update password" }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

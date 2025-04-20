@@ -27,12 +27,18 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
         }
       });
 
+      console.log("Password reset response:", data);
+      
       if (error) {
         console.error("Password reset error:", error);
         throw new Error(error.message || "Failed to send password reset email");
       }
+      
+      if (data && data.error) {
+        console.error("Password reset server error:", data.error);
+        throw new Error(data.error || "Failed to send password reset email");
+      }
 
-      console.log("Password reset response:", data);
       toast.success('Password reset instructions have been sent to your email');
       if (onClose) onClose();
     } catch (error: any) {

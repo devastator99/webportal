@@ -66,9 +66,16 @@ export const UpdatePasswordForm = () => {
         body: { email, newPassword: password }
       });
 
-      if (updateError || (data && 'error' in data)) {
-        const errorMessage = updateError?.message || (data && 'error' in data ? data.error : null);
-        throw new Error(errorMessage || "Unable to update password");
+      console.log("Password update response:", data);
+      
+      if (updateError) {
+        console.error("Password update error:", updateError);
+        throw new Error(updateError.message || "Unable to update password");
+      }
+      
+      if (data && !data.success) {
+        console.error("Password update server error:", data.error);
+        throw new Error(data.error || "Unable to update password");
       }
       
       toast.success('Password updated successfully');
