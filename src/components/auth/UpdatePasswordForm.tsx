@@ -16,17 +16,13 @@ export const UpdatePasswordForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Clear any previous errors
     setError(null);
     
-    // Validate passwords match
     if (password !== confirmPassword) {
       setError("Passwords don't match");
       return;
     }
     
-    // Validate password length
     if (password.length < 6) {
       setError("Password must be at least 6 characters");
       return;
@@ -35,28 +31,19 @@ export const UpdatePasswordForm = () => {
     setLoading(true);
 
     try {
-      console.log("Attempting to update password");
-      
-      // Try to update the password with the current session
       const { error } = await supabase.auth.updateUser({
         password: password
       });
 
-      if (error) {
-        console.error("Password update error:", error);
-        throw error;
-      }
+      if (error) throw error;
 
-      console.log("Password updated successfully");
       toast.success('Password updated successfully');
-      
-      // Wait a moment before redirecting to give the toast time to be seen
       setTimeout(() => {
         navigate('/auth');
       }, 1500);
     } catch (error: any) {
       console.error("Password update error:", error);
-      setError("Unable to update password. Please try again or request a new reset link.");
+      setError(error.message || "Unable to update password");
       toast.error("Unable to update password");
     } finally {
       setLoading(false);
@@ -69,9 +56,6 @@ export const UpdatePasswordForm = () => {
         <h2 className="mt-6 text-center text-3xl font-extrabold text-saas-dark">
           Set New Password
         </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Enter your new password below
-        </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">

@@ -16,23 +16,15 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
     setLoading(true);
 
     try {
-      console.log("Initiating password reset for:", email);
-      
-      // Using a simple direct path with a clear indicator for reset
-      const origin = window.location.origin;
-      const resetUrl = `${origin}/auth?type=recovery`;
-      
-      console.log("Using reset URL:", resetUrl);
-      
+      // Using a simple direct path for password reset
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: resetUrl,
+        redirectTo: `${window.location.origin}/auth/update-password`
       });
 
       if (error) throw error;
 
       setSuccess(true);
-      toast.success('Password reset link sent to your email');
-      console.log("Password reset email sent successfully");
+      toast.success('Check your email for the password reset link');
     } catch (error: any) {
       console.error("Password reset error:", error);
       toast.error(error.message || 'Error sending reset password email');
@@ -46,12 +38,9 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
       <div className="space-y-4 text-center">
         <h2 className="text-lg font-semibold">Email Sent!</h2>
         <p className="text-sm text-gray-600">
-          Check your email for a link to reset your password. If it doesn't appear within a few minutes, check your spam folder.
+          Check your email for a link to reset your password.
         </p>
-        <Button 
-          onClick={onClose}
-          className="w-full"
-        >
+        <Button onClick={onClose} className="w-full">
           Close
         </Button>
       </div>

@@ -1,70 +1,39 @@
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { LucideLoader2 } from "lucide-react";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
-import { toast } from "sonner";
 import { UpdatePasswordForm } from "@/components/auth/UpdatePasswordForm";
 
 const Auth = () => {
   const { user, isLoading } = useAuth();
   const { handleSignUp, error, loading, setError } = useAuthHandlers();
   const navigate = useNavigate();
-  const [processingRecovery, setProcessingRecovery] = useState(false);
   const isRegistration = window.location.pathname.includes('/register');
-  const searchParams = new URLSearchParams(window.location.search);
-  const type = searchParams.get('type');
+  const isPasswordReset = window.location.pathname.includes('/update-password');
 
-  // Debug logging
+  // Redirect to dashboard if already logged in and not resetting password
   useEffect(() => {
-    console.log("Auth page render state:", {
-      url: window.location.href,
-      hash: window.location.hash,
-      search: window.location.search,
-      type,
-      user: !!user,
-      isLoading
-    });
-  }, [type, user, isLoading]);
-
-  // Simplified recovery check - just look for recovery type parameter
-  const isRecoveryMode = type === 'recovery' || window.location.hash.includes('access_token');
-
-  // Redirect to dashboard if already logged in and not in recovery mode
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    
-    if (!isLoading && user && !isRecoveryMode) {
-      timeoutId = setTimeout(() => {
-        navigate("/dashboard");
-      }, 100);
+    if (!isLoading && user && !isPasswordReset) {
+      navigate("/dashboard");
     }
-    
-    return () => {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [user, isLoading, navigate, isRecoveryMode]);
+  }, [user, isLoading, navigate, isPasswordReset]);
 
   // Show loading state
-  if (isLoading || processingRecovery) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center pt-16 md:pt-20">
         <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
-        <p className="mt-4 text-sm text-gray-600">
-          {processingRecovery ? "Processing your password recovery..." : "Verifying your authentication..."}
-        </p>
+        <p className="mt-4 text-sm text-gray-600">Loading...</p>
       </div>
     );
   }
 
-  // Show update password form if in recovery mode
-  if (isRecoveryMode) {
-    console.log("Rendering UpdatePasswordForm for password recovery");
+  // Show update password form if in password reset mode
+  if (isPasswordReset) {
     return <UpdatePasswordForm />;
   }
 
@@ -78,14 +47,7 @@ const Auth = () => {
     patientData?: any
   ) => {
     try {
-      await toast.promise(
-        handleSignUp(email, password, userType as any, firstName, lastName, patientData),
-        {
-          loading: 'Creating your account...',
-          success: 'Account created successfully! Redirecting to dashboard...',
-          error: (err) => `Registration failed: ${err.message || 'Please try again'}`
-        }
-      );
+      await handleSignUp(email, password, userType as any, firstName, lastName, patientData);
     } catch (error: any) {
       console.error("Registration error:", error);
     }
