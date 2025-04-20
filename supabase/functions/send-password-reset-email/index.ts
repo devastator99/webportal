@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
@@ -44,47 +45,17 @@ serve(async (req: Request) => {
     // Create a Supabase client with the service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
-    // Find the user to verify they exist
-    const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+    // Use Supabase's built-in resetPasswordForEmail function which will send a magic link
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: resetUrl
+    });
     
-    if (userError) {
-      console.error("Error listing users:", userError);
-      throw userError;
-    }
-    
-    const user = userData.users.find(u => u.email === email);
-    
-    if (!user) {
-      console.error(`User with email ${email} not found`);
-      // For security reasons, don't disclose whether the email exists or not
+    if (error) {
+      console.error("Error sending password reset email:", error);
       return new Response(
-        JSON.stringify({ success: true, message: "If your email exists in our system, you will receive password reset instructions." }),
+        JSON.stringify({ success: false, error: error.message }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    }
-
-    // Simple email subject and body with no tokens
-    const subject = "Reset Your Password";
-    const htmlContent = `
-      <h2>Password Reset Request</h2>
-      <p>We received a request to reset your password. Click the link below to set a new password:</p>
-      <p><a href="${resetUrl}?email=${encodeURIComponent(email)}">Reset Password</a></p>
-      <p>If you didn't request this, you can safely ignore this email.</p>
-      <p>This link will take you to a page where you can set a new password for your account.</p>
-    `;
-    
-    // Send email using Supabase's admin sendEmail function
-    const { error: emailError } = await supabase.auth.admin.sendEmail(
-      email,
-      {
-        subject,
-        content: htmlContent,
-      }
-    );
-    
-    if (emailError) {
-      console.error("Error sending email:", emailError);
-      throw emailError;
     }
     
     console.log("Password reset email sent successfully");
@@ -93,7 +64,7 @@ serve(async (req: Request) => {
       JSON.stringify({ success: true, message: "Password reset email sent successfully" }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error("Password reset email error:", error);
     
     return new Response(

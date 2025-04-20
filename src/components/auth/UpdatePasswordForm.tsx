@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const UpdatePasswordForm = () => {
-  const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -16,24 +15,12 @@ export const UpdatePasswordForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Extract email from URL or local storage
+  // Get email from URL hash params (Supabase magic link puts it there)
   useEffect(() => {
-    // Try to get email from URL query params
-    const searchParams = new URLSearchParams(location.search);
-    const emailFromUrl = searchParams.get('email');
-    
-    if (emailFromUrl) {
-      setEmail(emailFromUrl);
-      console.log("Found email in URL:", emailFromUrl);
-    } else {
-      // Fall back to saved email from local storage
-      const savedEmail = localStorage.getItem('passwordResetEmail');
-      if (savedEmail) {
-        setEmail(savedEmail);
-        console.log("Using email from local storage:", savedEmail);
-      } else {
-        console.log("No email found in URL or local storage");
-      }
+    // Check for hash params from Supabase magic link
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    if (hashParams.get('type') === 'recovery') {
+      console.log("Found recovery parameters in URL hash");
     }
   }, [location]);
   
@@ -51,19 +38,15 @@ export const UpdatePasswordForm = () => {
       return;
     }
     
-    if (!email) {
-      setError("Email is required. Please use the link from the email we sent you.");
-      return;
-    }
-    
     setLoading(true);
 
     try {
-      console.log("Updating password for email:", email);
+      console.log("Updating password");
       
-      // Use our custom edge function for password reset without token
-      const { data, error: updateError } = await supabase.functions.invoke('update-password-without-token', {
-        body: { email, newPassword: password }
+      // Use the built-in Supabase method to update password
+      // It will use the existing session created by the magic link
+      const { data, error: updateError } = await supabase.auth.updateUser({
+        password: password
       });
 
       console.log("Password update response:", data);
@@ -71,11 +54,6 @@ export const UpdatePasswordForm = () => {
       if (updateError) {
         console.error("Password update error:", updateError);
         throw new Error(updateError.message || "Unable to update password");
-      }
-      
-      if (data && !data.success) {
-        console.error("Password update server error:", data.error);
-        throw new Error(data.error || "Unable to update password");
       }
       
       toast.success('Password updated successfully');
@@ -112,21 +90,6 @@ export const UpdatePasswordForm = () => {
           )}
           
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email Address
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Your Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="mt-1"
-              />
-            </div>
-            
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 New Password
