@@ -18,8 +18,14 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
     try {
       console.log("Initiating password reset for:", email);
       
+      // Explicitly set the redirectTo URL with the origin
+      const redirectTo = `${window.location.origin}/auth`;
+      console.log("Using redirect URL:", redirectTo);
+      
       // Let Supabase handle the redirect with the recovery token
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectTo,
+      });
 
       if (error) throw error;
 

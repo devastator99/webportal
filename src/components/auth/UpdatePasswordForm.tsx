@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,8 +11,42 @@ export const UpdatePasswordForm = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [initializing, setInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasSession, setHasSession] = useState(false);
   const navigate = useNavigate();
+
+  // Check if we have a valid session when the component mounts
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        setInitializing(true);
+        console.log("Checking for auth session in UpdatePasswordForm");
+        
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Session check error:", error);
+          setError("Unable to verify your session. Please try the reset link again.");
+          setHasSession(false);
+        } else if (data?.session) {
+          console.log("Valid session found for password update");
+          setHasSession(true);
+        } else {
+          console.log("No session found for password update");
+          setError("No active session found. Please use the reset link from your email again.");
+          setHasSession(false);
+        }
+      } catch (err) {
+        console.error("Exception checking session:", err);
+        setError("An unexpected error occurred. Please try again.");
+      } finally {
+        setInitializing(false);
+      }
+    };
+    
+    checkSession();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,6 +69,7 @@ export const UpdatePasswordForm = () => {
     setLoading(true);
 
     try {
+      console.log("Updating password");
       // Let Supabase handle the recovery token automatically
       const { error } = await supabase.auth.updateUser({
         password: password
@@ -42,6 +77,7 @@ export const UpdatePasswordForm = () => {
 
       if (error) throw error;
 
+      console.log("Password updated successfully");
       toast.success('Password updated successfully');
       
       // Wait a moment before redirecting to give the toast time to be seen
@@ -56,6 +92,16 @@ export const UpdatePasswordForm = () => {
       setLoading(false);
     }
   };
+
+  // Show loading state while checking session
+  if (initializing) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center items-center py-12 sm:px-6 lg:px-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-700"></div>
+        <p className="mt-4 text-sm text-gray-600">Verifying your session...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
@@ -76,6 +122,14 @@ export const UpdatePasswordForm = () => {
             </Alert>
           )}
           
+          {!hasSession && !error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>
+                Your password reset session may have expired. Please request a new password reset link.
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
@@ -90,6 +144,7 @@ export const UpdatePasswordForm = () => {
                 required
                 minLength={6}
                 className="mt-1 w-full"
+                disabled={!hasSession}
               />
             </div>
             
@@ -106,13 +161,14 @@ export const UpdatePasswordForm = () => {
                 required
                 minLength={6}
                 className="mt-1 w-full"
+                disabled={!hasSession}
               />
             </div>
             
             <Button 
               type="submit" 
               className="w-full"
-              disabled={loading}
+              disabled={loading || !hasSession}
             >
               {loading ? 'Updating...' : 'Update Password'}
             </Button>

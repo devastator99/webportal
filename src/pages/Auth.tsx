@@ -29,17 +29,47 @@ const Auth = () => {
         setProcessingRecovery(true);
         
         try {
-          console.log("Processing recovery token from URL hash");
+          console.log("Processing recovery token from URL hash:", window.location.hash);
           
-          // The hash contains the recovery token, let Supabase handle it
-          const { data, error } = await supabase.auth.getSession();
+          // Parse the access token from the hash
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const accessToken = hashParams.get('access_token');
           
-          if (error) {
-            console.error("Error processing recovery token:", error);
-            toast.error("Error processing recovery token. Please try again.");
-          } else if (data?.session) {
-            console.log("Recovery token processed successfully");
-            setIsRecoveryMode(true);
+          if (accessToken) {
+            console.log("Found access token in URL, attempting to set session");
+            
+            // First try to explicitly set the session with the token
+            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: hashParams.get('refresh_token') || '',
+            });
+            
+            if (sessionError) {
+              console.error("Error setting session with token:", sessionError);
+              toast.error("Error processing recovery token. Please try again.");
+            } else if (sessionData?.session) {
+              console.log("Session set successfully with recovery token");
+              setIsRecoveryMode(true);
+              
+              // Clear the hash to avoid reprocessing on refresh
+              if (window.history.replaceState) {
+                window.history.replaceState(null, '', window.location.pathname + window.location.search);
+              }
+            }
+          } else {
+            // Fallback to getSession if we couldn't parse the token
+            console.log("No access token found in URL hash, trying getSession");
+            const { data, error } = await supabase.auth.getSession();
+            
+            if (error) {
+              console.error("Error in getSession:", error);
+              toast.error("Error processing recovery token. Please try again.");
+            } else if (data?.session) {
+              console.log("Recovery session found with getSession");
+              setIsRecoveryMode(true);
+            } else {
+              console.log("No session found with getSession");
+            }
           }
         } catch (err) {
           console.error("Exception when processing recovery token:", err);
@@ -49,6 +79,7 @@ const Auth = () => {
         }
       } else if (type === 'recovery') {
         // If the type=recovery parameter is present, show recovery form directly
+        console.log("Recovery mode activated via URL parameter");
         setIsRecoveryMode(true);
       }
     };
