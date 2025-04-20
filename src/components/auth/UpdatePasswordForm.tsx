@@ -35,7 +35,7 @@ export const UpdatePasswordForm = () => {
     setLoading(true);
 
     try {
-      // This is all we need - Supabase handles the token validation internally
+      // Let Supabase handle the recovery token automatically
       const { error } = await supabase.auth.updateUser({
         password: password
       });

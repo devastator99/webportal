@@ -16,13 +16,15 @@ const Auth = () => {
   const isRegistration = window.location.pathname.includes('/register');
   const searchParams = new URLSearchParams(window.location.search);
   const view = searchParams.get('view');
-  
+  const type = searchParams.get('type');
+
   // For debugging purposes - log the URL parameters
   useEffect(() => {
     console.log("Current URL:", window.location.href);
     console.log("View parameter:", view);
+    console.log("Type parameter:", type);
     console.log("Search params:", Object.fromEntries(searchParams.entries()));
-  }, [view, searchParams]);
+  }, [view, type, searchParams]);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
@@ -52,9 +54,9 @@ const Auth = () => {
     );
   }
 
-  // Show update password form if view is update_password
-  if (view === 'update_password') {
-    console.log("Rendering UpdatePasswordForm");
+  // Show update password form if type is recovery
+  if (type === 'recovery') {
+    console.log("Rendering UpdatePasswordForm for password recovery");
     return <UpdatePasswordForm />;
   }
 
