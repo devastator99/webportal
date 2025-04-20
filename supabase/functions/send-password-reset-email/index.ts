@@ -53,21 +53,13 @@ serve(async (req: Request) => {
     }
     
     // Send email using Supabase's email service
-    const { error: emailError } = await supabase.auth.admin.sendRawEmail(
+    const { error: emailError } = await supabase.auth.admin.generateLink({
+      type: "recovery",
       email,
-      "Reset Your Password",
-      `
-      <html>
-        <body>
-          <h1>Password Reset Request</h1>
-          <p>You requested to reset your password.</p>
-          <p>Click the link below to reset your password:</p>
-          <p><a href="${resetUrl}">Reset Password</a></p>
-          <p>If you didn't request this, you can safely ignore this email.</p>
-        </body>
-      </html>
-      `
-    );
+      options: {
+        redirectTo: resetUrl
+      }
+    });
     
     if (emailError) {
       throw emailError;
