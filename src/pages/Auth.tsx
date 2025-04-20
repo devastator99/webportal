@@ -21,82 +21,65 @@ const Auth = () => {
   const view = searchParams.get('view');
   const type = searchParams.get('type');
 
-  // Process the recovery token from the URL hash if present
+  // Check for recovery tokens in the URL
   useEffect(() => {
-    const handleRecoveryToken = async () => {
-      // Check if there's a hash in the URL (could contain access_token)
+    const handleRecoveryAndTokens = async () => {
+      // First check for presence of token in hash (from password reset email)
       if (window.location.hash && window.location.hash.includes('access_token')) {
+        console.log("Detected access token in URL hash - switching to recovery mode");
         setProcessingRecovery(true);
-        
-        try {
-          console.log("Processing recovery token from URL hash:", window.location.hash);
-          
-          // Parse the access token from the hash
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const accessToken = hashParams.get('access_token');
-          
-          if (accessToken) {
-            console.log("Found access token in URL, attempting to set session");
-            
-            // First try to explicitly set the session with the token
-            const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: hashParams.get('refresh_token') || '',
-            });
-            
-            if (sessionError) {
-              console.error("Error setting session with token:", sessionError);
-              toast.error("Error processing recovery token. Please try again.");
-            } else if (sessionData?.session) {
-              console.log("Session set successfully with recovery token");
-              setIsRecoveryMode(true);
-              
-              // Clear the hash to avoid reprocessing on refresh
-              if (window.history.replaceState) {
-                window.history.replaceState(null, '', window.location.pathname + window.location.search);
-              }
-            }
-          } else {
-            // Fallback to getSession if we couldn't parse the token
-            console.log("No access token found in URL hash, trying getSession");
-            const { data, error } = await supabase.auth.getSession();
-            
-            if (error) {
-              console.error("Error in getSession:", error);
-              toast.error("Error processing recovery token. Please try again.");
-            } else if (data?.session) {
-              console.log("Recovery session found with getSession");
-              setIsRecoveryMode(true);
-            } else {
-              console.log("No session found with getSession");
-            }
-          }
-        } catch (err) {
-          console.error("Exception when processing recovery token:", err);
-          toast.error("An unexpected error occurred. Please try again.");
-        } finally {
-          setProcessingRecovery(false);
-        }
-      } else if (type === 'recovery') {
-        // If the type=recovery parameter is present, show recovery form directly
+        setIsRecoveryMode(true);
+        setProcessingRecovery(false);
+        return;
+      }
+      
+      // Check for type=recovery in query parameters
+      if (type === 'recovery') {
         console.log("Recovery mode activated via URL parameter");
         setIsRecoveryMode(true);
+        return;
+      }
+      
+      // Additional check for reset parameter for backward compatibility
+      if (searchParams.get('reset') === 'true') {
+        console.log("Recovery mode activated via reset=true parameter");
+        setIsRecoveryMode(true);
+        return;
+      }
+      
+      // Check for a session that might have been established from a recovery token
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data?.session) {
+          const authAction = new URLSearchParams(window.location.search).get('action');
+          if (authAction === 'recovery' || authAction === 'reset') {
+            console.log("Recovery session detected based on session + action parameter");
+            setIsRecoveryMode(true);
+          }
+        }
+      } catch (err) {
+        console.error("Error checking session for recovery:", err);
       }
     };
     
-    handleRecoveryToken();
-  }, [type]);
+    handleRecoveryAndTokens();
+  }, [type, searchParams]);
 
-  // For debugging purposes - log the URL parameters
+  // Debug logging
   useEffect(() => {
-    console.log("Current URL:", window.location.href);
-    console.log("URL Hash:", window.location.hash);
-    console.log("View parameter:", view);
-    console.log("Type parameter:", type);
-    console.log("Recovery mode:", isRecoveryMode);
-    console.log("Search params:", Object.fromEntries(searchParams.entries()));
-  }, [view, type, searchParams, isRecoveryMode]);
+    console.log("Auth page render state:", {
+      url: window.location.href,
+      hash: window.location.hash,
+      search: window.location.search,
+      type,
+      view,
+      isRecoveryMode,
+      user: !!user,
+      isLoading
+    });
+  }, [view, type, isRecoveryMode, user, isLoading]);
 
+  // Redirect to dashboard if already logged in and not in recovery mode
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     
@@ -126,7 +109,7 @@ const Auth = () => {
   }
 
   // Show update password form if in recovery mode
-  if (isRecoveryMode) {
+  if (isRecoveryMode || window.location.hash.includes('access_token')) {
     console.log("Rendering UpdatePasswordForm for password recovery");
     return <UpdatePasswordForm />;
   }

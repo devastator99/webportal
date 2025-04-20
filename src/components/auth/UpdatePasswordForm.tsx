@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,38 +15,74 @@ export const UpdatePasswordForm = () => {
   const [error, setError] = useState<string | null>(null);
   const [hasSession, setHasSession] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
-  // Check if we have a valid session when the component mounts
+  // Process the recovery token from URL
   useEffect(() => {
-    const checkSession = async () => {
+    const processRecoveryToken = async () => {
       try {
         setInitializing(true);
-        console.log("Checking for auth session in UpdatePasswordForm");
+        console.log("Processing recovery token in UpdatePasswordForm");
         
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error("Session check error:", error);
-          setError("Unable to verify your session. Please try the reset link again.");
-          setHasSession(false);
-        } else if (data?.session) {
-          console.log("Valid session found for password update");
-          setHasSession(true);
+        // Check if there's a hash in the URL (contains the access token)
+        if (window.location.hash && window.location.hash.includes('access_token')) {
+          console.log("Found hash with tokens in URL, processing...");
+          
+          // Parse the hash directly - more reliable method
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+          
+          if (accessToken && refreshToken) {
+            console.log("Extracted tokens from URL hash, setting session");
+            
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken
+            });
+            
+            if (error) {
+              console.error("Error setting session with token:", error);
+              setError("Error processing recovery token. Please request a new password reset link.");
+              setHasSession(false);
+            } else if (data?.session) {
+              console.log("Session set successfully with recovery token");
+              setHasSession(true);
+              
+              // Clear URL hash to prevent token leaking and reprocessing
+              if (window.history.replaceState) {
+                window.history.replaceState(null, '', window.location.pathname + window.location.search);
+              }
+            }
+          }
         } else {
-          console.log("No session found for password update");
-          setError("No active session found. Please use the reset link from your email again.");
-          setHasSession(false);
+          // No hash, check if we already have a valid session
+          console.log("No recovery tokens in URL, checking for existing session");
+          const { data, error } = await supabase.auth.getSession();
+          
+          if (error) {
+            console.error("Error checking session:", error);
+            setError("Unable to verify your session. Please use the reset link from your email again.");
+            setHasSession(false);
+          } else if (data?.session) {
+            console.log("Valid session found for password update");
+            setHasSession(true);
+          } else {
+            console.log("No session found for password update");
+            setError("No active session found. Please use the reset link from your email again.");
+            setHasSession(false);
+          }
         }
       } catch (err) {
-        console.error("Exception checking session:", err);
-        setError("An unexpected error occurred. Please try again.");
+        console.error("Exception processing recovery token:", err);
+        setError("An unexpected error occurred. Please try again or request a new password reset link.");
       } finally {
         setInitializing(false);
       }
     };
     
-    checkSession();
-  }, []);
+    processRecoveryToken();
+  }, [location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -70,7 +106,7 @@ export const UpdatePasswordForm = () => {
 
     try {
       console.log("Updating password");
-      // Let Supabase handle the recovery token automatically
+      
       const { error } = await supabase.auth.updateUser({
         password: password
       });

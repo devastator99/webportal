@@ -46,7 +46,10 @@ site_url = "https://anubhooti-phase1.lovable.app"
 additional_redirect_urls = [
   "https://anubhooti-phase1.lovable.app",
   "https://anubhooti-phase1.lovable.app/auth",
-  "https://anubhooti-phase1.lovable.app/auth?view=update_password"
+  "https://anubhooti-phase1.lovable.app/auth?type=recovery",
+  "https://anubhooti-phase1.lovable.app/auth?view=update_password",
+  "https://anubhooti-phase1.lovable.app/auth?reset=true",
+  "https://anubhooti-phase1.lovable.app/auth?action=recovery"
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 seconds (1
 # week).

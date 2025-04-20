@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getEnvironmentInfo } from "@/utils/environmentUtils";
@@ -39,7 +40,7 @@ export const AuthDebugMonitor = () => {
         hash: window.location.hash,
         hashParams,
         redirectPath: window.location.pathname.includes('/auth') ? 'On auth page' : 'Not on auth page',
-        resetPasswordMode: window.location.search.includes('reset=true') ? 'Active' : 'Inactive',
+        resetPasswordMode: window.location.search.includes('type=recovery') ? 'Active' : 'Inactive',
         today: new Date().toISOString(),
       });
     };
