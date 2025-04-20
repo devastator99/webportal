@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,7 +33,7 @@ const Auth = () => {
   }
 
   // Show update password form if in password reset mode
-  if (window.location.pathname.includes('/update-password')) {
+  if (isPasswordReset) {
     return <UpdatePasswordForm />;
   }
 

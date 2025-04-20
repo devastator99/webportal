@@ -2,30 +2,33 @@
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/update-password`
-      });
-
-      if (error) throw error;
-
+      // Simply record the email and proceed - no actual token/session handling
+      localStorage.setItem('reset_email', email);
       setSuccess(true);
-      toast.success('Check your email for the password reset link');
+      toast.success('Please proceed to reset your password');
+      
+      // Directly navigate to update password page
+      setTimeout(() => {
+        navigate('/auth/update-password');
+        onClose();
+      }, 1500);
     } catch (error: any) {
       console.error("Password reset error:", error);
-      toast.error('Error sending reset password email');
+      toast.error('Error processing your request');
     } finally {
       setLoading(false);
     }
@@ -34,11 +37,10 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
   if (success) {
     return (
       <div className="space-y-4 text-center">
-        <h2 className="text-lg font-semibold">Email Sent!</h2>
+        <h2 className="text-lg font-semibold">Request Processed!</h2>
         <p className="text-sm text-gray-600">
-          Please check your email for the password reset link.
+          You will be redirected to reset your password.
         </p>
-        <Button onClick={onClose}>Close</Button>
       </div>
     );
   }
@@ -47,7 +49,7 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-center">Reset Password</h2>
       <p className="text-sm text-gray-600 text-center">
-        Enter your email address and we'll send you a link to reset your password.
+        Enter your email address to reset your password.
       </p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
@@ -63,7 +65,7 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
           className="w-full"
           disabled={loading}
         >
-          {loading ? 'Sending...' : 'Send Reset Link'}
+          {loading ? 'Processing...' : 'Continue'}
         </Button>
       </form>
     </div>
