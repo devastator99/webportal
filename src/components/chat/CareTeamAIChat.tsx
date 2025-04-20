@@ -233,36 +233,40 @@ export const CareTeamAIChat = () => {
       <div ref={scrollAreaRef} className="flex-1 overflow-hidden relative">
         <ScrollArea 
           className="h-full" 
-          viewportRef={scrollViewportRef}
           type="always"
         >
-          <div className="p-4 space-y-4">
-            {messages.map((message, i) => (
-              <div 
-                key={i} 
-                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
+          <div 
+            ref={scrollViewportRef}
+            className="h-full overflow-auto"
+          >
+            <div className="p-4 space-y-4">
+              {messages.map((message, i) => (
                 <div 
-                  className={`max-w-[80%] p-3 rounded-lg ${
-                    message.role === 'user' 
-                      ? 'bg-primary text-primary-foreground' 
-                      : 'bg-muted'
-                  }`}
+                  key={i} 
+                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div className="whitespace-pre-wrap">{message.content}</div>
                   <div 
-                    className={`text-xs mt-1 ${
+                    className={`max-w-[80%] p-3 rounded-lg ${
                       message.role === 'user' 
-                        ? 'text-primary-foreground/70' 
-                        : 'text-muted-foreground'
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'bg-muted'
                     }`}
                   >
-                    {format(message.timestamp, 'h:mm a')}
+                    <div className="whitespace-pre-wrap">{message.content}</div>
+                    <div 
+                      className={`text-xs mt-1 ${
+                        message.role === 'user' 
+                          ? 'text-primary-foreground/70' 
+                          : 'text-muted-foreground'
+                      }`}
+                    >
+                      {format(message.timestamp, 'h:mm a')}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
           </div>
         </ScrollArea>
         
