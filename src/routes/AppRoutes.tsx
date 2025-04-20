@@ -29,7 +29,7 @@ export const AppRoutes = () => {
         {/* Auth routes */}
         <Route path="/auth" element={<Auth />} />
         <Route path="/auth/register" element={<Auth />} />
-        <Route path="/auth/update-password" element={<UpdatePasswordForm />} />
+        <Route path="/auth/update-password" element={<Auth />} /> {/* Changed: This ensures Auth component handles update password route */}
         
         {/* Protected routes */}
         <Route element={<ProtectedRoute><Outlet /></ProtectedRoute>}>

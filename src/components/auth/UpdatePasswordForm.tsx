@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,27 +14,36 @@ export const UpdatePasswordForm = () => {
   const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Check if we're in a password reset flow
   useEffect(() => {
     const checkForResetFlow = async () => {
-      // Get current URL hash parameters (Supabase adds these in password reset flow)
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const type = hashParams.get('type');
-      
-      // If we're not in a recovery flow, check if there's a valid session
-      if (type !== 'recovery') {
-        const { data } = await supabase.auth.getSession();
+      try {
+        // Get current URL hash parameters (Supabase adds these in password reset flow)
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const type = hashParams.get('type');
         
-        // If no session and not in recovery flow, redirect to login
-        if (!data.session) {
-          console.log("No active session and not in recovery flow, redirecting to login");
-          navigate('/auth');
-          return;
+        console.log("Reset flow check - hash type:", type);
+        console.log("Current URL hash:", window.location.hash);
+        
+        // If we're not in a recovery flow, check if there's a valid session
+        if (type !== 'recovery') {
+          const { data } = await supabase.auth.getSession();
+          
+          // If no session and not in recovery flow, redirect to login
+          if (!data.session) {
+            console.log("No active session and not in recovery flow, redirecting to login");
+            navigate('/auth');
+            return;
+          }
         }
+        
+        setInitialized(true);
+      } catch (error) {
+        console.error("Error in checkForResetFlow:", error);
+        navigate('/auth');
       }
-      
-      setInitialized(true);
     };
     
     checkForResetFlow();

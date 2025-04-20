@@ -1,6 +1,6 @@
 
 import { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { AuthForm } from "@/components/auth/AuthForm";
@@ -12,8 +12,10 @@ const Auth = () => {
   const { user, isLoading } = useAuth();
   const { handleSignUp, error, loading, setError } = useAuthHandlers();
   const navigate = useNavigate();
-  const isRegistration = window.location.pathname.includes('/register');
-  const isPasswordReset = window.location.pathname.includes('/update-password');
+  const location = useLocation();
+  
+  const isRegistration = location.pathname.includes('/register');
+  const isPasswordReset = location.pathname.includes('/update-password');
 
   // Redirect to dashboard if already logged in and not resetting password
   useEffect(() => {
