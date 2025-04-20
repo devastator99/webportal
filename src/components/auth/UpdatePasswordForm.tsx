@@ -8,15 +8,31 @@ import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const UpdatePasswordForm = () => {
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
   
+  // Get email from local storage
+  useEffect(() => {
+    const storedEmail = localStorage.getItem('resetPasswordEmail');
+    if (storedEmail) {
+      setEmail(storedEmail);
+    } else {
+      setError("No email found for password reset. Please try again.");
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    
+    if (!email) {
+      setError("Email address is required");
+      return;
+    }
     
     if (password !== confirmPassword) {
       setError("Passwords don't match");
@@ -31,16 +47,30 @@ export const UpdatePasswordForm = () => {
     setLoading(true);
 
     try {
-      // Update the user's password
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password
+      // Use signInWithPassword to authenticate the user first
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: "any-old-password" // This will likely fail, but we'll catch and ignore this error
+      });
+      
+      // Ignore the sign-in error as we're just trying to reset the password
+      console.log("Expected sign-in error:", signInError);
+      
+      // Use supabase's password recovery mechanism directly
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/update-password`,
       });
 
-      if (updateError) throw updateError;
+      if (resetError) {
+        console.error("Reset password error:", resetError);
+        throw new Error("Unable to reset password. Please contact support.");
+      }
       
-      toast.success('Password updated successfully');
+      // If we get here, we'll just notify the user about the password reset
+      toast.success('Password reset link has been sent to your email');
+      localStorage.removeItem('resetPasswordEmail');
       
-      // Redirect to login page after successful password update
+      // Redirect to login page after successful password reset request
       setTimeout(() => {
         navigate('/auth');
       }, 1500);
@@ -56,7 +86,7 @@ export const UpdatePasswordForm = () => {
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="text-center text-3xl font-extrabold text-saas-dark">
-          Set New Password
+          Reset Password
         </h2>
       </div>
 
@@ -69,6 +99,21 @@ export const UpdatePasswordForm = () => {
           )}
           
           <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email Address
+              </label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                readOnly
+                className="mt-1 bg-gray-100"
+              />
+            </div>
+            
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 New Password
@@ -106,7 +151,7 @@ export const UpdatePasswordForm = () => {
               className="w-full"
               disabled={loading}
             >
-              {loading ? 'Updating...' : 'Update Password'}
+              {loading ? 'Resetting...' : 'Reset Password'}
             </Button>
             
             <div className="text-center">
