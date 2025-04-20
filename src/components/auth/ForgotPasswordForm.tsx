@@ -18,12 +18,9 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
     try {
       console.log("Initiating password reset for:", email);
       
-      // Use absolute URL to avoid any path issues
-      // We're explicitly using the full URL with the type=recovery parameter
+      // Using a simple direct path with a clear indicator for reset
       const origin = window.location.origin;
-      // Important: We're using a direct path to /auth without any query parameters
-      // The recovery type will be handled from the hash fragment instead
-      const resetUrl = `${origin}/auth`;
+      const resetUrl = `${origin}/auth?type=recovery`;
       
       console.log("Using reset URL:", resetUrl);
       
