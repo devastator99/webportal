@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -49,6 +50,29 @@ const Auth = () => {
     return <UpdatePasswordForm />;
   }
 
+  // Handle signup form submission
+  const handleFormSubmit = async (
+    email: string, 
+    password: string, 
+    userType?: string, 
+    firstName?: string, 
+    lastName?: string,
+    patientData?: any
+  ) => {
+    try {
+      await toast.promise(
+        handleSignUp(email, password, userType as any, firstName, lastName, patientData),
+        {
+          loading: 'Creating your account...',
+          success: 'Account created successfully! Redirecting to dashboard...',
+          error: (err) => `Registration failed: ${err.message || 'Please try again'}`
+        }
+      );
+    } catch (error: any) {
+      console.error("Registration error:", error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
@@ -77,28 +101,6 @@ const Auth = () => {
       </div>
     </div>
   );
-};
-
-const handleFormSubmit = async (
-  email: string, 
-  password: string, 
-  userType?: string, 
-  firstName?: string, 
-  lastName?: string,
-  patientData?: any
-) => {
-  try {
-    await toast.promise(
-      handleSignUp(email, password, userType as any, firstName, lastName, patientData),
-      {
-        loading: 'Creating your account...',
-        success: 'Account created successfully! Redirecting to dashboard...',
-        error: (err) => `Registration failed: ${err.message || 'Please try again'}`
-      }
-    );
-  } catch (error: any) {
-    console.error("Registration error:", error);
-  }
 };
 
 export default Auth;
