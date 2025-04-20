@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LucideLoader2 } from 'lucide-react';
 
 export const UpdatePasswordForm = () => {
   const [password, setPassword] = useState('');
@@ -13,6 +14,7 @@ export const UpdatePasswordForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
+  const [validatingSession, setValidatingSession] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -20,29 +22,44 @@ export const UpdatePasswordForm = () => {
   useEffect(() => {
     const checkForResetFlow = async () => {
       try {
-        // Get current URL hash parameters (Supabase adds these in password reset flow)
+        // Log important debugging information
+        console.log("Current URL path:", window.location.pathname);
+        console.log("Current URL hash:", window.location.hash);
+        console.log("Current URL search:", window.location.search);
+        
+        // Get hash parameters (Supabase adds these in password reset flow)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const type = hashParams.get('type');
+        const accessToken = hashParams.get('access_token');
         
         console.log("Reset flow check - hash type:", type);
-        console.log("Current URL hash:", window.location.hash);
+        console.log("Access token present:", !!accessToken);
         
-        // If we're not in a recovery flow, check if there's a valid session
-        if (type !== 'recovery') {
-          const { data } = await supabase.auth.getSession();
-          
-          // If no session and not in recovery flow, redirect to login
-          if (!data.session) {
-            console.log("No active session and not in recovery flow, redirecting to login");
-            navigate('/auth');
-            return;
-          }
+        // If we're in a recovery flow, we should be good to go
+        if (type === 'recovery' && accessToken) {
+          console.log("Valid recovery flow detected with access token");
+          setValidatingSession(false);
+          setInitialized(true);
+          return;
         }
         
+        // If not recovery flow, check if there's a session
+        const { data } = await supabase.auth.getSession();
+        
+        if (!data.session) {
+          console.log("No active session and not in recovery flow, redirecting to login");
+          navigate('/auth');
+          return;
+        }
+        
+        console.log("User has active session, allowing password update");
+        setValidatingSession(false);
         setInitialized(true);
       } catch (error) {
         console.error("Error in checkForResetFlow:", error);
-        navigate('/auth');
+        setError("Failed to validate your session. Please try using the reset link again.");
+        setValidatingSession(false);
+        // Don't redirect here to allow user to see the error message
       }
     };
     
@@ -66,14 +83,13 @@ export const UpdatePasswordForm = () => {
     setLoading(true);
 
     try {
-      console.log("Updating password");
+      console.log("Updating password with auth.updateUser");
       
-      // Use Supabase's updateUser method which works with the hash parameters from the reset link
       const { data, error: updateError } = await supabase.auth.updateUser({
         password: password
       });
 
-      console.log("Password update response:", data);
+      console.log("Password update response:", data ? "Success" : "Failed");
       
       if (updateError) {
         console.error("Password update error:", updateError);
@@ -95,18 +111,43 @@ export const UpdatePasswordForm = () => {
   };
 
   // Show loading state until we've determined if we're in a valid reset flow
-  if (!initialized) {
+  if (validatingSession) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <h2 className="text-center text-3xl font-extrabold text-saas-dark">
-            Loading...
-          </h2>
+          <div className="flex flex-col items-center">
+            <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
+            <h2 className="mt-6 text-2xl font-semibold text-gray-700">
+              Validating your session...
+            </h2>
+          </div>
         </div>
       </div>
     );
   }
 
+  // Show error state if not initialized and we have an error
+  if (!initialized && error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="sm:mx-auto sm:w-full sm:max-w-md">
+          <div className="bg-white py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10">
+            <Alert variant="destructive" className="mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+            <Button 
+              onClick={() => navigate('/auth')}
+              className="w-full mt-4"
+            >
+              Return to Login
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main password reset form
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">

@@ -35,27 +35,42 @@ export const AuthDebugMonitor = () => {
       setDebugInfo({
         ...envInfo,
         hasSession,
+        sessionExists: hasSession,
+        currentTimestamp: new Date().toISOString(),
         userAgent: navigator.userAgent,
-        queryParams: Object.fromEntries(new URLSearchParams(window.location.search)),
+        currentUrl: window.location.href,
+        pathname: window.location.pathname,
+        search: window.location.search,
         hash: window.location.hash,
         hashParams,
+        hashType: hashParams.type || 'none',
+        accessTokenPresent: !!hashParams.access_token,
         redirectPath: window.location.pathname.includes('/auth') ? 'On auth page' : 'Not on auth page',
-        resetPasswordMode: window.location.search.includes('type=recovery') ? 'Active' : 'Inactive',
-        today: new Date().toISOString(),
+        resetPasswordMode: 
+          window.location.pathname.includes('/update-password') || 
+          hashParams.type === 'recovery' ? 'Active' : 'Inactive',
       });
     };
     
     collectDebugInfo();
     
-    // Setup a listener for hash changes which might indicate auth redirects
+    // Setup listeners for URL and hash changes which might indicate auth redirects
     const handleHashChange = () => {
       console.log("Hash changed, updating debug info");
       collectDebugInfo();
     };
     
+    const handleUrlChange = () => {
+      console.log("URL changed, updating debug info");
+      collectDebugInfo();
+    };
+    
     window.addEventListener('hashchange', handleHashChange);
+    window.addEventListener('popstate', handleUrlChange);
+    
     return () => {
       window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('popstate', handleUrlChange);
     };
   }, []);
   
