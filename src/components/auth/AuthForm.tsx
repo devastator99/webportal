@@ -20,6 +20,7 @@ import { formatDateForDisplay, parseDateFromDisplay } from "@/utils/dateUtils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { PasswordResetForm } from "./PasswordResetForm";
+import { ForgotPasswordForm } from "./ForgotPasswordForm";
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -77,7 +78,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
   const [showPatientFields, setShowPatientFields] = useState(type === "register" && userType === "patient");
   const [dateInputValue, setDateInputValue] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showResetDialog, setShowResetDialog] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { toast } = useToast();
 
   const activeSchema = type === "login" 
@@ -556,7 +557,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
               type="button"
               variant="ghost"
               className="text-sm text-purple-600 hover:text-purple-500 w-full"
-              onClick={() => setShowResetDialog(true)}
+              onClick={() => setShowForgotPassword(true)}
             >
               Forgot password?
             </Button>
@@ -586,9 +587,9 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           </Button>
         </motion.div>
 
-        <Dialog open={showResetDialog} onOpenChange={setShowResetDialog}>
+        <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
           <DialogContent>
-            <PasswordResetForm onClose={() => setShowResetDialog(false)} />
+            <ForgotPasswordForm onClose={() => setShowForgotPassword(false)} />
           </DialogContent>
         </Dialog>
       </motion.form>
