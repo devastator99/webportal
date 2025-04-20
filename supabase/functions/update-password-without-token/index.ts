@@ -31,34 +31,51 @@ serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing Supabase URL or service role key");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     // Create a Supabase client with the service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    console.log(`Finding user with email: ${email}`);
     
     // Find the user by email
     const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
     
     if (userError) {
+      console.error("Error listing users:", userError);
       throw userError;
     }
     
     const user = userData.users.find(u => u.email === email);
     
     if (!user) {
+      console.error(`User with email ${email} not found`);
       return new Response(
         JSON.stringify({ error: "User not found" }),
         { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
+    console.log(`Updating password for user ${user.id}`);
+    
     // Update the user's password using admin functions
-    const { error: updateError } = await supabase.auth.admin.updateUserById(
+    const { data, error: updateError } = await supabase.auth.admin.updateUserById(
       user.id,
       { password: newPassword }
     );
     
     if (updateError) {
+      console.error("Error updating password:", updateError);
       throw updateError;
     }
+    
+    console.log("Password updated successfully");
     
     return new Response(
       JSON.stringify({ success: true }),

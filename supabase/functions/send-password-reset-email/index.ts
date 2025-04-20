@@ -31,6 +31,14 @@ serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing Supabase URL or service role key");
+      return new Response(
+        JSON.stringify({ error: "Server configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     // Create a Supabase client with the service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
@@ -38,6 +46,7 @@ serve(async (req: Request) => {
     const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
     
     if (userError) {
+      console.error("Error listing users:", userError);
       throw userError;
     }
     
@@ -46,14 +55,17 @@ serve(async (req: Request) => {
     if (!user) {
       // To prevent email enumeration attacks, don't reveal if the user exists
       // Just return success even though we didn't actually send an email
+      console.log(`User with email ${email} not found, returning success anyway`);
       return new Response(
         JSON.stringify({ success: true }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    // Send email using Supabase's email service
-    const { error: emailError } = await supabase.auth.admin.generateLink({
+    console.log(`Generating password reset link for user ${user.id} with email ${email}`);
+    
+    // Generate a password reset link using Supabase's built-in functionality
+    const { data: linkData, error: emailError } = await supabase.auth.admin.generateLink({
       type: "recovery",
       email,
       options: {
@@ -62,8 +74,11 @@ serve(async (req: Request) => {
     });
     
     if (emailError) {
+      console.error("Error generating password reset link:", emailError);
       throw emailError;
     }
+    
+    console.log("Password reset link generated successfully");
     
     return new Response(
       JSON.stringify({ success: true }),
