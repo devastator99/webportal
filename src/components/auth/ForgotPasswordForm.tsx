@@ -14,8 +14,14 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/update-password`,
+      // Instead of using resetPasswordForEmail which sends token-based emails,
+      // we'll use Supabase's custom email delivery
+      // Store the email in local storage for later use in update password form
+      localStorage.setItem('passwordResetEmail', email);
+      
+      // Send a custom email with a direct link to update password page
+      const { error } = await supabase.functions.invoke('send-password-reset-email', {
+        body: { email, resetUrl: `${window.location.origin}/auth/update-password` }
       });
 
       if (error) throw error;
@@ -24,7 +30,7 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
       if (onClose) onClose();
     } catch (error: any) {
       console.error("Password reset error:", error);
-      toast.error(error.message || 'Error initiating password reset');
+      toast.error(error.message || 'Error sending password reset email');
     } finally {
       setLoading(false);
     }

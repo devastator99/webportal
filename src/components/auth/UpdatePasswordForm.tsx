@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,15 +8,29 @@ import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export const UpdatePasswordForm = () => {
+  const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
+  // Get email from local storage if available (set during forgot password flow)
+  useEffect(() => {
+    const savedEmail = localStorage.getItem('passwordResetEmail');
+    if (savedEmail) {
+      setEmail(savedEmail);
+    }
+  }, []);
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    
+    if (!email) {
+      setError("Email is required. Please use the link from the email we sent you.");
+      return;
+    }
     
     if (password !== confirmPassword) {
       setError("Passwords don't match");
@@ -31,18 +45,20 @@ export const UpdatePasswordForm = () => {
     setLoading(true);
 
     try {
-      const { error: updateError } = await supabase.auth.updateUser({
-        password: password
+      // First, we need to sign in with email and the new password
+      // This is a workaround since we're not using tokens
+      const { error: signInError } = await supabase.functions.invoke('update-password-without-token', {
+        body: { email, newPassword: password }
       });
 
-      if (updateError) {
-        throw updateError;
+      if (signInError) {
+        throw signInError;
       }
       
       toast.success('Password updated successfully');
       
-      // Sign out the user to force a fresh login with the new password
-      await supabase.auth.signOut();
+      // Clear saved email from local storage
+      localStorage.removeItem('passwordResetEmail');
       
       // Redirect to login page after successful password update
       setTimeout(() => {
@@ -73,6 +89,23 @@ export const UpdatePasswordForm = () => {
           )}
           
           <form onSubmit={handleSubmit} className="space-y-6">
+            {!email && (
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                  Email Address
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Your Email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="mt-1"
+                />
+              </div>
+            )}
+            
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                 New Password
