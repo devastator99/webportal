@@ -16,6 +16,13 @@ const Auth = () => {
   const isRegistration = window.location.pathname.includes('/register');
   const searchParams = new URLSearchParams(window.location.search);
   const view = searchParams.get('view');
+  
+  // For debugging purposes - log the URL parameters
+  useEffect(() => {
+    console.log("Current URL:", window.location.href);
+    console.log("View parameter:", view);
+    console.log("Search params:", Object.fromEntries(searchParams.entries()));
+  }, [view, searchParams]);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
@@ -47,6 +54,7 @@ const Auth = () => {
 
   // Show update password form if view is update_password
   if (view === 'update_password') {
+    console.log("Rendering UpdatePasswordForm");
     return <UpdatePasswordForm />;
   }
 
