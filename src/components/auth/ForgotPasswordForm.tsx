@@ -15,21 +15,21 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/update-password`,
-      });
-
-      if (error) throw error;
+      // Store email in local storage for the update password form
+      localStorage.setItem('resetPasswordEmail', email);
       
+      // Set success without sending email
       setSuccess(true);
-      toast.success('Password reset instructions sent to your email');
+      toast.success('Password reset initiated. You can now set a new password.');
       
+      // Close the modal after a delay
       setTimeout(() => {
-        onClose();
-      }, 3000);
+        // Redirect to the update password page
+        window.location.href = '/auth/update-password';
+      }, 1500);
     } catch (error: any) {
       console.error("Password reset error:", error);
-      toast.error(error.message || 'Error sending reset instructions');
+      toast.error(error.message || 'Error initiating password reset');
     } finally {
       setLoading(false);
     }
@@ -38,9 +38,9 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
   if (success) {
     return (
       <div className="space-y-4 text-center">
-        <h2 className="text-lg font-semibold">Email Sent!</h2>
+        <h2 className="text-lg font-semibold">Reset Initiated!</h2>
         <p className="text-sm text-gray-600">
-          Please check your email for password reset instructions.
+          Please wait while we redirect you to set a new password.
         </p>
       </div>
     );
@@ -50,7 +50,7 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
     <div className="space-y-4">
       <h2 className="text-lg font-semibold text-center">Reset Password</h2>
       <p className="text-sm text-gray-600 text-center">
-        Enter your email address to receive password reset instructions.
+        Enter your email address to reset your password.
       </p>
       <form onSubmit={handleSubmit} className="space-y-4">
         <Input
@@ -66,7 +66,7 @@ export const ForgotPasswordForm = ({ onClose }: { onClose: () => void }) => {
           className="w-full"
           disabled={loading}
         >
-          {loading ? 'Sending...' : 'Send Instructions'}
+          {loading ? 'Processing...' : 'Reset Password'}
         </Button>
       </form>
     </div>
