@@ -71,20 +71,37 @@ serve(async (req: Request) => {
       );
     }
     
-    // Send email with OTP using Supabase's email service
-    const { error: emailError } = await supabase.auth.admin.sendEmail(
+    // Send email with OTP using the raw email service
+    const { data, error: emailError } = await supabase.auth.admin.generateLink({
+      type: "magiclink",
+      email: email,
+      options: {
+        redirectTo: resetUrl
+      }
+    });
+    
+    if (emailError) {
+      console.error("Error generating email link:", emailError);
+      return new Response(
+        JSON.stringify({ success: false, error: emailError.message }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Send custom email with OTP instead of the magic link
+    const { error: sendError } = await supabase.auth.admin.sendEmail(
       email,
-      'PASSWORD_RECOVERY',
+      'OTP_EMAIL', // This is a dummy type, we're using custom template
       { 
         subject: 'Your password reset OTP', 
         body: `Your OTP for password reset is: ${otp}\nThis code will expire in 1 hour.` 
       }
     );
     
-    if (emailError) {
-      console.error("Error sending email:", emailError);
+    if (sendError) {
+      console.error("Error sending email:", sendError);
       return new Response(
-        JSON.stringify({ success: false, error: emailError.message }),
+        JSON.stringify({ success: false, error: sendError.message }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
