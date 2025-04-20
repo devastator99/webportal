@@ -49,7 +49,13 @@ additional_redirect_urls = [
   "https://anubhooti-phase1.lovable.app/auth?type=recovery",
   "https://anubhooti-phase1.lovable.app/auth?view=update_password",
   "https://anubhooti-phase1.lovable.app/auth?reset=true",
-  "https://anubhooti-phase1.lovable.app/auth?action=recovery"
+  "https://anubhooti-phase1.lovable.app/auth?action=recovery",
+  "https://f86ca2e5-f381-4a38-916a-b6b45c97002b.lovableproject.com",
+  "https://f86ca2e5-f381-4a38-916a-b6b45c97002b.lovableproject.com/auth",
+  "https://f86ca2e5-f381-4a38-916a-b6b45c97002b.lovableproject.com/auth?type=recovery",
+  "https://f86ca2e5-f381-4a38-916a-b6b45c97002b.lovableproject.com/auth?view=update_password",
+  "https://f86ca2e5-f381-4a38-916a-b6b45c97002b.lovableproject.com/auth?reset=true",
+  "https://f86ca2e5-f381-4a38-916a-b6b45c97002b.lovableproject.com/auth?action=recovery"
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 seconds (1
 # week).

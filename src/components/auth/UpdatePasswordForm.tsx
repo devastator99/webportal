@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { LucideLoader2 } from "lucide-react";
 
 export const UpdatePasswordForm = () => {
   const [password, setPassword] = useState('');
@@ -14,6 +15,7 @@ export const UpdatePasswordForm = () => {
   const [initializing, setInitializing] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasSession, setHasSession] = useState(false);
+  const [processingToken, setProcessingToken] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -22,38 +24,53 @@ export const UpdatePasswordForm = () => {
     const processRecoveryToken = async () => {
       try {
         setInitializing(true);
+        setProcessingToken(true);
         console.log("Processing recovery token in UpdatePasswordForm");
+        console.log("Current URL:", window.location.href);
         
         // Check if there's a hash in the URL (contains the access token)
-        if (window.location.hash && window.location.hash.includes('access_token')) {
-          console.log("Found hash with tokens in URL, processing...");
+        const hashFragment = window.location.hash;
+        
+        if (hashFragment && hashFragment.includes('access_token')) {
+          console.log("Found hash with tokens in URL:", hashFragment);
           
-          // Parse the hash directly - more reliable method
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          // Extract the tokens directly from hash
+          const hashParams = new URLSearchParams(hashFragment.substring(1));
           const accessToken = hashParams.get('access_token');
           const refreshToken = hashParams.get('refresh_token');
           
           if (accessToken && refreshToken) {
             console.log("Extracted tokens from URL hash, setting session");
             
-            const { data, error } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken
-            });
-            
-            if (error) {
-              console.error("Error setting session with token:", error);
-              setError("Error processing recovery token. Please request a new password reset link.");
-              setHasSession(false);
-            } else if (data?.session) {
-              console.log("Session set successfully with recovery token");
-              setHasSession(true);
+            try {
+              const { data, error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken
+              });
               
-              // Clear URL hash to prevent token leaking and reprocessing
-              if (window.history.replaceState) {
-                window.history.replaceState(null, '', window.location.pathname + window.location.search);
+              if (error) {
+                console.error("Error setting session with token:", error);
+                setError("Error processing recovery token: " + error.message);
+                setHasSession(false);
+              } else if (data?.session) {
+                console.log("Session set successfully with recovery token");
+                setHasSession(true);
+                
+                // Clear URL hash to prevent token leaking and reprocessing
+                if (window.history.replaceState) {
+                  window.history.replaceState(null, '', window.location.pathname + window.location.search);
+                }
+              } else {
+                console.error("No session returned after setting tokens");
+                setError("Failed to establish session with recovery token");
               }
+            } catch (err) {
+              console.error("Exception in setSession:", err);
+              setError("Error processing session: " + (err instanceof Error ? err.message : String(err)));
             }
+          } else {
+            console.error("Could not extract complete tokens from hash");
+            setError("Invalid recovery link. Please request a new password reset link.");
           }
         } else {
           // No hash, check if we already have a valid session
@@ -78,6 +95,7 @@ export const UpdatePasswordForm = () => {
         setError("An unexpected error occurred. Please try again or request a new password reset link.");
       } finally {
         setInitializing(false);
+        setProcessingToken(false);
       }
     };
     
@@ -133,8 +151,10 @@ export const UpdatePasswordForm = () => {
   if (initializing) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center items-center py-12 sm:px-6 lg:px-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-700"></div>
-        <p className="mt-4 text-sm text-gray-600">Verifying your session...</p>
+        <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
+        <p className="mt-4 text-sm text-gray-600">
+          {processingToken ? "Processing your recovery token..." : "Verifying your session..."}
+        </p>
       </div>
     );
   }
