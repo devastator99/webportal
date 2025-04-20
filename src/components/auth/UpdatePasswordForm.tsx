@@ -1,52 +1,18 @@
 
-import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { LucideLoader2 } from "lucide-react";
 
 export const UpdatePasswordForm = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [initializing, setInitializing] = useState(true);
   const navigate = useNavigate();
-  const location = useLocation();
-
-  // Check if there's an access token in the URL
-  useEffect(() => {
-    const handleHashParams = async () => {
-      try {
-        setInitializing(true);
-        
-        // When coming from the email link, Supabase will handle this automatically
-        // We just need to check that the session is being set up correctly
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error("Error retrieving session:", error);
-          setError("Error retrieving session: " + error.message);
-        }
-        
-        if (!data.session) {
-          console.log("No session found, user may need to click the link in their email again");
-        } else {
-          console.log("Session found, user can proceed with password reset");
-        }
-      } catch (err: any) {
-        console.error("Error processing auth parameters:", err);
-        setError(err.message || 'Error processing authentication parameters');
-      } finally {
-        setInitializing(false);
-      }
-    };
-
-    handleHashParams();
-  }, [location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,21 +55,6 @@ export const UpdatePasswordForm = () => {
       setLoading(false);
     }
   };
-
-  if (initializing) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-        <div className="sm:mx-auto sm:w-full sm:max-w-md">
-          <div className="flex flex-col items-center">
-            <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
-            <p className="mt-4 text-sm text-gray-600">
-              Initializing password reset...
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
