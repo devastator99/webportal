@@ -56,30 +56,18 @@ export const ChatMessagesList = ({
 
       const getDatabaseRole = (role: string | null): string => {
         if (!role) return 'patient'; // Default to patient if role is null
-        
-        switch(role) {
-          case 'patient': return 'patient';
-          case 'doctor': return 'doctor';
-          case 'nutritionist': return 'nutritionist';
-          case 'administrator': return 'administrator';
-          case 'reception': return 'reception';
-          case 'aibot': return 'aibot';
-          case 'system': return 'system';
-          default: return 'patient'; // Default to patient for safety
-        }
+        return role.toLowerCase(); // Simply use lowercase version of role
       };
       
       const validRole = getDatabaseRole(userRole);
       console.log(`Fetching messages for room ${roomId} with role: ${validRole}`);
       
-      const params: GetRoomMessagesParams = {
+      const { data, error } = await supabase.rpc('get_room_messages_with_role', {
         p_room_id: roomId,
         p_limit: limit,
         p_offset: offset,
         p_user_role: validRole
-      };
-
-      const { data, error } = await supabase.rpc('get_room_messages', params);
+      });
 
       if (error) {
         console.error("Error fetching messages:", error);

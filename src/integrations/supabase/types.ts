@@ -1555,6 +1555,24 @@ export type Database = {
           created_at: string
         }[]
       }
+      get_room_messages_with_role: {
+        Args: {
+          p_room_id: string
+          p_limit?: number
+          p_offset?: number
+          p_user_role?: string
+        }
+        Returns: {
+          id: string
+          sender_id: string
+          sender_name: string
+          sender_role: string
+          message: string
+          is_system_message: boolean
+          is_ai_message: boolean
+          created_at: string
+        }[]
+      }
       get_signed_medical_report_url: {
         Args: { p_report_id: string }
         Returns: string
