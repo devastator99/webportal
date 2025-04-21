@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -84,7 +83,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   }, [patientRoomId, userRole, isMobile]);
 
   useEffect(() => {
-    // Scroll to bottom on new messages
     if (messagesEndRef.current && !isLoadingMessages) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
@@ -214,7 +212,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       console.log("AI response received:", data);
       
       setIsAiResponding(false);
-      // Refresh messages to show AI response
       fetchMessages(roomId, 1);
       return data;
     } catch (error) {
@@ -242,7 +239,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       const filePath = `${user.id}/${crypto.randomUUID()}-${selectedFile.name}`;
       
-      // Upload file to storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('chat_attachments')
         .upload(filePath, selectedFile, {
@@ -258,7 +254,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
           variant: "destructive"
         });
         
-        // Notify the AI of the error
         await triggerAiResponse(`[FILE_UPLOAD_ERROR]${selectedFile.name}`, selectedRoomId);
         setIsUploading(false);
         setUploadProgress(0);
@@ -268,12 +263,10 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       setUploadProgress(70);
       
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('chat_attachments')
         .getPublicUrl(filePath);
       
-      // Send message with file link
       const { data: messageData, error: messageError } = await supabase.rpc('send_room_message', {
         p_room_id: selectedRoomId,
         p_message: `[FILE] ${selectedFile.name} - ${publicUrl}`,
@@ -296,10 +289,8 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       setUploadProgress(100);
       
-      // Refresh messages to show the file message
       fetchMessages(selectedRoomId, 1);
       
-      // Notify the AI of successful upload
       await triggerAiResponse(`[FILE_UPLOAD_SUCCESS]${selectedFile.name}`, selectedRoomId);
       
       toast({
@@ -341,7 +332,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     try {
       const optimisticId = uuidv4();
       
-      // Add optimistic message
       setLocalMessages(prev => [...prev, {
         id: optimisticId,
         message: newMessage,
@@ -361,7 +351,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       if (error) {
         console.error("Error sending message:", error);
-        // Remove the optimistic message
         setLocalMessages(prev => prev.filter(msg => msg.id !== optimisticId));
         
         toast({
@@ -372,16 +361,13 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         return;
       }
       
-      // Replace optimistic message with real one
       fetchMessages(selectedRoomId, 1);
       
-      // Always trigger AI response in care team chats for patient users
       if (userRole === 'patient') {
         console.log("Patient sent message, triggering AI response");
         await triggerAiResponse(newMessage, selectedRoomId);
       } else if (newMessage.toLowerCase().includes('@ai') || 
           newMessage.toLowerCase().includes('@assistant')) {
-        // For non-patients, only respond to messages that mention AI
         console.log("Care team member mentioned AI, triggering response");
         await triggerAiResponse(newMessage, selectedRoomId);
       }
@@ -394,13 +380,12 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         variant: "destructive"
       });
     } finally {
-      setNewMessage(""); // Clear input regardless of success/failure
+      setNewMessage("");
     }
   };
 
   return (
     <div className="h-full flex overflow-hidden rounded-md border border-neutral-200 dark:border-neutral-800 shadow-sm">
-      {/* Room sidebar */}
       {showSidebar && (
         <div className="w-72 border-r border-neutral-200 dark:border-neutral-800 flex flex-col">
           <div className="p-3 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
@@ -423,9 +408,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         </div>
       )}
       
-      {/* Chat area */}
       <div className="flex-1 flex flex-col h-full">
-        {/* Chat header */}
         <div className="p-3 border-b border-neutral-200 dark:border-neutral-800 flex items-center">
           {!showSidebar && userRole !== 'patient' && (
             <Button
@@ -497,7 +480,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
           </div>
         </div>
         
-        {/* Messages area */}
         <div className="flex-1 overflow-hidden flex flex-col">
           {selectedRoomId ? (
             <>
@@ -618,7 +600,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                 )}
               </ScrollArea>
               
-              {/* Input area */}
               <div className="p-3 border-t border-neutral-200 dark:border-neutral-800">
                 <ChatInput
                   value={newMessage}
