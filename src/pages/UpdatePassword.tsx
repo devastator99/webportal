@@ -38,15 +38,29 @@ const UpdatePassword = () => {
     },
   });
 
-  // Extract the access token and type from URL hash on component mount
+  // Extract the access token and type from URL parameters or hash on component mount
   useEffect(() => {
     // First check if there's a hash in the URL (comes from Supabase password reset)
     const hashParams = new URLSearchParams(location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
-    const type = hashParams.get('type');
+    let accessToken = hashParams.get('access_token');
+    let type = hashParams.get('type');
+    
+    // If not in hash, check query parameters (might be in search params)
+    if (!accessToken) {
+      const queryParams = new URLSearchParams(location.search);
+      // Check for token in query parameters
+      const token = queryParams.get('token');
+      if (token) {
+        console.log('Token found in query parameters');
+        // Handle token from query parameter if needed
+        // This might require an API call to exchange the token for an access token
+      }
+    }
+    
+    console.log('Recovery flow details:', { accessToken: !!accessToken, type });
     
     if (!accessToken || type !== 'recovery') {
-      console.error('Missing or invalid recovery token', { accessToken, type });
+      console.error('Missing or invalid recovery token', { hasAccessToken: !!accessToken, type });
       setError('Invalid or expired password reset link. Please request a new one.');
     } else {
       console.log('Valid recovery token found in URL');
