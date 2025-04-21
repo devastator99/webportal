@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -27,7 +28,6 @@ import {
 } from "lucide-react";
 import { PatientHealthTips } from "./patient/PatientHealthTips";
 import { MedicalRecordsList } from './patient/MedicalRecordsList';
-import { MedicalRecordsUpload } from './patient/MedicalRecordsUpload';
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -183,7 +183,7 @@ export const PatientDashboard = () => {
       {/* Main Content - Use collapsible sections but without lazy loading */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-3 space-y-6">
-          {/* Next Appointment Highlight - Moved above medical reports upload */}
+          {/* Next Appointment Highlight - Moved above medical reports list */}
           {patientData?.nextAppointment && (
             <Card className="border-[#E5DEFF]">
               <CardContent className="p-4 flex items-center justify-between">
@@ -205,17 +205,6 @@ export const PatientDashboard = () => {
               </CardContent>
             </Card>
           )}
-          
-          {/* Update Medical Report */}
-          <CollapsibleSection 
-            title="Update Medical Report" 
-            defaultOpen={true}
-            className={isIPad ? "overflow-x-visible" : ""}
-          >
-            <div className={isIPad ? "p-2" : ""}>
-              <MedicalRecordsUpload showUploadOnly />
-            </div>
-          </CollapsibleSection>
           
           {/* View Reports */}
           <CollapsibleSection 
