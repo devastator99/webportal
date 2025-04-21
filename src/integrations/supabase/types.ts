@@ -1269,6 +1269,15 @@ export type Database = {
           receiver: Json
         }[]
       }
+      get_chat_room_members: {
+        Args: { p_room_id: string }
+        Returns: {
+          id: string
+          first_name: string
+          last_name: string
+          role: string
+        }[]
+      }
       get_chatbot_knowledge: {
         Args: { topic_filter?: string }
         Returns: {

@@ -102,53 +102,17 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       setIsLoadingMembers(true);
       console.log("Fetching members for room:", roomId);
       
-      const { data, error } = await supabase
-        .from('room_members')
-        .select(`
-          id,
-          role,
-          user_id,
-          profiles:user_id(
-            first_name,
-            last_name
-          )
-        `)
-        .eq('room_id', roomId);
+      const { data, error } = await supabase.rpc('get_chat_room_members', {
+        p_room_id: roomId
+      });
         
       if (error) {
         console.error("Error fetching room members:", error);
         throw error;
       }
       
-      const formattedMembers = data.map(member => {
-        const profile = member.profiles && typeof member.profiles === 'object' 
-          ? member.profiles 
-          : { first_name: "User", last_name: "" };
-        
-        return {
-          id: member.user_id,
-          first_name: profile.first_name || "User",
-          last_name: profile.last_name || "",
-          role: member.role || "member"
-        };
-      });
-      
-      // Ensure AI bot is in the members list
-      const hasAiBot = formattedMembers.some(m => 
-        m.id === '00000000-0000-0000-0000-000000000000' || m.role === 'aibot'
-      );
-      
-      if (!hasAiBot) {
-        formattedMembers.push({
-          id: '00000000-0000-0000-0000-000000000000',
-          first_name: 'AI',
-          last_name: 'Assistant',
-          role: 'aibot'
-        });
-      }
-      
-      console.log("Room members retrieved:", formattedMembers);
-      setRoomMembers(formattedMembers);
+      console.log("Room members retrieved:", data);
+      setRoomMembers(data || []);
     } catch (error) {
       console.error("Error fetching room members:", error);
       toast({
@@ -169,7 +133,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       setRoomError(null);
       console.log(`Fetching messages for room ${roomId}, page ${pageNum}`);
       
-      // Use the new get_room_messages_with_role function instead
       const { data, error } = await supabase.rpc('get_room_messages_with_role', {
         p_room_id: roomId,
         p_limit: 50,
@@ -187,16 +150,13 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       if (data && data.length > 0) {
         if (pageNum === 1) {
-          // For first page, replace all messages
           setLocalMessages(data);
         } else {
-          // For additional pages, append older messages
           setLocalMessages(prev => [...prev, ...data]);
         }
         setHasMoreMessages(data.length === 50);
       } else {
         if (pageNum === 1) {
-          // If first page is empty, clear messages
           setLocalMessages([]);
         }
         setHasMoreMessages(false);
@@ -241,8 +201,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       console.log("AI response received:", data);
       
-      // Refresh messages to show the AI response
-      // Add a small delay to ensure the message is saved in the database
       setTimeout(() => {
         fetchMessages(roomId, 1);
         setIsAiResponding(false);
@@ -324,7 +282,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       setUploadProgress(100);
       
-      // Refresh the messages to show the file message
       fetchMessages(selectedRoomId, 1);
       
       await triggerAiResponse(`[FILE_UPLOAD_SUCCESS]${selectedFile.name}`, selectedRoomId);
@@ -380,11 +337,10 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       const optimisticId = uuidv4();
       const currentTime = new Date().toISOString();
       
-      // Add optimistic message
       const optimisticMessage = {
         id: optimisticId,
         sender_id: user?.id,
-        sender_name: 'You', // Temporary name
+        sender_name: 'You',
         sender_role: userRole,
         message: newMessage,
         created_at: currentTime,
@@ -394,10 +350,8 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       setLocalMessages(prev => [optimisticMessage, ...prev]);
       
-      // Clear message input immediately for better UX
       setNewMessage("");
       
-      // Send the message
       const { data, error } = await supabase.rpc('send_room_message', {
         p_room_id: selectedRoomId,
         p_message: newMessage,
@@ -407,7 +361,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       if (error) {
         console.error("Error sending message:", error);
-        // Remove optimistic message on error
         setLocalMessages(prev => prev.filter(msg => msg.id !== optimisticId));
         
         toast({
@@ -420,10 +373,8 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       console.log("Message sent successfully, ID:", data);
       
-      // Refresh messages to get the properly formatted message
       fetchMessages(selectedRoomId, 1);
       
-      // Trigger AI response for patients or if AI is mentioned
       const shouldTriggerAI = 
         userRole === 'patient' || 
         newMessage.toLowerCase().includes('@ai') || 
