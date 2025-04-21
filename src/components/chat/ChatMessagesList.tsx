@@ -53,10 +53,12 @@ export const ChatMessagesList = ({
       setIsLoading(!append);
       setLoadingMore(append);
 
+      // Call the get_room_messages RPC with explicit role handling
       const { data, error } = await supabase.rpc('get_room_messages', {
         p_room_id: roomId,
         p_limit: limit,
-        p_offset: offset
+        p_offset: offset,
+        p_user_role: userRole || 'patient' // Explicitly set role with patient as fallback
       });
 
       if (error) {
