@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +48,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isInitialMount = useRef(true);
   const recoveryAttempted = useRef(false);
   const isPasswordRecoveryFlow = useRef(false);
+  const hasRedirectedUser = useRef(false);
 
   // Check if we're in a password reset flow based on URL
   useEffect(() => {
@@ -174,6 +176,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // This function now handles redirection based on user role
+  const redirectUserBasedOnRole = (role: UserRole | null) => {
+    if (hasRedirectedUser.current) return; // Prevent multiple redirects
+    
+    if (role === 'patient') {
+      console.log("[AuthContext] Patient detected, redirecting to chat");
+      navigate('/chat', { replace: true });
+      hasRedirectedUser.current = true;
+    } else if (role) {
+      // For other roles, redirect to their respective dashboards
+      const targetRoute = 
+        role === 'doctor' ? '/doctor-dashboard' :
+        role === 'nutritionist' ? '/nutritionist-dashboard' :
+        role === 'administrator' ? '/admin' :
+        '/dashboard';
+      
+      console.log(`[AuthContext] ${role} detected, redirecting to ${targetRoute}`);
+      navigate(targetRoute, { replace: true });
+      hasRedirectedUser.current = true;
+    }
+  };
+
   const handleAuthStateChange = async (currentSession: Session | null) => {
     console.log("[AuthContext] Auth state changed:", currentSession ? "session exists" : "no session");
     
@@ -187,6 +211,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       // Always update loading state first
       setIsLoading(true);
+      // Reset the redirect flag on auth state change
+      hasRedirectedUser.current = false;
       
       if (currentSession?.user) {
         setUser(currentSession.user);
@@ -203,6 +229,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           if (role) {
             setUserRole(role);
             setAuthError(null);
+            // Immediately redirect based on role after it's fetched
+            redirectUserBasedOnRole(role);
           }
           setIsLoading(false);
         }, 100);
@@ -348,6 +376,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
   }, [user]);
+
+  // Add a useEffect to handle role-based redirection when role changes
+  useEffect(() => {
+    if (userRole && !isLoading && !isPasswordRecoveryFlow.current) {
+      redirectUserBasedOnRole(userRole);
+    }
+  }, [userRole, isLoading]);
 
   const signOut = async () => {
     try {

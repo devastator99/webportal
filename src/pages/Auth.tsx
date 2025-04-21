@@ -8,19 +8,23 @@ import { LucideLoader2 } from "lucide-react";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 
 const Auth = () => {
-  const { user, isLoading } = useAuth();
+  const { user, userRole, isLoading } = useAuth();
   const { handleSignUp, error, loading, setError } = useAuthHandlers();
   const navigate = useNavigate();
   const location = useLocation();
   
   const isRegistration = location.pathname.includes('/register');
 
-  // Redirect to dashboard if already logged in
+  // Redirect based on user role
   useEffect(() => {
     if (!isLoading && user) {
-      navigate("/dashboard");
+      if (userRole === 'patient') {
+        navigate("/chat");
+      } else if (userRole) {
+        navigate("/dashboard");
+      }
     }
-  }, [user, isLoading, navigate]);
+  }, [user, userRole, isLoading, navigate]);
 
   // Show loading state
   if (isLoading) {

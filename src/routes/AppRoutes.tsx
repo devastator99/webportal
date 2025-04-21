@@ -46,7 +46,7 @@ export const AppRoutes = () => {
   const getDefaultRoute = () => {
     switch (userRole) {
       case "patient":
-        return "/chat";
+        return "/chat"; // Ensure patients go to chat screen by default
       case "doctor":
         return "/doctor-dashboard";
       case "administrator":

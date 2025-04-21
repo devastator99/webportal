@@ -34,6 +34,7 @@ export const LoginDialog = () => {
         await handleLogin(email, password);
         setIsDialogOpen(false);
         toast.success('Signed in successfully!');
+        // Let the AuthContext handle redirection based on role
       } else {
         // For signup, we'll use toast.promise for better feedback
         await toast.promise(
