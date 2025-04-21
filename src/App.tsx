@@ -22,25 +22,40 @@ function PasswordResetRedirect() {
   const location = useLocation();
   
   useEffect(() => {
-    // Check for Supabase password reset hash format (#access_token=...&refresh_token=...&type=recovery)
+    // Look for password reset parameters in both hash and query parameters
     const hash = location.hash;
+    const searchParams = new URLSearchParams(location.search);
     
-    if (hash && hash.includes('type=recovery')) {
-      console.log('Detected password reset hash fragment, redirecting to /update-password');
+    // Check if this is a recovery flow (password reset)
+    const isRecoveryInHash = hash && hash.includes('type=recovery');
+    const isRecoveryInQuery = searchParams.get('type') === 'recovery';
+    
+    if (isRecoveryInHash || isRecoveryInQuery) {
+      console.log('Detected password reset parameters, redirecting to /update-password');
       
-      // Redirect to update-password page with the hash parameters as query params
-      const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
-      const queryParams = new URLSearchParams();
+      // Preserve all parameters by combining hash and search params
+      let params = new URLSearchParams();
       
-      // Convert hash params to query params for easier processing
-      hashParams.forEach((value, key) => {
-        queryParams.append(key, value);
+      // Add query parameters
+      searchParams.forEach((value, key) => {
+        params.append(key, value);
       });
       
-      // Redirect to update-password with the query params
-      navigate(`/update-password?${queryParams.toString()}`, { replace: true });
+      // Add hash parameters if they exist
+      if (hash) {
+        const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
+        hashParams.forEach((value, key) => {
+          // Don't duplicate parameters that are already in the query
+          if (!params.has(key)) {
+            params.append(key, value);
+          }
+        });
+      }
+      
+      // Redirect to update-password with all parameters
+      navigate(`/update-password?${params.toString()}`, { replace: true });
     }
-  }, [location.hash, navigate]);
+  }, [location, navigate]);
   
   return null;
 }

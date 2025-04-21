@@ -45,15 +45,12 @@ serve(async (req) => {
       }
     )
 
-    // Make sure redirectUrl is the absolute path to /update-password
-    // This ensures Supabase redirects to the right page after password reset
-    let finalRedirectUrl = redirectUrl;
-    
-    // Log the URL format we're sending to Supabase
-    console.log('Using redirect URL format:', finalRedirectUrl);
+    // We want to ensure the absolute URL is used exactly as provided
+    // Do not modify the redirectUrl - pass it directly to Supabase
+    console.log('Using redirect URL exactly as provided:', redirectUrl);
 
     const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
-      redirectTo: finalRedirectUrl,
+      redirectTo: redirectUrl,
     })
 
     if (error) {
