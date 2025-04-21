@@ -99,6 +99,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log("[AuthContext] Auth state changed:", currentSession ? "session exists" : "no session");
     
     try {
+      // Always update loading state first
+      setIsLoading(true);
+      
       if (currentSession?.user) {
         setUser(currentSession.user);
         setSession(currentSession);
@@ -136,45 +139,89 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Check for auth recovery parameters in URL
+  useEffect(() => {
+    const checkForRecoveryMode = () => {
+      const hash = window.location.hash;
+      if (hash) {
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const type = hashParams.get('type');
+        
+        if (accessToken && type === 'recovery') {
+          console.log("[AuthContext] Password reset flow detected in URL");
+          // Let the recovery page handle this - no need to redirect
+          return true;
+        }
+      }
+      return false;
+    };
+    
+    const isRecoveryFlow = checkForRecoveryMode();
+    console.log("[AuthContext] Is recovery flow:", isRecoveryFlow);
+    // Store this information if needed for later
+  }, []);
+
   useEffect(() => {
     console.log("[AuthContext] Setting up auth subscription");
     
-    // Set up the auth state change listener first
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      handleAuthStateChange(session);
+    // The order of operations is critical for reliable auth behavior
+    
+    // 1. First set up the auth state change listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      console.log("[AuthContext] Auth state change event:", _event);
+      
+      // Important: Use a setTimeout to avoid Supabase deadlocks
+      // that can occur when calling Supabase methods inside the callback
+      setTimeout(() => {
+        handleAuthStateChange(newSession);
+      }, 0);
     });
 
-    // Then check for existing session (order is important)
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      setIsLoading(true);
-      
-      // Get the current session state
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        console.log("[AuthContext] Initial session check:", session ? "session exists" : "no session");
+    // 2. Then check for existing session
+    const initializeAuth = async () => {
+      if (isInitialMount.current) {
+        isInitialMount.current = false;
+        setIsLoading(true);
         
-        if (!session && !recoveryAttempted.current) {
-          recoveryAttempted.current = true;
-          console.log("[AuthContext] Attempting one-time session recovery");
+        try {
+          // Get the current session state
+          const { data: { session: currentSession } } = await supabase.auth.getSession();
+          console.log("[AuthContext] Initial session check:", currentSession ? "session exists" : "no session");
           
-          // Force a refresh of the auth state to recover from any potential issues
-          supabase.auth.refreshSession().then(({ data, error }) => {
-            if (error) {
-              console.error("[AuthContext] Session recovery failed:", error);
-              setIsLoading(false);
-            } else if (data.session) {
-              console.log("[AuthContext] Session successfully recovered");
-              handleAuthStateChange(data.session);
-            } else {
-              console.log("[AuthContext] No session to recover");
+          if (!currentSession && !recoveryAttempted.current) {
+            recoveryAttempted.current = true;
+            console.log("[AuthContext] Attempting one-time session recovery");
+            
+            try {
+              // Force a refresh of the auth state to recover from any potential issues
+              const { data, error } = await supabase.auth.refreshSession();
+              
+              if (error) {
+                console.error("[AuthContext] Session recovery failed:", error);
+                setIsLoading(false);
+              } else if (data.session) {
+                console.log("[AuthContext] Session successfully recovered");
+                await handleAuthStateChange(data.session);
+              } else {
+                console.log("[AuthContext] No session to recover");
+                setIsLoading(false);
+              }
+            } catch (error) {
+              console.error("[AuthContext] Exception during session recovery:", error);
               setIsLoading(false);
             }
-          });
-        } else {
-          handleAuthStateChange(session);
+          } else {
+            await handleAuthStateChange(currentSession);
+          }
+        } catch (error) {
+          console.error("[AuthContext] Exception during initial auth setup:", error);
+          setIsLoading(false);
         }
-      });
-    }
+      }
+    };
+
+    initializeAuth();
 
     return () => {
       console.log("[AuthContext] Cleaning up auth subscription");
