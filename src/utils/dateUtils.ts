@@ -1,4 +1,3 @@
-
 import { parse as dateFnsParse, format as dateFnsFormat } from "date-fns";
 
 /**
@@ -101,5 +100,22 @@ export const parseDateFromDisplay = (dateString: string): Date | null => {
   } catch (error) {
     console.error('Error parsing display date:', error);
     return null;
+  }
+};
+
+/**
+ * Formats a date for chat messages display, showing full date and time
+ * @param date The date to format
+ * @returns A string with formatted date and time
+ */
+export const formatChatMessageTimestamp = (date: Date | string | null): string => {
+  if (!date) return '';
+  
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateFnsFormat(dateObj, 'dd/MM/yyyy HH:mm');
+  } catch (error) {
+    console.error('Error formatting chat message timestamp:', error);
+    return '';
   }
 };
