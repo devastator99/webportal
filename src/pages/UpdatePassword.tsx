@@ -40,6 +40,7 @@ const UpdatePassword = () => {
 
   // Extract the access token and type from URL hash on component mount
   useEffect(() => {
+    // First check if there's a hash in the URL (comes from Supabase password reset)
     const hashParams = new URLSearchParams(location.hash.substring(1));
     const accessToken = hashParams.get('access_token');
     const type = hashParams.get('type');

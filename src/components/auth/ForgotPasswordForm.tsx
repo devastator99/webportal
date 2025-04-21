@@ -31,6 +31,7 @@ export const ForgotPasswordForm = ({ onClose }: ForgotPasswordFormProps) => {
     setLoading(true);
     try {
       // Important: Use the fully qualified URL for the redirect
+      // This ensures it redirects to /update-password instead of losing the path
       const redirectTo = `${window.location.origin}/update-password`;
       console.log("Sending reset password with redirect to:", redirectTo);
       
