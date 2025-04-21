@@ -3,10 +3,11 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute"; // Fixed import path
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute"; 
+import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 
 // Lazy-loaded pages
-const Landing = lazy(() => import("@/pages/Landing"));
+const Landing = lazy(() => import("@/pages/LandingPage"));
 const Login = lazy(() => import("@/pages/Login"));
 const ChatPage = lazy(() => import("@/pages/ChatPage"));
 const AuthCallback = lazy(() => import("@/pages/AuthCallback"));
@@ -107,65 +108,65 @@ export const AppRoutes = () => {
         <Route
           path="/doctor-dashboard"
           element={
-            <ProtectedRoute allowedRoles={["doctor"]}>
+            <RoleProtectedRoute allowedRoles={["doctor"]}>
               <DoctorDashboard />
-            </ProtectedRoute>
+            </RoleProtectedRoute>
           }
         />
         <Route
           path="/nutritionist-dashboard"
           element={
-            <ProtectedRoute allowedRoles={["nutritionist"]}>
+            <RoleProtectedRoute allowedRoles={["nutritionist"]}>
               <NutritionistDashboard />
-            </ProtectedRoute>
+            </RoleProtectedRoute>
           }
         />
         <Route
           path="/admin"
           element={
-            <ProtectedRoute allowedRoles={["administrator"]}>
+            <RoleProtectedRoute allowedRoles={["administrator"]}>
               <AdminDashboard />
-            </ProtectedRoute>
+            </RoleProtectedRoute>
           }
         />
         <Route
           path="/book-appointment"
           element={
-            <ProtectedRoute allowedRoles={["patient"]}>
+            <RoleProtectedRoute allowedRoles={["patient"]}>
               <AppointmentBooking />
-            </ProtectedRoute>
+            </RoleProtectedRoute>
           }
         />
         <Route
           path="/profile"
           element={
-            <ProtectedRoute allowedRoles={["patient"]}>
+            <RoleProtectedRoute allowedRoles={["patient"]}>
               <PatientProfile />
-            </ProtectedRoute>
+            </RoleProtectedRoute>
           }
         />
         <Route
           path="/uploads"
           element={
-            <ProtectedRoute allowedRoles={["patient"]}>
+            <RoleProtectedRoute allowedRoles={["patient"]}>
               <UploadPage />
-            </ProtectedRoute>
+            </RoleProtectedRoute>
           }
         />
         <Route
           path="/prescriptions"
           element={
-            <ProtectedRoute allowedRoles={["patient"]}>
+            <RoleProtectedRoute allowedRoles={["patient"]}>
               <Prescriptions />
-            </ProtectedRoute>
+            </RoleProtectedRoute>
           }
         />
         <Route
           path="/habits"
           element={
-            <ProtectedRoute allowedRoles={["patient"]}>
+            <RoleProtectedRoute allowedRoles={["patient"]}>
               <HabitTracker />
-            </ProtectedRoute>
+            </RoleProtectedRoute>
           }
         />
 
