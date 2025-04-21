@@ -40,30 +40,38 @@ const UpdatePassword = () => {
 
   // Extract the access token and type from URL parameters or hash on component mount
   useEffect(() => {
+    console.log('URL path:', location.pathname);
+    console.log('URL hash:', location.hash);
+    console.log('URL search:', location.search);
+    
     // First check if there's a hash in the URL (comes from Supabase password reset)
     const hashParams = new URLSearchParams(location.hash.substring(1));
     let accessToken = hashParams.get('access_token');
     let type = hashParams.get('type');
     
-    // If not in hash, check query parameters (might be in search params)
+    // If not in hash, check query parameters (might be in standard URL form)
     if (!accessToken) {
       const queryParams = new URLSearchParams(location.search);
-      // Check for token in query parameters
       const token = queryParams.get('token');
-      if (token) {
-        console.log('Token found in query parameters');
-        // Handle token from query parameter if needed
-        // This might require an API call to exchange the token for an access token
+      type = queryParams.get('type');
+      
+      if (token && type === 'recovery') {
+        console.log('Recovery token found in query parameters');
+        
+        // Handle recovery token via Supabase's native email verification flow
+        // Extract token and set up a session 
+        handleRecoveryToken(token);
       }
     }
     
-    console.log('Recovery flow details:', { accessToken: !!accessToken, type });
+    console.log('Recovery flow details:', { 
+      hasAccessToken: !!accessToken, 
+      type,
+      hasToken: !!hashParams.get('token') || !!new URLSearchParams(location.search).get('token')
+    });
     
-    if (!accessToken || type !== 'recovery') {
-      console.error('Missing or invalid recovery token', { hasAccessToken: !!accessToken, type });
-      setError('Invalid or expired password reset link. Please request a new one.');
-    } else {
-      console.log('Valid recovery token found in URL');
+    if (accessToken && type === 'recovery') {
+      console.log('Valid recovery token found in URL hash');
       // Set the access token in the session to be used for updating password
       supabase.auth.setSession({
         access_token: accessToken,
@@ -76,6 +84,33 @@ const UpdatePassword = () => {
       });
     }
   }, [location]);
+  
+  // Function to handle recovery token from query parameters
+  const handleRecoveryToken = async (token: string) => {
+    try {
+      console.log('Processing recovery token:', token);
+      
+      // Use Supabase's verifyOtp method to exchange the token for a session
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: 'recovery',
+      });
+      
+      if (error) {
+        console.error('Error verifying recovery token:', error);
+        setError(`Unable to verify your recovery token: ${error.message}`);
+      } else if (data?.session) {
+        console.log('Recovery token verified, session established');
+        // Success - session is automatically set by Supabase
+      } else {
+        console.error('No session returned from token verification');
+        setError('Unable to verify your recovery token. Please request a new reset link.');
+      }
+    } catch (e: any) {
+      console.error('Exception processing recovery token:', e);
+      setError(`Error processing recovery token: ${e.message}`);
+    }
+  };
 
   const onSubmit = async (values: z.infer<typeof updatePasswordSchema>) => {
     setLoading(true);
