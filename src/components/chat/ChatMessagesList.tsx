@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { GetRoomMessagesParams } from "@/types/auth";
+import { GetRoomMessagesParams, AnyRole } from "@/types/auth";
 
 interface Message {
   id: string;
@@ -55,12 +54,13 @@ export const ChatMessagesList = ({
       setIsLoading(!append);
       setLoadingMore(append);
 
-      // Map userRole to valid database enum values that match the PostgreSQL enum types
-      const validRole = (() => {
-        if (!userRole) return 'patient'; // Default to patient if no role
+      // Convert userRole to a database-compatible string
+      // Using a helper function to map user roles to valid database values
+      const getDatabaseRole = (role: string | null): string => {
+        if (!role) return 'patient'; // Default to patient if role is null
         
-        // Map userRole to valid database enum values
-        switch(userRole) {
+        // Use a simple string mapping instead of trying to cast to UserRole
+        switch(role) {
           case 'patient': return 'patient';
           case 'doctor': return 'doctor';
           case 'nutritionist': return 'nutritionist';
@@ -68,10 +68,11 @@ export const ChatMessagesList = ({
           case 'reception': return 'reception';
           case 'aibot': return 'aibot';
           case 'system': return 'system';
-          default: return 'patient'; // Always default to patient for safety
+          default: return 'patient'; // Default to patient for safety
         }
-      })();
+      };
       
+      const validRole = getDatabaseRole(userRole);
       console.log(`Fetching messages for room ${roomId} with role: ${validRole}`);
       
       // Call the get_room_messages RPC with explicit role handling

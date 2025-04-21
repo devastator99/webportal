@@ -6,6 +6,12 @@ export type AuthView = "sign_in" | "sign_up" | "magic_link" | "forgotten_passwor
 // Re-export the UserRole type using proper TypeScript syntax
 export type { UserRole };
 
+// Add string literals for system roles not included in UserRole
+export type SystemRole = "aibot" | "system";
+
+// Combined type for all possible roles
+export type AnyRole = UserRole | SystemRole;
+
 // Add type definition for the get_room_messages RPC function parameters
 export interface GetRoomMessagesParams {
   p_room_id: string;
