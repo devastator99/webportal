@@ -30,9 +30,9 @@ export const ForgotPasswordForm = ({ onClose }: ForgotPasswordFormProps) => {
   const onSubmit = async (values: { email: string }) => {
     setLoading(true);
     try {
-      // IMPORTANT: Set the complete redirect URL to ensure it goes to /update-password
-      // Use a hardcoded base URL from the Supabase config instead of window.location.origin
-      const redirectTo = "https://anubhooti-phase1.lovable.app/update-password";
+      // IMPORTANT: Set the exact redirect URL and append the recovery type to ensure proper redirection
+      // This forces Supabase to include the recovery type in the redirect
+      const redirectTo = "https://anubhooti-phase1.lovable.app/update-password?type=recovery";
       console.log("Sending reset password with redirect to:", redirectTo);
       
       const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
