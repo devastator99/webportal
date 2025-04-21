@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -206,14 +205,7 @@ export const PatientDashboard = () => {
             </Card>
           )}
           
-          {/* View Reports */}
-          <CollapsibleSection 
-            title="View Reports" 
-            defaultOpen={false}
-            className={isIPad ? "overflow-x-visible" : ""}
-          >
-            <MedicalRecordsList />
-          </CollapsibleSection>
+          {/* Removed View Reports section */}
           
           {/* Display prescription summary */}
           {patientData?.latestPrescription && (
