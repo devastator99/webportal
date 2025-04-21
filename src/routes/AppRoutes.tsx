@@ -1,6 +1,6 @@
 
 import { lazy, Suspense } from 'react';
-import { Route, Routes, Outlet, Navigate } from 'react-router-dom';
+import { Route, Routes, Outlet, Navigate, useLocation } from 'react-router-dom';
 import LandingPage from '../pages/LandingPage';
 import Dashboard from '../pages/Dashboard';
 import { ProtectedRoute } from '../components/auth/ProtectedRoute';
@@ -26,6 +26,7 @@ export const AppRoutes = () => {
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<Auth />} />
+        {/* The update-password route should be accessible without authentication */}
         <Route path="/update-password" element={<UpdatePassword />} />
         
         {/* Protected routes */}

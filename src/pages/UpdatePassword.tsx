@@ -39,116 +39,108 @@ const UpdatePassword = () => {
     },
   });
 
-  // Function to handle recovery token from query parameters
-  const handleRecoveryToken = async (token: string) => {
-    try {
-      console.log('Processing recovery token:', token);
-      
-      // Use Supabase's verifyOtp method to exchange the token for a session
-      const { data, error } = await supabase.auth.verifyOtp({
-        token_hash: token,
-        type: 'recovery',
-      });
-      
-      if (error) {
-        console.error('Error verifying recovery token:', error);
-        setError(`Unable to verify your recovery token: ${error.message}`);
-        return false;
-      } else if (data?.session) {
-        console.log('Recovery token verified, session established');
-        // Success - session is automatically set by Supabase
-        return true;
-      } else {
-        console.error('No session returned from token verification');
-        setError('Unable to verify your recovery token. Please request a new reset link.');
-        return false;
-      }
-    } catch (e: any) {
-      console.error('Exception processing recovery token:', e);
-      setError(`Error processing recovery token: ${e.message}`);
-      return false;
-    }
-  };
-
-  // Extract the access token and type from URL parameters or hash on component mount
+  // Extract and process all possible recovery token formats
   useEffect(() => {
     const processRecoveryFlow = async () => {
+      if (tokenProcessed) return;
+      
       setLoading(true);
+      setError(null);
+      console.log("Processing recovery flow, pathname:", location.pathname);
+      console.log("URL search params:", location.search);
+      console.log("URL hash:", location.hash);
       
-      // Skip if we already processed a token
-      if (tokenProcessed) {
-        setLoading(false);
-        return;
-      }
-      
-      console.log('URL path:', location.pathname);
-      console.log('URL hash:', location.hash);
-      console.log('URL search:', location.search);
-      
-      // First check if there's a hash in the URL (comes from Supabase password reset)
-      const hashParams = new URLSearchParams(location.hash.substring(1));
-      let accessToken = hashParams.get('access_token');
-      let type = hashParams.get('type');
-      
-      // If not in hash, check query parameters (might be in standard URL form)
-      if (!accessToken) {
+      try {
+        // Check for token in query parameters (standard format)
         const queryParams = new URLSearchParams(location.search);
-        const token = queryParams.get('token');
-        type = queryParams.get('type');
+        const queryToken = queryParams.get('token');
+        const queryType = queryParams.get('type');
         
-        if (token && type === 'recovery') {
-          console.log('Recovery token found in query parameters');
-          const success = await handleRecoveryToken(token);
-          setTokenProcessed(true);
-          setLoading(false);
-          return success;
-        }
-      }
-      
-      console.log('Recovery flow details:', { 
-        hasAccessToken: !!accessToken, 
-        type,
-        hasToken: !!hashParams.get('token') || !!new URLSearchParams(location.search).get('token')
-      });
-      
-      if (accessToken && type === 'recovery') {
-        console.log('Valid recovery token found in URL hash');
-        // Set the access token in the session to be used for updating password
-        try {
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: '',
+        // Check for token in hash parameters (Supabase format)
+        const hashParams = new URLSearchParams(location.hash.substring(1));
+        const hashToken = hashParams.get('token');
+        const hashAccessToken = hashParams.get('access_token');
+        const hashType = hashParams.get('type');
+        
+        console.log("Token info:", { 
+          queryToken: queryToken ? "exists" : "missing", 
+          queryType,
+          hashToken: hashToken ? "exists" : "missing",
+          hashAccessToken: hashAccessToken ? "exists" : "missing",
+          hashType
+        });
+        
+        // Case 1: We have a recovery token in the query parameters
+        if (queryToken && queryType === 'recovery') {
+          console.log("Processing recovery token from query parameters");
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: queryToken,
+            type: 'recovery',
           });
           
           if (error) {
-            console.error('Error setting session:', error);
-            setError('Unable to verify your session. Please request a new reset link.');
-            setLoading(false);
-            return false;
+            console.error("Error verifying OTP:", error);
+            setError(`Password reset link is invalid or has expired. Please request a new one. (Error: ${error.message})`);
+          } else {
+            console.log("OTP verification successful:", data);
+            setTokenProcessed(true);
           }
+        }
+        // Case 2: We have a hash token (sometimes Supabase sends this format)
+        else if (hashToken && hashType === 'recovery') {
+          console.log("Processing recovery token from hash parameters");
+          const { data, error } = await supabase.auth.verifyOtp({
+            token_hash: hashToken,
+            type: 'recovery',
+          });
           
-          setTokenProcessed(true);
-          setLoading(false);
-          return true;
-        } catch (error: any) {
-          console.error('Exception in setSession:', error);
-          setError(`Error setting session: ${error.message}`);
-          setLoading(false);
-          return false;
+          if (error) {
+            console.error("Error verifying hash token:", error);
+            setError(`Password reset link is invalid or has expired. Please request a new one. (Error: ${error.message})`);
+          } else {
+            console.log("Hash token verification successful:", data);
+            setTokenProcessed(true);
+          }
         }
-      } else {
-        // Direct access without token
-        const { data } = await supabase.auth.getSession();
-        if (!data.session) {
-          console.log('No session and no recovery token, redirect to auth');
-          setError('Invalid or expired password reset link. Please request a new one.');
-          setLoading(false);
-          return false;
+        // Case 3: We have an access token in the hash (this is the most common Supabase format)
+        else if (hashAccessToken && hashType === 'recovery') {
+          console.log("Processing access token from hash parameters");
+          try {
+            // Set the session with the provided access token
+            const { data, error } = await supabase.auth.setSession({
+              access_token: hashAccessToken,
+              refresh_token: '', // We don't have a refresh token in this flow
+            });
+            
+            if (error) {
+              console.error("Error setting session:", error);
+              setError(`Unable to verify your session. Please request a new reset link. (Error: ${error.message})`);
+            } else {
+              console.log("Session set successfully:", data);
+              setTokenProcessed(true);
+            }
+          } catch (error: any) {
+            console.error("Exception in setSession:", error);
+            setError(`Error processing your session: ${error.message}`);
+          }
         }
-        
-        setTokenProcessed(true);
+        // Case 4: Check if user is already authenticated
+        else {
+          console.log("No token found, checking if user is already authenticated");
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            console.log("User already has a valid session:", session);
+            setTokenProcessed(true);
+          } else {
+            console.error("No valid token or session found");
+            setError("Invalid or missing password reset link. Please request a new password reset link.");
+          }
+        }
+      } catch (error: any) {
+        console.error("Exception in processRecoveryFlow:", error);
+        setError(`An error occurred while processing your password reset link: ${error.message}`);
+      } finally {
         setLoading(false);
-        return true;
       }
     };
     
@@ -160,15 +152,16 @@ const UpdatePassword = () => {
     setError(null);
     
     try {
-      // Use the updateUser method to set the new password
+      console.log("Updating password");
       const { error } = await supabase.auth.updateUser({ 
         password: values.password 
       });
 
       if (error) {
-        console.error('Error updating password:', error);
-        setError(error.message);
+        console.error("Error updating password:", error);
+        setError(`Failed to update password: ${error.message}`);
       } else {
+        console.log("Password updated successfully");
         setSuccess(true);
         toast('Password updated successfully', {
           description: 'You can now log in with your new password',
@@ -180,8 +173,8 @@ const UpdatePassword = () => {
         }, 3000);
       }
     } catch (e: any) {
-      console.error('Exception in update password:', e);
-      setError(e.message || 'An error occurred');
+      console.error("Exception in update password:", e);
+      setError(`An unexpected error occurred: ${e.message}`);
     } finally {
       setLoading(false);
     }
@@ -222,60 +215,67 @@ const UpdatePassword = () => {
               </div>
             ) : (
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>New Password</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="password" 
-                            placeholder="Enter new password" 
-                            {...field}
-                            disabled={loading} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="confirmPassword"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confirm Password</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="password" 
-                            placeholder="Confirm new password" 
-                            {...field}
-                            disabled={loading} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full"
-                    disabled={loading}
-                  >
-                    {loading ? (
-                      <span className="flex items-center justify-center">
-                        <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Updating...
-                      </span>
-                    ) : (
-                      "Update Password"
-                    )}
-                  </Button>
-                </form>
+                {tokenProcessed ? (
+                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Password</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="password" 
+                              placeholder="Enter new password" 
+                              {...field}
+                              disabled={loading} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirm Password</FormLabel>
+                          <FormControl>
+                            <Input 
+                              type="password" 
+                              placeholder="Confirm new password" 
+                              {...field}
+                              disabled={loading} 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <Button 
+                      type="submit" 
+                      className="w-full"
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <span className="flex items-center justify-center">
+                          <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Updating...
+                        </span>
+                      ) : (
+                        "Update Password"
+                      )}
+                    </Button>
+                  </form>
+                ) : (
+                  <div className="text-center py-4">
+                    <div className="text-red-600 mb-2">Invalid or expired password reset link</div>
+                    <div className="text-sm text-gray-500">Please request a new password reset link</div>
+                  </div>
+                )}
               </Form>
             )}
           </CardContent>
