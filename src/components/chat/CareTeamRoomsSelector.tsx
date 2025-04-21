@@ -26,10 +26,10 @@ interface CareTeamRoom {
 
 interface CareTeamRoomsSelectorProps {
   selectedRoomId: string | null;
-  onSelectRoom: (roomId: string) => void;
+  onRoomSelect: (roomId: string) => void;
 }
 
-export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeamRoomsSelectorProps) => {
+export const CareTeamRoomsSelector = ({ selectedRoomId, onRoomSelect }: CareTeamRoomsSelectorProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -37,7 +37,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
   
   const isProvider = userRole === 'doctor' || userRole === 'nutritionist';
   
-  // Debug info
   console.log("CareTeamRoomsSelector: User info", { userId: user?.id, userRole, isProvider });
   
   const { data: roomsData = [], isLoading, refetch, error } = useQuery({
@@ -48,7 +47,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       try {
         console.log("Fetching care team rooms for user:", user.id, "with role:", userRole);
         
-        // Use the get_user_care_team_rooms function which now leverages the view
         const { data, error } = await supabase
           .rpc('get_user_care_team_rooms', { 
             p_user_id: user.id 
@@ -72,7 +70,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       }
     },
     enabled: !!user?.id,
-    refetchInterval: 30000, // Poll every 30 seconds
+    refetchInterval: 30000,
     staleTime: 10000
   });
 
@@ -88,7 +86,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
       console.log("Manually refreshing care team rooms");
       
       if (userRole === 'doctor' || userRole === 'administrator') {
-        // For doctors and admins, provide option to sync care teams
         const { data, error } = await supabase.functions.invoke('sync-care-team-rooms');
         
         if (error) {
@@ -105,7 +102,6 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
         });
       }
       
-      // Simply refresh the list
       queryClient.invalidateQueries({ queryKey: ["care_team_rooms"] });
       await refetch();
       
@@ -128,17 +124,10 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
 
   useEffect(() => {
     if (user?.id) {
-      // Just fetch the rooms on component mount
       refetch();
     }
   }, [user?.id, userRole, refetch]);
 
-  // DEBUGGING: Log the final rooms data
-  useEffect(() => {
-    console.log("Rooms data in component state:", roomsData);
-  }, [roomsData]);
-
-  // Ensure we have a proper array
   const rooms: CareTeamRoom[] = Array.isArray(roomsData) ? roomsData : [];
 
   const groupRoomsByPatient = (rooms: CareTeamRoom[]) => {
@@ -264,7 +253,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
                       key={room.room_id}
                       room={room}
                       selectedRoomId={selectedRoomId}
-                      onSelectRoom={onSelectRoom}
+                      onSelectRoom={onRoomSelect}
                       userRole={userRole || ''}
                       formatMessageTime={formatMessageTime}
                     />
@@ -280,7 +269,7 @@ export const CareTeamRoomsSelector = ({ selectedRoomId, onSelectRoom }: CareTeam
                 key={room.room_id}
                 room={room}
                 selectedRoomId={selectedRoomId}
-                onSelectRoom={onSelectRoom}
+                onSelectRoom={onRoomSelect}
                 userRole={userRole || ''}
                 formatMessageTime={formatMessageTime}
               />

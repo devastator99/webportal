@@ -15,6 +15,9 @@ interface ChatInputProps {
   onFileSelect?: (file: File) => void;
   uploadProgress?: number;
   isUploading?: boolean;
+  selectedFile?: File | null;
+  onClearFile?: () => void;
+  isLoading?: boolean;
 }
 
 export const ChatInput = ({
@@ -26,15 +29,21 @@ export const ChatInput = ({
   offlineMode = false,
   onFileSelect,
   uploadProgress = 0,
-  isUploading = false
+  isUploading = false,
+  selectedFile = null,
+  onClearFile,
+  isLoading = false
 }: ChatInputProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [internalSelectedFile, setInternalSelectedFile] = useState<File | null>(null);
+  
+  // Use the selectedFile prop if provided, otherwise use the internal state
+  const fileToDisplay = selectedFile || internalSelectedFile;
   
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (value.trim() || selectedFile) {
+      if (value.trim() || fileToDisplay) {
         onSend();
       }
     }
@@ -66,7 +75,7 @@ export const ChatInput = ({
         return;
       }
       
-      setSelectedFile(file);
+      setInternalSelectedFile(file);
       if (onFileSelect) {
         onFileSelect(file);
       }
@@ -74,9 +83,12 @@ export const ChatInput = ({
   };
   
   const handleRemoveFile = () => {
-    setSelectedFile(null);
+    setInternalSelectedFile(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+    if (onClearFile) {
+      onClearFile();
     }
   };
   
@@ -88,13 +100,13 @@ export const ChatInput = ({
 
   return (
     <div className="flex flex-col w-full">
-      {selectedFile && (
+      {fileToDisplay && (
         <div className="mb-2 p-2 bg-muted rounded-md flex items-center justify-between">
           <div className="flex items-center">
-            {getFileIcon(selectedFile.type)}
-            <span className="ml-2 text-sm truncate max-w-[150px]">{selectedFile.name}</span>
+            {getFileIcon(fileToDisplay.type)}
+            <span className="ml-2 text-sm truncate max-w-[150px]">{fileToDisplay.name}</span>
           </div>
-          <Button variant="ghost" size="sm" onClick={handleRemoveFile} disabled={isUploading}>
+          <Button variant="ghost" size="sm" onClick={handleRemoveFile} disabled={isUploading || isLoading}>
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -120,7 +132,7 @@ export const ChatInput = ({
             onChange={(e) => onChange(e.target.value)}
             className="min-h-24 resize-none pr-12 py-3 w-full"
             onKeyDown={handleKeyDown}
-            disabled={disabled || isUploading}
+            disabled={disabled || isUploading || isLoading}
           />
           <div className="absolute right-3 bottom-3">
             <Button
@@ -129,9 +141,9 @@ export const ChatInput = ({
               variant="ghost"
               onClick={() => fileInputRef.current?.click()}
               className="rounded-full"
-              disabled={disabled || isUploading}
+              disabled={disabled || isUploading || isLoading}
             >
-              <Paperclip className={cn("h-5 w-5", selectedFile && "text-primary")} />
+              <Paperclip className={cn("h-5 w-5", fileToDisplay && "text-primary")} />
             </Button>
             <input
               type="file"
@@ -144,10 +156,10 @@ export const ChatInput = ({
         </div>
         <Button
           onClick={onSend}
-          disabled={disabled || ((!value.trim() && !selectedFile) || isUploading)}
+          disabled={disabled || ((!value.trim() && !fileToDisplay) || isUploading || isLoading)}
           className="h-10 w-10 shrink-0 rounded-full"
         >
-          {isUploading ? (
+          {isUploading || isLoading ? (
             <Loader2 className="h-5 w-5 animate-spin" />
           ) : (
             <Send className="h-5 w-5" />
