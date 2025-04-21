@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -483,7 +484,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
           
           {selectedRoomId ? (
             <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <div className="flex -space-x-2">
                   {roomMembers.slice(0, 4).map(member => (
                     <Avatar key={member.id} className="h-8 w-8 border-2 border-background">
@@ -502,16 +503,26 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                 </div>
                 <div className="flex-1">
                   <h3 className="font-medium text-sm">Care Team Chat</h3>
-                  <div className="text-xs text-muted-foreground">
+                  <div className="flex flex-wrap gap-1 items-center mt-1">
                     {roomMembers.map((member, index) => (
-                      <span key={member.id}>
-                        {member.first_name} {member.last_name}
-                        {member.role && (
-                          <Badge variant="outline" className="ml-1 mr-2 text-[10px] py-0 px-1">
-                            {member.role}
-                          </Badge>
-                        )}
-                      </span>
+                      <div key={member.id} className="flex items-center">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="text-xs">
+                                {member.first_name} {member.last_name}
+                                <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1">
+                                  {member.role}
+                                </Badge>
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{member.role === 'aibot' ? 'AI Assistant' : `${member.role}: ${member.first_name} ${member.last_name}`}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                        {index < roomMembers.length - 1 && <span className="mx-1 text-xs text-muted-foreground">•</span>}
+                      </div>
                     ))}
                   </div>
                 </div>
