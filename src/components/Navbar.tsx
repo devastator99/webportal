@@ -9,7 +9,7 @@ import { LoginDialog } from "@/components/auth/LoginDialog";
 import { SignOutButton } from "@/components/navbar/SignOutButton";
 import { ForceLogoutButton } from "@/components/navbar/ForceLogoutButton";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
-import { Menu, X, Home } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export const Navbar = () => {
@@ -74,10 +74,10 @@ export const Navbar = () => {
             <>
               <DashboardButton />
               <DoctorActions />
-              {/* Remove chat icon for patients */}
+              {/* Explicitly remove any Chat icon for patients */}
               {userRole !== "patient" && (
                 <>
-                  {/* If there was a Chat icon/button, it would be here; user said remove it for patients */}
+                  {/* No chat icon displayed for patients */}
                 </>
               )}
               {userRole === "administrator" && <ForceLogoutButton />}
@@ -101,10 +101,10 @@ export const Navbar = () => {
                 <>
                   <DashboardButton />
                   <DoctorActions />
-                  {/* Remove chat icon for patients in mobile menu as well */}
+                  {/* Explicitly remove chat icon for patients in mobile menu as well */}
                   {userRole !== "patient" && (
                     <>
-                      {/* If there was a Chat icon/button here, it would be shown */}
+                      {/* No chat icon displayed */}
                     </>
                   )}
                   {userRole === "administrator" && <ForceLogoutButton />}
