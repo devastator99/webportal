@@ -1,21 +1,19 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { ChatPageHeader } from "@/components/chat/ChatPageHeader";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
-import { DoctorWhatsAppChat } from "@/components/chat/DoctorWhatsAppChat";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, MessageCircle } from "lucide-react";
+import { Loader2, MessageCircle, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const ChatPage = () => {
   const { user, userRole, isLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [showWelcomeMessage, setShowWelcomeMessage] = useState(true);
   const [patientRoomId, setPatientRoomId] = useState<string | null>(null);
   const [loadingRoom, setLoadingRoom] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
@@ -37,39 +35,81 @@ const ChatPage = () => {
         try {
           console.log("Fetching care team room for patient ID:", user.id);
           
-          // Use the edge function instead of direct RPC
-          const { data, error } = await supabase.functions.invoke('get-patient-care-team-room', {
-            body: { patient_id: user.id }
+          // First try RPC call to get existing room
+          const { data: roomData, error: roomError } = await supabase.rpc('get_patient_care_team_room', {
+            p_patient_id: user.id
           });
           
-          if (error) {
-            console.error("Error fetching patient care team room:", error);
-            setRoomError(`Error fetching room: ${error.message}`);
-            
-            toast({
-              title: "Error loading chat room",
-              description: "Could not load your care team chat room",
-              variant: "destructive"
-            });
-          } else if (data) {
-            console.log("Found patient care team room:", data);
-            setPatientRoomId(String(data));
-          } else {
-            console.log("No care team room found for patient:", user.id);
-            setRoomError("No care team room found");
+          if (roomError && roomError.code !== 'PGRST116') {
+            console.error("Error fetching patient care team room:", roomError);
+            throw roomError;
           }
           
-          // Check if there are ANY rooms for this patient
+          if (roomData) {
+            console.log("Found patient care team room:", roomData);
+            setPatientRoomId(String(roomData));
+            return;
+          }
+          
+          // If no room exists, try to create one using patient assignments
+          console.log("No existing room, checking for care team assignments");
+          const { data: assignmentData, error: assignmentError } = await supabase
+            .from('patient_assignments')
+            .select('doctor_id, nutritionist_id')
+            .eq('patient_id', user.id)
+            .single();
+            
+          if (assignmentError && assignmentError.code !== 'PGRST116') {
+            console.error("Error fetching patient assignments:", assignmentError);
+            throw assignmentError;
+          }
+          
+          if (assignmentData?.doctor_id) {
+            console.log("Found doctor assignment, creating care team room");
+            // Create room with doctor and nutritionist if they exist
+            const { data: createdRoom, error: createError } = await supabase.rpc('create_care_team_room', {
+              p_patient_id: user.id,
+              p_doctor_id: assignmentData.doctor_id,
+              p_nutritionist_id: assignmentData.nutritionist_id || null
+            });
+            
+            if (createError) {
+              console.error("Error creating care team room:", createError);
+              throw createError;
+            }
+            
+            if (createdRoom) {
+              console.log("Created new care team room:", createdRoom);
+              setPatientRoomId(String(createdRoom));
+              return;
+            }
+          }
+          
+          // Fall back to checking room memberships
+          console.log("Checking room memberships as fallback");
           const { data: roomMemberships, error: membershipError } = await supabase
             .from('room_members')
             .select('room_id')
-            .eq('user_id', user.id);
+            .eq('user_id', user.id)
+            .order('joined_at', { ascending: false })
+            .limit(1);
             
           if (membershipError) {
             console.error("Error checking room memberships:", membershipError);
-          } else {
-            console.log(`Patient is a member of ${roomMemberships?.length || 0} rooms:`, roomMemberships);
+            throw membershipError;
           }
+          
+          if (roomMemberships?.length) {
+            const latestRoomId = roomMemberships[0].room_id;
+            console.log("Found room membership:", latestRoomId);
+            setPatientRoomId(latestRoomId);
+            return;
+          }
+          
+          // No room found or created
+          console.log("No care team room found or created for patient");
+          setRoomError("No care team room found or created");
+          
         } catch (error) {
           console.error("Exception in patient room fetch:", error);
           setRoomError(`Exception: ${error instanceof Error ? error.message : String(error)}`);
@@ -81,21 +121,12 @@ const ChatPage = () => {
       fetchPatientChatRoom();
     }
   }, [user, userRole, toast]);
-  
-  useEffect(() => {
-    // Hide welcome message after 3 seconds
-    const timer = setTimeout(() => {
-      setShowWelcomeMessage(false);
-    }, 3000);
-    
-    return () => clearTimeout(timer);
-  }, []);
 
   if (isLoading || (userRole === 'patient' && loadingRoom)) {
     return (
       <div className="container pt-24 animate-fade-in">
         <div className="mx-auto flex flex-col items-center justify-center space-y-4">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <Loader2 className="h-8 w-8 animate-spin rounded-full border-primary border-t-transparent" />
           <p className="text-muted-foreground text-sm">
             {userRole === 'patient' ? 'Loading your care team chat...' : 'Loading chat...'}
           </p>
@@ -117,27 +148,14 @@ const ChatPage = () => {
         </p>
         <Separator className="my-4" />
         
-        {/* Welcome tooltip */}
-        {showWelcomeMessage && (
-          <div className="bg-primary/10 p-3 rounded-md mb-4 animate-fade-in text-center">
-            <p className="text-primary font-medium">
-              {userRole === 'patient' 
-                ? "Chat with your healthcare team and upload medical reports using the paperclip icon" 
-                : "Care Team Chats - Connect with your patients and their care teams"}
-            </p>
-          </div>
-        )}
-        
         {userRole === 'patient' && roomError && !patientRoomId && (
-          <div className="bg-destructive/10 p-4 rounded-md mb-4">
-            <h3 className="font-medium">No care team chat available</h3>
-            <p className="text-sm text-muted-foreground mt-1">
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>No care team available</AlertTitle>
+            <AlertDescription>
               You currently don't have a care team assigned. Please contact your healthcare provider.
-            </p>
-            <p className="text-xs text-muted-foreground mt-2">
-              Debug info: {roomError}
-            </p>
-          </div>
+            </AlertDescription>
+          </Alert>
         )}
         
         <div className="h-[calc(100vh-220px)]">

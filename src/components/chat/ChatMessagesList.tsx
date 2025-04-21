@@ -1,292 +1,328 @@
 
-import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useRef } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { format } from "date-fns";
-import { Loader2, FileText, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Loader2, ArrowUp, Bot, Brain } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 
-interface ChatMessagesListProps {
-  selectedUserId?: string;
-  roomId?: string;
-  careTeamMembers?: any[];
-  localMessages?: any[];
-  useRoomMessages?: boolean;
-  offlineMode?: boolean;
+interface Message {
+  id: string;
+  sender_id: string;
+  sender_name: string;
+  sender_role: string;
+  message: string;
+  is_system_message: boolean;
+  is_ai_message: boolean;
+  created_at: string;
 }
 
-export const ChatMessagesList = ({
-  selectedUserId,
-  roomId,
+interface ChatMessagesListProps {
+  roomId: string;
+  localMessages: any[];
+  careTeamMembers?: any[];
+  useRoomMessages?: boolean;
+}
+
+export const ChatMessagesList = ({ 
+  roomId, 
+  localMessages = [], 
   careTeamMembers = [],
-  localMessages = [],
-  useRoomMessages = false,
-  offlineMode = false,
+  useRoomMessages = false 
 }: ChatMessagesListProps) => {
+  const { user, userRole } = useAuth();
+  const { toast } = useToast();
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [totalMessageCount, setTotalMessageCount] = useState(0);
+  const [offset, setOffset] = useState(0);
+  const [hasMore, setHasMore] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const limit = 50; // Limit of messages to fetch
 
-  useEffect(() => {
-    let mounted = true;
-    async function fetchUserId() {
-      try {
-        const userData = await supabase.auth.getUser();
-        if (mounted && userData.data?.user) {
-          setAuthUserId(userData.data.user.id || null);
-        }
-      } catch (error) {
-        console.error("Error fetching user:", error);
-      }
-    }
-    fetchUserId();
-    return () => { mounted = false; };
-  }, []);
-
-  const { data: messages = [], isLoading } = useQuery({
-    queryKey: useRoomMessages 
-      ? ["room_messages", roomId] 
-      : ["chat_messages", authUserId, selectedUserId],
-    queryFn: async () => {
-      try {
-        if (useRoomMessages && roomId) {
-          const { data, error } = await supabase.rpc('get_room_messages', {
-            p_room_id: roomId,
-            p_limit: 100,
-            p_offset: 0
-          });
-          if (error) throw error;
-          return data || [];
-        } else if (selectedUserId && authUserId) {
-          const { data, error } = await supabase.rpc('get_user_chat_messages', { 
-            p_user_id: authUserId,
-            p_other_user_id: selectedUserId,
-            p_limit: 100,
-            p_offset: 0
-          });
-          if (error) throw error;
-          return data || [];
-        }
-        return [];
-      } catch (error) {
-        console.error("Error fetching messages:", error);
-        return [];
-      }
-    },
-    enabled: (useRoomMessages && !!roomId) || (!!selectedUserId && !!authUserId),
-  });
-
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages, localMessages]);
-
-  const isFileMessage = (message: string) => {
-    return message.startsWith("Uploaded medical report:") || 
-           message.includes("medical report") || 
-           message.includes("test report");
-  };
-
-  const getFileName = (message: string) => {
-    const parts = message.split(":");
-    if (parts.length > 1) {
-      return parts[1].trim();
-    }
-    return "medical-report.pdf";
-  };
-
-  const downloadFile = async (fileName: string) => {
+  // Fetch messages from the room
+  const fetchMessages = async (roomId: string, offset = 0, append = false) => {
     try {
-      const { data, error } = await supabase
-        .from('patient_medical_reports')
-        .select('file_path')
-        .eq('file_name', fileName)
-        .order('uploaded_at', { ascending: false })
-        .limit(1)
-        .single();
-      
-      if (error) throw error;
-      
-      if (data?.file_path) {
-        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
-          .from('patient_medical_reports')
-          .createSignedUrl(data.file_path, 60);
-        
-        if (signedUrlError) throw signedUrlError;
-        
-        window.open(signedUrlData.signedUrl, '_blank');
+      setIsLoading(!append);
+      setLoadingMore(append);
+
+      const { data, error } = await supabase.rpc('get_room_messages', {
+        p_room_id: roomId,
+        p_limit: limit,
+        p_offset: offset
+      });
+
+      if (error) {
+        console.error("Error fetching messages:", error);
+        throw error;
+      }
+
+      // Get total count for pagination
+      const { data: countData, error: countError } = await supabase.rpc('get_room_messages_count', {
+        p_room_id: roomId
+      });
+
+      if (countError) {
+        console.error("Error fetching message count:", countError);
+      } else {
+        setTotalMessageCount(countData || 0);
+        setHasMore((offset + limit) < countData);
+      }
+
+      // Sort messages by creation date ascending and add to existing messages if appending
+      const sortedMessages = data.sort((a: Message, b: Message) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+
+      if (append) {
+        setMessages(prev => [...sortedMessages, ...prev]);
+      } else {
+        setMessages(sortedMessages);
       }
     } catch (error) {
-      console.error("Error downloading file:", error);
-      alert("Unable to download file. Please try again later.");
+      console.error("Error in fetchMessages:", error);
+      toast({
+        title: "Error loading messages",
+        description: "Please try again later",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+      setLoadingMore(false);
     }
   };
 
-  if (isLoading && messages.length === 0 && localMessages.length === 0) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
+  // Initial load of messages
+  useEffect(() => {
+    if (roomId && useRoomMessages) {
+      fetchMessages(roomId);
+    }
+  }, [roomId, useRoomMessages]);
 
-  const allMessages = [...messages, ...localMessages].sort((a, b) => {
-    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-  });
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    if (!isLoading && !loadingMore) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, isLoading, loadingMore]);
 
-  const getInitials = (firstName?: string, lastName?: string) => {
-    if (!firstName && !lastName) return "??";
-    return `${(firstName || '').charAt(0)}${(lastName || '').charAt(0)}`.toUpperCase();
+  // Combine server messages with local messages
+  const allMessages = [
+    ...messages,
+    ...localMessages.filter(m => !messages.some(serverMsg => serverMsg.id === m.id))
+  ].sort((a, b) => 
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+
+  const handleLoadMore = () => {
+    if (roomId && hasMore) {
+      const newOffset = offset + limit;
+      setOffset(newOffset);
+      fetchMessages(roomId, newOffset, true);
+    }
   };
 
-  const getAvatarColor = (role?: string) => {
-    switch (role) {
+  const handleRequestSummary = async () => {
+    if (!roomId || !['doctor', 'nutritionist'].includes(userRole || '')) return;
+
+    try {
+      const { data, error } = await supabase.rpc('request_chat_summary', {
+        p_room_id: roomId
+      });
+
+      if (error) throw error;
+
+      // Call the edge function to generate a summary
+      await supabase.functions.invoke('generate-chat-summary', {
+        body: { roomId }
+      });
+
+      toast({
+        title: "Summary requested",
+        description: "An AI summary of the conversation will be generated shortly.",
+      });
+    } catch (error) {
+      console.error("Error requesting summary:", error);
+      toast({
+        title: "Error requesting summary",
+        description: "Please try again later",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Group messages by date for better readability
+  const groupMessagesByDay = (messages: any[]) => {
+    const groups: Record<string, any[]> = {};
+    
+    messages.forEach(msg => {
+      const date = new Date(msg.created_at);
+      const day = format(date, 'yyyy-MM-dd');
+      
+      if (!groups[day]) {
+        groups[day] = [];
+      }
+      
+      groups[day].push(msg);
+    });
+    
+    return groups;
+  };
+
+  const messageGroups = groupMessagesByDay(allMessages);
+
+  // Helper function to get avatar initials
+  const getAvatarInitials = (name: string) => {
+    if (!name) return "?";
+    return name
+      .split(' ')
+      .map(part => part.charAt(0))
+      .join('')
+      .toUpperCase()
+      .substring(0, 2);
+  };
+
+  // Helper function to get avatar color based on role
+  const getAvatarColorClass = (role: string) => {
+    switch (role?.toLowerCase()) {
       case 'doctor':
         return 'bg-blue-100 text-blue-800';
-      case 'patient':
-        return 'bg-green-100 text-green-800';
       case 'nutritionist':
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-green-100 text-green-800';
+      case 'patient':
+        return 'bg-orange-100 text-orange-800';
       case 'aibot':
-        return 'bg-amber-100 text-amber-800';
+        return 'bg-purple-100 text-purple-800';
       default:
         return 'bg-gray-100 text-gray-800';
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-4">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!roomId && !allMessages.length) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-4 text-muted-foreground">
+        Select a conversation to start chatting
+      </div>
+    );
+  }
+
+  if (roomId && !allMessages.length) {
+    return (
+      <div className="flex flex-1 items-center justify-center p-4 text-muted-foreground">
+        No messages yet. Start the conversation!
+      </div>
+    );
+  }
+
   return (
-    <ScrollArea className="flex-1 px-4 py-4">
-      {allMessages.length === 0 ? (
-        <div className="h-full flex items-center justify-center text-muted-foreground">
-          {offlineMode ? (
-            <p>You're offline. Your messages will appear here when you're back online.</p>
-          ) : (
-            <p>No messages yet. Start a conversation!</p>
-          )}
+    <ScrollArea className="flex-1 p-4">
+      {hasMore && (
+        <div className="flex justify-center mb-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+          >
+            {loadingMore ? (
+              <Loader2 className="h-4 w-4 animate-spin mr-1" />
+            ) : (
+              <ArrowUp className="h-4 w-4 mr-1" />
+            )}
+            Load more messages
+          </Button>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {allMessages.map((message, index) => {
-            const isCurrentUser = message.sender?.id === authUserId;
-            const isAI = message.is_ai_message || message.sender?.id === '00000000-0000-0000-0000-000000000000' || message.sender?.role === 'aibot';
-            const isSystemMessage = message.is_system_message;
-            const isTyping = message.isTyping;
+      )}
+
+      {['doctor', 'nutritionist'].includes(userRole || '') && (
+        <div className="flex justify-center mb-4">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRequestSummary}
+            className="bg-primary/10 text-primary hover:bg-primary/20"
+          >
+            <Brain className="h-4 w-4 mr-1" />
+            Generate Summary
+          </Button>
+        </div>
+      )}
+      
+      {Object.entries(messageGroups).map(([day, dayMessages]) => (
+        <div key={day} className="space-y-3 mb-6">
+          <div className="flex justify-center">
+            <Badge variant="outline" className="bg-background/80">
+              {format(new Date(day), 'MMMM d, yyyy')}
+            </Badge>
+          </div>
+          
+          {dayMessages.map((message: any) => {
+            const isCurrentUser = message.sender_id === user?.id;
+            const isSystem = message.is_system_message;
+            const isAI = message.is_ai_message;
             
-            const senderMember = careTeamMembers.find(m => m.id === message.sender?.id || m.id === message.sender_id);
-            const senderRole = senderMember?.role || message.sender?.role || 'unknown';
-            const senderName = senderMember ? 
-              `${senderMember.first_name || ''} ${senderMember.last_name || ''}`.trim() : 
-              message.sender_name || `${message.sender?.first_name || ''} ${message.sender?.last_name || ''}`.trim();
-            
-            const avatarColor = getAvatarColor(senderRole);
-            const initials = isAI ? 'AI' : getInitials(
-              senderMember?.first_name || message.sender?.first_name, 
-              senderMember?.last_name || message.sender?.last_name
-            );
-            
-            const isFile = isFileMessage(message.message);
-            const fileName = isFile ? getFileName(message.message) : '';
-            
-            if (isSystemMessage) {
-              return (
-                <div key={index} className="flex justify-center">
-                  <div className="bg-muted px-3 py-1 rounded-full text-xs text-center text-muted-foreground max-w-[80%]">
-                    {message.message}
-                  </div>
-                </div>
-              );
-            }
-            
-            if (isTyping) {
-              return (
-                <div key={index} className="flex items-start gap-2">
-                  <Avatar className={`h-8 w-8 ${avatarColor}`}>
-                    <AvatarFallback>{initials}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex flex-col space-y-1 max-w-[80%]">
-                    <div className="bg-muted p-3 rounded-lg">
-                      <div className="flex space-x-2">
-                        <div className="h-2 w-2 bg-primary rounded-full animate-bounce" />
-                        <div className="h-2 w-2 bg-primary rounded-full animate-bounce delay-75" />
-                        <div className="h-2 w-2 bg-primary rounded-full animate-bounce delay-150" />
+            return (
+              <div
+                key={message.id}
+                className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className="flex gap-2 max-w-[80%]">
+                  {!isCurrentUser && !isSystem && (
+                    <Avatar className="h-8 w-8 flex-shrink-0">
+                      <AvatarFallback className={getAvatarColorClass(message.sender_role)}>
+                        {isAI ? <Brain className="h-4 w-4" /> : getAvatarInitials(message.sender_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                  
+                  <div>
+                    {!isCurrentUser && !isSystem && (
+                      <div className="text-xs font-medium mb-1">
+                        {message.sender_name}
+                        <span className="text-xs text-muted-foreground ml-1">
+                          {message.sender_role}
+                        </span>
+                      </div>
+                    )}
+                    
+                    <div
+                      className={`rounded-lg p-3 text-sm relative
+                        ${isSystem 
+                          ? 'bg-blue-100 dark:bg-blue-900/30 text-center mx-auto max-w-md' 
+                          : isCurrentUser
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted'}
+                      `}
+                    >
+                      {isAI && (
+                        <Brain className="h-3 w-3 absolute top-2 right-2 text-purple-500" />
+                      )}
+                      {message.message}
+                      <div className="text-xs opacity-70 mt-1">
+                        {format(new Date(message.created_at), 'h:mm a')}
                       </div>
                     </div>
                   </div>
                 </div>
-              );
-            }
-            
-            return (
-              <div
-                key={index}
-                className={`flex items-start gap-2 ${isCurrentUser ? 'flex-row-reverse' : ''}`}
-              >
-                <Avatar className={`h-8 w-8 ${avatarColor}`}>
-                  <AvatarFallback>{initials}</AvatarFallback>
-                </Avatar>
-                
-                <div className={`flex flex-col space-y-1 max-w-[80%] ${isCurrentUser ? 'items-end' : 'items-start'}`}>
-                  <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`}>
-                    <span className="text-xs text-muted-foreground mb-1">
-                      {senderName || 'Unknown user'}
-                    </span>
-                    
-                    {isFile ? (
-                      <div className={`p-3 rounded-lg flex items-center ${
-                        isCurrentUser 
-                          ? 'bg-primary text-primary-foreground' 
-                          : isAI
-                            ? 'bg-amber-100 border border-amber-200'
-                            : 'bg-muted'
-                      }`}>
-                        <FileText className="h-5 w-5 mr-2" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm truncate" style={{ maxWidth: '200px' }}>{fileName}</p>
-                        </div>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-8 w-8 ml-2"
-                                onClick={() => downloadFile(fileName)}
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Download file</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                    ) : (
-                      <div className={`p-3 rounded-lg ${
-                        isCurrentUser 
-                          ? 'bg-primary text-primary-foreground' 
-                          : isAI
-                            ? 'bg-amber-100 border border-amber-200'
-                            : 'bg-muted'
-                      }`}>
-                        <p className="text-sm whitespace-pre-wrap">{message.message}</p>
-                      </div>
-                    )}
-                  </div>
-                  
-                  <p className="text-xs text-muted-foreground">
-                    {message.created_at ? format(new Date(message.created_at), 'p') : ''}
-                  </p>
-                </div>
               </div>
             );
           })}
-          <div ref={messagesEndRef} />
         </div>
-      )}
+      ))}
+      <div ref={messagesEndRef} />
     </ScrollArea>
   );
 };
