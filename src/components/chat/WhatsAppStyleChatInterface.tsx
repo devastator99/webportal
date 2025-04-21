@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -196,6 +197,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   const triggerAiResponse = async (messageText: string, roomId: string) => {
     try {
       setIsAiResponding(true);
+      console.log("Triggering AI response for message:", messageText);
       
       const { data, error } = await supabase.functions.invoke('care-team-ai-chat', {
         body: { 
@@ -209,6 +211,8 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         throw error;
       }
       
+      console.log("AI response received:", data);
+      
       setIsAiResponding(false);
       // Refresh messages to show AI response
       fetchMessages(roomId, 1);
@@ -216,6 +220,11 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     } catch (error) {
       console.error("Error in AI chat:", error);
       setIsAiResponding(false);
+      toast({
+        title: "AI Assistant Error",
+        description: "Could not get AI response. Please try again.",
+        variant: "destructive"
+      });
       return null;
     }
   };
@@ -368,10 +377,12 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       // Always trigger AI response in care team chats for patient users
       if (userRole === 'patient') {
+        console.log("Patient sent message, triggering AI response");
         await triggerAiResponse(newMessage, selectedRoomId);
       } else if (newMessage.toLowerCase().includes('@ai') || 
           newMessage.toLowerCase().includes('@assistant')) {
         // For non-patients, only respond to messages that mention AI
+        console.log("Care team member mentioned AI, triggering response");
         await triggerAiResponse(newMessage, selectedRoomId);
       }
       
