@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatPageHeader } from "@/components/chat/ChatPageHeader";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
@@ -111,7 +112,7 @@ const ChatPage = () => {
         <h1 className="text-2xl font-bold mb-2">Care Team Chat</h1>
         <p className="text-muted-foreground mb-4">
           {userRole === 'patient' 
-            ? "Chat with your healthcare team" 
+            ? "Chat with your healthcare team and upload medical reports" 
             : "Connect with your patients and their care teams"}
         </p>
         <Separator className="my-4" />
@@ -121,7 +122,7 @@ const ChatPage = () => {
           <div className="bg-primary/10 p-3 rounded-md mb-4 animate-fade-in text-center">
             <p className="text-primary font-medium">
               {userRole === 'patient' 
-                ? "Chat with your healthcare team" 
+                ? "Chat with your healthcare team and upload medical reports using the paperclip icon" 
                 : "Care Team Chats - Connect with your patients and their care teams"}
             </p>
           </div>

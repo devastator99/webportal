@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,7 +30,6 @@ interface CareTeamMember {
   role: string;
 }
 
-// Define interfaces for the careTeamInfo data structure with proper types
 interface DoctorData {
   first_name: string | null;
   last_name: string | null;
@@ -63,7 +61,10 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   const [showSidebar, setShowSidebar] = useState(!isMobile && userRole !== 'patient');
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [isAiResponding, setIsAiResponding] = useState(false);
-  
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+
   useEffect(() => {
     if (patientRoomId) {
       console.log("Patient room ID provided to interface:", patientRoomId);
@@ -76,7 +77,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       }
     }
   }, [patientRoomId, userRole, isMobile]);
-  
+
   const toggleSidebar = () => {
     if (userRole !== 'patient') {
       setShowSidebar(prev => !prev);
@@ -90,7 +91,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       setIsLoadingMembers(true);
       console.log("Fetching members for room:", roomId);
       
-      // Use the room_members table with RLS policies for secure access
       const { data, error } = await supabase
         .from('room_members')
         .select(`
@@ -109,8 +109,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         throw error;
       }
       
-      console.log("Room members data:", data);
-      
       const formattedMembers = data.map(member => {
         const profile = member.profiles && typeof member.profiles === 'object' 
           ? member.profiles 
@@ -124,7 +122,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         };
       });
       
-      console.log("Formatted members:", formattedMembers);
       setRoomMembers(formattedMembers);
     } catch (error) {
       console.error("Error fetching room members:", error);
@@ -163,7 +160,123 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     }
   };
 
+  const handleFileSelect = (file: File) => {
+    setSelectedFile(file);
+  };
+
+  const handleFileUpload = async () => {
+    if (!selectedFile || !selectedRoomId || !user?.id) return;
+    
+    try {
+      setIsUploading(true);
+      setUploadProgress(10);
+      
+      const filePath = `${user.id}/${crypto.randomUUID()}-${selectedFile.name}`;
+      
+      const typingMessage = {
+        id: uuidv4() + "-typing",
+        message: "Processing your file...",
+        created_at: new Date().toISOString(),
+        sender: {
+          id: "00000000-0000-0000-0000-000000000000",
+          first_name: "AI",
+          last_name: "Assistant",
+          role: "aibot"
+        },
+        isTyping: true
+      };
+      
+      setLocalMessages(prev => [...prev, typingMessage]);
+      setUploadProgress(30);
+      
+      const { data: storageData, error: storageError } = await supabase.storage
+        .from('patient_medical_reports')
+        .upload(filePath, selectedFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+      
+      if (storageError) throw storageError;
+      setUploadProgress(60);
+      
+      const { data: recordData, error: recordError } = await supabase
+        .from('patient_medical_reports')
+        .insert({
+          patient_id: user.id,
+          file_name: selectedFile.name,
+          file_path: filePath,
+          file_type: selectedFile.type,
+          file_size: selectedFile.size
+        })
+        .select('id')
+        .single();
+      
+      if (recordError) throw recordError;
+      setUploadProgress(80);
+      
+      const { data: messageData, error: messageError } = await supabase.rpc('send_room_message', {
+        p_room_id: selectedRoomId,
+        p_message: `Uploaded medical report: ${selectedFile.name}`,
+        p_is_system_message: false
+      });
+      
+      if (messageError) throw messageError;
+      setUploadProgress(90);
+      
+      setLocalMessages(prev => prev.filter(msg => !msg.isTyping));
+      setUploadProgress(100);
+      
+      const { data: aiResponse } = await supabase.functions.invoke('care-team-ai-chat', {
+        body: {
+          roomId: selectedRoomId,
+          message: `[FILE_UPLOAD_SUCCESS] ${selectedFile.name}`
+        }
+      });
+      
+      setSelectedFile(null);
+      
+      queryClient.invalidateQueries({ 
+        queryKey: ["room_messages", selectedRoomId] 
+      });
+      
+      toast({
+        title: "File uploaded successfully",
+        description: "Your medical report has been uploaded and shared with your care team.",
+        duration: 5000,
+      });
+      
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      
+      if (selectedRoomId) {
+        supabase.functions.invoke('care-team-ai-chat', {
+          body: {
+            roomId: selectedRoomId,
+            message: `[FILE_UPLOAD_ERROR] ${selectedFile.name}`
+          }
+        });
+      }
+      
+      setLocalMessages(prev => prev.filter(msg => !msg.isTyping));
+      
+      toast({
+        title: "Error uploading file",
+        description: "There was a problem uploading your medical report. Please try again.",
+        variant: "destructive",
+        duration: 5000,
+      });
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
   const handleSendMessage = async () => {
+    if (selectedFile) {
+      await handleFileUpload();
+      return;
+    }
+    
     if (!newMessage.trim() || !selectedRoomId || !user?.id) return;
     
     try {
@@ -181,7 +294,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       setLocalMessages(prev => [...prev, tempMessage]);
       
-      // Send message using RPC function with SECURITY DEFINER
       const { data, error } = await supabase.rpc('send_room_message', {
         p_room_id: selectedRoomId,
         p_message: newMessage
@@ -263,14 +375,12 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     enabled: !!selectedRoomId
   });
 
-  // Fixing the care team info query to properly handle the Supabase relationships
   const { data: careTeamInfo, isLoading: isLoadingCareTeam } = useQuery<CareTeamInfo | null>({
     queryKey: ["care_team_info", roomDetails?.patient_id],
     queryFn: async () => {
       if (!roomDetails?.patient_id) return null;
       
       try {
-        // Fetch patient assignments to get doctor and nutritionist with explicit column specification
         const { data, error } = await supabase
           .from('patient_assignments')
           .select(`
@@ -288,20 +398,16 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
           .eq('patient_id', roomDetails.patient_id)
           .single();
           
-        if (error && error.code !== 'PGRST116') { // PGRST116 = not found
+        if (error && error.code !== 'PGRST116') {
           console.error("Error fetching patient assignments:", error);
           throw error;
         }
         
-        // Handle Supabase error cases by ensuring a valid return type
         if (!data) return null;
         
-        // Make sure we explicitly handle the possibility of null/undefined data
-        // with proper type assertions
         let doctorData: DoctorData | null = null;
         let nutritionistData: NutritionistData | null = null;
         
-        // Only try to access properties if we have a non-null object
         if (data.doctor && typeof data.doctor === 'object') {
           doctorData = {
             first_name: (data.doctor as any).first_name || null,
@@ -335,7 +441,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   const showChatOnly = (isMobile && selectedRoomId && !showSidebar) || userRole === 'patient';
   const showSidebarOnly = isMobile && showSidebar && userRole !== 'patient';
   
-  // For patients with no room
   const renderPatientEmptyState = () => {
     if (patientRoomId === null) {
       return (
@@ -366,7 +471,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     }
   };
 
-  // Component to display care team members
   const CareTeamInfo = () => {
     if (isLoadingCareTeam) {
       return <Skeleton className="h-4 w-24" />;
@@ -513,8 +617,11 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                         value={newMessage}
                         onChange={setNewMessage}
                         onSend={handleSendMessage}
-                        placeholder={isAiResponding ? "AI Assistant is typing..." : "Type a message..."}
+                        placeholder={isAiResponding ? "AI Assistant is typing..." : "Type a message or upload a report..."}
                         disabled={!selectedRoomId || isLoadingMembers || isAiResponding}
+                        onFileSelect={handleFileSelect}
+                        isUploading={isUploading}
+                        uploadProgress={uploadProgress}
                       />
                     </div>
                   </div>

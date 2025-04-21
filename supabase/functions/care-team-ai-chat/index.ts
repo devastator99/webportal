@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -54,8 +53,17 @@ serve(async (req: Request) => {
     const patientId = roomData.patient_id;
     let aiResponse = "I'm your healthcare AI assistant. I can help answer general health questions, but please consult with your healthcare providers for medical advice.";
     
+    // Handle file upload messages
+    if (message.startsWith('[FILE_UPLOAD_SUCCESS]')) {
+      const fileName = message.replace('[FILE_UPLOAD_SUCCESS]', '').trim();
+      aiResponse = `The medical report "${fileName}" has been successfully uploaded and added to your records. Your care team will be able to review it. Is there anything specific about this report you'd like to discuss?`;
+    }
+    else if (message.startsWith('[FILE_UPLOAD_ERROR]')) {
+      const fileName = message.replace('[FILE_UPLOAD_ERROR]', '').trim();
+      aiResponse = `I'm sorry, there was an error uploading your medical report "${fileName}". This could be due to file size limitations or network issues. Please try again with a smaller file (max 50MB) or make sure you have a stable internet connection.`;
+    }
     // Handle prescription-related queries
-    if (message.toLowerCase().includes('prescription') || 
+    else if (message.toLowerCase().includes('prescription') || 
         message.toLowerCase().includes('medicine') || 
         message.toLowerCase().includes('medication')) {
       
@@ -147,11 +155,19 @@ serve(async (req: Request) => {
         aiResponse = "I'm having trouble accessing your health plan information right now. Please try again later or check the Habits section in your app.";
       }
     }
+    // Handle upload related queries
+    else if (message.toLowerCase().includes('upload') || 
+             message.toLowerCase().includes('report') ||
+             message.toLowerCase().includes('test result') ||
+             message.toLowerCase().includes('medical record')) {
+      
+      aiResponse = "You can upload medical reports and test results directly in this chat. Simply click the paperclip icon in the message input and select your file. I support PDF, DOC, JPEG, and PNG files up to 50MB in size. Your care team will be notified when you upload a report.";
+    }
     // Handle basic greetings and other queries
     else if (message.toLowerCase().includes('hello') || message.toLowerCase().includes('hi')) {
-      aiResponse = "Hello! I'm your healthcare AI assistant. I can help with information about your prescriptions, health plan, or general health questions. How can I help you today?";
+      aiResponse = "Hello! I'm your healthcare AI assistant. I can help with information about your prescriptions, health plan, or general health questions. You can also upload medical reports directly in this chat using the paperclip icon. How can I help you today?";
     } else if (message.toLowerCase().includes('help')) {
-      aiResponse = "I can help with:\n• Information about your prescriptions\n• Details of your health plan\n• Answering general health questions\n• Connecting you with your care team\n\nWhat would you like to know about?";
+      aiResponse = "I can help with:\n• Information about your prescriptions\n• Details of your health plan\n• Answering general health questions\n• Connecting you with your care team\n• Receiving your medical reports and test results\n\nTo upload a report, click the paperclip icon in the message input. What would you like to know about?";
     } else if (message.toLowerCase().includes('doctor') || message.toLowerCase().includes('appointment')) {
       aiResponse = "Your care team is available to assist you. If you need to schedule an appointment or have specific medical questions, please let your doctor know directly through this chat.";
     } else if (message.toLowerCase().includes('thank')) {

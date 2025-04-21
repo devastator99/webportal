@@ -1,549 +1,282 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { format } from "date-fns";
+import { Loader2, FileText, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowDown, MoreHorizontal, UserCircle, Users } from "lucide-react";
-import { format, isToday, isYesterday } from "date-fns";
-import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Badge } from "@/components/ui/badge";
 
-const ChatMessage = ({ message, isCurrentUser, formatMessageDate }) => {
-  const messageRole = typeof message.sender?.role === 'string' 
-    ? message.sender?.role 
-    : (message.sender?.role?.role || "member");
-  
-  return (
-    <div
-      className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}
-    >
-      <div className="flex items-start max-w-[75%]">
-        {!isCurrentUser && (
-          <Avatar className="h-8 w-8 mr-2 flex-shrink-0">
-            <AvatarFallback className="bg-primary/10 text-primary text-xs">
-              {message.sender?.first_name?.charAt(0) || "?"}{message.sender?.last_name?.charAt(0) || ""}
-            </AvatarFallback>
-          </Avatar>
-        )}
-        
-        <div
-          className={`rounded-xl px-3 py-2 ${
-            isCurrentUser
-              ? "bg-primary text-white rounded-tr-none"
-              : "bg-card border rounded-tl-none"
-          }`}
-        >
-          {!isCurrentUser && (
-            <div className="flex items-center gap-1 mb-1">
-              <span className="font-medium text-xs">
-                {message.sender?.first_name} {message.sender?.last_name}
-              </span>
-              <span className="text-[10px] text-muted-foreground font-medium uppercase bg-muted px-1.5 py-0.5 rounded">
-                {messageRole}
-              </span>
-            </div>
-          )}
-          
-          <div className="space-y-1">
-            <p className="text-sm">{message.message}</p>
-            <div className="text-right">
-              <span className="text-[10px] opacity-70">
-                {formatMessageDate(message.created_at)}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const DateSeparator = ({ dateKey }) => {
-  const dateObj = new Date(dateKey);
-  
-  let dateDisplay;
-  if (isToday(dateObj)) {
-    dateDisplay = "Today";
-  } else if (isYesterday(dateObj)) {
-    dateDisplay = "Yesterday";
-  } else {
-    dateDisplay = format(dateObj, "MMMM d, yyyy");
-  }
-  
-  return (
-    <div className="text-center my-3">
-      <span className="px-2 py-1 bg-muted text-muted-foreground rounded-md text-xs">
-        {dateDisplay}
-      </span>
-    </div>
-  );
-};
-
-const MessagesList = ({ 
-  combinedMessages, 
-  currentUserId, 
-  formatMessageDate, 
-  careTeamMembers = []
-}) => {
-  const groupedMessages = {};
-  combinedMessages.forEach(message => {
-    const date = new Date(message.created_at);
-    const dateKey = format(date, 'yyyy-MM-dd');
-    
-    if (!groupedMessages[dateKey]) {
-      groupedMessages[dateKey] = [];
-    }
-    
-    groupedMessages[dateKey].push(message);
-  });
-  
-  const getMemberRole = (userId) => {
-    const member = careTeamMembers.find(m => m.id === userId);
-    if (!member) return "member";
-    return typeof member.role === 'string' ? member.role : "member";
-  };
-  
-  return (
-    <>
-      {Object.keys(groupedMessages).map(dateKey => {
-        const messages = groupedMessages[dateKey];
-        
-        return (
-          <div key={dateKey}>
-            <DateSeparator dateKey={dateKey} />
-            
-            <div className="space-y-3">
-              {messages.map((message) => {
-                const isCurrentUser = message.sender?.id === currentUserId;
-                
-                return (
-                  <ChatMessage 
-                    key={message.id}
-                    message={message}
-                    isCurrentUser={isCurrentUser}
-                    formatMessageDate={formatMessageDate}
-                  />
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-    </>
-  );
-};
-
-const MessagesLoadingState = () => (
-  <div className="flex-1 p-4 space-y-4">
-    {[...Array(3)].map((_, i) => (
-      <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
-        <Skeleton className={`h-16 w-3/4 rounded-lg ${i % 2 === 0 ? 'bg-primary/5' : 'bg-muted'}`} />
-      </div>
-    ))}
-  </div>
-);
-
-const MessagesErrorState = ({ error, refetch }) => (
-  <div className="flex-1 p-4 flex items-center justify-center">
-    <div className="text-red-500 text-center">
-      <p>Error loading messages</p>
-      <p className="text-sm">{error?.message}</p>
-      <Button onClick={refetch} className="mt-2">
-        Retry
-      </Button>
-    </div>
-  </div>
-);
-
-const ScrollToBottomButton = ({ onClick }) => (
-  <button
-    className="fixed bottom-20 right-4 bg-primary text-white p-2 rounded-full shadow-lg"
-    onClick={onClick}
-  >
-    <ArrowDown className="h-4 w-4" />
-  </button>
-);
-
-// New component to display care team members
-const CareTeamMembers = ({ careTeamMembers }) => {
-  const doctor = careTeamMembers.find(member => member.role === 'doctor' || member.role?.role === 'doctor');
-  const nutritionist = careTeamMembers.find(member => member.role === 'nutritionist' || member.role?.role === 'nutritionist');
-  
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="flex items-center gap-1 text-xs text-muted-foreground cursor-help">
-            <Users className="h-3 w-3" />
-            <span>{careTeamMembers.length} members</span>
-          </div>
-        </TooltipTrigger>
-        <TooltipContent className="p-2 max-w-xs">
-          <div className="space-y-1">
-            <h4 className="text-xs font-semibold">Care Team</h4>
-            {doctor && (
-              <div className="flex items-center gap-1">
-                <UserCircle className="h-3 w-3 text-blue-500" />
-                <span className="text-xs">Dr. {doctor.first_name} {doctor.last_name}</span>
-                <Badge variant="outline" className="text-[10px] px-1 h-4">doctor</Badge>
-              </div>
-            )}
-            {nutritionist && (
-              <div className="flex items-center gap-1">
-                <UserCircle className="h-3 w-3 text-green-500" />
-                <span className="text-xs">{nutritionist.first_name} {nutritionist.last_name}</span>
-                <Badge variant="outline" className="text-[10px] px-1 h-4">nutritionist</Badge>
-              </div>
-            )}
-            {!doctor && !nutritionist && (
-              <div className="text-xs text-muted-foreground">No doctor or nutritionist assigned</div>
-            )}
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-};
-
-export const ChatMessagesList = ({
-  roomId,
-  selectedUserId = null,
-  groupChat = false,
-  careTeamGroup = null,
-  careTeamMembers = [],
-  offlineMode = false,
-  localMessages = [],
-  useRoomMessages = false,
-  includeCareTeamMessages = false,
-  specificEmail
-}: {
+interface ChatMessagesListProps {
+  selectedUserId?: string;
   roomId?: string;
-  selectedUserId?: string | null;
-  groupChat?: boolean;
-  careTeamGroup?: any;
   careTeamMembers?: any[];
-  offlineMode?: boolean;
   localMessages?: any[];
   useRoomMessages?: boolean;
-  includeCareTeamMessages?: boolean;
-  specificEmail?: string;
-}) => {
+}
+
+export const ChatMessagesList = ({
+  selectedUserId,
+  roomId,
+  careTeamMembers = [],
+  localMessages = [],
+  useRoomMessages = false,
+}: ChatMessagesListProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [page, setPage] = useState(1);
-  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-  const [combinedMessages, setCombinedMessages] = useState<any[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const pageSize = 20;
   
-  useEffect(() => {
-    const loadCurrentUser = async () => {
-      try {
-        const { data, error } = await supabase.auth.getUser();
-        if (error) {
-          console.error("Error getting current user:", error);
-          return;
-        }
-        if (data?.user) {
-          setCurrentUserId(data.user.id);
-        }
-      } catch (error) {
-        console.error("Exception getting current user:", error);
-      }
-    };
-    
-    loadCurrentUser();
-  }, []);
-
-  const {
-    data: messagesData,
-    isLoading,
-    isError,
-    error,
-    refetch
-  } = useQuery({
-    queryKey: ["room_messages", roomId, page],
+  const { data: messages = [], isLoading } = useQuery({
+    queryKey: useRoomMessages 
+      ? ["room_messages", roomId] 
+      : ["chat_messages", supabase.auth.getUser()?.data?.user?.id, selectedUserId],
     queryFn: async () => {
-      if (!roomId && !selectedUserId && !specificEmail) return { messages: [], hasMore: false };
-
       try {
-        let queryResult;
-        
         if (useRoomMessages && roomId) {
-          if (!currentUserId) {
-            console.warn("Current user ID not available yet");
-          }
-          
-          const { data, error } = await supabase
-            .from('room_messages')
-            .select(`
-              id,
-              message,
-              message_type,
-              created_at,
-              read_by,
-              is_system_message,
-              is_ai_message,
-              sender_id
-            `)
-            .eq('room_id', roomId)
-            .order('created_at', { ascending: false })
-            .range((page - 1) * pageSize, page * pageSize - 1);
-            
-          if (error) throw error;
-          
-          const senderIds = [...new Set(data.map(msg => msg.sender_id))];
-          
-          const { data: senderProfiles, error: profilesError } = await supabase
-            .from('profiles')
-            .select(`
-              id, 
-              first_name, 
-              last_name
-            `)
-            .in('id', senderIds);
-            
-          if (profilesError) throw profilesError;
-          
-          const fetchRoles = async () => {
-            const roles = new Map();
-            
-            for (const senderId of senderIds) {
-              try {
-                const { data: roleData, error: roleError } = await supabase
-                  .rpc('get_user_role', { lookup_user_id: senderId });
-                
-                if (!roleError && roleData) {
-                  roles.set(senderId, roleData);
-                }
-              } catch (e) {
-                console.error(`Error fetching role for user ${senderId}:`, e);
-              }
-            }
-            
-            return roles;
-          };
-          
-          const rolesMap = await fetchRoles();
-          
-          const profilesMap = new Map();
-          senderProfiles.forEach(profile => {
-            profilesMap.set(profile.id, {
-              id: profile.id,
-              first_name: profile.first_name || 'Unknown',
-              last_name: profile.last_name || 'User',
-              role: rolesMap.get(profile.id) || 'member'
-            });
+          // Fetch room messages
+          const { data, error } = await supabase.rpc('get_room_messages', {
+            p_room_id: roomId,
+            p_limit: 100,
+            p_offset: 0
           });
           
-          const messages = data.map((message: any) => {
-            const currentUserRead = message.read_by && Array.isArray(message.read_by) 
-              ? message.read_by.includes(currentUserId)
-              : false;
-              
-            let senderProfile = profilesMap.get(message.sender_id);
-            
-            if (message.is_ai_message && !senderProfile) {
-              senderProfile = {
-                id: message.sender_id || '00000000-0000-0000-0000-000000000000',
-                first_name: 'AI',
-                last_name: 'Assistant',
-                role: 'aibot'
-              };
-            } else if (!senderProfile) {
-              senderProfile = {
-                id: message.sender_id,
-                first_name: 'Unknown',
-                last_name: 'User',
-                role: 'unknown'
-              };
-            }
-              
-            return {
-              ...message,
-              read: currentUserRead,
-              sender: senderProfile
-            };
-          }).reverse();
-          
-          queryResult = { messages, hasMore: data.length === pageSize, page };
+          if (error) throw error;
+          return data || [];
         } else if (selectedUserId) {
-          if (!currentUserId) {
-            throw new Error("Could not determine current user");
-          }
-          
-          const { data: responseData, error } = await supabase.functions.invoke('get-chat-messages', {
-            body: { 
-              user_id: currentUserId,
-              other_user_id: selectedUserId,
-              page,
-              per_page: pageSize
-            }
+          // Fetch direct chat messages
+          const { data, error } = await supabase.rpc('get_user_chat_messages', { 
+            p_user_id: supabase.auth.getUser()?.data?.user?.id || '',
+            p_other_user_id: selectedUserId,
+            p_limit: 100,
+            p_offset: 0
           });
           
           if (error) throw error;
-          queryResult = responseData;
-        } else if (specificEmail) {
-          const { data, error } = await supabase
-            .from('chat_messages')
-            .select('*')
-            .ilike('message', `%${specificEmail}%`)
-            .order('created_at', { ascending: false })
-            .range((page - 1) * pageSize, page * pageSize - 1);
-            
-          if (error) throw error;
-          
-          queryResult = { 
-            messages: data || [], 
-            hasMore: data?.length === pageSize,
-            page
-          };
+          return data || [];
         }
-
-        return queryResult || { messages: [], hasMore: false };
+        
+        return [];
       } catch (error) {
         console.error("Error fetching messages:", error);
-        throw error;
+        return [];
       }
     },
-    enabled: !!(roomId || selectedUserId || specificEmail) && !!currentUserId,
-    staleTime: 1000 * 60 // 1 minute
+    enabled: (useRoomMessages && !!roomId) || (!useRoomMessages && !!selectedUserId),
   });
 
-  const handleLoadMore = () => {
-    if (messagesData?.hasMore) {
-      setPage(prev => prev + 1);
-    }
-  };
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
-  const handleScroll = () => {
-    if (!scrollContainerRef.current) return;
-    
-    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
-    const bottomThreshold = 100;
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < bottomThreshold;
-    
-    setShowScrollToBottom(!isNearBottom);
-  };
-
-  const formatMessageDate = (dateString: string) => {
-    const date = new Date(dateString);
-    if (isToday(date)) {
-      return format(date, "h:mm a");
-    } else if (isYesterday(date)) {
-      return 'Yesterday ' + format(date, "h:mm a");
-    } else {
-      return format(date, "MMM d, h:mm a");
-    }
-  };
-
+  // Scroll to bottom when messages change
   useEffect(() => {
-    if (messagesData) {
-      const remoteMessages = messagesData.messages || [];
-      let allMessages;
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages, localMessages]);
+
+  const isFileMessage = (message: string) => {
+    return message.startsWith("Uploaded medical report:") || 
+           message.includes("medical report") || 
+           message.includes("test report");
+  };
+
+  const getFileName = (message: string) => {
+    // Extract filename from message like "Uploaded medical report: filename.pdf"
+    const parts = message.split(":");
+    if (parts.length > 1) {
+      return parts[1].trim();
+    }
+    return "medical-report.pdf";
+  };
+
+  const downloadFile = async (fileName: string) => {
+    try {
+      // Get the latest medical report with this name
+      const { data, error } = await supabase
+        .from('patient_medical_reports')
+        .select('file_path')
+        .eq('file_name', fileName)
+        .order('uploaded_at', { ascending: false })
+        .limit(1)
+        .single();
       
-      if (useRoomMessages && page === 1) {
-        allMessages = [...remoteMessages, ...localMessages];
-      } else {
-        allMessages = remoteMessages;
-      }
+      if (error) throw error;
       
-      if (page === 1) {
-        setCombinedMessages(allMessages);
-      } else {
-        setCombinedMessages(prev => [...allMessages, ...prev]);
+      if (data?.file_path) {
+        // Get a signed URL for the file
+        const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+          .from('patient_medical_reports')
+          .createSignedUrl(data.file_path, 60);
+        
+        if (signedUrlError) throw signedUrlError;
+        
+        // Open the signed URL in a new tab
+        window.open(signedUrlData.signedUrl, '_blank');
       }
+    } catch (error) {
+      console.error("Error downloading file:", error);
+      alert("Unable to download file. Please try again later.");
     }
-  }, [messagesData, localMessages, page, useRoomMessages]);
+  };
 
-  useEffect(() => {
-    if (!showScrollToBottom && messagesEndRef.current) {
-      scrollToBottom();
-    }
-  }, [combinedMessages, showScrollToBottom]);
-
-  useEffect(() => {
-    if (!roomId && !selectedUserId) return;
-    
-    const subscription = useRoomMessages && roomId
-      ? supabase
-          .channel(`room_messages:${roomId}`)
-          .on('postgres_changes', {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'room_messages',
-            filter: `room_id=eq.${roomId}`
-          }, () => {
-            refetch();
-          })
-          .subscribe()
-      : supabase
-          .channel(`chat_messages:${selectedUserId}`)
-          .on('postgres_changes', {
-            event: 'INSERT',
-            schema: 'public',
-            table: 'chat_messages'
-          }, () => {
-            refetch();
-          })
-          .subscribe();
-          
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [roomId, selectedUserId, refetch, useRoomMessages]);
-
-  if (isLoading && page === 1) {
-    return <MessagesLoadingState />;
+  if (isLoading && messages.length === 0 && localMessages.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
-  if (isError) {
-    return <MessagesErrorState error={error as Error} refetch={refetch} />;
-  }
+  // Combine server messages with local messages and sort by created_at
+  const allMessages = [...messages, ...localMessages].sort((a, b) => {
+    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+  });
 
-  const hasPrevMessages = messagesData?.hasMore && page > 1;
+  const getInitials = (firstName?: string, lastName?: string) => {
+    if (!firstName && !lastName) return "??";
+    return `${(firstName || '').charAt(0)}${(lastName || '').charAt(0)}`.toUpperCase();
+  };
+
+  const getAvatarColor = (role?: string) => {
+    switch (role) {
+      case 'doctor':
+        return 'bg-blue-100 text-blue-800';
+      case 'patient':
+        return 'bg-green-100 text-green-800';
+      case 'nutritionist':
+        return 'bg-purple-100 text-purple-800';
+      case 'aibot':
+        return 'bg-amber-100 text-amber-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   return (
-    <ErrorBoundary>
-      <div 
-        ref={scrollContainerRef} 
-        className="flex-1 overflow-y-auto px-4 py-2"
-        onScroll={handleScroll}
-      >
-        {hasPrevMessages && (
-          <div className="flex justify-center my-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleLoadMore}
-              className="text-xs"
-              disabled={isLoading}
-            >
-              {isLoading ? "Loading..." : "Load older messages"}
-            </Button>
-          </div>
-        )}
-        
-        <MessagesList 
-          combinedMessages={combinedMessages}
-          currentUserId={currentUserId}
-          formatMessageDate={formatMessageDate}
-          careTeamMembers={careTeamMembers}
-        />
-        
-        {showScrollToBottom && (
-          <ScrollToBottomButton onClick={scrollToBottom} />
-        )}
-        
-        <div ref={messagesEndRef} />
-      </div>
-    </ErrorBoundary>
+    <ScrollArea className="flex-1 px-4 py-4">
+      {allMessages.length === 0 ? (
+        <div className="h-full flex items-center justify-center text-muted-foreground">
+          <p>No messages yet. Start a conversation!</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {allMessages.map((message, index) => {
+            const isCurrentUser = message.sender?.id === supabase.auth.getUser()?.data?.user?.id;
+            const isAI = message.is_ai_message || message.sender?.id === '00000000-0000-0000-0000-000000000000' || message.sender?.role === 'aibot';
+            const isSystemMessage = message.is_system_message;
+            const isTyping = message.isTyping;
+            
+            // Find sender from careTeamMembers if available
+            const senderMember = careTeamMembers.find(m => m.id === message.sender?.id || m.id === message.sender_id);
+            const senderRole = senderMember?.role || message.sender?.role || 'unknown';
+            const senderName = senderMember ? 
+              `${senderMember.first_name || ''} ${senderMember.last_name || ''}`.trim() : 
+              message.sender_name || `${message.sender?.first_name || ''} ${message.sender?.last_name || ''}`.trim();
+            
+            const avatarColor = getAvatarColor(senderRole);
+            const initials = isAI ? 'AI' : getInitials(
+              senderMember?.first_name || message.sender?.first_name, 
+              senderMember?.last_name || message.sender?.last_name
+            );
+            
+            // Check if this is a file message
+            const isFile = isFileMessage(message.message);
+            const fileName = isFile ? getFileName(message.message) : '';
+            
+            if (isSystemMessage) {
+              return (
+                <div key={index} className="flex justify-center">
+                  <div className="bg-muted px-3 py-1 rounded-full text-xs text-center text-muted-foreground max-w-[80%]">
+                    {message.message}
+                  </div>
+                </div>
+              );
+            }
+            
+            if (isTyping) {
+              return (
+                <div key={index} className="flex items-start gap-2">
+                  <Avatar className={`h-8 w-8 ${avatarColor}`}>
+                    <AvatarFallback>{initials}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col space-y-1 max-w-[80%]">
+                    <div className="bg-muted p-3 rounded-lg">
+                      <div className="flex space-x-2">
+                        <div className="h-2 w-2 bg-primary rounded-full animate-bounce" />
+                        <div className="h-2 w-2 bg-primary rounded-full animate-bounce delay-75" />
+                        <div className="h-2 w-2 bg-primary rounded-full animate-bounce delay-150" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            
+            return (
+              <div
+                key={index}
+                className={`flex items-start gap-2 ${isCurrentUser ? 'flex-row-reverse' : ''}`}
+              >
+                <Avatar className={`h-8 w-8 ${avatarColor}`}>
+                  <AvatarFallback>{initials}</AvatarFallback>
+                </Avatar>
+                
+                <div className={`flex flex-col space-y-1 max-w-[80%] ${isCurrentUser ? 'items-end' : 'items-start'}`}>
+                  <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'}`}>
+                    <span className="text-xs text-muted-foreground mb-1">
+                      {senderName || 'Unknown user'}
+                    </span>
+                    
+                    {isFile ? (
+                      <div className={`p-3 rounded-lg flex items-center ${
+                        isCurrentUser 
+                          ? 'bg-primary text-primary-foreground' 
+                          : isAI
+                            ? 'bg-amber-100 border border-amber-200'
+                            : 'bg-muted'
+                      }`}>
+                        <FileText className="h-5 w-5 mr-2" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm truncate" style={{ maxWidth: '200px' }}>{fileName}</p>
+                        </div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="h-8 w-8 ml-2"
+                                onClick={() => downloadFile(fileName)}
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Download file</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    ) : (
+                      <div className={`p-3 rounded-lg ${
+                        isCurrentUser 
+                          ? 'bg-primary text-primary-foreground' 
+                          : isAI
+                            ? 'bg-amber-100 border border-amber-200'
+                            : 'bg-muted'
+                      }`}>
+                        <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <p className="text-xs text-muted-foreground">
+                    {message.created_at ? format(new Date(message.created_at), 'p') : ''}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+          <div ref={messagesEndRef} />
+        </div>
+      )}
+    </ScrollArea>
   );
 };
