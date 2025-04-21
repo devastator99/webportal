@@ -30,10 +30,13 @@ export const ForgotPasswordForm = ({ onClose }: ForgotPasswordFormProps) => {
   const onSubmit = async (values: { email: string }) => {
     setLoading(true);
     try {
+      // Use the simpler resetPasswordForEmail method
       const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
         redirectTo: `${window.location.origin}/auth/update-password`
       });
+      
       if (error) {
+        console.error("Reset password error:", error);
         toast({
           variant: "destructive",
           title: "Reset Failed",
@@ -48,6 +51,7 @@ export const ForgotPasswordForm = ({ onClose }: ForgotPasswordFormProps) => {
         onClose();
       }
     } catch (e: any) {
+      console.error("Exception in reset password:", e);
       toast({
         variant: "destructive",
         title: "An error occurred",
@@ -92,4 +96,3 @@ export const ForgotPasswordForm = ({ onClose }: ForgotPasswordFormProps) => {
     </div>
   );
 };
-

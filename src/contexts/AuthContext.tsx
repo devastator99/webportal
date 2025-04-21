@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,6 +45,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const inactivityTimerRef = useRef<number | null>(null);
   const roleFetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialMount = useRef(true);
+  const recoveryAttempted = useRef(false);
 
   const resetInactivityTimer = () => {
     if (inactivityTimerRef.current) {
@@ -137,16 +139,41 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     console.log("[AuthContext] Setting up auth subscription");
     
+    // Set up the auth state change listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       handleAuthStateChange(session);
     });
 
-    // Only check session on initial mount
+    // Then check for existing session (order is important)
     if (isInitialMount.current) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        handleAuthStateChange(session);
-      });
       isInitialMount.current = false;
+      setIsLoading(true);
+      
+      // Get the current session state
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        console.log("[AuthContext] Initial session check:", session ? "session exists" : "no session");
+        
+        if (!session && !recoveryAttempted.current) {
+          recoveryAttempted.current = true;
+          console.log("[AuthContext] Attempting one-time session recovery");
+          
+          // Force a refresh of the auth state to recover from any potential issues
+          supabase.auth.refreshSession().then(({ data, error }) => {
+            if (error) {
+              console.error("[AuthContext] Session recovery failed:", error);
+              setIsLoading(false);
+            } else if (data.session) {
+              console.log("[AuthContext] Session successfully recovered");
+              handleAuthStateChange(data.session);
+            } else {
+              console.log("[AuthContext] No session to recover");
+              setIsLoading(false);
+            }
+          });
+        } else {
+          handleAuthStateChange(session);
+        }
+      });
     }
 
     return () => {
