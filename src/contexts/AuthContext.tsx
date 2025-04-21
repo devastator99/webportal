@@ -46,6 +46,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const roleFetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isInitialMount = useRef(true);
   const recoveryAttempted = useRef(false);
+  const isPasswordRecoveryFlow = useRef(false);
 
   const resetInactivityTimer = () => {
     if (inactivityTimerRef.current) {
@@ -143,14 +144,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const checkForRecoveryMode = () => {
       const hash = window.location.hash;
-      if (hash) {
+      const pathname = window.location.pathname;
+      
+      // Check if we're on the update-password page and have a hash with recovery token
+      if (pathname === '/update-password' && hash) {
         const hashParams = new URLSearchParams(hash.substring(1));
         const accessToken = hashParams.get('access_token');
         const type = hashParams.get('type');
         
         if (accessToken && type === 'recovery') {
           console.log("[AuthContext] Password reset flow detected in URL");
-          // Let the recovery page handle this - no need to redirect
+          isPasswordRecoveryFlow.current = true;
           return true;
         }
       }
@@ -159,7 +163,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     const isRecoveryFlow = checkForRecoveryMode();
     console.log("[AuthContext] Is recovery flow:", isRecoveryFlow);
-    // Store this information if needed for later
   }, []);
 
   useEffect(() => {
@@ -185,11 +188,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setIsLoading(true);
         
         try {
+          // Check if we're in a password recovery flow
+          const isRecoveryFlow = isPasswordRecoveryFlow.current;
+          
           // Get the current session state
           const { data: { session: currentSession } } = await supabase.auth.getSession();
           console.log("[AuthContext] Initial session check:", currentSession ? "session exists" : "no session");
           
-          if (!currentSession && !recoveryAttempted.current) {
+          // Don't attempt recovery if we're in a password reset flow
+          if (!currentSession && !recoveryAttempted.current && !isRecoveryFlow) {
             recoveryAttempted.current = true;
             console.log("[AuthContext] Attempting one-time session recovery");
             
@@ -212,7 +219,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               setIsLoading(false);
             }
           } else {
-            await handleAuthStateChange(currentSession);
+            // Either we have a session, recovery was already attempted, or we're in recovery flow
+            if (isRecoveryFlow) {
+              console.log("[AuthContext] In password recovery flow, skipping session recovery");
+              setIsLoading(false);
+            } else {
+              await handleAuthStateChange(currentSession);
+            }
           }
         } catch (error) {
           console.error("[AuthContext] Exception during initial auth setup:", error);

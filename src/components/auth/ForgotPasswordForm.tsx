@@ -30,8 +30,12 @@ export const ForgotPasswordForm = ({ onClose }: ForgotPasswordFormProps) => {
   const onSubmit = async (values: { email: string }) => {
     setLoading(true);
     try {
+      // Important: Use the fully qualified URL for the redirect
+      const redirectTo = `${window.location.origin}/update-password`;
+      console.log("Sending reset password with redirect to:", redirectTo);
+      
       const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
-        redirectTo: `${window.location.origin}/update-password`,
+        redirectTo,
       });
       
       if (error) {

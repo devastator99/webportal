@@ -38,14 +38,27 @@ const UpdatePassword = () => {
     },
   });
 
-  // Check if we have a recovery token in the URL hash
+  // Extract the access token and type from URL hash on component mount
   useEffect(() => {
     const hashParams = new URLSearchParams(location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
     const type = hashParams.get('type');
     
-    if (type !== 'recovery') {
-      console.error('Missing or invalid recovery token');
+    if (!accessToken || type !== 'recovery') {
+      console.error('Missing or invalid recovery token', { accessToken, type });
       setError('Invalid or expired password reset link. Please request a new one.');
+    } else {
+      console.log('Valid recovery token found in URL');
+      // Set the access token in the session to be used for updating password
+      supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: '',
+      }).then(({ error }) => {
+        if (error) {
+          console.error('Error setting session:', error);
+          setError('Unable to verify your session. Please request a new reset link.');
+        }
+      });
     }
   }, [location]);
 
