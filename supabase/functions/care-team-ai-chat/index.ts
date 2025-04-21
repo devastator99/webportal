@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -51,7 +52,10 @@ serve(async (req: Request) => {
     }
     
     const patientId = roomData.patient_id;
-    let aiResponse = "I'm your healthcare AI assistant. I can help answer general health questions, but please consult with your healthcare providers for medical advice.";
+    let aiResponse = "I'm your healthcare AI assistant. I can help answer questions about your prescriptions, health plan, or medical advice. However, please consult with your healthcare providers for specific medical guidance.";
+    
+    console.log(`Processing message from care team room ${roomId} for patient ${patientId}`);
+    console.log(`Message content: ${message}`);
     
     // Handle file upload messages
     if (message.startsWith('[FILE_UPLOAD_SUCCESS]')) {
@@ -155,6 +159,36 @@ serve(async (req: Request) => {
         aiResponse = "I'm having trouble accessing your health plan information right now. Please try again later or check the Habits section in your app.";
       }
     }
+    // Handle appointment-related queries
+    else if (message.toLowerCase().includes('appointment') || 
+             message.toLowerCase().includes('schedule') ||
+             message.toLowerCase().includes('doctor visit') ||
+             message.toLowerCase().includes('meet')) {
+      
+      try {
+        // Get appointments
+        const { data: appointments, error: appointmentsError } = await supabaseClient
+          .rpc('get_patient_appointments', {
+            p_patient_id: patientId
+          });
+        
+        if (appointmentsError || !appointments || appointments.length === 0) {
+          aiResponse = "I don't see any upcoming appointments in your schedule. Would you like information on how to book an appointment?";
+        } else {
+          aiResponse = "Here are your upcoming appointments:\n\n";
+          
+          for (const appt of appointments) {
+            const apptDate = new Date(appt.scheduled_at);
+            aiResponse += `• ${apptDate.toLocaleDateString()} at ${apptDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}\n`;
+            aiResponse += `  Doctor: Dr. ${appt.doctor_first_name} ${appt.doctor_last_name}\n`;
+            aiResponse += `  Status: ${appt.status}\n\n`;
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching appointment data:", error);
+        aiResponse = "I'm having trouble accessing your appointment information right now. Please try again later.";
+      }
+    }
     // Handle upload related queries
     else if (message.toLowerCase().includes('upload') || 
              message.toLowerCase().includes('report') ||
@@ -165,16 +199,16 @@ serve(async (req: Request) => {
     }
     // Handle basic greetings and other queries
     else if (message.toLowerCase().includes('hello') || message.toLowerCase().includes('hi')) {
-      aiResponse = "Hello! I'm your healthcare AI assistant. I can help with information about your prescriptions, health plan, or general health questions. You can also upload medical reports directly in this chat using the paperclip icon. How can I help you today?";
+      aiResponse = "Hello! I'm your healthcare AI assistant. I can help with information about your prescriptions, health plan, appointments, or general health questions. You can also upload medical reports directly in this chat using the paperclip icon. How can I help you today?";
     } else if (message.toLowerCase().includes('help')) {
-      aiResponse = "I can help with:\n• Information about your prescriptions\n• Details of your health plan\n• Answering general health questions\n• Connecting you with your care team\n• Receiving your medical reports and test results\n\nTo upload a report, click the paperclip icon in the message input. What would you like to know about?";
-    } else if (message.toLowerCase().includes('doctor') || message.toLowerCase().includes('appointment')) {
+      aiResponse = "I can help with:\n• Information about your prescriptions\n• Details of your health plan\n• Viewing your upcoming appointments\n• Answering general health questions\n• Connecting you with your care team\n• Receiving your medical reports and test results\n\nTo upload a report, click the paperclip icon in the message input. What would you like to know about?";
+    } else if (message.toLowerCase().includes('doctor') || message.toLowerCase().includes('care team')) {
       aiResponse = "Your care team is available to assist you. If you need to schedule an appointment or have specific medical questions, please let your doctor know directly through this chat.";
     } else if (message.toLowerCase().includes('thank')) {
       aiResponse = "You're welcome! I'm here to help you and your care team communicate effectively.";
-    } else if (message.toLowerCase().includes('reminder') || message.toLowerCase().includes('notify')) {
-      aiResponse = "I can send you reminders for your health plan activities. You can set these up in the Habits section of the app by tapping on an activity and selecting 'Set Reminder'.";
     }
+    
+    console.log("Sending AI response:", aiResponse.substring(0, 100) + "...");
     
     // Insert AI response as a message
     const { data: messageData, error: messageError } = await supabaseClient

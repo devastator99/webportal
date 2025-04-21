@@ -58,7 +58,7 @@ export const AiChatInterface = ({ isCareTeamChat = false }: AiChatInterfaceProps
             role: m.role,
             content: m.content
           })),
-          patientId: user?.id, // Pass the patient ID if available
+          patientId: user?.id, // Pass the patient ID for context
           isCareTeamChat: isCareTeamChat // Indicate if this is a care team chat
         },
       });
@@ -88,23 +88,23 @@ export const AiChatInterface = ({ isCareTeamChat = false }: AiChatInterfaceProps
   };
 
   return (
-    <Card className="h-[600px] flex flex-col">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Brain className="h-5 w-5" />
+    <Card className="h-[600px] flex flex-col border border-neutral-200 dark:border-neutral-800 shadow-sm">
+      <CardHeader className="border-b border-neutral-200 dark:border-neutral-800 py-4">
+        <CardTitle className="flex items-center gap-2 text-base font-medium">
+          <Brain className="h-5 w-5 text-neutral-600 dark:text-neutral-400" />
           {isCareTeamChat ? "Care Team AI Assistant" : "AI Healthcare Assistant"}
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 flex flex-col overflow-hidden">
-        <ScrollArea className="flex-1 pr-4 mb-4">
+      <CardContent className="flex-1 flex flex-col overflow-hidden p-0">
+        <ScrollArea className="flex-1 px-4 py-4">
           {messages.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-muted-foreground">
+            <div className="h-full flex items-center justify-center text-neutral-500">
               <p>{isCareTeamChat 
                 ? "Ask me about your prescriptions, health plan, or medical advice!" 
                 : "Ask me anything about health, medicine, or general wellness!"}</p>
             </div>
           ) : (
-            <div className="space-y-4 pb-2">
+            <div className="space-y-4">
               {messages.map((message, index) => (
                 <div
                   key={index}
@@ -116,7 +116,7 @@ export const AiChatInterface = ({ isCareTeamChat = false }: AiChatInterfaceProps
                     className={`max-w-[80%] rounded-lg p-3 ${
                       message.role === 'user'
                         ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
+                        : "bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700"
                     }`}
                   >
                     <div className="flex items-center gap-1 mb-1">
@@ -125,7 +125,7 @@ export const AiChatInterface = ({ isCareTeamChat = false }: AiChatInterfaceProps
                       )}
                     </div>
                     <p className="text-sm">{message.content}</p>
-                    <p className="text-xs opacity-70 mt-1">
+                    <p className="text-xs text-neutral-500 mt-1">
                       {format(message.timestamp, "p")}
                     </p>
                   </div>
@@ -135,26 +135,32 @@ export const AiChatInterface = ({ isCareTeamChat = false }: AiChatInterfaceProps
             </div>
           )}
         </ScrollArea>
-        <div className="flex gap-2 mt-auto">
-          <Textarea
-            placeholder="Ask me anything..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            className="resize-none"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage();
-              }
-            }}
-          />
-          <Button onClick={handleSendMessage} disabled={isLoading}>
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
+        <div className="border-t border-neutral-200 dark:border-neutral-800 p-4 mt-auto">
+          <div className="flex gap-2">
+            <Textarea
+              placeholder="Ask me anything..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="resize-none min-h-[40px] border-neutral-300 dark:border-neutral-700 focus:border-primary"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSendMessage();
+                }
+              }}
+            />
+            <Button 
+              onClick={handleSendMessage} 
+              disabled={isLoading}
+              className="bg-primary hover:bg-primary/90 transition-colors"
+            >
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,6 +65,9 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [page, setPage] = useState(1);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
 
   useEffect(() => {
     if (patientRoomId) {
@@ -71,12 +75,20 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       setSelectedRoomId(patientRoomId);
       if (patientRoomId) {
         fetchRoomMembers(patientRoomId);
+        fetchMessages(patientRoomId, 1);
       }
       if (userRole === 'patient') {
         setShowSidebar(false);
       }
     }
   }, [patientRoomId, userRole, isMobile]);
+
+  useEffect(() => {
+    // Scroll to bottom on new messages
+    if (messagesEndRef.current && !isLoadingMessages) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [localMessages, isLoadingMessages]);
 
   const toggleSidebar = () => {
     if (userRole !== 'patient') {
@@ -135,6 +147,53 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     }
   };
 
+  const fetchMessages = async (roomId: string, pageNum: number) => {
+    if (!roomId) return;
+    
+    try {
+      setIsLoadingMessages(true);
+      console.log(`Fetching messages for room ${roomId}, page ${pageNum}`);
+      
+      const { data, error } = await supabase.rpc('get_room_messages', {
+        p_room_id: roomId,
+        p_limit: 50,
+        p_offset: (pageNum - 1) * 50
+      });
+      
+      if (error) {
+        console.error("Error fetching room messages:", error);
+        throw error;
+      }
+      
+      console.log(`Fetched ${data?.length || 0} messages`);
+      
+      if (pageNum === 1) {
+        setLocalMessages(data || []);
+      } else {
+        setLocalMessages(prev => [...data, ...prev]);
+      }
+      
+      setHasMoreMessages(data && data.length === 50);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      toast({
+        title: "Error",
+        description: "Could not load messages",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingMessages(false);
+    }
+  };
+
+  const loadMoreMessages = () => {
+    if (selectedRoomId && hasMoreMessages && !isLoadingMessages) {
+      const nextPage = page + 1;
+      setPage(nextPage);
+      fetchMessages(selectedRoomId, nextPage);
+    }
+  };
+
   const triggerAiResponse = async (messageText: string, roomId: string) => {
     try {
       setIsAiResponding(true);
@@ -152,6 +211,8 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       }
       
       setIsAiResponding(false);
+      // Refresh messages to show AI response
+      fetchMessages(roomId, 1);
       return data;
     } catch (error) {
       console.error("Error in AI chat:", error);
@@ -173,480 +234,403 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       const filePath = `${user.id}/${crypto.randomUUID()}-${selectedFile.name}`;
       
-      const typingMessage = {
-        id: uuidv4() + "-typing",
-        message: "Processing your file...",
-        created_at: new Date().toISOString(),
-        sender: {
-          id: "00000000-0000-0000-0000-000000000000",
-          first_name: "AI",
-          last_name: "Assistant",
-          role: "aibot"
-        },
-        isTyping: true
-      };
-      
-      setLocalMessages(prev => [...prev, typingMessage]);
-      setUploadProgress(30);
-      
-      const { data: storageData, error: storageError } = await supabase.storage
-        .from('patient_medical_reports')
+      // Upload file to storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('chat_attachments')
         .upload(filePath, selectedFile, {
           cacheControl: '3600',
           upsert: false
         });
       
-      if (storageError) throw storageError;
-      setUploadProgress(60);
-      
-      const { data: recordData, error: recordError } = await supabase
-        .from('patient_medical_reports')
-        .insert({
-          patient_id: user.id,
-          file_name: selectedFile.name,
-          file_path: filePath,
-          file_type: selectedFile.type,
-          file_size: selectedFile.size
-        })
-        .select('id')
-        .single();
-      
-      if (recordError) throw recordError;
-      setUploadProgress(80);
-      
-      const { data: messageData, error: messageError } = await supabase.rpc('send_room_message', {
-        p_room_id: selectedRoomId,
-        p_message: `Uploaded medical report: ${selectedFile.name}`,
-        p_is_system_message: false
-      });
-      
-      if (messageError) throw messageError;
-      setUploadProgress(90);
-      
-      setLocalMessages(prev => prev.filter(msg => !msg.isTyping));
-      setUploadProgress(100);
-      
-      const { data: aiResponse } = await supabase.functions.invoke('care-team-ai-chat', {
-        body: {
-          roomId: selectedRoomId,
-          message: `[FILE_UPLOAD_SUCCESS] ${selectedFile.name}`
-        }
-      });
-      
-      setSelectedFile(null);
-      
-      queryClient.invalidateQueries({ 
-        queryKey: ["room_messages", selectedRoomId] 
-      });
-      
-      toast({
-        title: "File uploaded successfully",
-        description: "Your medical report has been uploaded and shared with your care team.",
-        duration: 5000,
-      });
-      
-    } catch (error) {
-      console.error("Error uploading file:", error);
-      
-      if (selectedRoomId) {
-        supabase.functions.invoke('care-team-ai-chat', {
-          body: {
-            roomId: selectedRoomId,
-            message: `[FILE_UPLOAD_ERROR] ${selectedFile.name}`
-          }
+      if (uploadError) {
+        console.error("Error uploading file:", uploadError);
+        toast({
+          title: "Upload Failed",
+          description: "Could not upload file. Please try again.",
+          variant: "destructive"
         });
+        
+        // Notify the AI of the error
+        await triggerAiResponse(`[FILE_UPLOAD_ERROR]${selectedFile.name}`, selectedRoomId);
+        setIsUploading(false);
+        setUploadProgress(0);
+        setSelectedFile(null);
+        return;
       }
       
-      setLocalMessages(prev => prev.filter(msg => !msg.isTyping));
+      setUploadProgress(70);
+      
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('chat_attachments')
+        .getPublicUrl(filePath);
+      
+      // Send message with file link
+      const { data: messageData, error: messageError } = await supabase.rpc('send_room_message', {
+        p_room_id: selectedRoomId,
+        p_message: `[FILE] ${selectedFile.name} - ${publicUrl}`,
+        p_is_system_message: false,
+        p_is_ai_message: false
+      });
+      
+      if (messageError) {
+        console.error("Error sending file message:", messageError);
+        toast({
+          title: "Message Error",
+          description: "File uploaded but couldn't send message. Please try again.",
+          variant: "destructive"
+        });
+        setIsUploading(false);
+        setUploadProgress(0);
+        setSelectedFile(null);
+        return;
+      }
+      
+      setUploadProgress(100);
+      
+      // Refresh messages to show the file message
+      fetchMessages(selectedRoomId, 1);
+      
+      // Notify the AI of successful upload
+      await triggerAiResponse(`[FILE_UPLOAD_SUCCESS]${selectedFile.name}`, selectedRoomId);
       
       toast({
-        title: "Error uploading file",
-        description: "There was a problem uploading your medical report. Please try again.",
-        variant: "destructive",
-        duration: 5000,
+        title: "File Uploaded",
+        description: "Your file has been uploaded and shared with the care team.",
+      });
+    } catch (error) {
+      console.error("Error in file upload:", error);
+      toast({
+        title: "Upload Error",
+        description: "An unexpected error occurred. Please try again.",
+        variant: "destructive"
       });
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
+      setSelectedFile(null);
     }
   };
 
+  const handleRoomSelect = (roomId: string) => {
+    setSelectedRoomId(roomId);
+    setPage(1);
+    setLocalMessages([]);
+    fetchRoomMembers(roomId);
+    fetchMessages(roomId, 1);
+  };
+
   const handleSendMessage = async () => {
+    if (!newMessage.trim() && !selectedFile) return;
+    
     if (selectedFile) {
       await handleFileUpload();
       return;
     }
     
-    if (!newMessage.trim() || !selectedRoomId || !user?.id) return;
+    if (!selectedRoomId) return;
     
     try {
-      const tempMessage = {
-        id: uuidv4(),
-        message: newMessage,
-        created_at: new Date().toISOString(),
-        sender: {
-          id: user.id,
-          first_name: user.user_metadata?.first_name || (userRole === "doctor" ? "Doctor" : "Provider"),
-          last_name: user.user_metadata?.last_name || "",
-          role: userRole
-        }
-      };
+      const optimisticId = uuidv4();
       
-      setLocalMessages(prev => [...prev, tempMessage]);
+      // Add optimistic message
+      setLocalMessages(prev => [...prev, {
+        id: optimisticId,
+        message: newMessage,
+        sender_id: user?.id,
+        sender_name: 'You', // Temporary name
+        created_at: new Date().toISOString(),
+        is_system_message: false,
+        is_ai_message: false
+      }]);
       
       const { data, error } = await supabase.rpc('send_room_message', {
         p_room_id: selectedRoomId,
-        p_message: newMessage
+        p_message: newMessage,
+        p_is_system_message: false,
+        p_is_ai_message: false
       });
       
-      if (error) throw error;
-      
-      const sentMessage = newMessage;
-      setNewMessage("");
-      
-      if (userRole === 'patient') {
-        const typingMessage = {
-          id: uuidv4() + "-typing",
-          message: "AI Assistant is typing...",
-          created_at: new Date().toISOString(),
-          sender: {
-            id: "00000000-0000-0000-0000-000000000000",
-            first_name: "AI",
-            last_name: "Assistant",
-            role: "aibot"
-          },
-          isTyping: true
-        };
+      if (error) {
+        console.error("Error sending message:", error);
+        // Remove the optimistic message
+        setLocalMessages(prev => prev.filter(msg => msg.id !== optimisticId));
         
-        setLocalMessages(prev => [...prev, typingMessage]);
-        
-        await triggerAiResponse(sentMessage, selectedRoomId);
-        
-        setLocalMessages(prev => prev.filter(msg => !msg.isTyping));
+        toast({
+          title: "Message Error",
+          description: "Couldn't send message. Please try again.",
+          variant: "destructive"
+        });
+        return;
       }
       
-      queryClient.invalidateQueries({ 
-        queryKey: ["room_messages", selectedRoomId] 
-      });
+      // Replace optimistic message with real one
+      fetchMessages(selectedRoomId, 1);
+      
+      // Trigger AI response
+      await triggerAiResponse(newMessage, selectedRoomId);
+      
     } catch (error) {
-      console.error("Error sending message:", error);
+      console.error("Error in send message:", error);
       toast({
-        title: "Error sending message",
-        description: "Please try again",
+        title: "Message Error",
+        description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
+    } finally {
+      setNewMessage(""); // Clear input regardless of success/failure
     }
-  };
-
-  const { data: roomDetails, isLoading: isLoadingRoomDetails } = useQuery({
-    queryKey: ["room_details", selectedRoomId],
-    queryFn: async () => {
-      if (!selectedRoomId) return null;
-      
-      try {
-        console.log("Fetching details for room:", selectedRoomId);
-        const { data, error } = await supabase
-          .from('chat_rooms')
-          .select(`
-            id,
-            name,
-            description,
-            patient_id,
-            profiles:patient_id(
-              first_name,
-              last_name
-            )
-          `)
-          .eq('id', selectedRoomId)
-          .single();
-          
-        if (error) {
-          console.error("Error fetching room details:", error);
-          throw error;
-        }
-        
-        console.log("Room details found:", data);
-        return data;
-      } catch (error) {
-        console.error("Error fetching room details:", error);
-        return null;
-      }
-    },
-    enabled: !!selectedRoomId
-  });
-
-  const { data: careTeamInfo, isLoading: isLoadingCareTeam } = useQuery<CareTeamInfo | null>({
-    queryKey: ["care_team_info", roomDetails?.patient_id],
-    queryFn: async () => {
-      if (!roomDetails?.patient_id) return null;
-      
-      try {
-        const { data, error } = await supabase
-          .from('patient_assignments')
-          .select(`
-            doctor_id,
-            doctor:doctor_id (
-              first_name,
-              last_name
-            ),
-            nutritionist_id,
-            nutritionist:nutritionist_id (
-              first_name,
-              last_name
-            )
-          `)
-          .eq('patient_id', roomDetails.patient_id)
-          .single();
-          
-        if (error && error.code !== 'PGRST116') {
-          console.error("Error fetching patient assignments:", error);
-          throw error;
-        }
-        
-        if (!data) return null;
-        
-        let doctorData: DoctorData | null = null;
-        let nutritionistData: NutritionistData | null = null;
-        
-        if (data.doctor && typeof data.doctor === 'object') {
-          doctorData = {
-            first_name: (data.doctor as any).first_name || null,
-            last_name: (data.doctor as any).last_name || null
-          };
-        }
-        
-        if (data.nutritionist && typeof data.nutritionist === 'object') {
-          nutritionistData = {
-            first_name: (data.nutritionist as any).first_name || null,
-            last_name: (data.nutritionist as any).last_name || null
-          };
-        }
-        
-        const result: CareTeamInfo = {
-          doctor_id: data.doctor_id,
-          nutritionist_id: data.nutritionist_id,
-          doctor: doctorData,
-          nutritionist: nutritionistData
-        };
-        
-        return result;
-      } catch (error) {
-        console.error("Error fetching care team info:", error);
-        return null;
-      }
-    },
-    enabled: !!roomDetails?.patient_id
-  });
-
-  const showChatOnly = (isMobile && selectedRoomId && !showSidebar) || userRole === 'patient';
-  const showSidebarOnly = isMobile && showSidebar && userRole !== 'patient';
-  
-  const renderPatientEmptyState = () => {
-    if (patientRoomId === null) {
-      return (
-        <div className="space-y-4">
-          <AlertCircle className="h-12 w-12 mx-auto mb-4 text-amber-500" />
-          <h3 className="font-medium text-xl mb-2">No Care Team Chat Available</h3>
-          <p className="text-muted-foreground">
-            It looks like you don't have a care team assigned yet or your care team chat hasn't been created.
-          </p>
-          <Alert className="mt-6">
-            <AlertTitle>What to do next</AlertTitle>
-            <AlertDescription>
-              Please contact your healthcare provider to ensure you're assigned to a care team.
-            </AlertDescription>
-          </Alert>
-        </div>
-      );
-    } else {
-      return (
-        <div className="space-y-4">
-          <MessageCircle className="h-12 w-12 mx-auto mb-4 text-muted-foreground/60" />
-          <p className="text-lg">Welcome to your care team chat</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            No conversations started yet. Your healthcare team will be with you soon.
-          </p>
-        </div>
-      );
-    }
-  };
-
-  const CareTeamInfo = () => {
-    if (isLoadingCareTeam) {
-      return <Skeleton className="h-4 w-24" />;
-    }
-    
-    return (
-      <TooltipProvider>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="text-xs text-muted-foreground flex items-center cursor-help">
-              <Users className="h-3 w-3 mr-1" />
-              <span>{roomMembers.length} members</span>
-            </div>
-          </TooltipTrigger>
-          <TooltipContent className="p-2 max-w-xs">
-            <div className="space-y-1">
-              <h4 className="text-xs font-semibold mb-1">Care Team</h4>
-              {careTeamInfo?.doctor ? (
-                <div className="flex items-center gap-1">
-                  <UserCircle className="h-3 w-3 text-blue-500" />
-                  <span className="text-xs">Dr. {careTeamInfo.doctor.first_name} {careTeamInfo.doctor.last_name}</span>
-                  <Badge variant="outline" className="text-[10px] px-1 h-4">doctor</Badge>
-                </div>
-              ) : (
-                <div className="text-xs text-muted-foreground">No doctor assigned</div>
-              )}
-              {careTeamInfo?.nutritionist ? (
-                <div className="flex items-center gap-1">
-                  <UserCircle className="h-3 w-3 text-green-500" />
-                  <span className="text-xs">{careTeamInfo.nutritionist.first_name} {careTeamInfo.nutritionist.last_name}</span>
-                  <Badge variant="outline" className="text-[10px] px-1 h-4">nutritionist</Badge>
-                </div>
-              ) : (
-                <div className="text-xs text-muted-foreground">No nutritionist assigned</div>
-              )}
-              <div className="flex items-center gap-1">
-                <UserCircle className="h-3 w-3 text-purple-500" />
-                <span className="text-xs">AI Assistant</span>
-                <Badge variant="outline" className="text-[10px] px-1 h-4">aibot</Badge>
-              </div>
-            </div>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    );
   };
 
   return (
-    <ErrorBoundary>
-      <Card className="h-[calc(100vh-96px)] flex flex-col border shadow-lg">
-        <CardContent className="p-0 flex flex-1 overflow-hidden">
-          {(showSidebar || showSidebarOnly) && userRole !== 'patient' && (
-            <div className={`${showSidebarOnly ? 'w-full' : (isIPad ? 'w-2/5' : 'w-1/4')} border-r h-full bg-background`}>
-              <CareTeamRoomsSelector 
-                selectedRoomId={selectedRoomId} 
-                onSelectRoom={(roomId) => {
-                  setSelectedRoomId(roomId);
-                  if (roomId) {
-                    fetchRoomMembers(roomId);
-                  }
-                  if (isMobile) {
-                    setShowSidebar(false);
-                  }
-                }} 
-              />
-            </div>
+    <div className="h-full flex overflow-hidden rounded-md border border-neutral-200 dark:border-neutral-800 shadow-sm">
+      {/* Room sidebar */}
+      {showSidebar && (
+        <div className="w-72 border-r border-neutral-200 dark:border-neutral-800 flex flex-col">
+          <div className="p-3 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+            <h3 className="font-medium text-sm">Care Team Chats</h3>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              onClick={toggleSidebar}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            <CareTeamRoomsSelector
+              onRoomSelect={handleRoomSelect}
+              selectedRoomId={selectedRoomId}
+            />
+          </div>
+        </div>
+      )}
+      
+      {/* Chat area */}
+      <div className="flex-1 flex flex-col h-full">
+        {/* Chat header */}
+        <div className="p-3 border-b border-neutral-200 dark:border-neutral-800 flex items-center">
+          {!showSidebar && userRole !== 'patient' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 mr-2"
+              onClick={toggleSidebar}
+            >
+              <Menu className="h-4 w-4" />
+            </Button>
           )}
           
-          {(!showSidebarOnly) && (
-            <div className="flex-1 flex flex-col h-full relative">
-              {selectedRoomId ? (
-                <>
-                  <div className="p-3 bg-muted/40 border-b flex items-center gap-3">
-                    {(isMobile || isIPad) && !showSidebar && userRole !== 'patient' && (
-                      <Button variant="ghost" size="icon" onClick={toggleSidebar} className="mr-1">
-                        <Menu className="h-5 w-5" />
-                      </Button>
-                    )}
-                    
-                    <Avatar className="h-9 w-9">
-                      <AvatarFallback className="bg-primary/10 text-primary">
-                        {roomDetails?.name?.substring(0, 2).toUpperCase() || "CT"}
+          <div className="flex items-center">
+            {selectedRoomId ? (
+              <>
+                <div className="flex -space-x-2 mr-3">
+                  {roomMembers.slice(0, 3).map(member => (
+                    <Avatar key={member.id} className="h-8 w-8 border-2 border-background">
+                      <AvatarFallback>
+                        {`${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
                       </AvatarFallback>
                     </Avatar>
-                    
-                    <div className="flex-1">
-                      <div className="font-medium">
-                        {isLoadingRoomDetails ? (
-                          <Skeleton className="h-5 w-40" />
-                        ) : (
-                          roomDetails?.name || 'Care Team Chat'
-                        )}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        <CareTeamInfo />
-                      </div>
-                    </div>
-                    
+                  ))}
+                </div>
+                <div>
+                  <h3 className="font-medium text-sm">
+                    Care Team
+                    {roomMembers.length > 3 && 
+                      <span className="text-muted-foreground text-xs ml-1">
+                        (+{roomMembers.length - 3} more)
+                      </span>
+                    }
+                  </h3>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Users className="h-3 w-3" />
+                          <span>
+                            {roomMembers.filter(m => m.role === 'doctor').length} Doctor
+                            {roomMembers.filter(m => m.role === 'nutritionist').length > 0 && 
+                              `, ${roomMembers.filter(m => m.role === 'nutritionist').length} Nutritionist`
+                            }
+                          </span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <div className="text-xs">
+                          {roomMembers.map(member => (
+                            <div key={member.id}>
+                              {member.first_name} {member.last_name} ({member.role})
+                            </div>
+                          ))}
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center">
+                <UserCircle className="h-8 w-8 mr-2 text-muted-foreground" />
+                <div>
+                  <h3 className="font-medium text-sm">Care Team Chat</h3>
+                  <p className="text-xs text-muted-foreground">Select a conversation</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Messages area */}
+        <div className="flex-1 overflow-hidden flex flex-col">
+          {selectedRoomId ? (
+            <>
+              <ScrollArea className="flex-1 p-4">
+                {hasMoreMessages && !isLoadingMessages && (
+                  <div className="flex justify-center mb-4">
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      className="ml-auto"
-                      onClick={() => {
-                        const doctorText = careTeamInfo?.doctor 
-                          ? `Dr. ${careTeamInfo.doctor.first_name} ${careTeamInfo.doctor.last_name}` 
-                          : "No doctor assigned";
-                          
-                        const nutritionistText = careTeamInfo?.nutritionist 
-                          ? `${careTeamInfo.nutritionist.first_name} ${careTeamInfo.nutritionist.last_name}` 
-                          : "No nutritionist assigned";
-                        
-                        toast({
-                          title: "Care Team Members",
-                          description: `Doctor: ${doctorText}\nNutritionist: ${nutritionistText}\nAI Assistant`,
-                          duration: 5000,
-                        });
-                      }}
+                      onClick={loadMoreMessages}
+                      className="text-xs text-muted-foreground hover:text-foreground"
                     >
-                      <Users className="h-4 w-4 mr-1" />
-                      Members
+                      Load more messages
                     </Button>
                   </div>
-                  
-                  <div className="flex-1 flex flex-col h-full bg-[#f0f2f5] dark:bg-slate-900 overflow-hidden">
-                    {isLoadingMembers ? (
-                      <div className="flex-1 space-y-4 p-4">
-                        {[...Array(4)].map((_, i) => (
-                          <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
-                            <Skeleton className={`h-16 w-3/4 rounded-lg ${i % 2 === 0 ? 'bg-primary/5' : 'bg-muted'}`} />
-                          </div>
-                        ))}
+                )}
+                
+                {isLoadingMessages && page === 1 ? (
+                  <div className="flex flex-col space-y-4">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="flex items-start gap-2">
+                        <Skeleton className="h-8 w-8 rounded-full" />
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-40" />
+                          <Skeleton className="h-16 w-72" />
+                        </div>
                       </div>
-                    ) : (
-                      <ChatMessagesList
-                        roomId={selectedRoomId}
-                        localMessages={localMessages}
-                        careTeamMembers={roomMembers}
-                        useRoomMessages={true}
-                      />
-                    )}
-                    
-                    <div className="p-3 bg-background border-t">
-                      <ChatInput
-                        value={newMessage}
-                        onChange={setNewMessage}
-                        onSend={handleSendMessage}
-                        placeholder={isAiResponding ? "AI Assistant is typing..." : "Type a message or upload a report..."}
-                        disabled={!selectedRoomId || isLoadingMembers || isAiResponding}
-                        onFileSelect={handleFileSelect}
-                        isUploading={isUploading}
-                        uploadProgress={uploadProgress}
-                      />
-                    </div>
+                    ))}
                   </div>
-                </>
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                  <div className="text-center p-6 max-w-md mx-auto">
-                    {userRole === 'patient' ? (
-                      renderPatientEmptyState()
-                    ) : (
-                      <>
-                        <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/60" />
-                        <p className="text-lg">Select a care team chat</p>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Choose a room from the sidebar to start chatting
-                        </p>
-                      </>
-                    )}
+                ) : localMessages.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm">
+                    <MessageCircle className="h-12 w-12 mb-2 opacity-20" />
+                    <p>No messages yet</p>
+                    <p className="text-xs">Start a conversation with your care team</p>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="space-y-4">
+                    {localMessages.map((message, i) => {
+                      const isCurrentUser = message.sender_id === user?.id;
+                      const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
+                      
+                      return (
+                        <div 
+                          key={message.id} 
+                          className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div className="flex items-start gap-2 max-w-[80%]">
+                            {!isCurrentUser && !message.is_system_message && (
+                              <Avatar className="h-8 w-8">
+                                {isAi ? (
+                                  <AvatarFallback className="bg-purple-100 text-purple-800">
+                                    AI
+                                  </AvatarFallback>
+                                ) : (
+                                  <AvatarFallback>
+                                    {message.sender_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
+                                  </AvatarFallback>
+                                )}
+                              </Avatar>
+                            )}
+                            
+                            <div className={`space-y-1 ${isCurrentUser ? 'order-first' : ''}`}>
+                              {!isCurrentUser && !message.is_system_message && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs font-medium">
+                                    {isAi ? 'AI Assistant' : message.sender_name}
+                                  </span>
+                                  {message.sender_role && (
+                                    <Badge variant="outline" className="text-[10px] py-0 px-1">
+                                      {message.sender_role}
+                                    </Badge>
+                                  )}
+                                </div>
+                              )}
+                              
+                              <div 
+                                className={`p-3 rounded-lg ${
+                                  message.is_system_message 
+                                    ? 'bg-muted text-muted-foreground text-xs italic' 
+                                    : isCurrentUser
+                                      ? 'bg-primary text-primary-foreground'
+                                      : isAi
+                                        ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800'
+                                        : 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700'
+                                }`}
+                              >
+                                {message.message.startsWith('[FILE]') ? (
+                                  <div>
+                                    <div className="flex items-center gap-2 text-xs">
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file">
+                                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                      </svg>
+                                      <a 
+                                        href={message.message.split(' - ')[1]} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="underline"
+                                      >
+                                        {message.message.split(' - ')[0].replace('[FILE] ', '')}
+                                      </a>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                                )}
+                                <p className="text-[10px] opacity-70 mt-1">
+                                  {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </ScrollArea>
+              
+              {/* Input area */}
+              <div className="p-3 border-t border-neutral-200 dark:border-neutral-800">
+                <ChatInput
+                  value={newMessage}
+                  onChange={setNewMessage}
+                  onSend={handleSendMessage}
+                  onFileSelect={handleFileSelect}
+                  selectedFile={selectedFile}
+                  onClearFile={() => setSelectedFile(null)}
+                  isLoading={isUploading || isAiResponding}
+                  uploadProgress={uploadProgress}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center p-4">
+              <div className="text-center space-y-2">
+                <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground opacity-20" />
+                <h3 className="font-medium">No conversation selected</h3>
+                <p className="text-sm text-muted-foreground">
+                  {userRole === 'patient'
+                    ? "Connect with your care team to discuss your health"
+                    : "Select a care team chat from the sidebar"}
+                </p>
+              </div>
             </div>
           )}
-        </CardContent>
-      </Card>
-    </ErrorBoundary>
+        </div>
+      </div>
+    </div>
   );
 };
