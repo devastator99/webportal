@@ -54,12 +54,9 @@ export const ChatMessagesList = ({
       setIsLoading(!append);
       setLoadingMore(append);
 
-      // Convert userRole to a database-compatible string
-      // Using a helper function to map user roles to valid database values
       const getDatabaseRole = (role: string | null): string => {
         if (!role) return 'patient'; // Default to patient if role is null
         
-        // Use a simple string mapping instead of trying to cast to UserRole
         switch(role) {
           case 'patient': return 'patient';
           case 'doctor': return 'doctor';
@@ -75,7 +72,6 @@ export const ChatMessagesList = ({
       const validRole = getDatabaseRole(userRole);
       console.log(`Fetching messages for room ${roomId} with role: ${validRole}`);
       
-      // Call the get_room_messages RPC with explicit role handling
       const params: GetRoomMessagesParams = {
         p_room_id: roomId,
         p_limit: limit,
