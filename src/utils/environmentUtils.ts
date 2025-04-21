@@ -52,10 +52,7 @@ export const getEnvironmentInfo = (): Record<string, any> => {
  * Returns the appropriate auth redirect URL based on the current environment.
  */
 export const getAuthRedirectUrl = (path: string = '/auth'): string => {
-  const baseUrl = window.location.origin;
-  const fullUrl = `${baseUrl}${path}`;
-  console.log(`Generated redirect URL: ${fullUrl}`);
-  return fullUrl;
+  return getSiteUrl() + path;
 };
 
 /**

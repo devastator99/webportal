@@ -1,5 +1,6 @@
+
 import './App.css';
-import { BrowserRouter as Router } from 'react-router-dom';
+import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from './contexts/ThemeProvider';
 import { AuthProvider } from './contexts/AuthContext';
@@ -14,6 +15,35 @@ import { MobileNavigation } from './components/mobile/MobileNavigation';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { NotificationBell } from './components/notifications/NotificationBell';
 import { AuthDebugMonitor } from './components/auth/AuthDebugMonitor';
+
+// Component to handle password reset URL hash fragments
+function PasswordResetRedirect() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  useEffect(() => {
+    // Check for Supabase password reset hash format (#access_token=...&refresh_token=...&type=recovery)
+    const hash = location.hash;
+    
+    if (hash && hash.includes('type=recovery')) {
+      console.log('Detected password reset hash fragment, redirecting to /update-password');
+      
+      // Redirect to update-password page with the hash parameters as query params
+      const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
+      const queryParams = new URLSearchParams();
+      
+      // Convert hash params to query params for easier processing
+      hashParams.forEach((value, key) => {
+        queryParams.append(key, value);
+      });
+      
+      // Redirect to update-password with the query params
+      navigate(`/update-password?${queryParams.toString()}`, { replace: true });
+    }
+  }, [location.hash, navigate]);
+  
+  return null;
+}
 
 function App() {
   // Initialize state with current feature flags
@@ -58,6 +88,7 @@ function App() {
         <div className="app-container">
           <MobileStatusBar />
           <Router>
+            <PasswordResetRedirect />
             <AuthProvider>
               <Navbar />
               <div className="mobile-content">

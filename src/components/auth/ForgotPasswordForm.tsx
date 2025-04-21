@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { getAuthRedirectUrl } from "@/utils/environmentUtils";
+import { getSiteUrl } from "@/utils/environmentUtils";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -32,21 +32,25 @@ export const ForgotPasswordForm = ({ onClose }: ForgotPasswordFormProps) => {
     setLoading(true);
     try {
       // Create the absolute URL with the exact path
-      const origin = window.location.origin;
-      const redirectTo = `${origin}/update-password`;
+      const siteOrigin = getSiteUrl();
+      const redirectUrl = `${siteOrigin}/update-password`;
       
-      console.log("Sending reset password with redirect to:", redirectTo);
+      console.log("Sending reset password with redirect to:", redirectUrl);
       
-      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
-        redirectTo,
+      // Use our edge function instead of direct auth call
+      const response = await supabase.functions.invoke('password-reset-helper', {
+        body: {
+          email: values.email,
+          redirectUrl: redirectUrl
+        }
       });
       
-      if (error) {
-        console.error("Reset password error:", error);
+      if (response.error) {
+        console.error("Reset password error:", response.error);
         toast({
           variant: "destructive",
           title: "Reset Failed",
-          description: error.message,
+          description: response.error.message || "Failed to send reset email",
         });
       } else {
         toast({
