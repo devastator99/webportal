@@ -22,17 +22,21 @@ interface Message {
 }
 
 interface ChatMessagesListProps {
-  roomId: string;
-  localMessages: any[];
+  roomId?: string;
+  localMessages?: any[];
   careTeamMembers?: any[];
   useRoomMessages?: boolean;
+  selectedUserId?: string;
+  offlineMode?: boolean;
 }
 
 export const ChatMessagesList = ({ 
   roomId, 
   localMessages = [], 
   careTeamMembers = [],
-  useRoomMessages = false 
+  useRoomMessages = false,
+  selectedUserId,
+  offlineMode = false
 }: ChatMessagesListProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
@@ -70,8 +74,9 @@ export const ChatMessagesList = ({
       if (countError) {
         console.error("Error fetching message count:", countError);
       } else {
-        setTotalMessageCount(countData || 0);
-        setHasMore((offset + limit) < countData);
+        const count = typeof countData === 'number' ? countData : 0;
+        setTotalMessageCount(count);
+        setHasMore((offset + limit) < count);
       }
 
       // Sort messages by creation date ascending and add to existing messages if appending

@@ -148,6 +148,11 @@ BEGIN
 END;
 $$;
 
+-- Enable RPC calls from JavaScript client
+ALTER FUNCTION public.get_room_messages(UUID, INTEGER, INTEGER) STABLE;
+ALTER FUNCTION public.get_room_messages_count(UUID) STABLE;
+ALTER FUNCTION public.request_chat_summary(UUID, INTEGER) STABLE;
+
 -- Grant execute permissions
 GRANT EXECUTE ON FUNCTION public.get_room_messages TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_room_messages_count TO authenticated;
