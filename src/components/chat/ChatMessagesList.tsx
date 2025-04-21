@@ -67,14 +67,15 @@ export const ChatMessagesList = ({
       }
 
       // Get total count for pagination
-      const { data: countData, error: countError } = await supabase.rpc('get_room_messages_count', {
-        p_room_id: roomId
-      });
+      const { data: countData, error: countError } = await supabase
+        .from('room_messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('room_id', roomId);
 
       if (countError) {
         console.error("Error fetching message count:", countError);
       } else {
-        const count = typeof countData === 'number' ? countData : 0;
+        const count = countData?.count || 0;
         setTotalMessageCount(count);
         setHasMore((offset + limit) < count);
       }
@@ -136,16 +137,11 @@ export const ChatMessagesList = ({
     if (!roomId || !['doctor', 'nutritionist'].includes(userRole || '')) return;
 
     try {
-      const { data, error } = await supabase.rpc('request_chat_summary', {
-        p_room_id: roomId
+      const { data, error } = await supabase.functions.invoke('generate-chat-summary', {
+        body: { roomId }
       });
 
       if (error) throw error;
-
-      // Call the edge function to generate a summary
-      await supabase.functions.invoke('generate-chat-summary', {
-        body: { roomId }
-      });
 
       toast({
         title: "Summary requested",
