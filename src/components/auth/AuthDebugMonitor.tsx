@@ -6,6 +6,8 @@ import { getEnvironmentInfo } from "@/utils/environmentUtils";
 /**
  * This component provides auth debugging information in dev mode
  * It will only render in development mode and helps diagnose auth issues
+ * 
+ * Button is removed to hide debug toggle from UI but debug info is still collected.
  */
 export const AuthDebugMonitor = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -74,47 +76,7 @@ export const AuthDebugMonitor = () => {
     };
   }, []);
   
-  // Always return the debug monitor in case it's needed
-  return (
-    <div className="fixed bottom-4 left-4 z-50">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className={`${isDev ? 'bg-yellow-500' : 'bg-blue-500'} text-black px-2 py-1 text-xs rounded`}
-      >
-        {isOpen ? 'Hide Auth Debug' : 'Auth Debug'}
-      </button>
-      
-      {isOpen && (
-        <div className="bg-black/90 text-white p-4 mt-2 rounded max-w-sm overflow-auto max-h-[70vh]">
-          <h3 className="font-bold mb-2">Auth Debug Info</h3>
-          <pre className="text-xs whitespace-pre-wrap">
-            {JSON.stringify(debugInfo, null, 2)}
-          </pre>
-          
-          <div className="mt-4 pt-2 border-t border-gray-700">
-            <h4 className="font-bold text-xs mb-1">Debug Actions</h4>
-            <button 
-              onClick={() => {
-                console.log("Auth debug refresh triggered");
-                window.location.reload();
-              }}
-              className="bg-blue-600 text-white text-xs px-2 py-1 rounded mr-2"
-            >
-              Refresh Page
-            </button>
-            <button
-              onClick={() => {
-                console.log("Auth debug clear session triggered");
-                supabase.auth.signOut();
-                window.location.reload();
-              }}
-              className="bg-red-600 text-white text-xs px-2 py-1 rounded"
-            >
-              Clear Session
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  // Debug info is collected but no UI button to toggle display
+  return null;
 };
+
