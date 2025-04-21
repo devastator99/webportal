@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Home, User, Settings, MessageCircle, FileText, Activity } from 'lucide-react';
@@ -94,6 +95,7 @@ export const MobileNavigation: React.FC = () => {
     }
   ];
   
+  // Create separate navigation items for patients that don't include chat
   const patientNavItems = [
     ...baseNavItems,
     {
@@ -101,12 +103,6 @@ export const MobileNavigation: React.FC = () => {
       icon: FileText,
       action: handlePrescriptionsClick,
       active: location.pathname === '/prescriptions'
-    },
-    {
-      label: 'Chat',
-      icon: MessageCircle,
-      action: handleChatClick,
-      active: chatOpen || location.pathname === '/chat'
     },
     {
       label: 'Habits',

@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
@@ -18,14 +17,18 @@ const ChatPage = () => {
   const [loadingRoom, setLoadingRoom] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
 
-  // Redirect if not logged in
+  // Redirect if not logged in or if user is a patient
   useEffect(() => {
-    if (!isLoading && !user) {
-      navigate('/');
+    if (!isLoading) {
+      if (!user) {
+        navigate('/');
+      } else if (userRole === 'patient') {
+        navigate('/dashboard');
+      }
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, navigate, userRole]);
   
-  // For patients, get their care team chat room
+  // For patients, get their care team chat room (keeping code but will never execute due to redirect)
   useEffect(() => {
     if (user && userRole === 'patient') {
       const fetchPatientChatRoom = async () => {
@@ -135,7 +138,8 @@ const ChatPage = () => {
     );
   }
 
-  if (!user) return null;
+  // This page should not be accessible to patients, but we'll keep the JSX just in case
+  if (!user || userRole === 'patient') return null;
 
   return (
     <div className="container pt-16 md:pt-20">

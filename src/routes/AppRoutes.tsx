@@ -46,7 +46,7 @@ export const AppRoutes = () => {
   const getDefaultRoute = () => {
     switch (userRole) {
       case "patient":
-        return "/dashboard"; // Updated: Changed from "/chat" to "/dashboard"
+        return "/dashboard";
       case "doctor":
         return "/doctor-dashboard";
       case "administrator":
@@ -87,7 +87,8 @@ export const AppRoutes = () => {
           path="/chat"
           element={
             <ProtectedRoute>
-              <ChatPage />
+              {/* Redirect patients to dashboard if they try to access the chat page directly */}
+              {userRole === 'patient' ? <Navigate to="/dashboard" replace /> : <ChatPage />}
             </ProtectedRoute>
           }
         />
