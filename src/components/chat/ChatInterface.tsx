@@ -476,10 +476,10 @@ export const ChatInterface = ({
               <div className="flex-1 flex flex-col overflow-hidden">
                 <ChatMessagesList
                   selectedUserId={selectedUserId}
-                  groupChat={false}
                   offlineMode={!isOnline}
                   localMessages={localMessages}
-                  includeCareTeamMessages={includeCareTeamMessages}
+                  careTeamMembers={undefined}
+                  useRoomMessages={false}
                 />
                 <ChatInput
                   value={newMessage}
@@ -521,22 +521,21 @@ export const ChatInterface = ({
         {userRole === 'doctor' ? (
           <ChatMessagesList
             selectedUserId={selectedUserId}
-            groupChat={false}
             offlineMode={!isOnline}
             localMessages={localMessages}
-            includeCareTeamMessages={includeCareTeamMessages}
+            careTeamMembers={undefined}
+            useRoomMessages={false}
           />
         ) : (
           <ChatMessagesList
-            groupChat={isGroupChat}
-            careTeamGroup={careTeamGroup}
-            selectedUserId={!isGroupChat ? selectedUserId : null}
+            careTeamMembers={careTeamGroup?.members}
+            useRoomMessages={isGroupChat}
+            roomId={careTeamGroup?.id}
+            selectedUserId={!isGroupChat ? selectedUserId : undefined}
             offlineMode={!isOnline}
             localMessages={localMessages}
-            includeCareTeamMessages={includeCareTeamMessages}
           />
         )}
-        
         <ChatInput
           value={newMessage}
           onChange={setNewMessage}

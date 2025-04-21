@@ -1,5 +1,4 @@
-
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -25,46 +24,51 @@ export const ChatMessagesList = ({
   useRoomMessages = false,
 }: ChatMessagesListProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    async function fetchUserId() {
+      const { data: userData } = await supabase.auth.getUser();
+      if (mounted) setAuthUserId(userData?.user?.id || null);
+    }
+    fetchUserId();
+    return () => { mounted = false; };
+  }, []);
+
   const { data: messages = [], isLoading } = useQuery({
     queryKey: useRoomMessages 
       ? ["room_messages", roomId] 
-      : ["chat_messages", supabase.auth.getUser()?.data?.user?.id, selectedUserId],
+      : ["chat_messages", authUserId, selectedUserId],
     queryFn: async () => {
       try {
         if (useRoomMessages && roomId) {
-          // Fetch room messages
           const { data, error } = await supabase.rpc('get_room_messages', {
             p_room_id: roomId,
             p_limit: 100,
             p_offset: 0
           });
-          
           if (error) throw error;
           return data || [];
-        } else if (selectedUserId) {
-          // Fetch direct chat messages
+        } else if (selectedUserId && authUserId) {
           const { data, error } = await supabase.rpc('get_user_chat_messages', { 
-            p_user_id: supabase.auth.getUser()?.data?.user?.id || '',
+            p_user_id: authUserId,
             p_other_user_id: selectedUserId,
             p_limit: 100,
             p_offset: 0
           });
-          
           if (error) throw error;
           return data || [];
         }
-        
         return [];
       } catch (error) {
         console.error("Error fetching messages:", error);
         return [];
       }
     },
-    enabled: (useRoomMessages && !!roomId) || (!useRoomMessages && !!selectedUserId),
+    enabled: (useRoomMessages && !!roomId) || (!!selectedUserId && !!authUserId),
   });
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -78,7 +82,6 @@ export const ChatMessagesList = ({
   };
 
   const getFileName = (message: string) => {
-    // Extract filename from message like "Uploaded medical report: filename.pdf"
     const parts = message.split(":");
     if (parts.length > 1) {
       return parts[1].trim();
@@ -88,7 +91,6 @@ export const ChatMessagesList = ({
 
   const downloadFile = async (fileName: string) => {
     try {
-      // Get the latest medical report with this name
       const { data, error } = await supabase
         .from('patient_medical_reports')
         .select('file_path')
@@ -100,14 +102,12 @@ export const ChatMessagesList = ({
       if (error) throw error;
       
       if (data?.file_path) {
-        // Get a signed URL for the file
         const { data: signedUrlData, error: signedUrlError } = await supabase.storage
           .from('patient_medical_reports')
           .createSignedUrl(data.file_path, 60);
         
         if (signedUrlError) throw signedUrlError;
         
-        // Open the signed URL in a new tab
         window.open(signedUrlData.signedUrl, '_blank');
       }
     } catch (error) {
@@ -124,7 +124,6 @@ export const ChatMessagesList = ({
     );
   }
 
-  // Combine server messages with local messages and sort by created_at
   const allMessages = [...messages, ...localMessages].sort((a, b) => {
     return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
   });
@@ -158,12 +157,11 @@ export const ChatMessagesList = ({
       ) : (
         <div className="space-y-4">
           {allMessages.map((message, index) => {
-            const isCurrentUser = message.sender?.id === supabase.auth.getUser()?.data?.user?.id;
+            const isCurrentUser = message.sender?.id === authUserId;
             const isAI = message.is_ai_message || message.sender?.id === '00000000-0000-0000-0000-000000000000' || message.sender?.role === 'aibot';
             const isSystemMessage = message.is_system_message;
             const isTyping = message.isTyping;
             
-            // Find sender from careTeamMembers if available
             const senderMember = careTeamMembers.find(m => m.id === message.sender?.id || m.id === message.sender_id);
             const senderRole = senderMember?.role || message.sender?.role || 'unknown';
             const senderName = senderMember ? 
@@ -176,7 +174,6 @@ export const ChatMessagesList = ({
               senderMember?.last_name || message.sender?.last_name
             );
             
-            // Check if this is a file message
             const isFile = isFileMessage(message.message);
             const fileName = isFile ? getFileName(message.message) : '';
             

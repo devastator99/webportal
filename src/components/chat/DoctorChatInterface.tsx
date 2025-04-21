@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -279,8 +278,8 @@ export const DoctorChatInterface = () => {
                 <ChatMessagesList
                   selectedUserId={selectedPatientId}
                   localMessages={localMessages}
-                  groupChat={true}
-                  includeCareTeamMessages={true}
+                  careTeamMembers={undefined}
+                  useRoomMessages={false}
                 />
                 <ChatInput
                   value={newMessage}

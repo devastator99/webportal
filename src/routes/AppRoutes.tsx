@@ -1,4 +1,3 @@
-
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { lazy, Suspense } from "react";
@@ -16,7 +15,6 @@ const DoctorDashboard = lazy(() => import("@/pages/doctor/DoctorDashboard"));
 const AppointmentBooking = lazy(() => import("@/pages/AppointmentBooking"));
 const PatientProfile = lazy(() => import("@/pages/patient/PatientProfile"));
 const UploadPage = lazy(() => import("@/pages/patient/UploadPage"));
-const NotFound = lazy(() => import("@/pages/NotFound"));
 const RegistrationPage = lazy(() => import("@/pages/RegistrationPage"));
 const VerifyEmail = lazy(() => import("@/pages/VerifyEmail"));
 const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));

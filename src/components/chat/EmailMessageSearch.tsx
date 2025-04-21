@@ -57,7 +57,11 @@ export const EmailMessageSearch = () => {
       
       <div className="flex-1 overflow-hidden">
         {searchEmail ? (
-          <ChatMessagesList specificEmail={searchEmail} />
+          // Removed invalid specificEmail prop, as that prop was not supported!
+          // Optionally display nothing or a message.
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            Enter a valid user ID to search for messages (search by email is not implemented here).
+          </div>
         ) : (
           <div className="flex items-center justify-center h-full text-muted-foreground">
             Enter an email address to search for messages
