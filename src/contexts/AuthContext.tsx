@@ -55,15 +55,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const search = window.location.search;
       const hash = window.location.hash;
       
-      // Check for recovery in URL patterns
+      console.log("[AuthContext] URL check:", { pathname, search, hash });
+      
+      // Enhanced check for recovery in URL patterns
       const isRecovery = 
         (pathname === '/update-password' && search.includes('type=recovery')) ||
         (pathname === '/update-password' && hash.includes('type=recovery')) ||
-        (hash.includes('access_token') && hash.includes('type=recovery'));
+        (hash.includes('access_token') && hash.includes('type=recovery')) ||
+        // Check for reset links that may not have the pathname yet
+        (hash.includes('type=recovery'));
       
       if (isRecovery) {
         console.log("[AuthContext] Password reset flow detected");
         isPasswordRecoveryFlow.current = true;
+        
+        // If we only have a hash with recovery info but we're not on the update-password page,
+        // redirect there
+        if (pathname !== '/update-password' && hash.includes('type=recovery')) {
+          console.log("[AuthContext] Redirecting to update-password page");
+          navigate('/update-password' + search + hash, { replace: true });
+        }
+        
         setIsLoading(false);
         return true;
       }
@@ -71,7 +83,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
     
     checkForRecoveryMode();
-  }, [location.pathname, location.search, location.hash]);
+  }, [location.pathname, location.search, location.hash, navigate]);
 
   const resetInactivityTimer = () => {
     if (inactivityTimerRef.current) {

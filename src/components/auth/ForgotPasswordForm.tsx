@@ -30,9 +30,10 @@ export const ForgotPasswordForm = ({ onClose }: ForgotPasswordFormProps) => {
   const onSubmit = async (values: { email: string }) => {
     setLoading(true);
     try {
-      // Create the absolute URL for password reset
-      // Include both type=recovery and hash parameters to ensure proper routing
+      // Create the absolute URL for password reset with explicit path
       const baseUrl = window.location.origin;
+      
+      // Use a fully qualified path to ensure proper routing
       const redirectTo = `${baseUrl}/update-password?type=recovery`;
       
       console.log("Sending reset password with redirect to:", redirectTo);

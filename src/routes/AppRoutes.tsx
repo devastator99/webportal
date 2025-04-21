@@ -20,6 +20,13 @@ import UpdatePassword from '@/pages/UpdatePassword';
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 
 export const AppRoutes = () => {
+  const location = useLocation(); // Add this line to access location
+  
+  // For debugging purposes
+  console.log("AppRoutes rendering, path:", location.pathname, 
+    "search:", location.search, 
+    "hash:", location.hash);
+    
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <Routes>
