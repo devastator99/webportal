@@ -58,3 +58,10 @@ export const getAuthRedirectUrl = (path: string = '/auth'): string => {
   return fullUrl;
 };
 
+/**
+ * Returns the site URL to use for Supabase redirects.
+ * This ensures consistency across all auth operations.
+ */
+export const getSiteUrl = (): string => {
+  return window.location.origin;
+};

@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { getAuthRedirectUrl } from "@/utils/environmentUtils";
 
 const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -30,11 +31,9 @@ export const ForgotPasswordForm = ({ onClose }: ForgotPasswordFormProps) => {
   const onSubmit = async (values: { email: string }) => {
     setLoading(true);
     try {
-      // Create the absolute URL for password reset with explicit path
-      const baseUrl = window.location.origin;
-      
-      // Use a fully qualified path to ensure proper routing
-      const redirectTo = `${baseUrl}/update-password?type=recovery`;
+      // Create the absolute URL with the exact path
+      const origin = window.location.origin;
+      const redirectTo = `${origin}/update-password`;
       
       console.log("Sending reset password with redirect to:", redirectTo);
       

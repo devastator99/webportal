@@ -39,6 +39,16 @@ const UpdatePassword = () => {
     },
   });
 
+  // Log URL information for debugging
+  useEffect(() => {
+    console.log("UpdatePassword page loaded with:", {
+      url: window.location.href,
+      pathname: window.location.pathname,
+      search: window.location.search,
+      hash: window.location.hash
+    });
+  }, []);
+
   // Process the token when component mounts
   useEffect(() => {
     const processRecoveryToken = async () => {
@@ -48,7 +58,8 @@ const UpdatePassword = () => {
       setError(null);
       
       try {
-        console.log("Processing recovery flow, current URL details:");
+        console.log("[UpdatePassword] Processing recovery flow, current URL details:");
+        console.log("- Full URL:", window.location.href);
         console.log("- Pathname:", location.pathname);
         console.log("- Search params:", location.search);
         console.log("- Hash:", location.hash);
@@ -60,66 +71,68 @@ const UpdatePassword = () => {
         // Get tokens from all possible sources
         const token = searchParams.get('token');
         const type = searchParams.get('type') || hashParams.get('type');
-        const accessToken = hashParams.get('access_token');
+        const accessToken = searchParams.get('access_token') || hashParams.get('access_token');
+        const refreshToken = searchParams.get('refresh_token') || hashParams.get('refresh_token');
         
-        console.log("Token details:", {
+        console.log("[UpdatePassword] Token details:", {
           token: token ? "exists" : "missing",
           type,
           accessToken: accessToken ? "exists" : "missing",
+          refreshToken: refreshToken ? "exists" : "missing"
         });
         
         if (type === 'recovery') {
-          console.log("Recovery type confirmed, processing token");
+          console.log("[UpdatePassword] Recovery type confirmed, processing token");
           
           // Case 1: Recovery token in query parameters
           if (token) {
-            console.log("Using recovery token from query parameters");
+            console.log("[UpdatePassword] Using recovery token from query parameters");
             const { data, error } = await supabase.auth.verifyOtp({
               token_hash: token,
               type: 'recovery',
             });
             
             if (error) {
-              console.error("Error verifying OTP:", error);
+              console.error("[UpdatePassword] Error verifying OTP:", error);
               setError(`Password reset link is invalid or has expired. Please request a new one. (${error.message})`);
             } else {
-              console.log("OTP verification successful");
+              console.log("[UpdatePassword] OTP verification successful");
               setTokenProcessed(true);
             }
           }
-          // Case 2: Access token in hash format
+          // Case 2: Access token in query parameters or hash format
           else if (accessToken) {
-            console.log("Using access token from hash");
+            console.log("[UpdatePassword] Using access token from URL");
             try {
               const { data, error } = await supabase.auth.setSession({
                 access_token: accessToken,
-                refresh_token: '', // Not needed for password reset
+                refresh_token: refreshToken || '',
               });
               
               if (error) {
-                console.error("Error setting session:", error);
+                console.error("[UpdatePassword] Error setting session:", error);
                 setError(`Unable to verify your session. Please request a new reset link. (${error.message})`);
               } else {
-                console.log("Session set successfully");
+                console.log("[UpdatePassword] Session set successfully");
                 setTokenProcessed(true);
               }
             } catch (error: any) {
-              console.error("Exception in setSession:", error);
+              console.error("[UpdatePassword] Exception in setSession:", error);
               setError(`Error processing your session: ${error.message}`);
             }
           }
           // Case 3: Type=recovery in URL but no token (maybe handled internally by Supabase SDK)
           else {
-            console.log("Recovery type found but no explicit token, checking session");
+            console.log("[UpdatePassword] Recovery type found but no explicit token, checking session");
             
             // See if we already have a valid session from Supabase's auto-processing
             const { data: { session } } = await supabase.auth.getSession();
             
             if (session) {
-              console.log("Found valid session, can proceed with password reset");
+              console.log("[UpdatePassword] Found valid session, can proceed with password reset");
               setTokenProcessed(true);
             } else {
-              console.error("Recovery type in URL but no valid session found");
+              console.error("[UpdatePassword] Recovery type in URL but no valid session found");
               setError("Unable to verify your password reset request. Please try requesting a new reset link.");
             }
           }
@@ -128,15 +141,15 @@ const UpdatePassword = () => {
           const { data: { session } } = await supabase.auth.getSession();
           
           if (session) {
-            console.log("User already has a valid session");
+            console.log("[UpdatePassword] User already has a valid session");
             setTokenProcessed(true);
           } else {
-            console.error("No valid token or session found");
+            console.error("[UpdatePassword] No valid token or session found");
             setError("Invalid or missing password reset link. Please request a new password reset link.");
           }
         }
       } catch (error: any) {
-        console.error("Exception in processRecoveryToken:", error);
+        console.error("[UpdatePassword] Exception in processRecoveryToken:", error);
         setError(`An error occurred while processing your password reset link: ${error.message}`);
       } finally {
         setLoading(false);
@@ -151,16 +164,16 @@ const UpdatePassword = () => {
     setError(null);
     
     try {
-      console.log("Updating password");
+      console.log("[UpdatePassword] Updating password");
       const { error } = await supabase.auth.updateUser({ 
         password: values.password 
       });
 
       if (error) {
-        console.error("Error updating password:", error);
+        console.error("[UpdatePassword] Error updating password:", error);
         setError(`Failed to update password: ${error.message}`);
       } else {
-        console.log("Password updated successfully");
+        console.log("[UpdatePassword] Password updated successfully");
         setSuccess(true);
         toast('Password updated successfully', {
           description: 'You can now log in with your new password',
@@ -172,7 +185,7 @@ const UpdatePassword = () => {
         }, 3000);
       }
     } catch (e: any) {
-      console.error("Exception in update password:", e);
+      console.error("[UpdatePassword] Exception in update password:", e);
       setError(`An unexpected error occurred: ${e.message}`);
     } finally {
       setLoading(false);
