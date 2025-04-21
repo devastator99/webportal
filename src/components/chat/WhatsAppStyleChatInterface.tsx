@@ -68,6 +68,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   const [page, setPage] = useState(1);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [roomError, setRoomError] = useState<string | null>(null);
 
   useEffect(() => {
     if (patientRoomId) {
@@ -133,6 +134,21 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         };
       });
       
+      // Ensure AI bot is in the members list
+      const hasAiBot = formattedMembers.some(m => 
+        m.id === '00000000-0000-0000-0000-000000000000' || m.role === 'aibot'
+      );
+      
+      if (!hasAiBot) {
+        formattedMembers.push({
+          id: '00000000-0000-0000-0000-000000000000',
+          first_name: 'AI',
+          last_name: 'Assistant',
+          role: 'aibot'
+        });
+      }
+      
+      console.log("Room members retrieved:", formattedMembers);
       setRoomMembers(formattedMembers);
     } catch (error) {
       console.error("Error fetching room members:", error);
@@ -151,6 +167,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     
     try {
       setIsLoadingMessages(true);
+      setRoomError(null);
       console.log(`Fetching messages for room ${roomId}, page ${pageNum}`);
       
       const { data, error } = await supabase.rpc('get_room_messages', {
@@ -161,10 +178,11 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       if (error) {
         console.error("Error fetching room messages:", error);
+        setRoomError(`Failed to load messages: ${error.message}`);
         throw error;
       }
       
-      console.log(`Fetched ${data?.length || 0} messages`);
+      console.log(`Fetched ${data?.length || 0} messages:`, data);
       
       if (pageNum === 1) {
         setLocalMessages(data || []);
@@ -175,6 +193,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       setHasMoreMessages(data && data.length === 50);
     } catch (error) {
       console.error("Error fetching messages:", error);
+      setRoomError("Could not load messages. Please try again.");
       toast({
         title: "Error",
         description: "Could not load messages",
@@ -212,8 +231,13 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       console.log("AI response received:", data);
       
-      setIsAiResponding(false);
-      fetchMessages(roomId, 1);
+      // Refresh messages to show the AI response
+      // Add a small delay to ensure the message is saved in the database
+      setTimeout(() => {
+        fetchMessages(roomId, 1);
+        setIsAiResponding(false);
+      }, 1000);
+      
       return data;
     } catch (error) {
       console.error("Error in AI chat:", error);
@@ -290,6 +314,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       setUploadProgress(100);
       
+      // Refresh the messages to show the file message
       fetchMessages(selectedRoomId, 1);
       
       await triggerAiResponse(`[FILE_UPLOAD_SUCCESS]${selectedFile.name}`, selectedRoomId);
@@ -313,11 +338,15 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   };
 
   const handleRoomSelect = (roomId: string) => {
-    setSelectedRoomId(roomId);
-    setPage(1);
-    setLocalMessages([]);
-    fetchRoomMembers(roomId);
-    fetchMessages(roomId, 1);
+    console.log("Room selected:", roomId);
+    if (roomId !== selectedRoomId) {
+      setSelectedRoomId(roomId);
+      setPage(1);
+      setLocalMessages([]);
+      setRoomError(null);
+      fetchRoomMembers(roomId);
+      fetchMessages(roomId, 1);
+    }
   };
 
   const handleSendMessage = async () => {
@@ -328,21 +357,35 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       return;
     }
     
-    if (!selectedRoomId) return;
+    if (!selectedRoomId) {
+      toast({
+        title: "No Room Selected",
+        description: "Please select a conversation to send a message.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     try {
       const optimisticId = uuidv4();
+      const currentTime = new Date().toISOString();
       
+      // Add optimistic message
       setLocalMessages(prev => [...prev, {
         id: optimisticId,
-        message: newMessage,
         sender_id: user?.id,
         sender_name: 'You', // Temporary name
-        created_at: new Date().toISOString(),
+        sender_role: userRole,
+        message: newMessage,
+        created_at: currentTime,
         is_system_message: false,
         is_ai_message: false
       }]);
       
+      // Clear message input immediately for better UX
+      setNewMessage("");
+      
+      // Send the message
       const { data, error } = await supabase.rpc('send_room_message', {
         p_room_id: selectedRoomId,
         p_message: newMessage,
@@ -352,6 +395,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       if (error) {
         console.error("Error sending message:", error);
+        // Remove optimistic message on error
         setLocalMessages(prev => prev.filter(msg => msg.id !== optimisticId));
         
         toast({
@@ -362,8 +406,12 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         return;
       }
       
+      console.log("Message sent successfully, ID:", data);
+      
+      // Refresh messages to get the properly formatted message
       fetchMessages(selectedRoomId, 1);
       
+      // Trigger AI response for patients or if AI is mentioned
       if (userRole === 'patient') {
         console.log("Patient sent message, triggering AI response");
         await triggerAiResponse(newMessage, selectedRoomId);
@@ -380,8 +428,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive"
       });
-    } finally {
-      setNewMessage("");
     }
   };
 
@@ -484,8 +530,16 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         <div className="flex-1 overflow-hidden flex flex-col">
           {selectedRoomId ? (
             <>
+              {roomError && (
+                <Alert variant="destructive" className="m-3">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{roomError}</AlertDescription>
+                </Alert>
+              )}
+              
               <ScrollArea className="flex-1 p-4">
-                {hasMoreMessages && !isLoadingMessages && (
+                {hasMoreMessages && !isLoadingMessages && localMessages.length > 0 && (
                   <div className="flex justify-center mb-4">
                     <Button 
                       variant="ghost" 
@@ -597,6 +651,15 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                       );
                     })}
                     <div ref={messagesEndRef} />
+                  </div>
+                )}
+                
+                {isAiResponding && (
+                  <div className="flex items-center justify-center py-2">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background px-3 py-1.5 rounded-full border">
+                      <Loader className="h-3 w-3 animate-spin" />
+                      <span>AI is responding...</span>
+                    </div>
                   </div>
                 )}
               </ScrollArea>
