@@ -1,4 +1,5 @@
-import { useAuth } from "@/contexts/AuthContext";
+
+import { useAuth, UserRole } from "@/contexts/AuthContext";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { Separator } from "@/components/ui/separator";

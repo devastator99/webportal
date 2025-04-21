@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,7 +6,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { toast } from "sonner";
 
-type UserRole = "doctor" | "patient" | "administrator" | "nutritionist" | "reception";
+// Export the UserRole type so it can be imported elsewhere
+export type UserRole = "doctor" | "patient" | "administrator" | "nutritionist" | "reception";
 
 type AuthContextType = {
   user: User | null;
