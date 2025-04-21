@@ -1,3 +1,4 @@
+
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { lazy, Suspense } from "react";
@@ -45,7 +46,7 @@ export const AppRoutes = () => {
   const getDefaultRoute = () => {
     switch (userRole) {
       case "patient":
-        return "/chat"; // Ensure patients go to chat screen by default
+        return "/dashboard"; // Updated: Changed from "/chat" to "/dashboard"
       case "doctor":
         return "/doctor-dashboard";
       case "administrator":

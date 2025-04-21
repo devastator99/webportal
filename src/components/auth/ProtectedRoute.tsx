@@ -20,15 +20,15 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // Redirect patients specifically to the correct pages
   useEffect(() => {
     if (!isLoading && user && userRole === 'patient') {
-      // If the patient is on any route they shouldn't access, redirect to chat
-      const allowedPatientRoutes = ['/chat', '/prescriptions', '/habits', '/dashboard'];
+      // If the patient is on any route they shouldn't access, redirect to dashboard
+      const allowedPatientRoutes = ['/dashboard', '/prescriptions', '/habits', '/chat'];
       const isOnAllowedRoute = allowedPatientRoutes.some(route => 
         location.pathname === route || location.pathname.startsWith(`${route}/`)
       );
       
       if (!isOnAllowedRoute) {
-        console.log("ProtectedRoute: Patient detected on restricted page, redirecting to chat");
-        navigate('/chat', { replace: true });
+        console.log("ProtectedRoute: Patient detected on restricted page, redirecting to dashboard");
+        navigate('/dashboard', { replace: true });
       }
     }
   }, [user, userRole, isLoading, navigate, location.pathname]);

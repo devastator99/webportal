@@ -19,7 +19,7 @@ const Auth = () => {
   useEffect(() => {
     if (!isLoading && user) {
       if (userRole === 'patient') {
-        navigate("/chat");
+        navigate("/dashboard");
       } else if (userRole) {
         navigate("/dashboard");
       }
