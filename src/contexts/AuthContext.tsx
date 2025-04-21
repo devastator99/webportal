@@ -9,6 +9,15 @@ import { toast } from "sonner";
 // Export the UserRole type so it can be imported elsewhere
 export type UserRole = "doctor" | "patient" | "administrator" | "nutritionist" | "reception";
 
+// Create enum-like constants for better type safety
+export const UserRole = {
+  doctor: "doctor" as UserRole,
+  patient: "patient" as UserRole,
+  administrator: "administrator" as UserRole,
+  nutritionist: "nutritionist" as UserRole,
+  reception: "reception" as UserRole
+};
+
 type AuthContextType = {
   user: User | null;
   session: Session | null;

@@ -1,12 +1,12 @@
 
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { Spinner } from '@/components/ui/spinner';
 
 interface RoleProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles: string[];
+  allowedRoles: UserRole[];
   redirectTo?: string;
 }
 
