@@ -17,11 +17,19 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Redirect patients specifically to /chat immediately when component loads
+  // Redirect patients specifically to the correct pages
   useEffect(() => {
-    if (!isLoading && user && userRole === 'patient' && location.pathname !== '/chat') {
-      console.log("ProtectedRoute: Patient detected on non-chat page, redirecting to chat");
-      navigate('/chat', { replace: true });
+    if (!isLoading && user && userRole === 'patient') {
+      // If the patient is on any route they shouldn't access, redirect to chat
+      const allowedPatientRoutes = ['/chat', '/prescriptions', '/habits'];
+      const isOnAllowedRoute = allowedPatientRoutes.some(route => 
+        location.pathname === route || location.pathname.startsWith(`${route}/`)
+      );
+      
+      if (!isOnAllowedRoute) {
+        console.log("ProtectedRoute: Patient detected on restricted page, redirecting to chat");
+        navigate('/chat', { replace: true });
+      }
     }
   }, [user, userRole, isLoading, navigate, location.pathname]);
   
@@ -39,12 +47,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   if (!user) {
     console.log("ProtectedRoute: No user found, redirecting to auth page");
     return <Navigate to={redirectTo} />;
-  }
-  
-  // Check again for patient on non-chat page (immediate redirect)
-  if (userRole === 'patient' && location.pathname !== '/chat') {
-    console.log("ProtectedRoute: Patient on non-chat page, immediate redirect");
-    return <Navigate to="/chat" replace />;
   }
   
   console.log("ProtectedRoute: User authenticated, rendering children");

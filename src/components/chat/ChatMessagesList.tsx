@@ -67,17 +67,17 @@ export const ChatMessagesList = ({
       }
 
       // Get total count for pagination
-      const { data: countData, error: countError } = await supabase
+      const { count, error: countError } = await supabase
         .from('room_messages')
-        .select('id', { count: 'exact', head: true })
+        .select('*', { count: 'exact', head: true })
         .eq('room_id', roomId);
 
       if (countError) {
         console.error("Error fetching message count:", countError);
       } else {
-        const count = countData?.count || 0;
-        setTotalMessageCount(count);
-        setHasMore((offset + limit) < count);
+        const messageCount = count || 0;
+        setTotalMessageCount(messageCount);
+        setHasMore((offset + limit) < messageCount);
       }
 
       // Sort messages by creation date ascending and add to existing messages if appending
