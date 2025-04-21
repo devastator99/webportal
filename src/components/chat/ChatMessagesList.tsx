@@ -15,6 +15,7 @@ interface ChatMessagesListProps {
   careTeamMembers?: any[];
   localMessages?: any[];
   useRoomMessages?: boolean;
+  offlineMode?: boolean;
 }
 
 export const ChatMessagesList = ({
@@ -23,6 +24,7 @@ export const ChatMessagesList = ({
   careTeamMembers = [],
   localMessages = [],
   useRoomMessages = false,
+  offlineMode = false,
 }: ChatMessagesListProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [authUserId, setAuthUserId] = useState<string | null>(null);
@@ -159,7 +161,11 @@ export const ChatMessagesList = ({
     <ScrollArea className="flex-1 px-4 py-4">
       {allMessages.length === 0 ? (
         <div className="h-full flex items-center justify-center text-muted-foreground">
-          <p>No messages yet. Start a conversation!</p>
+          {offlineMode ? (
+            <p>You're offline. Your messages will appear here when you're back online.</p>
+          ) : (
+            <p>No messages yet. Start a conversation!</p>
+          )}
         </div>
       ) : (
         <div className="space-y-4">

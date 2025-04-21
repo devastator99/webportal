@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -24,6 +25,7 @@ type UserProfile = {
 interface CareTeamGroup {
   groupName: string;
   members: UserProfile[];
+  id?: string; // Added id property to the interface
 }
 
 interface ChatInterfaceProps {
@@ -476,9 +478,8 @@ export const ChatInterface = ({
               <div className="flex-1 flex flex-col overflow-hidden">
                 <ChatMessagesList
                   selectedUserId={selectedUserId}
-                  offlineMode={!isOnline}
                   localMessages={localMessages}
-                  careTeamMembers={undefined}
+                  offlineMode={!isOnline}
                   useRoomMessages={false}
                 />
                 <ChatInput
@@ -521,9 +522,8 @@ export const ChatInterface = ({
         {userRole === 'doctor' ? (
           <ChatMessagesList
             selectedUserId={selectedUserId}
-            offlineMode={!isOnline}
             localMessages={localMessages}
-            careTeamMembers={undefined}
+            offlineMode={!isOnline}
             useRoomMessages={false}
           />
         ) : (
@@ -532,8 +532,8 @@ export const ChatInterface = ({
             useRoomMessages={isGroupChat}
             roomId={careTeamGroup?.id}
             selectedUserId={!isGroupChat ? selectedUserId : undefined}
-            offlineMode={!isOnline}
             localMessages={localMessages}
+            offlineMode={!isOnline}
           />
         )}
         <ChatInput
