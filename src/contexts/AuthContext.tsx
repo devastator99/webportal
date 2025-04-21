@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
@@ -50,7 +49,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isPasswordRecoveryFlow = useRef(false);
   const hasRedirectedUser = useRef(false);
 
-  // Check if we're in a password reset flow based on URL
   useEffect(() => {
     const checkForRecoveryMode = () => {
       const pathname = window.location.pathname;
@@ -59,20 +57,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       console.log("[AuthContext] URL check:", { pathname, search, hash });
       
-      // Enhanced check for recovery in URL patterns
       const isRecovery = 
         (pathname === '/update-password' && search.includes('type=recovery')) ||
         (pathname === '/update-password' && hash.includes('type=recovery')) ||
         (hash.includes('access_token') && hash.includes('type=recovery')) ||
-        // Check for reset links that may not have the pathname yet
         (hash.includes('type=recovery'));
       
       if (isRecovery) {
         console.log("[AuthContext] Password reset flow detected");
         isPasswordRecoveryFlow.current = true;
         
-        // If we only have a hash with recovery info but we're not on the update-password page,
-        // redirect there
         if (pathname !== '/update-password' && hash.includes('type=recovery')) {
           console.log("[AuthContext] Redirecting to update-password page");
           navigate('/update-password' + search + hash, { replace: true });
@@ -88,10 +82,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [location.pathname, location.search, location.hash, navigate]);
 
   useEffect(() => {
-    /**
-     * Detect Supabase reset links with hash fragments (e.g. /#access_token=...&type=recovery)
-     * and programmatically redirect to /update-password so the router loads the intended page.
-     */
     const hash = window.location.hash || "";
     const pathname = window.location.pathname;
     const search = window.location.search;
@@ -107,25 +97,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isSupabaseResetLink &&
       pathname !== "/update-password"
     ) {
-      // Build the redirect target, preserving all tokens if available
-      // We append them as query for easier parsing
       const params = new URLSearchParams();
       params.set("type", "recovery");
       if (accessToken) params.set("access_token", accessToken);
       if (hashParams.get("refresh_token")) params.set("refresh_token", hashParams.get("refresh_token"));
-      // Optionally pass the full hash, in case any other provider adds params
-      // const fullHash = hash.replace(/^#/, "");
-
       const redirectUrl = `/update-password?${params.toString()}`;
 
       console.log("[AuthProvider] Detected Supabase password-reset link via hash. Redirecting to:", redirectUrl);
 
-      // Remove hash to prevent re-processing
       window.location.replace(redirectUrl);
     }
-
-    // No dependencies (run only on mount)
-    // eslint-disable-next-line
   }, []);
 
   const resetInactivityTimer = () => {
@@ -176,16 +157,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  // This function now handles redirection based on user role
   const redirectUserBasedOnRole = (role: UserRole | null) => {
-    if (hasRedirectedUser.current) return; // Prevent multiple redirects
+    if (hasRedirectedUser.current) return;
     
     if (role === 'patient') {
       console.log("[AuthContext] Patient detected, redirecting to chat");
       navigate('/chat', { replace: true });
       hasRedirectedUser.current = true;
     } else if (role) {
-      // For other roles, redirect to their respective dashboards
       const targetRoute = 
         role === 'doctor' ? '/doctor-dashboard' :
         role === 'nutritionist' ? '/nutritionist-dashboard' :
@@ -202,34 +181,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     console.log("[AuthContext] Auth state changed:", currentSession ? "session exists" : "no session");
     
     try {
-      // Skip normal auth flow if we're in password recovery mode
       if (isPasswordRecoveryFlow.current) {
         console.log("[AuthContext] In password recovery mode, skipping normal auth flow");
         setIsLoading(false);
         return;
       }
       
-      // Always update loading state first
       setIsLoading(true);
-      // Reset the redirect flag on auth state change
       hasRedirectedUser.current = false;
       
       if (currentSession?.user) {
         setUser(currentSession.user);
         setSession(currentSession);
         
-        // Clear any existing role fetch timeout
         if (roleFetchTimeoutRef.current) {
           clearTimeout(roleFetchTimeoutRef.current);
         }
         
-        // Debounce role fetching
         roleFetchTimeoutRef.current = setTimeout(async () => {
           const role = await fetchUserRole(currentSession.user.id);
           if (role) {
             setUserRole(role);
             setAuthError(null);
-            // Immediately redirect based on role after it's fetched
             redirectUserBasedOnRole(role);
           }
           setIsLoading(false);
@@ -256,27 +229,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     console.log("[AuthContext] Setting up auth subscription");
     
-    // The order of operations is critical for reliable auth behavior
-    
-    // 1. First set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
       console.log("[AuthContext] Auth state change event:", _event);
       
-      // Important: Use a setTimeout to avoid Supabase deadlocks
-      // that can occur when calling Supabase methods inside the callback
       setTimeout(() => {
         handleAuthStateChange(newSession);
       }, 0);
     });
 
-    // 2. Then check for existing session
     const initializeAuth = async () => {
       if (isInitialMount.current) {
         isInitialMount.current = false;
         setIsLoading(true);
         
         try {
-          // Check if we're in a password recovery flow
           const inPasswordFlow = isPasswordRecoveryFlow.current;
           
           if (inPasswordFlow) {
@@ -285,17 +251,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             return;
           }
           
-          // Get the current session state
           const { data: { session: currentSession } } = await supabase.auth.getSession();
           console.log("[AuthContext] Initial session check:", currentSession ? "session exists" : "no session");
           
-          // Don't attempt recovery if we're in a password reset flow
           if (!currentSession && !recoveryAttempted.current && !inPasswordFlow) {
             recoveryAttempted.current = true;
             console.log("[AuthContext] Attempting one-time session recovery");
             
             try {
-              // Force a refresh of the auth state to recover from any potential issues
               const { data, error } = await supabase.auth.refreshSession();
               
               if (error) {
@@ -313,7 +276,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               setIsLoading(false);
             }
           } else {
-            // Either we have a session, recovery was already attempted, or we're in recovery flow
             if (inPasswordFlow) {
               console.log("[AuthContext] In password recovery flow, skipping session recovery");
               setIsLoading(false);
@@ -377,7 +339,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
   }, [user]);
 
-  // Add a useEffect to handle role-based redirection when role changes
   useEffect(() => {
     if (userRole && !isLoading && !isPasswordRecoveryFlow.current) {
       redirectUserBasedOnRole(userRole);
