@@ -57,7 +57,6 @@ serve(async (req: Request) => {
     let aiResponse = "I'm your healthcare AI assistant. I can help answer questions about your prescriptions, health plan, or medical advice. However, please consult with your healthcare providers for specific medical guidance.";
     
     console.log(`Processing message from care team room ${roomId} for patient ${patientId}`);
-    console.log(`Message content: ${message}`);
     
     // Handle file upload messages
     if (message.startsWith('[FILE_UPLOAD_SUCCESS]')) {
@@ -179,6 +178,9 @@ serve(async (req: Request) => {
         } else {
           aiResponse = "Here are your upcoming appointments:\n\n";
           
+          // Sort appointments by date
+          appointments.sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+          
           for (const appt of appointments) {
             const apptDate = new Date(appt.scheduled_at);
             aiResponse += `• ${apptDate.toLocaleDateString()} at ${apptDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}\n`;
@@ -191,11 +193,77 @@ serve(async (req: Request) => {
         aiResponse = "I'm having trouble accessing your appointment information right now. Please try again later.";
       }
     }
+    // Handle medical reports or test results queries
+    else if (message.toLowerCase().includes('medical report') || 
+             message.toLowerCase().includes('test result') ||
+             message.toLowerCase().includes('lab result') ||
+             message.toLowerCase().includes('reports')) {
+      
+      try {
+        // Get medical reports
+        const { data: reports, error: reportsError } = await supabaseClient
+          .rpc('get_patient_medical_reports', {
+            p_patient_id: patientId
+          });
+          
+        if (reportsError || !reports || reports.length === 0) {
+          aiResponse = "I don't see any medical reports in your records yet. You can upload reports through this chat using the paperclip icon, or ask your doctor to add them during your next appointment.";
+        } else {
+          aiResponse = "Here are your most recent medical reports:\n\n";
+          
+          // Sort reports by date, newest first
+          reports.sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime());
+          
+          // Show last 5 reports
+          const recentReports = reports.slice(0, 5);
+          for (const report of recentReports) {
+            aiResponse += `• ${report.file_name} (uploaded on ${new Date(report.uploaded_at).toLocaleDateString()})\n`;
+          }
+          
+          if (reports.length > 5) {
+            aiResponse += `\nPlus ${reports.length - 5} more reports available in your health records.`;
+          }
+          
+          aiResponse += "\n\nYou can view these reports in the Medical Reports section of your app.";
+        }
+      } catch (error) {
+        console.error("Error fetching medical reports:", error);
+        aiResponse = "I'm having trouble accessing your medical reports right now. Please try again later.";
+      }
+    }
+    // Handle doctor/care team-related queries
+    else if (message.toLowerCase().includes('my doctor') || 
+             message.toLowerCase().includes('my nutritionist') ||
+             message.toLowerCase().includes('care team') ||
+             message.toLowerCase().includes('who is taking care')) {
+      
+      try {
+        // Get care team information
+        const { data: careTeam, error: careTeamError } = await supabaseClient
+          .rpc('get_patient_care_team', {
+            p_patient_id: patientId
+          });
+          
+        if (careTeamError || !careTeam || careTeam.length === 0) {
+          aiResponse = "You don't have any care team members assigned yet. An administrator can help assign a doctor and nutritionist to your care team.";
+        } else {
+          aiResponse = "Your care team consists of:\n\n";
+          
+          careTeam.forEach(member => {
+            aiResponse += `• ${member.first_name} ${member.last_name} (${member.role})\n`;
+          });
+          
+          aiResponse += "\nYou can communicate with your care team members through this chat.";
+        }
+      } catch (error) {
+        console.error("Error fetching care team data:", error);
+        aiResponse = "I'm having trouble accessing your care team information right now. Please try again later.";
+      }
+    }
     // Handle upload related queries
     else if (message.toLowerCase().includes('upload') || 
-             message.toLowerCase().includes('report') ||
-             message.toLowerCase().includes('test result') ||
-             message.toLowerCase().includes('medical record')) {
+             message.toLowerCase().includes('attach') ||
+             message.toLowerCase().includes('send file')) {
       
       aiResponse = "You can upload medical reports and test results directly in this chat. Simply click the paperclip icon in the message input and select your file. I support PDF, DOC, JPEG, and PNG files up to 50MB in size. Your care team will be notified when you upload a report.";
     }
@@ -204,8 +272,6 @@ serve(async (req: Request) => {
       aiResponse = "Hello! I'm your healthcare AI assistant. I can help with information about your prescriptions, health plan, appointments, or general health questions. You can also upload medical reports directly in this chat using the paperclip icon. How can I help you today?";
     } else if (message.toLowerCase().includes('help')) {
       aiResponse = "I can help with:\n• Information about your prescriptions\n• Details of your health plan\n• Viewing your upcoming appointments\n• Answering general health questions\n• Connecting you with your care team\n• Receiving your medical reports and test results\n\nTo upload a report, click the paperclip icon in the message input. What would you like to know about?";
-    } else if (message.toLowerCase().includes('doctor') || message.toLowerCase().includes('care team')) {
-      aiResponse = "Your care team is available to assist you. If you need to schedule an appointment or have specific medical questions, please let your doctor know directly through this chat.";
     } else if (message.toLowerCase().includes('thank')) {
       aiResponse = "You're welcome! I'm here to help you and your care team communicate effectively.";
     } else {
@@ -239,10 +305,12 @@ serve(async (req: Request) => {
       JSON.stringify({ 
         success: true, 
         message: aiResponse,
-        messageId: messageData.id
+        messageId: messageData?.id,
+        room_id: roomId 
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
+    
   } catch (error) {
     console.error("Error in care-team-ai-chat:", error);
     return new Response(

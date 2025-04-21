@@ -1,4 +1,5 @@
-import { parse as dateFnsParse, format as dateFnsFormat } from "date-fns";
+
+import { parse as dateFnsParse, format as dateFnsFormat, compareAsc } from "date-fns";
 
 /**
  * Parses a time string into a Date object
@@ -118,4 +119,38 @@ export const formatChatMessageTimestamp = (date: Date | string | null): string =
     console.error('Error formatting chat message timestamp:', error);
     return '';
   }
+};
+
+/**
+ * Compares two dates (either Date objects or ISO strings) for sorting
+ * @param dateA First date to compare
+ * @param dateB Second date to compare
+ * @returns Negative if dateA is earlier, positive if dateA is later, 0 if equal
+ */
+export const compareDates = (dateA: Date | string, dateB: Date | string): number => {
+  const dateObjA = typeof dateA === 'string' ? new Date(dateA) : dateA;
+  const dateObjB = typeof dateB === 'string' ? new Date(dateB) : dateB;
+  
+  return compareAsc(dateObjA, dateObjB);
+};
+
+/**
+ * Sorts an array of objects by their date property
+ * @param array Array to sort
+ * @param dateField Name of the date field
+ * @param ascending Sort order (true for ascending, false for descending)
+ * @returns Sorted array
+ */
+export const sortByDate = <T>(
+  array: T[], 
+  dateField: keyof T, 
+  ascending: boolean = true
+): T[] => {
+  return [...array].sort((a, b) => {
+    const dateA = a[dateField] as unknown as Date | string;
+    const dateB = b[dateField] as unknown as Date | string;
+    
+    const comparison = compareDates(dateA, dateB);
+    return ascending ? comparison : -comparison;
+  });
 };
