@@ -85,6 +85,47 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     checkForRecoveryMode();
   }, [location.pathname, location.search, location.hash, navigate]);
 
+  useEffect(() => {
+    /**
+     * Detect Supabase reset links with hash fragments (e.g. /#access_token=...&type=recovery)
+     * and programmatically redirect to /update-password so the router loads the intended page.
+     */
+    const hash = window.location.hash || "";
+    const pathname = window.location.pathname;
+    const search = window.location.search;
+
+    const hashParams = new URLSearchParams(hash.replace(/^#/, ""));
+    const type = hashParams.get("type");
+    const accessToken = hashParams.get("access_token");
+
+    const isSupabaseResetLink =
+      type === "recovery" && typeof accessToken === "string" && !!accessToken;
+
+    if (
+      isSupabaseResetLink &&
+      pathname !== "/update-password"
+    ) {
+      // Build the redirect target, preserving all tokens if available
+      // We append them as query for easier parsing
+      const params = new URLSearchParams();
+      params.set("type", "recovery");
+      if (accessToken) params.set("access_token", accessToken);
+      if (hashParams.get("refresh_token")) params.set("refresh_token", hashParams.get("refresh_token"));
+      // Optionally pass the full hash, in case any other provider adds params
+      // const fullHash = hash.replace(/^#/, "");
+
+      const redirectUrl = `/update-password?${params.toString()}`;
+
+      console.log("[AuthProvider] Detected Supabase password-reset link via hash. Redirecting to:", redirectUrl);
+
+      // Remove hash to prevent re-processing
+      window.location.replace(redirectUrl);
+    }
+
+    // No dependencies (run only on mount)
+    // eslint-disable-next-line
+  }, []);
+
   const resetInactivityTimer = () => {
     if (inactivityTimerRef.current) {
       window.clearTimeout(inactivityTimerRef.current);
