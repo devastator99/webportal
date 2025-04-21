@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,14 +55,10 @@ export const ChatMessagesList = ({
       setIsLoading(!append);
       setLoadingMore(append);
 
-      const getDatabaseRole = (role: string | null): string => {
-        if (!role) return 'patient'; // Default to patient if role is null
-        return role.toLowerCase(); // Simply use lowercase version of role
-      };
-      
-      const validRole = getDatabaseRole(userRole);
+      const validRole = userRole?.toLowerCase() || 'patient';
       console.log(`Fetching messages for room ${roomId} with role: ${validRole}`);
       
+      // Use the updated function name
       const { data, error } = await supabase.rpc('get_room_messages_with_role', {
         p_room_id: roomId,
         p_limit: limit,
@@ -74,6 +71,7 @@ export const ChatMessagesList = ({
         throw error;
       }
 
+      // Check total message count for pagination
       const { count, error: countError } = await supabase
         .from('room_messages')
         .select('*', { count: 'exact', head: true })
@@ -87,14 +85,14 @@ export const ChatMessagesList = ({
         setHasMore((offset + limit) < messageCount);
       }
 
-      const sortedMessages = data.sort((a: Message, b: Message) => 
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
+      // Process the messages
+      const formattedMessages = data || [];
+      console.log(`Received ${formattedMessages.length} messages`);
 
       if (append) {
-        setMessages(prev => [...sortedMessages, ...prev]);
+        setMessages(prev => [...formattedMessages, ...prev]);
       } else {
-        setMessages(sortedMessages);
+        setMessages(formattedMessages);
       }
     } catch (error) {
       console.error("Error in fetchMessages:", error);
@@ -125,7 +123,7 @@ export const ChatMessagesList = ({
     ...messages,
     ...localMessages.filter(m => !messages.some(serverMsg => serverMsg.id === m.id))
   ].sort((a, b) => 
-    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
 
   const handleLoadMore = () => {
@@ -175,7 +173,7 @@ export const ChatMessagesList = ({
     });
     
     return Object.entries(groups)
-      .sort(([dayA], [dayB]) => new Date(dayB).getTime() - new Date(dayA).getTime())
+      .sort(([dayA], [dayB]) => new Date(dayA).getTime() - new Date(dayB).getTime())
       .reduce((acc, [day, messages]) => {
         acc[day] = messages;
         return acc;
@@ -275,59 +273,57 @@ export const ChatMessagesList = ({
             </Badge>
           </div>
           
-          {dayMessages
-            .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-            .map((message: any) => {
-              const isCurrentUser = message.sender_id === user?.id;
-              const isSystem = message.is_system_message;
-              const isAI = message.is_ai_message;
-              
-              return (
-                <div
-                  key={message.id}
-                  className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div className="flex gap-2 max-w-[80%]">
+          {dayMessages.map((message: any) => {
+            const isCurrentUser = message.sender_id === user?.id;
+            const isSystem = message.is_system_message;
+            const isAI = message.is_ai_message;
+            
+            return (
+              <div
+                key={message.id}
+                className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className="flex gap-2 max-w-[80%]">
+                  {!isCurrentUser && !isSystem && (
+                    <Avatar className="h-8 w-8 flex-shrink-0">
+                      <AvatarFallback className={getAvatarColorClass(message.sender_role)}>
+                        {isAI ? <Brain className="h-4 w-4" /> : getAvatarInitials(message.sender_name)}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                  
+                  <div>
                     {!isCurrentUser && !isSystem && (
-                      <Avatar className="h-8 w-8 flex-shrink-0">
-                        <AvatarFallback className={getAvatarColorClass(message.sender_role)}>
-                          {isAI ? <Brain className="h-4 w-4" /> : getAvatarInitials(message.sender_name)}
-                        </AvatarFallback>
-                      </Avatar>
+                      <div className="text-xs font-medium mb-1">
+                        {message.sender_name}
+                        <span className="text-xs text-muted-foreground ml-1">
+                          {message.sender_role}
+                        </span>
+                      </div>
                     )}
                     
-                    <div>
-                      {!isCurrentUser && !isSystem && (
-                        <div className="text-xs font-medium mb-1">
-                          {message.sender_name}
-                          <span className="text-xs text-muted-foreground ml-1">
-                            {message.sender_role}
-                          </span>
-                        </div>
+                    <div
+                      className={`rounded-lg p-3 text-sm relative
+                        ${isSystem 
+                          ? 'bg-blue-100 dark:bg-blue-900/30 text-center mx-auto max-w-md' 
+                          : isCurrentUser
+                          ? 'bg-primary text-primary-foreground' 
+                          : 'bg-muted'}
+                      `}
+                    >
+                      {isAI && (
+                        <Brain className="h-3 w-3 absolute top-2 right-2 text-purple-500" />
                       )}
-                      
-                      <div
-                        className={`rounded-lg p-3 text-sm relative
-                          ${isSystem 
-                            ? 'bg-blue-100 dark:bg-blue-900/30 text-center mx-auto max-w-md' 
-                            : isCurrentUser
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'bg-muted'}
-                        `}
-                      >
-                        {isAI && (
-                          <Brain className="h-3 w-3 absolute top-2 right-2 text-purple-500" />
-                        )}
-                        {message.message}
-                        <div className="text-xs opacity-70 mt-1">
-                          {format(new Date(message.created_at), 'h:mm a')}
-                        </div>
+                      {message.message}
+                      <div className="text-xs opacity-70 mt-1">
+                        {format(new Date(message.created_at), 'h:mm a')}
                       </div>
                     </div>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            );
+          })}
         </div>
       ))}
       <div ref={messagesEndRef} />

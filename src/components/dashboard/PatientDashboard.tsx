@@ -7,33 +7,18 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import { PatientStats } from "./patient/PatientStats";
 import { DashboardHeader } from "./DashboardHeader";
-import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { useIsIPad } from "@/hooks/use-mobile";
 import { 
   Calendar, 
   FileText, 
-  Activity, 
   ArrowRight
 } from "lucide-react";
-import { PatientHealthTips } from "./patient/PatientHealthTips";
 import { MedicalRecordsList } from './patient/MedicalRecordsList';
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
-
-// Loading fallback component
-const LoadingFallback = () => (
-  <div className="space-y-3 p-4">
-    <Skeleton className="h-12 w-full" />
-    <Skeleton className="h-24 w-full" />
-    <Skeleton className="h-12 w-3/4" />
-  </div>
-);
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
@@ -52,6 +37,7 @@ export const PatientDashboard = () => {
         const { data, error } = await supabase.functions.invoke('get-patient-care-team-room', {
           body: { patient_id: user.id }
         });
+        
         if (error) {
           console.error("Failed to get care team chat room:", error);
         } else if (typeof data === "string" && data) {
@@ -230,8 +216,6 @@ export const PatientDashboard = () => {
               </CardFooter>
             </Card>
           )}
-          
-          <PatientHealthTips />
         </div>
       </div>
     </div>

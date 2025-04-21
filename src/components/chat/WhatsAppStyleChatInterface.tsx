@@ -170,10 +170,12 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       setRoomError(null);
       console.log(`Fetching messages for room ${roomId}, page ${pageNum}`);
       
-      const { data, error } = await supabase.rpc('get_room_messages', {
+      // Use the new get_room_messages_with_role function instead
+      const { data, error } = await supabase.rpc('get_room_messages_with_role', {
         p_room_id: roomId,
         p_limit: 50,
-        p_offset: (pageNum - 1) * 50
+        p_offset: (pageNum - 1) * 50,
+        p_user_role: userRole || 'patient'
       });
       
       if (error) {
@@ -184,17 +186,22 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       console.log(`Fetched ${data?.length || 0} messages:`, data);
       
-      if (pageNum === 1) {
-        // For first page, sort newest first
-        setLocalMessages(data?.sort((a: any, b: any) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        ) || []);
+      if (data && data.length > 0) {
+        if (pageNum === 1) {
+          // For first page, replace all messages
+          setLocalMessages(data);
+        } else {
+          // For additional pages, append older messages
+          setLocalMessages(prev => [...prev, ...data]);
+        }
+        setHasMoreMessages(data.length === 50);
       } else {
-        // For additional pages, append older messages at the end
-        setLocalMessages(prev => [...prev, ...data]);
+        if (pageNum === 1) {
+          // If first page is empty, clear messages
+          setLocalMessages([]);
+        }
+        setHasMoreMessages(false);
       }
-      
-      setHasMoreMessages(data && data.length === 50);
     } catch (error) {
       console.error("Error fetching messages:", error);
       setRoomError("Could not load messages. Please try again.");
@@ -375,7 +382,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       const currentTime = new Date().toISOString();
       
       // Add optimistic message
-      setLocalMessages(prev => [...prev, {
+      const optimisticMessage = {
         id: optimisticId,
         sender_id: user?.id,
         sender_name: 'You', // Temporary name
@@ -384,7 +391,9 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         created_at: currentTime,
         is_system_message: false,
         is_ai_message: false
-      }]);
+      };
+      
+      setLocalMessages(prev => [optimisticMessage, ...prev]);
       
       // Clear message input immediately for better UX
       setNewMessage("");
@@ -416,12 +425,13 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       fetchMessages(selectedRoomId, 1);
       
       // Trigger AI response for patients or if AI is mentioned
-      if (userRole === 'patient') {
-        console.log("Patient sent message, triggering AI response");
-        await triggerAiResponse(newMessage, selectedRoomId);
-      } else if (newMessage.toLowerCase().includes('@ai') || 
-          newMessage.toLowerCase().includes('@assistant')) {
-        console.log("Care team member mentioned AI, triggering response");
+      const shouldTriggerAI = 
+        userRole === 'patient' || 
+        newMessage.toLowerCase().includes('@ai') || 
+        newMessage.toLowerCase().includes('@assistant');
+        
+      if (shouldTriggerAI) {
+        console.log("Triggering AI response");
         await triggerAiResponse(newMessage, selectedRoomId);
       }
       
@@ -600,7 +610,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                               </Avatar>
                             )}
                             
-                            <div className={`space-y-1 ${isCurrentUser ? 'order-first' : ''}`}>
+                            <div className={`space-y-1 ${isCurrentUser ? 'order-first mr-2' : 'ml-0'}`}>
                               {!isCurrentUser && !message.is_system_message && (
                                 <div className="flex items-center gap-1">
                                   <span className="text-xs font-medium">
