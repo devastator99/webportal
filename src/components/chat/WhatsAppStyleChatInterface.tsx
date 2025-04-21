@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -483,12 +482,22 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
           )}
           
           {selectedRoomId ? (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-2">
-                  {roomMembers.slice(0, 4).map(member => (
-                    <Avatar key={member.id} className="h-8 w-8 border-2 border-background">
-                      <AvatarFallback className={`${
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <h3 className="font-medium text-sm flex items-center gap-2">
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                  Care Team Members
+                </h3>
+                <span className="text-xs text-muted-foreground">
+                  {roomMembers.length} members
+                </span>
+              </div>
+              
+              <div className="flex flex-wrap gap-2">
+                {roomMembers.map((member) => (
+                  <div key={member.id} className="flex items-center gap-1.5">
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback className={`text-xs ${
                         member.role === 'doctor' ? 'bg-blue-100 text-blue-800' :
                         member.role === 'nutritionist' ? 'bg-green-100 text-green-800' :
                         member.role === 'patient' ? 'bg-orange-100 text-orange-800' :
@@ -499,33 +508,14 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                           `${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
                       </AvatarFallback>
                     </Avatar>
-                  ))}
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-medium text-sm">Care Team Chat</h3>
-                  <div className="flex flex-wrap gap-1 items-center mt-1">
-                    {roomMembers.map((member, index) => (
-                      <div key={member.id} className="flex items-center">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="text-xs">
-                                {member.first_name} {member.last_name}
-                                <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1">
-                                  {member.role}
-                                </Badge>
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>{member.role === 'aibot' ? 'AI Assistant' : `${member.role}: ${member.first_name} ${member.last_name}`}</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                        {index < roomMembers.length - 1 && <span className="mx-1 text-xs text-muted-foreground">•</span>}
-                      </div>
-                    ))}
+                    <span className="text-sm">
+                      {member.first_name} {member.last_name}
+                      <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1">
+                        {member.role}
+                      </Badge>
+                    </span>
                   </div>
-                </div>
+                ))}
               </div>
             </div>
           ) : (
