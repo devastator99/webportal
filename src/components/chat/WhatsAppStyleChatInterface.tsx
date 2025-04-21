@@ -185,9 +185,13 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       console.log(`Fetched ${data?.length || 0} messages:`, data);
       
       if (pageNum === 1) {
-        setLocalMessages(data || []);
+        // For first page, sort newest first
+        setLocalMessages(data?.sort((a: any, b: any) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        ) || []);
       } else {
-        setLocalMessages(prev => [...data, ...prev]);
+        // For additional pages, append older messages at the end
+        setLocalMessages(prev => [...prev, ...data]);
       }
       
       setHasMoreMessages(data && data.length === 50);

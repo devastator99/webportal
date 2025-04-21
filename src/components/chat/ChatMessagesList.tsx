@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,7 +48,6 @@ export const ChatMessagesList = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const limit = 50; // Limit of messages to fetch
 
-  // Fetch messages from the room
   const fetchMessages = async (roomId: string, offset = 0, append = false) => {
     try {
       setIsLoading(!append);
@@ -66,7 +64,6 @@ export const ChatMessagesList = ({
         throw error;
       }
 
-      // Get total count for pagination
       const { count, error: countError } = await supabase
         .from('room_messages')
         .select('*', { count: 'exact', head: true })
@@ -80,9 +77,8 @@ export const ChatMessagesList = ({
         setHasMore((offset + limit) < messageCount);
       }
 
-      // Sort messages by creation date ascending and add to existing messages if appending
       const sortedMessages = data.sort((a: Message, b: Message) => 
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
 
       if (append) {
@@ -103,26 +99,23 @@ export const ChatMessagesList = ({
     }
   };
 
-  // Initial load of messages
   useEffect(() => {
     if (roomId && useRoomMessages) {
       fetchMessages(roomId);
     }
   }, [roomId, useRoomMessages]);
 
-  // Scroll to bottom when messages change
   useEffect(() => {
     if (!isLoading && !loadingMore) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isLoading, loadingMore]);
 
-  // Combine server messages with local messages
   const allMessages = [
     ...messages,
     ...localMessages.filter(m => !messages.some(serverMsg => serverMsg.id === m.id))
   ].sort((a, b) => 
-    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
   );
 
   const handleLoadMore = () => {
@@ -157,7 +150,6 @@ export const ChatMessagesList = ({
     }
   };
 
-  // Group messages by date for better readability
   const groupMessagesByDay = (messages: any[]) => {
     const groups: Record<string, any[]> = {};
     
@@ -172,12 +164,16 @@ export const ChatMessagesList = ({
       groups[day].push(msg);
     });
     
-    return groups;
+    return Object.entries(groups)
+      .sort(([dayA], [dayB]) => new Date(dayB).getTime() - new Date(dayA).getTime())
+      .reduce((acc, [day, messages]) => {
+        acc[day] = messages;
+        return acc;
+      }, {} as Record<string, any[]>);
   };
 
   const messageGroups = groupMessagesByDay(allMessages);
 
-  // Helper function to get avatar initials
   const getAvatarInitials = (name: string) => {
     if (!name) return "?";
     return name
@@ -188,7 +184,6 @@ export const ChatMessagesList = ({
       .substring(0, 2);
   };
 
-  // Helper function to get avatar color based on role
   const getAvatarColorClass = (role: string) => {
     switch (role?.toLowerCase()) {
       case 'doctor':
@@ -243,7 +238,7 @@ export const ChatMessagesList = ({
             ) : (
               <ArrowUp className="h-4 w-4 mr-1" />
             )}
-            Load more messages
+            Load older messages
           </Button>
         </div>
       )}
@@ -270,57 +265,59 @@ export const ChatMessagesList = ({
             </Badge>
           </div>
           
-          {dayMessages.map((message: any) => {
-            const isCurrentUser = message.sender_id === user?.id;
-            const isSystem = message.is_system_message;
-            const isAI = message.is_ai_message;
-            
-            return (
-              <div
-                key={message.id}
-                className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
-              >
-                <div className="flex gap-2 max-w-[80%]">
-                  {!isCurrentUser && !isSystem && (
-                    <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarFallback className={getAvatarColorClass(message.sender_role)}>
-                        {isAI ? <Brain className="h-4 w-4" /> : getAvatarInitials(message.sender_name)}
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
-                  
-                  <div>
+          {dayMessages
+            .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+            .map((message: any) => {
+              const isCurrentUser = message.sender_id === user?.id;
+              const isSystem = message.is_system_message;
+              const isAI = message.is_ai_message;
+              
+              return (
+                <div
+                  key={message.id}
+                  className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className="flex gap-2 max-w-[80%]">
                     {!isCurrentUser && !isSystem && (
-                      <div className="text-xs font-medium mb-1">
-                        {message.sender_name}
-                        <span className="text-xs text-muted-foreground ml-1">
-                          {message.sender_role}
-                        </span>
-                      </div>
+                      <Avatar className="h-8 w-8 flex-shrink-0">
+                        <AvatarFallback className={getAvatarColorClass(message.sender_role)}>
+                          {isAI ? <Brain className="h-4 w-4" /> : getAvatarInitials(message.sender_name)}
+                        </AvatarFallback>
+                      </Avatar>
                     )}
                     
-                    <div
-                      className={`rounded-lg p-3 text-sm relative
-                        ${isSystem 
-                          ? 'bg-blue-100 dark:bg-blue-900/30 text-center mx-auto max-w-md' 
-                          : isCurrentUser
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'bg-muted'}
-                      `}
-                    >
-                      {isAI && (
-                        <Brain className="h-3 w-3 absolute top-2 right-2 text-purple-500" />
+                    <div>
+                      {!isCurrentUser && !isSystem && (
+                        <div className="text-xs font-medium mb-1">
+                          {message.sender_name}
+                          <span className="text-xs text-muted-foreground ml-1">
+                            {message.sender_role}
+                          </span>
+                        </div>
                       )}
-                      {message.message}
-                      <div className="text-xs opacity-70 mt-1">
-                        {format(new Date(message.created_at), 'h:mm a')}
+                      
+                      <div
+                        className={`rounded-lg p-3 text-sm relative
+                          ${isSystem 
+                            ? 'bg-blue-100 dark:bg-blue-900/30 text-center mx-auto max-w-md' 
+                            : isCurrentUser
+                            ? 'bg-primary text-primary-foreground' 
+                            : 'bg-muted'}
+                        `}
+                      >
+                        {isAI && (
+                          <Brain className="h-3 w-3 absolute top-2 right-2 text-purple-500" />
+                        )}
+                        {message.message}
+                        <div className="text-xs opacity-70 mt-1">
+                          {format(new Date(message.created_at), 'h:mm a')}
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
         </div>
       ))}
       <div ref={messagesEndRef} />
