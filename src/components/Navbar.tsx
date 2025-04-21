@@ -74,10 +74,10 @@ export const Navbar = () => {
             <>
               <DashboardButton />
               <DoctorActions />
-              {/* Explicitly remove any Chat icon for patients */}
+              {/* Completely exclude the chat icon for patients */}
               {userRole !== "patient" && (
                 <>
-                  {/* No chat icon displayed for patients */}
+                  {/* Placeholder for other roles to add chat icon or other items */}
                 </>
               )}
               {userRole === "administrator" && <ForceLogoutButton />}
@@ -101,10 +101,10 @@ export const Navbar = () => {
                 <>
                   <DashboardButton />
                   <DoctorActions />
-                  {/* Explicitly remove chat icon for patients in mobile menu as well */}
+                  {/* Completely exclude chat icon for patients */}
                   {userRole !== "patient" && (
                     <>
-                      {/* No chat icon displayed */}
+                      {/* Placeholder for chat icon or other items for other roles */}
                     </>
                   )}
                   {userRole === "administrator" && <ForceLogoutButton />}
