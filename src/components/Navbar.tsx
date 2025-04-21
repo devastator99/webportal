@@ -19,7 +19,7 @@ export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   const isIPad = useIsIPad();
-  
+
   const isDashboardPage = location.pathname === '/dashboard';
   const isAdminPage = location.pathname === '/admin';
   const isAlternativeDashboard = location.pathname === '/dashboard-alt';
@@ -74,6 +74,12 @@ export const Navbar = () => {
             <>
               <DashboardButton />
               <DoctorActions />
+              {/* Remove chat icon for patients */}
+              {userRole !== "patient" && (
+                <>
+                  {/* If there was a Chat icon/button, it would be here; user said remove it for patients */}
+                </>
+              )}
               {userRole === "administrator" && <ForceLogoutButton />}
               <SignOutButton 
                 onSignOutStart={() => setIsSigningOut(true)} 
@@ -95,6 +101,12 @@ export const Navbar = () => {
                 <>
                   <DashboardButton />
                   <DoctorActions />
+                  {/* Remove chat icon for patients in mobile menu as well */}
+                  {userRole !== "patient" && (
+                    <>
+                      {/* If there was a Chat icon/button here, it would be shown */}
+                    </>
+                  )}
                   {userRole === "administrator" && <ForceLogoutButton />}
                   <SignOutButton 
                     onSignOutStart={() => setIsSigningOut(true)} 
