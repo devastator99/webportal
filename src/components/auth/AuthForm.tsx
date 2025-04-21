@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +19,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDateForDisplay, parseDateFromDisplay } from "@/utils/dateUtils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ForgotPasswordForm } from "./ForgotPasswordForm";
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -78,7 +76,6 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
   const [showPatientFields, setShowPatientFields] = useState(type === "register" && userType === "patient");
   const [dateInputValue, setDateInputValue] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const { toast } = useToast();
 
   const activeSchema = type === "login" 
@@ -552,19 +549,6 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
         )}
         
         {type === "login" && (
-          <div className="space-y-2">
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-sm text-purple-600 hover:text-purple-500 w-full"
-              onClick={() => setShowForgotPassword(true)}
-            >
-              Forgot password?
-            </Button>
-          </div>
-        )}
-
-        {type === "login" && (
           <div className="h-6">
             {/* Placeholder for spacing */}
           </div>
@@ -586,12 +570,6 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
             )}
           </Button>
         </motion.div>
-
-        <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
-          <DialogContent>
-            <ForgotPasswordForm onClose={() => setShowForgotPassword(false)} />
-          </DialogContent>
-        </Dialog>
       </motion.form>
     </Form>
   );
