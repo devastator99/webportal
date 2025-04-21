@@ -8,7 +8,6 @@ import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 
 // Lazy-loaded pages
 const Landing = lazy(() => import("@/pages/LandingPage"));
-// const Login = lazy(() => import("@/pages/Login")); // This file doesn't exist
 // Using Auth instead of Login as it might be the correct page
 const Login = lazy(() => import("@/pages/Auth"));
 const ChatPage = lazy(() => import("@/pages/ChatPage"));
@@ -20,7 +19,9 @@ const PatientProfile = lazy(() => import("@/pages/Dashboard")); // Fallback to D
 const UploadPage = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
 const RegistrationPage = lazy(() => import("@/pages/Auth")); // Use Auth page
 const VerifyEmail = lazy(() => import("@/pages/Auth")); // Use Auth page
-const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
+// const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage")); // This file doesn't exist
+// Use Auth page for reset password as well
+const ResetPasswordPage = lazy(() => import("@/pages/Auth")); 
 const UpdatePassword = lazy(() => import("@/pages/UpdatePassword"));
 const AdminDashboard = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
 const NutritionistDashboard = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
