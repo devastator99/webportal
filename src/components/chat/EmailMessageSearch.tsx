@@ -3,7 +3,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChatMessagesList } from "./ChatMessagesList";
 import { Search, User } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -57,8 +56,6 @@ export const EmailMessageSearch = () => {
       
       <div className="flex-1 overflow-hidden">
         {searchEmail ? (
-          // Removed invalid specificEmail prop, as that prop was not supported!
-          // Optionally display nothing or a message.
           <div className="flex items-center justify-center h-full text-muted-foreground">
             Enter a valid user ID to search for messages (search by email is not implemented here).
           </div>

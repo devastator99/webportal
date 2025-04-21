@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -29,8 +30,14 @@ export const ChatMessagesList = ({
   useEffect(() => {
     let mounted = true;
     async function fetchUserId() {
-      const { data: userData } = await supabase.auth.getUser();
-      if (mounted) setAuthUserId(userData?.user?.id || null);
+      try {
+        const userData = await supabase.auth.getUser();
+        if (mounted && userData.data?.user) {
+          setAuthUserId(userData.data.user.id || null);
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
     }
     fetchUserId();
     return () => { mounted = false; };

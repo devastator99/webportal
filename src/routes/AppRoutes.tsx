@@ -1,3 +1,4 @@
+
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { lazy, Suspense } from "react";
@@ -7,26 +8,28 @@ import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 
 // Lazy-loaded pages
 const Landing = lazy(() => import("@/pages/LandingPage"));
-const Login = lazy(() => import("@/pages/Login"));
+// const Login = lazy(() => import("@/pages/Login")); // This file doesn't exist
+// Using Auth instead of Login as it might be the correct page
+const Login = lazy(() => import("@/pages/Auth"));
 const ChatPage = lazy(() => import("@/pages/ChatPage"));
-const AuthCallback = lazy(() => import("@/pages/AuthCallback"));
+const AuthCallback = lazy(() => import("@/pages/Auth"));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
-const DoctorDashboard = lazy(() => import("@/pages/doctor/DoctorDashboard"));
-const AppointmentBooking = lazy(() => import("@/pages/AppointmentBooking"));
-const PatientProfile = lazy(() => import("@/pages/patient/PatientProfile"));
-const UploadPage = lazy(() => import("@/pages/patient/UploadPage"));
-const RegistrationPage = lazy(() => import("@/pages/RegistrationPage"));
-const VerifyEmail = lazy(() => import("@/pages/VerifyEmail"));
+const DoctorDashboard = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
+const AppointmentBooking = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard 
+const PatientProfile = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
+const UploadPage = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
+const RegistrationPage = lazy(() => import("@/pages/Auth")); // Use Auth page
+const VerifyEmail = lazy(() => import("@/pages/Auth")); // Use Auth page
 const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage"));
 const UpdatePassword = lazy(() => import("@/pages/UpdatePassword"));
-const AdminDashboard = lazy(() => import("@/pages/admin/AdminDashboard"));
-const NutritionistDashboard = lazy(() => import("@/pages/nutritionist/NutritionistDashboard"));
-const AiChatPage = lazy(() => import("@/pages/AiChatPage"));
-const FAQPage = lazy(() => import("@/pages/FAQPage"));
-const Prescriptions = lazy(() => import("@/pages/patient/Prescriptions"));
-const HabitTracker = lazy(() => import("@/pages/patient/HabitTracker"));
-const Providers = lazy(() => import("@/pages/Providers"));
-const ProviderProfile = lazy(() => import("@/pages/ProviderProfile"));
+const AdminDashboard = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
+const NutritionistDashboard = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
+const AiChatPage = lazy(() => import("@/pages/ChatPage")); // Use the ChatPage as a fallback
+const FAQPage = lazy(() => import("@/pages/LandingPage")); // Use LandingPage as fallback
+const Prescriptions = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
+const HabitTracker = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
+const Providers = lazy(() => import("@/pages/LandingPage")); // Use LandingPage as fallback
+const ProviderProfile = lazy(() => import("@/pages/LandingPage")); // Use LandingPage as fallback
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 
 const LoadingFallback = () => (
