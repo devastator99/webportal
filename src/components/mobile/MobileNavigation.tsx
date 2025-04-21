@@ -15,13 +15,10 @@ export const MobileNavigation: React.FC = () => {
   const [patientRoomId, setPatientRoomId] = useState<string | null>(null);
   const { toast } = useToast();
   
-  // Use useEffect hook regardless of user being logged in or not
   useEffect(() => {
-    // Only fetch patient room ID if user is logged in and is a patient
     if (user && userRole === 'patient') {
       const fetchPatientChatRoom = async () => {
         try {
-          // Use the edge function instead of direct RPC
           const { data, error } = await supabase.functions.invoke('get-patient-care-team-room', {
             body: { patient_id: user.id }
           });
@@ -43,7 +40,6 @@ export const MobileNavigation: React.FC = () => {
     }
   }, [user, userRole]);
   
-  // If user is not logged in, don't show the navigation
   if (!user && location.pathname !== '/dashboard' && location.pathname !== '/dashboard-alt') {
     return null;
   }
@@ -51,7 +47,6 @@ export const MobileNavigation: React.FC = () => {
   const handleChatClick = (e: React.MouseEvent) => {
     e.preventDefault();
     
-    // For patients, always open the chat dialog with their care team room
     if (userRole === 'patient' && patientRoomId) {
       setChatOpen(true);
     } else {
@@ -61,7 +56,6 @@ export const MobileNavigation: React.FC = () => {
 
   const handlePrescriptionsClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    // Enhanced logging for prescription navigation
     console.log("====== PRESCRIPTION NAVIGATION DEBUG ======");
     console.log("Current user:", user?.id);
     console.log("User role:", userRole);
@@ -69,14 +63,12 @@ export const MobileNavigation: React.FC = () => {
     console.log("Target location: /prescriptions");
     
     try {
-      // Update to use the correct route path
-      navigate('/prescriptions', { replace: true });
+      navigate('/prescriptions');
       toast({
         title: "Loading prescriptions",
         description: "Opening your prescription history...",
       });
       
-      // Log after navigation attempt
       console.log("Navigation completed to: /prescriptions");
     } catch (error) {
       console.error("Navigation error:", error);
@@ -93,7 +85,6 @@ export const MobileNavigation: React.FC = () => {
     navigate('/habits');
   };
   
-  // Base navigation items that are always shown
   const baseNavItems = [
     {
       label: 'Home',
@@ -103,14 +94,12 @@ export const MobileNavigation: React.FC = () => {
     }
   ];
   
-  // Create patient-specific navigation items - make Chat more prominent
   const patientNavItems = [
     ...baseNavItems,
     {
       label: 'Prescription',
       icon: FileText,
       action: handlePrescriptionsClick,
-      // Update active state check to match the correct route
       active: location.pathname === '/prescriptions'
     },
     {
@@ -133,7 +122,6 @@ export const MobileNavigation: React.FC = () => {
     }
   ];
   
-  // Create items for other roles
   const otherRoleNavItems = [
     ...baseNavItems,
     {
@@ -156,7 +144,6 @@ export const MobileNavigation: React.FC = () => {
     }
   ];
   
-  // Use the appropriate navigation items based on role
   let navItems = userRole === 'patient' ? patientNavItems : otherRoleNavItems;
   
   console.log("Navigation items:", navItems);
@@ -181,7 +168,6 @@ export const MobileNavigation: React.FC = () => {
         ))}
       </nav>
       
-      {/* Chat Dialog */}
       <Dialog open={chatOpen} onOpenChange={setChatOpen}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] p-0">
           <DialogHeader className="sr-only">

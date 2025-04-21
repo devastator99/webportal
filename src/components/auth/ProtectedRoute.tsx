@@ -21,7 +21,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   useEffect(() => {
     if (!isLoading && user && userRole === 'patient') {
       // If the patient is on any route they shouldn't access, redirect to chat
-      const allowedPatientRoutes = ['/chat', '/prescriptions', '/habits'];
+      const allowedPatientRoutes = ['/chat', '/prescriptions', '/habits', '/dashboard'];
       const isOnAllowedRoute = allowedPatientRoutes.some(route => 
         location.pathname === route || location.pathname.startsWith(`${route}/`)
       );

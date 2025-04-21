@@ -1,4 +1,3 @@
-
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { lazy, Suspense } from "react";
@@ -27,8 +26,8 @@ const AdminDashboard = lazy(() => import("@/pages/Dashboard")); // Fallback to D
 const NutritionistDashboard = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
 const AiChatPage = lazy(() => import("@/pages/ChatPage")); // Use the ChatPage as a fallback
 const FAQPage = lazy(() => import("@/pages/LandingPage")); // Use LandingPage as fallback
-const Prescriptions = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
-const HabitTracker = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
+const Prescriptions = lazy(() => import("@/pages/PatientPrescriptionsPage")); // Update to use correct page
+const HabitTracker = lazy(() => import("@/pages/PatientHabitsPage")); // Update to use correct page
 const Providers = lazy(() => import("@/pages/LandingPage")); // Use LandingPage as fallback
 const ProviderProfile = lazy(() => import("@/pages/LandingPage")); // Use LandingPage as fallback
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
@@ -158,17 +157,17 @@ export const AppRoutes = () => {
         <Route
           path="/prescriptions"
           element={
-            <RoleProtectedRoute allowedRoles={["patient"]}>
+            <ProtectedRoute>
               <Prescriptions />
-            </RoleProtectedRoute>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/habits"
           element={
-            <RoleProtectedRoute allowedRoles={["patient"]}>
+            <ProtectedRoute>
               <HabitTracker />
-            </RoleProtectedRoute>
+            </ProtectedRoute>
           }
         />
 
