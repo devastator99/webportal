@@ -3,7 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { lazy, Suspense } from "react";
 import { Loader2 } from "lucide-react";
-import ProtectedRoute from "./ProtectedRoute";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute"; // Fixed import path
 
 // Lazy-loaded pages
 const Landing = lazy(() => import("@/pages/Landing"));

@@ -4,16 +4,136 @@ import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { UserWelcome } from "@/components/dashboard/UserWelcome";
-import { DashboardSection } from "@/components/dashboard/DashboardSection";
 import { CalendarCheckIcon, ClipboardList, BookOpenIcon, MessageCircle, Calendar, Clock, Activity } from "lucide-react";
-import { DashboardMetricsCard } from "@/components/dashboard/DashboardMetricsCard";
-import { CareTeamCard } from "@/components/dashboard/patient/CareTeamCard";
-import { UpcomingAppointmentsCard } from "@/components/dashboard/patient/UpcomingAppointmentsCard";
-import { RecentPrescriptionsCard } from "@/components/dashboard/patient/RecentPrescriptionsCard";
-import { HealthMetricsCard } from "@/components/dashboard/patient/HealthMetricsCard";
-import { AiChatCard } from "@/components/dashboard/AiChatCard";
 import { supabase } from "@/integrations/supabase/client";
+
+// Simplified dashboard components for patient
+const UserWelcome = ({ title, description }: { title: string; description: string }) => (
+  <div className="mb-8">
+    <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
+    <p className="text-muted-foreground">{description}</p>
+  </div>
+);
+
+const DashboardSection = ({ children }: { children: React.ReactNode }) => (
+  <div className="space-y-4">{children}</div>
+);
+
+const DashboardMetricsCard = ({ 
+  title, 
+  value, 
+  icon, 
+  description, 
+  linkUrl, 
+  linkText 
+}: { 
+  title: string; 
+  value: string;
+  icon: React.ReactNode;
+  description: string;
+  linkUrl: string;
+  linkText: string;
+}) => (
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      {icon}
+    </CardHeader>
+    <CardContent>
+      <div className="text-2xl font-bold">{value}</div>
+      <p className="text-xs text-muted-foreground">{description}</p>
+      <Button asChild variant="link" className="px-0 mt-2">
+        <Link to={linkUrl}>{linkText}</Link>
+      </Button>
+    </CardContent>
+  </Card>
+);
+
+// Simplified component versions to fix missing imports
+const CareTeamCard = () => (
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2">
+        <ClipboardList className="h-5 w-5" />
+        Care Team
+      </CardTitle>
+      <CardDescription>Your healthcare professionals</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <Button asChild className="w-full">
+        <Link to="/chat">Contact Care Team</Link>
+      </Button>
+    </CardContent>
+  </Card>
+);
+
+const UpcomingAppointmentsCard = () => (
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2">
+        <Calendar className="h-5 w-5" />
+        Upcoming Appointments
+      </CardTitle>
+      <CardDescription>Your scheduled consultations</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <Button asChild className="w-full">
+        <Link to="/book-appointment">Book Appointment</Link>
+      </Button>
+    </CardContent>
+  </Card>
+);
+
+const RecentPrescriptionsCard = () => (
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2">
+        <BookOpenIcon className="h-5 w-5" />
+        Recent Prescriptions
+      </CardTitle>
+      <CardDescription>Your recent prescriptions</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <Button asChild className="w-full">
+        <Link to="/prescriptions">View Prescriptions</Link>
+      </Button>
+    </CardContent>
+  </Card>
+);
+
+const HealthMetricsCard = () => (
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2">
+        <Activity className="h-5 w-5" />
+        Health Metrics
+      </CardTitle>
+      <CardDescription>Your health statistics</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <Button asChild className="w-full">
+        <Link to="/habits">Track Progress</Link>
+      </Button>
+    </CardContent>
+  </Card>
+);
+
+const AiChatCard = () => (
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center gap-2">
+        <MessageCircle className="h-5 w-5" />
+        AI Health Assistant
+      </CardTitle>
+      <CardDescription>Ask health-related questions</CardDescription>
+    </CardHeader>
+    <CardContent>
+      <Button asChild className="w-full">
+        <Link to="/ai-chat">Chat with AI</Link>
+      </Button>
+    </CardContent>
+  </Card>
+);
 
 const PatientDashboard = () => {
   const { user } = useAuth();
