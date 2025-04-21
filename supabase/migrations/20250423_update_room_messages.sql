@@ -20,7 +20,15 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = 'public'
 AS $$
+DECLARE
+  v_valid_role TEXT;
 BEGIN
+  -- Validate user_role to prevent enum cast errors
+  v_valid_role := CASE 
+    WHEN p_user_role IN ('patient', 'doctor', 'nutritionist', 'administrator', 'reception', 'aibot', 'system') THEN p_user_role
+    ELSE 'patient' -- Default to patient for any invalid role
+  END;
+
   -- First verify the user is a member of this room
   IF NOT EXISTS (
     SELECT 1 FROM room_members 
@@ -41,8 +49,8 @@ BEGIN
     CASE
       WHEN rm.is_system_message THEN 'system'
       WHEN rm.is_ai_message OR rm.sender_id = '00000000-0000-0000-0000-000000000000' THEN 'aibot'
-      WHEN rmem.role IS NOT NULL THEN rmem.role
-      ELSE p_user_role  -- Use the provided role as fallback
+      WHEN rmem.role IS NOT NULL THEN rmem.role::TEXT
+      ELSE v_valid_role  -- Use the validated role as fallback
     END as sender_role,
     rm.message,
     rm.is_system_message,

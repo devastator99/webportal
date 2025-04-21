@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { GetRoomMessagesParams } from "@/types/auth";
 
 interface Message {
   id: string;
@@ -53,13 +55,31 @@ export const ChatMessagesList = ({
       setIsLoading(!append);
       setLoadingMore(append);
 
+      // Make sure we always send a valid user role to the database
+      // Sanitize the user role - only pass allowed enum values
+      const validRole = (() => {
+        // Map userRole to valid database enum values
+        switch(userRole) {
+          case 'patient': return 'patient';
+          case 'doctor': return 'doctor';
+          case 'nutritionist': return 'nutritionist';
+          case 'administrator': return 'administrator';
+          case 'reception': return 'reception';
+          default: return 'patient'; // Always default to patient for safety
+        }
+      })();
+      
+      console.log(`Fetching messages for room ${roomId} with role: ${validRole}`);
+      
       // Call the get_room_messages RPC with explicit role handling
-      const { data, error } = await supabase.rpc('get_room_messages', {
+      const params: GetRoomMessagesParams = {
         p_room_id: roomId,
         p_limit: limit,
         p_offset: offset,
-        p_user_role: userRole || 'patient' // Explicitly set role with patient as fallback
-      } as any); // Type assertion to bypass TypeScript checking temporarily
+        p_user_role: validRole
+      };
+
+      const { data, error } = await supabase.rpc('get_room_messages', params);
 
       if (error) {
         console.error("Error fetching messages:", error);
