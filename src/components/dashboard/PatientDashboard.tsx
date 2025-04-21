@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -5,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import { PatientStats } from "./patient/PatientStats";
 import { DashboardHeader } from "./DashboardHeader";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -27,6 +28,7 @@ import {
 } from "lucide-react";
 import { PatientHealthTips } from "./patient/PatientHealthTips";
 import { MedicalRecordsList } from './patient/MedicalRecordsList';
+import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 
 // Loading fallback component
 const LoadingFallback = () => (
@@ -42,6 +44,36 @@ export const PatientDashboard = () => {
   const { toast } = useToast();
   const isIPad = useIsIPad();
   const navigate = useNavigate();
+
+  // Care team chat room ID state
+  const [careTeamRoomId, setCareTeamRoomId] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Fetch care team room id for the current patient
+    const fetchRoomId = async () => {
+      if (!user?.id) return;
+      try {
+        const { data, error } = await supabase.functions.invoke('get-patient-care-team-room', {
+          body: { patient_id: user.id }
+        });
+        if (error) {
+          console.error("Failed to get care team chat room:", error);
+        } else if (typeof data === "string" && data) {
+          setCareTeamRoomId(data);
+        } else if (typeof data === "object" && data !== null && data.id) {
+          setCareTeamRoomId(data.id);
+        } else if (typeof data === "object" && data !== null && "room_id" in data) {
+          setCareTeamRoomId(data.room_id);
+        } else {
+          setCareTeamRoomId(null);
+        }
+      } catch (err) {
+        console.error("Error fetching care team chat room:", err);
+        setCareTeamRoomId(null);
+      }
+    };
+    fetchRoomId();
+  }, [user?.id]);
 
   const { data: patientData, isLoading } = useQuery({
     queryKey: ["patient_dashboard", user?.id],
@@ -204,8 +236,24 @@ export const PatientDashboard = () => {
               </CardContent>
             </Card>
           )}
-          
-          {/* Removed View Reports section */}
+
+          {/* Inline Care Team Chat */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Care Team Chat
+              </CardTitle>
+              <CardDescription>
+                Connect with your healthcare team, send updates, and upload medical reports.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="w-full max-w-2xl mx-auto">
+                <WhatsAppStyleChatInterface patientRoomId={careTeamRoomId} />
+              </div>
+            </CardContent>
+          </Card>
           
           {/* Display prescription summary */}
           {patientData?.latestPrescription && (
