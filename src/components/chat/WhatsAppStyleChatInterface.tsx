@@ -366,8 +366,14 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       // Replace optimistic message with real one
       fetchMessages(selectedRoomId, 1);
       
-      // Trigger AI response
-      await triggerAiResponse(newMessage, selectedRoomId);
+      // Always trigger AI response in care team chats for patient users
+      if (userRole === 'patient') {
+        await triggerAiResponse(newMessage, selectedRoomId);
+      } else if (newMessage.toLowerCase().includes('@ai') || 
+          newMessage.toLowerCase().includes('@assistant')) {
+        // For non-patients, only respond to messages that mention AI
+        await triggerAiResponse(newMessage, selectedRoomId);
+      }
       
     } catch (error) {
       console.error("Error in send message:", error);

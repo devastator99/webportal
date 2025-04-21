@@ -24,6 +24,8 @@ serve(async (req: Request) => {
       );
     }
     
+    console.log(`Processing message in room ${roomId}: "${message}"`);
+    
     const supabaseClient = createClient(
       Deno.env.get("SUPABASE_URL") || "",
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "",
@@ -206,6 +208,9 @@ serve(async (req: Request) => {
       aiResponse = "Your care team is available to assist you. If you need to schedule an appointment or have specific medical questions, please let your doctor know directly through this chat.";
     } else if (message.toLowerCase().includes('thank')) {
       aiResponse = "You're welcome! I'm here to help you and your care team communicate effectively.";
+    } else {
+      // Generic response for messages that don't match specific patterns
+      aiResponse = "I'm your healthcare AI assistant. I can help with information about your prescriptions, health plan, appointments, or general health questions. Is there something specific you'd like to know about your healthcare?";
     }
     
     console.log("Sending AI response:", aiResponse.substring(0, 100) + "...");
