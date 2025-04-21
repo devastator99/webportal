@@ -23,7 +23,7 @@ AS $$
 DECLARE
   v_valid_role TEXT;
 BEGIN
-  -- Validate user_role to prevent enum cast errors
+  -- Validate user_role to prevent enum cast errors by explicitly handling valid values
   v_valid_role := CASE 
     WHEN p_user_role IN ('patient', 'doctor', 'nutritionist', 'administrator', 'reception', 'aibot', 'system') THEN p_user_role
     ELSE 'patient' -- Default to patient for any invalid role

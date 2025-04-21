@@ -55,9 +55,10 @@ export const ChatMessagesList = ({
       setIsLoading(!append);
       setLoadingMore(append);
 
-      // Make sure we always send a valid user role to the database
-      // Sanitize the user role - only pass allowed enum values
+      // Map userRole to valid database enum values that match the PostgreSQL enum types
       const validRole = (() => {
+        if (!userRole) return 'patient'; // Default to patient if no role
+        
         // Map userRole to valid database enum values
         switch(userRole) {
           case 'patient': return 'patient';
@@ -65,6 +66,8 @@ export const ChatMessagesList = ({
           case 'nutritionist': return 'nutritionist';
           case 'administrator': return 'administrator';
           case 'reception': return 'reception';
+          case 'aibot': return 'aibot';
+          case 'system': return 'system';
           default: return 'patient'; // Always default to patient for safety
         }
       })();
