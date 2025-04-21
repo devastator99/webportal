@@ -26,7 +26,8 @@ export const AppRoutes = () => {
         {/* Public routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth" element={<Auth />} />
-        {/* The update-password route should be accessible without authentication */}
+        
+        {/* The update-password route needs to be public and accessible without authentication */}
         <Route path="/update-password" element={<UpdatePassword />} />
         
         {/* Protected routes */}

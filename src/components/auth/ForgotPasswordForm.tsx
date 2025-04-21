@@ -30,9 +30,11 @@ export const ForgotPasswordForm = ({ onClose }: ForgotPasswordFormProps) => {
   const onSubmit = async (values: { email: string }) => {
     setLoading(true);
     try {
-      // Set the exact redirect URL to the update-password page with type=recovery parameter
-      // This is the format Supabase expects for password reset flows
-      const redirectTo = `${window.location.origin}/update-password?type=recovery`;
+      // Create the absolute URL for password reset
+      // Include both type=recovery and hash parameters to ensure proper routing
+      const baseUrl = window.location.origin;
+      const redirectTo = `${baseUrl}/update-password?type=recovery`;
+      
       console.log("Sending reset password with redirect to:", redirectTo);
       
       const { error } = await supabase.auth.resetPasswordForEmail(values.email, {

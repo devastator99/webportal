@@ -39,82 +39,87 @@ const UpdatePassword = () => {
     },
   });
 
-  // Extract and process all possible recovery token formats
+  // Process the token when component mounts
   useEffect(() => {
-    const processRecoveryFlow = async () => {
+    const processRecoveryToken = async () => {
       if (tokenProcessed) return;
       
       setLoading(true);
       setError(null);
-      console.log("Processing recovery flow, pathname:", location.pathname);
-      console.log("URL search params:", location.search);
-      console.log("URL hash:", location.hash);
       
       try {
-        // Check for token in query parameters (standard format)
-        const queryParams = new URLSearchParams(location.search);
-        const queryToken = queryParams.get('token');
-        const queryType = queryParams.get('type');
+        console.log("Processing recovery flow, current URL details:");
+        console.log("- Pathname:", location.pathname);
+        console.log("- Search params:", location.search);
+        console.log("- Hash:", location.hash);
         
-        // Check for token in hash parameters (Supabase format)
-        const hashParams = new URLSearchParams(location.hash.substring(1));
-        const hashToken = hashParams.get('token');
-        const hashAccessToken = hashParams.get('access_token');
-        const hashType = hashParams.get('type');
+        // Function to parse parameters from either search or hash
+        const getParams = (str: string) => {
+          // Remove initial ? or # if present
+          const paramStr = str.startsWith('?') || str.startsWith('#') ? str.substring(1) : str;
+          const result: Record<string, string> = {};
+          
+          // Split by & and extract key-value pairs
+          paramStr.split('&').forEach(pair => {
+            const [key, value] = pair.split('=');
+            if (key && value) {
+              result[key] = decodeURIComponent(value);
+            }
+          });
+          
+          return result;
+        };
         
-        console.log("Token info:", { 
-          queryToken: queryToken ? "exists" : "missing", 
-          queryType,
-          hashToken: hashToken ? "exists" : "missing",
-          hashAccessToken: hashAccessToken ? "exists" : "missing",
+        // Parse both search and hash parameters
+        const searchParams = getParams(location.search);
+        const hashParams = getParams(location.hash);
+        
+        // Log what we found for debugging
+        console.log("Extracted search params:", searchParams);
+        console.log("Extracted hash params:", hashParams);
+        
+        // Check for various token formats
+        const token = searchParams.token;
+        const type = searchParams.type;
+        const accessToken = hashParams.access_token;
+        const hashType = hashParams.type;
+        
+        console.log("Token details:", {
+          token: token ? "exists" : "missing",
+          type,
+          accessToken: accessToken ? "exists" : "missing",
           hashType
         });
         
-        // Case 1: We have a recovery token in the query parameters
-        if (queryToken && queryType === 'recovery') {
+        // Case 1: Recovery token in query parameters
+        if (token && type === 'recovery') {
           console.log("Processing recovery token from query parameters");
           const { data, error } = await supabase.auth.verifyOtp({
-            token_hash: queryToken,
+            token_hash: token,
             type: 'recovery',
           });
           
           if (error) {
             console.error("Error verifying OTP:", error);
-            setError(`Password reset link is invalid or has expired. Please request a new one. (Error: ${error.message})`);
+            setError(`Password reset link is invalid or has expired. Please request a new one. (${error.message})`);
           } else {
             console.log("OTP verification successful:", data);
             setTokenProcessed(true);
           }
         }
-        // Case 2: We have a hash token (sometimes Supabase sends this format)
-        else if (hashToken && hashType === 'recovery') {
-          console.log("Processing recovery token from hash parameters");
-          const { data, error } = await supabase.auth.verifyOtp({
-            token_hash: hashToken,
-            type: 'recovery',
-          });
-          
-          if (error) {
-            console.error("Error verifying hash token:", error);
-            setError(`Password reset link is invalid or has expired. Please request a new one. (Error: ${error.message})`);
-          } else {
-            console.log("Hash token verification successful:", data);
-            setTokenProcessed(true);
-          }
-        }
-        // Case 3: We have an access token in the hash (this is the most common Supabase format)
-        else if (hashAccessToken && hashType === 'recovery') {
+        // Case 2: Access token in hash format
+        else if (accessToken && hashType === 'recovery') {
           console.log("Processing access token from hash parameters");
+          
           try {
-            // Set the session with the provided access token
             const { data, error } = await supabase.auth.setSession({
-              access_token: hashAccessToken,
-              refresh_token: '', // We don't have a refresh token in this flow
+              access_token: accessToken,
+              refresh_token: '', // Not needed for password reset
             });
             
             if (error) {
               console.error("Error setting session:", error);
-              setError(`Unable to verify your session. Please request a new reset link. (Error: ${error.message})`);
+              setError(`Unable to verify your session. Please request a new reset link. (${error.message})`);
             } else {
               console.log("Session set successfully:", data);
               setTokenProcessed(true);
@@ -124,10 +129,27 @@ const UpdatePassword = () => {
             setError(`Error processing your session: ${error.message}`);
           }
         }
+        // Case 3: Type=recovery in URL but no token (maybe handled internally by Supabase SDK)
+        else if ((type === 'recovery' || hashType === 'recovery') && !token && !accessToken) {
+          console.log("Recovery type found but no explicit token, checking session");
+          
+          // See if we already have a valid session from Supabase's auto-processing
+          const { data: { session } } = await supabase.auth.getSession();
+          
+          if (session) {
+            console.log("Found valid session, can proceed with password reset");
+            setTokenProcessed(true);
+          } else {
+            console.error("Recovery type in URL but no valid session found");
+            setError("Unable to verify your password reset request. Please try requesting a new reset link.");
+          }
+        }
         // Case 4: Check if user is already authenticated
         else {
-          console.log("No token found, checking if user is already authenticated");
+          console.log("No recovery parameters found, checking if user is already authenticated");
+          
           const { data: { session } } = await supabase.auth.getSession();
+          
           if (session) {
             console.log("User already has a valid session:", session);
             setTokenProcessed(true);
@@ -137,14 +159,14 @@ const UpdatePassword = () => {
           }
         }
       } catch (error: any) {
-        console.error("Exception in processRecoveryFlow:", error);
+        console.error("Exception in processRecoveryToken:", error);
         setError(`An error occurred while processing your password reset link: ${error.message}`);
       } finally {
         setLoading(false);
       }
     };
     
-    processRecoveryFlow();
+    processRecoveryToken();
   }, [location, tokenProcessed]);
 
   const onSubmit = async (values: z.infer<typeof updatePasswordSchema>) => {
