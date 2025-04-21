@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -470,7 +469,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       )}
       
       <div className="flex-1 flex flex-col h-full">
-        <div className="p-3 border-b border-neutral-200 dark:border-neutral-800 flex items-center">
+        <div className="p-3 border-b border-neutral-200 dark:border-neutral-800">
           {!showSidebar && userRole !== 'patient' && (
             <Button
               variant="ghost"
@@ -482,63 +481,51 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
             </Button>
           )}
           
-          <div className="flex items-center">
-            {selectedRoomId ? (
-              <>
-                <div className="flex -space-x-2 mr-3">
-                  {roomMembers.slice(0, 3).map(member => (
+          {selectedRoomId ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3">
+                <div className="flex -space-x-2">
+                  {roomMembers.slice(0, 4).map(member => (
                     <Avatar key={member.id} className="h-8 w-8 border-2 border-background">
-                      <AvatarFallback>
-                        {`${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
+                      <AvatarFallback className={`${
+                        member.role === 'doctor' ? 'bg-blue-100 text-blue-800' :
+                        member.role === 'nutritionist' ? 'bg-green-100 text-green-800' :
+                        member.role === 'patient' ? 'bg-orange-100 text-orange-800' :
+                        member.role === 'aibot' ? 'bg-purple-100 text-purple-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {member.role === 'aibot' ? 'AI' : 
+                          `${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
                       </AvatarFallback>
                     </Avatar>
                   ))}
                 </div>
-                <div>
-                  <h3 className="font-medium text-sm">
-                    Care Team
-                    {roomMembers.length > 3 && 
-                      <span className="text-muted-foreground text-xs ml-1">
-                        (+{roomMembers.length - 3} more)
-                      </span>
-                    }
-                  </h3>
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Users className="h-3 w-3" />
-                          <span>
-                            {roomMembers.filter(m => m.role === 'doctor').length} Doctor
-                            {roomMembers.filter(m => m.role === 'nutritionist').length > 0 && 
-                              `, ${roomMembers.filter(m => m.role === 'nutritionist').length} Nutritionist`
-                            }
-                          </span>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <div className="text-xs">
-                          {roomMembers.map(member => (
-                            <div key={member.id}>
-                              {member.first_name} {member.last_name} ({member.role})
-                            </div>
-                          ))}
-                        </div>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                </div>
-              </>
-            ) : (
-              <div className="flex items-center">
-                <UserCircle className="h-8 w-8 mr-2 text-muted-foreground" />
-                <div>
+                <div className="flex-1">
                   <h3 className="font-medium text-sm">Care Team Chat</h3>
-                  <p className="text-xs text-muted-foreground">Select a conversation</p>
+                  <div className="text-xs text-muted-foreground">
+                    {roomMembers.map((member, index) => (
+                      <span key={member.id}>
+                        {member.first_name} {member.last_name}
+                        {member.role && (
+                          <Badge variant="outline" className="ml-1 mr-2 text-[10px] py-0 px-1">
+                            {member.role}
+                          </Badge>
+                        )}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="flex items-center">
+              <UserCircle className="h-8 w-8 mr-2 text-muted-foreground" />
+              <div>
+                <h3 className="font-medium text-sm">Care Team Chat</h3>
+                <p className="text-xs text-muted-foreground">Select a conversation</p>
+              </div>
+            </div>
+          )}
         </div>
         
         <div className="flex-1 overflow-hidden flex flex-col">
