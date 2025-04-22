@@ -13,23 +13,18 @@ interface CollapsibleMessageGroupProps {
 }
 
 export const CollapsibleMessageGroup = ({ date, messages, children }: CollapsibleMessageGroupProps) => {
-  // Default to open for today's messages, closed for older messages
   const [isOpen, setIsOpen] = useState<boolean>(() => {
     try {
-      // Ensure we have a proper date string before parsing
       const messageDate = parseISO(date);
-      console.log(`Initializing date group: ${date}, isToday: ${isToday(messageDate)}`);
       return isToday(messageDate) || isYesterday(messageDate);
     } catch (error) {
       console.error("Error parsing date:", date, error);
-      return true; // Default to open if date parsing fails
+      return true;
     }
   });
-  
-  // Format the date to be more readable
+
   const formatMessageDate = (dateString: string): string => {
     try {
-      // Ensure we have a proper date string before formatting
       const messageDate = parseISO(dateString);
       
       if (isToday(messageDate)) {
@@ -41,20 +36,19 @@ export const CollapsibleMessageGroup = ({ date, messages, children }: Collapsibl
       }
     } catch (error) {
       console.error("Error formatting date:", dateString, error);
-      return dateString; // Return original string if formatting fails
+      return dateString;
     }
   };
-  
+
   const formattedDate = formatMessageDate(date);
 
-  // Update open state when date changes
   useEffect(() => {
     try {
       const messageDate = parseISO(date);
       setIsOpen(isToday(messageDate) || isYesterday(messageDate));
     } catch (error) {
       console.error("Error in useEffect date handling:", date, error);
-      setIsOpen(true); // Default to open if date parsing fails
+      setIsOpen(true);
     }
   }, [date]);
 

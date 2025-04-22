@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { CollapsibleMessageGroup } from "./CollapsibleMessageGroup";
 
 interface RoomMessage {
   id: string;
@@ -401,13 +402,11 @@ export const CareTeamRoomChat = ({
               </div>
             ) : (
               Object.entries(messageGroups).map(([day, dayMessages]) => (
-                <div key={day} className="space-y-3">
-                  <div className="flex justify-center">
-                    <Badge variant="outline" className="bg-background/80">
-                      {format(new Date(day), 'MMMM d, yyyy')}
-                    </Badge>
-                  </div>
-                  
+                <CollapsibleMessageGroup 
+                  key={day} 
+                  date={day}
+                  messages={dayMessages}
+                >
                   {dayMessages.map((msg) => {
                     const isSelf = msg.sender_id === user?.id;
                     const isAI = msg.is_ai_message;
@@ -416,7 +415,7 @@ export const CareTeamRoomChat = ({
                     return (
                       <div
                         key={msg.id}
-                        className={`flex ${isSelf ? 'justify-end' : 'justify-start'}`}
+                        className={`flex ${isSelf ? 'justify-end' : 'justify-start'} message-item`}
                       >
                         <div className="flex gap-2 max-w-[80%]">
                           {!isSelf && !isSystem && (
@@ -459,7 +458,7 @@ export const CareTeamRoomChat = ({
                       </div>
                     );
                   })}
-                </div>
+                </CollapsibleMessageGroup>
               ))
             )}
             <div ref={messagesEndRef} />
