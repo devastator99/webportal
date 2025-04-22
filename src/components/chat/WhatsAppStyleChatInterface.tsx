@@ -18,7 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { sortByDate } from "@/utils/dateUtils";
+import { sortByDate, formatChatMessageTime } from "@/utils/dateUtils";
 import { SearchMessages } from "./SearchMessages";
 
 interface WhatsAppStyleChatInterfaceProps {
