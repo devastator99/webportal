@@ -1,4 +1,5 @@
-import { format, isToday, isYesterday, parseISO, formatDistanceToNow } from "date-fns";
+
+import { format, isToday as dateFnsIsToday, isYesterday, parseISO, formatDistanceToNow } from "date-fns";
 
 // Function to safely parse ISO dates with fallback
 export function safeParseISO(dateString: string) {
@@ -36,7 +37,7 @@ export function formatChatMessageTime(timestamp: string) {
     const date = safeParseISO(timestamp);
     
     // For recent messages (less than a day)
-    if (isToday(date)) {
+    if (dateFnsIsToday(date)) {
       return format(date, 'h:mm a'); // e.g. "3:42 PM"
     }
     
@@ -92,7 +93,7 @@ export function shouldExpandDateGroup(dateString: string) {
   try {
     const date = safeParseISO(dateString);
     // Auto-expand today and yesterday date groups
-    return isToday(date) || isYesterday(date);
+    return dateFnsIsToday(date) || isYesterday(date);
   } catch (error) {
     console.error(`Error determining if date group should expand: ${dateString}`, error);
     return true; // Default to expanded if there's an error
@@ -104,7 +105,7 @@ export function formatMessageDateGroup(dateString: string): string {
   try {
     const date = safeParseISO(dateString);
     
-    if (isToday(date)) {
+    if (dateFnsIsToday(date)) {
       return "Today";
     } else if (isYesterday(date)) {
       return "Yesterday";
@@ -147,8 +148,8 @@ export function parseDateFromDisplay(dateString: string): Date | null {
   }
 }
 
-// Add this new function to check if a date is today
-export function isToday(date: Date): boolean {
+// Check if a date is today - renamed from isToday to checkIsToday to avoid conflict
+export function checkIsToday(date: Date): boolean {
   const today = new Date();
   return (
     date.getDate() === today.getDate() &&
@@ -156,3 +157,6 @@ export function isToday(date: Date): boolean {
     date.getFullYear() === today.getFullYear()
   );
 }
+
+// Export the isToday function from date-fns directly
+export { dateFnsIsToday as isToday };

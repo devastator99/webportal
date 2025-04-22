@@ -16,7 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { SearchMessages } from "./SearchMessages";
 import { generatePdfFromElement } from "@/utils/pdfUtils";
-import { groupMessagesByDate, sortByDate, formatChatMessageTime } from "@/utils/dateUtils";
+import { groupMessagesByDate, sortByDate, formatChatMessageTime, isToday } from "@/utils/dateUtils";
 import { CollapsibleMessageGroup } from "./CollapsibleMessageGroup";
 import { useChatScroll } from "@/hooks/useChatScroll";
 
