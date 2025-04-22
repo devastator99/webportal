@@ -197,8 +197,8 @@ export function checkIsToday(date: Date): boolean {
   );
 }
 
-// Export the isToday function from date-fns directly for consistent behavior
-export { dateFnsIsToday as isToday };
+// Keep the dateFnsIsToday function as a named export if needed
+export { dateFnsIsToday };
 
 // Export our enhanced isToday function as the primary function
 export { isTodayWithSafety as isToday };
