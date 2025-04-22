@@ -8,11 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Send, ArrowDown, Brain, User, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { CollapsibleMessageGroup } from "./CollapsibleMessageGroup";
-import { groupMessagesByDate } from "@/utils/dateUtils";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 interface RoomMessage {
@@ -340,14 +339,26 @@ export const CareTeamRoomChat = ({
     const groups: Record<string, RoomMessage[]> = {};
     
     messages.forEach(msg => {
-      const date = new Date(msg.created_at);
-      const day = format(date, 'yyyy-MM-dd');
-      
-      if (!groups[day]) {
-        groups[day] = [];
+      try {
+        // Parse the date from the ISO string
+        const date = parseISO(msg.created_at);
+        // Format as YYYY-MM-DD for consistent grouping
+        const day = format(date, 'yyyy-MM-dd');
+        
+        if (!groups[day]) {
+          groups[day] = [];
+        }
+        
+        groups[day].push(msg);
+      } catch (error) {
+        console.error(`Error processing message date: ${msg.created_at}`, error);
+        // If parsing fails, use a fallback key
+        const fallbackKey = 'unknown-date';
+        if (!groups[fallbackKey]) {
+          groups[fallbackKey] = [];
+        }
+        groups[fallbackKey].push(msg);
       }
-      
-      groups[day].push(msg);
     });
     
     return groups;

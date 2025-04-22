@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { format, isToday, isYesterday, parseISO } from "date-fns";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -13,15 +13,24 @@ interface CollapsibleMessageGroupProps {
 }
 
 export const CollapsibleMessageGroup = ({ date, messages, children }: CollapsibleMessageGroupProps) => {
-  const [isOpen, setIsOpen] = useState<boolean>(() => {
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  
+  useEffect(() => {
     try {
+      // Parse the date string to a Date object
       const messageDate = parseISO(date);
-      return isToday(messageDate) || isYesterday(messageDate);
+      console.log(`Date parsed: ${date} -> ${messageDate.toISOString()}`);
+      
+      // Auto-expand for today and yesterday
+      const shouldOpen = isToday(messageDate) || isYesterday(messageDate);
+      console.log(`Should open for ${date}: ${shouldOpen}`);
+      setIsOpen(shouldOpen);
     } catch (error) {
-      console.error("Error parsing date:", date, error);
-      return true;
+      console.error(`Error parsing date: ${date}`, error);
+      // Default to open if there's an error
+      setIsOpen(true);
     }
-  });
+  }, [date]);
 
   const formatMessageDate = (dateString: string): string => {
     try {
@@ -35,26 +44,21 @@ export const CollapsibleMessageGroup = ({ date, messages, children }: Collapsibl
         return format(messageDate, 'MMMM d, yyyy');
       }
     } catch (error) {
-      console.error("Error formatting date:", dateString, error);
+      console.error(`Error formatting date: ${dateString}`, error);
       return dateString;
     }
   };
 
   const formattedDate = formatMessageDate(date);
-
-  useEffect(() => {
-    try {
-      const messageDate = parseISO(date);
-      setIsOpen(isToday(messageDate) || isYesterday(messageDate));
-    } catch (error) {
-      console.error("Error in useEffect date handling:", date, error);
-      setIsOpen(true);
-    }
-  }, [date]);
+  const messagesCount = messages?.length || 0;
 
   return (
     <div className="space-y-2 mb-6 relative date-group" data-date={date}>
-      <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
+      <Collapsible 
+        open={isOpen} 
+        onOpenChange={setIsOpen}
+        className="w-full"
+      >
         <div className="relative py-2">
           <Separator className="absolute inset-0 my-auto z-0" />
           <div className="flex justify-between items-center relative z-10">
@@ -72,12 +76,12 @@ export const CollapsibleMessageGroup = ({ date, messages, children }: Collapsibl
               </Badge>
             </CollapsibleTrigger>
             <span className="text-xs text-muted-foreground bg-background/95 px-2 rounded-sm">
-              {messages.length} {messages.length === 1 ? 'message' : 'messages'}
+              {messagesCount} {messagesCount === 1 ? 'message' : 'messages'}
             </span>
           </div>
         </div>
         
-        <CollapsibleContent className="space-y-2 mt-2 collapsible-messages">
+        <CollapsibleContent className="space-y-2 mt-2">
           {children}
         </CollapsibleContent>
       </Collapsible>

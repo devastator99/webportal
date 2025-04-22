@@ -1,19 +1,25 @@
 
-import { parse as dateFnsParse, format as dateFnsFormat, compareAsc, parseISO } from "date-fns";
+import { parse as dateFnsParse, format as dateFnsFormat, compareAsc, parseISO, isValid } from "date-fns";
 
 /**
- * Parses a time string into a Date object
- * @param timeString The time string in HH:mm format
- * @param format The format string to use for parsing
- * @param referenceDate The reference date to use
- * @returns A Date object containing the parsed time
+ * Safely parses a date string into a Date object
+ * @param dateString The date string to parse
+ * @returns A Date object or null if parsing fails
  */
-export const parseTime = (
-  timeString: string, 
-  format: string, 
-  referenceDate: Date
-): Date => {
-  return dateFnsParse(timeString, format, referenceDate);
+export const safeParseDateString = (dateString: string | null): Date | null => {
+  if (!dateString) return null;
+  
+  try {
+    const date = parseISO(dateString);
+    if (!isValid(date)) {
+      console.error(`Invalid date: ${dateString}`);
+      return null;
+    }
+    return date;
+  } catch (error) {
+    console.error('Error parsing date string:', error);
+    return null;
+  }
 };
 
 /**
@@ -26,26 +32,13 @@ export const formatDateForDatabase = (date: Date | string | null): string | null
   
   try {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    console.log("Formatting for DB:", dateObj);
+    if (!isValid(dateObj)) {
+      console.error(`Invalid date for database formatting: ${date}`);
+      return null;
+    }
     return dateFnsFormat(dateObj, 'yyyy-MM-dd');
   } catch (error) {
     console.error('Error formatting date for database:', error);
-    return null;
-  }
-};
-
-/**
- * Safely parses a date string into a Date object
- * @param dateString The date string to parse
- * @returns A Date object or null if parsing fails
- */
-export const safeParseDateString = (dateString: string | null): Date | null => {
-  if (!dateString) return null;
-  
-  try {
-    return parseISO(dateString);
-  } catch (error) {
-    console.error('Error parsing date string:', error);
     return null;
   }
 };
@@ -59,79 +52,10 @@ export const debugDate = (date: any, label: string = 'Date debug'): void => {
   console.log(`${label}:`, {
     original: date,
     type: typeof date,
-    isValid: date instanceof Date ? !isNaN(date.getTime()) : 'not a date',
+    isValid: date instanceof Date ? isValid(date) : 'not a date',
     asISO: date instanceof Date ? date.toISOString() : 'not a date',
     formatted: date instanceof Date ? formatDateForDatabase(date) : 'not a date'
   });
-};
-
-/**
- * Formats a date for display in DD/MM/YYYY format
- * @param date The date to format
- * @returns A string in DD/MM/YYYY format
- */
-export const formatDateForDisplay = (date: Date | string | null): string => {
-  if (!date) return '';
-  
-  try {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return dateFnsFormat(dateObj, 'dd/MM/yyyy');
-  } catch (error) {
-    console.error('Error formatting date for display:', error);
-    return '';
-  }
-};
-
-/**
- * Parses a date string in DD/MM/YYYY format
- * @param dateString The date string in DD/MM/YYYY format
- * @returns A Date object or null if parsing fails
- */
-export const parseDateFromDisplay = (dateString: string): Date | null => {
-  if (!dateString) return null;
-  
-  try {
-    // Split the date string by slash
-    const [day, month, year] = dateString.split('/').map(part => parseInt(part, 10));
-    
-    // Create a new date, month is 0-indexed in JavaScript
-    const parsedDate = new Date(year, month - 1, day);
-    console.log(`Parsed ${dateString} to:`, parsedDate);
-    return parsedDate;
-  } catch (error) {
-    console.error('Error parsing display date:', error);
-    return null;
-  }
-};
-
-/**
- * Formats a date for chat messages display, showing full date and time
- * @param date The date to format
- * @returns A string with formatted date and time
- */
-export const formatChatMessageTimestamp = (date: Date | string | null): string => {
-  if (!date) return '';
-  
-  try {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return dateFnsFormat(dateObj, 'dd/MM/yyyy HH:mm');
-  } catch (error) {
-    console.error('Error formatting chat message timestamp:', error);
-    return '';
-  }
-};
-
-/**
- * Compares two dates (either Date objects or ISO strings) for sorting
- * @param dateA First date to compare
- * @param dateB Second date to compare
- * @returns Negative if dateA is earlier, positive if dateA is later, 0 if equal
- */
-export const compareDates = (dateA: Date | string, dateB: Date | string): number => {
-  const dateObjA = typeof dateA === 'string' ? new Date(dateA) : dateA;
-  const dateObjB = typeof dateB === 'string' ? new Date(dateB) : dateB;
-  
-  return compareAsc(dateObjA, dateObjB);
 };
 
 /**
@@ -154,8 +78,8 @@ export const groupMessagesByDate = (messages: any[]): Record<string, any[]> => {
     }
     
     try {
-      const date = new Date(msg.created_at);
-      if (isNaN(date.getTime())) {
+      const date = parseISO(msg.created_at);
+      if (!isValid(date)) {
         console.error("Invalid date in message:", msg.created_at);
         return;
       }
@@ -200,15 +124,30 @@ export const sortByDate = <T>(
   }
   
   return [...array].sort((a, b) => {
-    const dateA = a[dateField] as unknown as Date | string;
-    const dateB = b[dateField] as unknown as Date | string;
-    
     try {
-      const comparison = compareDates(dateA, dateB);
+      const valueA = a[dateField];
+      const valueB = b[dateField];
+      
+      const dateA = typeof valueA === 'string' ? parseISO(valueA as string) : (valueA as unknown as Date);
+      const dateB = typeof valueB === 'string' ? parseISO(valueB as string) : (valueB as unknown as Date);
+      
+      if (!isValid(dateA) || !isValid(dateB)) {
+        console.error("Invalid date for sorting:", { valueA, valueB });
+        return 0;
+      }
+      
+      const comparison = compareAsc(dateA, dateB);
       return ascending ? comparison : -comparison;
     } catch (error) {
-      console.error("Error comparing dates:", dateA, dateB, error);
+      console.error("Error comparing dates:", error);
       return 0;
     }
   });
+};
+
+// Export other functions from the original file that we're not modifying
+export { 
+  parseISO, 
+  format,
+  isValid
 };
