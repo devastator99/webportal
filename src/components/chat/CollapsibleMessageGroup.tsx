@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { shouldExpandDateGroup, formatMessageDateGroup, isTodayWithSafety } from "@/utils/dateUtils";
+import { shouldExpandDateGroup, formatMessageDateGroup, isToday, normalizeDateString } from "@/utils/dateUtils";
 
 interface CollapsibleMessageGroupProps {
   date: string;
@@ -23,14 +23,13 @@ export const CollapsibleMessageGroup = ({
   // Ensure recent date groups and today's group are always expanded
   useEffect(() => {
     try {
-      // Parse the date string to check if it's today
-      const [year, month, day] = date.split('-').map(Number);
-      const dateObj = new Date(year, month - 1, day);
+      // Get today's date for comparison
+      const todayStr = normalizeDateString(new Date());
+      const isTodayGroup = date === todayStr;
       
-      // Use our more robust date checking function
-      const isTodayGroup = isTodayWithSafety(dateObj);
-      console.log(`Date group: ${date}, isToday: ${isTodayGroup}, isLatestGroup: ${isLatestGroup}`);
+      console.log(`Date group: ${date}, Today: ${todayStr}, isToday: ${isTodayGroup}, isLatestGroup: ${isLatestGroup}`);
       
+      // Always expand today, yesterday, or most recent group
       const shouldOpen = shouldExpandDateGroup(date) || isLatestGroup || isTodayGroup;
       console.log(`Date group: ${date}, shouldOpen: ${shouldOpen}`);
       setIsOpen(shouldOpen);
@@ -43,16 +42,9 @@ export const CollapsibleMessageGroup = ({
   const formattedDate = formatMessageDateGroup(date);
   const messagesCount = messages?.length || 0;
   
-  // Check if this is today's group, parse and normalize the date string
-  let isTodayGroup = false;
-  try {
-    const [year, month, day] = date.split('-').map(Number);
-    const dateObj = new Date(year, month - 1, day);
-    isTodayGroup = isTodayWithSafety(dateObj);
-    console.log(`Group display check: ${date}, isToday: ${isTodayGroup}`);
-  } catch (error) {
-    console.error(`Error checking if group is today: ${date}`, error);
-  }
+  // Check if this is today's group using string comparison
+  const todayStr = normalizeDateString(new Date());
+  const isTodayGroup = date === todayStr;
   
   const toggleOpen = () => {
     setIsOpen(!isOpen);

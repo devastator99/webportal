@@ -59,7 +59,7 @@ export function normalizeDateString(date: Date): string {
 }
 
 // Check if a date is today, with additional safety and logging
-export function isTodayWithSafety(dateObj: Date): boolean {
+export function isToday(dateObj: Date): boolean {
   try {
     // Get today's date string in YYYY-MM-DD format
     const today = normalizeDateString(new Date());
@@ -68,34 +68,50 @@ export function isTodayWithSafety(dateObj: Date): boolean {
     const inputDateStr = normalizeDateString(dateObj);
     
     // Compare strings to ensure we're only comparing dates without time
-    const isToday = today === inputDateStr;
+    const result = today === inputDateStr;
     
-    console.log(`Date check - Input date: ${inputDateStr}, Today: ${today}, isToday: ${isToday}`);
+    console.log(`Date check - Input date: ${inputDateStr}, Today: ${today}, isToday: ${result}`);
     
-    return isToday;
+    return result;
   } catch (error) {
-    console.error("Error in isTodayWithSafety:", error);
+    console.error("Error in isToday:", error);
     return dateFnsIsToday(dateObj); // Fall back to date-fns isToday
   }
 }
 
-// Group messages by date for display in chat
+// Group messages by date for display in chat, with simplified handling
 export function groupMessagesByDate(messages: any[]) {
   const groups: Record<string, any[]> = {};
   
   if (!messages || !messages.length) return groups;
   
+  // Get today's date string for comparison
+  const todayStr = normalizeDateString(new Date());
+  const yesterdayDate = new Date();
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterdayStr = normalizeDateString(yesterdayDate);
+  
+  console.log(`Today's date for grouping: ${todayStr}, Yesterday: ${yesterdayStr}`);
+  
   // First sort messages by date ascending (oldest first)
   const sortedMessages = sortByDate(messages, 'created_at', true);
+  
+  // Track if we've found any messages for today
+  let hasTodayMessages = false;
   
   sortedMessages.forEach(message => {
     try {
       const date = safeParseISO(message.created_at);
       // Use consistent date format for grouping
-      let dateKey = format(date, 'yyyy-MM-dd');
+      const dateKey = normalizeDateString(date);
+      
+      // Check if this message is from today
+      if (dateKey === todayStr) {
+        hasTodayMessages = true;
+      }
       
       // For debugging
-      console.log(`Message date: ${date.toISOString()}, Date key: ${dateKey}, Is today: ${isTodayWithSafety(date)}`);
+      console.log(`Message date: ${date.toISOString()}, Date key: ${dateKey}, Is today: ${dateKey === todayStr}`);
       
       if (!groups[dateKey]) {
         groups[dateKey] = [];
@@ -113,22 +129,30 @@ export function groupMessagesByDate(messages: any[]) {
     }
   });
   
+  // Log if today's messages were found
+  console.log(`Found messages for today (${todayStr}): ${hasTodayMessages}`);
+  
   return groups;
 }
 
 // Determine if a date group should auto-expand
 export function shouldExpandDateGroup(dateString: string) {
   try {
-    // Convert the string date to a Date object with normalized time
-    const [year, month, day] = dateString.split('-').map(Number);
-    // Note: month is 0-indexed in JavaScript dates
-    const date = new Date(year, month - 1, day);
+    // Get today's date string for direct comparison
+    const todayStr = normalizeDateString(new Date());
     
-    // Auto-expand today and yesterday date groups
-    const isDateToday = isTodayWithSafety(date);
-    const isDateYesterday = isYesterday(date);
+    // Yesterday's date
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = normalizeDateString(yesterdayDate);
     
-    console.log(`Checking date expansion for: ${dateString}, isToday: ${isDateToday}, isYesterday: ${isDateYesterday}`);
+    // Direct string comparison is more reliable than date object comparison
+    const isDateToday = dateString === todayStr;
+    const isDateYesterday = dateString === yesterdayStr;
+    
+    console.log(`Checking date expansion: ${dateString}, Today: ${todayStr}, isToday: ${isDateToday}, isYesterday: ${isDateYesterday}`);
+    
+    // Always expand recent groups
     return isDateToday || isDateYesterday;
   } catch (error) {
     console.error(`Error determining if date group should expand: ${dateString}`, error);
@@ -139,16 +163,24 @@ export function shouldExpandDateGroup(dateString: string) {
 // Format a date for display in chat groups
 export function formatMessageDateGroup(dateString: string): string {
   try {
-    // Convert the string date to a Date object
-    const [year, month, day] = dateString.split('-').map(Number);
-    // Note: month is 0-indexed in JavaScript dates
-    const date = new Date(year, month - 1, day);
+    // Get today's date string for comparison
+    const todayStr = normalizeDateString(new Date());
     
-    if (isTodayWithSafety(date)) {
+    // Yesterday's date
+    const yesterdayDate = new Date();
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = normalizeDateString(yesterdayDate);
+    
+    console.log(`Formatting date group: ${dateString}, Today: ${todayStr}, Yesterday: ${yesterdayStr}`);
+    
+    if (dateString === todayStr) {
       return "Today";
-    } else if (isYesterday(date)) {
+    } else if (dateString === yesterdayStr) {
       return "Yesterday";
     } else {
+      // Convert string to date for formatting
+      const [year, month, day] = dateString.split('-').map(Number);
+      const date = new Date(year, month - 1, day);
       return format(date, 'MMMM d, yyyy');
     }
   } catch (error) {
@@ -187,7 +219,7 @@ export function parseDateFromDisplay(dateString: string): Date | null {
   }
 }
 
-// Check if a date is today - making this function more robust
+// Check if a date is today using direct method
 export function checkIsToday(date: Date): boolean {
   const today = new Date();
   return (
@@ -197,8 +229,8 @@ export function checkIsToday(date: Date): boolean {
   );
 }
 
-// Keep the dateFnsIsToday function as a named export if needed
+// Export the original date-fns isToday function as a named export
 export { dateFnsIsToday };
 
-// Export our enhanced isToday function as the primary function
-export { isTodayWithSafety as isToday };
+// For backward compatibility - keep the old function name available
+export const isTodayWithSafety = isToday;

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { CollapsibleMessageGroup } from './CollapsibleMessageGroup';
-import { sortByDate, groupMessagesByDate, isTodayWithSafety, normalizeDateString } from "@/utils/dateUtils";
+import { sortByDate, groupMessagesByDate, isToday, normalizeDateString } from "@/utils/dateUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useChatScroll } from "@/hooks/useChatScroll";
@@ -124,14 +123,18 @@ export const ChatMessagesList = ({
       if (data && data.length > 0) {
         const sortedData = sortByDate(data, 'created_at', true);
         
-        // Check if we have messages from today
         const today = normalizeDateString(new Date());
         const hasMessagesForToday = sortedData.some(msg => {
-          const msgDate = new Date(msg.created_at);
-          const msgDateStr = normalizeDateString(msgDate);
-          const isMessageToday = msgDateStr === today;
-          console.log(`Message ${msg.id} date check: ${msgDateStr}, today: ${today}, isToday: ${isMessageToday}`);
-          return isMessageToday;
+          try {
+            const msgDate = new Date(msg.created_at);
+            const msgDateStr = normalizeDateString(msgDate);
+            const isMessageToday = msgDateStr === today;
+            console.log(`Message ${msg.id} date check: ${msgDateStr}, today: ${today}, isToday: ${isMessageToday}`);
+            return isMessageToday;
+          } catch (error) {
+            console.error(`Error checking message date:`, error);
+            return false;
+          }
         });
         
         console.log(`Has messages for today: ${hasMessagesForToday}`);
@@ -210,17 +213,18 @@ export const ChatMessagesList = ({
     new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
 
-  // Group messages by date - this is where today's messages are separated
   const messageGroups = groupMessagesByDate(allMessages);
   
-  // Log message groups to verify today's messages are included
   useEffect(() => {
     if (Object.keys(messageGroups).length > 0) {
       console.log("Message groups:", Object.keys(messageGroups));
       
-      // Check specifically for today's group
       const today = normalizeDateString(new Date());
       console.log(`Checking for today's group (${today}):`, messageGroups[today] ? `Found with ${messageGroups[today].length} messages` : "Not found");
+      
+      if (!messageGroups[today]) {
+        console.log("No messages found for today, all available dates:", Object.keys(messageGroups).join(", "));
+      }
     }
   }, [messageGroups]);
 
@@ -280,17 +284,10 @@ export const ChatMessagesList = ({
                 .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
                 .map(([dateString, dayMessages], index, array) => {
                   const isLatestGroup = index === array.length - 1;
+                  const todayStr = normalizeDateString(new Date());
+                  const isTodayGroup = dateString === todayStr;
                   
-                  // Check if this is today's group
-                  let isTodayGroup = false;
-                  try {
-                    const [year, month, day] = dateString.split('-').map(Number);
-                    const dateObj = new Date(year, month - 1, day);
-                    isTodayGroup = isTodayWithSafety(dateObj);
-                    console.log(`Group ${dateString}: isToday = ${isTodayGroup}`);
-                  } catch (error) {
-                    console.error(`Error checking if group ${dateString} is today:`, error);
-                  }
+                  console.log(`Rendering group ${dateString}: isToday = ${isTodayGroup}, isLatest = ${isLatestGroup}`);
                   
                   return (
                     <CollapsibleMessageGroup 

@@ -29,12 +29,18 @@ export const ChatMessage = ({
   offlineMode = false,
   isLocal = false
 }: ChatMessageProps) => {
-  // Format message timestamp
-  const messageTime = new Date(message.created_at);
-  const formattedTime = format(messageTime, "h:mm a");
+  // Format message timestamp safely
+  let formattedTime = '';
+  try {
+    const messageTime = new Date(message.created_at);
+    formattedTime = format(messageTime, "h:mm a");
+  } catch (error) {
+    console.error("Error formatting message time:", error);
+    formattedTime = 'Unknown time';
+  }
 
   // Get sender full name
-  const senderFullName = `${message.sender.first_name} ${message.sender.last_name}`.trim();
+  const senderFullName = `${message.sender.first_name || ''} ${message.sender.last_name || ''}`.trim() || 'Unknown';
   
   // Determine if the sender is an AI bot
   const isAiBot = message.sender.role === 'aibot' || message.sender.id === '00000000-0000-0000-0000-000000000000';
