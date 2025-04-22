@@ -1,4 +1,5 @@
 
+-- Update the get_room_messages function to correctly handle message limits and ordering
 CREATE OR REPLACE FUNCTION public.get_room_messages(p_room_id UUID, p_limit INT DEFAULT 100, p_offset INT DEFAULT 0)
 RETURNS TABLE (
   id UUID,
