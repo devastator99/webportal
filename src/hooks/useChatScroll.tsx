@@ -6,18 +6,21 @@ interface UseChatScrollOptions {
   loadingMessages: boolean;
   loadingMore: boolean;
   isNewMessage?: boolean;
+  messagesToShow?: number;
 }
 
 export function useChatScroll({ 
   messages, 
   loadingMessages, 
   loadingMore,
-  isNewMessage = false
+  isNewMessage = false,
+  messagesToShow = 0
 }: UseChatScrollOptions) {
   const endRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [hasScrolledUp, setHasScrolledUp] = useState(false);
 
   // Handle scroll position detection
   useEffect(() => {
@@ -30,6 +33,10 @@ export function useChatScroll({
       
       setShouldAutoScroll(isNearBottom);
       setShowScrollButton(!isNearBottom);
+      
+      if (!isNearBottom && !hasScrolledUp) {
+        setHasScrolledUp(true);
+      }
     };
 
     const container = containerRef.current;
@@ -42,7 +49,7 @@ export function useChatScroll({
         container.removeEventListener('scroll', handleScroll);
       }
     };
-  }, []);
+  }, [hasScrolledUp]);
 
   // Handle auto-scrolling - improved to better handle new messages
   useEffect(() => {
@@ -56,18 +63,20 @@ export function useChatScroll({
         endRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     }
-  }, [messages, loadingMessages, loadingMore, shouldAutoScroll, isNewMessage]);
+  }, [messages, loadingMessages, loadingMore, shouldAutoScroll, isNewMessage, messagesToShow]);
 
   const scrollToBottom = () => {
     endRef.current?.scrollIntoView({ behavior: 'smooth' });
     setShouldAutoScroll(true);
     setShowScrollButton(false);
+    setHasScrolledUp(false);
   };
 
   return {
     endRef,
     containerRef,
     showScrollButton,
-    scrollToBottom
+    scrollToBottom,
+    hasScrolledUp
   };
 }

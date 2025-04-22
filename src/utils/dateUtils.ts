@@ -146,3 +146,13 @@ export function parseDateFromDisplay(dateString: string): Date | null {
     return null;
   }
 }
+
+// Add this new function to check if a date is today
+export function isToday(date: Date): boolean {
+  const today = new Date();
+  return (
+    date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear()
+  );
+}

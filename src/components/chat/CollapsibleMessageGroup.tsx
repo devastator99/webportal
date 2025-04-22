@@ -9,16 +9,22 @@ interface CollapsibleMessageGroupProps {
   date: string;
   messages: any[];
   children: React.ReactNode;
+  isLatestGroup?: boolean;
 }
 
-export const CollapsibleMessageGroup = ({ date, messages, children }: CollapsibleMessageGroupProps) => {
+export const CollapsibleMessageGroup = ({ 
+  date, 
+  messages, 
+  children,
+  isLatestGroup = false
+}: CollapsibleMessageGroupProps) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   
-  // Ensure recent date groups are always expanded
+  // Ensure recent date groups and today's group are always expanded
   useEffect(() => {
-    const shouldOpen = shouldExpandDateGroup(date);
+    const shouldOpen = shouldExpandDateGroup(date) || isLatestGroup;
     setIsOpen(shouldOpen);
-  }, [date]);
+  }, [date, isLatestGroup]);
 
   const formattedDate = formatMessageDateGroup(date);
   const messagesCount = messages?.length || 0;
@@ -34,10 +40,11 @@ export const CollapsibleMessageGroup = ({ date, messages, children }: Collapsibl
         <div className="flex justify-between items-center relative z-10">
           <Badge 
             variant="outline" 
-            className="bg-background/95 shadow-sm cursor-pointer flex items-center hover:bg-accent/80 transition-colors px-3 py-1"
+            className={`bg-background/95 shadow-sm cursor-pointer flex items-center hover:bg-accent/80 transition-colors px-3 py-1 ${isLatestGroup ? 'bg-primary/10 border-primary/30' : ''}`}
             onClick={toggleOpen}
           >
             {formattedDate}
+            {isLatestGroup && <span className="ml-1 text-xs text-primary font-semibold">(Today)</span>}
             {isOpen ? (
               <ChevronUp className="h-3 w-3 ml-1" />
             ) : (
