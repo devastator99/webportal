@@ -191,90 +191,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     }
   };
 
-  const loadMoreMessages = () => {
-    if (selectedRoomId && hasMoreMessages && !isLoadingMessages) {
-      const nextPage = page + 1;
-      setPage(nextPage);
-      fetchMessages(selectedRoomId, nextPage, true);
-    }
-  };
-
-  const triggerAiResponse = async (message: string, roomId: string) => {
-    try {
-      setIsAiResponding(true);
-      console.log("Triggering AI response for message:", message);
-      
-      const { data, error } = await supabase.functions.invoke('care-team-ai-chat', {
-        body: { 
-          roomId: roomId,
-          message: message
-        }
-      });
-      
-      if (error) {
-        console.error("Error getting AI response:", error);
-        throw error;
-      }
-      
-      console.log("AI response received:", data);
-
-      if (data.generatePdf && data.pdfType === 'prescription') {
-        const { pdfData } = data;
-        
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = `
-          <div id="prescription-pdf" class="p-8">
-            <h1 class="text-2xl font-bold mb-6">Medical Prescription</h1>
-            <div class="mb-4">
-              <p><strong>Doctor:</strong> ${pdfData.doctorName}</p>
-              <p><strong>Date:</strong> ${pdfData.date}</p>
-              <p><strong>Patient:</strong> ${pdfData.patientName}</p>
-            </div>
-            <div class="mb-4">
-              <h2 class="text-xl font-semibold mb-2">Diagnosis</h2>
-              <p>${pdfData.diagnosis}</p>
-            </div>
-            <div class="mb-4">
-              <h2 class="text-xl font-semibold mb-2">Medications</h2>
-              <p>${pdfData.medications}</p>
-            </div>
-            ${pdfData.notes ? `
-              <div class="mb-4">
-                <h2 class="text-xl font-semibold mb-2">Additional Notes</h2>
-                <p>${pdfData.notes}</p>
-              </div>
-            ` : ''}
-          </div>
-        `;
-        
-        document.body.appendChild(tempDiv);
-        
-        await generatePdfFromElement(
-          'prescription-pdf',
-          `prescription_${pdfData.date.replace(/\//g, '-')}.pdf`
-        );
-        
-        document.body.removeChild(tempDiv);
-      }
-      
-      setTimeout(() => {
-        fetchMessages(roomId, 1);
-        setIsAiResponding(false);
-      }, 1000);
-      
-      return data;
-    } catch (error) {
-      console.error("Error in AI chat:", error);
-      setIsAiResponding(false);
-      toast({
-        title: "AI Assistant Error",
-        description: "Could not get AI response. Please try again.",
-        variant: "destructive"
-      });
-      return null;
-    }
-  };
-
   const handleFileSelect = (file: File) => {
     setSelectedFile(file);
   };
@@ -623,19 +539,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
               />
               
               <ScrollArea className="flex-1 p-4" viewportRef={containerRef}>
-                {hasMoreMessages && !isLoadingMessages && localMessages.length > 0 && (
-                  <div className="flex justify-center mb-4">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={loadMoreMessages}
-                      className="text-xs text-muted-foreground hover:text-foreground"
-                    >
-                      Load more messages
-                    </Button>
-                  </div>
-                )}
-                
                 {isLoadingMessages && page === 1 ? (
                   <div className="flex flex-col space-y-4">
                     {[1, 2, 3].map(i => (
@@ -658,9 +561,9 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                   <div className="space-y-6">
                     {Object.entries(messageGroups).length > 0 ? (
                       Object.entries(messageGroups)
-                        .sort(([dateA], [dateB]) => dateB.localeCompare(dateA)) // Sort newest first
+                        .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
                         .map(([day, dayMessages], index, array) => {
-                          const isLatestGroup = index === 0; // First group is the latest
+                          const isLatestGroup = index === array.length - 1;
                           const isTodayGroup = isToday(new Date(day));
                           
                           return (

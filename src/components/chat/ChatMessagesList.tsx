@@ -200,6 +200,8 @@ export const ChatMessagesList = ({
     }
   }, [localMessages, messages]);
 
+  // This function is commented out as requested
+  /*
   const handleLoadMore = () => {
     if (roomId && hasMoreMessages && !isLoadingMessages && !loadingMore) {
       setLoadingMore(true);
@@ -208,6 +210,7 @@ export const ChatMessagesList = ({
       fetchMessages(roomId, nextPage, true);
     }
   };
+  */
 
   // Get all messages from both server and local sources
   const allMessages = [
@@ -251,6 +254,7 @@ export const ChatMessagesList = ({
         data-testid="messages-scroll-area"
         viewportRef={containerRef}
       >
+        {/* Load more button commented out as requested
         {hasMoreMessages && !isLoadingMessages && messages.length > 0 && (
           <div className="flex justify-center mb-4">
             <Button 
@@ -271,6 +275,7 @@ export const ChatMessagesList = ({
             </Button>
           </div>
         )}
+        */}
         
         {isLoadingMessages && page === 1 ? (
           <div className="flex flex-col space-y-4">
@@ -294,9 +299,10 @@ export const ChatMessagesList = ({
           <div className="space-y-6 message-groups" data-testid="message-groups-container">
             {Object.keys(messageGroups).length > 0 ? (
               Object.entries(messageGroups)
-                .sort(([dateA], [dateB]) => dateB.localeCompare(dateA)) // Newest dates first
+                // Sort by date - oldest first (ascending) to have newest at bottom
+                .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
                 .map(([day, dayMessages], index, array) => {
-                  const isLatestGroup = index === 0; // First group is the latest
+                  const isLatestGroup = index === array.length - 1; // Last group is the latest
                   const isTodayGroup = isToday(new Date(day));
                   
                   return (
