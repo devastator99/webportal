@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 
 export function useMediaQuery(query: string): boolean {
+  // Initialize with a default value based on current state if possible
   const [matches, setMatches] = useState<boolean>(() => {
     // Check if window is available (client-side)
     if (typeof window !== 'undefined') {
@@ -25,15 +26,18 @@ export function useMediaQuery(query: string): boolean {
     // Create event listener function
     const handleChange = (event: MediaQueryListEvent) => {
       setMatches(event.matches);
+      console.log(`Media query "${query}" changed to: ${event.matches}`);
     };
 
-    // Add listener for changes
-    mediaQuery.addEventListener('change', handleChange);
-    
-    // Clean up
-    return () => {
-      mediaQuery.removeEventListener('change', handleChange);
-    };
+    // Use modern event listener API with fallback for older browsers
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    } else {
+      // Legacy support for older browsers
+      mediaQuery.addListener(handleChange);
+      return () => mediaQuery.removeListener(handleChange);
+    }
   }, [query]);
 
   return matches;

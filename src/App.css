@@ -1,4 +1,3 @@
-
 /* Base styles */
 #root {
   max-width: 100%;
@@ -18,7 +17,7 @@
   
   /* Responsive sizing based on device */
   @media screen and (min-width: 640px) {
-    max-width: 430px;
+    max-width: 100%;
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
   }
 }
@@ -34,12 +33,14 @@
   }
   
   .app-container {
-    border-radius: 2rem;
-    height: 90vh;
+    border-radius: 0;
+    height: 100vh;
     min-height: 680px;
-    max-height: 900px;
-    margin: 2rem auto;
+    max-height: none;
+    margin: 0 auto;
     overflow: hidden;
+    width: 100%;
+    max-width: 100%;
   }
   
   /* Ensure navbar is visible outside the app container on desktop */
@@ -62,6 +63,8 @@
 @media screen and (min-width: 768px) and (max-width: 1024px) {
   body {
     padding: 0;
+    margin: 0;
+    overflow: hidden;
   }
   
   .app-container {
@@ -71,6 +74,7 @@
     max-width: 100%;
     margin: 0;
     border-radius: 0;
+    padding: 0;
   }
   
   .mobile-content {
@@ -81,6 +85,8 @@
     max-width: 100%;
     padding-left: 20px;
     padding-right: 20px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
   }
   
   /* Admin dashboard specific iPad styles */
@@ -143,6 +149,7 @@
   /* Radix scroll area improvements for iPad */
   [data-radix-scroll-area-viewport] > div {
     min-width: fit-content;
+    width: 100% !important;
   }
   
   /* Improved collapsible sections for iPad */
@@ -154,6 +161,47 @@
   /* Ensure cards use full width */
   .card > *, .card > div > * {
     width: 100%;
+  }
+  
+  /* Fix for Dashboard on tablet */
+  .pt-16, .pt-20 {
+    padding-top: 80px !important;
+  }
+  
+  /* Add these specific fixes for dashboard tablet view */
+  @media screen and (min-width: 768px) and (max-width: 1024px) {
+    /* Fix dashboard content width */
+    .space-y-4, .space-y-6 {
+      width: 100% !important;
+      max-width: 100% !important;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    /* Ensure cards are full width */
+    .card, .mobile-card {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+    
+    /* Fix scroll areas in dashboard */
+    .scroll-area, [data-radix-scroll-area-viewport] {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+    
+    /* Ensure grid layouts adapt properly */
+    .grid {
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+    }
+    
+    /* Fix dashboard container */
+    .dashboard-container, .animate-fade-up {
+      width: 100% !important;
+      max-width: 100% !important;
+      padding-left: 12px !important;
+      padding-right: 12px !important;
+    }
   }
 }
 
