@@ -79,14 +79,21 @@ export const ChatMessagesList = ({
       }
       
       if (data && data.length > 0) {
-        // Keep ascending order (oldest to newest) for proper display
-        // When loading more (older messages), we prepend them
+        // Messages come in descending order (newest first), but we need to display them
+        // in ascending order (oldest first)
+        const sortedData = sortByDate(data, 'created_at', true);
+        
         if (pageNum === 1) {
-          setMessages(sortByDate(data, 'created_at', true));
+          setMessages(sortedData);
           setIsLoading(false);
+          
+          // Auto-scroll to bottom on initial load
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
         } else {
           // When loading older messages (page > 1), add them before current messages
-          setMessages(prev => [...sortByDate(data, 'created_at', true), ...prev]);
+          setMessages(prev => [...sortedData, ...prev]);
         }
         setHasMoreMessages(data.length === 50);
       } else {

@@ -368,3 +368,50 @@
   transform: translateY(0);
   transition: opacity 300ms, transform 300ms;
 }
+
+/* Date separator styling */
+.date-separator {
+  position: relative;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.date-separator::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 100%;
+  height: 1px;
+  background-color: hsl(var(--border));
+  z-index: 0;
+}
+
+.date-separator-content {
+  position: relative;
+  display: inline-block;
+  padding: 0 0.5rem;
+  background-color: hsl(var(--background));
+  z-index: 1;
+}
+
+/* Chat message animations */
+.message-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.message-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+.message-exit {
+  opacity: 1;
+}
+
+.message-exit-active {
+  opacity: 0;
+  transition: opacity 300ms;
+}

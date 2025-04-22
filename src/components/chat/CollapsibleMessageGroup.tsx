@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { format, isToday, isYesterday } from "date-fns";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Separator } from "@/components/ui/separator";
 
 interface CollapsibleMessageGroupProps {
   date: string;
@@ -39,29 +41,34 @@ export const CollapsibleMessageGroup = ({ date, messages, children }: Collapsibl
   }, [date]);
 
   return (
-    <div className="space-y-2">
-      <div 
-        className="flex items-center justify-between cursor-pointer py-2 hover:bg-muted/20 px-2 rounded-md transition-colors"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <Badge variant="outline" className="bg-background/80 cursor-pointer flex items-center">
-          {formattedDate}
-          {isOpen ? (
-            <ChevronUp className="h-3 w-3 ml-1" />
-          ) : (
-            <ChevronDown className="h-3 w-3 ml-1" />
-          )}
-        </Badge>
-        <span className="text-xs text-muted-foreground">
-          {messages.length} {messages.length === 1 ? 'message' : 'messages'}
-        </span>
-      </div>
-      
-      {isOpen && (
-        <div className="space-y-2 pl-1">
-          {children}
+    <div className="space-y-2 mb-6">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <div className="relative py-2">
+          <Separator className="absolute inset-0 my-auto z-0" />
+          <div className="flex justify-between items-center relative z-10">
+            <CollapsibleTrigger asChild>
+              <Badge 
+                variant="outline" 
+                className="bg-background/95 shadow-sm cursor-pointer flex items-center hover:bg-accent/80 transition-colors px-3 py-1"
+              >
+                {formattedDate}
+                {isOpen ? (
+                  <ChevronUp className="h-3 w-3 ml-1" />
+                ) : (
+                  <ChevronDown className="h-3 w-3 ml-1" />
+                )}
+              </Badge>
+            </CollapsibleTrigger>
+            <span className="text-xs text-muted-foreground bg-background/95 px-2 rounded-sm">
+              {messages.length} {messages.length === 1 ? 'message' : 'messages'}
+            </span>
+          </div>
         </div>
-      )}
+        
+        <CollapsibleContent className="space-y-2 mt-2">
+          {children}
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 };
