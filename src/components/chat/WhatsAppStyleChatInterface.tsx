@@ -12,13 +12,14 @@ import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
-import { Menu, ChevronLeft, UserCircle, Users, MessageCircle, Loader, AlertCircle } from "lucide-react";
+import { Menu, ChevronLeft, UserCircle, Users, MessageCircle, Loader, AlertCircle, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { sortByDate } from "@/utils/dateUtils";
+import { SearchMessages } from "./SearchMessages";
 
 interface WhatsAppStyleChatInterfaceProps {
   patientRoomId?: string | null;
@@ -69,6 +70,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
+  const [showSearch, setShowSearch] = useState(false);
 
   useEffect(() => {
     if (patientRoomId) {
@@ -396,6 +398,18 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     }
   };
 
+  const handleSearchMessageClick = (messageId: string) => {
+    const messageElement = document.getElementById(`message-${messageId}`);
+    if (messageElement) {
+      messageElement.scrollIntoView({ behavior: 'smooth' });
+      messageElement.classList.add('highlight-message');
+      setTimeout(() => {
+        messageElement.classList.remove('highlight-message');
+      }, 2000);
+    }
+    setShowSearch(false);
+  };
+
   return (
     <div className="h-full flex overflow-hidden rounded-md border border-neutral-200 dark:border-neutral-800 shadow-sm">
       {showSidebar && (
@@ -421,20 +435,9 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       )}
       
       <div className="flex-1 flex flex-col h-full">
-        <div className="p-3 border-b border-neutral-200 dark:border-neutral-800">
-          {!showSidebar && userRole !== 'patient' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0 mr-2"
-              onClick={toggleSidebar}
-            >
-              <Menu className="h-4 w-4" />
-            </Button>
-          )}
-          
-          {selectedRoomId ? (
-            <div className="space-y-2">
+        {selectedRoomId && (
+          <>
+            <div className="p-3 border-b border-neutral-200 dark:border-neutral-800">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium text-sm flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
@@ -443,6 +446,16 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                 <span className="text-xs text-muted-foreground">
                   {roomMembers.length} members
                 </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowSearch(!showSearch)}
+                    className="h-8 w-8 p-0"
+                  >
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
               
               <div className="flex flex-wrap gap-2">
@@ -470,27 +483,13 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                 ))}
               </div>
             </div>
-          ) : (
-            <div className="flex items-center">
-              <UserCircle className="h-8 w-8 mr-2 text-muted-foreground" />
-              <div>
-                <h3 className="font-medium text-sm">Care Team Chat</h3>
-                <p className="text-xs text-muted-foreground">Select a conversation</p>
-              </div>
-            </div>
-          )}
-        </div>
-        
-        <div className="flex-1 overflow-hidden flex flex-col">
-          {selectedRoomId ? (
-            <>
-              {roomError && (
-                <Alert variant="destructive" className="m-3">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{roomError}</AlertDescription>
-                </Alert>
-              )}
+            
+            <div className="flex-1 overflow-hidden flex flex-col relative">
+              <SearchMessages
+                messages={localMessages}
+                onMessageClick={handleSearchMessageClick}
+                isOpen={showSearch}
+              />
               
               <ScrollArea className="flex-1 p-4">
                 {hasMoreMessages && !isLoadingMessages && localMessages.length > 0 && (
@@ -631,21 +630,23 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                   uploadProgress={uploadProgress}
                 />
               </div>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center p-4">
-              <div className="text-center space-y-2">
-                <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground opacity-20" />
-                <h3 className="font-medium">No conversation selected</h3>
-                <p className="text-sm text-muted-foreground">
-                  {userRole === 'patient'
-                    ? "Connect with your care team to discuss your health"
-                    : "Select a care team chat from the sidebar"}
-                </p>
-              </div>
             </div>
-          )}
-        </div>
+          </>
+        )}
+        
+        {!selectedRoomId && (
+          <div className="flex-1 flex items-center justify-center p-4">
+            <div className="text-center space-y-2">
+              <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground opacity-20" />
+              <h3 className="font-medium">No conversation selected</h3>
+              <p className="text-sm text-muted-foreground">
+                {userRole === 'patient'
+                  ? "Connect with your care team to discuss your health"
+                  : "Select a care team chat from the sidebar"}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
