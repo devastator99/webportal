@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -264,23 +265,23 @@ export const ChatMessagesList = ({
             {Object.keys(messageGroups).length > 0 ? (
               Object.entries(messageGroups)
                 .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
-                .map(([day, dayMessages], index, array) => {
+                .map(([dateString, dayMessages], index, array) => {
                   const isLatestGroup = index === array.length - 1;
                   
                   let isTodayGroup = false;
                   try {
-                    const [year, month, day] = day.split('-').map(Number);
+                    const [year, month, day] = dateString.split('-').map(Number);
                     const dateObj = new Date(year, month - 1, day);
                     isTodayGroup = isToday(dateObj);
-                    console.log(`Group ${day}: isToday = ${isTodayGroup}`);
+                    console.log(`Group ${dateString}: isToday = ${isTodayGroup}`);
                   } catch (error) {
-                    console.error(`Error checking if group ${day} is today:`, error);
+                    console.error(`Error checking if group ${dateString} is today:`, error);
                   }
                   
                   return (
                     <CollapsibleMessageGroup 
-                      key={day} 
-                      date={day}
+                      key={dateString} 
+                      date={dateString}
                       messages={dayMessages}
                       isLatestGroup={isLatestGroup || isTodayGroup}
                     >
