@@ -415,3 +415,19 @@
   opacity: 0;
   transition: opacity 300ms;
 }
+
+/* Message group styling */
+.date-group {
+  margin-bottom: 1.5rem;
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+
+.message-item {
+  transition: all 0.2s ease;
+}
+
+.message-groups {
+  display: flex;
+  flex-direction: column;
+}

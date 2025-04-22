@@ -13,6 +13,7 @@ import { GetRoomMessagesParams, AnyRole } from "@/types/auth";
 import { CollapsibleMessageGroup } from './CollapsibleMessageGroup';
 import { sortByDate } from "@/utils/dateUtils";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 interface Message {
   id: string;
@@ -78,10 +79,13 @@ export const ChatMessagesList = ({
         throw error;
       }
       
+      console.log(`Retrieved ${data?.length || 0} messages from API`);
+      
       if (data && data.length > 0) {
         // Messages come in descending order (newest first), but we need to display them
         // in ascending order (oldest first)
         const sortedData = sortByDate(data, 'created_at', true);
+        console.log("Sorted messages:", sortedData.map(m => new Date(m.created_at).toISOString()));
         
         if (pageNum === 1) {
           setMessages(sortedData);
@@ -165,26 +169,45 @@ export const ChatMessagesList = ({
   };
 
   const groupMessagesByDay = (messages: any[]) => {
-    const groups: Record<string, any[]> = {};
-    
-    messages.forEach(msg => {
-      const date = new Date(msg.created_at);
-      const day = format(date, 'yyyy-MM-dd');
+    try {
+      const groups: Record<string, any[]> = {};
       
-      if (!groups[day]) {
-        groups[day] = [];
-      }
+      messages.forEach(msg => {
+        // Ensure created_at is a valid date string
+        if (!msg.created_at) {
+          console.error("Message missing created_at:", msg);
+          return;
+        }
+        
+        try {
+          const date = new Date(msg.created_at);
+          // Use YYYY-MM-DD format for consistent key formatting
+          const day = format(date, 'yyyy-MM-dd');
+          
+          if (!groups[day]) {
+            groups[day] = [];
+          }
+          
+          groups[day].push(msg);
+        } catch (e) {
+          console.error("Error parsing message date:", msg.created_at, e);
+        }
+      });
       
-      groups[day].push(msg);
-    });
-    
-    // Sort the days in ascending order (oldest to newest)
-    return Object.entries(groups)
-      .sort(([dayA], [dayB]) => new Date(dayA).getTime() - new Date(dayB).getTime())
-      .reduce((acc, [day, messages]) => {
-        acc[day] = messages;
-        return acc;
-      }, {} as Record<string, any[]>);
+      // Sort the days in ascending order (oldest to newest)
+      const sortedGroups = Object.entries(groups)
+        .sort(([dayA], [dayB]) => new Date(dayA).getTime() - new Date(dayB).getTime())
+        .reduce((acc, [day, messages]) => {
+          acc[day] = messages;
+          return acc;
+        }, {} as Record<string, any[]>);
+        
+      console.log("Grouped messages by day:", Object.keys(sortedGroups));
+      return sortedGroups;
+    } catch (error) {
+      console.error("Error in groupMessagesByDay:", error);
+      return {};
+    }
   };
 
   // Get all messages from both server and local sources
@@ -196,6 +219,7 @@ export const ChatMessagesList = ({
   );
 
   const messageGroups = groupMessagesByDay(allMessages);
+  console.log("Message groups count:", Object.keys(messageGroups).length);
 
   if (isLoading) {
     return (
@@ -222,142 +246,152 @@ export const ChatMessagesList = ({
   }
 
   return (
-    <ScrollArea className="flex-1 p-4">
-      {hasMoreMessages && !isLoadingMessages && messages.length > 0 && (
-        <div className="flex justify-center mb-4">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleLoadMore}
-            className="text-xs text-muted-foreground hover:text-foreground"
-            disabled={loadingMore}
-          >
-            {loadingMore ? (
-              <>
-                <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                Loading...
-              </>
-            ) : (
-              'Load older messages'
-            )}
-          </Button>
-        </div>
-      )}
-      
-      {isLoadingMessages && page === 1 ? (
-        <div className="flex flex-col space-y-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="flex items-start gap-2">
-              <Skeleton className="h-8 w-8 rounded-full" />
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-40" />
-                <Skeleton className="h-16 w-72" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : messages.length === 0 && allMessages.length === 0 ? (
-        <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm">
-          <MessageCircle className="h-12 w-12 mb-2 opacity-20" />
-          <p>No messages yet</p>
-          <p className="text-xs">Start a conversation with your care team</p>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {Object.entries(messageGroups).map(([day, dayMessages]) => (
-            <CollapsibleMessageGroup 
-              key={day} 
-              date={day}
-              messages={dayMessages}
+    <ErrorBoundary>
+      <ScrollArea className="flex-1 p-4">
+        {hasMoreMessages && !isLoadingMessages && messages.length > 0 && (
+          <div className="flex justify-center mb-4">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={handleLoadMore}
+              className="text-xs text-muted-foreground hover:text-foreground"
+              disabled={loadingMore}
             >
-              {dayMessages
-                // Sort messages within a day by time (oldest to newest for proper chronological display)
-                .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-                .map((message) => {
-                  const isCurrentUser = message.sender_id === user?.id;
-                  const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
-                  
-                  return (
-                    <div 
-                      key={message.id} 
-                      id={`message-${message.id}`}
-                      className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} my-2`}
-                    >
-                      <div className="flex items-start gap-2 max-w-[80%]">
-                        {!isCurrentUser && !message.is_system_message && (
-                          <Avatar className="h-8 w-8">
-                            {isAi ? (
-                              <AvatarFallback className="bg-purple-100 text-purple-800">
-                                AI
-                              </AvatarFallback>
-                            ) : (
-                              <AvatarFallback>
-                                {message.sender_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
-                              </AvatarFallback>
+              {loadingMore ? (
+                <>
+                  <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : (
+                'Load older messages'
+              )}
+            </Button>
+          </div>
+        )}
+        
+        {isLoadingMessages && page === 1 ? (
+          <div className="flex flex-col space-y-4">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="flex items-start gap-2">
+                <Skeleton className="h-8 w-8 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="h-16 w-72" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : messages.length === 0 && allMessages.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm">
+            <MessageCircle className="h-12 w-12 mb-2 opacity-20" />
+            <p>No messages yet</p>
+            <p className="text-xs">Start a conversation with your care team</p>
+          </div>
+        ) : (
+          <div className="space-y-6 message-groups">
+            {Object.keys(messageGroups).length > 0 ? (
+              Object.entries(messageGroups).map(([day, dayMessages]) => (
+                <CollapsibleMessageGroup 
+                  key={day} 
+                  date={day}
+                  messages={dayMessages}
+                >
+                  {dayMessages
+                    // Sort messages within a day by time (oldest to newest for proper chronological display)
+                    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                    .map((message) => {
+                      const isCurrentUser = message.sender_id === user?.id;
+                      const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
+                      
+                      return (
+                        <div 
+                          key={message.id} 
+                          id={`message-${message.id}`}
+                          className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} my-2 message-item`}
+                          data-message-id={message.id}
+                          data-created-at={message.created_at}
+                        >
+                          <div className="flex items-start gap-2 max-w-[80%]">
+                            {!isCurrentUser && !message.is_system_message && (
+                              <Avatar className="h-8 w-8">
+                                {isAi ? (
+                                  <AvatarFallback className="bg-purple-100 text-purple-800">
+                                    AI
+                                  </AvatarFallback>
+                                ) : (
+                                  <AvatarFallback>
+                                    {message.sender_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
+                                  </AvatarFallback>
+                                )}
+                              </Avatar>
                             )}
-                          </Avatar>
-                        )}
-                        
-                        <div className={`space-y-1 ${isCurrentUser ? 'order-first mr-2' : 'ml-0'}`}>
-                          {!isCurrentUser && !message.is_system_message && (
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs font-medium">
-                                {isAi ? 'AI Assistant' : message.sender_name}
-                              </span>
-                              {message.sender_role && (
-                                <Badge variant="outline" className="text-[10px] py-0 px-1">
-                                  {message.sender_role}
-                                </Badge>
-                              )}
-                            </div>
-                          )}
-                          
-                          <div 
-                            className={`p-3 rounded-lg ${
-                              message.is_system_message 
-                                ? 'bg-muted text-muted-foreground text-xs italic' 
-                                : isCurrentUser
-                                  ? 'bg-primary text-primary-foreground'
-                                  : isAi
-                                    ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800'
-                                    : 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700'
-                            }`}
-                          >
-                            {message.message.startsWith('[FILE]') ? (
-                              <div>
-                                <div className="flex items-center gap-2 text-xs">
-                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file">
-                                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                                    <polyline points="14 2 14 8 20 8"/>
-                                  </svg>
-                                  <a 
-                                    href={message.message.split(' - ')[1]} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="underline"
-                                  >
-                                    {message.message.split(' - ')[0].replace('[FILE] ', '')}
-                                  </a>
+                            
+                            <div className={`space-y-1 ${isCurrentUser ? 'order-first mr-2' : 'ml-0'}`}>
+                              {!isCurrentUser && !message.is_system_message && (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-xs font-medium">
+                                    {isAi ? 'AI Assistant' : message.sender_name}
+                                  </span>
+                                  {message.sender_role && (
+                                    <Badge variant="outline" className="text-[10px] py-0 px-1">
+                                      {message.sender_role}
+                                    </Badge>
+                                  )}
                                 </div>
+                              )}
+                              
+                              <div 
+                                className={`p-3 rounded-lg ${
+                                  message.is_system_message 
+                                    ? 'bg-muted text-muted-foreground text-xs italic' 
+                                    : isCurrentUser
+                                      ? 'bg-primary text-primary-foreground'
+                                      : isAi
+                                        ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800'
+                                        : 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700'
+                                }`}
+                              >
+                                {message.message.startsWith('[FILE]') ? (
+                                  <div>
+                                    <div className="flex items-center gap-2 text-xs">
+                                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file">
+                                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                      </svg>
+                                      <a 
+                                        href={message.message.split(' - ')[1]} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="underline"
+                                      >
+                                        {message.message.split(' - ')[0].replace('[FILE] ', '')}
+                                      </a>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                                )}
+                                <p className="text-[10px] opacity-70 mt-1">
+                                  {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </p>
                               </div>
-                            ) : (
-                              <p className="text-sm whitespace-pre-wrap">{message.message}</p>
-                            )}
-                            <p className="text-[10px] opacity-70 mt-1">
-                              {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
-                  );
-                })}
-            </CollapsibleMessageGroup>
-          ))}
-        </div>
-      )}
-      
-      <div ref={messagesEndRef} />
-    </ScrollArea>
+                      );
+                    })}
+                </CollapsibleMessageGroup>
+              ))
+            ) : (
+              <div className="text-center text-muted-foreground">
+                No messages to display
+              </div>
+            )}
+          </div>
+        )}
+        
+        <div ref={messagesEndRef} />
+      </ScrollArea>
+    </ErrorBoundary>
   );
 };

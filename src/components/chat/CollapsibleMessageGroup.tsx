@@ -15,20 +15,31 @@ interface CollapsibleMessageGroupProps {
 export const CollapsibleMessageGroup = ({ date, messages, children }: CollapsibleMessageGroupProps) => {
   // Default to open for today's messages, closed for older messages
   const [isOpen, setIsOpen] = useState(() => {
-    const messageDate = new Date(date);
-    return isToday(messageDate) || isYesterday(messageDate);
+    try {
+      const messageDate = new Date(date);
+      console.log(`Initializing date group: ${date}, isToday: ${isToday(messageDate)}`);
+      return isToday(messageDate) || isYesterday(messageDate);
+    } catch (error) {
+      console.error("Error parsing date:", date, error);
+      return true; // Default to open if date parsing fails
+    }
   });
   
   // Format the date to be more readable
   const formatMessageDate = (dateString: string) => {
-    const messageDate = new Date(dateString);
-    
-    if (isToday(messageDate)) {
-      return "Today";
-    } else if (isYesterday(messageDate)) {
-      return "Yesterday";
-    } else {
-      return format(messageDate, 'MMMM d, yyyy');
+    try {
+      const messageDate = new Date(dateString);
+      
+      if (isToday(messageDate)) {
+        return "Today";
+      } else if (isYesterday(messageDate)) {
+        return "Yesterday";
+      } else {
+        return format(messageDate, 'MMMM d, yyyy');
+      }
+    } catch (error) {
+      console.error("Error formatting date:", dateString, error);
+      return dateString; // Return original string if formatting fails
     }
   };
   
@@ -36,12 +47,17 @@ export const CollapsibleMessageGroup = ({ date, messages, children }: Collapsibl
 
   // Update open state when date changes
   useEffect(() => {
-    const messageDate = new Date(date);
-    setIsOpen(isToday(messageDate) || isYesterday(messageDate));
+    try {
+      const messageDate = new Date(date);
+      setIsOpen(isToday(messageDate) || isYesterday(messageDate));
+    } catch (error) {
+      console.error("Error in useEffect date handling:", date, error);
+      setIsOpen(true); // Default to open if date parsing fails
+    }
   }, [date]);
 
   return (
-    <div className="space-y-2 mb-6">
+    <div className="space-y-2 mb-6 relative date-group" data-date={date}>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
         <div className="relative py-2">
           <Separator className="absolute inset-0 my-auto z-0" />
