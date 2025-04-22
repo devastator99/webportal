@@ -524,8 +524,8 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                     <p className="text-xs">Start a conversation with your care team</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {sortByDate(localMessages, 'created_at', true)
+                  <div className="space-y-4 flex flex-col-reverse">
+                    {sortByDate(localMessages, 'created_at', false)
                       .map((message, i) => {
                         const isCurrentUser = message.sender_id === user?.id;
                         const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
@@ -533,6 +533,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                         return (
                           <div 
                             key={message.id} 
+                            id={`message-${message.id}`}
                             className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
                           >
                             <div className="flex items-start gap-2 max-w-[80%]">
@@ -593,11 +594,13 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                                       </div>
                                     </div>
                                   ) : (
-                                    <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                                    <>
+                                      <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                                      <p className="text-[10px] opacity-70 mt-1">
+                                        {formatChatMessageTime(message.created_at)}
+                                      </p>
+                                    </>
                                   )}
-                                  <p className="text-[10px] opacity-70 mt-1">
-                                    {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                  </p>
                                 </div>
                               </div>
                             </div>

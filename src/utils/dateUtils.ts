@@ -1,4 +1,3 @@
-
 import { parse as dateFnsParse, format as dateFnsFormat, compareAsc, parseISO, isValid } from "date-fns";
 
 /**
@@ -198,6 +197,40 @@ export const sortByDate = <T>(
       return 0;
     }
   });
+};
+
+/**
+ * Formats a chat message timestamp for display
+ * @param dateString The ISO date string to format
+ * @returns Formatted date and time string
+ */
+export const formatChatMessageTime = (dateString: string): string => {
+  try {
+    const date = parseISO(dateString);
+    if (!isValid(date)) {
+      console.error(`Invalid date for chat message: ${dateString}`);
+      return '';
+    }
+    
+    const today = new Date();
+    const messageDate = new Date(date);
+    
+    // If message is from today, only show time
+    if (messageDate.toDateString() === today.toDateString()) {
+      return dateFnsFormat(date, 'h:mm a');
+    }
+    
+    // If message is from this year, show month, day and time
+    if (messageDate.getFullYear() === today.getFullYear()) {
+      return dateFnsFormat(date, 'MMM d, h:mm a');
+    }
+    
+    // For older messages, show full date and time
+    return dateFnsFormat(date, 'MMM d, yyyy h:mm a');
+  } catch (error) {
+    console.error('Error formatting chat message time:', error);
+    return '';
+  }
 };
 
 // Export other functions from the original file that we're not modifying
