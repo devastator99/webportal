@@ -14,7 +14,7 @@ interface CollapsibleMessageGroupProps {
 export const CollapsibleMessageGroup = ({ date, messages, children }: CollapsibleMessageGroupProps) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   
-  // Use the improved date utilities
+  // Ensure recent date groups are always expanded
   useEffect(() => {
     const shouldOpen = shouldExpandDateGroup(date);
     setIsOpen(shouldOpen);

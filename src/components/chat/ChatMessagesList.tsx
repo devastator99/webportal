@@ -68,13 +68,15 @@ export const ChatMessagesList = ({
     isNewMessage: newMessageAdded
   });
 
-  const fetchMessages = async (roomId: string, pageNum: number) => {
+  const fetchMessages = async (roomId: string, pageNum: number, isLoadingMore = false) => {
     if (!roomId) return;
     
     try {
-      setIsLoadingMessages(true);
+      if (!isLoadingMore) {
+        setIsLoadingMessages(true);
+      }
       setRoomError(null);
-      console.log(`Fetching messages for room ${roomId}, page ${pageNum}`);
+      console.log(`Fetching messages for room ${roomId}, page ${pageNum}, isLoadingMore: ${isLoadingMore}`);
       
       const { data, error } = await supabase.rpc('get_room_messages_with_role', {
         p_room_id: roomId,
@@ -92,18 +94,17 @@ export const ChatMessagesList = ({
       console.log(`Retrieved ${data?.length || 0} messages from API`);
       
       if (data && data.length > 0) {
-        if (pageNum === 1) {
-          setMessages(data);
-          setIsLoading(false);
-        } else {
+        if (isLoadingMore) {
           // When loading older messages, add them before current messages
           setMessages(prev => [...data, ...prev]);
+        } else {
+          // For initial load or refresh, replace the messages
+          setMessages(data);
         }
         setHasMoreMessages(data.length === 50);
       } else {
-        if (pageNum === 1) {
+        if (!isLoadingMore) {
           setMessages([]);
-          setIsLoading(false);
         }
         setHasMoreMessages(false);
       }
@@ -112,15 +113,20 @@ export const ChatMessagesList = ({
       setNewMessageAdded(false);
     } catch (error) {
       console.error("Error in fetchMessages:", error);
-      setIsLoading(false);
+      if (!isLoadingMore) {
+        setIsLoading(false);
+      }
       toast({
         title: "Error loading messages",
         description: "Please try again later",
         variant: "destructive"
       });
     } finally {
-      setIsLoadingMessages(false);
+      if (!isLoadingMore) {
+        setIsLoadingMessages(false);
+      }
       setLoadingMore(false);
+      setIsLoading(false);
     }
   };
 
@@ -157,11 +163,11 @@ export const ChatMessagesList = ({
   }, [localMessages, messages]);
 
   const handleLoadMore = () => {
-    if (roomId && hasMoreMessages && !isLoadingMessages) {
+    if (roomId && hasMoreMessages && !isLoadingMessages && !loadingMore) {
       setLoadingMore(true);
       const nextPage = page + 1;
       setPage(nextPage);
-      fetchMessages(roomId, nextPage);
+      fetchMessages(roomId, nextPage, true);
     }
   };
 

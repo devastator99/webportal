@@ -44,12 +44,13 @@ export function useChatScroll({
     };
   }, []);
 
-  // Handle auto-scrolling
+  // Handle auto-scrolling - improved to better handle new messages
   useEffect(() => {
     // Only auto-scroll in these conditions:
     // 1. When user is already near bottom
     // 2. When a new message is added (not when loading older messages)
     // 3. Not during initial loading of messages
+    // 4. Not during loading more (older) messages
     if ((shouldAutoScroll || isNewMessage) && !loadingMessages && !loadingMore) {
       setTimeout(() => {
         endRef.current?.scrollIntoView({ behavior: 'smooth' });

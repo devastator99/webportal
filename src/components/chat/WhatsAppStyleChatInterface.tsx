@@ -108,13 +108,15 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     }
   };
 
-  const fetchMessages = async (roomId: string, pageNum: number) => {
+  const fetchMessages = async (roomId: string, pageNum: number, isLoadingMore = false) => {
     if (!roomId) return;
     
     try {
-      setIsLoadingMessages(true);
+      if (!isLoadingMore) {
+        setIsLoadingMessages(true);
+      }
       setRoomError(null);
-      console.log(`Fetching messages for room ${roomId}, page ${pageNum}`);
+      console.log(`Fetching messages for room ${roomId}, page ${pageNum}, isLoadingMore: ${isLoadingMore}`);
       
       const { data, error } = await supabase.rpc('get_room_messages_with_role', {
         p_room_id: roomId,
@@ -132,14 +134,14 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       console.log(`Fetched ${data?.length || 0} messages:`, data);
       
       if (data && data.length > 0) {
-        if (pageNum === 1) {
-          setLocalMessages(data);
+        if (isLoadingMore) {
+          setLocalMessages(prev => [...data, ...prev]);
         } else {
-          setLocalMessages(prev => [...prev, ...data]);
+          setLocalMessages(data);
         }
         setHasMoreMessages(data.length === 50);
       } else {
-        if (pageNum === 1) {
+        if (!isLoadingMore) {
           setLocalMessages([]);
         }
         setHasMoreMessages(false);
@@ -155,7 +157,9 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         variant: "destructive"
       });
     } finally {
-      setIsLoadingMessages(false);
+      if (!isLoadingMore) {
+        setIsLoadingMessages(false);
+      }
     }
   };
 
@@ -163,7 +167,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     if (selectedRoomId && hasMoreMessages && !isLoadingMessages) {
       const nextPage = page + 1;
       setPage(nextPage);
-      fetchMessages(selectedRoomId, nextPage);
+      fetchMessages(selectedRoomId, nextPage, true);
     }
   };
 
@@ -397,7 +401,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       console.log("Message sent successfully, ID:", data);
       
-      fetchMessages(selectedRoomId, 1);
+      setTimeout(() => fetchMessages(selectedRoomId, 1), 500);
       
       const shouldTriggerAI = 
         userRole === 'patient' || 
