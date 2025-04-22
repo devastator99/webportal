@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -145,56 +144,38 @@ serve(async (req: Request) => {
           medicalData += "No prescriptions found in patient records.\n";
           aiResponse = "I don't see any prescriptions in your records yet. Please ask your doctor about prescriptions during your next appointment.";
         } else {
-          // Add all prescriptions to context
-          medicalData += "Patient prescriptions:\n";
-          prescriptions.forEach((p, index) => {
-            medicalData += `${index + 1}. From Dr. ${p.doctor_first_name} ${p.doctor_last_name} on ${new Date(p.created_at).toLocaleDateString()}:\n`;
-            medicalData += `   Diagnosis: ${p.diagnosis}\n`;
-            medicalData += `   Medications: ${p.prescription}\n`;
-            if (p.notes) {
-              medicalData += `   Notes: ${p.notes}\n`;
-            }
-            medicalData += '\n';
-          });
-          
-          // If they want the prescription as PDF, let them know how to view it
+          // If they want the prescription as PDF
           if (message.toLowerCase().includes('pdf') || 
               message.toLowerCase().includes('download') || 
               message.toLowerCase().includes('file') ||
               message.toLowerCase().includes('share')) {
-            aiResponse = `I can help you access your prescription. Your latest prescription was from Dr. ${prescriptions[0].doctor_first_name} ${prescriptions[0].doctor_last_name} on ${new Date(prescriptions[0].created_at).toLocaleDateString()}. You can view and download it as a PDF from the AI chat in your dashboard or from the prescriptions page.`;
-          } else {
-            // Use OpenAI for more natural response
-            if (prescriptions.length === 1) {
-              const p = prescriptions[0];
-              aiResponse = `Your latest prescription from Dr. ${p.doctor_first_name} ${p.doctor_last_name} (${new Date(p.created_at).toLocaleDateString()}):\n\nDiagnosis: ${p.diagnosis}\n\nPrescribed medications: ${p.prescription}`;
-              
-              if (p.notes) {
-                aiResponse += `\n\nAdditional notes: ${p.notes}`;
-              }
-              
-              aiResponse += "\n\nYou can also view and download this as a PDF from the Prescriptions section in your app.";
-            } else {
-              // For multiple prescriptions, let OpenAI generate a summary
-              const systemPrompt = `You are a healthcare assistant providing information about a patient's prescriptions. Be helpful, concise, and strictly use only the information provided in the medical data. Do not invent any information.`;
-              const aiGeneratedResponse = await getOpenAIResponse([
-                { role: "user", content: `Based on the following patient prescription data, please provide a summary of their current medications. Patient asked: "${message}"\n\n${medicalData}` }
-              ], systemPrompt);
-              
-              if (aiGeneratedResponse) {
-                aiResponse = aiGeneratedResponse;
-              } else {
-                // Fallback if OpenAI fails
-                aiResponse = `You have ${prescriptions.length} prescriptions in your medical records. The most recent one is from Dr. ${prescriptions[0].doctor_first_name} ${prescriptions[0].doctor_last_name} dated ${new Date(prescriptions[0].created_at).toLocaleDateString()}. You can view all your prescriptions in the Prescriptions section of your app.`;
-              }
-            }
+            
+            const latestPrescription = prescriptions[0];
+            const prescriptionDate = new Date(latestPrescription.created_at).toLocaleDateString();
+            
+            aiResponse = `I've prepared your latest prescription as a PDF. This prescription was written by Dr. ${latestPrescription.doctor_first_name} ${latestPrescription.doctor_last_name} on ${prescriptionDate}.\n\nYou can download the PDF now. The prescription includes:\n- Diagnosis: ${latestPrescription.diagnosis}\n- Prescribed medications: ${latestPrescription.prescription}${latestPrescription.notes ? `\n- Additional notes: ${latestPrescription.notes}` : ''}\n\nPlease let me know if you need any clarification about the prescription or if you'd like to see your previous prescriptions.`;
+
+            // Return with PDF generation flag
+            return new Response(
+              JSON.stringify({ 
+                response: aiResponse,
+                isPdfRequest: true,
+                pdfData: {
+                  type: 'prescription',
+                  data: latestPrescription,
+                  doctorName: `Dr. ${latestPrescription.doctor_first_name} ${latestPrescription.doctor_last_name}`,
+                  date: prescriptionDate
+                }
+              }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
           }
         }
       } catch (error) {
         console.error("Error fetching prescription data:", error);
-        aiResponse = "I'm having trouble accessing your prescription information right now. Please try again later or check the Prescriptions section in your app.";
+        aiResponse = "I apologize, but I'm having trouble accessing your prescription information right now. Please try again later or check the Prescriptions section in your app.";
       }
-    } 
+    }
     // Handle health plan related queries
     else if (message.toLowerCase().includes('health plan') || 
              message.toLowerCase().includes('routine') || 
