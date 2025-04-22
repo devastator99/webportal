@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { CollapsibleMessageGroup } from './CollapsibleMessageGroup';
-import { sortByDate, groupMessagesByDate, isToday } from "@/utils/dateUtils";
+import { sortByDate, groupMessagesByDate, isTodayWithSafety, normalizeDateString } from "@/utils/dateUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useChatScroll } from "@/hooks/useChatScroll";
@@ -124,16 +124,17 @@ export const ChatMessagesList = ({
       if (data && data.length > 0) {
         const sortedData = sortByDate(data, 'created_at', true);
         
-        const today = new Date();
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        console.log(`Today's date string: ${todayStr}`);
-        
-        const hasTodayMessages = sortedData.some(msg => {
+        // Check if we have messages from today
+        const today = normalizeDateString(new Date());
+        const hasMessagesForToday = sortedData.some(msg => {
           const msgDate = new Date(msg.created_at);
-          return isToday(msgDate);
+          const msgDateStr = normalizeDateString(msgDate);
+          const isMessageToday = msgDateStr === today;
+          console.log(`Message ${msg.id} date check: ${msgDateStr}, today: ${today}, isToday: ${isMessageToday}`);
+          return isMessageToday;
         });
         
-        console.log(`Has messages for today: ${hasTodayMessages}`);
+        console.log(`Has messages for today: ${hasMessagesForToday}`);
         
         if (isLoadingMore) {
           setMessages(prev => {
@@ -209,7 +210,19 @@ export const ChatMessagesList = ({
     new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
 
+  // Group messages by date - this is where today's messages are separated
   const messageGroups = groupMessagesByDate(allMessages);
+  
+  // Log message groups to verify today's messages are included
+  useEffect(() => {
+    if (Object.keys(messageGroups).length > 0) {
+      console.log("Message groups:", Object.keys(messageGroups));
+      
+      // Check specifically for today's group
+      const today = normalizeDateString(new Date());
+      console.log(`Checking for today's group (${today}):`, messageGroups[today] ? `Found with ${messageGroups[today].length} messages` : "Not found");
+    }
+  }, [messageGroups]);
 
   if (isLoading) {
     return (
@@ -268,11 +281,12 @@ export const ChatMessagesList = ({
                 .map(([dateString, dayMessages], index, array) => {
                   const isLatestGroup = index === array.length - 1;
                   
+                  // Check if this is today's group
                   let isTodayGroup = false;
                   try {
                     const [year, month, day] = dateString.split('-').map(Number);
                     const dateObj = new Date(year, month - 1, day);
-                    isTodayGroup = isToday(dateObj);
+                    isTodayGroup = isTodayWithSafety(dateObj);
                     console.log(`Group ${dateString}: isToday = ${isTodayGroup}`);
                   } catch (error) {
                     console.error(`Error checking if group ${dateString} is today:`, error);

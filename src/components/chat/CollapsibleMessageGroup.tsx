@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { shouldExpandDateGroup, formatMessageDateGroup, isToday } from "@/utils/dateUtils";
+import { shouldExpandDateGroup, formatMessageDateGroup, isTodayWithSafety } from "@/utils/dateUtils";
 
 interface CollapsibleMessageGroupProps {
   date: string;
@@ -26,9 +26,13 @@ export const CollapsibleMessageGroup = ({
       // Parse the date string to check if it's today
       const [year, month, day] = date.split('-').map(Number);
       const dateObj = new Date(year, month - 1, day);
-      console.log(`Date group: ${date}, isToday: ${isToday(dateObj)}`);
       
-      const shouldOpen = shouldExpandDateGroup(date) || isLatestGroup || isToday(dateObj);
+      // Use our more robust date checking function
+      const isTodayGroup = isTodayWithSafety(dateObj);
+      console.log(`Date group: ${date}, isToday: ${isTodayGroup}, isLatestGroup: ${isLatestGroup}`);
+      
+      const shouldOpen = shouldExpandDateGroup(date) || isLatestGroup || isTodayGroup;
+      console.log(`Date group: ${date}, shouldOpen: ${shouldOpen}`);
       setIsOpen(shouldOpen);
     } catch (error) {
       console.error(`Error checking date expansion: ${date}`, error);
@@ -44,7 +48,8 @@ export const CollapsibleMessageGroup = ({
   try {
     const [year, month, day] = date.split('-').map(Number);
     const dateObj = new Date(year, month - 1, day);
-    isTodayGroup = isToday(dateObj);
+    isTodayGroup = isTodayWithSafety(dateObj);
+    console.log(`Group display check: ${date}, isToday: ${isTodayGroup}`);
   } catch (error) {
     console.error(`Error checking if group is today: ${date}`, error);
   }
