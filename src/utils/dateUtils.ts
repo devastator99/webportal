@@ -79,44 +79,22 @@ export function isToday(dateObj: Date): boolean {
   }
 }
 
-// Group messages by date for display in chat, with simplified handling
+// Group messages by date for display in chat, with simplified handling (no "today"/"yesterday" groups)
 export function groupMessagesByDate(messages: any[]) {
   const groups: Record<string, any[]> = {};
-  
   if (!messages || !messages.length) return groups;
-  
-  // Get today's date string for comparison
-  const todayStr = normalizeDateString(new Date());
-  const yesterdayDate = new Date();
-  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-  const yesterdayStr = normalizeDateString(yesterdayDate);
-  
-  console.log(`Today's date for grouping: ${todayStr}, Yesterday: ${yesterdayStr}`);
-  
+
   // First sort messages by date ascending (oldest first)
   const sortedMessages = sortByDate(messages, 'created_at', true);
-  
-  // Track if we've found any messages for today
-  let hasTodayMessages = false;
-  
+
   sortedMessages.forEach(message => {
     try {
       const date = safeParseISO(message.created_at);
-      // Use consistent date format for grouping
+      // Use consistent date format for grouping: 'yyyy-MM-dd'
       const dateKey = normalizeDateString(date);
-      
-      // Check if this message is from today
-      if (dateKey === todayStr) {
-        hasTodayMessages = true;
-      }
-      
-      // For debugging
-      console.log(`Message date: ${date.toISOString()}, Date key: ${dateKey}, Is today: ${dateKey === todayStr}`);
-      
       if (!groups[dateKey]) {
         groups[dateKey] = [];
       }
-      
       groups[dateKey].push(message);
     } catch (error) {
       console.error(`Error processing message date for grouping: ${message.created_at}`, error);
@@ -128,61 +106,22 @@ export function groupMessagesByDate(messages: any[]) {
       groups[fallbackKey].push(message);
     }
   });
-  
-  // Log if today's messages were found
-  console.log(`Found messages for today (${todayStr}): ${hasTodayMessages}`);
-  
+
   return groups;
 }
 
-// Determine if a date group should auto-expand
-export function shouldExpandDateGroup(dateString: string) {
-  try {
-    // Get today's date string for direct comparison
-    const todayStr = normalizeDateString(new Date());
-    
-    // Yesterday's date
-    const yesterdayDate = new Date();
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    const yesterdayStr = normalizeDateString(yesterdayDate);
-    
-    // Direct string comparison is more reliable than date object comparison
-    const isDateToday = dateString === todayStr;
-    const isDateYesterday = dateString === yesterdayStr;
-    
-    console.log(`Checking date expansion: ${dateString}, Today: ${todayStr}, isToday: ${isDateToday}, isYesterday: ${isDateYesterday}`);
-    
-    // Always expand recent groups
-    return isDateToday || isDateYesterday;
-  } catch (error) {
-    console.error(`Error determining if date group should expand: ${dateString}`, error);
-    return true; // Default to expanded if there's an error
-  }
+// Determine if a date group should auto-expand (simplify: always expanded)
+export function shouldExpandDateGroup(_dateString: string) {
+  return true;
 }
 
-// Format a date for display in chat groups
+// Format a date for display in chat groups (ALWAYS format as long date, no "Today"/"Yesterday")
 export function formatMessageDateGroup(dateString: string): string {
   try {
-    // Get today's date string for comparison
-    const todayStr = normalizeDateString(new Date());
-    
-    // Yesterday's date
-    const yesterdayDate = new Date();
-    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
-    const yesterdayStr = normalizeDateString(yesterdayDate);
-    
-    console.log(`Formatting date group: ${dateString}, Today: ${todayStr}, Yesterday: ${yesterdayStr}`);
-    
-    if (dateString === todayStr) {
-      return "Today";
-    } else if (dateString === yesterdayStr) {
-      return "Yesterday";
-    } else {
-      // Convert string to date for formatting
-      const [year, month, day] = dateString.split('-').map(Number);
-      const date = new Date(year, month - 1, day);
-      return format(date, 'MMMM d, yyyy');
-    }
+    // Convert string to date for formatting
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    return format(date, 'MMMM d, yyyy');
   } catch (error) {
     console.error(`Error formatting date group: ${dateString}`, error);
     return dateString; // Return original as fallback
