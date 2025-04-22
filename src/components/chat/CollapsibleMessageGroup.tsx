@@ -1,6 +1,6 @@
 
-import { useState } from 'react';
-import { format } from "date-fns";
+import { useState, useEffect } from 'react';
+import { format, isToday, isYesterday } from "date-fns";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -11,13 +11,32 @@ interface CollapsibleMessageGroupProps {
 }
 
 export const CollapsibleMessageGroup = ({ date, messages, children }: CollapsibleMessageGroupProps) => {
-  const [isOpen, setIsOpen] = useState(true);
+  // Default to open for today's messages, closed for older messages
+  const [isOpen, setIsOpen] = useState(() => {
+    const messageDate = new Date(date);
+    return isToday(messageDate) || isYesterday(messageDate);
+  });
   
   // Format the date to be more readable
-  const formattedDate = format(new Date(date), 'MMMM d, yyyy');
+  const formatMessageDate = (dateString: string) => {
+    const messageDate = new Date(dateString);
+    
+    if (isToday(messageDate)) {
+      return "Today";
+    } else if (isYesterday(messageDate)) {
+      return "Yesterday";
+    } else {
+      return format(messageDate, 'MMMM d, yyyy');
+    }
+  };
   
-  // Check if this date is today
-  const isToday = new Date(date).toDateString() === new Date().toDateString();
+  const formattedDate = formatMessageDate(date);
+
+  // Update open state when date changes
+  useEffect(() => {
+    const messageDate = new Date(date);
+    setIsOpen(isToday(messageDate) || isYesterday(messageDate));
+  }, [date]);
 
   return (
     <div className="space-y-2">
@@ -25,12 +44,12 @@ export const CollapsibleMessageGroup = ({ date, messages, children }: Collapsibl
         className="flex items-center justify-between cursor-pointer py-2 hover:bg-muted/20 px-2 rounded-md transition-colors"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <Badge variant="outline" className="bg-background/80 cursor-pointer">
-          {isToday ? "Today" : formattedDate}
+        <Badge variant="outline" className="bg-background/80 cursor-pointer flex items-center">
+          {formattedDate}
           {isOpen ? (
-            <ChevronUp className="h-3 w-3 ml-1 inline" />
+            <ChevronUp className="h-3 w-3 ml-1" />
           ) : (
-            <ChevronDown className="h-3 w-3 ml-1 inline" />
+            <ChevronDown className="h-3 w-3 ml-1" />
           )}
         </Badge>
         <span className="text-xs text-muted-foreground">

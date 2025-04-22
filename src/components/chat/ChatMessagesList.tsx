@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -125,13 +126,27 @@ export const ChatMessagesList = ({
     }
   }, [messages, isLoading, loadingMore]);
 
-  // Combine server and local messages and sort them correctly
-  const allMessages = [
-    ...messages,
-    ...localMessages.filter(m => !messages.some(serverMsg => serverMsg.id === m.id))
-  ].sort((a, b) => 
-    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-  );
+  // Update the message combination logic to include new localMessages
+  useEffect(() => {
+    if (localMessages.length > 0) {
+      // Combine server messages with local messages
+      const updatedMessages = [
+        ...messages,
+        ...localMessages.filter(m => !messages.some(serverMsg => serverMsg.id === m.id))
+      ].sort((a, b) => 
+        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+      
+      // Only update if there are new messages
+      if (updatedMessages.length > messages.length) {
+        setMessages(updatedMessages);
+        // Scroll to bottom when new messages are added
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, 100);
+      }
+    }
+  }, [localMessages]);
 
   const handleLoadMore = () => {
     if (roomId && hasMoreMessages && !isLoadingMessages) {
@@ -156,7 +171,7 @@ export const ChatMessagesList = ({
       groups[day].push(msg);
     });
     
-    // Sort the days in chronological order (oldest to newest)
+    // Sort the days in ascending order (oldest to newest)
     return Object.entries(groups)
       .sort(([dayA], [dayB]) => new Date(dayA).getTime() - new Date(dayB).getTime())
       .reduce((acc, [day, messages]) => {
@@ -164,6 +179,14 @@ export const ChatMessagesList = ({
         return acc;
       }, {} as Record<string, any[]>);
   };
+
+  // Get all messages from both server and local sources
+  const allMessages = [
+    ...messages,
+    ...localMessages.filter(m => !messages.some(serverMsg => serverMsg.id === m.id))
+  ].sort((a, b) => 
+    new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
 
   const messageGroups = groupMessagesByDay(allMessages);
 
