@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -42,12 +41,12 @@ export const SearchMessages = ({ messages, onMessageClick, isOpen }: SearchMessa
   };
 
   return (
-    <div className="absolute inset-0 bg-background border-l flex flex-col">
+    <div className="absolute inset-0 z-50 bg-background border-l flex flex-col">
       <div className="p-4 border-b">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search messages..."
+            placeholder="Type to search messages..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-9"
