@@ -330,3 +330,27 @@
     padding-top: 9rem;
   }
 }
+
+/* Add CSS for message highlighting in search results */
+@keyframes highlight-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(var(--highlight-color), 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(var(--highlight-color), 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(var(--highlight-color), 0);
+  }
+}
+
+.highlight-message {
+  --highlight-color: 79, 70, 229;
+  animation: highlight-pulse 2s ease-out 1;
+  background-color: rgba(var(--highlight-color), 0.1);
+  border-radius: 0.5rem;
+}
+
+.dark .highlight-message {
+  --highlight-color: 129, 140, 248;
+}

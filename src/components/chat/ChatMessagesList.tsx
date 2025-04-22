@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,23 +78,26 @@ export const ChatMessagesList = ({
       }
       
       if (data && data.length > 0) {
-        const sortedData = sortByDate(data, 'created_at', false); // Sort in descending order
-        
+        // Keep ascending order (oldest to newest) for proper display
+        // When loading more (older messages), we prepend them
         if (pageNum === 1) {
-          setMessages(sortedData);
+          setMessages(sortByDate(data, 'created_at', true));
+          setIsLoading(false);
         } else {
-          // Append older messages at the top
-          setMessages(prev => [...sortedData, ...prev]);
+          // When loading older messages (page > 1), add them before current messages
+          setMessages(prev => [...sortByDate(data, 'created_at', true), ...prev]);
         }
         setHasMoreMessages(data.length === 50);
       } else {
         if (pageNum === 1) {
           setMessages([]);
+          setIsLoading(false);
         }
         setHasMoreMessages(false);
       }
     } catch (error) {
       console.error("Error in fetchMessages:", error);
+      setIsLoading(false);
       toast({
         title: "Error loading messages",
         description: "Please try again later",
@@ -103,21 +105,27 @@ export const ChatMessagesList = ({
       });
     } finally {
       setIsLoadingMessages(false);
+      setLoadingMore(false);
     }
   };
 
   useEffect(() => {
     if (roomId && useRoomMessages) {
+      setIsLoading(true);
       fetchMessages(roomId, 1);
+    } else {
+      setIsLoading(false);
     }
   }, [roomId, useRoomMessages]);
 
   useEffect(() => {
-    if (!isLoading && !loadingMore) {
+    if (!isLoading && !loadingMore && messages.length > 0) {
+      // Only auto-scroll when not loading more (older) messages
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isLoading, loadingMore]);
 
+  // Combine server and local messages and sort them correctly
   const allMessages = [
     ...messages,
     ...localMessages.filter(m => !messages.some(serverMsg => serverMsg.id === m.id))
@@ -127,33 +135,10 @@ export const ChatMessagesList = ({
 
   const handleLoadMore = () => {
     if (roomId && hasMoreMessages && !isLoadingMessages) {
+      setLoadingMore(true);
       const nextPage = page + 1;
       setPage(nextPage);
       fetchMessages(roomId, nextPage);
-    }
-  };
-
-  const handleRequestSummary = async () => {
-    if (!roomId || !['doctor', 'nutritionist'].includes(userRole || '')) return;
-
-    try {
-      const { data, error } = await supabase.functions.invoke('generate-chat-summary', {
-        body: { roomId }
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Summary requested",
-        description: "An AI summary of the conversation will be generated shortly.",
-      });
-    } catch (error) {
-      console.error("Error requesting summary:", error);
-      toast({
-        title: "Error requesting summary",
-        description: "Please try again later",
-        variant: "destructive"
-      });
     }
   };
 
@@ -171,6 +156,7 @@ export const ChatMessagesList = ({
       groups[day].push(msg);
     });
     
+    // Sort the days in chronological order (oldest to newest)
     return Object.entries(groups)
       .sort(([dayA], [dayB]) => new Date(dayA).getTime() - new Date(dayB).getTime())
       .reduce((acc, [day, messages]) => {
@@ -180,31 +166,6 @@ export const ChatMessagesList = ({
   };
 
   const messageGroups = groupMessagesByDay(allMessages);
-
-  const getAvatarInitials = (name: string) => {
-    if (!name) return "?";
-    return name
-      .split(' ')
-      .map(part => part.charAt(0))
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
-  };
-
-  const getAvatarColorClass = (role: string) => {
-    switch (role?.toLowerCase()) {
-      case 'doctor':
-        return 'bg-blue-100 text-blue-800';
-      case 'nutritionist':
-        return 'bg-green-100 text-green-800';
-      case 'patient':
-        return 'bg-orange-100 text-orange-800';
-      case 'aibot':
-        return 'bg-purple-100 text-purple-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
 
   if (isLoading) {
     return (
@@ -239,8 +200,16 @@ export const ChatMessagesList = ({
             size="sm" 
             onClick={handleLoadMore}
             className="text-xs text-muted-foreground hover:text-foreground"
+            disabled={loadingMore}
           >
-            Load older messages
+            {loadingMore ? (
+              <>
+                <Loader2 className="h-3 w-3 mr-2 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              'Load older messages'
+            )}
           </Button>
         </div>
       )}
@@ -257,7 +226,7 @@ export const ChatMessagesList = ({
             </div>
           ))}
         </div>
-      ) : messages.length === 0 ? (
+      ) : messages.length === 0 && allMessages.length === 0 ? (
         <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm">
           <MessageCircle className="h-12 w-12 mb-2 opacity-20" />
           <p>No messages yet</p>
@@ -265,96 +234,96 @@ export const ChatMessagesList = ({
         </div>
       ) : (
         <div className="space-y-6">
-          {Object.entries(messageGroups)
-            .sort(([dateA], [dateB]) => new Date(dateB).getTime() - new Date(dateA).getTime())
-            .map(([day, dayMessages]) => (
-              <CollapsibleMessageGroup 
-                key={day} 
-                date={day}
-                messages={dayMessages}
-              >
-                {dayMessages
-                  .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-                  .map((message) => {
-                    const isCurrentUser = message.sender_id === user?.id;
-                    const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
-                    
-                    return (
-                      <div 
-                        key={message.id} 
-                        className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
-                      >
-                        <div className="flex items-start gap-2 max-w-[80%]">
+          {Object.entries(messageGroups).map(([day, dayMessages]) => (
+            <CollapsibleMessageGroup 
+              key={day} 
+              date={day}
+              messages={dayMessages}
+            >
+              {dayMessages
+                // Sort messages within a day by time (oldest to newest for proper chronological display)
+                .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                .map((message) => {
+                  const isCurrentUser = message.sender_id === user?.id;
+                  const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
+                  
+                  return (
+                    <div 
+                      key={message.id} 
+                      id={`message-${message.id}`}
+                      className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} my-2`}
+                    >
+                      <div className="flex items-start gap-2 max-w-[80%]">
+                        {!isCurrentUser && !message.is_system_message && (
+                          <Avatar className="h-8 w-8">
+                            {isAi ? (
+                              <AvatarFallback className="bg-purple-100 text-purple-800">
+                                AI
+                              </AvatarFallback>
+                            ) : (
+                              <AvatarFallback>
+                                {message.sender_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
+                              </AvatarFallback>
+                            )}
+                          </Avatar>
+                        )}
+                        
+                        <div className={`space-y-1 ${isCurrentUser ? 'order-first mr-2' : 'ml-0'}`}>
                           {!isCurrentUser && !message.is_system_message && (
-                            <Avatar className="h-8 w-8">
-                              {isAi ? (
-                                <AvatarFallback className="bg-purple-100 text-purple-800">
-                                  AI
-                                </AvatarFallback>
-                              ) : (
-                                <AvatarFallback>
-                                  {message.sender_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
-                                </AvatarFallback>
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-medium">
+                                {isAi ? 'AI Assistant' : message.sender_name}
+                              </span>
+                              {message.sender_role && (
+                                <Badge variant="outline" className="text-[10px] py-0 px-1">
+                                  {message.sender_role}
+                                </Badge>
                               )}
-                            </Avatar>
+                            </div>
                           )}
                           
-                          <div className={`space-y-1 ${isCurrentUser ? 'order-first mr-2' : 'ml-0'}`}>
-                            {!isCurrentUser && !message.is_system_message && (
-                              <div className="flex items-center gap-1">
-                                <span className="text-xs font-medium">
-                                  {isAi ? 'AI Assistant' : message.sender_name}
-                                </span>
-                                {message.sender_role && (
-                                  <Badge variant="outline" className="text-[10px] py-0 px-1">
-                                    {message.sender_role}
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
-                            
-                            <div 
-                              className={`p-3 rounded-lg ${
-                                message.is_system_message 
-                                  ? 'bg-muted text-muted-foreground text-xs italic' 
-                                  : isCurrentUser
-                                    ? 'bg-primary text-primary-foreground'
-                                    : isAi
-                                      ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800'
-                                      : 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700'
-                              }`}
-                            >
-                              {message.message.startsWith('[FILE]') ? (
-                                <div>
-                                  <div className="flex items-center gap-2 text-xs">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file">
-                                      <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                                      <polyline points="14 2 14 8 20 8"/>
-                                    </svg>
-                                    <a 
-                                      href={message.message.split(' - ')[1]} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="underline"
-                                    >
-                                      {message.message.split(' - ')[0].replace('[FILE] ', '')}
-                                    </a>
-                                  </div>
+                          <div 
+                            className={`p-3 rounded-lg ${
+                              message.is_system_message 
+                                ? 'bg-muted text-muted-foreground text-xs italic' 
+                                : isCurrentUser
+                                  ? 'bg-primary text-primary-foreground'
+                                  : isAi
+                                    ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800'
+                                    : 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700'
+                            }`}
+                          >
+                            {message.message.startsWith('[FILE]') ? (
+                              <div>
+                                <div className="flex items-center gap-2 text-xs">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file">
+                                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                  </svg>
+                                  <a 
+                                    href={message.message.split(' - ')[1]} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="underline"
+                                  >
+                                    {message.message.split(' - ')[0].replace('[FILE] ', '')}
+                                  </a>
                                 </div>
-                              ) : (
-                                <p className="text-sm whitespace-pre-wrap">{message.message}</p>
-                              )}
-                              <p className="text-[10px] opacity-70 mt-1">
-                                {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </p>
-                            </div>
+                              </div>
+                            ) : (
+                              <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                            )}
+                            <p className="text-[10px] opacity-70 mt-1">
+                              {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
                           </div>
                         </div>
                       </div>
-                    );
-                  })}
-              </CollapsibleMessageGroup>
-            ))}
+                    </div>
+                  );
+                })}
+            </CollapsibleMessageGroup>
+          ))}
         </div>
       )}
       
