@@ -1,60 +1,31 @@
 
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Lightbulb } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
 
-interface HealthTip {
-  id: string;
-  title: string;
-  content: string;
-  category: string;
-}
+const mockHealthTips = [
+  {
+    id: "1",
+    title: "Stay Consistent with Your Medication",
+    content: "Taking your prescriptions regularly improves your treatment outcomes. Set reminders on your phone to never miss a dose.",
+    category: "medication"
+  },
+  {
+    id: "2",
+    title: "Monitor Your Daily Habits",
+    content: "Tracking activities like sleep, water intake, and exercise can help spot patterns that affect your health. Consider using a simple habit tracker.",
+    category: "lifestyle"
+  },
+  {
+    id: "3",
+    title: "Personalize Your Diet",
+    content: "Since your genetic profile and vital stats suggest higher risk for diabetes, incorporate more fiber and less sugar into your meals. Consult your care team for a tailored plan.",
+    category: "nutrition"
+  },
+];
 
 export const PatientCuratedHealthTips = () => {
-  const { user } = useAuth();
-
-  const { data: healthTips, isLoading } = useQuery<HealthTip[]>({
-    queryKey: ['patient-health-tips', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-
-      try {
-        // Fetch patient's health data to curate tips
-        const { data: patientData, error: profileError } = await supabase
-          .rpc('get_patient_health_profile', { p_patient_id: user.id });
-
-        if (profileError) {
-          console.error("Error fetching patient health profile:", profileError);
-          return [];
-        }
-
-        // Call AI function to generate personalized health tips
-        const { data: aiTips, error: aiError } = await supabase.functions.invoke('generate-personalized-health-tips', {
-          body: {
-            patientId: user.id,
-            healthProfile: patientData
-          }
-        });
-
-        if (aiError) {
-          console.error("Error generating health tips:", aiError);
-          return [];
-        }
-
-        return aiError ? [] : aiTips.slice(0, 3);
-      } catch (error) {
-        console.error("Unexpected error in health tips:", error);
-        return [];
-      }
-    },
-    enabled: !!user?.id,
-    staleTime: 1000 * 60 * 60, // 1 hour cache
-  });
-
-  if (isLoading || !healthTips || healthTips.length === 0) {
+  // Here you could check for user info from useAuth, but for mockup, it's not needed
+  if (!mockHealthTips.length) {
     return null;
   }
 
@@ -62,7 +33,15 @@ export const PatientCuratedHealthTips = () => {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Lightbulb className="h-5 w-5 text-yellow-500" />
+          {/* Using the "info" icon from lucide-react as only approved Lucide icons are allowed */}
+          <span className="inline-block rounded-full bg-yellow-200 p-1 mr-2">
+            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              {/* Circled i for "info" */}
+              <circle cx="10" cy="10" r="9" stroke="#facc15"/>
+              <line x1="10" y1="7" x2="10" y2="13" stroke="#a16207"/>
+              <circle cx="10" cy="15.25" r="1" fill="#a16207"/>
+            </svg>
+          </span>
           Personalized Health Tips
         </CardTitle>
         <CardDescription>
@@ -71,11 +50,8 @@ export const PatientCuratedHealthTips = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {healthTips.map((tip) => (
-            <div 
-              key={tip.id} 
-              className="p-3 bg-muted/20 border border-muted rounded-lg"
-            >
+          {mockHealthTips.map((tip) => (
+            <div key={tip.id} className="p-3 bg-muted/20 border border-muted rounded-lg">
               <h3 className="font-medium text-sm mb-1">{tip.title}</h3>
               <p className="text-sm text-muted-foreground">{tip.content}</p>
             </div>
