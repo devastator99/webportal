@@ -1,9 +1,10 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowUp, Bot, Brain } from "lucide-react";
+import { Loader2, ArrowUp, Bot, Brain, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -11,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { GetRoomMessagesParams, AnyRole } from "@/types/auth";
 import { CollapsibleMessageGroup } from './CollapsibleMessageGroup';
 import { sortByDate } from "@/utils/dateUtils";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Message {
   id: string;
