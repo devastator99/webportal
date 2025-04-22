@@ -1,77 +1,62 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CareTeamRoomsSelector } from "@/components/chat/CareTeamRoomsSelector";
-import { ChatMessagesList } from "@/components/chat/ChatMessagesList";
 import { ChatInput } from "@/components/chat/ChatInput";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
-import { Menu, ChevronLeft, UserCircle, Users, MessageCircle, Loader, AlertCircle, Search } from "lucide-react";
+import { Menu, ChevronLeft, UserCircle, Users, MessageCircle, Loader, AlertCircle, Search, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { sortByDate, formatChatMessageTime } from "@/utils/dateUtils";
 import { SearchMessages } from "./SearchMessages";
 import { generatePdfFromElement } from "@/utils/pdfUtils";
+import { groupMessagesByDate, sortByDate, formatChatMessageTime } from "@/utils/dateUtils";
+import { CollapsibleMessageGroup } from "./CollapsibleMessageGroup";
+import { useChatScroll } from "@/hooks/useChatScroll";
 
 interface WhatsAppStyleChatInterfaceProps {
   patientRoomId?: string | null;
 }
 
-interface CareTeamMember {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  role: string;
-}
-
-interface DoctorData {
-  first_name: string | null;
-  last_name: string | null;
-}
-
-interface NutritionistData {
-  first_name: string | null;
-  last_name: string | null;
-}
-
-interface CareTeamInfo {
-  doctor?: DoctorData | null;
-  nutritionist?: NutritionistData | null;
-  doctor_id?: string | null;
-  nutritionist_id?: string | null;
-}
-
 export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatInterfaceProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
-  const queryClient = useQueryClient();
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(patientRoomId || null);
   const [newMessage, setNewMessage] = useState("");
   const [localMessages, setLocalMessages] = useState<any[]>([]);
-  const [roomMembers, setRoomMembers] = useState<CareTeamMember[]>([]);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [roomMembers, setRoomMembers] = useState<any[]>([]);
   const isMobile = useIsMobile();
   const isIPad = useIsIPad();
   const [showSidebar, setShowSidebar] = useState(!isMobile && userRole !== 'patient');
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [isAiResponding, setIsAiResponding] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(isAiResponding);
+  const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [page, setPage] = useState(1);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
+  const [newMessageAdded, setNewMessageAdded] = useState(false);
+  
+  const { 
+    endRef, 
+    containerRef, 
+    showScrollButton, 
+    scrollToBottom 
+  } = useChatScroll({
+    messages: localMessages,
+    loadingMessages: isLoadingMessages,
+    loadingMore: false,
+    isNewMessage: newMessageAdded
+  });
 
   useEffect(() => {
     if (patientRoomId) {
@@ -86,12 +71,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       }
     }
   }, [patientRoomId, userRole, isMobile]);
-
-  useEffect(() => {
-    if (messagesEndRef.current && !isLoadingMessages) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [localMessages, isLoadingMessages]);
 
   const toggleSidebar = () => {
     if (userRole !== 'patient') {
@@ -109,7 +88,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       const { data, error } = await supabase.rpc('get_chat_room_members', {
         p_room_id: roomId
       });
-        
+      
       if (error) {
         console.error("Error fetching room members:", error);
         throw error;
@@ -165,6 +144,8 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         }
         setHasMoreMessages(false);
       }
+      
+      setNewMessageAdded(false);
     } catch (error) {
       console.error("Error fetching messages:", error);
       setRoomError("Could not load messages. Please try again.");
@@ -205,11 +186,9 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       console.log("AI response received:", data);
 
-      // Handle PDF generation if requested
       if (data.generatePdf && data.pdfType === 'prescription') {
         const { pdfData } = data;
         
-        // Create a temporary div for PDF content
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = `
           <div id="prescription-pdf" class="p-8">
@@ -238,13 +217,11 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         
         document.body.appendChild(tempDiv);
         
-        // Generate and download PDF
         await generatePdfFromElement(
           'prescription-pdf',
           `prescription_${pdfData.date.replace(/\//g, '-')}.pdf`
         );
         
-        // Clean up
         document.body.removeChild(tempDiv);
       }
       
@@ -395,9 +372,9 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         is_ai_message: false
       };
       
-      setLocalMessages(prev => [optimisticMessage, ...prev]);
-      
+      setLocalMessages(prev => [...prev, optimisticMessage]);
       setNewMessage("");
+      setNewMessageAdded(true);
       
       const { data, error } = await supabase.rpc('send_room_message', {
         p_room_id: selectedRoomId,
@@ -473,11 +450,9 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       console.log("AI response received:", data);
 
-      // Handle PDF generation if requested
       if (data.generatePdf && data.pdfType === 'prescription') {
         const { pdfData } = data;
         
-        // Create a temporary div for PDF content
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = `
           <div id="prescription-pdf" class="p-8">
@@ -506,13 +481,11 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         
         document.body.appendChild(tempDiv);
         
-        // Generate and download PDF
         await generatePdfFromElement(
           'prescription-pdf',
           `prescription_${pdfData.date.replace(/\//g, '-')}.pdf`
         );
         
-        // Clean up
         document.body.removeChild(tempDiv);
       }
       
@@ -533,6 +506,8 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       return null;
     }
   };
+
+  const messageGroups = groupMessagesByDate(localMessages);
 
   return (
     <div className="h-full flex overflow-hidden rounded-md border border-neutral-200 dark:border-neutral-800 shadow-sm">
@@ -615,7 +590,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                 isOpen={showSearch}
               />
               
-              <ScrollArea className="flex-1 p-4">
+              <ScrollArea className="flex-1 p-4" viewportRef={containerRef}>
                 {hasMoreMessages && !isLoadingMessages && localMessages.length > 0 && (
                   <div className="flex justify-center mb-4">
                     <Button 
@@ -648,90 +623,106 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                     <p className="text-xs">Start a conversation with your care team</p>
                   </div>
                 ) : (
-                  <div className="space-y-4 flex flex-col-reverse">
-                    {sortByDate(localMessages, 'created_at', false)
-                      .map((message, i) => {
-                        const isCurrentUser = message.sender_id === user?.id;
-                        const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
-                        
-                        return (
-                          <div 
-                            key={message.id} 
-                            id={`message-${message.id}`}
-                            className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                  <div className="space-y-6">
+                    {Object.entries(messageGroups).length > 0 ? (
+                      Object.entries(messageGroups)
+                        .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+                        .map(([day, dayMessages]) => (
+                          <CollapsibleMessageGroup
+                            key={day}
+                            date={day}
+                            messages={dayMessages}
                           >
-                            <div className="flex items-start gap-2 max-w-[80%]">
-                              {!isCurrentUser && !message.is_system_message && (
-                                <Avatar className="h-8 w-8">
-                                  {isAi ? (
-                                    <AvatarFallback className="bg-purple-100 text-purple-800">
-                                      AI
-                                    </AvatarFallback>
-                                  ) : (
-                                    <AvatarFallback>
-                                      {message.sender_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
-                                    </AvatarFallback>
-                                  )}
-                                </Avatar>
-                              )}
-                              
-                              <div className={`space-y-1 ${isCurrentUser ? 'order-first mr-2' : 'ml-0'}`}>
-                                {!isCurrentUser && !message.is_system_message && (
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-xs font-medium">
-                                      {isAi ? 'AI Assistant' : message.sender_name}
-                                    </span>
-                                    {message.sender_role && (
-                                      <Badge variant="outline" className="text-[10px] py-0 px-1">
-                                        {message.sender_role}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                )}
+                            {dayMessages
+                              .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                              .map((message) => {
+                                const isCurrentUser = message.sender_id === user?.id;
+                                const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
                                 
-                                <div 
-                                  className={`p-3 rounded-lg ${
-                                    message.is_system_message 
-                                      ? 'bg-muted text-muted-foreground text-xs italic' 
-                                      : isCurrentUser
-                                        ? 'bg-primary text-primary-foreground'
-                                        : isAi
-                                          ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800'
-                                          : 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700'
-                                  }`}
-                                >
-                                  {message.message.startsWith('[FILE]') ? (
-                                    <div>
-                                      <div className="flex items-center gap-2 text-xs">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file">
-                                          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                                          <polyline points="14 2 14 8 20 8"/>
-                                        </svg>
-                                        <a 
-                                          href={message.message.split(' - ')[1]} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="underline"
+                                return (
+                                  <div 
+                                    key={message.id} 
+                                    id={`message-${message.id}`}
+                                    className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} my-2`}
+                                  >
+                                    <div className="flex items-start gap-2 max-w-[80%]">
+                                      {!isCurrentUser && !message.is_system_message && (
+                                        <Avatar className="h-8 w-8">
+                                          {isAi ? (
+                                            <AvatarFallback className="bg-purple-100 text-purple-800">
+                                              AI
+                                            </AvatarFallback>
+                                          ) : (
+                                            <AvatarFallback>
+                                              {message.sender_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
+                                            </AvatarFallback>
+                                          )}
+                                        </Avatar>
+                                      )}
+                                      
+                                      <div className={`space-y-1 ${isCurrentUser ? 'order-first mr-2' : 'ml-0'}`}>
+                                        {!isCurrentUser && !message.is_system_message && (
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-xs font-medium">
+                                              {isAi ? 'AI Assistant' : message.sender_name}
+                                            </span>
+                                            {message.sender_role && (
+                                              <Badge variant="outline" className="text-[10px] py-0 px-1">
+                                                {message.sender_role}
+                                              </Badge>
+                                            )}
+                                          </div>
+                                        )}
+                                        
+                                        <div 
+                                          className={`p-3 rounded-lg ${
+                                            message.is_system_message 
+                                              ? 'bg-muted text-muted-foreground text-xs italic' 
+                                              : isCurrentUser
+                                                ? 'bg-primary text-primary-foreground'
+                                                : isAi
+                                                  ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800'
+                                                  : 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700'
+                                          }`}
                                         >
-                                          {message.message.split(' - ')[0].replace('[FILE] ', '')}
-                                        </a>
+                                          {message.message.startsWith('[FILE]') ? (
+                                            <div>
+                                              <div className="flex items-center gap-2 text-xs">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file">
+                                                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                                  <polyline points="14 2 14 8 20 8"/>
+                                                </svg>
+                                                <a 
+                                                  href={message.message.split(' - ')[1]} 
+                                                  target="_blank" 
+                                                  rel="noopener noreferrer"
+                                                  className="underline"
+                                                >
+                                                  {message.message.split(' - ')[0].replace('[FILE] ', '')}
+                                                </a>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <>
+                                              <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                                              <p className="text-[10px] opacity-70 mt-1">
+                                                {formatChatMessageTime(message.created_at)}
+                                              </p>
+                                            </>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
-                                  ) : (
-                                    <>
-                                      <p className="text-sm whitespace-pre-wrap">{message.message}</p>
-                                      <p className="text-[10px] opacity-70 mt-1">
-                                        {formatChatMessageTime(message.created_at)}
-                                      </p>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    <div ref={messagesEndRef} />
+                                  </div>
+                                );
+                              })}
+                          </CollapsibleMessageGroup>
+                        ))
+                    ) : (
+                      <div className="text-center text-muted-foreground">
+                        No messages to display
+                      </div>
+                    )}
                   </div>
                 )}
                 
@@ -743,7 +734,20 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                     </div>
                   </div>
                 )}
+                
+                <div ref={endRef} />
               </ScrollArea>
+              
+              {showScrollButton && (
+                <Button
+                  size="icon"
+                  variant="secondary"
+                  className="fixed bottom-20 right-4 h-8 w-8 rounded-full shadow-md z-10"
+                  onClick={scrollToBottom}
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              )}
               
               <div className="p-3 border-t border-neutral-200 dark:border-neutral-800">
                 <ChatInput

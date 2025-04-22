@@ -1,5 +1,4 @@
-
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -8,11 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Send, ArrowDown, Brain, User, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format, parseISO } from "date-fns";
+import { format } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { CollapsibleMessageGroup } from "./CollapsibleMessageGroup";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { useChatScroll } from "@/hooks/useChatScroll";
+import { groupMessagesByDate, safeParseISO } from "@/utils/dateUtils";
 
 interface RoomMessage {
   id: string;
@@ -53,9 +54,8 @@ export const CareTeamRoomChat = ({
   const queryClient = useQueryClient();
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [showScrollButton, setShowScrollButton] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollViewportRef = useRef<HTMLDivElement>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [messagesLoading, setMessagesLoading] = useState(false);
 
   const { data: roomDetails } = useQuery({
     queryKey: ["care_team_room", selectedRoomId],
@@ -114,7 +114,7 @@ export const CareTeamRoomChat = ({
     enabled: !!selectedRoomId && !!user?.id
   });
 
-  const { data: messagesData, isLoading: messagesLoading } = useQuery({
+  const { data: messagesData, isLoading: messagesQueryLoading } = useQuery({
     queryKey: ["room_messages", selectedRoomId],
     queryFn: async () => {
       if (!selectedRoomId) return [];
@@ -221,37 +221,16 @@ export const CareTeamRoomChat = ({
 
   const messages: RoomMessage[] = Array.isArray(messagesData) ? messagesData : [];
 
-  useEffect(() => {
-    if (messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages]);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!scrollViewportRef.current) return;
-      
-      const { scrollTop, scrollHeight, clientHeight } = scrollViewportRef.current;
-      const isScrolledUp = scrollHeight - scrollTop - clientHeight > 100;
-      
-      setShowScrollButton(isScrolledUp);
-    };
-
-    const scrollElement = scrollViewportRef.current;
-    if (scrollElement) {
-      scrollElement.addEventListener('scroll', handleScroll);
-    }
-
-    return () => {
-      if (scrollElement) {
-        scrollElement.removeEventListener('scroll', handleScroll);
-      }
-    };
-  }, []);
-
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const { 
+    endRef, 
+    containerRef, 
+    showScrollButton, 
+    scrollToBottom 
+  } = useChatScroll({
+    messages,
+    loadingMessages: messagesQueryLoading,
+    loadingMore
+  });
 
   const handleSendMessage = async () => {
     if (!message.trim() || !selectedRoomId || !user?.id) return;
@@ -335,36 +314,7 @@ export const CareTeamRoomChat = ({
     }
   };
 
-  const groupMessagesByDay = (messages: RoomMessage[]) => {
-    const groups: Record<string, RoomMessage[]> = {};
-    
-    messages.forEach(msg => {
-      try {
-        // Parse the date from the ISO string
-        const date = parseISO(msg.created_at);
-        // Format as YYYY-MM-DD for consistent grouping
-        const day = format(date, 'yyyy-MM-dd');
-        
-        if (!groups[day]) {
-          groups[day] = [];
-        }
-        
-        groups[day].push(msg);
-      } catch (error) {
-        console.error(`Error processing message date: ${msg.created_at}`, error);
-        // If parsing fails, use a fallback key
-        const fallbackKey = 'unknown-date';
-        if (!groups[fallbackKey]) {
-          groups[fallbackKey] = [];
-        }
-        groups[fallbackKey].push(msg);
-      }
-    });
-    
-    return groups;
-  };
-
-  const messageGroups = groupMessagesByDay(messages);
+  const messageGroups = groupMessagesByDate(messages);
 
   if (!selectedRoomId) {
     return (
@@ -401,9 +351,9 @@ export const CareTeamRoomChat = ({
       </div>
       
       <div className="flex-1 bg-[#f0f2f5] dark:bg-slate-900 overflow-hidden relative">
-        <ScrollArea className="h-full" viewportRef={scrollViewportRef}>
+        <ScrollArea className="h-full" viewportRef={containerRef}>
           <div className="p-4 space-y-6">
-            {messagesLoading ? (
+            {messagesQueryLoading ? (
               <div className="flex justify-center pt-4">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
@@ -465,7 +415,7 @@ export const CareTeamRoomChat = ({
                                   )}
                                   {msg.message}
                                   <div className="text-xs opacity-70 mt-1">
-                                    {format(new Date(msg.created_at), 'h:mm a')}
+                                    {format(safeParseISO(msg.created_at), 'h:mm a')}
                                   </div>
                                 </div>
                               </div>
@@ -477,7 +427,7 @@ export const CareTeamRoomChat = ({
                   ))}
               </ErrorBoundary>
             )}
-            <div ref={messagesEndRef} />
+            <div ref={endRef} />
           </div>
         </ScrollArea>
         

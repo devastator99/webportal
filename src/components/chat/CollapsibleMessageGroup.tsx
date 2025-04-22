@@ -1,9 +1,9 @@
 
 import { useState, useEffect } from "react";
-import { format, isToday, isYesterday, parseISO } from "date-fns";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { shouldExpandDateGroup, formatMessageDateGroup } from "@/utils/dateUtils";
 
 interface CollapsibleMessageGroupProps {
   date: string;
@@ -14,41 +14,13 @@ interface CollapsibleMessageGroupProps {
 export const CollapsibleMessageGroup = ({ date, messages, children }: CollapsibleMessageGroupProps) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
   
+  // Use the improved date utilities
   useEffect(() => {
-    try {
-      // Parse the date string to a Date object
-      const messageDate = parseISO(date);
-      console.log(`Date parsed: ${date} -> ${messageDate.toISOString()}`);
-      
-      // Auto-expand for today and yesterday
-      const shouldOpen = isToday(messageDate) || isYesterday(messageDate);
-      console.log(`Should open for ${date}: ${shouldOpen}`);
-      setIsOpen(shouldOpen);
-    } catch (error) {
-      console.error(`Error parsing date: ${date}`, error);
-      // Default to open if there's an error
-      setIsOpen(true);
-    }
+    const shouldOpen = shouldExpandDateGroup(date);
+    setIsOpen(shouldOpen);
   }, [date]);
 
-  const formatMessageDate = (dateString: string): string => {
-    try {
-      const messageDate = parseISO(dateString);
-      
-      if (isToday(messageDate)) {
-        return "Today";
-      } else if (isYesterday(messageDate)) {
-        return "Yesterday";
-      } else {
-        return format(messageDate, 'MMMM d, yyyy');
-      }
-    } catch (error) {
-      console.error(`Error formatting date: ${dateString}`, error);
-      return dateString;
-    }
-  };
-
-  const formattedDate = formatMessageDate(date);
+  const formattedDate = formatMessageDateGroup(date);
   const messagesCount = messages?.length || 0;
   
   const toggleOpen = () => {

@@ -1,18 +1,18 @@
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Loader2, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format, parseISO } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { CollapsibleMessageGroup } from './CollapsibleMessageGroup';
 import { sortByDate, groupMessagesByDate } from "@/utils/dateUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
+import { useChatScroll } from "@/hooks/useChatScroll";
 
 interface Message {
   id: string;
@@ -48,14 +48,25 @@ export const ChatMessagesList = ({
   const [isLoading, setIsLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [totalMessageCount, setTotalMessageCount] = useState(0);
-  const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const limit = 50; // Limit of messages to fetch
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [newMessageAdded, setNewMessageAdded] = useState(false);
+  
+  // Use our custom scroll hook
+  const { 
+    endRef, 
+    containerRef, 
+    showScrollButton, 
+    scrollToBottom 
+  } = useChatScroll({
+    messages: [...messages, ...localMessages],
+    loadingMessages: isLoadingMessages,
+    loadingMore,
+    isNewMessage: newMessageAdded
+  });
 
   const fetchMessages = async (roomId: string, pageNum: number) => {
     if (!roomId) return;
@@ -81,22 +92,12 @@ export const ChatMessagesList = ({
       console.log(`Retrieved ${data?.length || 0} messages from API`);
       
       if (data && data.length > 0) {
-        // Messages come in descending order (newest first), but we need to display them
-        // in ascending order (oldest first)
-        const sortedData = sortByDate(data, 'created_at', true);
-        console.log("Sorted messages:", sortedData.map(m => new Date(m.created_at).toISOString()));
-        
         if (pageNum === 1) {
-          setMessages(sortedData);
+          setMessages(data);
           setIsLoading(false);
-          
-          // Auto-scroll to bottom on initial load
-          setTimeout(() => {
-            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-          }, 100);
         } else {
-          // When loading older messages (page > 1), add them before current messages
-          setMessages(prev => [...sortedData, ...prev]);
+          // When loading older messages, add them before current messages
+          setMessages(prev => [...data, ...prev]);
         }
         setHasMoreMessages(data.length === 50);
       } else {
@@ -106,6 +107,9 @@ export const ChatMessagesList = ({
         }
         setHasMoreMessages(false);
       }
+      
+      // Reset the new message flag after message fetch
+      setNewMessageAdded(false);
     } catch (error) {
       console.error("Error in fetchMessages:", error);
       setIsLoading(false);
@@ -129,34 +133,28 @@ export const ChatMessagesList = ({
     }
   }, [roomId, useRoomMessages]);
 
-  useEffect(() => {
-    if (!isLoading && !loadingMore && messages.length > 0) {
-      // Only auto-scroll when not loading more (older) messages
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [messages, isLoading, loadingMore]);
-
   // Update the message combination logic to include new localMessages
   useEffect(() => {
     if (localMessages.length > 0) {
-      // Combine server messages with local messages
-      const updatedMessages = [
-        ...messages,
-        ...localMessages.filter(m => !messages.some(serverMsg => serverMsg.id === m.id))
-      ].sort((a, b) => 
-        new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      // First, check if there are actually new messages
+      const newLocalMessages = localMessages.filter(
+        m => !messages.some(serverMsg => serverMsg.id === m.id)
       );
       
-      // Only update if there are new messages
-      if (updatedMessages.length > messages.length) {
+      if (newLocalMessages.length > 0) {
+        // Combine server messages with local messages
+        const updatedMessages = [
+          ...messages,
+          ...newLocalMessages
+        ].sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
+        
         setMessages(updatedMessages);
-        // Scroll to bottom when new messages are added
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-        }, 100);
+        setNewMessageAdded(true);
       }
     }
-  }, [localMessages]);
+  }, [localMessages, messages]);
 
   const handleLoadMore = () => {
     if (roomId && hasMoreMessages && !isLoadingMessages) {
@@ -177,7 +175,6 @@ export const ChatMessagesList = ({
 
   // Use the utility function to group messages by date
   const messageGroups = groupMessagesByDate(allMessages);
-  console.log("Message groups:", messageGroups);
 
   if (isLoading) {
     return (
@@ -205,7 +202,11 @@ export const ChatMessagesList = ({
 
   return (
     <ErrorBoundary>
-      <ScrollArea className="flex-1 p-4" data-testid="messages-scroll-area">
+      <ScrollArea 
+        className="flex-1 p-4" 
+        data-testid="messages-scroll-area"
+        viewportRef={containerRef}
+      >
         {hasMoreMessages && !isLoadingMessages && messages.length > 0 && (
           <div className="flex justify-center mb-4">
             <Button 
@@ -348,8 +349,19 @@ export const ChatMessagesList = ({
           </div>
         )}
         
-        <div ref={messagesEndRef} />
+        <div ref={endRef} />
       </ScrollArea>
+      
+      {showScrollButton && (
+        <Button
+          size="icon"
+          variant="secondary"
+          className="fixed bottom-20 right-4 h-8 w-8 rounded-full shadow-md z-10"
+          onClick={scrollToBottom}
+        >
+          <ChevronDown className="h-4 w-4" />
+        </Button>
+      )}
     </ErrorBoundary>
   );
 };
