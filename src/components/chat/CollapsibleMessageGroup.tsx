@@ -54,7 +54,7 @@ export const CollapsibleMessageGroup = ({ date, messages, children }: Collapsibl
 
   return (
     <div className="space-y-2 mb-6 relative date-group" data-date={date}>
-      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
         <div className="relative py-2">
           <Separator className="absolute inset-0 my-auto z-0" />
           <div className="flex justify-between items-center relative z-10">

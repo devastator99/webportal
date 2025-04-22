@@ -11,6 +11,8 @@ import { format } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { CollapsibleMessageGroup } from "./CollapsibleMessageGroup";
+import { groupMessagesByDate } from "@/utils/dateUtils";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 interface RoomMessage {
   id: string;
@@ -387,11 +389,8 @@ export const CareTeamRoomChat = ({
       </div>
       
       <div className="flex-1 bg-[#f0f2f5] dark:bg-slate-900 overflow-hidden relative">
-        <ScrollArea className="h-full">
-          <div 
-            className="p-4 space-y-6"
-            ref={scrollViewportRef}
-          >
+        <ScrollArea className="h-full" viewportRef={scrollViewportRef}>
+          <div className="p-4 space-y-6">
             {messagesLoading ? (
               <div className="flex justify-center pt-4">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -401,65 +400,67 @@ export const CareTeamRoomChat = ({
                 No messages yet. Start the conversation!
               </div>
             ) : (
-              Object.entries(messageGroups).map(([day, dayMessages]) => (
-                <CollapsibleMessageGroup 
-                  key={day} 
-                  date={day}
-                  messages={dayMessages}
-                >
-                  {dayMessages.map((msg) => {
-                    const isSelf = msg.sender_id === user?.id;
-                    const isAI = msg.is_ai_message;
-                    const isSystem = msg.is_system_message;
-                    
-                    return (
-                      <div
-                        key={msg.id}
-                        className={`flex ${isSelf ? 'justify-end' : 'justify-start'} message-item`}
-                      >
-                        <div className="flex gap-2 max-w-[80%]">
-                          {!isSelf && !isSystem && (
-                            <Avatar className="h-8 w-8 flex-shrink-0">
-                              <AvatarFallback className={getAvatarColorClass(msg.sender_role)}>
-                                {isAI ? <Brain className="h-4 w-4" /> : getInitials(msg.sender_name)}
-                              </AvatarFallback>
-                            </Avatar>
-                          )}
-                          
-                          <div>
+              <ErrorBoundary>
+                {Object.entries(messageGroups).map(([day, dayMessages]) => (
+                  <CollapsibleMessageGroup 
+                    key={day} 
+                    date={day}
+                    messages={dayMessages}
+                  >
+                    {dayMessages.map((msg) => {
+                      const isSelf = msg.sender_id === user?.id;
+                      const isAI = msg.is_ai_message;
+                      const isSystem = msg.is_system_message;
+                      
+                      return (
+                        <div
+                          key={msg.id}
+                          className={`flex ${isSelf ? 'justify-end' : 'justify-start'} message-item`}
+                        >
+                          <div className="flex gap-2 max-w-[80%]">
                             {!isSelf && !isSystem && (
-                              <div className="text-xs font-medium mb-1">
-                                {msg.sender_name}
-                                <span className="text-xs text-muted-foreground ml-1">
-                                  {msg.sender_role}
-                                </span>
-                              </div>
+                              <Avatar className="h-8 w-8 flex-shrink-0">
+                                <AvatarFallback className={getAvatarColorClass(msg.sender_role)}>
+                                  {isAI ? <Brain className="h-4 w-4" /> : getInitials(msg.sender_name)}
+                                </AvatarFallback>
+                              </Avatar>
                             )}
                             
-                            <div
-                              className={`rounded-lg p-3 text-sm relative
-                                ${isSystem 
-                                  ? 'bg-blue-100 dark:bg-blue-900/30 text-center mx-auto' 
-                                  : isSelf
-                                  ? 'bg-primary text-primary-foreground' 
-                                  : 'bg-muted'}
-                              `}
-                            >
-                              {isAI && (
-                                <Brain className="h-3 w-3 absolute top-2 right-2 text-purple-500" />
+                            <div>
+                              {!isSelf && !isSystem && (
+                                <div className="text-xs font-medium mb-1">
+                                  {msg.sender_name}
+                                  <span className="text-xs text-muted-foreground ml-1">
+                                    {msg.sender_role}
+                                  </span>
+                                </div>
                               )}
-                              {msg.message}
-                              <div className="text-xs opacity-70 mt-1">
-                                {format(new Date(msg.created_at), 'h:mm a')}
+                              
+                              <div
+                                className={`rounded-lg p-3 text-sm relative
+                                  ${isSystem 
+                                    ? 'bg-blue-100 dark:bg-blue-900/30 text-center mx-auto' 
+                                    : isSelf
+                                    ? 'bg-primary text-primary-foreground' 
+                                    : 'bg-muted'}
+                                `}
+                              >
+                                {isAI && (
+                                  <Brain className="h-3 w-3 absolute top-2 right-2 text-purple-500" />
+                                )}
+                                {msg.message}
+                                <div className="text-xs opacity-70 mt-1">
+                                  {format(new Date(msg.created_at), 'h:mm a')}
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </CollapsibleMessageGroup>
-              ))
+                      );
+                    })}
+                  </CollapsibleMessageGroup>
+                ))}
+              </ErrorBoundary>
             )}
             <div ref={messagesEndRef} />
           </div>
