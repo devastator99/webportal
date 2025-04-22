@@ -44,6 +44,61 @@ export const formatDateForDatabase = (date: Date | string | null): string | null
 };
 
 /**
+ * Format a date for display in the UI (MM/DD/YYYY)
+ * @param date The date to format
+ * @returns A string in MM/DD/YYYY format or empty string if invalid
+ */
+export const formatDateForDisplay = (date: Date | string | null): string => {
+  if (!date) return '';
+  
+  try {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    if (!isValid(dateObj)) {
+      console.error(`Invalid date for display formatting: ${date}`);
+      return '';
+    }
+    return dateFnsFormat(dateObj, 'MM/dd/yyyy');
+  } catch (error) {
+    console.error('Error formatting date for display:', error);
+    return '';
+  }
+};
+
+/**
+ * Parse a display-formatted date (MM/DD/YYYY) into a Date object
+ * @param displayDate The display-formatted date string
+ * @returns A Date object or null if parsing fails
+ */
+export const parseDateFromDisplay = (displayDate: string): Date | null => {
+  if (!displayDate) return null;
+  
+  try {
+    // Parse MM/DD/YYYY format
+    const parts = displayDate.split('/');
+    if (parts.length !== 3) {
+      console.error(`Invalid date format for parsing: ${displayDate}`);
+      return null;
+    }
+    
+    const month = parseInt(parts[0], 10) - 1; // Months are 0-based in JS Date
+    const day = parseInt(parts[1], 10);
+    const year = parseInt(parts[2], 10);
+    
+    const date = new Date(year, month, day);
+    
+    if (isNaN(date.getTime())) {
+      console.error(`Invalid date values for parsing: ${displayDate}`);
+      return null;
+    }
+    
+    return date;
+  } catch (error) {
+    console.error('Error parsing display date:', error);
+    return null;
+  }
+};
+
+/**
  * Debug helper to log date values
  * @param date The date to debug
  * @param label A label for the debug message
@@ -148,6 +203,6 @@ export const sortByDate = <T>(
 // Export other functions from the original file that we're not modifying
 export { 
   parseISO, 
-  format,
+  dateFnsFormat as format, // Export format properly
   isValid
 };
