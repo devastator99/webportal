@@ -124,7 +124,8 @@ export const CareTeamRoomChat = ({
           .from('room_messages')
           .select('id, sender_id, message, is_system_message, is_ai_message, created_at, read_by')
           .eq('room_id', selectedRoomId)
-          .order('created_at', { ascending: true });
+          .order('created_at', { ascending: true })
+          .limit(100);
           
         if (error) {
           console.error("Error fetching messages:", error);

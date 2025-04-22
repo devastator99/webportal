@@ -107,8 +107,8 @@ export const ChatMessagesList = ({
       
       const { data, error } = await supabase.rpc('get_room_messages_with_role', {
         p_room_id: roomId,
-        p_limit: 50,
-        p_offset: (pageNum - 1) * 50,
+        p_limit: 100,
+        p_offset: (pageNum - 1) * 100,
         p_user_role: userRole || 'patient'
       });
       
@@ -149,7 +149,7 @@ export const ChatMessagesList = ({
         } else {
           setMessages(sortedData);
         }
-        setHasMoreMessages(data.length === 50);
+        setHasMoreMessages(data.length === 100);
       } else {
         if (!isLoadingMore) {
           setMessages([]);

@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -22,9 +21,9 @@ serve(async (req: Request) => {
       is_group_chat = false, 
       care_team_members = [], 
       include_care_team_messages = false,
-      is_patient = false, // New parameter to explicitly indicate if the user is a patient
+      is_patient = false,
       page = 1, 
-      per_page = 50 
+      per_page = 100 // Increased from 50 to 100
     } = await req.json();
     
     if (!user_id) {

@@ -1,6 +1,4 @@
-
--- Update the get_room_messages function to properly handle message sorting and AI detection
-CREATE OR REPLACE FUNCTION public.get_room_messages(p_room_id UUID, p_limit INT DEFAULT 50, p_offset INT DEFAULT 0)
+CREATE OR REPLACE FUNCTION public.get_room_messages(p_room_id UUID, p_limit INT DEFAULT 100, p_offset INT DEFAULT 0)
 RETURNS TABLE (
   id UUID,
   room_id UUID,
