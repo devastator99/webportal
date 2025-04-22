@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -123,6 +122,17 @@ export const ChatMessagesList = ({
       
       if (data && data.length > 0) {
         const sortedData = sortByDate(data, 'created_at', true);
+        
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        console.log(`Today's date string: ${todayStr}`);
+        
+        const hasTodayMessages = sortedData.some(msg => {
+          const msgDate = new Date(msg.created_at);
+          return isToday(msgDate);
+        });
+        
+        console.log(`Has messages for today: ${hasTodayMessages}`);
         
         if (isLoadingMore) {
           setMessages(prev => {
@@ -256,7 +266,16 @@ export const ChatMessagesList = ({
                 .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
                 .map(([day, dayMessages], index, array) => {
                   const isLatestGroup = index === array.length - 1;
-                  const isTodayGroup = isToday(new Date(day));
+                  
+                  let isTodayGroup = false;
+                  try {
+                    const [year, month, day] = day.split('-').map(Number);
+                    const dateObj = new Date(year, month - 1, day);
+                    isTodayGroup = isToday(dateObj);
+                    console.log(`Group ${day}: isToday = ${isTodayGroup}`);
+                  } catch (error) {
+                    console.error(`Error checking if group ${day} is today:`, error);
+                  }
                   
                   return (
                     <CollapsibleMessageGroup 

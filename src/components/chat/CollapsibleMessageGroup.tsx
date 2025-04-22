@@ -22,15 +22,32 @@ export const CollapsibleMessageGroup = ({
   
   // Ensure recent date groups and today's group are always expanded
   useEffect(() => {
-    // Convert string date to Date object
-    const dateObj = new Date(date);
-    const shouldOpen = shouldExpandDateGroup(date) || isLatestGroup || isToday(dateObj);
-    setIsOpen(shouldOpen);
+    try {
+      // Parse the date string to check if it's today
+      const [year, month, day] = date.split('-').map(Number);
+      const dateObj = new Date(year, month - 1, day);
+      console.log(`Date group: ${date}, isToday: ${isToday(dateObj)}`);
+      
+      const shouldOpen = shouldExpandDateGroup(date) || isLatestGroup || isToday(dateObj);
+      setIsOpen(shouldOpen);
+    } catch (error) {
+      console.error(`Error checking date expansion: ${date}`, error);
+      setIsOpen(true); // Default to open on error
+    }
   }, [date, isLatestGroup]);
 
   const formattedDate = formatMessageDateGroup(date);
   const messagesCount = messages?.length || 0;
-  const isTodayGroup = isToday(new Date(date));
+  
+  // Check if this is today's group, parse and normalize the date string
+  let isTodayGroup = false;
+  try {
+    const [year, month, day] = date.split('-').map(Number);
+    const dateObj = new Date(year, month - 1, day);
+    isTodayGroup = isToday(dateObj);
+  } catch (error) {
+    console.error(`Error checking if group is today: ${date}`, error);
+  }
   
   const toggleOpen = () => {
     setIsOpen(!isOpen);

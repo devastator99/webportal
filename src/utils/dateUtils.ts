@@ -67,7 +67,10 @@ export function groupMessagesByDate(messages: any[]) {
     try {
       const date = safeParseISO(message.created_at);
       // Use consistent date format for grouping
-      const dateKey = format(date, 'yyyy-MM-dd');
+      let dateKey = format(date, 'yyyy-MM-dd');
+      
+      // For debugging
+      console.log(`Message date: ${date.toISOString()}, Date key: ${dateKey}, Is today: ${dateFnsIsToday(date)}`);
       
       if (!groups[dateKey]) {
         groups[dateKey] = [];
@@ -91,8 +94,13 @@ export function groupMessagesByDate(messages: any[]) {
 // Determine if a date group should auto-expand
 export function shouldExpandDateGroup(dateString: string) {
   try {
-    const date = safeParseISO(dateString);
+    // Convert the string date to a Date object with normalized time
+    const [year, month, day] = dateString.split('-').map(Number);
+    // Note: month is 0-indexed in JavaScript dates
+    const date = new Date(year, month - 1, day);
+    
     // Auto-expand today and yesterday date groups
+    console.log(`Checking date expansion for: ${dateString}, isToday: ${dateFnsIsToday(date)}, isYesterday: ${isYesterday(date)}`);
     return dateFnsIsToday(date) || isYesterday(date);
   } catch (error) {
     console.error(`Error determining if date group should expand: ${dateString}`, error);
@@ -103,7 +111,10 @@ export function shouldExpandDateGroup(dateString: string) {
 // Format a date for display in chat groups
 export function formatMessageDateGroup(dateString: string): string {
   try {
-    const date = safeParseISO(dateString);
+    // Convert the string date to a Date object
+    const [year, month, day] = dateString.split('-').map(Number);
+    // Note: month is 0-indexed in JavaScript dates
+    const date = new Date(year, month - 1, day);
     
     if (dateFnsIsToday(date)) {
       return "Today";
