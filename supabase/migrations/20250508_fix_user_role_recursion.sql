@@ -63,4 +63,3 @@ $$;
 GRANT EXECUTE ON FUNCTION public.user_can_sync_rooms TO authenticated;
 
 -- The function sync_all_care_team_rooms can remain unchanged as it uses SECURITY DEFINER already
-

@@ -8,6 +8,46 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+// Helper function to get OpenAI response
+async function getOpenAIResponse(conversation: any[], systemPrompt: string) {
+  try {
+    const openaiKey = Deno.env.get("OPENAI_API_KEY");
+    if (!openaiKey) {
+      console.warn("OpenAI API key not found in environment variables");
+      return null;
+    }
+
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${openaiKey}`
+      },
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...conversation
+        ],
+        temperature: 0.7,
+        max_tokens: 1000
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("OpenAI API error:", errorText);
+      return null;
+    }
+
+    const data = await response.json();
+    return data.choices[0].message.content;
+  } catch (error) {
+    console.error("Error calling OpenAI:", error);
+    return null;
+  }
+}
+
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -58,6 +98,23 @@ serve(async (req: Request) => {
     
     console.log(`Processing message from care team room ${roomId} for patient ${patientId}`);
     
+    // Get basic patient information for context
+    const { data: patientProfile, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('id', patientId)
+      .single();
+      
+    if (profileError) {
+      console.error("Error fetching patient profile:", profileError);
+    }
+    
+    const patientName = patientProfile ? `${patientProfile.first_name} ${patientProfile.last_name}` : "Unknown Patient";
+    
+    // Collect context for OpenAI
+    let patientContext = `Patient: ${patientName} (ID: ${patientId})`;
+    let medicalData = "";
+    
     // Handle file upload messages
     if (message.startsWith('[FILE_UPLOAD_SUCCESS]')) {
       const fileName = message.replace('[FILE_UPLOAD_SUCCESS]', '').trim();
@@ -73,42 +130,63 @@ serve(async (req: Request) => {
         message.toLowerCase().includes('medication')) {
       
       try {
-        // Get the doctor assigned to this patient
-        const { data: assignment, error: assignmentError } = await supabaseClient
-          .from('patient_assignments')
-          .select('doctor_id')
-          .eq('patient_id', patientId)
-          .single();
+        // Get prescriptions - using the all prescriptions function instead of just doctor ones
+        const { data: prescriptions, error: prescriptionError } = await supabaseClient
+          .rpc('get_all_patient_prescriptions', {
+            p_patient_id: patientId
+          });
         
-        if (assignmentError || !assignment?.doctor_id) {
-          aiResponse = "I don't see any prescriptions in your records. Please ask your doctor about prescriptions during your next appointment.";
+        if (prescriptionError) {
+          console.error(`Error fetching prescriptions: ${prescriptionError.message}`);
+          throw prescriptionError;
+        }
+        
+        if (!prescriptions || prescriptions.length === 0) {
+          medicalData += "No prescriptions found in patient records.\n";
+          aiResponse = "I don't see any prescriptions in your records yet. Please ask your doctor about prescriptions during your next appointment.";
         } else {
-          // Get prescriptions
-          const { data: prescriptions, error: prescriptionError } = await supabaseClient
-            .rpc('get_patient_prescriptions', {
-              p_patient_id: patientId,
-              p_doctor_id: assignment.doctor_id
-            });
+          // Add all prescriptions to context
+          medicalData += "Patient prescriptions:\n";
+          prescriptions.forEach((p, index) => {
+            medicalData += `${index + 1}. From Dr. ${p.doctor_first_name} ${p.doctor_last_name} on ${new Date(p.created_at).toLocaleDateString()}:\n`;
+            medicalData += `   Diagnosis: ${p.diagnosis}\n`;
+            medicalData += `   Medications: ${p.prescription}\n`;
+            if (p.notes) {
+              medicalData += `   Notes: ${p.notes}\n`;
+            }
+            medicalData += '\n';
+          });
           
-          if (prescriptionError || !prescriptions || prescriptions.length === 0) {
-            aiResponse = "I don't see any prescriptions in your records yet. Please ask your doctor about prescriptions during your next appointment.";
+          // If they want the prescription as PDF, let them know how to view it
+          if (message.toLowerCase().includes('pdf') || 
+              message.toLowerCase().includes('download') || 
+              message.toLowerCase().includes('file') ||
+              message.toLowerCase().includes('share')) {
+            aiResponse = `I can help you access your prescription. Your latest prescription was from Dr. ${prescriptions[0].doctor_first_name} ${prescriptions[0].doctor_last_name} on ${new Date(prescriptions[0].created_at).toLocaleDateString()}. You can view and download it as a PDF from the AI chat in your dashboard or from the prescriptions page.`;
           } else {
-            // If they want the prescription as PDF, let them know how to view it
-            if (message.toLowerCase().includes('pdf') || 
-                message.toLowerCase().includes('download') || 
-                message.toLowerCase().includes('file') ||
-                message.toLowerCase().includes('share')) {
-              aiResponse = `I can help you access your prescription. Your latest prescription was from Dr. ${prescriptions[0].doctor_first_name} ${prescriptions[0].doctor_last_name} on ${new Date(prescriptions[0].created_at).toLocaleDateString()}. You can view and download it as a PDF from the AI chat in your dashboard or from the prescriptions page.`;
-            } else {
-              // Just provide prescription details
-              const latestPrescription = prescriptions[0];
-              aiResponse = `Your latest prescription from Dr. ${latestPrescription.doctor_first_name} ${latestPrescription.doctor_last_name} (${new Date(latestPrescription.created_at).toLocaleDateString()}):\n\nDiagnosis: ${latestPrescription.diagnosis}\n\nPrescribed medications: ${latestPrescription.prescription}`;
+            // Use OpenAI for more natural response
+            if (prescriptions.length === 1) {
+              const p = prescriptions[0];
+              aiResponse = `Your latest prescription from Dr. ${p.doctor_first_name} ${p.doctor_last_name} (${new Date(p.created_at).toLocaleDateString()}):\n\nDiagnosis: ${p.diagnosis}\n\nPrescribed medications: ${p.prescription}`;
               
-              if (latestPrescription.notes) {
-                aiResponse += `\n\nAdditional notes: ${latestPrescription.notes}`;
+              if (p.notes) {
+                aiResponse += `\n\nAdditional notes: ${p.notes}`;
               }
               
               aiResponse += "\n\nYou can also view and download this as a PDF from the Prescriptions section in your app.";
+            } else {
+              // For multiple prescriptions, let OpenAI generate a summary
+              const systemPrompt = `You are a healthcare assistant providing information about a patient's prescriptions. Be helpful, concise, and strictly use only the information provided in the medical data. Do not invent any information.`;
+              const aiGeneratedResponse = await getOpenAIResponse([
+                { role: "user", content: `Based on the following patient prescription data, please provide a summary of their current medications. Patient asked: "${message}"\n\n${medicalData}` }
+              ], systemPrompt);
+              
+              if (aiGeneratedResponse) {
+                aiResponse = aiGeneratedResponse;
+              } else {
+                // Fallback if OpenAI fails
+                aiResponse = `You have ${prescriptions.length} prescriptions in your medical records. The most recent one is from Dr. ${prescriptions[0].doctor_first_name} ${prescriptions[0].doctor_last_name} dated ${new Date(prescriptions[0].created_at).toLocaleDateString()}. You can view all your prescriptions in the Prescriptions section of your app.`;
+              }
             }
           }
         }
@@ -131,7 +209,13 @@ serve(async (req: Request) => {
             p_patient_id: patientId
           });
         
-        if (healthPlanError || !healthPlan || healthPlan.length === 0) {
+        if (healthPlanError) {
+          console.error(`Error fetching health plan: ${healthPlanError.message}`);
+          throw healthPlanError;
+        }
+        
+        if (!healthPlan || healthPlan.length === 0) {
+          medicalData += "No health plan found in patient records.\n";
           aiResponse = "I don't see a health plan in your records yet. Your nutritionist can create one for you during your next appointment.";
         } else {
           // Group by type for a more organized response
@@ -143,17 +227,37 @@ serve(async (req: Request) => {
             groupedItems[item.type].push(item);
           });
           
-          aiResponse = "Here's a summary of your health plan:\n\n";
-          
+          medicalData += "Patient health plan:\n";
           for (const [type, items] of Object.entries(groupedItems)) {
-            aiResponse += `${type.charAt(0).toUpperCase() + type.slice(1)}:\n`;
+            medicalData += `${type.charAt(0).toUpperCase() + type.slice(1)}:\n`;
             for (const item of items) {
-              aiResponse += `• ${item.description} - ${item.scheduled_time} (${item.frequency})\n`;
+              medicalData += `• ${item.description} - ${item.scheduled_time} (${item.frequency})\n`;
             }
-            aiResponse += "\n";
+            medicalData += "\n";
           }
           
-          aiResponse += "You can view your complete health plan and track your progress in the Habits section of the app.";
+          // Use OpenAI for more natural response
+          const systemPrompt = `You are a healthcare assistant providing information about a patient's health plan. Be helpful, concise, and strictly use only the information provided in the health plan data. Focus on the specifics from their plan and encourage them to follow their plan. Do not invent any information not contained in the data provided.`;
+          const aiGeneratedResponse = await getOpenAIResponse([
+            { role: "user", content: `Based on the following patient health plan data, please provide a helpful response to their question: "${message}"\n\n${medicalData}` }
+          ], systemPrompt);
+          
+          if (aiGeneratedResponse) {
+            aiResponse = aiGeneratedResponse;
+          } else {
+            // Fallback if OpenAI fails
+            aiResponse = "Here's a summary of your health plan:\n\n";
+            
+            for (const [type, items] of Object.entries(groupedItems)) {
+              aiResponse += `${type.charAt(0).toUpperCase() + type.slice(1)}:\n`;
+              for (const item of items) {
+                aiResponse += `• ${item.description} - ${item.scheduled_time} (${item.frequency})\n`;
+              }
+              aiResponse += "\n";
+            }
+            
+            aiResponse += "You can view your complete health plan and track your progress in the Habits section of the app.";
+          }
         }
       } catch (error) {
         console.error("Error fetching health plan data:", error);
@@ -173,19 +277,46 @@ serve(async (req: Request) => {
             p_patient_id: patientId
           });
         
-        if (appointmentsError || !appointments || appointments.length === 0) {
+        if (appointmentsError) {
+          console.error(`Error fetching appointments: ${appointmentsError.message}`);
+          throw appointmentsError;
+        }
+        
+        if (!appointments || appointments.length === 0) {
+          medicalData += "No upcoming appointments found in patient records.\n";
           aiResponse = "I don't see any upcoming appointments in your schedule. Would you like information on how to book an appointment?";
         } else {
-          aiResponse = "Here are your upcoming appointments:\n\n";
-          
           // Sort appointments by date
-          appointments.sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+          const sortedAppointments = appointments.sort((a, b) => 
+            new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime()
+          );
           
-          for (const appt of appointments) {
+          medicalData += "Patient appointments:\n";
+          sortedAppointments.forEach((appt, index) => {
             const apptDate = new Date(appt.scheduled_at);
-            aiResponse += `• ${apptDate.toLocaleDateString()} at ${apptDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}\n`;
-            aiResponse += `  Doctor: Dr. ${appt.doctor_first_name} ${appt.doctor_last_name}\n`;
-            aiResponse += `  Status: ${appt.status}\n\n`;
+            medicalData += `${index + 1}. ${apptDate.toLocaleDateString()} at ${apptDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}\n`;
+            medicalData += `   Doctor: Dr. ${appt.doctor_first_name} ${appt.doctor_last_name}\n`;
+            medicalData += `   Status: ${appt.status}\n\n`;
+          });
+          
+          // Use OpenAI for more natural response
+          const systemPrompt = `You are a healthcare assistant providing information about a patient's appointments. Be helpful, concise, and strictly use only the information provided in the appointments data. Do not invent any information.`;
+          const aiGeneratedResponse = await getOpenAIResponse([
+            { role: "user", content: `Based on the following patient appointment data, please provide a helpful response to their question: "${message}"\n\n${medicalData}` }
+          ], systemPrompt);
+          
+          if (aiGeneratedResponse) {
+            aiResponse = aiGeneratedResponse;
+          } else {
+            // Fallback if OpenAI fails
+            aiResponse = "Here are your upcoming appointments:\n\n";
+            
+            for (const appt of sortedAppointments) {
+              const apptDate = new Date(appt.scheduled_at);
+              aiResponse += `• ${apptDate.toLocaleDateString()} at ${apptDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}\n`;
+              aiResponse += `  Doctor: Dr. ${appt.doctor_first_name} ${appt.doctor_last_name}\n`;
+              aiResponse += `  Status: ${appt.status}\n\n`;
+            }
           }
         }
       } catch (error) {
@@ -206,25 +337,52 @@ serve(async (req: Request) => {
             p_patient_id: patientId
           });
           
-        if (reportsError || !reports || reports.length === 0) {
+        if (reportsError) {
+          console.error(`Error fetching medical reports: ${reportsError.message}`);
+          throw reportsError;
+        }
+        
+        if (!reports || reports.length === 0) {
+          medicalData += "No medical reports found in patient records.\n";
           aiResponse = "I don't see any medical reports in your records yet. You can upload reports through this chat using the paperclip icon, or ask your doctor to add them during your next appointment.";
         } else {
-          aiResponse = "Here are your most recent medical reports:\n\n";
-          
           // Sort reports by date, newest first
-          reports.sort((a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime());
+          const sortedReports = reports.sort((a, b) => 
+            new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()
+          );
           
-          // Show last 5 reports
-          const recentReports = reports.slice(0, 5);
+          medicalData += "Patient medical reports:\n";
+          const recentReports = sortedReports.slice(0, 5);
           for (const report of recentReports) {
-            aiResponse += `• ${report.file_name} (uploaded on ${new Date(report.uploaded_at).toLocaleDateString()})\n`;
+            medicalData += `• ${report.file_name} (uploaded on ${new Date(report.uploaded_at).toLocaleDateString()})\n`;
           }
           
-          if (reports.length > 5) {
-            aiResponse += `\nPlus ${reports.length - 5} more reports available in your health records.`;
+          if (sortedReports.length > 5) {
+            medicalData += `Plus ${sortedReports.length - 5} more reports available in patient health records.\n`;
           }
           
-          aiResponse += "\n\nYou can view these reports in the Medical Reports section of your app.";
+          // Use OpenAI for more natural response
+          const systemPrompt = `You are a healthcare assistant providing information about a patient's medical reports. Be helpful, concise, and strictly use only the information provided in the medical data. Do not invent any information.`;
+          const aiGeneratedResponse = await getOpenAIResponse([
+            { role: "user", content: `Based on the following patient medical reports data, please provide a helpful response to their question: "${message}"\n\n${medicalData}` }
+          ], systemPrompt);
+          
+          if (aiGeneratedResponse) {
+            aiResponse = aiGeneratedResponse;
+          } else {
+            // Fallback if OpenAI fails
+            aiResponse = "Here are your most recent medical reports:\n\n";
+            
+            for (const report of recentReports) {
+              aiResponse += `• ${report.file_name} (uploaded on ${new Date(report.uploaded_at).toLocaleDateString()})\n`;
+            }
+            
+            if (sortedReports.length > 5) {
+              aiResponse += `\nPlus ${sortedReports.length - 5} more reports available in your health records.`;
+            }
+            
+            aiResponse += "\n\nYou can view these reports in the Medical Reports section of your app.";
+          }
         }
       } catch (error) {
         console.error("Error fetching medical reports:", error);
@@ -244,16 +402,39 @@ serve(async (req: Request) => {
             p_patient_id: patientId
           });
           
-        if (careTeamError || !careTeam || careTeam.length === 0) {
+        if (careTeamError) {
+          console.error(`Error fetching care team: ${careTeamError.message}`);
+          throw careTeamError;
+        }
+        
+        if (!careTeam || careTeam.length === 0) {
+          medicalData += "No care team members assigned to this patient.\n";
           aiResponse = "You don't have any care team members assigned yet. An administrator can help assign a doctor and nutritionist to your care team.";
         } else {
-          aiResponse = "Your care team consists of:\n\n";
+          medicalData += "Patient care team:\n";
           
           careTeam.forEach(member => {
-            aiResponse += `• ${member.first_name} ${member.last_name} (${member.role})\n`;
+            medicalData += `• ${member.first_name} ${member.last_name} (${member.role})\n`;
           });
           
-          aiResponse += "\nYou can communicate with your care team members through this chat.";
+          // Use OpenAI for more natural response
+          const systemPrompt = `You are a healthcare assistant providing information about a patient's care team. Be helpful, concise, and strictly use only the information provided in the medical data. Do not invent any information.`;
+          const aiGeneratedResponse = await getOpenAIResponse([
+            { role: "user", content: `Based on the following patient care team data, please provide a helpful response to their question: "${message}"\n\n${medicalData}` }
+          ], systemPrompt);
+          
+          if (aiGeneratedResponse) {
+            aiResponse = aiGeneratedResponse;
+          } else {
+            // Fallback if OpenAI fails
+            aiResponse = "Your care team consists of:\n\n";
+            
+            careTeam.forEach(member => {
+              aiResponse += `• ${member.first_name} ${member.last_name} (${member.role})\n`;
+            });
+            
+            aiResponse += "\nYou can communicate with your care team members through this chat.";
+          }
         }
       } catch (error) {
         console.error("Error fetching care team data:", error);
@@ -275,8 +456,28 @@ serve(async (req: Request) => {
     } else if (message.toLowerCase().includes('thank')) {
       aiResponse = "You're welcome! I'm here to help you and your care team communicate effectively.";
     } else {
-      // Generic response for messages that don't match specific patterns
-      aiResponse = "I'm your healthcare AI assistant. I can help with information about your prescriptions, health plan, appointments, or general health questions. Is there something specific you'd like to know about your healthcare?";
+      // For generic messages, use OpenAI to generate a contextual response
+      const systemPrompt = `You are a healthcare AI assistant helping a patient named ${patientName}. 
+      You should be helpful, empathetic, and informative. 
+      Your role is to assist the patient with information about their healthcare journey, 
+      but always remind them to consult healthcare professionals for medical advice.
+      
+      You can help with general health questions, explanations about medical terms, 
+      and navigating the healthcare system. Always be supportive and respectful.
+      
+      If you don't know something specific about the patient, you can suggest they ask 
+      their care team or check specific sections of the healthcare app.`;
+      
+      const aiGeneratedResponse = await getOpenAIResponse([
+        { role: "user", content: message }
+      ], systemPrompt);
+      
+      if (aiGeneratedResponse) {
+        aiResponse = aiGeneratedResponse;
+      } else {
+        // Fallback if OpenAI fails
+        aiResponse = "I'm your healthcare AI assistant. I can help with information about your prescriptions, health plan, appointments, or general health questions. Is there something specific you'd like to know about your healthcare?";
+      }
     }
     
     console.log("Sending AI response:", aiResponse.substring(0, 100) + "...");
