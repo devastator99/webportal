@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -207,10 +208,13 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       console.log(`Fetched ${data?.length || 0} messages:`, data);
       
       if (data && data.length > 0) {
+        // Make sure messages are sorted by created_at
+        const sortedData = sortByDate(data, 'created_at', true);
+        
         if (isLoadingMore) {
-          setLocalMessages(prev => [...data, ...prev]);
+          setLocalMessages(prev => [...sortedData, ...prev]);
         } else {
-          setLocalMessages(data);
+          setLocalMessages(sortedData);
         }
         setHasMoreMessages(data.length === 50);
       } else {
@@ -608,7 +612,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                       Object.entries(messageGroups)
                         .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
                         .map(([day, dayMessages], index, array) => {
-                          const isLatestGroup = index === array.length - 1;
+                          const isLatestGroup = index === array.length - 1; // Last group is the latest
                           const isTodayGroup = isToday(new Date(day));
                           
                           return (
@@ -616,9 +620,10 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                               key={day}
                               date={day}
                               messages={dayMessages}
-                              isLatestGroup={isTodayGroup}
+                              isLatestGroup={isLatestGroup || isTodayGroup}
                             >
                               {dayMessages
+                                // Sort messages within a day by time (oldest to newest)
                                 .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
                                 .map((message) => {
                                   const isCurrentUser = message.sender_id === user?.id;

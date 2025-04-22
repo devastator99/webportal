@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -55,7 +54,6 @@ export const ChatMessagesList = ({
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [newMessageAdded, setNewMessageAdded] = useState(false);
   
-  // Use our custom scroll hook
   const { 
     endRef, 
     containerRef, 
@@ -70,11 +68,9 @@ export const ChatMessagesList = ({
     messagesToShow: messages.length
   });
 
-  // Setup real-time subscription for new messages
   useEffect(() => {
     if (!roomId) return;
 
-    // Subscribe to realtime updates for the chat room
     const channel = supabase
       .channel(`room_messages:${roomId}`)
       .on('postgres_changes', 
@@ -86,7 +82,6 @@ export const ChatMessagesList = ({
         }, 
         (payload) => {
           console.log('New message received via realtime:', payload);
-          // Don't add duplicates
           if (!messages.some(m => m.id === payload.new.id)) {
             fetchMessages(roomId, 1);
             setNewMessageAdded(true);
@@ -126,18 +121,17 @@ export const ChatMessagesList = ({
       console.log(`Retrieved ${data?.length || 0} messages from API`);
       
       if (data && data.length > 0) {
+        const sortedData = sortByDate(data, 'created_at', true);
+        
         if (isLoadingMore) {
-          // When loading older messages, add them before current messages
           setMessages(prev => {
-            // Filter out duplicates
-            const newMessages = data.filter(
+            const newMessages = sortedData.filter(
               newMsg => !prev.some(existingMsg => existingMsg.id === newMsg.id)
             );
             return [...newMessages, ...prev];
           });
         } else {
-          // For initial load or refresh, replace the messages
-          setMessages(data);
+          setMessages(sortedData);
         }
         setHasMoreMessages(data.length === 50);
       } else {
@@ -147,7 +141,6 @@ export const ChatMessagesList = ({
         setHasMoreMessages(false);
       }
       
-      // Reset the new message flag after message fetch
       setNewMessageAdded(false);
     } catch (error) {
       console.error("Error in fetchMessages:", error);
@@ -177,16 +170,13 @@ export const ChatMessagesList = ({
     }
   }, [roomId, useRoomMessages]);
 
-  // Update the message combination logic to include new localMessages
   useEffect(() => {
     if (localMessages.length > 0) {
-      // First, check if there are actually new messages
       const newLocalMessages = localMessages.filter(
         m => !messages.some(serverMsg => serverMsg.id === m.id)
       );
       
       if (newLocalMessages.length > 0) {
-        // Combine server messages with local messages
         const updatedMessages = [
           ...messages,
           ...newLocalMessages
@@ -200,19 +190,6 @@ export const ChatMessagesList = ({
     }
   }, [localMessages, messages]);
 
-  // This function is commented out as requested
-  /*
-  const handleLoadMore = () => {
-    if (roomId && hasMoreMessages && !isLoadingMessages && !loadingMore) {
-      setLoadingMore(true);
-      const nextPage = page + 1;
-      setPage(nextPage);
-      fetchMessages(roomId, nextPage, true);
-    }
-  };
-  */
-
-  // Get all messages from both server and local sources
   const allMessages = [
     ...messages,
     ...localMessages.filter(m => !messages.some(serverMsg => serverMsg.id === m.id))
@@ -220,7 +197,6 @@ export const ChatMessagesList = ({
     new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
 
-  // Use the utility function to group messages by date
   const messageGroups = groupMessagesByDate(allMessages);
 
   if (isLoading) {
@@ -254,29 +230,6 @@ export const ChatMessagesList = ({
         data-testid="messages-scroll-area"
         viewportRef={containerRef}
       >
-        {/* Load more button commented out as requested
-        {hasMoreMessages && !isLoadingMessages && messages.length > 0 && (
-          <div className="flex justify-center mb-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleLoadMore}
-              className="text-xs text-muted-foreground hover:text-foreground"
-              disabled={loadingMore}
-            >
-              {loadingMore ? (
-                <>
-                  <Loader2 className="h-3 w-3 mr-2 animate-spin" />
-                  Loading...
-                </>
-              ) : (
-                'Load older messages'
-              )}
-            </Button>
-          </div>
-        )}
-        */}
-        
         {isLoadingMessages && page === 1 ? (
           <div className="flex flex-col space-y-4">
             {[1, 2, 3].map(i => (
@@ -299,10 +252,9 @@ export const ChatMessagesList = ({
           <div className="space-y-6 message-groups" data-testid="message-groups-container">
             {Object.keys(messageGroups).length > 0 ? (
               Object.entries(messageGroups)
-                // Sort by date - oldest first (ascending) to have newest at bottom
                 .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
                 .map(([day, dayMessages], index, array) => {
-                  const isLatestGroup = index === array.length - 1; // Last group is the latest
+                  const isLatestGroup = index === array.length - 1;
                   const isTodayGroup = isToday(new Date(day));
                   
                   return (
@@ -310,10 +262,9 @@ export const ChatMessagesList = ({
                       key={day} 
                       date={day}
                       messages={dayMessages}
-                      isLatestGroup={isTodayGroup}
+                      isLatestGroup={isLatestGroup || isTodayGroup}
                     >
                       {dayMessages
-                        // Sort messages within a day by time (oldest to newest for proper chronological display)
                         .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
                         .map((message) => {
                           const isCurrentUser = message.sender_id === user?.id;
