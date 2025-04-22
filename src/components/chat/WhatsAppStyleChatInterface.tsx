@@ -58,6 +58,51 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     isNewMessage: newMessageAdded
   });
 
+  const triggerAiResponse = async (message: string, roomId: string) => {
+    if (!roomId) return;
+    
+    try {
+      setIsAiResponding(true);
+      console.log("Triggering AI response for message:", message);
+      
+      const { data, error } = await supabase.functions.invoke('care-team-ai-chat', {
+        body: { 
+          roomId: roomId,
+          message: message
+        }
+      });
+      
+      if (error) {
+        console.error("Error getting AI response:", error);
+        toast({
+          title: "AI Assistant Error",
+          description: "Could not get AI response. Please try again.",
+          variant: "destructive"
+        });
+        setIsAiResponding(false);
+        return null;
+      }
+      
+      console.log("AI response received:", data);
+      
+      setTimeout(() => {
+        fetchMessages(roomId, 1);
+        setIsAiResponding(false);
+      }, 1000);
+      
+      return data;
+    } catch (error) {
+      console.error("Error in AI chat:", error);
+      setIsAiResponding(false);
+      toast({
+        title: "AI Assistant Error",
+        description: "Could not get AI response. Please try again.",
+        variant: "destructive"
+      });
+      return null;
+    }
+  };
+
   useEffect(() => {
     if (patientRoomId) {
       console.log("Patient room ID provided to interface:", patientRoomId);
