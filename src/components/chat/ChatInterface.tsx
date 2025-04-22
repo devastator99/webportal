@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -13,6 +12,7 @@ import { v4 as uuidv4 } from "uuid";
 import { useOnlineStatus } from "@/utils/networkStatus";
 import { saveOfflineMessage, getUnsyncedMessages, markMessageAsSynced, deleteOfflineMessage } from "@/utils/offlineStorage";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { PatientCuratedHealthTips } from "@/components/dashboard/patient/PatientCuratedHealthTips";
 
 type UserProfile = {
   id: string;
@@ -25,7 +25,7 @@ type UserProfile = {
 interface CareTeamGroup {
   groupName: string;
   members: UserProfile[];
-  id?: string; // Added id property to the interface
+  id?: string;
 }
 
 interface ChatInterfaceProps {
@@ -503,54 +503,61 @@ export const ChatInterface = ({
   }
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          {userRole === 'doctor' ? <MessageSquare className="h-5 w-5" /> : <Users className="h-5 w-5" />}
-          {getHeaderTitle()}
-          {!isOnline && <WifiOff className="h-4 w-4 text-red-500 ml-2" />}
-        </CardTitle>
-        {!isOnline && (
-          <Alert className="bg-yellow-50 border-yellow-200">
-            <AlertDescription className="text-yellow-800">
-              You're currently offline. Messages will be sent when your connection returns.
-            </AlertDescription>
-          </Alert>
-        )}
-      </CardHeader>
-      <CardContent className="flex-1 flex flex-col">
-        {userRole === 'doctor' ? (
-          <ChatMessagesList
-            selectedUserId={selectedUserId}
-            localMessages={localMessages}
+    <>
+      <Card className="h-full flex flex-col">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            {userRole === 'doctor' ? <MessageSquare className="h-5 w-5" /> : <Users className="h-5 w-5" />}
+            {getHeaderTitle()}
+            {!isOnline && <WifiOff className="h-4 w-4 text-red-500 ml-2" />}
+          </CardTitle>
+          {!isOnline && (
+            <Alert className="bg-yellow-50 border-yellow-200">
+              <AlertDescription className="text-yellow-800">
+                You're currently offline. Messages will be sent when your connection returns.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardHeader>
+        <CardContent className="flex-1 flex flex-col">
+          {userRole === 'doctor' ? (
+            <ChatMessagesList
+              selectedUserId={selectedUserId}
+              localMessages={localMessages}
+              offlineMode={!isOnline}
+              useRoomMessages={false}
+            />
+          ) : (
+            <ChatMessagesList
+              careTeamMembers={careTeamGroup?.members}
+              useRoomMessages={isGroupChat}
+              roomId={careTeamGroup?.id}
+              selectedUserId={!isGroupChat ? selectedUserId : undefined}
+              localMessages={localMessages}
+              offlineMode={!isOnline}
+            />
+          )}
+          <ChatInput
+            value={newMessage}
+            onChange={setNewMessage}
+            onSend={handleSendMessage}
+            disabled={userRole === 'doctor' ? !selectedUserId : !careTeamGroup}
+            placeholder={
+              userRole === 'doctor' 
+                ? "Message to patient..." 
+                : isOnline 
+                  ? "Message your care team..." 
+                  : "Message your care team (offline)..."
+            }
             offlineMode={!isOnline}
-            useRoomMessages={false}
           />
-        ) : (
-          <ChatMessagesList
-            careTeamMembers={careTeamGroup?.members}
-            useRoomMessages={isGroupChat}
-            roomId={careTeamGroup?.id}
-            selectedUserId={!isGroupChat ? selectedUserId : undefined}
-            localMessages={localMessages}
-            offlineMode={!isOnline}
-          />
-        )}
-        <ChatInput
-          value={newMessage}
-          onChange={setNewMessage}
-          onSend={handleSendMessage}
-          disabled={userRole === 'doctor' ? !selectedUserId : !careTeamGroup}
-          placeholder={
-            userRole === 'doctor' 
-              ? "Message to patient..." 
-              : isOnline 
-                ? "Message your care team..." 
-                : "Message your care team (offline)..."
-          }
-          offlineMode={!isOnline}
-        />
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      {userRole === "patient" && (
+        <div>
+          <PatientCuratedHealthTips />
+        </div>
+      )}
+    </>
   );
 };
