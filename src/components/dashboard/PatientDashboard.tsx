@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +18,7 @@ import {
 } from "lucide-react";
 import { MedicalRecordsList } from './patient/MedicalRecordsList';
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
+import { PatientCuratedHealthTips } from "./patient/PatientCuratedHealthTips";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
@@ -179,6 +179,9 @@ export const PatientDashboard = () => {
               </div>
             </CardContent>
           </Card>
+          
+          {/* Health Tips Section - Added below chat */}
+          <PatientCuratedHealthTips />
           
           {/* Display prescription summary */}
           {patientData?.latestPrescription && (
