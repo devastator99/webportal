@@ -116,3 +116,33 @@ export function formatMessageDateGroup(dateString: string): string {
     return dateString; // Return original as fallback
   }
 }
+
+// New function to format date for display (e.g., MM/DD/YYYY)
+export function formatDateForDisplay(date: Date | string): string {
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return format(dateObj, 'MM/dd/yyyy');
+}
+
+// New function to parse a display-formatted date
+export function parseDateFromDisplay(dateString: string): Date | null {
+  try {
+    // Split the date string into parts
+    const [month, day, year] = dateString.split('/').map(Number);
+    
+    // Validate the parts
+    if (month && day && year) {
+      // Create a new Date object (note: month is 0-indexed in JS Date)
+      const parsedDate = new Date(year, month - 1, day);
+      
+      // Additional validation to ensure the date is valid
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error parsing display date:', error);
+    return null;
+  }
+}
