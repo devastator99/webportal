@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { format, isToday, isYesterday } from "date-fns";
+import { format, isToday, isYesterday, parseISO } from "date-fns";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -14,9 +14,10 @@ interface CollapsibleMessageGroupProps {
 
 export const CollapsibleMessageGroup = ({ date, messages, children }: CollapsibleMessageGroupProps) => {
   // Default to open for today's messages, closed for older messages
-  const [isOpen, setIsOpen] = useState(() => {
+  const [isOpen, setIsOpen] = useState<boolean>(() => {
     try {
-      const messageDate = new Date(date);
+      // Ensure we have a proper date string before parsing
+      const messageDate = parseISO(date);
       console.log(`Initializing date group: ${date}, isToday: ${isToday(messageDate)}`);
       return isToday(messageDate) || isYesterday(messageDate);
     } catch (error) {
@@ -26,9 +27,10 @@ export const CollapsibleMessageGroup = ({ date, messages, children }: Collapsibl
   });
   
   // Format the date to be more readable
-  const formatMessageDate = (dateString: string) => {
+  const formatMessageDate = (dateString: string): string => {
     try {
-      const messageDate = new Date(dateString);
+      // Ensure we have a proper date string before formatting
+      const messageDate = parseISO(dateString);
       
       if (isToday(messageDate)) {
         return "Today";
@@ -48,7 +50,7 @@ export const CollapsibleMessageGroup = ({ date, messages, children }: Collapsibl
   // Update open state when date changes
   useEffect(() => {
     try {
-      const messageDate = new Date(date);
+      const messageDate = parseISO(date);
       setIsOpen(isToday(messageDate) || isYesterday(messageDate));
     } catch (error) {
       console.error("Error in useEffect date handling:", date, error);
@@ -81,7 +83,7 @@ export const CollapsibleMessageGroup = ({ date, messages, children }: Collapsibl
           </div>
         </div>
         
-        <CollapsibleContent className="space-y-2 mt-2">
+        <CollapsibleContent className="space-y-2 mt-2 collapsible-messages">
           {children}
         </CollapsibleContent>
       </Collapsible>

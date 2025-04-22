@@ -4,14 +4,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Loader2, ArrowUp, Bot, Brain, MessageCircle } from "lucide-react";
+import { Loader2, ChevronDown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { GetRoomMessagesParams, AnyRole } from "@/types/auth";
 import { CollapsibleMessageGroup } from './CollapsibleMessageGroup';
-import { sortByDate } from "@/utils/dateUtils";
+import { sortByDate, groupMessagesByDate } from "@/utils/dateUtils";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
@@ -168,48 +167,6 @@ export const ChatMessagesList = ({
     }
   };
 
-  const groupMessagesByDay = (messages: any[]) => {
-    try {
-      const groups: Record<string, any[]> = {};
-      
-      messages.forEach(msg => {
-        // Ensure created_at is a valid date string
-        if (!msg.created_at) {
-          console.error("Message missing created_at:", msg);
-          return;
-        }
-        
-        try {
-          const date = new Date(msg.created_at);
-          // Use YYYY-MM-DD format for consistent key formatting
-          const day = format(date, 'yyyy-MM-dd');
-          
-          if (!groups[day]) {
-            groups[day] = [];
-          }
-          
-          groups[day].push(msg);
-        } catch (e) {
-          console.error("Error parsing message date:", msg.created_at, e);
-        }
-      });
-      
-      // Sort the days in ascending order (oldest to newest)
-      const sortedGroups = Object.entries(groups)
-        .sort(([dayA], [dayB]) => new Date(dayA).getTime() - new Date(dayB).getTime())
-        .reduce((acc, [day, messages]) => {
-          acc[day] = messages;
-          return acc;
-        }, {} as Record<string, any[]>);
-        
-      console.log("Grouped messages by day:", Object.keys(sortedGroups));
-      return sortedGroups;
-    } catch (error) {
-      console.error("Error in groupMessagesByDay:", error);
-      return {};
-    }
-  };
-
   // Get all messages from both server and local sources
   const allMessages = [
     ...messages,
@@ -218,8 +175,9 @@ export const ChatMessagesList = ({
     new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
 
-  const messageGroups = groupMessagesByDay(allMessages);
-  console.log("Message groups count:", Object.keys(messageGroups).length);
+  // Use the utility function to group messages by date
+  const messageGroups = groupMessagesByDate(allMessages);
+  console.log("Message groups:", messageGroups);
 
   if (isLoading) {
     return (
@@ -247,7 +205,7 @@ export const ChatMessagesList = ({
 
   return (
     <ErrorBoundary>
-      <ScrollArea className="flex-1 p-4">
+      <ScrollArea className="flex-1 p-4" data-testid="messages-scroll-area">
         {hasMoreMessages && !isLoadingMessages && messages.length > 0 && (
           <div className="flex justify-center mb-4">
             <Button 
@@ -283,12 +241,12 @@ export const ChatMessagesList = ({
           </div>
         ) : messages.length === 0 && allMessages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-muted-foreground text-sm">
-            <MessageCircle className="h-12 w-12 mb-2 opacity-20" />
+            <ChevronDown className="h-12 w-12 mb-2 opacity-20" />
             <p>No messages yet</p>
             <p className="text-xs">Start a conversation with your care team</p>
           </div>
         ) : (
-          <div className="space-y-6 message-groups">
+          <div className="space-y-6 message-groups" data-testid="message-groups-container">
             {Object.keys(messageGroups).length > 0 ? (
               Object.entries(messageGroups).map(([day, dayMessages]) => (
                 <CollapsibleMessageGroup 

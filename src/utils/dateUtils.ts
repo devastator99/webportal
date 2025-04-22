@@ -1,5 +1,5 @@
 
-import { parse as dateFnsParse, format as dateFnsFormat, compareAsc } from "date-fns";
+import { parse as dateFnsParse, format as dateFnsFormat, compareAsc, parseISO } from "date-fns";
 
 /**
  * Parses a time string into a Date object
@@ -43,7 +43,7 @@ export const safeParseDateString = (dateString: string | null): Date | null => {
   if (!dateString) return null;
   
   try {
-    return new Date(dateString);
+    return parseISO(dateString);
   } catch (error) {
     console.error('Error parsing date string:', error);
     return null;
@@ -135,6 +135,54 @@ export const compareDates = (dateA: Date | string, dateB: Date | string): number
 };
 
 /**
+ * Groups chat messages by date (YYYY-MM-DD)
+ * @param messages Array of message objects with created_at field
+ * @returns Object with date keys and arrays of messages
+ */
+export const groupMessagesByDate = (messages: any[]): Record<string, any[]> => {
+  const groups: Record<string, any[]> = {};
+  
+  if (!Array.isArray(messages)) {
+    console.error("groupMessagesByDate received non-array:", messages);
+    return {};
+  }
+  
+  messages.forEach(msg => {
+    if (!msg || !msg.created_at) {
+      console.error("Invalid message or missing created_at:", msg);
+      return;
+    }
+    
+    try {
+      const date = new Date(msg.created_at);
+      if (isNaN(date.getTime())) {
+        console.error("Invalid date in message:", msg.created_at);
+        return;
+      }
+      
+      // Use YYYY-MM-DD format for consistent key formatting
+      const day = dateFnsFormat(date, 'yyyy-MM-dd');
+      
+      if (!groups[day]) {
+        groups[day] = [];
+      }
+      
+      groups[day].push(msg);
+    } catch (error) {
+      console.error("Error grouping message by date:", msg, error);
+    }
+  });
+  
+  // Sort the days in ascending order (oldest to newest)
+  return Object.keys(groups)
+    .sort()
+    .reduce((acc, key) => {
+      acc[key] = groups[key];
+      return acc;
+    }, {} as Record<string, any[]>);
+};
+
+/**
  * Sorts an array of objects by their date property
  * @param array Array to sort
  * @param dateField Name of the date field
@@ -146,11 +194,21 @@ export const sortByDate = <T>(
   dateField: keyof T, 
   ascending: boolean = true
 ): T[] => {
+  if (!Array.isArray(array)) {
+    console.error("sortByDate received non-array:", array);
+    return [];
+  }
+  
   return [...array].sort((a, b) => {
     const dateA = a[dateField] as unknown as Date | string;
     const dateB = b[dateField] as unknown as Date | string;
     
-    const comparison = compareDates(dateA, dateB);
-    return ascending ? comparison : -comparison;
+    try {
+      const comparison = compareDates(dateA, dateB);
+      return ascending ? comparison : -comparison;
+    } catch (error) {
+      console.error("Error comparing dates:", dateA, dateB, error);
+      return 0;
+    }
   });
 };

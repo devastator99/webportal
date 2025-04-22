@@ -1,3 +1,4 @@
+
 /* Base styles */
 #root {
   max-width: 100%;
@@ -523,4 +524,48 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 24px;
   }
+}
+
+/* Chat message collapsible styles */
+.date-group {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.collapsible-messages {
+  opacity: 1;
+  transition: opacity 0.3s ease, height 0.3s ease;
+}
+
+[data-state="closed"] .collapsible-messages {
+  opacity: 0;
+  height: 0;
+}
+
+.message-item {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.highlight-message {
+  background-color: rgba(155, 135, 245, 0.1);
+  border-radius: 8px;
+  animation: pulse 2s 1;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(155, 135, 245, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(155, 135, 245, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(155, 135, 245, 0);
+  }
+}
+
+/* Ensure Radix Collapsible works properly */
+[data-radix-collapsible-content] {
+  overflow: hidden;
+  transition: height 300ms cubic-bezier(0.87, 0, 0.13, 1);
 }
