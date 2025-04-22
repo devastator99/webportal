@@ -129,7 +129,6 @@ serve(async (req: Request) => {
         message.toLowerCase().includes('medication')) {
       
       try {
-        // Get prescriptions - using the all prescriptions function instead of just doctor ones
         const { data: prescriptions, error: prescriptionError } = await supabaseClient
           .rpc('get_all_patient_prescriptions', {
             p_patient_id: patientId
@@ -144,32 +143,32 @@ serve(async (req: Request) => {
           medicalData += "No prescriptions found in patient records.\n";
           aiResponse = "I don't see any prescriptions in your records yet. Please ask your doctor about prescriptions during your next appointment.";
         } else {
-          // If they want the prescription as PDF
-          if (message.toLowerCase().includes('pdf') || 
-              message.toLowerCase().includes('download') || 
-              message.toLowerCase().includes('file') ||
-              message.toLowerCase().includes('share')) {
-            
-            const latestPrescription = prescriptions[0];
-            const prescriptionDate = new Date(latestPrescription.created_at).toLocaleDateString();
-            
-            aiResponse = `I've prepared your latest prescription as a PDF. This prescription was written by Dr. ${latestPrescription.doctor_first_name} ${latestPrescription.doctor_last_name} on ${prescriptionDate}.\n\nYou can download the PDF now. The prescription includes:\n- Diagnosis: ${latestPrescription.diagnosis}\n- Prescribed medications: ${latestPrescription.prescription}${latestPrescription.notes ? `\n- Additional notes: ${latestPrescription.notes}` : ''}\n\nPlease let me know if you need any clarification about the prescription or if you'd like to see your previous prescriptions.`;
+          // If they want the prescription details or PDF
+          const latestPrescription = prescriptions[0];
+          const prescriptionDate = new Date(latestPrescription.created_at).toLocaleDateString();
+          
+          // Generate prescription PDF data
+          const pdfData = {
+            doctorName: `Dr. ${latestPrescription.doctor_first_name} ${latestPrescription.doctor_last_name}`,
+            date: prescriptionDate,
+            patientName: `${patientProfile?.first_name} ${patientProfile?.last_name}`,
+            diagnosis: latestPrescription.diagnosis,
+            medications: latestPrescription.prescription,
+            notes: latestPrescription.notes || '',
+          };
 
-            // Return with PDF generation flag
-            return new Response(
-              JSON.stringify({ 
-                response: aiResponse,
-                isPdfRequest: true,
-                pdfData: {
-                  type: 'prescription',
-                  data: latestPrescription,
-                  doctorName: `Dr. ${latestPrescription.doctor_first_name} ${latestPrescription.doctor_last_name}`,
-                  date: prescriptionDate
-                }
-              }),
-              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-            );
-          }
+          aiResponse = `I've prepared your latest prescription as a PDF. This prescription was written by Dr. ${latestPrescription.doctor_first_name} ${latestPrescription.doctor_last_name} on ${prescriptionDate}.\n\nThe prescription includes:\n- Diagnosis: ${latestPrescription.diagnosis}\n- Prescribed medications: ${latestPrescription.prescription}${latestPrescription.notes ? `\n- Additional notes: ${latestPrescription.notes}` : ''}\n\nYou can download the PDF using the attachment below.`;
+
+          // Return with PDF generation data
+          return new Response(
+            JSON.stringify({ 
+              response: aiResponse,
+              generatePdf: true,
+              pdfType: 'prescription',
+              pdfData: pdfData
+            }),
+            { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
         }
       } catch (error) {
         console.error("Error fetching prescription data:", error);
