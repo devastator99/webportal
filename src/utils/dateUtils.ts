@@ -148,7 +148,7 @@ export function parseDateFromDisplay(dateString: string): Date | null {
   }
 }
 
-// Check if a date is today - renamed from isToday to checkIsToday to avoid conflict
+// Check if a date is today - making this function more robust
 export function checkIsToday(date: Date): boolean {
   const today = new Date();
   return (
@@ -158,5 +158,5 @@ export function checkIsToday(date: Date): boolean {
   );
 }
 
-// Export the isToday function from date-fns directly
+// Export the isToday function from date-fns directly for consistent behavior
 export { dateFnsIsToday as isToday };

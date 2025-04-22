@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { shouldExpandDateGroup, formatMessageDateGroup } from "@/utils/dateUtils";
+import { shouldExpandDateGroup, formatMessageDateGroup, isToday } from "@/utils/dateUtils";
 
 interface CollapsibleMessageGroupProps {
   date: string;
@@ -22,12 +22,15 @@ export const CollapsibleMessageGroup = ({
   
   // Ensure recent date groups and today's group are always expanded
   useEffect(() => {
-    const shouldOpen = shouldExpandDateGroup(date) || isLatestGroup;
+    // Convert string date to Date object
+    const dateObj = new Date(date);
+    const shouldOpen = shouldExpandDateGroup(date) || isLatestGroup || isToday(dateObj);
     setIsOpen(shouldOpen);
   }, [date, isLatestGroup]);
 
   const formattedDate = formatMessageDateGroup(date);
   const messagesCount = messages?.length || 0;
+  const isTodayGroup = isToday(new Date(date));
   
   const toggleOpen = () => {
     setIsOpen(!isOpen);
@@ -40,11 +43,11 @@ export const CollapsibleMessageGroup = ({
         <div className="flex justify-between items-center relative z-10">
           <Badge 
             variant="outline" 
-            className={`bg-background/95 shadow-sm cursor-pointer flex items-center hover:bg-accent/80 transition-colors px-3 py-1 ${isLatestGroup ? 'bg-primary/10 border-primary/30' : ''}`}
+            className={`bg-background/95 shadow-sm cursor-pointer flex items-center hover:bg-accent/80 transition-colors px-3 py-1 ${isTodayGroup ? 'bg-primary/10 border-primary/30' : ''}`}
             onClick={toggleOpen}
           >
             {formattedDate}
-            {isLatestGroup && <span className="ml-1 text-xs text-primary font-semibold">(Today)</span>}
+            {isTodayGroup && <span className="ml-1 text-xs text-primary font-semibold">(Today)</span>}
             {isOpen ? (
               <ChevronUp className="h-3 w-3 ml-1" />
             ) : (
