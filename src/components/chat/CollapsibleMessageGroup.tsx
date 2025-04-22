@@ -20,10 +20,10 @@ export const CollapsibleMessageGroup = ({
 }: CollapsibleMessageGroupProps) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
 
-  // Always expand groups (since we're not using today/yesterday grouping)
+  // Set initial state based on whether this is the latest group
   useEffect(() => {
-    setIsOpen(shouldExpandDateGroup(date));
-  }, [date]);
+    setIsOpen(isLatestGroup || shouldExpandDateGroup(date));
+  }, [date, isLatestGroup]);
 
   const formattedDate = formatMessageDateGroup(date);
   const messagesCount = messages?.length || 0;

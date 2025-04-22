@@ -110,9 +110,10 @@ export function groupMessagesByDate(messages: any[]) {
   return groups;
 }
 
-// Determine if a date group should auto-expand (simplify: always expanded)
+// Determine if a date group should auto-expand
+// Changed to always return false - expansion will be handled by isLatestGroup in the component
 export function shouldExpandDateGroup(_dateString: string) {
-  return true;
+  return false; // Default to collapsed
 }
 
 // Format a date for display in chat groups (ALWAYS format as long date, no "Today"/"Yesterday")
