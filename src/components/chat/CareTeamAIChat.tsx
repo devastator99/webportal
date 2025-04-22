@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,7 +18,6 @@ interface Message {
   timestamp: Date;
 }
 
-// Define interfaces for our data
 interface CareTeamMember {
   id: string;
   first_name: string | null;
@@ -56,6 +54,9 @@ export const CareTeamAIChat = () => {
   const scrollViewportRef = useRef<HTMLDivElement>(null);
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
   const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [isPdfAvailable, setIsPdfAvailable] = useState(false);
+  const [suggestedPdfType, setSuggestedPdfType] = useState<string | null>(null);
+  const [pdfData, setPdfData] = useState<any>(null);
 
   useEffect(() => {
     if (messages.length === 0 && user?.id) {
@@ -132,6 +133,57 @@ export const CareTeamAIChat = () => {
     }
   };
 
+  const requestPdfGeneration = async () => {
+    if (!suggestedPdfType || !user?.id) return;
+    
+    try {
+      setIsLoading(true);
+      
+      setMessages(prev => [
+        ...prev, 
+        { 
+          role: 'assistant' as const, 
+          content: `Generating ${suggestedPdfType} PDF for you, one moment please...`, 
+          timestamp: new Date() 
+        }
+      ]);
+      
+      const { data, error } = await supabase.functions.invoke('doctor-ai-assistant', {
+        body: { 
+          messages: [{role: 'user', content: `Generate a ${suggestedPdfType} PDF`}],
+          patientId: user?.id,
+          isCareTeamChat: true,
+          requestType: 'pdf_request'
+        },
+      });
+
+      if (error) throw error;
+      
+      setPdfData(data.pdfData);
+      
+      setMessages(prev => [
+        ...prev, 
+        { 
+          role: 'assistant' as const, 
+          content: data.response, 
+          timestamp: new Date() 
+        }
+      ]);
+      
+      setSelectedPrescription(data.pdfData?.prescriptions?.[0] || null);
+      setPdfPreviewOpen(true);
+    } catch (error: any) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!input.trim() || !user?.id) return;
 
@@ -152,60 +204,46 @@ export const CareTeamAIChat = () => {
         content: m.content
       }));
 
-      if (input.toLowerCase().includes('prescription') && 
-          (input.toLowerCase().includes('pdf') || 
-           input.toLowerCase().includes('download') || 
-           input.toLowerCase().includes('file') || 
-           input.toLowerCase().includes('share'))) {
-        
-        const { data: doctorAssignment, error: doctorError } = await supabase
-          .from('patient_assignments')
-          .select('doctor_id')
-          .eq('patient_id', user.id)
-          .single();
-          
-        if (!doctorError && doctorAssignment?.doctor_id) {
-          const { data: prescriptions, error: prescriptionError } = await supabase
-            .rpc('get_patient_prescriptions', {
-              p_patient_id: user.id,
-              p_doctor_id: doctorAssignment.doctor_id
-            });
-            
-          if (!prescriptionError && prescriptions && prescriptions.length > 0) {
-            // Found prescriptions, suggest downloading the latest one
-            const latestPrescription = prescriptions[0];
-            setSelectedPrescription(latestPrescription);
-            
-            // Add AI message suggesting prescription download
-            const aiResponse = { 
-              role: 'assistant' as const, 
-              content: `I found your latest prescription from Dr. ${latestPrescription.doctor_first_name} ${latestPrescription.doctor_last_name}. Would you like to view or download it as a PDF?`, 
-              timestamp: new Date() 
-            };
-            
-            setMessages(prev => [...prev, aiResponse]);
-            setPdfPreviewOpen(true);
-            setIsLoading(false);
-            return;
+      if (isPdfRequest(input)) {
+        const { data, error } = await supabase.functions.invoke('doctor-ai-assistant', {
+          body: { 
+            messages: messageHistory,
+            patientId: user.id,
+            isCareTeamChat: true
           }
+        });
+        
+        if (error) throw error;
+        
+        if (data.isPdfAvailable) {
+          setIsPdfAvailable(true);
+          setSuggestedPdfType(data.suggestedPdfType);
+        } else {
+          setIsPdfAvailable(false);
+          setSuggestedPdfType(null);
         }
+        
+        setMessages(prev => [
+          ...prev, 
+          { 
+            role: 'assistant' as const, 
+            content: data.response, 
+            timestamp: new Date() 
+          }
+        ]);
+        
+        setIsLoading(false);
+        return;
       }
       
-      // If we didn't handle a special case above, continue with regular AI response
-      // This would be where you'd integrate with your AI service
-      // For now, we'll use a mock response
+      const aiResponse = { 
+        role: 'assistant' as const, 
+        content: "I understand you're asking about " + input.substring(0, 50) + "... Let me help you with that. Please note that I'm a simulated response, as this is a demo application.", 
+        timestamp: new Date() 
+      };
       
-      setTimeout(() => {
-        const aiResponse = { 
-          role: 'assistant' as const, 
-          content: "I understand you're asking about " + input.substring(0, 50) + "... Let me help you with that. Please note that I'm a simulated response, as this is a demo application.", 
-          timestamp: new Date() 
-        };
-        
-        setMessages(prev => [...prev, aiResponse]);
-        setIsLoading(false);
-      }, 1500);
-      
+      setMessages(prev => [...prev, aiResponse]);
+      setIsLoading(false);
     } catch (error: any) {
       console.error("Error sending message:", error);
       toast({
@@ -215,6 +253,18 @@ export const CareTeamAIChat = () => {
       });
       setIsLoading(false);
     }
+  };
+
+  const isPdfRequest = (message: string): boolean => {
+    const pdfKeywords = [
+      'pdf', 'document', 'download', 'print', 'report', 
+      'prescription pdf', 'health plan pdf', 'medical report pdf',
+      'share my prescription', 'share my health plan', 'share my medical report',
+      'generate pdf', 'create pdf', 'export'
+    ];
+    
+    const lowerMessage = message.toLowerCase();
+    return pdfKeywords.some(keyword => lowerMessage.includes(keyword));
   };
 
   return (
@@ -306,7 +356,21 @@ export const CareTeamAIChat = () => {
         </div>
       </div>
       
-      {/* Prescription PDF Preview */}
+      {isPdfAvailable && (
+        <div className="flex justify-center my-4">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2 bg-white/50 backdrop-blur-sm"
+            onClick={requestPdfGeneration}
+            disabled={isLoading}
+          >
+            <FileText className="h-4 w-4" />
+            {isLoading ? "Generating..." : `Generate ${suggestedPdfType?.replace('_', ' ')} PDF`}
+          </Button>
+        </div>
+      )}
+      
       <Dialog open={pdfPreviewOpen} onOpenChange={setPdfPreviewOpen}>
         <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>

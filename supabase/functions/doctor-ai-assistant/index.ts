@@ -20,7 +20,8 @@ serve(async (req) => {
       documentId,
       patientId,
       isCareTeamChat = false,
-      patientContext = {}
+      patientContext = {},
+      requestType = 'standard' // New parameter to identify PDF requests
     } = await req.json();
 
     // Create a Supabase client with the Admin key to query the database
@@ -41,6 +42,23 @@ serve(async (req) => {
     // Log for debugging
     console.log(`Processing message: "${lastUserMessage}" for patient ID: ${patientId}`);
     console.log("Patient context:", JSON.stringify(patientContext));
+    
+    // Check if this is a PDF request and handle accordingly
+    if (requestType === 'pdf_request') {
+      const pdfType = determineRequestedPdfType(lastUserMessage);
+      if (pdfType) {
+        const pdfData = await generatePdfData(supabaseAdmin, patientId, pdfType);
+        return new Response(
+          JSON.stringify({ 
+            response: `I've prepared a ${pdfType} PDF for you. You can download it now.`,
+            pdfType: pdfType,
+            pdfData: pdfData,
+            readStatus: isCareTeamChat ? "read" : null
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
     
     // Fetch relevant knowledge based on the query and patient ID if available
     const knowledgeContext = await fetchKnowledgeForQuery(
@@ -128,6 +146,15 @@ serve(async (req) => {
       verifiedContext = enhancedContext;
     }
     
+    // Check if the user is asking for a PDF or report
+    const isPdfRequest = isPdfRelatedQuery(lastUserMessage);
+    if (isPdfRequest) {
+      const pdfType = determineRequestedPdfType(lastUserMessage);
+      
+      // Add information about PDF capabilities to the context
+      verifiedContext += `\nThe user is asking about generating a ${pdfType || "document"} as a PDF. You can offer to generate a PDF for prescriptions, health plans, or medical reports by saying "I can generate that as a PDF for you. Would you like me to do that?"\n`;
+    }
+    
     // Build the system message with context
     const systemMessage = buildSystemMessage(
       preferredLanguage, 
@@ -162,7 +189,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         response: data.choices[0].message.content,
-        readStatus: isCareTeamChat ? "read" : null // Add read status for care team chat
+        readStatus: isCareTeamChat ? "read" : null,
+        isPdfAvailable: isPdfRequest,
+        suggestedPdfType: isPdfRequest ? determineRequestedPdfType(lastUserMessage) : null
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -178,3 +207,159 @@ serve(async (req) => {
     );
   }
 });
+
+// Function to determine if a query is related to PDF generation
+function isPdfRelatedQuery(query: string): boolean {
+  const pdfKeywords = [
+    'pdf', 'document', 'download', 'print', 'report', 
+    'prescription pdf', 'health plan pdf', 'medical report pdf',
+    'share my prescription', 'share my health plan', 'share my medical report',
+    'generate pdf', 'create pdf', 'export'
+  ];
+  
+  const lowerQuery = query.toLowerCase();
+  return pdfKeywords.some(keyword => lowerQuery.includes(keyword));
+}
+
+// Function to determine what type of PDF the user is requesting
+function determineRequestedPdfType(query: string): string | null {
+  const lowerQuery = query.toLowerCase();
+  
+  if (lowerQuery.includes('prescription') || lowerQuery.includes('medicine')) {
+    return 'prescription';
+  } else if (lowerQuery.includes('health plan') || lowerQuery.includes('diet') || lowerQuery.includes('exercise')) {
+    return 'health_plan';
+  } else if (lowerQuery.includes('medical report') || lowerQuery.includes('lab') || lowerQuery.includes('test results')) {
+    return 'medical_report';
+  } else if (lowerQuery.includes('invoice') || lowerQuery.includes('bill') || lowerQuery.includes('payment')) {
+    return 'invoice';
+  }
+  
+  return null;
+}
+
+// Function to generate data needed for PDF creation
+async function generatePdfData(supabaseClient: any, patientId: string, pdfType: string): Promise<any> {
+  switch (pdfType) {
+    case 'prescription':
+      return await fetchPrescriptionData(supabaseClient, patientId);
+    case 'health_plan':
+      return await fetchHealthPlanData(supabaseClient, patientId);
+    case 'medical_report':
+      return await fetchMedicalReportData(supabaseClient, patientId);
+    case 'invoice':
+      return await fetchInvoiceData(supabaseClient, patientId);
+    default:
+      return null;
+  }
+}
+
+async function fetchPrescriptionData(supabaseClient: any, patientId: string): Promise<any> {
+  try {
+    const { data, error } = await supabaseClient
+      .rpc('get_all_patient_prescriptions', { p_patient_id: patientId });
+      
+    if (error) throw error;
+    
+    // Get patient details
+    const { data: patientData, error: patientError } = await supabaseClient
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('id', patientId)
+      .single();
+      
+    if (patientError) throw patientError;
+    
+    return {
+      prescriptions: data || [],
+      patient: patientData
+    };
+  } catch (error) {
+    console.error('Error fetching prescription data:', error);
+    return null;
+  }
+}
+
+async function fetchHealthPlanData(supabaseClient: any, patientId: string): Promise<any> {
+  try {
+    const { data, error } = await supabaseClient
+      .from('health_plan_items')
+      .select('*')
+      .eq('patient_id', patientId);
+      
+    if (error) throw error;
+    
+    // Get patient details
+    const { data: patientData, error: patientError } = await supabaseClient
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('id', patientId)
+      .single();
+      
+    if (patientError) throw patientError;
+    
+    return {
+      healthPlanItems: data || [],
+      patient: patientData
+    };
+  } catch (error) {
+    console.error('Error fetching health plan data:', error);
+    return null;
+  }
+}
+
+async function fetchMedicalReportData(supabaseClient: any, patientId: string): Promise<any> {
+  try {
+    const { data, error } = await supabaseClient
+      .from('patient_medical_reports')
+      .select('*')
+      .eq('patient_id', patientId);
+      
+    if (error) throw error;
+    
+    // Get patient details
+    const { data: patientData, error: patientError } = await supabaseClient
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('id', patientId)
+      .single();
+      
+    if (patientError) throw patientError;
+    
+    return {
+      medicalReports: data || [],
+      patient: patientData
+    };
+  } catch (error) {
+    console.error('Error fetching medical report data:', error);
+    return null;
+  }
+}
+
+async function fetchInvoiceData(supabaseClient: any, patientId: string): Promise<any> {
+  try {
+    const { data, error } = await supabaseClient
+      .from('patient_invoices')
+      .select('*')
+      .eq('patient_id', patientId);
+      
+    if (error) throw error;
+    
+    // Get patient details
+    const { data: patientData, error: patientError } = await supabaseClient
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('id', patientId)
+      .single();
+      
+    if (patientError) throw patientError;
+    
+    return {
+      invoices: data || [],
+      patient: patientData
+    };
+  } catch (error) {
+    console.error('Error fetching invoice data:', error);
+    return null;
+  }
+}
