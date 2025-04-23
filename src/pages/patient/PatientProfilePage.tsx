@@ -30,24 +30,51 @@ const PatientProfilePage = () => {
     const fetchProfile = async () => {
       setLoading(true);
       if (user?.id) {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("first_name, last_name, email, phone_number, address")
-          .eq("id", user.id)
-          .single();
-        if (error) {
+        try {
+          // First try to get the profile directly from the profiles table with the available columns
+          const { data, error } = await supabase
+            .from("profiles")
+            .select("id, first_name, last_name, phone")
+            .eq("id", user.id)
+            .single();
+            
+          if (error) {
+            toast({
+              title: "Load Error",
+              description: "Could not load your profile.",
+              variant: "destructive",
+            });
+            setLoading(false);
+            return;
+          }
+          
+          // Get user email from auth metadata
+          const { data: userData } = await supabase.auth.getUser();
+          const userEmail = userData?.user?.email || "";
+          
+          // Set profile data
+          const profileData = {
+            ...data,
+            email: userEmail,
+            // Use phone as phone_number if available, otherwise empty string
+            phone_number: data.phone || "",
+            // Address isn't in the DB, so initialize as empty
+            address: ""
+          };
+          
+          setProfile(profileData);
+          setFirstName(profileData.first_name || "");
+          setLastName(profileData.last_name || "");
+          setEmail(profileData.email || "");
+          setPhoneNumber(profileData.phone_number || "");
+          setAddress(profileData.address || "");
+        } catch (e) {
+          console.error("Error fetching profile:", e);
           toast({
             title: "Load Error",
             description: "Could not load your profile.",
             variant: "destructive",
           });
-        } else {
-          setProfile(data);
-          setFirstName(data.first_name || "");
-          setLastName(data.last_name || "");
-          setEmail(data.email || "");
-          setPhoneNumber(data.phone_number || "");
-          setAddress(data.address || "");
         }
       }
       setLoading(false);
@@ -70,9 +97,7 @@ const PatientProfilePage = () => {
       .update({
         first_name: firstName,
         last_name: lastName,
-        email: email,
-        phone_number: phoneNumber,
-        address: address
+        phone: phoneNumber, // Update phone field instead of phone_number
       })
       .eq("id", user.id);
     setUpdating(false);
@@ -89,6 +114,7 @@ const PatientProfilePage = () => {
         last_name: lastName,
         email: email,
         phone_number: phoneNumber,
+        phone: phoneNumber,
         address: address
       });
       setEditMode(false);
@@ -138,9 +164,8 @@ const PatientProfilePage = () => {
               id="email"
               type="email"
               value={email}
-              disabled={!editMode}
-              onChange={e => setEmail(e.target.value)}
-              className="mt-1"
+              disabled={true} // Email cannot be edited as it's from auth
+              className="mt-1 bg-gray-100" // Add gray background to indicate non-editable
             />
           </div>
           <div>
@@ -161,6 +186,7 @@ const PatientProfilePage = () => {
               disabled={!editMode}
               onChange={e => setAddress(e.target.value)}
               className="mt-1"
+              placeholder="Address not stored yet"
             />
           </div>
         </CardContent>
