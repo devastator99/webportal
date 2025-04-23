@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatDistance } from "date-fns";
 import { Spinner } from "@/components/ui/spinner";
 import { PrescriptionWriter } from "./PrescriptionWriter";
+import { supabase } from "@/integrations/supabase/client";
 
 export const PatientPrescriptions = () => {
   const { patientId } = useParams<{ patientId: string }>();
@@ -28,7 +28,6 @@ export const PatientPrescriptions = () => {
   useEffect(() => {
     const fetchPatientInfo = async () => {
       try {
-        // Fetch patient info
         const { data: profiles, error } = await supabase
           .from('profiles')
           .select('*')
@@ -154,13 +153,11 @@ export const PatientPrescriptions = () => {
         <PrescriptionWriter 
           patientId={patientId} 
           onPrescriptionSaved={() => {
-            // Refresh prescription list after new prescription is created
             setViewMode("list");
           }} 
         />
       )}
       
-      {/* Prescription Detail Dialog */}
       <Dialog open={showPrescriptionDialog} onOpenChange={setShowPrescriptionDialog}>
         <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>

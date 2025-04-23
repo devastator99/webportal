@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from "react";
-import { usePrescriptions } from "../prescription/usePrescriptions";
+import { usePrescriptions as usePrescriptionsHook } from "@/hooks/usePrescriptions"; // Import the correct hook
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Eye, Download, UserPlus } from "lucide-react";
@@ -16,7 +16,7 @@ interface PrescriptionHistoryProps {
 }
 
 export const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ patientId, onAssignNutritionist }) => {
-  const { getPatientPrescriptions, getPrescription } = usePrescriptions();
+  const { getPatientPrescriptions, getPrescription } = usePrescriptionsHook(); // Use the imported hook
   const [prescriptions, setPrescriptions] = useState<any[]>([]);
   const [selectedPrescription, setSelectedPrescription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
