@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+
+import React, { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -10,6 +11,8 @@ import { useResponsive } from "@/contexts/ResponsiveContext";
 import { useBreakpoint } from "@/hooks/use-responsive";
 import { ResponsiveCard } from "@/components/ui/responsive-card";
 import { CareTeamRoomChat } from "@/components/chat/CareTeamRoomChat";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PatientDetailsProps {
   patientId: string;
@@ -21,6 +24,7 @@ export const PatientDetails = ({ patientId }: PatientDetailsProps) => {
   const [showPrescription, setShowPrescription] = useState(false);
   const { isMobile, isTablet } = useResponsive();
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
+  const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
 
   // Responsive spacing and sizes
   const containerPadding = isMobile ? "p-3" : isTablet ? "p-4" : "p-6";
@@ -28,6 +32,27 @@ export const PatientDetails = ({ patientId }: PatientDetailsProps) => {
   const cardPadding = isMobile ? "p-3" : isTablet ? "p-4" : "p-5";
   const gapSize = isMobile ? "gap-2" : "gap-3";
   const headerSpacing = isMobile ? "mb-3" : isTablet ? "mb-4" : "mb-6";
+
+  // Fetch the patient's care team room ID
+  const { data: roomData, isLoading: roomLoading } = useQuery({
+    queryKey: ["patient_care_team_room", patientId],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('get-patient-care-team-room', {
+        body: { patientId }
+      });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!patientId
+  });
+
+  // Set the selected room ID when data is available
+  useEffect(() => {
+    if (roomData && roomData.room_id) {
+      setSelectedRoomId(roomData.room_id);
+    }
+  }, [roomData]);
 
   return (
     <div className={`w-full mx-auto ${containerPadding} space-y-4 max-w-full animate-fade-up`}>
@@ -68,7 +93,18 @@ export const PatientDetails = ({ patientId }: PatientDetailsProps) => {
 
           <TabsContent value="chat" className="m-0 p-0 border-none">
             <div className="h-[calc(100vh-220px)]">
-              <CareTeamRoomChat patientId={patientId} showRoomsList={false} />
+              {selectedRoomId ? (
+                <CareTeamRoomChat 
+                  selectedRoomId={selectedRoomId} 
+                  isMobileView={isMobile || isTablet}
+                />
+              ) : (
+                <div className="flex justify-center items-center h-full">
+                  <p className="text-muted-foreground">
+                    {roomLoading ? "Loading chat..." : "No care team chat found for this patient."}
+                  </p>
+                </div>
+              )}
             </div>
           </TabsContent>
 
