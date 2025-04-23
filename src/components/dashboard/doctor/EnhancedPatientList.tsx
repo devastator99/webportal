@@ -1,12 +1,12 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { Users, FileText, Clock } from "lucide-react";
+import { Users } from "lucide-react";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { formatDistance } from "date-fns";
-import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface Patient {
   id: string;
@@ -28,6 +28,10 @@ export const EnhancedPatientList = ({ patients, isLoading }: EnhancedPatientList
     const fullName = `${patient.first_name} ${patient.last_name}`.toLowerCase();
     return fullName.includes(searchTerm.toLowerCase());
   });
+
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName[0]}${lastName[0]}`.toUpperCase();
+  };
 
   return (
     <Card>
@@ -68,30 +72,22 @@ export const EnhancedPatientList = ({ patients, isLoading }: EnhancedPatientList
                 >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
-                      <div className="space-y-1">
-                        <h3 className="font-medium text-lg">
-                          {patient.first_name} {patient.last_name}
-                        </h3>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <Clock className="h-4 w-4" />
-                          <span>
-                            Assigned {formatDistance(new Date(patient.created_at), new Date(), { addSuffix: true })}
-                          </span>
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10 bg-[#E5DEFF]">
+                          <AvatarFallback className="text-[#9b87f5]">
+                            {getInitials(patient.first_name, patient.last_name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="space-y-1">
+                          <h3 className="font-medium text-lg">
+                            {patient.first_name} {patient.last_name}
+                          </h3>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                            <span>
+                              Assigned {formatDistance(new Date(patient.created_at), new Date(), { addSuffix: true })}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate(`/patient/${patient.id}/prescriptions`);
-                          }}
-                          className="gap-2"
-                        >
-                          <FileText className="h-4 w-4" />
-                          View Prescriptions
-                        </Button>
                       </div>
                     </div>
                   </CardContent>
