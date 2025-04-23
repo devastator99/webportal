@@ -19,6 +19,7 @@ import { generatePdfFromElement } from "@/utils/pdfUtils";
 import { groupMessagesByDate, sortByDate, formatChatMessageTime, isToday } from "@/utils/dateUtils";
 import { CollapsibleMessageGroup } from "./CollapsibleMessageGroup";
 import { useChatScroll } from "@/hooks/useChatScroll";
+import { useNavigate } from "react-router-dom";
 
 interface WhatsAppStyleChatInterfaceProps {
   patientRoomId?: string | null;
@@ -27,6 +28,7 @@ interface WhatsAppStyleChatInterfaceProps {
 export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatInterfaceProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(patientRoomId || null);
   const [newMessage, setNewMessage] = useState("");
   const [localMessages, setLocalMessages] = useState<any[]>([]);
@@ -574,28 +576,48 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
               </div>
               
               <div className="flex flex-wrap gap-2">
-                {roomMembers.map((member) => (
-                  <div key={member.id} className="flex items-center gap-1.5">
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback className={`text-xs ${
-                        member.role === 'doctor' ? 'bg-blue-100 text-blue-800' :
-                        member.role === 'nutritionist' ? 'bg-green-100 text-green-800' :
-                        member.role === 'patient' ? 'bg-orange-100 text-orange-800' :
-                        member.role === 'aibot' ? 'bg-purple-100 text-purple-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {member.role === 'aibot' ? 'AI' : 
-                          `${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="text-sm">
-                      {member.first_name} {member.last_name}
-                      <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1">
-                        {member.role}
-                      </Badge>
-                    </span>
-                  </div>
-                ))}
+                {roomMembers.map((member) => {
+                  const isPatient = member.role === "patient" && user?.id === member.id && userRole === "patient";
+                  return (
+                    <div key={member.id} className="flex items-center gap-1.5">
+                      {isPatient ? (
+                        <button
+                          onClick={() => navigate("/patient/profile")}
+                          type="button"
+                          className="focus:outline-none border border-primary rounded-full p-0.5 transition hover:scale-105"
+                          title="View or edit profile"
+                        >
+                          <Avatar className="h-6 w-6">
+                            <AvatarFallback className={
+                              `text-xs bg-orange-100 text-orange-800`
+                            }>
+                              {`${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
+                            </AvatarFallback>
+                          </Avatar>
+                        </button>
+                      ) : (
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className={`text-xs ${
+                            member.role === 'doctor' ? 'bg-blue-100 text-blue-800' :
+                            member.role === 'nutritionist' ? 'bg-green-100 text-green-800' :
+                            member.role === 'patient' ? 'bg-orange-100 text-orange-800' :
+                            member.role === 'aibot' ? 'bg-purple-100 text-purple-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {member.role === 'aibot' ? 'AI' : 
+                              `${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
+                          </AvatarFallback>
+                        </Avatar>
+                      )}
+                      <span className="text-sm">
+                        {member.first_name} {member.last_name}
+                        <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1">
+                          {member.role}
+                        </Badge>
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             
