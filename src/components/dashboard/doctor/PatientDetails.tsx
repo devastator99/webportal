@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -10,6 +9,7 @@ import { PrescriptionHistory } from "./prescription/PrescriptionHistory";
 import { useResponsive } from "@/contexts/ResponsiveContext";
 import { useBreakpoint } from "@/hooks/use-responsive";
 import { ResponsiveCard } from "@/components/ui/responsive-card";
+import { CareTeamRoomChat } from "@/components/chat/CareTeamRoomChat";
 
 interface PatientDetailsProps {
   patientId: string;
@@ -30,7 +30,7 @@ export const PatientDetails = ({ patientId }: PatientDetailsProps) => {
   const headerSpacing = isMobile ? "mb-3" : isTablet ? "mb-4" : "mb-6";
 
   return (
-    <div className={`w-full mx-auto ${containerPadding} space-y-4 max-w-full`}>
+    <div className={`w-full mx-auto ${containerPadding} space-y-4 max-w-full animate-fade-up`}>
       <div className={`flex flex-wrap justify-between items-center ${headerSpacing}`}>
         <Button
           variant="outline"
@@ -41,100 +41,56 @@ export const PatientDetails = ({ patientId }: PatientDetailsProps) => {
           <ArrowLeft className={`${isMobile ? "h-3 w-3" : "h-4 w-4"}`} />
           Back to Dashboard
         </Button>
-        
-        <div className={`flex ${gapSize} flex-wrap`}>
-          <Button 
-            variant="secondary"
-            size={buttonSize}
-            onClick={() => {}}
-            className="gap-2"
-          >
-            <Brain className={`${isMobile ? "h-3 w-3" : "h-4 w-4"}`} />
-            Analyze Conversation
-          </Button>
-          <Button 
-            variant="secondary"
-            size={buttonSize}
-            onClick={() => setShowPrescription(true)}
-            className="gap-2"
-          >
-            <FileText className={`${isMobile ? "h-3 w-3" : "h-4 w-4"}`} />
-            Write Prescription
-          </Button>
-        </div>
       </div>
 
-      {showPrescription ? (
-        <div className="space-y-4">
-          <div className="flex justify-between items-center">
-            <h2 className={`${isMobile ? "text-xl" : "text-2xl"} font-bold`}>Prescriptions</h2>
-            <Button variant="outline" size={buttonSize} onClick={() => setShowPrescription(false)}>
-              Back to Chat
-            </Button>
-          </div>
-          <ResponsiveCard className="w-full">
-            <Tabs defaultValue="write" className="w-full">
-              <TabsList className="w-full justify-start mb-4">
-                <TabsTrigger value="write">Write Prescription</TabsTrigger>
-                <TabsTrigger value="history">Prescription History</TabsTrigger>
-              </TabsList>
-              <TabsContent value="write" className="w-full">
-                <PrescriptionWriter patientId={patientId} />
-              </TabsContent>
-              <TabsContent value="history" className="w-full">
-                <PrescriptionHistory patientId={patientId} />
-              </TabsContent>
-            </Tabs>
-          </ResponsiveCard>
-        </div>
-      ) : (
+      <ResponsiveCard className="overflow-hidden border-0 shadow-sm">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="w-full overflow-x-auto pb-2">
-            <TabsList className={`${isMobile ? "w-full" : ""} grid grid-cols-4 min-w-min`}>
-              <TabsTrigger value="chat" className="whitespace-nowrap">
+          <div className="w-full border-b bg-white sticky top-0 z-10">
+            <TabsList className="w-full justify-start rounded-none border-b bg-white px-6">
+              <TabsTrigger value="chat" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
                 <MessageSquare className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
-                Chat
+                Care Team Chat
               </TabsTrigger>
-              <TabsTrigger value="habits" className="whitespace-nowrap">
-                <Activity className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
-                Habits
-              </TabsTrigger>
-              <TabsTrigger value="timeline" className="whitespace-nowrap">
+              <TabsTrigger value="timeline" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
                 <FileSpreadsheet className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
                 Timeline
               </TabsTrigger>
-              <TabsTrigger value="notes" className="whitespace-nowrap">
+              <TabsTrigger value="habits" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
+                <Activity className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
+                Habits
+              </TabsTrigger>
+              <TabsTrigger value="notes" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
                 <FileText className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
                 Notes
               </TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="chat" className="mt-4 w-full">
-            <Card className={cardPadding}>
-              Chat content will go here
-            </Card>
+          <TabsContent value="chat" className="m-0 p-0 border-none">
+            <div className="h-[calc(100vh-220px)]">
+              <CareTeamRoomChat patientId={patientId} showRoomsList={false} />
+            </div>
           </TabsContent>
 
-          <TabsContent value="habits" className="mt-4 w-full">
-            <Card className={cardPadding}>
-              Habits tracking will go here
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="timeline" className="mt-4 w-full">
+          <TabsContent value="timeline" className="p-6">
             <Card className={cardPadding}>
               Patient timeline will go here
             </Card>
           </TabsContent>
 
-          <TabsContent value="notes" className="mt-4 w-full">
+          <TabsContent value="habits" className="p-6">
+            <Card className={cardPadding}>
+              Habits tracking will go here
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="notes" className="p-6">
             <Card className={cardPadding}>
               Doctor's notes will go here
             </Card>
           </TabsContent>
         </Tabs>
-      )}
+      </ResponsiveCard>
     </div>
   );
 };
