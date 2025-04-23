@@ -1,4 +1,3 @@
-
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { lazy, Suspense } from "react";
@@ -15,12 +14,10 @@ const AuthCallback = lazy(() => import("@/pages/Auth"));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const DoctorDashboard = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
 const AppointmentBooking = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard 
-const PatientProfile = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
+const PatientProfile = lazy(() => import("@/pages/patient/PatientProfilePage")); // Use the correct patient profile page
 const UploadPage = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
 const RegistrationPage = lazy(() => import("@/pages/Auth")); // Use Auth page
 const VerifyEmail = lazy(() => import("@/pages/Auth")); // Use Auth page
-// const ResetPasswordPage = lazy(() => import("@/pages/ResetPasswordPage")); // This file doesn't exist
-// Use Auth page for reset password as well
 const ResetPasswordPage = lazy(() => import("@/pages/Auth")); 
 const UpdatePassword = lazy(() => import("@/pages/UpdatePassword"));
 const AdminDashboard = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard

@@ -22,7 +22,9 @@ const PatientProfilePage = () => {
   // Editable fields
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  // Add more fields here as needed (email, age, etc.)
+  const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [address, setAddress] = useState("");
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -30,7 +32,7 @@ const PatientProfilePage = () => {
       if (user?.id) {
         const { data, error } = await supabase
           .from("profiles")
-          .select("first_name, last_name")
+          .select("first_name, last_name, email, phone_number, address")
           .eq("id", user.id)
           .single();
         if (error) {
@@ -43,6 +45,9 @@ const PatientProfilePage = () => {
           setProfile(data);
           setFirstName(data.first_name || "");
           setLastName(data.last_name || "");
+          setEmail(data.email || "");
+          setPhoneNumber(data.phone_number || "");
+          setAddress(data.address || "");
         }
       }
       setLoading(false);
@@ -65,6 +70,9 @@ const PatientProfilePage = () => {
       .update({
         first_name: firstName,
         last_name: lastName,
+        email: email,
+        phone_number: phoneNumber,
+        address: address
       })
       .eq("id", user.id);
     setUpdating(false);
@@ -75,7 +83,14 @@ const PatientProfilePage = () => {
         variant: "destructive",
       });
     } else {
-      setProfile({ ...profile, first_name: firstName, last_name: lastName });
+      setProfile({ 
+        ...profile, 
+        first_name: firstName, 
+        last_name: lastName,
+        email: email,
+        phone_number: phoneNumber,
+        address: address
+      });
       setEditMode(false);
       toast({ title: "Profile updated!" });
     }
@@ -117,7 +132,37 @@ const PatientProfilePage = () => {
               className="mt-1"
             />
           </div>
-          {/* Add more editable fields here as needed */}
+          <div>
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              disabled={!editMode}
+              onChange={e => setEmail(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="phoneNumber">Phone Number</Label>
+            <Input
+              id="phoneNumber"
+              value={phoneNumber}
+              disabled={!editMode}
+              onChange={e => setPhoneNumber(e.target.value)}
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label htmlFor="address">Address</Label>
+            <Input
+              id="address"
+              value={address}
+              disabled={!editMode}
+              onChange={e => setAddress(e.target.value)}
+              className="mt-1"
+            />
+          </div>
         </CardContent>
         <CardFooter className="flex justify-between gap-4">
           <Button variant="secondary" onClick={() => navigate(-1)}>

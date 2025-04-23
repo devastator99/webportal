@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
@@ -582,7 +582,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                     <div key={member.id} className="flex items-center gap-1.5">
                       {isPatient ? (
                         <button
-                          onClick={() => navigate("/patient/profile")}
+                          onClick={() => navigate("/profile")}
                           type="button"
                           className="focus:outline-none border border-primary rounded-full p-0.5 transition hover:scale-105"
                           title="View or edit profile"
