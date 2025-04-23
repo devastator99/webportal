@@ -20,7 +20,14 @@ export const DoctorDashboard = () => {
         });
         
       if (error) throw error;
-      return data || [];
+      
+      // Add created_at field if it's missing (using current date as fallback)
+      const patientsWithCreatedAt = (data || []).map(patient => ({
+        ...patient,
+        created_at: patient.created_at || new Date().toISOString()
+      }));
+      
+      return patientsWithCreatedAt;
     },
     enabled: !!user?.id
   });
