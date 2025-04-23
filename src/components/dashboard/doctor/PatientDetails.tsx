@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, FileText, Brain, MessageSquare, Activity, FileSpreadsheet } from "lucide-react";
-import { PrescriptionWriter } from "./prescription/PrescriptionWriter";
+import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWriter";
 import { PrescriptionHistory } from "./prescription/PrescriptionHistory";
 
 interface PatientDetailsProps {
