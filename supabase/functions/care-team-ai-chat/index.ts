@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -144,7 +143,6 @@ serve(async (req: Request) => {
           medicalData += "No prescriptions found in patient records.\n";
           aiResponse = "I don't see any prescriptions in your records yet. Please ask your doctor about prescriptions during your next appointment.";
         } else {
-          // If they want the prescription details or PDF
           const latestPrescription = prescriptions[0];
           const prescriptionDate = new Date(latestPrescription.created_at).toLocaleDateString();
           
@@ -158,7 +156,8 @@ serve(async (req: Request) => {
             notes: latestPrescription.notes || '',
           };
 
-          aiResponse = `I've prepared your latest prescription as a PDF. This prescription was written by Dr. ${latestPrescription.doctor_first_name} ${latestPrescription.doctor_last_name} on ${prescriptionDate}.\n\nThe prescription includes:\n- Diagnosis: ${latestPrescription.diagnosis}\n- Prescribed medications: ${latestPrescription.prescription}${latestPrescription.notes ? `\n- Additional notes: ${latestPrescription.notes}` : ''}\n\nYou can download the PDF using the attachment below.`;
+          // Updated response to clearly indicate PDF generation
+          aiResponse = `I've generated your latest prescription as a PDF. This prescription was written by Dr. ${latestPrescription.doctor_first_name} ${latestPrescription.doctor_last_name} on ${prescriptionDate}.\n\nThe prescription includes:\n- Diagnosis: ${latestPrescription.diagnosis}\n- Prescribed medications: ${latestPrescription.prescription}${latestPrescription.notes ? `\n- Additional notes: ${latestPrescription.notes}` : ''}\n\n📄 Prescription PDF has been generated and is ready for download.`;
 
           // Return with PDF generation data
           return new Response(
