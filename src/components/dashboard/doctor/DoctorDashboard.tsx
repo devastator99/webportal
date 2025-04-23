@@ -21,10 +21,11 @@ export const DoctorDashboard = () => {
         
       if (error) throw error;
       
-      // Add created_at field if it's missing (using current date as fallback)
+      // Add created_at field to all patients since it's required by the component
+      // The RPC call doesn't return created_at
       const patientsWithCreatedAt = (data || []).map(patient => ({
         ...patient,
-        created_at: patient.created_at || new Date().toISOString()
+        created_at: new Date().toISOString() // Use current date as fallback for all patients
       }));
       
       return patientsWithCreatedAt;

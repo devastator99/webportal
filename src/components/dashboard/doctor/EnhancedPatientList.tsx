@@ -14,7 +14,7 @@ interface Patient {
   id: string;
   first_name: string;
   last_name: string;
-  created_at?: string; // Making created_at optional to fix type compatibility
+  created_at: string; // Keep as required since we're adding it in DoctorDashboard
 }
 
 interface EnhancedPatientListProps {
@@ -70,14 +70,12 @@ export const EnhancedPatientList = ({ patients, isLoading }: EnhancedPatientList
                         <h3 className="font-medium text-lg">
                           {patient.first_name} {patient.last_name}
                         </h3>
-                        {patient.created_at && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Clock className="h-4 w-4" />
-                            <span>
-                              Assigned {formatDistance(new Date(patient.created_at), new Date(), { addSuffix: true })}
-                            </span>
-                          </div>
-                        )}
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="h-4 w-4" />
+                          <span>
+                            Assigned {formatDistance(new Date(patient.created_at), new Date(), { addSuffix: true })}
+                          </span>
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <Button
