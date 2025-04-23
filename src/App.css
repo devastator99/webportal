@@ -203,6 +203,84 @@
       padding-right: 12px !important;
     }
   }
+  
+  /* Enhanced iPad fixes - added after other iPad styles */
+  /* Force full width container on iPads */
+  .container {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+  
+  /* Fix for patient details page on iPad */
+  .tabs-container {
+    width: 100% !important;
+  }
+  
+  /* Fix button groups on iPad */
+  .flex-wrap {
+    flex-wrap: wrap;
+  }
+  
+  /* Ensure card content is visible and not cut off */
+  .card {
+    width: 100% !important;
+    overflow: visible !important;
+  }
+  
+  /* Make tabs scroll horizontally if needed */
+  [role="tablist"] {
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+  }
+  
+  [role="tablist"]::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+  }
+  
+  /* Fix tabs content width */
+  [role="tabpanel"] {
+    width: 100% !important;
+  }
+}
+
+/* Force iPad to use the full width in landscape mode */
+@media screen and (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+  html, body {
+    width: 100% !important;
+    overflow-x: hidden;
+  }
+  
+  #root {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  .container {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+}
+
+/* Specific fix for narrow rendering issues on iPad */
+@media screen and (min-width: 768px) and (max-width: 1024px) {
+  .app-container {
+    min-width: 100% !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Extra specificity for overriding any conflicting styles */
+  html body .app-container,
+  html body #root .app-container {
+    width: 100% !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
+  }
 }
 
 /* Phone-specific styles */
