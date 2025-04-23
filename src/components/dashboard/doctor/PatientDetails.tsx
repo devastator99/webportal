@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, FileText, Brain, MessageSquare, Activity, FileSpreadsheet, Stethoscope, FileUp } from "lucide-react";
 import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWriter";
-import { PrescriptionHistory } from "./prescription/PrescriptionHistory";
 import { useResponsive } from "@/contexts/ResponsiveContext";
 import { useBreakpoint } from "@/hooks/use-responsive";
 import { ResponsiveCard } from "@/components/ui/responsive-card";
