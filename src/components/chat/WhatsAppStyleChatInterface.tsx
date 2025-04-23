@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
-import { Menu, ChevronLeft, UserCircle, Users, MessageCircle, Loader, AlertCircle, Search, ChevronDown, FileText } from "lucide-react";
+import { Menu, ChevronLeft, UserCircle, Users, MessageCircle, Loader, AlertCircle, Search, ChevronDown, FileText, Pill, ListCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -667,8 +667,8 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       <div className="flex-1 flex flex-col h-full">
         {selectedRoomId && (
           <>
-            <div className="p-3 border-b border-neutral-200 dark:border-neutral-800">
-              <div className="flex items-center justify-between">
+            <div className="p-3 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+              <div className="flex items-center gap-2">
                 <h3 className="font-medium text-sm flex items-center gap-2">
                   <Users className="h-4 w-4 text-muted-foreground" />
                   Care Team Members
@@ -676,62 +676,84 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                 <span className="text-xs text-muted-foreground">
                   {roomMembers.length} members
                 </span>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowSearch(!showSearch)}
-                    className="h-8 w-8 p-0"
-                  >
-                    <Search className="h-4 w-4" />
-                  </Button>
-                </div>
               </div>
-              
-              <div className="flex flex-wrap gap-2">
-                {roomMembers.map((member) => {
-                  const isPatient = member.role === "patient" && user?.id === member.id && userRole === "patient";
-                  return (
-                    <div key={member.id} className="flex items-center gap-1.5">
-                      {isPatient ? (
-                        <button
-                          onClick={() => navigate("/profile")}
-                          type="button"
-                          className="focus:outline-none border border-primary rounded-full p-0.5 transition hover:scale-105"
-                          title="View or edit profile"
-                        >
-                          <Avatar className="h-6 w-6">
-                            <AvatarFallback className={
-                              `text-xs bg-orange-100 text-orange-800`
-                            }>
-                              {`${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
-                            </AvatarFallback>
-                          </Avatar>
-                        </button>
-                      ) : (
+              {userRole === 'patient' && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => navigate("/patient/PatientPrescriptionsPage")}
+                    type="button"
+                    className="flex items-center gap-1 h-7 px-2 rounded-full border bg-blue-50 hover:bg-blue-100 transition text-blue-700 border-blue-200 text-xs font-medium shadow active:scale-[0.98]"
+                    title="My Prescriptions"
+                  >
+                    <Pill className="h-4 w-4 mr-0.5" />
+                    My Prescriptions
+                  </button>
+                  <button
+                    onClick={() => navigate("/patient/PatientHabitsPage")}
+                    type="button"
+                    className="flex items-center gap-1 h-7 px-2 rounded-full border bg-green-50 hover:bg-green-100 transition text-green-700 border-green-200 text-xs font-medium shadow active:scale-[0.98]"
+                    title="My Habits"
+                  >
+                    <ListCheck className="h-4 w-4 mr-0.5" />
+                    My Habits
+                  </button>
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowSearch(!showSearch)}
+                  className="h-8 w-8 p-0"
+                >
+                  <Search className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            
+            <div className="flex flex-wrap gap-2 px-3 pb-2 pt-1">
+              {roomMembers.map((member) => {
+                const isPatient = member.role === "patient" && user?.id === member.id && userRole === "patient";
+                return (
+                  <div key={member.id} className="flex items-center gap-1.5">
+                    {isPatient ? (
+                      <button
+                        onClick={() => navigate("/profile")}
+                        type="button"
+                        className="focus:outline-none border border-primary rounded-full p-0.5 transition hover:scale-105"
+                        title="View or edit profile"
+                      >
                         <Avatar className="h-6 w-6">
-                          <AvatarFallback className={`text-xs ${
-                            member.role === 'doctor' ? 'bg-blue-100 text-blue-800' :
-                            member.role === 'nutritionist' ? 'bg-green-100 text-green-800' :
-                            member.role === 'patient' ? 'bg-orange-100 text-orange-800' :
-                            member.role === 'aibot' ? 'bg-purple-100 text-purple-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {member.role === 'aibot' ? 'AI' : 
-                              `${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
+                          <AvatarFallback className={
+                            `text-xs bg-orange-100 text-orange-800`
+                          }>
+                            {`${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
                           </AvatarFallback>
                         </Avatar>
-                      )}
-                      <span className="text-sm">
-                        {member.first_name} {member.last_name}
-                        <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1">
-                          {member.role}
-                        </Badge>
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+                      </button>
+                    ) : (
+                      <Avatar className="h-6 w-6">
+                        <AvatarFallback className={`text-xs ${
+                          member.role === 'doctor' ? 'bg-blue-100 text-blue-800' :
+                          member.role === 'nutritionist' ? 'bg-green-100 text-green-800' :
+                          member.role === 'patient' ? 'bg-orange-100 text-orange-800' :
+                          member.role === 'aibot' ? 'bg-purple-100 text-purple-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {member.role === 'aibot' ? 'AI' : 
+                            `${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
+                    <span className="text-sm">
+                      {member.first_name} {member.last_name}
+                      <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1">
+                        {member.role}
+                      </Badge>
+                    </span>
+                  </div>
+                );
+              })}
             </div>
             
             <div className="flex-1 overflow-hidden flex flex-col relative">
@@ -768,7 +790,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                         .map(([day, dayMessages], index, array) => {
                           const isLatestGroup = index === array.length - 1; 
                           const isTodayGroup = isToday(new Date(day));
-
                           return (
                             <CollapsibleMessageGroup
                               key={day}
@@ -781,7 +802,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                                 .map((message) => {
                                   const isCurrentUser = message.sender_id === user?.id;
                                   const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
-                                  
                                   const isPrescriptionMessage = isAi && typeof message.message === "string" &&
                                     (
                                       message.message.includes("prescription as a PDF") ||
@@ -789,7 +809,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                                       message.message.includes("PDF has been generated") ||
                                       message.message.includes("ready for download")
                                     );
-
                                   return (
                                     <div 
                                       key={message.id} 
@@ -824,7 +843,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                                               )}
                                             </div>
                                           )}
-                                          
                                           <div 
                                             className={`p-3 rounded-lg ${
                                               message.is_system_message 
@@ -880,17 +898,14 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                                             ) : (
                                               <>
                                                 {isPrescriptionMessage && (
-                                                  <div className="flex items-center gap-2 mb-2">
+                                                  <div className="flex items-center mb-2">
                                                     <button
                                                       onClick={() => handleDownloadPdf(message)}
                                                       type="button"
-                                                      className="flex items-center text-blue-600 hover:text-blue-700 hover:underline"
+                                                      className="flex items-center text-blue-600 hover:text-blue-700 hover:underline font-medium text-sm"
                                                       title="Download prescription PDF"
                                                     >
-                                                      <FileText className="h-5 w-5 mr-1" />
-                                                      <span className="font-medium text-sm">
-                                                        Download PDF
-                                                      </span>
+                                                      <span>Download Prescription</span>
                                                     </button>
                                                   </div>
                                                 )}
