@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -159,13 +160,35 @@ serve(async (req: Request) => {
           // Updated response to clearly indicate PDF generation
           aiResponse = `I've generated your latest prescription as a PDF. This prescription was written by Dr. ${latestPrescription.doctor_first_name} ${latestPrescription.doctor_last_name} on ${prescriptionDate}.\n\nThe prescription includes:\n- Diagnosis: ${latestPrescription.diagnosis}\n- Prescribed medications: ${latestPrescription.prescription}${latestPrescription.notes ? `\n- Additional notes: ${latestPrescription.notes}` : ''}\n\n📄 Prescription PDF has been generated and is ready for download.`;
 
+          // Insert AI response as a message
+          const { data: messageData, error: messageError } = await supabaseClient
+            .from('room_messages')
+            .insert({
+              room_id: roomId,
+              sender_id: '00000000-0000-0000-0000-000000000000', // AI bot ID
+              message: aiResponse,
+              is_ai_message: true
+            })
+            .select()
+            .single();
+            
+          if (messageError) {
+            console.error("Error inserting AI message:", messageError);
+            return new Response(
+              JSON.stringify({ error: "Failed to send AI response" }),
+              { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
           // Return with PDF generation data
           return new Response(
             JSON.stringify({ 
               response: aiResponse,
               generatePdf: true,
               pdfType: 'prescription',
-              pdfData: pdfData
+              pdfData: pdfData,
+              messageId: messageData?.id,
+              room_id: roomId
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
