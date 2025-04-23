@@ -47,6 +47,8 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   const [newMessageAdded, setNewMessageAdded] = useState(false);
   const [pendingPdfData, setPendingPdfData] = useState<null | any>(null);
   
+  const messageGroups = groupMessagesByDate(localMessages);
+  
   const { 
     endRef, 
     containerRef, 
@@ -648,114 +650,115 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                                   const isCurrentUser = message.sender_id === user?.id;
                                   const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
 
-                                // Detect prescription message
-                                const isPrescriptionMessage = isAi && typeof message.message === "string" &&
-                                  (
-                                    message.message.includes("prescription as a PDF") ||
-                                    message.message.includes("Prescription PDF has been generated")
-                                  );
+                                  // Detect prescription message
+                                  const isPrescriptionMessage = isAi && typeof message.message === "string" &&
+                                    (
+                                      message.message.includes("prescription as a PDF") ||
+                                      message.message.includes("Prescription PDF has been generated")
+                                    );
 
-                                return (
-                                  <div 
-                                    key={message.id} 
-                                    id={`message-${message.id}`}
-                                    className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} my-2`}
-                                  >
-                                    <div className="flex items-start gap-2 max-w-[80%]">
-                                      {!isCurrentUser && !message.is_system_message && (
-                                        <Avatar className="h-8 w-8">
-                                          {isAi ? (
-                                            <AvatarFallback className="bg-purple-100 text-purple-800">
-                                              AI
-                                            </AvatarFallback>
-                                          ) : (
-                                            <AvatarFallback>
-                                              {message.sender_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
-                                            </AvatarFallback>
-                                          )}
-                                        </Avatar>
-                                      )}
-                                      
-                                      <div className={`space-y-1 ${isCurrentUser ? 'order-first mr-2' : 'ml-0'}`}>
+                                  return (
+                                    <div 
+                                      key={message.id} 
+                                      id={`message-${message.id}`}
+                                      className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} my-2`}
+                                    >
+                                      <div className="flex items-start gap-2 max-w-[80%]">
                                         {!isCurrentUser && !message.is_system_message && (
-                                          <div className="flex items-center gap-1">
-                                            <span className="text-xs font-medium">
-                                              {isAi ? 'AI Assistant' : message.sender_name}
-                                            </span>
-                                            {message.sender_role && (
-                                              <Badge variant="outline" className="text-[10px] py-0 px-1">
-                                                {message.sender_role}
-                                              </Badge>
+                                          <Avatar className="h-8 w-8">
+                                            {isAi ? (
+                                              <AvatarFallback className="bg-purple-100 text-purple-800">
+                                                AI
+                                              </AvatarFallback>
+                                            ) : (
+                                              <AvatarFallback>
+                                                {message.sender_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
+                                              </AvatarFallback>
                                             )}
-                                          </div>
+                                          </Avatar>
                                         )}
                                         
-                                        <div 
-                                          className={`p-3 rounded-lg ${
-                                            message.is_system_message 
-                                              ? 'bg-muted text-muted-foreground text-xs italic' 
-                                              : isCurrentUser
-                                                ? 'bg-primary text-primary-foreground'
-                                                : isAi
-                                                  ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800'
-                                                  : 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700'
-                                          }`}
-                                        >
-                                          {message.message.startsWith('[FILE]') ? (
-                                            <div>
-                                              <div className="flex items-center gap-2 text-xs">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file">
-                                                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                                                  <polyline points="14 2 14 8 20 8"/>
-                                                </svg>
-                                                <a 
-                                                  href={message.message.split(' - ')[1]} 
-                                                  target="_blank" 
-                                                  rel="noopener noreferrer"
-                                                  className="underline"
-                                                >
-                                                  {message.message.split(' - ')[0].replace('[FILE] ', '')}
-                                                </a>
-                                              </div>
+                                        <div className={`space-y-1 ${isCurrentUser ? 'order-first mr-2' : 'ml-0'}`}>
+                                          {!isCurrentUser && !message.is_system_message && (
+                                            <div className="flex items-center gap-1">
+                                              <span className="text-xs font-medium">
+                                                {isAi ? 'AI Assistant' : message.sender_name}
+                                              </span>
+                                              {message.sender_role && (
+                                                <Badge variant="outline" className="text-[10px] py-0 px-1">
+                                                  {message.sender_role}
+                                                </Badge>
+                                              )}
                                             </div>
-                                          ) : (
-                                            <>
-                                              {isPrescriptionMessage && pendingPdfData ? (
-                                                <div className="flex items-center gap-2 mb-2">
-                                                  <button
-                                                    onClick={handleDownloadPrescriptionPdf}
-                                                    type="button"
-                                                    className="flex items-center text-red-600 hover:text-red-700"
-                                                    title="Download prescription PDF"
-                                                  >
-                                                    <FilePdf className="h-5 w-5 mr-1" />
-                                                    <span className="underline font-medium text-sm">
-                                                      Download PDF
-                                                    </span>
-                                                  </button>
-                                                </div>
-                                              ) : null}
-                                              <p className="text-sm whitespace-pre-wrap">{message.message}</p>
-                                              <p className="text-[10px] opacity-70 mt-1">
-                                                {formatChatMessageTime(message.created_at)}
-                                              </p>
-                                            </>
                                           )}
+                                          
+                                          <div 
+                                            className={`p-3 rounded-lg ${
+                                              message.is_system_message 
+                                                ? 'bg-muted text-muted-foreground text-xs italic' 
+                                                : isCurrentUser
+                                                  ? 'bg-primary text-primary-foreground'
+                                                  : isAi
+                                                    ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800'
+                                                    : 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700'
+                                            }`}
+                                          >
+                                            {message.message.startsWith('[FILE]') ? (
+                                              <div>
+                                                <div className="flex items-center gap-2 text-xs">
+                                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file">
+                                                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                                    <polyline points="14 2 14 8 20 8"/>
+                                                  </svg>
+                                                  <a 
+                                                    href={message.message.split(' - ')[1]} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="underline"
+                                                  >
+                                                    {message.message.split(' - ')[0].replace('[FILE] ', '')}
+                                                  </a>
+                                                </div>
+                                              </div>
+                                            ) : (
+                                              <>
+                                                {isPrescriptionMessage && pendingPdfData ? (
+                                                  <div className="flex items-center gap-2 mb-2">
+                                                    <button
+                                                      onClick={handleDownloadPrescriptionPdf}
+                                                      type="button"
+                                                      className="flex items-center text-red-600 hover:text-red-700"
+                                                      title="Download prescription PDF"
+                                                    >
+                                                      <FilePdf className="h-5 w-5 mr-1" />
+                                                      <span className="underline font-medium text-sm">
+                                                        Download PDF
+                                                      </span>
+                                                    </button>
+                                                  </div>
+                                                ) : null}
+                                                <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                                                <p className="text-[10px] opacity-70 mt-1">
+                                                  {formatChatMessageTime(message.created_at)}
+                                                </p>
+                                              </>
+                                            )}
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
-                                  </div>
-                                );
-                              })}
-                          </CollapsibleMessageGroup>
-                        );
-                      })
-                  ) : (
-                    <div className="text-center text-muted-foreground">
-                      No messages to display
-                    </div>
-                  )}
-                </div>
+                                  );
+                                })}
+                            </CollapsibleMessageGroup>
+                          );
+                        })
+                    ) : (
+                      <div className="text-center text-muted-foreground">
+                        No messages to display
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 {isAiResponding && (
                   <div className="flex items-center justify-center py-2">
