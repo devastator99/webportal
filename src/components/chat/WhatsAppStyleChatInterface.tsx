@@ -680,7 +680,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
               {userRole === 'patient' && (
                 <div className="flex items-center gap-2">
                   <button
-                    onClick={() => navigate("/patient/PatientPrescriptionsPage")}
+                    onClick={() => navigate("/prescriptions")}
                     type="button"
                     className="flex items-center gap-1 h-7 px-2 rounded-full border bg-blue-50 hover:bg-blue-100 transition text-blue-700 border-blue-200 text-xs font-medium shadow active:scale-[0.98]"
                     title="My Prescriptions"
@@ -689,7 +689,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                     My Prescriptions
                   </button>
                   <button
-                    onClick={() => navigate("/patient/PatientHabitsPage")}
+                    onClick={() => navigate("/habits")}
                     type="button"
                     className="flex items-center gap-1 h-7 px-2 rounded-full border bg-green-50 hover:bg-green-100 transition text-green-700 border-green-200 text-xs font-medium shadow active:scale-[0.98]"
                     title="My Habits"
