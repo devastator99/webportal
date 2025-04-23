@@ -48,6 +48,20 @@ export type Database = {
             foreignKeyName: "analyzed_documents_doctor_id_fkey"
             columns: ["doctor_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "analyzed_documents_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "analyzed_documents_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -98,8 +112,36 @@ export type Database = {
             foreignKeyName: "appointments_doctor_profile_fkey"
             columns: ["doctor_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "appointments_doctor_profile_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "appointments_doctor_profile_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_patient_profile_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "appointments_patient_profile_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
           },
           {
             foreignKeyName: "appointments_patient_profile_fkey"
@@ -146,8 +188,36 @@ export type Database = {
             foreignKeyName: "chat_messages_receiver_profile_fkey"
             columns: ["receiver_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "chat_messages_receiver_profile_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "chat_messages_receiver_profile_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_sender_profile_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "chat_messages_sender_profile_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
           },
           {
             foreignKeyName: "chat_messages_sender_profile_fkey"
@@ -251,6 +321,78 @@ export type Database = {
             foreignKeyName: "doctor_availability_doctor_id_fkey"
             columns: ["doctor_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "doctor_availability_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "doctor_availability_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      doctor_details: {
+        Row: {
+          clinic_address: string | null
+          clinic_phone: string | null
+          created_at: string | null
+          id: string
+          qualifications: string | null
+          registration_number: string | null
+          signature_url: string | null
+          specialization: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          clinic_address?: string | null
+          clinic_phone?: string | null
+          created_at?: string | null
+          id: string
+          qualifications?: string | null
+          registration_number?: string | null
+          signature_url?: string | null
+          specialization?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          clinic_address?: string | null
+          clinic_phone?: string | null
+          created_at?: string | null
+          id?: string
+          qualifications?: string | null
+          registration_number?: string | null
+          signature_url?: string | null
+          specialization?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doctor_details_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "doctor_details_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "doctor_details_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -387,6 +529,20 @@ export type Database = {
             foreignKeyName: "knowledge_videos_uploaded_by_fkey"
             columns: ["uploaded_by"]
             isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "knowledge_videos_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "knowledge_videos_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -428,6 +584,13 @@ export type Database = {
             foreignKeyName: "medical_documents_medical_record_id_fkey"
             columns: ["medical_record_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["prescription_id"]
+          },
+          {
+            foreignKeyName: "medical_documents_medical_record_id_fkey"
+            columns: ["medical_record_id"]
+            isOneToOne: false
             referencedRelation: "medical_records"
             referencedColumns: ["id"]
           },
@@ -438,31 +601,43 @@ export type Database = {
           created_at: string
           diagnosis: string | null
           doctor_id: string | null
+          follow_up_date: string | null
+          format_type: string | null
           id: string
           notes: string | null
           patient_id: string
           prescription: string | null
           updated_at: string
+          validity_period: number | null
+          vitals: Json | null
         }
         Insert: {
           created_at?: string
           diagnosis?: string | null
           doctor_id?: string | null
+          follow_up_date?: string | null
+          format_type?: string | null
           id?: string
           notes?: string | null
           patient_id: string
           prescription?: string | null
           updated_at?: string
+          validity_period?: number | null
+          vitals?: Json | null
         }
         Update: {
           created_at?: string
           diagnosis?: string | null
           doctor_id?: string | null
+          follow_up_date?: string | null
+          format_type?: string | null
           id?: string
           notes?: string | null
           patient_id?: string
           prescription?: string | null
           updated_at?: string
+          validity_period?: number | null
+          vitals?: Json | null
         }
         Relationships: []
       }
@@ -606,8 +781,36 @@ export type Database = {
             foreignKeyName: "patient_assignments_doctor_profile_fkey"
             columns: ["doctor_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "patient_assignments_doctor_profile_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "patient_assignments_doctor_profile_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_assignments_nutritionist_profile_fkey"
+            columns: ["nutritionist_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "patient_assignments_nutritionist_profile_fkey"
+            columns: ["nutritionist_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
           },
           {
             foreignKeyName: "patient_assignments_nutritionist_profile_fkey"
@@ -619,6 +822,84 @@ export type Database = {
           {
             foreignKeyName: "patient_assignments_patient_profile_fkey"
             columns: ["patient_id"]
+            isOneToOne: true
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "patient_assignments_patient_profile_fkey"
+            columns: ["patient_id"]
+            isOneToOne: true
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "patient_assignments_patient_profile_fkey"
+            columns: ["patient_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patient_details: {
+        Row: {
+          allergies: string | null
+          blood_group: string | null
+          chronic_conditions: string | null
+          created_at: string | null
+          date_of_birth: string | null
+          emergency_contact: string | null
+          gender: string | null
+          height: number | null
+          id: string
+          updated_at: string | null
+          weight: number | null
+        }
+        Insert: {
+          allergies?: string | null
+          blood_group?: string | null
+          chronic_conditions?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          emergency_contact?: string | null
+          gender?: string | null
+          height?: number | null
+          id: string
+          updated_at?: string | null
+          weight?: number | null
+        }
+        Update: {
+          allergies?: string | null
+          blood_group?: string | null
+          chronic_conditions?: string | null
+          created_at?: string | null
+          date_of_birth?: string | null
+          emergency_contact?: string | null
+          gender?: string | null
+          height?: number | null
+          id?: string
+          updated_at?: string | null
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_details_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "patient_details_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "patient_details_id_fkey"
+            columns: ["id"]
             isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -679,8 +960,36 @@ export type Database = {
             foreignKeyName: "patient_invoices_doctor_id_fkey"
             columns: ["doctor_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "patient_invoices_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "patient_invoices_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_invoices_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "patient_invoices_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
           },
           {
             foreignKeyName: "patient_invoices_patient_id_fkey"
@@ -724,8 +1033,36 @@ export type Database = {
             foreignKeyName: "fk_patient_profile"
             columns: ["patient_id"]
             isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "fk_patient_profile"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "fk_patient_profile"
+            columns: ["patient_id"]
+            isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_medical_reports_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "patient_medical_reports_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
           },
           {
             foreignKeyName: "patient_medical_reports_patient_id_fkey"
@@ -800,6 +1137,96 @@ export type Database = {
             columns: ["appointment_id"]
             isOneToOne: false
             referencedRelation: "appointments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prescribed_tests: {
+        Row: {
+          created_at: string | null
+          id: string
+          instructions: string | null
+          prescription_id: string | null
+          test_name: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          instructions?: string | null
+          prescription_id?: string | null
+          test_name: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          instructions?: string | null
+          prescription_id?: string | null
+          test_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prescribed_tests_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["prescription_id"]
+          },
+          {
+            foreignKeyName: "prescribed_tests_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "medical_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prescription_medications: {
+        Row: {
+          created_at: string | null
+          dosage: string
+          duration: string | null
+          frequency: string
+          id: string
+          instructions: string | null
+          medication_name: string
+          prescription_id: string | null
+          timing: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          dosage: string
+          duration?: string | null
+          frequency: string
+          id?: string
+          instructions?: string | null
+          medication_name: string
+          prescription_id?: string | null
+          timing?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          dosage?: string
+          duration?: string | null
+          frequency?: string
+          id?: string
+          instructions?: string | null
+          medication_name?: string
+          prescription_id?: string | null
+          timing?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prescription_medications_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["prescription_id"]
+          },
+          {
+            foreignKeyName: "prescription_medications_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "medical_records"
             referencedColumns: ["id"]
           },
         ]
@@ -996,6 +1423,20 @@ export type Database = {
             foreignKeyName: "user_roles_profile_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "user_roles_profile_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
+          },
+          {
+            foreignKeyName: "user_roles_profile_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -1015,6 +1456,39 @@ export type Database = {
           room_id: string | null
           room_name: string | null
           room_type: Database["public"]["Enums"]["chat_room_type"] | null
+        }
+        Relationships: []
+      }
+      comprehensive_prescriptions: {
+        Row: {
+          clinic_address: string | null
+          clinic_phone: string | null
+          diagnosis: string | null
+          doctor_first_name: string | null
+          doctor_id: string | null
+          doctor_last_name: string | null
+          doctor_qualifications: string | null
+          doctor_registration: string | null
+          doctor_signature: string | null
+          doctor_specialization: string | null
+          doctor_specialty: string | null
+          follow_up_date: string | null
+          format_type: string | null
+          notes: string | null
+          patient_age: number | null
+          patient_blood_group: string | null
+          patient_dob: string | null
+          patient_first_name: string | null
+          patient_gender: string | null
+          patient_height: number | null
+          patient_id: string | null
+          patient_last_name: string | null
+          patient_weight: number | null
+          prescription_date: string | null
+          prescription_id: string | null
+          prescription_text: string | null
+          validity_period: number | null
+          vitals: Json | null
         }
         Relationships: []
       }
@@ -1044,6 +1518,20 @@ export type Database = {
           upcoming_appointments: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "patient_assignments_doctor_profile_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["doctor_id"]
+          },
+          {
+            foreignKeyName: "patient_assignments_doctor_profile_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "comprehensive_prescriptions"
+            referencedColumns: ["patient_id"]
+          },
           {
             foreignKeyName: "patient_assignments_doctor_profile_fkey"
             columns: ["doctor_id"]
@@ -1221,6 +1709,16 @@ export type Database = {
           last_name: string
         }[]
       }
+      get_all_comprehensive_prescriptions: {
+        Args: { p_patient_id: string }
+        Returns: {
+          prescription_id: string
+          prescription_date: string
+          doctor_name: string
+          diagnosis: string
+          format_type: string
+        }[]
+      }
       get_all_patient_prescriptions: {
         Args: { p_patient_id: string }
         Returns: {
@@ -1286,6 +1784,14 @@ export type Database = {
           content: Json
           created_at: string
           updated_at: string
+        }[]
+      }
+      get_comprehensive_prescription: {
+        Args: { p_prescription_id: string }
+        Returns: {
+          prescription_data: Json
+          medications: Json
+          tests: Json
         }[]
       }
       get_doctor_all_stats: {
@@ -1551,6 +2057,26 @@ export type Database = {
           last_name: string
         }[]
       }
+      get_prescribed_tests: {
+        Args: { p_prescription_id: string }
+        Returns: {
+          id: string
+          test_name: string
+          instructions: string
+        }[]
+      }
+      get_prescription_medications: {
+        Args: { p_prescription_id: string }
+        Returns: {
+          id: string
+          medication_name: string
+          dosage: string
+          frequency: string
+          duration: string
+          timing: string
+          instructions: string
+        }[]
+      }
       get_room_messages: {
         Args: { p_room_id: string; p_limit?: number; p_offset?: number }
         Returns: {
@@ -1738,6 +2264,21 @@ export type Database = {
         }
         Returns: string
       }
+      save_structured_prescription: {
+        Args: {
+          p_patient_id: string
+          p_doctor_id: string
+          p_diagnosis: string
+          p_notes: string
+          p_vitals?: Json
+          p_follow_up_date?: string
+          p_validity_period?: number
+          p_format_type?: string
+          p_medications?: Json
+          p_tests?: Json
+        }
+        Returns: string
+      }
       search_chatbot_knowledge: {
         Args: { search_term: string }
         Returns: {
@@ -1774,6 +2315,32 @@ export type Database = {
           p_general_enabled?: boolean
           p_quiet_hours_start?: string
           p_quiet_hours_end?: string
+        }
+        Returns: string
+      }
+      upsert_doctor_details: {
+        Args: {
+          p_doctor_id: string
+          p_registration_number?: string
+          p_qualifications?: string
+          p_specialization?: string
+          p_signature_url?: string
+          p_clinic_address?: string
+          p_clinic_phone?: string
+        }
+        Returns: string
+      }
+      upsert_patient_details: {
+        Args: {
+          p_patient_id: string
+          p_date_of_birth?: string
+          p_gender?: string
+          p_blood_group?: string
+          p_height?: number
+          p_weight?: number
+          p_allergies?: string
+          p_chronic_conditions?: string
+          p_emergency_contact?: string
         }
         Returns: string
       }
