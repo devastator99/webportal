@@ -262,13 +262,24 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       
       setUploadProgress(70);
       
-      const { data: { publicUrl } } = supabase.storage
+      const { data: signedUrl, error: signedUrlError } = await supabase.storage
         .from('chat_attachments')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 60 * 60 * 24); // 24 hours expiration
+        
+      if (signedUrlError) {
+        console.error("Error generating signed URL:", signedUrlError);
+        toast({
+          title: "URL Generation Error",
+          description: "Could not generate download link. File uploaded but may not be accessible.",
+          variant: "destructive"
+        });
+      }
+      
+      const downloadUrl = signedUrl?.signedUrl || '';
       
       const { data: messageData, error: messageError } = await supabase.rpc('send_room_message', {
         p_room_id: selectedRoomId,
-        p_message: `[FILE] ${selectedFile.name} - ${publicUrl}`,
+        p_message: `[FILE] ${selectedFile.name} - ${downloadUrl}`,
         p_is_system_message: false,
         p_is_ai_message: false
       });
@@ -728,14 +739,38 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                                                     <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
                                                     <polyline points="14 2 14 8 20 8"/>
                                                   </svg>
-                                                  <a 
-                                                    href={message.message.split(' - ')[1]} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer"
-                                                    className="underline"
-                                                  >
-                                                    {message.message.split(' - ')[0].replace('[FILE] ', '')}
-                                                  </a>
+                                                  {(() => {
+                                                    const fileMsg = message.message.replace('[FILE] ', '');
+                                                    const separatorIndex = fileMsg.lastIndexOf(' - ');
+                                                    const fileName = separatorIndex > 0 
+                                                      ? fileMsg.substring(0, separatorIndex) 
+                                                      : fileMsg;
+                                                    const fileUrl = separatorIndex > 0 
+                                                      ? fileMsg.substring(separatorIndex + 3) 
+                                                      : '';
+
+                                                    return (
+                                                      <a 
+                                                        href={fileUrl}
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        download={fileName}
+                                                        className="underline hover:text-primary"
+                                                        onClick={(e) => {
+                                                          if (!fileUrl || fileUrl.trim() === '') {
+                                                            e.preventDefault();
+                                                            toast({
+                                                              title: "Download Error",
+                                                              description: "The file link is no longer valid. Please ask the sender to share the file again.",
+                                                              variant: "destructive"
+                                                            });
+                                                          }
+                                                        }}
+                                                      >
+                                                        {fileName || "Attached file"}
+                                                      </a>
+                                                    );
+                                                  })()}
                                                 </div>
                                               </div>
                                             ) : (

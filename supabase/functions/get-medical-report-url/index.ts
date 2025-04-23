@@ -51,16 +51,16 @@ Deno.serve(async (req) => {
 
     console.log(`Generating signed URL for path: ${filePath}`);
 
-    // Generate a signed URL for the file
+    // Generate a signed URL for the file with a longer expiration (24 hours)
     const { data: signedURL, error } = await supabaseClient
       .storage
       .from(BUCKET_NAME)
-      .createSignedUrl(filePath, 60 * 60); // 1 hour expiration
+      .createSignedUrl(filePath, 60 * 60 * 24); // 24 hour expiration
 
     if (error) {
       console.error('Error generating signed URL:', error);
       return new Response(
-        JSON.stringify({ error: 'Could not generate signed URL' }),
+        JSON.stringify({ error: 'Could not generate signed URL', details: error.message }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -68,18 +68,29 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Return the signed URL
+    // Set download headers to ensure the file is downloaded rather than opened in the browser
+    const downloadHeaders = {
+      ...corsHeaders,
+      'Content-Type': 'application/json',
+      'Content-Disposition': `attachment; filename="${filePath.split('/').pop()}"`
+    };
+
+    // Return the signed URL with appropriate headers for downloading
     return new Response(
-      JSON.stringify(signedURL),
+      JSON.stringify({ 
+        signedUrl: signedURL.signedUrl,
+        filename: filePath.split('/').pop(),
+        expiresAt: new Date(Date.now() + (60 * 60 * 24 * 1000)).toISOString() // 24 hours from now
+      }),
       { 
         status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: downloadHeaders
       }
     );
   } catch (error) {
     console.error('Unexpected error:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: 'Internal server error', details: error.message }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
