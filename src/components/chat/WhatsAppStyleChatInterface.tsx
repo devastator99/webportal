@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
-import { Menu, ChevronLeft, UserCircle, Users, MessageCircle, Loader, AlertCircle, Search, ChevronDown, FilePdf } from "lucide-react";
+import { Menu, ChevronLeft, UserCircle, Users, MessageCircle, Loader, AlertCircle, Search, ChevronDown, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -430,10 +430,8 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
 
       console.log("AI response received:", data);
 
-      // If AI response includes a prescription PDF, store its data for download
       if (data.generatePdf && data.pdfType === 'prescription') {
         setPendingPdfData({ ...data.pdfData, date: data.pdfData.date });
-        // Generate and prompt to download PDF immediately as before
         const { pdfData } = data;
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = `
@@ -488,7 +486,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     }
   };
 
-  // Handler for manual PDF download via icon click
   const handleDownloadPrescriptionPdf = async () => {
     if (!pendingPdfData) return;
     const pdfData = pendingPdfData;
@@ -650,7 +647,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                                   const isCurrentUser = message.sender_id === user?.id;
                                   const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
 
-                                  // Detect prescription message
                                   const isPrescriptionMessage = isAi && typeof message.message === "string" &&
                                     (
                                       message.message.includes("prescription as a PDF") ||
@@ -730,7 +726,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                                                       className="flex items-center text-red-600 hover:text-red-700"
                                                       title="Download prescription PDF"
                                                     >
-                                                      <FilePdf className="h-5 w-5 mr-1" />
+                                                      <FileText className="h-5 w-5 mr-1" />
                                                       <span className="underline font-medium text-sm">
                                                         Download PDF
                                                       </span>
