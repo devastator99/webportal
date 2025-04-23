@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { NoRoleWarning } from "@/components/auth/NoRoleWarning";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
@@ -11,7 +12,6 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
-import { MobileNavbar } from "@/components/layout/MobileNavbar";
 
 const Dashboard = () => {
   const { user, userRole, isLoading, signOut } = useAuth();
@@ -39,6 +39,7 @@ const Dashboard = () => {
     }
   }, [user, isLoading, navigate]);
 
+  // Render error state
   if (dashboardError) {
     return (
       <div className="container mx-auto px-4 py-8 mt-20">
@@ -67,16 +68,19 @@ const Dashboard = () => {
     );
   }
 
+  // Show loading state
   if (isLoading) {
     console.log("[Dashboard] Showing loading skeleton");
     return <DashboardSkeleton />;
   }
 
+  // After loading, if no user is found, useEffect will handle redirect
   if (!user) {
     console.log("[Dashboard] No user, returning null");
     return null;
   }
 
+  // Handle no role case
   if (!userRole) {
     console.log("[Dashboard] No role assigned, showing NoRoleWarning");
     return <NoRoleWarning onSignOut={signOut} />;
@@ -84,8 +88,9 @@ const Dashboard = () => {
 
   console.log(`[Dashboard] Attempting to render ${userRole} dashboard`);
   
+  // Render appropriate dashboard based on role with Navbar
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="pt-16 md:pt-20">
       {(() => {
         try {
           switch (userRole) {
@@ -119,7 +124,6 @@ const Dashboard = () => {
           return null;
         }
       })()}
-      <MobileNavbar />
     </div>
   );
 };
