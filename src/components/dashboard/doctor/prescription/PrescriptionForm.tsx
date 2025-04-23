@@ -13,7 +13,7 @@ import { PrescribedTests } from "./PrescribedTests";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
-interface PrescriptionFormProps {
+export interface PrescriptionFormProps {
   patientId: string;
   onSaved?: (prescriptionId: string) => void;
 }

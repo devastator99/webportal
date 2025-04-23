@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -75,15 +76,8 @@ export const PrescriptionWriter = () => {
               
               <TabsContent value="write" className="mt-4">
                 <PrescriptionForm
-                  diagnosis={diagnosis}
-                  setDiagnosis={setDiagnosis}
-                  prescription={prescription}
-                  setPrescription={setPrescription}
-                  notes={notes}
-                  setNotes={setNotes}
-                  onSavePrescription={onSavePrescriptionWithId}
-                  isSaving={isSaving}
-                  onPrescriptionSaved={savedPrescriptionId ? () => {} : undefined}
+                  patientId={selectedPatient}
+                  onSaved={savedPrescriptionId ? undefined : (id) => setSavedPrescriptionId(id)}
                 />
               </TabsContent>
               

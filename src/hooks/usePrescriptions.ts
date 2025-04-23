@@ -62,12 +62,12 @@ export const usePrescriptions = () => {
           p_doctor_id: user.id,
           p_diagnosis: data.diagnosis,
           p_notes: data.notes,
-          p_vitals: data.vitals,
+          p_vitals: data.vitals as any,
           p_follow_up_date: data.follow_up_date,
           p_validity_period: data.validity_period,
           p_format_type: data.format_type || 'standard',
-          p_medications: data.medications,
-          p_tests: data.tests
+          p_medications: data.medications as any,
+          p_tests: data.tests as any
         }
       );
 
