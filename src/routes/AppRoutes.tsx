@@ -7,7 +7,6 @@ import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
 
 // Lazy-loaded pages
 const Landing = lazy(() => import("@/pages/LandingPage"));
-// Using Auth instead of Login as it might be the correct page
 const Login = lazy(() => import("@/pages/Auth"));
 const ChatPage = lazy(() => import("@/pages/ChatPage"));
 const AuthCallback = lazy(() => import("@/pages/Auth"));
@@ -29,6 +28,7 @@ const HabitTracker = lazy(() => import("@/pages/PatientHabitsPage")); // Update 
 const Providers = lazy(() => import("@/pages/LandingPage")); // Use LandingPage as fallback
 const ProviderProfile = lazy(() => import("@/pages/LandingPage")); // Use LandingPage as fallback
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
+const PatientDetailsPage = lazy(() => import("@/pages/PatientDetailsPage"));
 
 const LoadingFallback = () => (
   <div className="h-screen flex items-center justify-center">
@@ -167,6 +167,14 @@ export const AppRoutes = () => {
             <ProtectedRoute>
               <HabitTracker />
             </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/patient/:patientId"
+          element={
+            <RoleProtectedRoute allowedRoles={["doctor"]}>
+              <PatientDetailsPage />
+            </RoleProtectedRoute>
           }
         />
 

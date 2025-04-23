@@ -1,8 +1,6 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { Users, FileText, Clock } from "lucide-react";
@@ -14,7 +12,7 @@ interface Patient {
   id: string;
   first_name: string;
   last_name: string;
-  created_at: string; // Keep as required since we're adding it in DoctorDashboard
+  created_at: string;
 }
 
 interface EnhancedPatientListProps {
@@ -63,7 +61,11 @@ export const EnhancedPatientList = ({ patients, isLoading }: EnhancedPatientList
           ) : (
             <div className="grid gap-4">
               {filteredPatients.map((patient) => (
-                <Card key={patient.id} className="bg-card hover:bg-accent/5 transition-colors cursor-pointer">
+                <Card 
+                  key={patient.id} 
+                  className="bg-card hover:bg-accent/5 transition-colors cursor-pointer"
+                  onClick={() => navigate(`/patient/${patient.id}`)}
+                >
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="space-y-1">
@@ -81,7 +83,10 @@ export const EnhancedPatientList = ({ patients, isLoading }: EnhancedPatientList
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => navigate(`/patient/${patient.id}/prescriptions`)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/patient/${patient.id}/prescriptions`);
+                          }}
                           className="gap-2"
                         >
                           <FileText className="h-4 w-4" />
