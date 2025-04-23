@@ -538,6 +538,108 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     document.body.removeChild(tempDiv);
   };
 
+  const generateAndDownloadPdf = async (pdfData: any) => {
+    if (!pdfData) return;
+    
+    try {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = `
+        <div id="prescription-pdf" class="p-8">
+          <h1 class="text-2xl font-bold mb-6">Medical Prescription</h1>
+          <div class="mb-4">
+            <p><strong>Doctor:</strong> ${pdfData.doctorName || 'N/A'}</p>
+            <p><strong>Date:</strong> ${pdfData.date || new Date().toLocaleDateString()}</p>
+            <p><strong>Patient:</strong> ${pdfData.patientName || 'N/A'}</p>
+          </div>
+          <div class="mb-4">
+            <h2 class="text-xl font-semibold mb-2">Diagnosis</h2>
+            <p>${pdfData.diagnosis || 'N/A'}</p>
+          </div>
+          <div class="mb-4">
+            <h2 class="text-xl font-semibold mb-2">Medications</h2>
+            <p>${pdfData.medications || 'N/A'}</p>
+          </div>
+          ${pdfData.notes ? `
+            <div class="mb-4">
+              <h2 class="text-xl font-semibold mb-2">Additional Notes</h2>
+              <p>${pdfData.notes}</p>
+            </div>
+          ` : ''}
+        </div>
+      `;
+      document.body.appendChild(tempDiv);
+
+      await generatePdfFromElement(
+        'prescription-pdf',
+        `prescription_${(pdfData.date || new Date().toLocaleDateString()).replace(/\//g, '-')}.pdf`
+      );
+
+      document.body.removeChild(tempDiv);
+      
+      toast({
+        title: "PDF Generated",
+        description: "Your prescription PDF has been downloaded successfully.",
+      });
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "PDF Generation Failed",
+        description: "There was an error generating the PDF. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDownloadPdf = async (message: any) => {
+    if (pendingPdfData) {
+      generateAndDownloadPdf(pendingPdfData);
+      return;
+    }
+    
+    try {
+      setIsAiResponding(true);
+      toast({
+        title: "Generating PDF",
+        description: "We're generating your PDF, please wait a moment...",
+      });
+      
+      const isPrescription = message.message.toLowerCase().includes("prescription");
+      const isHealthPlan = message.message.toLowerCase().includes("health plan");
+      const isMedicalReport = message.message.toLowerCase().includes("medical report");
+      
+      const requestType = isPrescription ? "prescription" : 
+                         isHealthPlan ? "health_plan" : 
+                         isMedicalReport ? "medical_report" : "prescription";
+                         
+      const { data, error } = await supabase.functions.invoke('doctor-ai-assistant', {
+        body: { 
+          messages: [{role: 'user', content: `Generate a ${requestType} PDF`}],
+          patientId: user?.id,
+          isCareTeamChat: true,
+          requestType: 'pdf_request'
+        },
+      });
+
+      if (error) throw error;
+      
+      if (data.pdfData) {
+        setPendingPdfData(data.pdfData);
+        generateAndDownloadPdf(data.pdfData);
+      } else {
+        throw new Error("No PDF data returned");
+      }
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      toast({
+        title: "PDF Generation Failed",
+        description: "Could not generate the PDF. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsAiResponding(false);
+    }
+  };
+
   return (
     <div className="h-full flex overflow-hidden rounded-md border border-neutral-200 dark:border-neutral-800 shadow-sm">
       {showSidebar && (
@@ -664,7 +766,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                       Object.entries(messageGroups)
                         .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
                         .map(([day, dayMessages], index, array) => {
-                          const isLatestGroup = index === array.length - 1; // Last group is the latest
+                          const isLatestGroup = index === array.length - 1; 
                           const isTodayGroup = isToday(new Date(day));
 
                           return (
@@ -679,11 +781,13 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                                 .map((message) => {
                                   const isCurrentUser = message.sender_id === user?.id;
                                   const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
-
+                                  
                                   const isPrescriptionMessage = isAi && typeof message.message === "string" &&
                                     (
                                       message.message.includes("prescription as a PDF") ||
-                                      message.message.includes("Prescription PDF has been generated")
+                                      message.message.includes("Prescription PDF has been generated") ||
+                                      message.message.includes("PDF has been generated") ||
+                                      message.message.includes("ready for download")
                                     );
 
                                   return (
@@ -775,21 +879,21 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                                               </div>
                                             ) : (
                                               <>
-                                                {isPrescriptionMessage && pendingPdfData ? (
+                                                {isPrescriptionMessage && (
                                                   <div className="flex items-center gap-2 mb-2">
                                                     <button
-                                                      onClick={handleDownloadPrescriptionPdf}
+                                                      onClick={() => handleDownloadPdf(message)}
                                                       type="button"
-                                                      className="flex items-center text-red-600 hover:text-red-700"
+                                                      className="flex items-center text-blue-600 hover:text-blue-700 hover:underline"
                                                       title="Download prescription PDF"
                                                     >
                                                       <FileText className="h-5 w-5 mr-1" />
-                                                      <span className="underline font-medium text-sm">
+                                                      <span className="font-medium text-sm">
                                                         Download PDF
                                                       </span>
                                                     </button>
                                                   </div>
-                                                ) : null}
+                                                )}
                                                 <p className="text-sm whitespace-pre-wrap">{message.message}</p>
                                                 <p className="text-[10px] opacity-70 mt-1">
                                                   {formatChatMessageTime(message.created_at)}

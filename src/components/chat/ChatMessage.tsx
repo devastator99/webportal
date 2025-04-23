@@ -1,6 +1,6 @@
 
 import { format } from "date-fns";
-import { Check, CheckCheck, Clock, Bot } from "lucide-react";
+import { Check, CheckCheck, Clock, Bot, FileText } from "lucide-react";
 
 interface ChatMessageProps {
   message: {
@@ -20,6 +20,7 @@ interface ChatMessageProps {
   showAvatar?: boolean;
   offlineMode?: boolean;
   isLocal?: boolean;
+  onPdfDownload?: () => void;
 }
 
 export const ChatMessage = ({ 
@@ -27,7 +28,8 @@ export const ChatMessage = ({
   isCurrentUser, 
   showAvatar = false,
   offlineMode = false,
-  isLocal = false
+  isLocal = false,
+  onPdfDownload
 }: ChatMessageProps) => {
   // Format message timestamp safely
   let formattedTime = '';
@@ -47,6 +49,11 @@ export const ChatMessage = ({
   
   // Determine if sender is a nutritionist
   const isNutritionist = message.sender.role === 'nutritionist';
+  
+  // Check if message contains PDF reference
+  const isPdfMessage = message.message.includes("PDF has been generated") || 
+                      message.message.includes("prescription as a PDF") ||
+                      message.message.includes("ready for download");
   
   return (
     <div
@@ -68,6 +75,17 @@ export const ChatMessage = ({
               </span>
             )}
           </span>
+        )}
+        
+        {isPdfMessage && onPdfDownload && (
+          <button
+            onClick={onPdfDownload}
+            className="flex items-center gap-1 text-blue-600 dark:text-blue-400 mb-2 hover:underline"
+            aria-label="Download PDF"
+          >
+            <FileText className="h-4 w-4" />
+            <span>Download Prescription PDF</span>
+          </button>
         )}
         
         <p className="text-sm whitespace-pre-wrap">{message.message}</p>

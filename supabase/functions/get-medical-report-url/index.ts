@@ -38,7 +38,9 @@ Deno.serve(async (req) => {
     );
 
     // Get request body
-    const { filePath } = await req.json();
+    const requestBody = await req.json();
+    const { filePath, fileType } = requestBody;
+    
     if (!filePath) {
       return new Response(
         JSON.stringify({ error: 'Missing file path parameter' }),
@@ -49,8 +51,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Generating signed URL for path: ${filePath}`);
+    console.log(`Generating signed URL for path: ${filePath}, type: ${fileType || 'unknown'}`);
 
+    // Determine if this is a PDF file
+    const isPdf = filePath.toLowerCase().endsWith('.pdf') || fileType === 'pdf';
+    
     // Generate a signed URL for the file with a longer expiration (24 hours)
     const { data: signedURL, error } = await supabaseClient
       .storage
@@ -68,23 +73,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Set download headers to ensure the file is downloaded rather than opened in the browser
-    const downloadHeaders = {
-      ...corsHeaders,
-      'Content-Type': 'application/json',
-      'Content-Disposition': `attachment; filename="${filePath.split('/').pop()}"`
-    };
+    // Extract filename from the path
+    const filename = filePath.split('/').pop() || 'download';
+
+    // Set appropriate headers based on file type
+    const contentType = isPdf ? 'application/pdf' : 'application/octet-stream';
+    const contentDisposition = `attachment; filename="${filename}"`;
 
     // Return the signed URL with appropriate headers for downloading
     return new Response(
       JSON.stringify({ 
         signedUrl: signedURL.signedUrl,
-        filename: filePath.split('/').pop(),
+        filename: filename,
+        contentType: contentType,
+        contentDisposition: contentDisposition,
         expiresAt: new Date(Date.now() + (60 * 60 * 24 * 1000)).toISOString() // 24 hours from now
       }),
       { 
         status: 200, 
-        headers: downloadHeaders
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+        }
       }
     );
   } catch (error) {
