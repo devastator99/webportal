@@ -88,7 +88,7 @@ export const PatientDetails = ({ patientId }: PatientDetailsProps) => {
           <Skeleton className="h-8 w-1/3" />
         ) : (
           <h1 className="text-2xl font-bold text-gray-900">
-            {patientData?.first_name} {patientData?.last_name}
+            Patient: {patientData?.first_name} {patientData?.last_name}
           </h1>
         )}
       </div>
@@ -149,7 +149,7 @@ export const PatientDetails = ({ patientId }: PatientDetailsProps) => {
           </TabsContent>
 
           <TabsContent value="prescriptions" className="p-6">
-            <PrescriptionHistory patientId={patientId} />
+            <PrescriptionWriter patientId={patientId} />
           </TabsContent>
 
           <TabsContent value="timeline" className="p-6">
