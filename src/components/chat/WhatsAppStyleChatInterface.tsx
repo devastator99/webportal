@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
-import { Menu, ChevronLeft, UserCircle, Users, MessageCircle, Loader, AlertCircle, Search, ChevronDown } from "lucide-react";
+import { Menu, ChevronLeft, UserCircle, Users, MessageCircle, Loader, AlertCircle, Search, ChevronDown, FilePdf } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -45,6 +45,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   const [roomError, setRoomError] = useState<string | null>(null);
   const [showSearch, setShowSearch] = useState(false);
   const [newMessageAdded, setNewMessageAdded] = useState(false);
+  const [pendingPdfData, setPendingPdfData] = useState<null | any>(null);
   
   const { 
     endRef, 
@@ -412,24 +413,26 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     try {
       setIsAiResponding(true);
       console.log("Triggering AI response for message:", message);
-      
+
       const { data, error } = await supabase.functions.invoke('care-team-ai-chat', {
         body: { 
           roomId: roomId,
           message: message
         }
       });
-      
+
       if (error) {
         console.error("Error getting AI response:", error);
         throw error;
       }
-      
+
       console.log("AI response received:", data);
 
+      // If AI response includes a prescription PDF, store its data for download
       if (data.generatePdf && data.pdfType === 'prescription') {
+        setPendingPdfData({ ...data.pdfData, date: data.pdfData.date });
+        // Generate and prompt to download PDF immediately as before
         const { pdfData } = data;
-        
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = `
           <div id="prescription-pdf" class="p-8">
@@ -455,22 +458,21 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
             ` : ''}
           </div>
         `;
-        
         document.body.appendChild(tempDiv);
-        
+
         await generatePdfFromElement(
           'prescription-pdf',
           `prescription_${pdfData.date.replace(/\//g, '-')}.pdf`
         );
-        
+
         document.body.removeChild(tempDiv);
       }
-      
+
       setTimeout(() => {
         fetchMessages(roomId, 1);
         setIsAiResponding(false);
       }, 1000);
-      
+
       return data;
     } catch (error) {
       console.error("Error in AI chat:", error);
@@ -484,7 +486,45 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
     }
   };
 
-  const messageGroups = groupMessagesByDate(localMessages);
+  // Handler for manual PDF download via icon click
+  const handleDownloadPrescriptionPdf = async () => {
+    if (!pendingPdfData) return;
+    const pdfData = pendingPdfData;
+
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = `
+      <div id="prescription-pdf" class="p-8">
+        <h1 class="text-2xl font-bold mb-6">Medical Prescription</h1>
+        <div class="mb-4">
+          <p><strong>Doctor:</strong> ${pdfData.doctorName}</p>
+          <p><strong>Date:</strong> ${pdfData.date}</p>
+          <p><strong>Patient:</strong> ${pdfData.patientName}</p>
+        </div>
+        <div class="mb-4">
+          <h2 class="text-xl font-semibold mb-2">Diagnosis</h2>
+          <p>${pdfData.diagnosis}</p>
+        </div>
+        <div class="mb-4">
+          <h2 class="text-xl font-semibold mb-2">Medications</h2>
+          <p>${pdfData.medications}</p>
+        </div>
+        ${pdfData.notes ? `
+          <div class="mb-4">
+            <h2 class="text-xl font-semibold mb-2">Additional Notes</h2>
+            <p>${pdfData.notes}</p>
+          </div>
+        ` : ''}
+      </div>
+    `;
+    document.body.appendChild(tempDiv);
+
+    await generatePdfFromElement(
+      'prescription-pdf',
+      `prescription_${pdfData.date.replace(/\//g, '-')}.pdf`
+    );
+
+    document.body.removeChild(tempDiv);
+  };
 
   return (
     <div className="h-full flex overflow-hidden rounded-md border border-neutral-200 dark:border-neutral-800 shadow-sm">
@@ -594,7 +634,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                         .map(([day, dayMessages], index, array) => {
                           const isLatestGroup = index === array.length - 1; // Last group is the latest
                           const isTodayGroup = isToday(new Date(day));
-                          
+
                           return (
                             <CollapsibleMessageGroup
                               key={day}
@@ -607,94 +647,115 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                                 .map((message) => {
                                   const isCurrentUser = message.sender_id === user?.id;
                                   const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
-                                  
-                                  return (
-                                    <div 
-                                      key={message.id} 
-                                      id={`message-${message.id}`}
-                                      className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} my-2`}
-                                    >
-                                      <div className="flex items-start gap-2 max-w-[80%]">
-                                        {!isCurrentUser && !message.is_system_message && (
-                                          <Avatar className="h-8 w-8">
-                                            {isAi ? (
-                                              <AvatarFallback className="bg-purple-100 text-purple-800">
-                                                AI
-                                              </AvatarFallback>
-                                            ) : (
-                                              <AvatarFallback>
-                                                {message.sender_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
-                                              </AvatarFallback>
-                                            )}
-                                          </Avatar>
-                                        )}
-                                        
-                                        <div className={`space-y-1 ${isCurrentUser ? 'order-first mr-2' : 'ml-0'}`}>
-                                          {!isCurrentUser && !message.is_system_message && (
-                                            <div className="flex items-center gap-1">
-                                              <span className="text-xs font-medium">
-                                                {isAi ? 'AI Assistant' : message.sender_name}
-                                              </span>
-                                              {message.sender_role && (
-                                                <Badge variant="outline" className="text-[10px] py-0 px-1">
-                                                  {message.sender_role}
-                                                </Badge>
-                                              )}
-                                            </div>
+
+                                // Detect prescription message
+                                const isPrescriptionMessage = isAi && typeof message.message === "string" &&
+                                  (
+                                    message.message.includes("prescription as a PDF") ||
+                                    message.message.includes("Prescription PDF has been generated")
+                                  );
+
+                                return (
+                                  <div 
+                                    key={message.id} 
+                                    id={`message-${message.id}`}
+                                    className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} my-2`}
+                                  >
+                                    <div className="flex items-start gap-2 max-w-[80%]">
+                                      {!isCurrentUser && !message.is_system_message && (
+                                        <Avatar className="h-8 w-8">
+                                          {isAi ? (
+                                            <AvatarFallback className="bg-purple-100 text-purple-800">
+                                              AI
+                                            </AvatarFallback>
+                                          ) : (
+                                            <AvatarFallback>
+                                              {message.sender_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
+                                            </AvatarFallback>
                                           )}
-                                          
-                                          <div 
-                                            className={`p-3 rounded-lg ${
-                                              message.is_system_message 
-                                                ? 'bg-muted text-muted-foreground text-xs italic' 
-                                                : isCurrentUser
-                                                  ? 'bg-primary text-primary-foreground'
-                                                  : isAi
-                                                    ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800'
-                                                    : 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700'
-                                            }`}
-                                          >
-                                            {message.message.startsWith('[FILE]') ? (
-                                              <div>
-                                                <div className="flex items-center gap-2 text-xs">
-                                                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file">
-                                                    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                                                    <polyline points="14 2 14 8 20 8"/>
-                                                  </svg>
-                                                  <a 
-                                                    href={message.message.split(' - ')[1]} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer"
-                                                    className="underline"
-                                                  >
-                                                    {message.message.split(' - ')[0].replace('[FILE] ', '')}
-                                                  </a>
-                                                </div>
-                                              </div>
-                                            ) : (
-                                              <>
-                                                <p className="text-sm whitespace-pre-wrap">{message.message}</p>
-                                                <p className="text-[10px] opacity-70 mt-1">
-                                                  {formatChatMessageTime(message.created_at)}
-                                                </p>
-                                              </>
+                                        </Avatar>
+                                      )}
+                                      
+                                      <div className={`space-y-1 ${isCurrentUser ? 'order-first mr-2' : 'ml-0'}`}>
+                                        {!isCurrentUser && !message.is_system_message && (
+                                          <div className="flex items-center gap-1">
+                                            <span className="text-xs font-medium">
+                                              {isAi ? 'AI Assistant' : message.sender_name}
+                                            </span>
+                                            {message.sender_role && (
+                                              <Badge variant="outline" className="text-[10px] py-0 px-1">
+                                                {message.sender_role}
+                                              </Badge>
                                             )}
                                           </div>
+                                        )}
+                                        
+                                        <div 
+                                          className={`p-3 rounded-lg ${
+                                            message.is_system_message 
+                                              ? 'bg-muted text-muted-foreground text-xs italic' 
+                                              : isCurrentUser
+                                                ? 'bg-primary text-primary-foreground'
+                                                : isAi
+                                                  ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800'
+                                                  : 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700'
+                                          }`}
+                                        >
+                                          {message.message.startsWith('[FILE]') ? (
+                                            <div>
+                                              <div className="flex items-center gap-2 text-xs">
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file">
+                                                  <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                                  <polyline points="14 2 14 8 20 8"/>
+                                                </svg>
+                                                <a 
+                                                  href={message.message.split(' - ')[1]} 
+                                                  target="_blank" 
+                                                  rel="noopener noreferrer"
+                                                  className="underline"
+                                                >
+                                                  {message.message.split(' - ')[0].replace('[FILE] ', '')}
+                                                </a>
+                                              </div>
+                                            </div>
+                                          ) : (
+                                            <>
+                                              {isPrescriptionMessage && pendingPdfData ? (
+                                                <div className="flex items-center gap-2 mb-2">
+                                                  <button
+                                                    onClick={handleDownloadPrescriptionPdf}
+                                                    type="button"
+                                                    className="flex items-center text-red-600 hover:text-red-700"
+                                                    title="Download prescription PDF"
+                                                  >
+                                                    <FilePdf className="h-5 w-5 mr-1" />
+                                                    <span className="underline font-medium text-sm">
+                                                      Download PDF
+                                                    </span>
+                                                  </button>
+                                                </div>
+                                              ) : null}
+                                              <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                                              <p className="text-[10px] opacity-70 mt-1">
+                                                {formatChatMessageTime(message.created_at)}
+                                              </p>
+                                            </>
+                                          )}
                                         </div>
                                       </div>
                                     </div>
-                                  );
-                                })}
-                            </CollapsibleMessageGroup>
-                          );
-                        })
-                    ) : (
-                      <div className="text-center text-muted-foreground">
-                        No messages to display
-                      </div>
-                    )}
-                  </div>
-                )}
+                                  </div>
+                                );
+                              })}
+                          </CollapsibleMessageGroup>
+                        );
+                      })
+                  ) : (
+                    <div className="text-center text-muted-foreground">
+                      No messages to display
+                    </div>
+                  )}
+                </div>
                 
                 {isAiResponding && (
                   <div className="flex items-center justify-center py-2">
