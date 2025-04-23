@@ -1,6 +1,5 @@
-
 import { format } from "date-fns";
-import { Check, CheckCheck, Clock, Bot, FileText } from "lucide-react";
+import { Check, CheckCheck, Clock, Bot } from "lucide-react";
 
 interface ChatMessageProps {
   message: {
@@ -31,7 +30,6 @@ export const ChatMessage = ({
   isLocal = false,
   onPdfDownload
 }: ChatMessageProps) => {
-  // Format message timestamp safely
   let formattedTime = '';
   try {
     const messageTime = new Date(message.created_at);
@@ -41,16 +39,12 @@ export const ChatMessage = ({
     formattedTime = 'Unknown time';
   }
 
-  // Get sender full name
   const senderFullName = `${message.sender.first_name || ''} ${message.sender.last_name || ''}`.trim() || 'Unknown';
   
-  // Determine if the sender is an AI bot
   const isAiBot = message.sender.role === 'aibot' || message.sender.id === '00000000-0000-0000-0000-000000000000';
   
-  // Determine if sender is a nutritionist
   const isNutritionist = message.sender.role === 'nutritionist';
   
-  // Check if message contains PDF reference
   const isPdfMessage = message.message.includes("PDF has been generated") || 
                       message.message.includes("prescription as a PDF") ||
                       message.message.includes("ready for download");
@@ -81,10 +75,9 @@ export const ChatMessage = ({
           <button
             onClick={onPdfDownload}
             className="flex items-center gap-1 text-blue-600 dark:text-blue-400 mb-2 hover:underline"
-            aria-label="Download PDF"
+            aria-label="Download Prescription"
           >
-            <FileText className="h-4 w-4" />
-            <span>Download Prescription PDF</span>
+            <span>Download Prescription</span>
           </button>
         )}
         
@@ -109,17 +102,14 @@ export const ChatMessage = ({
             </>
           )}
           
-          {/* Add blue tick for AI messages */}
           {!isCurrentUser && isAiBot && (
             <Check className="h-3 w-3 text-blue-500 ml-1" />
           )}
           
-          {/* Add double blue ticks for nutritionist messages */}
           {!isCurrentUser && isNutritionist && (
             <CheckCheck className="h-3 w-3 text-blue-500 ml-1" />
           )}
           
-          {/* Show bot icon for AI messages */}
           {isAiBot && (
             <Bot className="h-3 w-3 text-blue-400 ml-1" />
           )}
