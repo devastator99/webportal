@@ -5,54 +5,46 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PatientSelector } from "../doctor/prescription/PatientSelector";
 import { PrescriptionForm } from "../doctor/prescription/PrescriptionForm";
 import { PrescriptionHistory } from "../doctor/prescription/PrescriptionHistory";
-import { ConfirmationDialog } from "../doctor/prescription/ConfirmationDialog";
-import { usePrescriptions } from "../doctor/prescription/usePrescriptions";
+import { useToast } from "@/hooks/use-toast";
 
-export const PrescriptionWriter = () => {
-  const [selectedPatient, setSelectedPatient] = useState<string>("");
+interface PrescriptionWriterProps {
+  patientId?: string;  // Optional when accessed from dashboard
+  onPrescriptionSaved?: () => void;
+}
+
+export const PrescriptionWriter: React.FC<PrescriptionWriterProps> = ({ patientId: initialPatientId, onPrescriptionSaved }) => {
+  const [selectedPatient, setSelectedPatient] = useState<string>(initialPatientId || "");
   const [activeTab, setActiveTab] = useState<string>("write");
   const [savedPrescriptionId, setSavedPrescriptionId] = useState<string | null>(null);
-  
-  const {
-    diagnosis,
-    setDiagnosis,
-    prescription,
-    setPrescription,
-    notes,
-    setNotes,
-    confirmDialogOpen,
-    setConfirmDialogOpen,
-    isSaving,
-    pastPrescriptions,
-    handleSavePrescriptionRequest,
-    handleSavePrescription,
-    resetForm
-  } = usePrescriptions(selectedPatient);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    // Update selected patient if initialPatientId changes
+    if (initialPatientId) {
+      setSelectedPatient(initialPatientId);
+    }
+  }, [initialPatientId]);
 
   const onPatientSelect = () => {
-    resetForm();
     setActiveTab("write");
     setSavedPrescriptionId(null);
   };
 
-  const onConfirmSave = async () => {
-    const newPrescriptionId = await handleSavePrescription();
-    if (newPrescriptionId) {
-      setSavedPrescriptionId(newPrescriptionId);
+  const handlePrescriptionSaved = (id: string) => {
+    setSavedPrescriptionId(id);
+    toast({
+      title: "Success",
+      description: "Prescription saved successfully"
+    });
+    
+    if (onPrescriptionSaved) {
+      onPrescriptionSaved();
     }
-  };
-
-  const onSavePrescriptionWithId = () => {
-    handleSavePrescriptionRequest();
   };
 
   const handleAssignNutritionist = (prescriptionId: string) => {
     console.log("Assigning nutritionist for prescription:", prescriptionId);
   };
-
-  useEffect(() => {
-    resetForm();
-  }, [selectedPatient]);
 
   return (
     <Card className="col-span-6">
@@ -61,11 +53,13 @@ export const PrescriptionWriter = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          <PatientSelector 
-            selectedPatient={selectedPatient}
-            setSelectedPatient={setSelectedPatient}
-            onPatientSelect={onPatientSelect}
-          />
+          {!initialPatientId && (
+            <PatientSelector 
+              selectedPatient={selectedPatient}
+              setSelectedPatient={setSelectedPatient}
+              onPatientSelect={onPatientSelect}
+            />
+          )}
           
           {selectedPatient && (
             <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -77,29 +71,19 @@ export const PrescriptionWriter = () => {
               <TabsContent value="write" className="mt-4">
                 <PrescriptionForm
                   patientId={selectedPatient}
-                  onSaved={savedPrescriptionId ? undefined : (id) => setSavedPrescriptionId(id)}
+                  onSaved={savedPrescriptionId ? undefined : handlePrescriptionSaved}
                 />
               </TabsContent>
               
               <TabsContent value="history" className="mt-4">
                 <PrescriptionHistory 
-                  prescriptions={pastPrescriptions} 
+                  patientId={selectedPatient}
                   onAssignNutritionist={handleAssignNutritionist}
                 />
               </TabsContent>
             </Tabs>
           )}
         </div>
-
-        <ConfirmationDialog
-          isOpen={confirmDialogOpen}
-          onClose={() => setConfirmDialogOpen(false)}
-          onConfirm={onConfirmSave}
-          diagnosis={diagnosis}
-          prescription={prescription}
-          notes={notes}
-          isSaving={isSaving}
-        />
       </CardContent>
     </Card>
   );

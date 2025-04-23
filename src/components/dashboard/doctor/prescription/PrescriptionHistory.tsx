@@ -1,156 +1,169 @@
 
-import React, { useState } from "react";
-import { Prescription } from "./usePrescriptions";
+import React, { useEffect, useState } from "react";
+import { usePrescriptions } from "../prescription/usePrescriptions";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import { AssignNutritionistDialog } from "./AssignNutritionistDialog";
-import { PatientHealthPlan } from "../PatientHealthPlan";
-import { ChevronDown, ChevronUp, CalendarClock, FilePlus, UserPlus } from "lucide-react";
+import { Eye, Download, UserPlus } from "lucide-react";
+import { Spinner } from "@/components/ui/spinner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { formatDistance } from "date-fns";
+import { Badge } from "@/components/ui/badge";
 
 interface PrescriptionHistoryProps {
-  prescriptions: Prescription[];
+  patientId: string;
   onAssignNutritionist?: (prescriptionId: string) => void;
 }
 
-export const PrescriptionHistory = ({ prescriptions, onAssignNutritionist }: PrescriptionHistoryProps) => {
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
-  const [showAssignDialog, setShowAssignDialog] = useState(false);
-  const [showHealthPlan, setShowHealthPlan] = useState(false);
-  const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
-
-  const toggleAccordion = (index: number) => {
-    setOpenIndex(openIndex === index ? null : index);
-  };
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const handleViewHealthPlan = (prescription: Prescription) => {
-    setSelectedPrescription(prescription);
-    setShowHealthPlan(true);
-  };
-
-  const handleAssignNutritionist = (prescription: Prescription) => {
-    setSelectedPrescription(prescription);
-    setShowAssignDialog(true);
-    if (onAssignNutritionist) {
-      onAssignNutritionist(prescription.id);
+export const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ patientId, onAssignNutritionist }) => {
+  const { getPatientPrescriptions, getPrescription } = usePrescriptions();
+  const [prescriptions, setPrescriptions] = useState<any[]>([]);
+  const [selectedPrescription, setSelectedPrescription] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const { toast } = useToast();
+  
+  useEffect(() => {
+    fetchPrescriptions();
+  }, [patientId]);
+  
+  const fetchPrescriptions = async () => {
+    setLoading(true);
+    try {
+      const data = await getPatientPrescriptions(patientId);
+      setPrescriptions(data || []);
+    } catch (err) {
+      console.error('Error fetching prescriptions:', err);
+      toast({
+        title: "Error",
+        description: "Failed to load prescription history",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
+  
+  const handleViewDetails = async (prescriptionId: string) => {
+    try {
+      const data = await getPrescription(prescriptionId);
+      setSelectedPrescription(data);
+      setShowDetailsDialog(true);
+    } catch (err) {
+      console.error('Error fetching prescription details:', err);
+      toast({
+        title: "Error",
+        description: "Failed to load prescription details",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center p-8">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+  
+  if (!prescriptions.length) {
+    return (
+      <div className="text-center p-8 text-gray-500">
+        No prescription history available for this patient.
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6">
-      {prescriptions.length === 0 ? (
-        <div className="text-center py-6 text-muted-foreground">
-          No prescription history available.
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {showHealthPlan && selectedPrescription && (
-            <div className="mb-6">
+    <div className="space-y-4">
+      {prescriptions.map((prescription) => (
+        <Card key={prescription.id} className="overflow-hidden">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
+              <div>
+                <h3 className="font-medium">
+                  {prescription.diagnosis || "No diagnosis provided"}
+                </h3>
+                <p className="text-sm text-gray-500">
+                  {new Date(prescription.created_at).toLocaleDateString()} - {formatDistance(new Date(prescription.created_at), new Date(), { addSuffix: true })}
+                </p>
+              </div>
+              <Badge variant="outline" className="w-fit">
+                {prescription.format_type || 'standard'}
+              </Badge>
+            </div>
+            
+            <div className="mt-4 flex flex-wrap gap-2">
               <Button 
                 variant="outline" 
-                className="mb-4"
-                onClick={() => setShowHealthPlan(false)}
+                size="sm" 
+                onClick={() => handleViewDetails(prescription.id)}
               >
-                ← Back to Prescriptions
+                <Eye className="h-4 w-4 mr-2" />
+                View Details
               </Button>
-              <PatientHealthPlan patientId={selectedPrescription.patient_id} />
+              <Button 
+                variant="outline" 
+                size="sm"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download PDF
+              </Button>
+              {onAssignNutritionist && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => onAssignNutritionist(prescription.id)}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Assign Nutritionist
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+      
+      {/* Prescription Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>Prescription Details</DialogTitle>
+          </DialogHeader>
+          
+          {selectedPrescription && (
+            <div className="max-h-[60vh] overflow-y-auto space-y-4">
+              <div>
+                <h3 className="text-sm font-semibold">Diagnosis</h3>
+                <p>{selectedPrescription.diagnosis || "No diagnosis provided"}</p>
+              </div>
+              
+              {selectedPrescription.prescription && (
+                <div>
+                  <h3 className="text-sm font-semibold">Prescription</h3>
+                  <p className="whitespace-pre-wrap">{selectedPrescription.prescription}</p>
+                </div>
+              )}
+              
+              {selectedPrescription.notes && (
+                <div>
+                  <h3 className="text-sm font-semibold">Notes</h3>
+                  <p className="whitespace-pre-wrap">{selectedPrescription.notes}</p>
+                </div>
+              )}
+              
+              {/* Add medication and test details here once API returns structured data */}
+              
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setShowDetailsDialog(false)}>
+                  Close
+                </Button>
+              </div>
             </div>
           )}
-
-          {!showHealthPlan && prescriptions.map((prescription, index) => (
-            <Collapsible
-              key={prescription.id}
-              open={openIndex === index}
-              onOpenChange={() => toggleAccordion(index)}
-              className="border rounded-md"
-            >
-              <CollapsibleTrigger asChild>
-                <div className="flex justify-between items-center p-4 cursor-pointer hover:bg-muted/50">
-                  <div className="flex items-center">
-                    <CalendarClock className="h-5 w-5 mr-2 text-muted-foreground" />
-                    <div>
-                      <h3 className="font-medium">
-                        {prescription.diagnosis}
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDate(prescription.created_at)}
-                      </p>
-                    </div>
-                  </div>
-                  {openIndex === index ? (
-                    <ChevronUp className="h-5 w-5 text-muted-foreground" />
-                  ) : (
-                    <ChevronDown className="h-5 w-5 text-muted-foreground" />
-                  )}
-                </div>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="px-4 pb-4">
-                <Separator className="mb-4" />
-                <div className="space-y-3">
-                  <div>
-                    <h4 className="font-medium">Diagnosis</h4>
-                    <p className="mt-1">{prescription.diagnosis}</p>
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Prescription</h4>
-                    <p className="mt-1 whitespace-pre-line">{prescription.prescription}</p>
-                  </div>
-                  {prescription.notes && (
-                    <div>
-                      <h4 className="font-medium">Additional Notes</h4>
-                      <p className="mt-1 whitespace-pre-line">{prescription.notes}</p>
-                    </div>
-                  )}
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1"
-                      onClick={() => handleViewHealthPlan(prescription)}
-                    >
-                      <FilePlus className="h-4 w-4" />
-                      View Health Plan
-                    </Button>
-                    <Button
-                      variant="outline" 
-                      size="sm"
-                      className="gap-1"
-                      onClick={() => handleAssignNutritionist(prescription)}
-                    >
-                      <UserPlus className="h-4 w-4" />
-                      Assign Nutritionist
-                    </Button>
-                  </div>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          ))}
-        </div>
-      )}
-
-      {selectedPrescription && (
-        <AssignNutritionistDialog
-          isOpen={showAssignDialog}
-          onClose={() => setShowAssignDialog(false)}
-          patientId={selectedPrescription.patient_id}
-          prescriptionId={selectedPrescription.id}
-        />
-      )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

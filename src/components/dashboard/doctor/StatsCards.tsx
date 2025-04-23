@@ -7,6 +7,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface DoctorStats {
   patients_count: number;
@@ -15,9 +18,19 @@ interface DoctorStats {
   upcoming_appointments: number;
 }
 
+interface Patient {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
+
 export const StatsCards = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [statsData, setStatsData] = useState<DoctorStats | null>(null);
+  const [showPatientsDialog, setShowPatientsDialog] = useState(false);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [loadingPatients, setLoadingPatients] = useState(false);
 
   // Query to fetch initial stats
   const { isLoading, isError, refetch } = useQuery({
@@ -76,6 +89,32 @@ export const StatsCards = () => {
     retry: 1,
   });
 
+  // Function to fetch patients assigned to the doctor
+  const fetchPatients = async () => {
+    if (!user?.id) return;
+    
+    setLoadingPatients(true);
+    try {
+      const { data, error } = await supabase.rpc(
+        'get_doctor_patients',
+        { p_doctor_id: user.id }
+      );
+      
+      if (error) throw error;
+      
+      setPatients(data || []);
+    } catch (err) {
+      console.error('Error fetching patients:', err);
+      toast({
+        title: "Error loading patients",
+        description: "Failed to load patient list. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingPatients(false);
+    }
+  };
+
   // Set up realtime subscriptions to update stats when data changes
   useEffect(() => {
     if (!user?.id) return;
@@ -129,6 +168,18 @@ export const StatsCards = () => {
     return () => clearInterval(interval);
   }, [user?.id, refetch]);
 
+  // Handle opening the patients dialog
+  const handleOpenPatientsDialog = () => {
+    fetchPatients();
+    setShowPatientsDialog(true);
+  };
+
+  // Navigate to patient prescriptions
+  const navigateToPatientPrescriptions = (patientId: string) => {
+    navigate(`/patient/${patientId}/prescriptions`);
+    setShowPatientsDialog(false);
+  };
+
   if (isLoading) {
     return (
       <Card className="mb-4">
@@ -151,13 +202,59 @@ export const StatsCards = () => {
     <Card className="mb-4">
       <CardContent className="p-4">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="flex flex-col items-center">
-            <div className="bg-[#E5DEFF] p-3 rounded-full mb-2">
-              <Users className="h-6 w-6 text-[#9b87f5]" />
-            </div>
-            <span className="text-2xl font-bold">{isError ? "0" : statsData?.patients_count || 0}</span>
-            <span className="text-xs text-gray-500 text-center">Patients</span>
-          </div>
+          <Dialog open={showPatientsDialog} onOpenChange={setShowPatientsDialog}>
+            <DialogTrigger asChild>
+              <div 
+                className="flex flex-col items-center cursor-pointer hover:bg-gray-50 p-2 rounded-lg transition-colors"
+                onClick={handleOpenPatientsDialog}
+              >
+                <div className="bg-[#E5DEFF] p-3 rounded-full mb-2">
+                  <Users className="h-6 w-6 text-[#9b87f5]" />
+                </div>
+                <span className="text-2xl font-bold">{isError ? "0" : statsData?.patients_count || 0}</span>
+                <span className="text-xs text-gray-500 text-center">Patients</span>
+              </div>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Your Patients</DialogTitle>
+              </DialogHeader>
+              <div className="max-h-[60vh] overflow-y-auto">
+                {loadingPatients ? (
+                  <div className="flex justify-center p-8">
+                    <Skeleton className="h-32 w-full" />
+                  </div>
+                ) : patients.length === 0 ? (
+                  <div className="text-center p-8 text-gray-500">
+                    No patients assigned to you yet.
+                  </div>
+                ) : (
+                  <div className="grid gap-2">
+                    {patients.map((patient) => (
+                      <div 
+                        key={patient.id}
+                        className="flex justify-between items-center p-3 border rounded-lg hover:bg-gray-50"
+                      >
+                        <div>
+                          <p className="font-medium">{patient.first_name} {patient.last_name}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => navigateToPatientPrescriptions(patient.id)}
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            Prescriptions
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
           
           <div className="flex flex-col items-center">
             <div className="bg-[#FDE1D3] p-3 rounded-full mb-2">

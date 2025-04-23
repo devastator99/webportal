@@ -1,10 +1,10 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Save, UserPlus, CalendarPlus, Activity } from "lucide-react";
+import { Plus, Save, UserPlus, CalendarPlus, Activity, X, FileText } from "lucide-react";
 import { usePrescriptions } from "@/hooks/usePrescriptions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { PrescriptionData } from "@/hooks/usePrescriptions";
@@ -12,6 +12,9 @@ import { MedicationsList } from "./MedicationsList";
 import { PrescribedTests } from "./PrescribedTests";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { PrescriptionLetterhead } from "./PrescriptionLetterhead";
+import { PrescriptionFooter } from "./PrescriptionFooter";
 
 export interface PrescriptionFormProps {
   patientId: string;
@@ -33,6 +36,16 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
   const [vitals, setVitals] = useState<PrescriptionData["vitals"]>();
   const [followUpDate, setFollowUpDate] = useState("");
   const [validityPeriod, setValidityPeriod] = useState(30); // Default 30 days
+  const [headerInfo, setHeaderInfo] = useState({
+    clinicName: "DIABETES THYROID AND HORMONE CENTRE",
+    clinicAddress: "NC-9, P.C. Colony",
+    clinicLocation: "Near Gayatri Mandir (100 m North)",
+    clinicCity: "Lohiya Nagar, Kankarbagh, Patna, Bihar (800020)",
+    timings: "10:00 AM to 4:00 PM",
+    days: "Monday to Saturday",
+    appointmentNote: "Consultation Only by Prior Appointment",
+    closedDays: "(Sunday closed)"
+  });
 
   const [newMedication, setNewMedication] = useState({
     medication_name: "",
@@ -47,6 +60,16 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
     test_name: "",
     instructions: ""
   });
+
+  // Handle removing a test
+  const handleRemoveTest = (index: number) => {
+    setTests(tests.filter((_, i) => i !== index));
+  };
+
+  // Handle removing a medication
+  const handleRemoveMedication = (index: number) => {
+    setMedications(medications.filter((_, i) => i !== index));
+  };
 
   const handleSavePrescription = async () => {
     if (!diagnosis) {
@@ -107,6 +130,9 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* Prescription Letterhead */}
+      <PrescriptionLetterhead headerInfo={headerInfo} />
+      
       <div className="space-y-4">
         <div>
           <Label htmlFor="diagnosis">Diagnosis <span className="text-red-500">*</span></Label>
@@ -131,89 +157,97 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
         <Card>
           <CardContent className="p-4 space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-semibold">Medications & Tests</h3>
-              <div className="flex gap-2">
-                <Dialog open={showMedicationDialog} onOpenChange={setShowMedicationDialog}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      <Plus className="h-4 w-4 mr-1" /> Add Medication
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add Medication</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4 pt-4">
-                      {/* Medication Form */}
-                      <div className="space-y-4">
-                        <div>
-                          <Label>Medication Name*</Label>
-                          <Input
-                            value={newMedication.medication_name}
-                            onChange={(e) => setNewMedication({
-                              ...newMedication,
-                              medication_name: e.target.value
-                            })}
-                          />
-                        </div>
-                        <div>
-                          <Label>Dosage*</Label>
-                          <Input
-                            value={newMedication.dosage}
-                            onChange={(e) => setNewMedication({
-                              ...newMedication,
-                              dosage: e.target.value
-                            })}
-                          />
-                        </div>
-                        <div>
-                          <Label>Frequency*</Label>
-                          <Input
-                            value={newMedication.frequency}
-                            onChange={(e) => setNewMedication({
-                              ...newMedication,
-                              frequency: e.target.value
-                            })}
-                          />
-                        </div>
-                        <div>
-                          <Label>Duration</Label>
-                          <Input
-                            value={newMedication.duration}
-                            onChange={(e) => setNewMedication({
-                              ...newMedication,
-                              duration: e.target.value
-                            })}
-                          />
-                        </div>
-                        <div>
-                          <Label>Timing</Label>
-                          <Input
-                            value={newMedication.timing}
-                            onChange={(e) => setNewMedication({
-                              ...newMedication,
-                              timing: e.target.value
-                            })}
-                          />
-                        </div>
-                        <div>
-                          <Label>Instructions</Label>
-                          <Textarea
-                            value={newMedication.instructions}
-                            onChange={(e) => setNewMedication({
-                              ...newMedication,
-                              instructions: e.target.value
-                            })}
-                          />
-                        </div>
-                        <Button onClick={handleAddMedication} className="w-full">
-                          Add Medication
-                        </Button>
+              <h3 className="font-semibold">Medications</h3>
+              <Dialog open={showMedicationDialog} onOpenChange={setShowMedicationDialog}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Plus className="h-4 w-4 mr-1" /> Add Medication
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add Medication</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4 pt-4">
+                    {/* Medication Form */}
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Medication Name*</Label>
+                        <Input
+                          value={newMedication.medication_name}
+                          onChange={(e) => setNewMedication({
+                            ...newMedication,
+                            medication_name: e.target.value
+                          })}
+                        />
                       </div>
+                      <div>
+                        <Label>Dosage*</Label>
+                        <Input
+                          value={newMedication.dosage}
+                          onChange={(e) => setNewMedication({
+                            ...newMedication,
+                            dosage: e.target.value
+                          })}
+                        />
+                      </div>
+                      <div>
+                        <Label>Frequency*</Label>
+                        <Input
+                          value={newMedication.frequency}
+                          onChange={(e) => setNewMedication({
+                            ...newMedication,
+                            frequency: e.target.value
+                          })}
+                        />
+                      </div>
+                      <div>
+                        <Label>Duration</Label>
+                        <Input
+                          value={newMedication.duration}
+                          onChange={(e) => setNewMedication({
+                            ...newMedication,
+                            duration: e.target.value
+                          })}
+                        />
+                      </div>
+                      <div>
+                        <Label>Timing</Label>
+                        <Input
+                          value={newMedication.timing}
+                          onChange={(e) => setNewMedication({
+                            ...newMedication,
+                            timing: e.target.value
+                          })}
+                        />
+                      </div>
+                      <div>
+                        <Label>Instructions</Label>
+                        <Textarea
+                          value={newMedication.instructions}
+                          onChange={(e) => setNewMedication({
+                            ...newMedication,
+                            instructions: e.target.value
+                          })}
+                        />
+                      </div>
+                      <Button onClick={handleAddMedication} className="w-full">
+                        Add Medication
+                      </Button>
                     </div>
-                  </DialogContent>
-                </Dialog>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
 
+            <MedicationsList medications={medications} onRemove={handleRemoveMedication} />
+            
+            <Separator className="my-4" />
+            
+            {/* Tests Section */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="font-semibold">Prescribed Tests</h3>
                 <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
                   <DialogTrigger asChild>
                     <Button variant="outline" size="sm">
@@ -255,10 +289,9 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
                   </DialogContent>
                 </Dialog>
               </div>
+              
+              <PrescribedTests tests={tests} onRemove={handleRemoveTest} />
             </div>
-
-            <MedicationsList medications={medications} />
-            <PrescribedTests tests={tests} />
           </CardContent>
         </Card>
 
@@ -374,7 +407,19 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
         </DialogContent>
       </Dialog>
 
+      {/* Prescription Footer */}
+      <PrescriptionFooter validity={validityPeriod} />
+
       <div className="flex justify-end space-x-2">
+        <Button
+          variant="outline"
+          onClick={() => {
+            // Preview logic would go here
+          }}
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          Preview
+        </Button>
         <Button
           className="gap-2"
           onClick={handleSavePrescription}
