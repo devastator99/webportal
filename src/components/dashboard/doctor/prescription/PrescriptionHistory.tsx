@@ -7,13 +7,33 @@ import { Eye, Download, UserPlus } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { formatDistance } from "date-fns";
+import { format, formatDistance, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 
 interface PrescriptionHistoryProps {
   patientId: string;
   onAssignNutritionist?: (prescriptionId: string) => void;
 }
+
+// Helper function to safely format dates
+const safeFormatDate = (dateString: string, formatStr: string = 'PPP') => {
+  try {
+    return format(parseISO(dateString), formatStr);
+  } catch (e) {
+    console.error("Date formatting error:", e, "for date:", dateString);
+    return "Invalid date";
+  }
+};
+
+// Helper function to safely calculate relative time
+const safeFormatRelativeTime = (dateString: string) => {
+  try {
+    return formatDistance(parseISO(dateString), new Date(), { addSuffix: true });
+  } catch (e) {
+    console.error("Relative time calculation error:", e, "for date:", dateString);
+    return "";
+  }
+};
 
 export const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ patientId, onAssignNutritionist }) => {
   const { getPatientPrescriptions, getPrescription } = usePrescriptionsHook(); // Use the imported hook
@@ -31,6 +51,13 @@ export const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ patien
     setLoading(true);
     try {
       const data = await getPatientPrescriptions(patientId);
+      
+      // Log fetched data to help debug
+      console.log("Prescriptions fetched:", data);
+      if (data && data.length > 0) {
+        console.log("Sample prescription date:", data[0].created_at);
+      }
+      
       setPrescriptions(data || []);
     } catch (err) {
       console.error('Error fetching prescriptions:', err);
@@ -86,7 +113,7 @@ export const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ patien
                   {prescription.diagnosis || "No diagnosis provided"}
                 </h3>
                 <p className="text-sm text-gray-500">
-                  {new Date(prescription.created_at).toLocaleDateString()} - {formatDistance(new Date(prescription.created_at), new Date(), { addSuffix: true })}
+                  {safeFormatDate(prescription.created_at)} - {safeFormatRelativeTime(prescription.created_at)}
                 </p>
               </div>
               <Badge variant="outline" className="w-fit">
@@ -152,6 +179,11 @@ export const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ patien
                   <p className="whitespace-pre-wrap">{selectedPrescription.notes}</p>
                 </div>
               )}
+
+              <div>
+                <h3 className="text-sm font-semibold">Date</h3>
+                <p>{safeFormatDate(selectedPrescription.created_at)}</p>
+              </div>
               
               {/* Add medication and test details here once API returns structured data */}
               

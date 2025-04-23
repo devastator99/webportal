@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { formatDistance } from "date-fns";
+import { formatDistanceToNow, format, parseISO } from "date-fns";
 import { FileText, Download, Calendar, User, Pill } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -29,6 +29,26 @@ interface Prescription {
   doctor_first_name: string;
   doctor_last_name: string;
 }
+
+// Helper function to safely format dates
+const safeFormatDate = (dateString: string, formatStr: string = 'PPP') => {
+  try {
+    return format(parseISO(dateString), formatStr);
+  } catch (e) {
+    console.error("Date formatting error:", e, "for date:", dateString);
+    return "Invalid date";
+  }
+};
+
+// Helper function to safely calculate relative time
+const safeFormatRelativeTime = (dateString: string) => {
+  try {
+    return formatDistanceToNow(parseISO(dateString), { addSuffix: true });
+  } catch (e) {
+    console.error("Relative time calculation error:", e, "for date:", dateString);
+    return "";
+  }
+};
 
 const PatientPrescriptionsPage: React.FC = () => {
   const { user } = useAuth();
@@ -63,7 +83,11 @@ const PatientPrescriptionsPage: React.FC = () => {
             setManualError(new Error(`Direct fetch error: ${error.message}`));
           } else {
             console.log("Direct fetch success, found:", data?.length || 0, "prescriptions");
-            console.log("Sample data:", data?.[0]);
+            if (data && data.length > 0) {
+              console.log("Sample data:", data[0]);
+              // Log the date format to help debug
+              console.log("Date format example:", data[0].created_at);
+            }
           }
         } catch (err) {
           console.error("Direct fetch exception:", err);
@@ -218,11 +242,11 @@ const PatientPrescriptionsPage: React.FC = () => {
                               Prescription
                             </CardTitle>
                             <CardDescription>
-                              {new Date(prescription.created_at).toLocaleDateString()} by Dr. {prescription.doctor_first_name} {prescription.doctor_last_name}
+                              {safeFormatDate(prescription.created_at, 'PPP')} by Dr. {prescription.doctor_first_name} {prescription.doctor_last_name}
                             </CardDescription>
                           </div>
                           <Badge variant="outline" className="mt-2 md:mt-0 w-fit">
-                            {formatDistance(new Date(prescription.created_at), new Date(), { addSuffix: true })}
+                            {safeFormatRelativeTime(prescription.created_at)}
                           </Badge>
                         </div>
                       </CardHeader>
@@ -300,7 +324,7 @@ const PatientPrescriptionsPage: React.FC = () => {
                               Prescription from Dr. {prescription.doctor_first_name} {prescription.doctor_last_name}
                             </div>
                             <time className="block text-xs text-gray-500 mb-2">
-                              {new Date(prescription.created_at).toLocaleDateString()} at {new Date(prescription.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                              {safeFormatDate(prescription.created_at)} 
                             </time>
                             <div className="text-sm">
                               <strong>Diagnosis:</strong> {prescription.diagnosis || "No diagnosis provided"}
@@ -350,7 +374,7 @@ const PatientPrescriptionsPage: React.FC = () => {
                   <div className="text-center mb-6">
                     <h1 className="text-xl font-bold mb-2">Medical Prescription</h1>
                     <p className="text-sm text-gray-500">
-                      Issued on: {new Date(selectedPrescription.created_at).toLocaleDateString()}
+                      Issued on: {safeFormatDate(selectedPrescription.created_at)}
                     </p>
                   </div>
                   
@@ -387,7 +411,7 @@ const PatientPrescriptionsPage: React.FC = () => {
                   </div>
                   
                   <div className="mt-8 pt-4 border-t text-xs text-gray-500">
-                    <p>This prescription is valid from {new Date(selectedPrescription.created_at).toLocaleDateString()}</p>
+                    <p>This prescription is valid from {safeFormatDate(selectedPrescription.created_at)}</p>
                     <p className="mt-2">Digitally issued via Anubhuti Care System</p>
                   </div>
                 </div>

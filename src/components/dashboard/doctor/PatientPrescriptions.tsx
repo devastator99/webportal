@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,10 +9,30 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { formatDistance } from "date-fns";
+import { format, formatDistance, parseISO } from "date-fns";
 import { Spinner } from "@/components/ui/spinner";
 import { PrescriptionWriter } from "./PrescriptionWriter";
 import { supabase } from "@/integrations/supabase/client";
+
+// Helper function to safely format dates
+const safeFormatDate = (dateString: string, formatStr: string = 'PPP') => {
+  try {
+    return format(parseISO(dateString), formatStr);
+  } catch (e) {
+    console.error("Date formatting error:", e, "for date:", dateString);
+    return "Invalid date";
+  }
+};
+
+// Helper function to safely calculate relative time
+const safeFormatRelativeTime = (dateString: string) => {
+  try {
+    return formatDistance(parseISO(dateString), new Date(), { addSuffix: true });
+  } catch (e) {
+    console.error("Relative time calculation error:", e, "for date:", dateString);
+    return "";
+  }
+};
 
 export const PatientPrescriptions = () => {
   const { patientId } = useParams<{ patientId: string }>();
@@ -117,11 +138,11 @@ export const PatientPrescriptions = () => {
                             {prescription.diagnosis}
                           </h3>
                           <p className="text-sm text-gray-500">
-                            {new Date(prescription.created_at).toLocaleDateString()}
+                            {safeFormatDate(prescription.created_at)}
                           </p>
                         </div>
                         <Badge variant="outline" className="w-fit">
-                          {formatDistance(new Date(prescription.created_at), new Date(), { addSuffix: true })}
+                          {safeFormatRelativeTime(prescription.created_at)}
                         </Badge>
                       </div>
                       
@@ -183,6 +204,11 @@ export const PatientPrescriptions = () => {
                   <p className="whitespace-pre-wrap">{selectedPrescription.notes}</p>
                 </div>
               )}
+              
+              <div>
+                <h3 className="font-semibold text-sm">Date</h3>
+                <p>{safeFormatDate(selectedPrescription.created_at)}</p>
+              </div>
               
               <div className="flex justify-end">
                 <Button variant="outline" onClick={() => setShowPrescriptionDialog(false)}>
