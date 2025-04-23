@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -184,46 +183,29 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
 
   const fetchMessages = async (roomId: string, pageNum: number, isLoadingMore = false) => {
     if (!roomId) return;
-    
     try {
-      if (!isLoadingMore) {
-        setIsLoadingMessages(true);
-      }
+      if (!isLoadingMore) setIsLoadingMessages(true);
       setRoomError(null);
-      console.log(`Fetching messages for room ${roomId}, page ${pageNum}, isLoadingMore: ${isLoadingMore}`);
-      
       const { data, error } = await supabase.rpc('get_room_messages_with_role', {
         p_room_id: roomId,
-        p_limit: 50,
-        p_offset: (pageNum - 1) * 50,
+        p_limit: 100,
+        p_offset: (pageNum - 1) * 100,
         p_user_role: userRole || 'patient'
       });
-      
       if (error) {
         console.error("Error fetching room messages:", error);
         setRoomError(`Failed to load messages: ${error.message}`);
         throw error;
       }
-      
-      console.log(`Fetched ${data?.length || 0} messages:`, data);
-      
-      if (data && data.length > 0) {
-        // Make sure messages are sorted by created_at
-        const sortedData = sortByDate(data, 'created_at', true);
-        
-        if (isLoadingMore) {
-          setLocalMessages(prev => [...sortedData, ...prev]);
-        } else {
-          setLocalMessages(sortedData);
-        }
-        setHasMoreMessages(data.length === 50);
+      const sortedData = Array.isArray(data)
+        ? [...data].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        : [];
+      if (isLoadingMore) {
+        setLocalMessages(prev => [...sortedData, ...prev]);
       } else {
-        if (!isLoadingMore) {
-          setLocalMessages([]);
-        }
-        setHasMoreMessages(false);
+        setLocalMessages(sortedData);
       }
-      
+      setHasMoreMessages(Array.isArray(data) && data.length === 100);
       setNewMessageAdded(false);
     } catch (error) {
       console.error("Error fetching messages:", error);
@@ -234,9 +216,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         variant: "destructive"
       });
     } finally {
-      if (!isLoadingMore) {
-        setIsLoadingMessages(false);
-      }
+      if (!isLoadingMore) setIsLoadingMessages(false);
     }
   };
 
@@ -623,7 +603,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                               isLatestGroup={isLatestGroup || isTodayGroup}
                             >
                               {dayMessages
-                                // Sort messages within a day by time (oldest to newest)
                                 .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
                                 .map((message) => {
                                   const isCurrentUser = message.sender_id === user?.id;

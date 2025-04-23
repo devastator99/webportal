@@ -97,81 +97,49 @@ export const ChatMessagesList = ({
 
   const fetchMessages = async (roomId: string, pageNum: number, isLoadingMore = false) => {
     if (!roomId) return;
-    
     try {
-      if (!isLoadingMore) {
-        setIsLoadingMessages(true);
-      }
+      if (!isLoadingMore) setIsLoadingMessages(true);
       setRoomError(null);
-      console.log(`Fetching messages for room ${roomId}, page ${pageNum}, isLoadingMore: ${isLoadingMore}`);
-      
       const { data, error } = await supabase.rpc('get_room_messages_with_role', {
         p_room_id: roomId,
         p_limit: 100,
         p_offset: (pageNum - 1) * 100,
         p_user_role: userRole || 'patient'
       });
-      
+
       if (error) {
         console.error("Error fetching messages:", error);
         setRoomError(`Failed to load messages: ${error.message}`);
         throw error;
       }
-      
-      console.log(`Retrieved ${data?.length || 0} messages from API`);
-      
-      if (data && data.length > 0) {
-        const sortedData = sortByDate(data, 'created_at', true);
-        
-        const today = normalizeDateString(new Date());
-        const hasMessagesForToday = sortedData.some(msg => {
-          try {
-            const msgDate = new Date(msg.created_at);
-            const msgDateStr = normalizeDateString(msgDate);
-            const isMessageToday = msgDateStr === today;
-            console.log(`Message ${msg.id} date check: ${msgDateStr}, today: ${today}, isToday: ${isMessageToday}`);
-            return isMessageToday;
-          } catch (error) {
-            console.error(`Error checking message date:`, error);
-            return false;
-          }
+
+      const sortedData = Array.isArray(data)
+        ? [...data].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+        : [];
+
+      if (isLoadingMore) {
+        setMessages(prev => {
+          const newMessages = sortedData.filter(
+            newMsg => !prev.some(existingMsg => existingMsg.id === newMsg.id)
+          );
+          return [...newMessages, ...prev];
         });
-        
-        console.log(`Has messages for today: ${hasMessagesForToday}`);
-        
-        if (isLoadingMore) {
-          setMessages(prev => {
-            const newMessages = sortedData.filter(
-              newMsg => !prev.some(existingMsg => existingMsg.id === newMsg.id)
-            );
-            return [...newMessages, ...prev];
-          });
-        } else {
-          setMessages(sortedData);
-        }
-        setHasMoreMessages(data.length === 100);
       } else {
-        if (!isLoadingMore) {
-          setMessages([]);
-        }
-        setHasMoreMessages(false);
+        setMessages(sortedData);
       }
-      
+
+      setHasMoreMessages(Array.isArray(data) && data.length === 100);
       setNewMessageAdded(false);
     } catch (error) {
       console.error("Error in fetchMessages:", error);
-      if (!isLoadingMore) {
-        setIsLoading(false);
-      }
+      if (!isLoadingMore) setIsLoading(false);
       toast({
         title: "Error loading messages",
         description: "Please try again later",
         variant: "destructive"
       });
     } finally {
-      if (!isLoadingMore) {
-        setIsLoadingMessages(false);
-      }
+      if (!isLoadingMore) setIsLoadingMessages(false);
       setLoadingMore(false);
       setIsLoading(false);
     }
