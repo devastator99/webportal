@@ -4,10 +4,15 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { redirectFixForDoctor } from './AuthContext';
 
 // Define UserRole type
 export type UserRole = 'patient' | 'doctor' | 'nutritionist' | 'administrator' | 'reception' | null;
+
+// Helper function to handle doctor redirects
+export const redirectFixForDoctor = (): string => {
+  // This function helps ensure doctors are sent to the right dashboard
+  return '/dashboard';
+};
 
 interface AuthContextType {
   user: User | null;
@@ -54,11 +59,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Fetch user role
           if (initialSession.user) {
             const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
-              p_user_id: initialSession.user.id
+              lookup_user_id: initialSession.user.id
             });
             
             if (!roleError && roleData) {
-              setUserRole(roleData as UserRole);
+              setUserRole(roleData[0]?.role as UserRole || null);
               console.log("User role set:", roleData);
             } else if (roleError) {
               console.error("Error fetching user role:", roleError);
@@ -87,24 +92,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (newSession.user) {
             try {
               const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
-                p_user_id: newSession.user.id
+                lookup_user_id: newSession.user.id
               });
               
               if (!roleError && roleData) {
-                const userRole = roleData as UserRole;
-                setUserRole(userRole);
-                console.log("User role on sign in:", userRole);
+                const userRoleValue = roleData[0]?.role as UserRole || null;
+                setUserRole(userRoleValue);
+                console.log("User role on sign in:", userRoleValue);
                 
                 // Redirect based on role
-                if (userRole === 'doctor') {
+                if (userRoleValue === 'doctor') {
                   // Use the redirectFixForDoctor helper to ensure we go to /dashboard
                   const targetRoute = redirectFixForDoctor();
                   navigate(targetRoute);
-                } else if (userRole === 'patient') {
+                } else if (userRoleValue === 'patient') {
                   navigate('/dashboard');
-                } else if (userRole === 'administrator') {
+                } else if (userRoleValue === 'administrator') {
                   navigate('/admin');
-                } else if (userRole === 'nutritionist') {
+                } else if (userRoleValue === 'nutritionist') {
                   navigate('/dashboard');
                 } else {
                   navigate('/');
@@ -221,4 +226,4 @@ export const useAuth = () => {
 };
 
 // Re-export the UserRole type for convenience
-export { UserRole };
+export type { UserRole };
