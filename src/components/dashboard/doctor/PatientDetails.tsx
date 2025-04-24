@@ -129,18 +129,18 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
 
       <div className="container py-6">
         <div className="flex gap-6">
-          <div className="w-64 flex-shrink-0">
-            <div className="sticky top-24 backdrop-blur-xl bg-white/10 dark:bg-black/10 border border-white/20 dark:border-white/10 rounded-lg shadow-lg overflow-hidden">
+          <div className="w-56 flex-shrink-0">
+            <div className="sticky top-24 backdrop-blur-sm bg-white/5 dark:bg-black/5 rounded-lg overflow-hidden border-0 shadow-[0_4px_12px_-2px_rgba(155,135,245,0.1)]">
               <nav className="flex flex-col p-2 space-y-1">
                 {menuItems.map((item) => (
                   <Button
                     key={item.id}
                     variant="ghost"
                     className={cn(
-                      "justify-start gap-3 px-3 py-2 w-full",
+                      "justify-start gap-3 px-3 py-2 w-full transition-all duration-200",
                       activeSection === item.id
-                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                        : "hover:bg-accent hover:text-accent-foreground"
+                        ? "bg-[#9b87f5] text-white hover:bg-[#8b77e5]"
+                        : "hover:bg-[#E5DEFF] hover:text-[#7E69AB]"
                     )}
                     onClick={() => setActiveSection(item.id)}
                   >
