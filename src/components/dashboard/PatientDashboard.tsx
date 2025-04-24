@@ -14,11 +14,13 @@ import { useIsIPad } from "@/hooks/use-mobile";
 import { 
   Calendar, 
   FileText, 
-  ArrowRight
+  ArrowRight,
+  UserRound
 } from "lucide-react";
 import { MedicalRecordsList } from './patient/MedicalRecordsList';
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { PatientCuratedHealthTips } from "./patient/PatientCuratedHealthTips";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
@@ -26,11 +28,9 @@ export const PatientDashboard = () => {
   const isIPad = useIsIPad();
   const navigate = useNavigate();
 
-  // Care team chat room ID state
   const [careTeamRoomId, setCareTeamRoomId] = useState<string | null>(null);
 
   useEffect(() => {
-    // Fetch care team room id for the current patient
     const fetchRoomId = async () => {
       if (!user?.id) return;
       try {
@@ -62,7 +62,6 @@ export const PatientDashboard = () => {
     queryFn: async () => {
       if (!user?.id) throw new Error("No user ID");
       
-      // First get the profile data
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("first_name, last_name")
@@ -77,7 +76,6 @@ export const PatientDashboard = () => {
         throw new Error("No profile found");
       }
 
-      // Get next appointment
       const { data: appointments, error: appointmentsError } = await supabase
         .rpc("get_patient_appointments", { p_patient_id: user.id });
         
@@ -85,7 +83,6 @@ export const PatientDashboard = () => {
         console.error("Error fetching appointments:", appointmentsError);
       }
 
-      // Get latest prescription
       const { data: doctorAssignment } = await supabase
         .from("patient_assignments")
         .select("doctor_id")
@@ -123,7 +120,6 @@ export const PatientDashboard = () => {
     return <DashboardSkeleton />;
   }
 
-  // Add iPad-specific classes for better visibility
   const containerClasses = isIPad 
     ? "container mx-auto pt-20 pb-6 px-4 space-y-6 max-w-[95%]" 
     : "container mx-auto pt-20 pb-6 px-6 space-y-6";
@@ -132,17 +128,31 @@ export const PatientDashboard = () => {
     <div className={containerClasses}>
       <DashboardHeader />
       
-      {/* Stats Row - Enhanced for iPad */}
+      <div className="flex items-center gap-4 mb-8">
+        <Avatar className="h-12 w-12 bg-[#E5DEFF]">
+          <AvatarFallback className="text-[#9b87f5] font-medium">
+            {patientData?.profile?.first_name?.charAt(0)}{patientData?.profile?.last_name?.charAt(0)}
+          </AvatarFallback>
+        </Avatar>
+        <div>
+          <h1 className="text-2xl font-semibold">
+            Welcome, {patientData?.profile?.first_name}
+          </h1>
+          <p className="text-muted-foreground">
+            Keep track of your health journey
+          </p>
+        </div>
+      </div>
+      
       <div className={isIPad ? "overflow-x-auto pb-2" : ""}>
         <PatientStats />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-3 space-y-6">
-          {/* Next Appointment Highlight */}
           {patientData?.nextAppointment && (
-            <Card className="border-[#E5DEFF]">
-              <CardContent className="p-4 flex items-center justify-between">
+            <div className="p-4 bg-[#E5DEFF]/20 rounded-lg">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="bg-[#E5DEFF] p-2 rounded-full">
                     <Calendar className="h-5 w-5 text-[#9b87f5]" />
@@ -158,11 +168,10 @@ export const PatientDashboard = () => {
                 <Button variant="ghost" size="sm" className="text-[#9b87f5]">
                   View Details
                 </Button>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
 
-          {/* Inline Care Team Chat */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -180,10 +189,8 @@ export const PatientDashboard = () => {
             </CardContent>
           </Card>
           
-          {/* Health Tips Section - Added below chat */}
           <PatientCuratedHealthTips />
           
-          {/* Display prescription summary */}
           {patientData?.latestPrescription && (
             <Card>
               <CardHeader className="pb-2">
