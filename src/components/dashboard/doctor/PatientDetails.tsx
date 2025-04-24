@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, Brain, MessageSquare, Activity, FileSpreadsheet, Stethoscope, FileUp } from "lucide-react";
+import { ArrowLeft, FileText, Brain, MessageSquare, Activity, FileSpreadsheet, FileUp } from "lucide-react";
 import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWriter";
 import { useResponsive } from "@/contexts/ResponsiveContext";
 import { useBreakpoint } from "@/hooks/use-responsive";
@@ -134,32 +135,34 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
       <Card className="overflow-hidden border-0 shadow-sm">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="w-full border-b bg-white sticky top-0 z-10">
-            <TabsList className="w-full justify-start rounded-none border-b bg-white px-6">
-              <TabsTrigger value="chat" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
-                <MessageSquare className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
-                Care Team Chat
-              </TabsTrigger>
-              <TabsTrigger value="analyze" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
-                <Brain className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
-                Analyze Conversation
-              </TabsTrigger>
-              <TabsTrigger value="prescriptions" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
-                <FileUp className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
-                Prescriptions
-              </TabsTrigger>
-              <TabsTrigger value="timeline" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
-                <FileSpreadsheet className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
-                Timeline
-              </TabsTrigger>
-              <TabsTrigger value="habits" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
-                <Activity className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
-                Habits
-              </TabsTrigger>
-              <TabsTrigger value="notes" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
-                <FileText className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
-                Notes
-              </TabsTrigger>
-            </TabsList>
+            <div className="overflow-x-auto">
+              <TabsList className="w-full justify-start rounded-none border-b bg-white px-6">
+                <TabsTrigger value="chat" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
+                  <MessageSquare className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
+                  Care Team Chat
+                </TabsTrigger>
+                <TabsTrigger value="analyze" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
+                  <Brain className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
+                  Analyze Conversation
+                </TabsTrigger>
+                <TabsTrigger value="prescriptions" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
+                  <FileUp className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
+                  Prescriptions
+                </TabsTrigger>
+                <TabsTrigger value="timeline" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
+                  <FileSpreadsheet className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
+                  Timeline
+                </TabsTrigger>
+                <TabsTrigger value="habits" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
+                  <Activity className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
+                  Habits
+                </TabsTrigger>
+                <TabsTrigger value="notes" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
+                  <FileText className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
+                  Notes
+                </TabsTrigger>
+              </TabsList>
+            </div>
           </div>
 
           <TabsContent value="chat" className="m-0 p-0 border-none">
@@ -180,7 +183,7 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
                   </p>
                   {roomError && (
                     <Button 
-                      onClick={() => navigate("/doctor-dashboard")} 
+                      onClick={() => navigate("/dashboard")} 
                       variant="outline"
                     >
                       Return to Dashboard
