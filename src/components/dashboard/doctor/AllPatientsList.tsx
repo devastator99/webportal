@@ -1,15 +1,17 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Users, RefreshCw } from "lucide-react";
+import { Users, RefreshCw, Search } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 import { useNavigate } from "react-router-dom";
-import { fetchPatientPrescriptions, getDoctorPatients, PatientProfile } from "@/integrations/supabase/client";
+import { getDoctorPatients, PatientProfile } from "@/integrations/supabase/client";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { PatientAvatar } from "./PatientAvatar";
 
 export const AllPatientsList = () => {
   const { user } = useAuth();
@@ -23,9 +25,7 @@ export const AllPatientsList = () => {
       if (!user?.id) return [] as PatientProfile[];
       
       try {
-        console.log("Fetching patients for doctor:", user.id);
         const result = await getDoctorPatients(user.id);
-        console.log("Retrieved patients:", result.length);
         return result;
       } catch (error) {
         console.error("Error fetching patients:", error);
@@ -71,64 +71,73 @@ export const AllPatientsList = () => {
   });
 
   return (
-    <div className="container mx-auto space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+    <Card className="h-full">
+      <CardHeader>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <div className="bg-primary/10 p-2 rounded-full">
               <Users className="h-5 w-5 text-primary" />
-              <CardTitle>All Patients</CardTitle>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefreshPatients}
-              disabled={isRefreshing || isLoadingPatients}
-              className="gap-1"
-            >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Refresh
-            </Button>
+            <CardTitle>Your Patients</CardTitle>
           </div>
-          <CardDescription>
-            View and manage your patient list
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <Input
-              placeholder="Search patients..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="mb-4"
-            />
-            
-            <div className="border rounded-md divide-y max-h-[60vh] overflow-y-auto">
-              {isLoadingPatients ? (
-                <div className="p-4 flex justify-center">
-                  <LoadingSpinner size="md" />
-                </div>
-              ) : filteredPatients.length === 0 ? (
-                <div className="p-4 text-center text-muted-foreground">
-                  {searchTerm ? "No matching patients found" : "No patients assigned yet"}
-                </div>
-              ) : (
-                filteredPatients.map((patient) => (
-                  <div
-                    key={patient.id}
-                    className="p-3 cursor-pointer hover:bg-muted transition-colors"
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefreshPatients}
+            disabled={isRefreshing || isLoadingPatients}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
+        
+        <div className="relative">
+          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search patients..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+      </CardHeader>
+      
+      <CardContent>
+        {isLoadingPatients ? (
+          <div className="flex justify-center p-8">
+            <LoadingSpinner />
+          </div>
+        ) : filteredPatients.length === 0 ? (
+          <div className="text-center p-8 text-muted-foreground">
+            {searchTerm ? "No matching patients found" : "No patients assigned yet"}
+          </div>
+        ) : (
+          <ScrollArea className="h-[calc(100vh-350px)]">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-2">
+              {filteredPatients.map((patient) => (
+                <div
+                  key={patient.id}
+                  className="flex flex-col items-center gap-2 p-2"
+                  onClick={() => handlePatientClick(patient.id)}
+                >
+                  <PatientAvatar
+                    firstName={patient.first_name || ''}
+                    lastName={patient.last_name || ''}
+                    size="lg"
                     onClick={() => handlePatientClick(patient.id)}
-                  >
-                    <div className="font-medium">
+                  />
+                  <div className="text-center">
+                    <p className="font-medium text-sm truncate max-w-[120px]">
                       {patient.first_name} {patient.last_name}
-                    </div>
+                    </p>
                   </div>
-                ))
-              )}
+                </div>
+              ))}
             </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          </ScrollArea>
+        )}
+      </CardContent>
+    </Card>
   );
 };

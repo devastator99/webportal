@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from "react";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -14,12 +13,13 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
+import { PatientAvatar } from "./PatientAvatar";
 
 interface PatientDetailsProps {
   patientId: string;
 }
 
-export const PatientDetails = ({ patientId }: PatientDetailsProps) => {
+export const PatientDetails = ({ patientId }: { patientId: string }) => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("chat");
   const { isMobile, isTablet } = useResponsive();
@@ -93,33 +93,48 @@ export const PatientDetails = ({ patientId }: PatientDetailsProps) => {
   }, [roomData, roomError]);
 
   return (
-    <div className={`w-full mx-auto ${containerPadding} space-y-4 max-w-full animate-fade-up`}>
-      <div className={`flex flex-col ${headerSpacing}`}>
-        <div className="flex items-center justify-between mb-4">
+    <div className="w-full mx-auto p-4 space-y-4 max-w-full animate-fade-up">
+      <div className="flex flex-col space-y-4">
+        {/* Header with back button and patient info */}
+        <div className="flex items-center justify-between">
           <Button
-            variant="outline"
-            size={buttonSize}
-            onClick={() => navigate("/doctor-dashboard")}
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/dashboard")}
             className="gap-2"
           >
-            <ArrowLeft className={`${isMobile ? "h-3 w-3" : "h-4 w-4"}`} />
-            Back to Dashboard
+            <ArrowLeft className="h-4 w-4" />
+            Back
           </Button>
         </div>
 
-        {patientLoading ? (
-          <Skeleton className="h-8 w-1/3" />
-        ) : (
-          <h1 className="text-2xl font-bold text-gray-900">
-            Patient: {patientData?.first_name} {patientData?.last_name}
-          </h1>
-        )}
+        <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-none">
+          <CardContent className="p-6">
+            {patientLoading ? (
+              <Skeleton className="h-8 w-1/3" />
+            ) : (
+              <div className="flex items-center gap-4">
+                <PatientAvatar 
+                  firstName={patientData?.first_name || ''}
+                  lastName={patientData?.last_name || ''}
+                  size="lg"
+                />
+                <div>
+                  <h1 className="text-2xl font-bold text-primary/90">
+                    {patientData?.first_name} {patientData?.last_name}
+                  </h1>
+                  <p className="text-muted-foreground">Patient Details</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
 
-      <ResponsiveCard className="overflow-hidden border-0 shadow-sm">
+      <Card className="overflow-hidden border-0 shadow-sm">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="w-full border-b bg-white sticky top-0 z-10">
-            <TabsList className="w-full justify-start rounded-none border-b bg-white px-6 overflow-x-auto">
+            <TabsList className="w-full justify-start rounded-none border-b bg-white px-6">
               <TabsTrigger value="chat" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
                 <MessageSquare className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
                 Care Team Chat
@@ -205,7 +220,7 @@ export const PatientDetails = ({ patientId }: PatientDetailsProps) => {
             </Card>
           </TabsContent>
         </Tabs>
-      </ResponsiveCard>
+      </Card>
     </div>
   );
 };
