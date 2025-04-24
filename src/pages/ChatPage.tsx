@@ -1,3 +1,4 @@
+
 import { useAuth, UserRoleEnum } from "@/contexts/AuthContext";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
@@ -17,18 +18,21 @@ const ChatPage = () => {
   const [loadingRoom, setLoadingRoom] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
 
+  // Check userRole type to properly handle 'patient'
+  const isPatient = userRole === UserRoleEnum.PATIENT || userRole === 'patient';
+
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
         navigate('/');
-      } else if (userRole === 'patient') {
+      } else if (isPatient) {
         navigate('/dashboard');
       }
     }
-  }, [user, isLoading, navigate, userRole]);
+  }, [user, isLoading, navigate, userRole, isPatient]);
   
   useEffect(() => {
-    if (user && userRole === 'patient') {
+    if (user && isPatient) {
       const fetchPatientChatRoom = async () => {
         setLoadingRoom(true);
         setRoomError(null);
@@ -116,35 +120,35 @@ const ChatPage = () => {
       
       fetchPatientChatRoom();
     }
-  }, [user, userRole, toast]);
+  }, [user, userRole, toast, isPatient]);
 
-  if (isLoading || (userRole === 'patient' && loadingRoom)) {
+  if (isLoading || (isPatient && loadingRoom)) {
     return (
       <div className="container pt-24 animate-fade-in">
         <div className="mx-auto flex flex-col items-center justify-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin rounded-full border-primary border-t-transparent" />
           <p className="text-muted-foreground text-sm">
-            {userRole === 'patient' ? 'Loading your care team chat...' : 'Loading chat...'}
+            {isPatient ? 'Loading your care team chat...' : 'Loading chat...'}
           </p>
         </div>
       </div>
     );
   }
 
-  if (!user || userRole === 'patient') return null;
+  if (!user || isPatient) return null;
 
   return (
     <div className="container pt-16 md:pt-20">
       <ErrorBoundary>
         <h1 className="text-2xl font-bold mb-2">Care Team Chat</h1>
         <p className="text-muted-foreground mb-4">
-          {userRole === 'patient' 
+          {isPatient 
             ? "Chat with your healthcare team and upload medical reports" 
             : "Connect with your patients and their care teams"}
         </p>
         <Separator className="my-4" />
         
-        {userRole === 'patient' && roomError && !patientRoomId && (
+        {isPatient && roomError && !patientRoomId && (
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>No care team available</AlertTitle>
@@ -156,7 +160,7 @@ const ChatPage = () => {
         
         <div className="h-[calc(100vh-220px)]">
           <WhatsAppStyleChatInterface 
-            patientRoomId={userRole === 'patient' ? patientRoomId : undefined} 
+            patientRoomId={isPatient ? patientRoomId : undefined} 
           />
         </div>
       </ErrorBoundary>
