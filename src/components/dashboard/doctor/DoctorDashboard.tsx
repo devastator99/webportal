@@ -1,9 +1,10 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TodaySchedule } from "./TodaySchedule";
 import { DoctorAppointmentCalendar } from "./DoctorAppointmentCalendar";
 import { StatsCards } from "./StatsCards";
-import { PrescriptionWriter } from "./prescription/PrescriptionWriter";
+import { PrescriptionWriter } from "../doctor/PrescriptionWriter";
 import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
@@ -63,6 +64,9 @@ export const DoctorDashboard = () => {
           <DoctorAppointmentCalendar doctorId={user.id} />
         </div>
       </div>
+
+      {/* Availability Settings */}
+      <DoctorAvailability doctorId={user.id} />
 
       {/* Prescription Writer Section */}
       <Card>

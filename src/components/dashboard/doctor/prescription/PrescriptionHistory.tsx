@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { usePrescriptions as usePrescriptionsHook } from "@/hooks/usePrescriptions"; // Import the correct hook
 import { Card, CardContent } from "@/components/ui/card";
@@ -54,7 +55,7 @@ export const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ patien
       // Log fetched data to help debug
       console.log("Prescriptions fetched:", data);
       if (data && data.length > 0) {
-        console.log("Sample prescription date:", data[0].created_at);
+        console.log("Sample prescription date:", data[0].prescription_date);
       }
       
       setPrescriptions(data || []);
@@ -104,7 +105,7 @@ export const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ patien
   return (
     <div className="space-y-4">
       {prescriptions.map((prescription) => (
-        <Card key={prescription.id} className="overflow-hidden">
+        <Card key={prescription.prescription_id} className="overflow-hidden">
           <CardContent className="p-4">
             <div className="flex flex-col md:flex-row md:justify-between md:items-start gap-2">
               <div>
@@ -112,7 +113,7 @@ export const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ patien
                   {prescription.diagnosis || "No diagnosis provided"}
                 </h3>
                 <p className="text-sm text-gray-500">
-                  {safeFormatDate(prescription.created_at)} - {safeFormatRelativeTime(prescription.created_at)}
+                  {safeFormatDate(prescription.prescription_date)} - {safeFormatRelativeTime(prescription.prescription_date)}
                 </p>
               </div>
               <Badge variant="outline" className="w-fit">
@@ -124,7 +125,7 @@ export const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ patien
               <Button 
                 variant="outline" 
                 size="sm" 
-                onClick={() => handleViewDetails(prescription.id)}
+                onClick={() => handleViewDetails(prescription.prescription_id)}
               >
                 <Eye className="h-4 w-4 mr-2" />
                 View Details
@@ -140,7 +141,7 @@ export const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ patien
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => onAssignNutritionist(prescription.id)}
+                  onClick={() => onAssignNutritionist(prescription.prescription_id)}
                 >
                   <UserPlus className="h-4 w-4 mr-2" />
                   Assign Nutritionist
@@ -181,7 +182,7 @@ export const PrescriptionHistory: React.FC<PrescriptionHistoryProps> = ({ patien
 
               <div>
                 <h3 className="text-sm font-semibold">Date</h3>
-                <p>{safeFormatDate(selectedPrescription.created_at)}</p>
+                <p>{selectedPrescription.prescription_date ? safeFormatDate(selectedPrescription.prescription_date) : "No date available"}</p>
               </div>
               
               {/* Add medication and test details here once API returns structured data */}

@@ -23,10 +23,11 @@ export const DoctorAvailability = ({ doctorId }: { doctorId: string }) => {
   const { data: availability, isLoading } = useQuery({
     queryKey: ["doctor-availability", doctorId],
     queryFn: async () => {
+      // Use raw query instead of rpc to avoid type errors
       const { data, error } = await supabase
-        .rpc('get_doctor_availability', {
-          p_doctor_id: doctorId
-        });
+        .from('doctor_availability')
+        .select('*')
+        .eq('doctor_id', doctorId);
 
       if (error) {
         console.error("Error fetching availability:", error);
@@ -47,16 +48,25 @@ export const DoctorAvailability = ({ doctorId }: { doctorId: string }) => {
         isAvailable: true
       }));
 
-      // Use Promise.all to update all time slots
-      await Promise.all(timeSlots.map(slot => 
-        supabase.rpc('update_doctor_availability', {
-          p_doctor_id: doctorId,
-          p_day_of_week: slot.dayOfWeek,
-          p_start_time: slot.startTime,
-          p_end_time: slot.endTime,
-          p_is_available: slot.isAvailable
-        })
-      ));
+      // Use direct inserts/updates instead of rpc calls
+      for (const slot of timeSlots) {
+        const { error } = await supabase
+          .from('doctor_availability')
+          .upsert({
+            doctor_id: doctorId,
+            day_of_week: slot.dayOfWeek,
+            start_time: slot.startTime,
+            end_time: slot.endTime,
+            is_available: slot.isAvailable
+          }, { 
+            onConflict: 'doctor_id,day_of_week' 
+          });
+          
+        if (error) {
+          console.error("Error updating availability:", error);
+          throw error;
+        }
+      }
 
       toast({
         title: "Availability Updated",
