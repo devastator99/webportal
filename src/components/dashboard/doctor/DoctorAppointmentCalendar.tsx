@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +8,7 @@ import { format, parseISO } from "date-fns";
 import { CalendarIcon, ChevronDown, ChevronUp, Clock, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useBreakpoint, useResponsiveButtonSize } from "@/hooks/use-responsive";
+import { useBreakpoint } from "@/hooks/use-responsive";
 import { ResponsiveText } from "@/components/ui/responsive-typography";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
@@ -33,10 +32,6 @@ export const DoctorAppointmentCalendar = ({ doctorId }: DoctorAppointmentCalenda
   const [isOpen, setIsOpen] = useState(true);
   const { toast } = useToast();
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
-  const buttonSize = useResponsiveButtonSize({
-    mobile: 'sm',
-    default: 'default'
-  });
 
   const formattedDate = format(selectedDate, "yyyy-MM-dd");
 

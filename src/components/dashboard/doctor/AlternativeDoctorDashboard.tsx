@@ -1,12 +1,10 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { DoctorAppointmentCalendar } from "@/components/dashboard/doctor/DoctorAppointmentCalendar";
 import { useResponsive } from "@/contexts/ResponsiveContext";
 import { useResponsiveValue } from "@/hooks/use-responsive";
 import { AllPatientsList } from "@/components/dashboard/doctor/AllPatientsList";
+import { DoctorAppointmentCalendar } from "@/components/dashboard/doctor/DoctorAppointmentCalendar";
 import { ResponsiveCard } from "@/components/ui/responsive-card";
-import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const AlternativeDoctorDashboard = () => {
   const { user } = useAuth();
@@ -31,28 +29,21 @@ export const AlternativeDoctorDashboard = () => {
       {/* Greeting Section */}
       <ResponsiveCard withShadow className="mb-4" compact={isMobile}>
         <h1 className={`${isMobile ? 'text-lg' : 'text-xl'} font-bold mb-2 text-left`}>{greeting}</h1>
-        <p className="text-sm text-gray-500 text-left mb-4">Welcome back to your dashboard</p>
+        <p className="text-sm text-gray-500 text-left">Welcome back to your dashboard</p>
       </ResponsiveCard>
-      
-      {/* Main content with collapsible sections */}
-      <ScrollArea className="mb-16">
-        <div className={sectionSpacing}>
-          <CollapsibleSection 
-            title="Patients" 
-            defaultOpen={true}
-            className="mobile-card"
-          >
-            <AllPatientsList />
-          </CollapsibleSection>
+
+      <div className={sectionSpacing}>
+        {/* Main content with patient list and calendar */}
+        <div className="grid grid-cols-1 gap-4">
+          {/* Patient List */}
+          <AllPatientsList />
           
-          <CollapsibleSection 
-            title="Appointment Calendar" 
-            className="mobile-card"
-          >
+          {/* Calendar Section */}
+          <ResponsiveCard withShadow>
             <DoctorAppointmentCalendar doctorId={user?.id || ""} />
-          </CollapsibleSection>
+          </ResponsiveCard>
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };
