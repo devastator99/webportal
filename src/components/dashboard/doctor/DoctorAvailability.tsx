@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -35,11 +34,8 @@ export const DoctorAvailability = ({ doctorId }: { doctorId: string }) => {
   const { data, isLoading } = useQuery({
     queryKey: ["doctor-availability", doctorId],
     queryFn: async () => {
-      // Call the RPC function using the from().rpc() pattern for type safety
       const { data, error } = await supabase
-        .from('doctor_availability')
-        .select('*')
-        .eq('doctor_id', doctorId);
+        .rpc('get_doctor_availability', { p_doctor_id: doctorId });
 
       if (error) {
         console.error("Error fetching availability:", error);
@@ -53,7 +49,7 @@ export const DoctorAvailability = ({ doctorId }: { doctorId: string }) => {
       }), {} as Record<number, boolean>) : {};
 
       setAvailability(availabilityMap);
-      return data;
+      return data as AvailabilityRecord[];
     }
   });
 
@@ -71,15 +67,13 @@ export const DoctorAvailability = ({ doctorId }: { doctorId: string }) => {
         day_of_week: parseInt(day),
         start_time: "09:00",
         end_time: "17:00",
-        is_available: isAvailable,
-        doctor_id: doctorId
+        is_available: isAvailable
       }));
 
-      // Use batch upsert instead of RPC to avoid type issues
       const { error } = await supabase
-        .from('doctor_availability')
-        .upsert(availabilityData, { 
-          onConflict: 'doctor_id,day_of_week'
+        .rpc('update_doctor_availability', { 
+          p_doctor_id: doctorId,
+          p_availabilities: JSON.stringify(availabilityData)
         });
 
       if (error) {

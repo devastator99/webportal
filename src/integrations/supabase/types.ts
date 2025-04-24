@@ -1820,6 +1820,19 @@ export type Database = {
           patient: Json
         }[]
       }
+      get_doctor_availability: {
+        Args: { p_doctor_id: string }
+        Returns: {
+          id: string
+          doctor_id: string
+          day_of_week: number
+          start_time: string
+          end_time: string
+          is_available: boolean
+          created_at: string
+          updated_at: string
+        }[]
+      }
       get_doctor_medical_records_count: {
         Args: { doctor_id: string }
         Returns: number
@@ -2306,6 +2319,19 @@ export type Database = {
           p_is_ai_message?: boolean
         }
         Returns: string
+      }
+      update_doctor_availability: {
+        Args: { p_doctor_id: string; p_availabilities: Json }
+        Returns: {
+          created_at: string
+          day_of_week: number
+          doctor_id: string | null
+          end_time: string
+          id: string
+          is_available: boolean | null
+          start_time: string
+          updated_at: string
+        }[]
       }
       update_notification_preferences: {
         Args: {
