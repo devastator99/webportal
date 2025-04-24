@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -13,7 +12,11 @@ import { getDoctorPatients, PatientProfile } from "@/integrations/supabase/clien
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { PatientAvatar } from "./PatientAvatar";
 
-export const AllPatientsList = () => {
+interface AllPatientsListProps {
+  compact?: boolean;
+}
+
+export const AllPatientsList = ({ compact }: AllPatientsListProps = {}) => {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -78,29 +81,33 @@ export const AllPatientsList = () => {
             <div className="bg-primary/10 p-2 rounded-full">
               <Users className="h-5 w-5 text-primary" />
             </div>
-            <CardTitle>Your Patients</CardTitle>
+            <CardTitle>{compact ? "Recent Patients" : "Your Patients"}</CardTitle>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefreshPatients}
-            disabled={isRefreshing || isLoadingPatients}
-            className="gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          {!compact && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefreshPatients}
+              disabled={isRefreshing || isLoadingPatients}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          )}
         </div>
         
-        <div className="relative">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search patients..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+        {!compact && (
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search patients..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+        )}
       </CardHeader>
       
       <CardContent>
@@ -113,9 +120,13 @@ export const AllPatientsList = () => {
             {searchTerm ? "No matching patients found" : "No patients assigned yet"}
           </div>
         ) : (
-          <ScrollArea className="h-[calc(100vh-350px)]">
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-2">
-              {filteredPatients.map((patient) => (
+          <ScrollArea className={compact ? "h-[300px]" : "h-[calc(100vh-350px)]"}>
+            <div className={`grid gap-4 p-2 ${
+              compact 
+                ? "grid-cols-1 sm:grid-cols-2" 
+                : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
+            }`}>
+              {(compact ? filteredPatients.slice(0, 6) : filteredPatients).map((patient) => (
                 <div
                   key={patient.id}
                   className="flex flex-col items-center gap-2 p-2"
@@ -124,7 +135,7 @@ export const AllPatientsList = () => {
                   <PatientAvatar
                     firstName={patient.first_name || ''}
                     lastName={patient.last_name || ''}
-                    size="lg"
+                    size={compact ? "md" : "lg"}
                     onClick={() => handlePatientClick(patient.id)}
                   />
                   <div className="text-center">
