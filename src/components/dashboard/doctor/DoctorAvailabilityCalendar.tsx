@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,12 +36,11 @@ export const DoctorAvailabilityCalendar = ({ doctorId }: { doctorId: string }) =
     if (!selectedDate) return;
 
     try {
-      // Use update_doctor_availability instead of set_doctor_availability
       const { error } = await supabase.rpc('update_doctor_availability', {
         p_doctor_id: doctorId,
-        p_date: format(selectedDate, 'yyyy-MM-dd'),
         p_start_time: startTime,
-        p_end_time: endTime
+        p_end_time: endTime,
+        p_date: format(selectedDate, 'yyyy-MM-dd')
       });
 
       if (error) throw error;

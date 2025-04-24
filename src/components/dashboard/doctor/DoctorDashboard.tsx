@@ -8,11 +8,7 @@ import { DoctorAppointmentCalendar } from "@/components/dashboard/doctor/DoctorA
 import { DoctorAvailabilityCalendar } from "@/components/dashboard/doctor/DoctorAvailabilityCalendar";
 import { ResponsiveCard } from "@/components/ui/responsive-card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Users, Calendar } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { PatientAvatar } from "@/components/dashboard/doctor/PatientAvatar";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { Users, Calendar, UserRound } from "lucide-react";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
@@ -31,9 +27,18 @@ export const DoctorDashboard = () => {
 
   return (
     <div className="container mx-auto px-4 animate-fade-up">
-      {/* Dashboard header with welcome message and avatar */}
-      <div className="mb-6">
-        <DashboardHeader />
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="bg-[#E5DEFF] p-2 rounded-full">
+            <UserRound className="h-6 w-6 text-[#9b87f5]" />
+          </div>
+          <h1 className="text-2xl font-semibold">
+            Welcome, Dr. {doctorFirstName}
+          </h1>
+        </div>
+        <p className="text-muted-foreground ml-11">
+          Have a great day ahead!
+        </p>
       </div>
 
       <Tabs defaultValue="patients" className="space-y-6">
