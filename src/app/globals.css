@@ -111,3 +111,18 @@
 .scroll-area-viewport {
   z-index: 0;
 }
+
+/* Fix for auth buttons to ensure they're always visible */
+button[class*="border-[#9b87f5]"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+  z-index: 101 !important;
+}
+
+/* Ensure buttons in navbar appear above other elements */
+nav .items-center {
+  z-index: 101;
+  position: relative;
+}

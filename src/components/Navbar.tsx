@@ -57,6 +57,9 @@ export const Navbar = () => {
     return null;
   };
 
+  // Always show the auth button regardless of screen size
+  const authButton = renderAuthButton();
+
   return (
     <nav className={navbarClass}>
       <div className="container mx-auto px-4 py-3 flex justify-between items-center relative">
@@ -71,13 +74,13 @@ export const Navbar = () => {
               {userRole === UserRoleEnum.ADMINISTRATOR && <ForceLogoutButton />}
             </>
           )}
-          {renderAuthButton()}
+          {authButton}
         </div>
 
         {/* Mobile menu button and auth button with improved visibility */}
         {useResponsiveDisplay && (
           <div className="flex items-center gap-2 z-[101]">
-            {renderAuthButton()}
+            {authButton}
             <Button
               variant="ghost"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
