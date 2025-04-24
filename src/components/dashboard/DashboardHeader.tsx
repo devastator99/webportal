@@ -1,6 +1,5 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,7 +18,6 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
       if (!user?.id || userRole !== "doctor") return null;
       
       try {
-        console.log("Fetching patient count for doctor:", user.id);
         const { data, error } = await supabase.rpc("get_doctor_patients_count", {
           doctor_id: user.id
         });
@@ -62,30 +60,6 @@ export const DashboardHeader = ({ actionButton }: DashboardHeaderProps) => {
     }
   };
 
-  return (
-    <Card className="bg-background">
-      <CardContent className="p-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">{getGreeting()}</h1>
-            {userRole === "doctor" && (
-              <p className="text-muted-foreground">
-                {isLoadingCount ? (
-                  <Skeleton className="h-4 w-32" />
-                ) : (
-                  `You have ${patientCount || 0} assigned patient${patientCount !== 1 ? 's' : ''}`
-                )}
-              </p>
-            )}
-          </div>
-          
-          {actionButton && (
-            <div className="flex flex-wrap gap-2 w-full md:w-auto">
-              {actionButton}
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
+  // Removed the Card wrapper completely
+  return null;
 };
