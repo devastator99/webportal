@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -127,7 +128,7 @@ export const PatientDashboard = () => {
     <div className={containerClasses}>
       <DashboardHeader />
       
-      <div className="flex items-center gap-4 mb-8">
+      <div className="flex items-center gap-4 mb-4">
         <Avatar className="h-12 w-12 bg-[#E5DEFF]">
           <AvatarFallback className="text-[#9b87f5] font-medium">
             {patientData?.profile?.first_name?.charAt(0)}{patientData?.profile?.last_name?.charAt(0)}
@@ -148,7 +149,7 @@ export const PatientDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-3 space-y-6">
+        <div className="md:col-span-3 space-y-4">
           {patientData?.nextAppointment && (
             <div className="p-4 bg-[#E5DEFF]/20 rounded-lg">
               <div className="flex items-center justify-between">

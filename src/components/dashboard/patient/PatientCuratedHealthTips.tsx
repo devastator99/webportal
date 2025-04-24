@@ -29,7 +29,7 @@ export const PatientCuratedHealthTips = () => {
   }
 
   return (
-    <div>
+    <div className="text-left">
       <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
         <Lightbulb className="h-4 w-4 text-yellow-500" />
         Personalized Health Tips
