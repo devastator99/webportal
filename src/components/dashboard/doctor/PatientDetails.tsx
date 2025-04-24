@@ -1,5 +1,5 @@
+
 import React, { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, FileText, Brain, MessageSquare, Activity, FileSpreadsheet, FileUp } from "lucide-react";
@@ -86,7 +86,8 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      {/* Header Section */}
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container py-3">
           <div className="flex items-center gap-3">
             <Button
@@ -128,44 +129,42 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
       </div>
 
       <div className="container py-6">
-        <div className="flex gap-6">
-          <div className="w-56 flex-shrink-0">
-            <div className="sticky top-24 backdrop-blur-sm bg-white/5 dark:bg-black/5 rounded-lg overflow-hidden border-0 shadow-[0_4px_12px_-2px_rgba(155,135,245,0.1)]">
-              <nav className="flex flex-col p-2 space-y-1">
-                {menuItems.map((item) => (
-                  <Button
-                    key={item.id}
-                    variant="ghost"
-                    className={cn(
-                      "justify-start gap-3 px-3 py-2 w-full transition-all duration-200",
-                      activeSection === item.id
-                        ? "bg-[#9b87f5] text-white hover:bg-[#8b77e5]"
-                        : "hover:bg-[#E5DEFF] hover:text-[#7E69AB]"
-                    )}
-                    onClick={() => setActiveSection(item.id)}
-                  >
-                    {item.icon}
-                    <span>{item.label}</span>
-                  </Button>
-                ))}
-              </nav>
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Navigation List */}
+          <div className="lg:w-56 flex-shrink-0">
+            <div className="sticky top-24 space-y-1 rounded-lg overflow-hidden border bg-card">
+              {menuItems.map((item) => (
+                <Button
+                  key={item.id}
+                  variant="ghost"
+                  className={cn(
+                    "w-full justify-start gap-3 rounded-none border-l-2 px-4 py-2 font-medium transition-all",
+                    activeSection === item.id
+                      ? "border-l-[#9b87f5] bg-[#E5DEFF] text-[#7E69AB]"
+                      : "border-l-transparent hover:border-l-[#9b87f5] hover:bg-[#E5DEFF] hover:text-[#7E69AB]"
+                  )}
+                  onClick={() => setActiveSection(item.id)}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </Button>
+              ))}
             </div>
           </div>
 
-          <div className="flex-1">
+          {/* Main Content Area */}
+          <div className="flex-1 min-w-0">
             {activeSection === "chat" && (
-              <div className="h-[calc(100vh-220px)]">
+              <div className="h-[calc(100vh-220px)] rounded-lg border bg-card">
                 {roomLoading ? (
                   <div className="flex justify-center items-center h-full">
                     <Skeleton className="h-[400px] w-full rounded-lg" />
                   </div>
                 ) : selectedRoomId ? (
-                  <div className="bg-white/5 dark:bg-black/5 rounded-lg backdrop-blur-sm">
-                    <CareTeamRoomChat 
-                      selectedRoomId={selectedRoomId} 
-                      isMobileView={isMobile || isTablet}
-                    />
-                  </div>
+                  <CareTeamRoomChat 
+                    selectedRoomId={selectedRoomId} 
+                    isMobileView={isMobile || isTablet}
+                  />
                 ) : (
                   <div className="flex justify-center items-center h-full flex-col p-4">
                     <p className="text-muted-foreground text-center mb-4">
@@ -185,7 +184,7 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
             )}
 
             {activeSection === "analyze" && (
-              <div className="bg-white/5 dark:bg-black/5 rounded-lg backdrop-blur-sm p-6">
+              <div className="p-6 rounded-lg border bg-card">
                 <h2 className="text-lg font-semibold mb-4 text-[#7E69AB]">Conversation Analysis</h2>
                 <p className="text-muted-foreground">
                   AI analysis of care team conversations will appear here.
@@ -194,26 +193,35 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
             )}
 
             {activeSection === "prescriptions" && (
-              <div className="bg-white/5 dark:bg-black/5 rounded-lg backdrop-blur-sm">
+              <div className="rounded-lg border bg-card">
                 <PrescriptionWriter patientId={patientId} />
               </div>
             )}
 
             {activeSection === "timeline" && (
-              <div className="bg-white/5 dark:bg-black/5 rounded-lg backdrop-blur-sm p-6">
-                Patient timeline will go here
+              <div className="p-6 rounded-lg border bg-card space-y-4">
+                <div className="border-l-2 border-[#9b87f5] pl-4 space-y-4">
+                  <div className="relative">
+                    <div className="absolute -left-[21px] top-1/2 -translate-y-1/2 h-4 w-4 rounded-full bg-[#9b87f5]" />
+                    <h3 className="text-[#7E69AB] font-medium">Patient timeline will go here</h3>
+                  </div>
+                </div>
               </div>
             )}
 
             {activeSection === "habits" && (
-              <div className="bg-white/5 dark:bg-black/5 rounded-lg backdrop-blur-sm p-6">
-                Habits tracking will go here
+              <div className="p-6 rounded-lg border bg-card">
+                <div className="space-y-4">
+                  <h3 className="text-[#7E69AB] font-medium">Habits tracking will go here</h3>
+                </div>
               </div>
             )}
 
             {activeSection === "notes" && (
-              <div className="bg-white/5 dark:bg-black/5 rounded-lg backdrop-blur-sm p-6">
-                Doctor's notes will go here
+              <div className="p-6 rounded-lg border bg-card">
+                <div className="space-y-4">
+                  <h3 className="text-[#7E69AB] font-medium">Doctor's notes will go here</h3>
+                </div>
               </div>
             )}
           </div>
