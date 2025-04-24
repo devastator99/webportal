@@ -31,6 +31,26 @@ export const Navbar = () => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
+  // Prepare auth button UI based on loading state and user existence
+  const renderAuthButton = () => {
+    if (isLoading) {
+      return null; // Don't show anything while loading
+    }
+    
+    if (user) {
+      return (
+        <SignOutButton 
+          onSignOutStart={() => setIsSigningOut(true)} 
+          onSignOutEnd={() => setIsSigningOut(false)} 
+        />
+      );
+    } else if (!isAuthPage) {
+      return <LoginDialog />;
+    }
+    
+    return null;
+  };
+
   return (
     <nav className={navbarClass}>
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
@@ -43,33 +63,15 @@ export const Navbar = () => {
               <DashboardButton />
               <DoctorActions />
               {userRole === UserRoleEnum.ADMINISTRATOR && <ForceLogoutButton />}
-              <SignOutButton 
-                onSignOutStart={() => setIsSigningOut(true)} 
-                onSignOutEnd={() => setIsSigningOut(false)} 
-              />
             </>
           )}
-          {!user && !isLoading && !isAuthPage && (
-            <div className="flex-shrink-0">
-              <LoginDialog />
-            </div>
-          )}
+          {renderAuthButton()}
         </div>
 
         {/* Mobile menu button and login */}
         {useResponsiveDisplay && (
           <div className="flex items-center gap-2">
-            {user && !isLoading && (
-              <SignOutButton 
-                onSignOutStart={() => setIsSigningOut(true)} 
-                onSignOutEnd={() => setIsSigningOut(false)}
-              />
-            )}
-            {!user && !isLoading && !isAuthPage && (
-              <div className="flex-shrink-0 mr-2">
-                <LoginDialog />
-              </div>
-            )}
+            {renderAuthButton()}
             <Button
               variant="ghost"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}

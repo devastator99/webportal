@@ -10,7 +10,7 @@ export const LoginDialog = () => {
     <Button
       onClick={() => navigate("/auth")}
       variant="outline"
-      className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2 font-medium shadow-sm"
+      className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2 font-medium shadow-sm z-50"
       size="sm"
     >
       <LogIn className="h-4 w-4" />
