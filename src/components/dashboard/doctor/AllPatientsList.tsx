@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,7 +17,6 @@ export const AllPatientsList = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const navigate = useNavigate();
 
-  // Fetch all patients using our RPC helper function with proper caching
   const { data: patients = [], isLoading: isLoadingPatients, refetch: refetchPatients } = useQuery({
     queryKey: ["patients_for_doctor", user?.id],
     queryFn: async () => {
@@ -40,15 +38,13 @@ export const AllPatientsList = () => {
       }
     },
     enabled: !!user?.id,
-    staleTime: 60000, // Cache patient list for 1 minute
+    staleTime: 60000,
   });
 
-  // Handle patient selection
   const handlePatientClick = (patientId: string) => {
-    navigate(`/patient-details/${patientId}`);
+    navigate(`/patient/${patientId}`);
   };
-  
-  // Function to manually refresh patient list
+
   const handleRefreshPatients = async () => {
     try {
       setIsRefreshing(true);
@@ -69,7 +65,6 @@ export const AllPatientsList = () => {
     }
   };
 
-  // Filter patients based on search term
   const filteredPatients = patients.filter(patient => {
     const fullName = `${patient.first_name || ''} ${patient.last_name || ''}`.toLowerCase();
     return fullName.includes(searchTerm.toLowerCase());
