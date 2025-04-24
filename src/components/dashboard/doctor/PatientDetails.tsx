@@ -13,6 +13,7 @@ import { CareTeamRoomChat } from "@/components/chat/CareTeamRoomChat";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "@/hooks/use-toast";
 
 interface PatientDetailsProps {
   patientId: string;
@@ -41,32 +42,55 @@ export const PatientDetails = ({ patientId }: PatientDetailsProps) => {
         .eq('id', patientId)
         .single();
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching patient details:", error);
+        throw error;
+      }
       return data;
     },
     enabled: !!patientId
   });
 
   // Fetch the patient's care team room ID
-  const { data: roomData, isLoading: roomLoading } = useQuery({
+  const { data: roomData, isLoading: roomLoading, error: roomError } = useQuery({
     queryKey: ["patient_care_team_room", patientId],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('get-patient-care-team-room', {
-        body: { patientId }
-      });
-      
-      if (error) throw error;
-      return data;
+      try {
+        console.log("Fetching care team room for patient:", patientId);
+        const { data, error } = await supabase.functions.invoke('get-patient-care-team-room', {
+          body: { patient_id: patientId }
+        });
+        
+        if (error) {
+          console.error("Error invoking get-patient-care-team-room:", error);
+          throw error;
+        }
+
+        console.log("Care team room data:", data);
+        return data;
+      } catch (error) {
+        console.error("Error in get-patient-care-team-room query:", error);
+        toast({
+          title: "Error",
+          description: "Could not fetch patient care team room.",
+          variant: "destructive"
+        });
+        throw error;
+      }
     },
-    enabled: !!patientId
+    enabled: !!patientId,
+    retry: 1
   });
 
   // Set the selected room ID when data is available
   useEffect(() => {
     if (roomData && roomData.room_id) {
+      console.log("Setting room ID:", roomData.room_id);
       setSelectedRoomId(roomData.room_id);
+    } else if (roomError) {
+      console.error("Room data error:", roomError);
     }
-  }, [roomData]);
+  }, [roomData, roomError]);
 
   return (
     <div className={`w-full mx-auto ${containerPadding} space-y-4 max-w-full animate-fade-up`}>
@@ -95,7 +119,7 @@ export const PatientDetails = ({ patientId }: PatientDetailsProps) => {
       <ResponsiveCard className="overflow-hidden border-0 shadow-sm">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="w-full border-b bg-white sticky top-0 z-10">
-            <TabsList className="w-full justify-start rounded-none border-b bg-white px-6">
+            <TabsList className="w-full justify-start rounded-none border-b bg-white px-6 overflow-x-auto">
               <TabsTrigger value="chat" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
                 <MessageSquare className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
                 Care Team Chat
@@ -125,16 +149,28 @@ export const PatientDetails = ({ patientId }: PatientDetailsProps) => {
 
           <TabsContent value="chat" className="m-0 p-0 border-none">
             <div className="h-[calc(100vh-220px)]">
-              {selectedRoomId ? (
+              {roomLoading ? (
+                <div className="flex justify-center items-center h-full">
+                  <Skeleton className="h-[400px] w-full" />
+                </div>
+              ) : selectedRoomId ? (
                 <CareTeamRoomChat 
                   selectedRoomId={selectedRoomId} 
                   isMobileView={isMobile || isTablet}
                 />
               ) : (
-                <div className="flex justify-center items-center h-full">
-                  <p className="text-muted-foreground">
-                    {roomLoading ? "Loading chat..." : "No care team chat found for this patient."}
+                <div className="flex justify-center items-center h-full flex-col p-4">
+                  <p className="text-muted-foreground text-center mb-4">
+                    {roomError ? "Error loading care team chat" : "No care team chat found for this patient."}
                   </p>
+                  {roomError && (
+                    <Button 
+                      onClick={() => navigate("/doctor-dashboard")} 
+                      variant="outline"
+                    >
+                      Return to Dashboard
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
