@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { useBreakpoint, useResponsiveButtonSize } from "@/hooks/use-responsive";
 import { ResponsiveText } from "@/components/ui/responsive-typography";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 
 interface DoctorAppointmentCalendarProps {
   doctorId: string;
