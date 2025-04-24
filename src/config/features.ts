@@ -1,26 +1,25 @@
-
 /**
  * Feature flags configuration to control which features are enabled in the application
  */
 export const featureFlags = {
-  // Set to true to enable chat functionality across the application
-  enableChat: true,
+  // Set to false to disable chat functionality across the application
+  enableChat: false,
   
-  // Set to true to enable the AI chatbot widget specifically
-  enableChatbotWidget: true,
+  // Set to false to disable the AI chatbot widget
+  enableChatbotWidget: false,
   
-  // Individual dashboard chat controls
-  patientDashboardChat: true,
-  doctorDashboardChat: true,
-  receptionDashboardChat: true,
+  // Disable individual dashboard chat controls
+  patientDashboardChat: false,
+  doctorDashboardChat: false,
+  receptionDashboardChat: false,
   
-  // Set to true to enable Indian language support in chat
-  enableIndianLanguageSupport: true,
+  // Disable Indian language support in chat
+  enableIndianLanguageSupport: false,
 
-  // Set to true to enable voice responses from the chatbot
-  enableChatbotVoice: true,
+  // Disable voice responses from the chatbot
+  enableChatbotVoice: false,
 
-  // Set to false by default to hide the video uploader component in the doctor dashboard
+  // Keep existing configuration for other features
   enableDoctorVideoUploader: false
 };
 

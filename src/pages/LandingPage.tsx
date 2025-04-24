@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Hero } from "@/components/Hero";
 import { Features } from "@/components/Features";
@@ -7,7 +6,6 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { StandaloneVideoList } from "@/components/videos/VideoList";
-import { ChatbotWidget } from "@/components/chat/ChatbotWidget";
 import { featureFlags } from "@/config/features";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
@@ -154,8 +152,6 @@ export const LandingPage = () => {
           )}
         </div>
       </div>
-      
-      {featureFlags.enableChatbotWidget && <ChatbotWidget />}
     </div>
   );
 };

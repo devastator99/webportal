@@ -1,4 +1,3 @@
-
 import './App.css';
 import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -7,7 +6,6 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ResponsiveProvider } from './contexts/ResponsiveContext';
 import { Navbar } from './components/Navbar';
 import { AppRoutes } from './routes/AppRoutes';
-import { featureFlags } from './config/features';
 import React, { useEffect, useState } from 'react';
 import { MobileStatusBar } from './components/mobile/MobileStatusBar';
 import { MobileNavigation } from './components/mobile/MobileNavigation';
