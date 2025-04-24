@@ -1,4 +1,3 @@
-
 import './App.css';
 import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -8,7 +7,6 @@ import { ResponsiveProvider } from './contexts/ResponsiveContext';
 import { Navbar } from './components/Navbar';
 import { AppRoutes } from './routes/AppRoutes';
 import { featureFlags } from './config/features';
-import { ChatModule } from './modules/chat/ChatModule';
 import React, { useEffect, useState } from 'react';
 import { MobileStatusBar } from './components/mobile/MobileStatusBar';
 import { MobileNavigation } from './components/mobile/MobileNavigation';
@@ -53,9 +51,9 @@ function PasswordResetRedirect() {
 }
 
 function App() {
-  const [chatEnabled, setChatEnabled] = useState(featureFlags.enableChat);
-  const [chatbotWidgetEnabled, setChatbotWidgetEnabled] = useState(false); // Set to false to remove the chatbot widget
-  const [chatbotVoiceEnabled, setChatbotVoiceEnabled] = useState(featureFlags.enableChatbotVoice);
+  const [chatEnabled, setChatEnabled] = useState(false);
+  const [chatbotWidgetEnabled, setChatbotWidgetEnabled] = useState(false);
+  const [chatbotVoiceEnabled, setChatbotVoiceEnabled] = useState(false);
   
   useEffect(() => {
     const checkFeatureFlags = () => {
@@ -64,9 +62,9 @@ function App() {
       const savedFlags = localStorage.getItem('featureFlags');
       if (savedFlags) {
         const parsedFlags = JSON.parse(savedFlags);
-        setChatEnabled(parsedFlags.enableChat);
-        setChatbotWidgetEnabled(false); // Always keep disabled
-        setChatbotVoiceEnabled(parsedFlags.enableChatbotVoice);
+        setChatEnabled(false);
+        setChatbotWidgetEnabled(false);
+        setChatbotVoiceEnabled(false);
       }
     };
     
@@ -104,8 +102,6 @@ function App() {
                 <div className="self-end">
                   <NotificationBell />
                 </div>
-                
-                <ChatModule showChatInterface={false} showChatbotWidget={false} />
               </div>
               
               <AuthDebugMonitor />
