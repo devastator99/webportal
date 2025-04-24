@@ -234,6 +234,4 @@ export const useAuth = () => {
   return context;
 };
 
-// Export both type and enum for UserRole
-export type { UserRole };
-export { UserRoleEnum };
+// Remove duplicate exports - we already exported these earlier in the file

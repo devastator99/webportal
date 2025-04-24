@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, createUserRole, createPatientDetails } from '@/integrations/supabase/client';
@@ -19,8 +18,7 @@ export interface PatientData {
   currentMedicalConditions?: string;
 }
 
-// Re-export UserRole type and UserRoleEnum from the AuthContext
-export type { UserRole };
+// Re-export UserRoleEnum from the AuthContext
 export { UserRoleEnum };
 
 export const useAuthHandlers = () => {
