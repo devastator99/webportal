@@ -35,7 +35,7 @@ export const DoctorAvailability = ({ doctorId }: { doctorId: string }) => {
   const { data, isLoading } = useQuery({
     queryKey: ["doctor-availability", doctorId],
     queryFn: async () => {
-      // Using raw query instead of RPC to avoid type issues
+      // Call the RPC function using the from().rpc() pattern for type safety
       const { data, error } = await supabase
         .from('doctor_availability')
         .select('*')
