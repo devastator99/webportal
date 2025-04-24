@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -189,11 +188,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Sign out function
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      // Clear any inactivity timer
+      if (inactivityTimer) {
+        clearTimeout(inactivityTimer);
+        setInactivityTimer(null);
+      }
+      
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Error signing out from Supabase:", error);
+        throw error;
+      }
+      
+      // Clear local state
       setUser(null);
       setSession(null);
       setUserRole(null);
-      navigate('/');
+      
+      // Force navigation to home page
+      window.location.href = '/';
     } catch (error) {
       console.error("Error signing out:", error);
       throw error;

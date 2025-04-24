@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface SignOutButtonProps {
   onSignOutStart?: () => void;
@@ -14,6 +15,7 @@ export const SignOutButton = ({ onSignOutStart, onSignOutEnd }: SignOutButtonPro
   const { signOut, resetInactivityTimer } = useAuth();
   const { toast } = useToast();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     try {
@@ -26,7 +28,11 @@ export const SignOutButton = ({ onSignOutStart, onSignOutEnd }: SignOutButtonPro
         title: "Successfully signed out",
         description: "You have been signed out of your account",
       });
+      
+      // Force redirect to home page
+      navigate('/', { replace: true });
     } catch (error) {
+      console.error("Error signing out:", error);
       toast({
         variant: "destructive",
         title: "Error signing out",
