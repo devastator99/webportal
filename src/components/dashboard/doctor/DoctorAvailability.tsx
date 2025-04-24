@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -16,6 +16,17 @@ interface TimeSlot {
   isAvailable: boolean;
 }
 
+interface AvailabilityRecord {
+  id: string;
+  doctor_id: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  is_available: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export const DoctorAvailability = ({ doctorId }: { doctorId: string }) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -24,9 +35,11 @@ export const DoctorAvailability = ({ doctorId }: { doctorId: string }) => {
   const { data, isLoading } = useQuery({
     queryKey: ["doctor-availability", doctorId],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_doctor_availability', {
-        p_doctor_id: doctorId
-      });
+      // Using raw query instead of RPC to avoid type issues
+      const { data, error } = await supabase
+        .from('doctor_availability')
+        .select('*')
+        .eq('doctor_id', doctorId);
 
       if (error) {
         console.error("Error fetching availability:", error);
@@ -34,10 +47,10 @@ export const DoctorAvailability = ({ doctorId }: { doctorId: string }) => {
       }
 
       // Convert data to state format
-      const availabilityMap = (data || []).reduce((acc, slot) => ({
+      const availabilityMap = Array.isArray(data) ? data.reduce((acc, slot: AvailabilityRecord) => ({
         ...acc,
         [slot.day_of_week]: slot.is_available
-      }), {});
+      }), {} as Record<number, boolean>) : {};
 
       setAvailability(availabilityMap);
       return data;
@@ -55,16 +68,19 @@ export const DoctorAvailability = ({ doctorId }: { doctorId: string }) => {
     setIsSubmitting(true);
     try {
       const availabilityData = Object.entries(availability).map(([day, isAvailable]) => ({
-        dayOfWeek: parseInt(day),
-        startTime: "09:00",
-        endTime: "17:00",
-        isAvailable
+        day_of_week: parseInt(day),
+        start_time: "09:00",
+        end_time: "17:00",
+        is_available: isAvailable,
+        doctor_id: doctorId
       }));
 
-      const { error } = await supabase.rpc('update_doctor_availability', {
-        p_doctor_id: doctorId,
-        p_availabilities: availabilityData
-      });
+      // Use batch upsert instead of RPC to avoid type issues
+      const { error } = await supabase
+        .from('doctor_availability')
+        .upsert(availabilityData, { 
+          onConflict: 'doctor_id,day_of_week'
+        });
 
       if (error) {
         throw error;
