@@ -1,7 +1,5 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, FileText, Brain, MessageSquare, Activity, FileSpreadsheet, FileUp } from "lucide-react";
@@ -14,10 +12,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { PatientAvatar } from "./PatientAvatar";
+import { cn } from "@/lib/utils";
 
 export const PatientDetails = ({ patientId }: { patientId: string }) => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("chat");
+  const [activeSection, setActiveSection] = useState("chat");
   const { isMobile, isTablet } = useResponsive();
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
@@ -76,6 +75,15 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
     }
   }, [roomData]);
 
+  const menuItems = [
+    { id: "chat", label: "Care Team Chat", icon: <MessageSquare className="h-5 w-5" /> },
+    { id: "analyze", label: "Analyze", icon: <Brain className="h-5 w-5" /> },
+    { id: "prescriptions", label: "Prescriptions", icon: <FileUp className="h-5 w-5" /> },
+    { id: "timeline", label: "Timeline", icon: <FileSpreadsheet className="h-5 w-5" /> },
+    { id: "habits", label: "Habits", icon: <Activity className="h-5 w-5" /> },
+    { id: "notes", label: "Notes", icon: <FileText className="h-5 w-5" /> },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
@@ -117,59 +125,35 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
             )}
           </div>
         </div>
+      </div>
 
-        <div className="container">
-          <Tabs 
-            value={activeTab} 
-            onValueChange={setActiveTab} 
-            className="w-full"
-          >
-            <TabsList className="inline-flex h-11 items-center justify-start w-full bg-transparent p-0 mb-0">
-              <TabsTrigger
-                value="chat"
-                className="inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
-              >
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Care Team Chat
-              </TabsTrigger>
-              <TabsTrigger
-                value="analyze"
-                className="inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
-              >
-                <Brain className="mr-2 h-4 w-4" />
-                Analyze
-              </TabsTrigger>
-              <TabsTrigger
-                value="prescriptions"
-                className="inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
-              >
-                <FileUp className="mr-2 h-4 w-4" />
-                Prescriptions
-              </TabsTrigger>
-              <TabsTrigger
-                value="timeline"
-                className="inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
-              >
-                <FileSpreadsheet className="mr-2 h-4 w-4" />
-                Timeline
-              </TabsTrigger>
-              <TabsTrigger
-                value="habits"
-                className="inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
-              >
-                <Activity className="mr-2 h-4 w-4" />
-                Habits
-              </TabsTrigger>
-              <TabsTrigger
-                value="notes"
-                className="inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                Notes
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="chat" className="mt-4">
+      <div className="container py-6">
+        <div className="flex gap-6">
+          <div className="w-64 flex-shrink-0">
+            <div className="sticky top-24 backdrop-blur-xl bg-white/10 dark:bg-black/10 border border-white/20 dark:border-white/10 rounded-lg shadow-lg overflow-hidden">
+              <nav className="flex flex-col p-2 space-y-1">
+                {menuItems.map((item) => (
+                  <Button
+                    key={item.id}
+                    variant="ghost"
+                    className={cn(
+                      "justify-start gap-3 px-3 py-2 w-full",
+                      activeSection === item.id
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "hover:bg-accent hover:text-accent-foreground"
+                    )}
+                    onClick={() => setActiveSection(item.id)}
+                  >
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </Button>
+                ))}
+              </nav>
+            </div>
+          </div>
+
+          <div className="flex-1">
+            {activeSection === "chat" && (
               <div className="h-[calc(100vh-220px)]">
                 {roomLoading ? (
                   <div className="flex justify-center items-center h-full">
@@ -196,9 +180,9 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
                   </div>
                 )}
               </div>
-            </TabsContent>
+            )}
 
-            <TabsContent value="analyze">
+            {activeSection === "analyze" && (
               <Card>
                 <CardContent className="p-6">
                   <h2 className="text-lg font-semibold mb-4">Conversation Analysis</h2>
@@ -207,41 +191,37 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
                   </p>
                 </CardContent>
               </Card>
-            </TabsContent>
+            )}
 
-            <TabsContent value="prescriptions">
+            {activeSection === "prescriptions" && (
               <PrescriptionWriter patientId={patientId} />
-            </TabsContent>
+            )}
 
-            <TabsContent value="timeline">
+            {activeSection === "timeline" && (
               <Card>
                 <CardContent className="p-6">
                   Patient timeline will go here
                 </CardContent>
               </Card>
-            </TabsContent>
+            )}
 
-            <TabsContent value="habits">
+            {activeSection === "habits" && (
               <Card>
                 <CardContent className="p-6">
                   Habits tracking will go here
                 </CardContent>
               </Card>
-            </TabsContent>
+            )}
 
-            <TabsContent value="notes">
+            {activeSection === "notes" && (
               <Card>
                 <CardContent className="p-6">
                   Doctor's notes will go here
                 </CardContent>
               </Card>
-            </TabsContent>
-          </Tabs>
+            )}
+          </div>
         </div>
-      </div>
-
-      <div className="container py-6">
-        {/* Remove the duplicate TabsContent blocks here since they're now properly inside the Tabs component above */}
       </div>
     </div>
   );
