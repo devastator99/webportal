@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -110,6 +109,28 @@
 /* Ensure message container has proper z-index for the scroll button */
 .scroll-area-viewport {
   z-index: 0;
+}
+
+/* Ensure auth buttons are always visible and properly styled */
+.auth-button {
+  position: relative;
+  z-index: 51;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: max-content;
+  white-space: nowrap;
+}
+
+/* Enhanced navbar styles */
+nav {
+  position: relative;
+  z-index: 50;
+}
+
+nav .container {
+  position: relative;
+  z-index: 50;
 }
 
 /* Fix for auth buttons to ensure they're always visible */
