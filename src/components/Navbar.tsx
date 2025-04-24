@@ -11,6 +11,7 @@ import { ForceLogoutButton } from "@/components/navbar/ForceLogoutButton";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 export const Navbar = () => {
   const { user, isLoading, resetInactivityTimer, userRole } = useAuth();
@@ -19,6 +20,7 @@ export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   const isIPad = useIsIPad();
+  const { toast } = useToast();
 
   const isDashboardPage = location.pathname === '/dashboard';
   const isAdminPage = location.pathname === '/admin';
@@ -37,14 +39,28 @@ export const Navbar = () => {
 
   const useResponsiveDisplay = isMobile || isIPad;
 
+  // If user exists but we're still in a loading state, show the loading navbar
   if (isLoading && !isSigningOut) {
     return (
       <nav className={navbarClass}>
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <Logo />
+          <div className="animate-pulse h-8 w-20 bg-gray-200 rounded"></div>
         </div>
       </nav>
     );
+  }
+
+  // Check if user is authenticated but log state for debugging
+  if (user) {
+    console.log("Navbar: User is authenticated", { 
+      userId: user.id, 
+      userRole,
+      isMobile,
+      isIPad,
+      useResponsiveDisplay,
+      mobileMenuOpen 
+    });
   }
 
   return (
@@ -52,13 +68,22 @@ export const Navbar = () => {
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         <Logo />
         
+        {/* For mobile view, show menu toggle button and login if needed */}
         {useResponsiveDisplay && (
           <div className="flex items-center gap-2">
+            {user && (
+              <SignOutButton 
+                onSignOutStart={() => setIsSigningOut(true)} 
+                onSignOutEnd={() => setIsSigningOut(false)}
+              />
+            )}
+            
             {!user && (
               <div className="flex-shrink-0 mr-2">
                 <LoginDialog />
               </div>
             )}
+            
             <Button
               variant="ghost"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -69,17 +94,12 @@ export const Navbar = () => {
           </div>
         )}
         
+        {/* Desktop view navigation */}
         <div className={`${useResponsiveDisplay ? 'hidden' : 'flex'} items-center gap-4`}>
           {user && (
             <>
               <DashboardButton />
               <DoctorActions />
-              {/* Completely exclude the chat icon for patients */}
-              {userRole !== UserRoleEnum.PATIENT && (
-                <>
-                  {/* Placeholder for other roles to add chat icon or other items */}
-                </>
-              )}
               {userRole === UserRoleEnum.ADMINISTRATOR && <ForceLogoutButton />}
               <SignOutButton 
                 onSignOutStart={() => setIsSigningOut(true)} 
@@ -94,6 +114,7 @@ export const Navbar = () => {
           )}
         </div>
         
+        {/* Mobile menu dropdown */}
         {useResponsiveDisplay && mobileMenuOpen && (
           <div className="absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-b border-[#D6BCFA] shadow-lg z-50 py-4 px-4">
             <div className="flex flex-col gap-3">
@@ -101,12 +122,6 @@ export const Navbar = () => {
                 <>
                   <DashboardButton />
                   <DoctorActions />
-                  {/* Completely exclude chat icon for patients */}
-                  {userRole !== UserRoleEnum.PATIENT && (
-                    <>
-                      {/* Placeholder for chat icon or other items for other roles */}
-                    </>
-                  )}
                   {userRole === UserRoleEnum.ADMINISTRATOR && <ForceLogoutButton />}
                   <SignOutButton 
                     onSignOutStart={() => setIsSigningOut(true)} 

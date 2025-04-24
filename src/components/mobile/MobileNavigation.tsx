@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, Settings, MessageCircle, FileText, Activity } from 'lucide-react';
+import { Home, User, Settings, MessageCircle, FileText, Activity, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { WhatsAppStyleChatInterface } from '@/components/chat/WhatsAppStyleChatInterface';
@@ -11,10 +11,11 @@ import { useToast } from '@/hooks/use-toast';
 export const MobileNavigation: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, userRole } = useAuth();
+  const { user, userRole, signOut } = useAuth();
   const [chatOpen, setChatOpen] = useState(false);
   const [patientRoomId, setPatientRoomId] = useState<string | null>(null);
   const { toast } = useToast();
+  const [isSigningOut, setIsSigningOut] = useState(false);
   
   useEffect(() => {
     if (user && userRole === 'patient') {
@@ -28,7 +29,7 @@ export const MobileNavigation: React.FC = () => {
             console.error("Error fetching patient care team room:", error);
           } else if (data) {
             console.log("Found patient care team room in mobile nav:", data);
-            setPatientRoomId(String(data));
+            setPatientRoomId(String(data.room_id));
           } else {
             console.log("No care team room found for patient in mobile nav");
           }
@@ -41,7 +42,8 @@ export const MobileNavigation: React.FC = () => {
     }
   }, [user, userRole]);
   
-  if (!user && location.pathname !== '/dashboard' && location.pathname !== '/dashboard-alt') {
+  // If no user is logged in, don't show the navigation
+  if (!user) {
     return null;
   }
   
@@ -57,33 +59,33 @@ export const MobileNavigation: React.FC = () => {
 
   const handlePrescriptionsClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    console.log("====== PRESCRIPTION NAVIGATION DEBUG ======");
-    console.log("Current user:", user?.id);
-    console.log("User role:", userRole);
-    console.log("Current location:", location.pathname);
-    console.log("Target location: /prescriptions");
-    
-    try {
-      navigate('/prescriptions');
-      toast({
-        title: "Loading prescriptions",
-        description: "Opening your prescription history...",
-      });
-      
-      console.log("Navigation completed to: /prescriptions");
-    } catch (error) {
-      console.error("Navigation error:", error);
-      toast({
-        title: "Navigation error",
-        description: "Could not navigate to prescriptions page. Please try again.",
-        variant: "destructive"
-      });
-    }
+    navigate('/prescriptions');
   };
   
   const handleHabitsClick = (e: React.MouseEvent) => {
     e.preventDefault();
     navigate('/habits');
+  };
+  
+  const handleSignOut = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsSigningOut(true);
+    
+    try {
+      await signOut();
+      toast({
+        title: "Successfully signed out",
+        description: "You have been signed out of your account",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error signing out",
+        description: "There was a problem signing you out. Please try again.",
+      });
+    } finally {
+      setIsSigningOut(false);
+    }
   };
   
   const baseNavItems = [
@@ -115,6 +117,12 @@ export const MobileNavigation: React.FC = () => {
       icon: Settings,
       action: () => navigate('/dashboard-alt'),
       active: location.pathname === '/dashboard-alt'
+    },
+    {
+      label: isSigningOut ? 'Signing Out...' : 'Sign Out',
+      icon: LogOut,
+      action: handleSignOut,
+      active: false
     }
   ];
   
@@ -137,14 +145,16 @@ export const MobileNavigation: React.FC = () => {
       icon: Settings,
       action: () => navigate('/dashboard-alt'),
       active: location.pathname === '/dashboard-alt'
+    },
+    {
+      label: isSigningOut ? 'Signing Out...' : 'Sign Out',
+      icon: LogOut,
+      action: handleSignOut,
+      active: false
     }
   ];
   
   let navItems = userRole === 'patient' ? patientNavItems : otherRoleNavItems;
-  
-  console.log("Navigation items:", navItems);
-  console.log("Current path:", location.pathname);
-  console.log("User role:", userRole);
 
   return (
     <>
@@ -155,6 +165,7 @@ export const MobileNavigation: React.FC = () => {
             className={`mobile-nav-item ${item.active ? 'active' : ''}`}
             onClick={item.action}
             aria-label={item.label}
+            disabled={item.label === 'Signing Out...'}
           >
             <item.icon 
               className="mobile-nav-icon h-5 w-5" 
