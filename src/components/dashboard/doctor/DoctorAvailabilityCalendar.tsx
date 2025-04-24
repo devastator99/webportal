@@ -37,7 +37,8 @@ export const DoctorAvailabilityCalendar = ({ doctorId }: { doctorId: string }) =
     if (!selectedDate) return;
 
     try {
-      const { error } = await supabase.rpc('set_doctor_availability', {
+      // Use update_doctor_availability instead of set_doctor_availability
+      const { error } = await supabase.rpc('update_doctor_availability', {
         p_doctor_id: doctorId,
         p_date: format(selectedDate, 'yyyy-MM-dd'),
         p_start_time: startTime,
