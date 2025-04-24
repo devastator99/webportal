@@ -1,4 +1,3 @@
-
 import { useAuth, UserRoleEnum } from "@/contexts/AuthContext";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
@@ -18,8 +17,7 @@ const ChatPage = () => {
   const [loadingRoom, setLoadingRoom] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
 
-  // Check userRole type to properly handle 'patient'
-  const isPatient = userRole === UserRoleEnum.PATIENT || userRole === 'patient';
+  const isPatient = userRole === UserRoleEnum.PATIENT || userRole === "patient";
 
   useEffect(() => {
     if (!isLoading) {

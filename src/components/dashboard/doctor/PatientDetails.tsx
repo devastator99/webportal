@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -167,78 +168,80 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
                 Notes
               </TabsTrigger>
             </TabsList>
+            
+            <TabsContent value="chat" className="mt-4">
+              <div className="h-[calc(100vh-220px)]">
+                {roomLoading ? (
+                  <div className="flex justify-center items-center h-full">
+                    <Skeleton className="h-[400px] w-full" />
+                  </div>
+                ) : selectedRoomId ? (
+                  <CareTeamRoomChat 
+                    selectedRoomId={selectedRoomId} 
+                    isMobileView={isMobile || isTablet}
+                  />
+                ) : (
+                  <div className="flex justify-center items-center h-full flex-col p-4">
+                    <p className="text-muted-foreground text-center mb-4">
+                      {roomError ? "Error loading care team chat" : "No care team chat found for this patient."}
+                    </p>
+                    {roomError && (
+                      <Button 
+                        onClick={() => navigate("/dashboard")} 
+                        variant="outline"
+                      >
+                        Return to Dashboard
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="analyze">
+              <Card>
+                <CardContent className="p-6">
+                  <h2 className="text-lg font-semibold mb-4">Conversation Analysis</h2>
+                  <p className="text-muted-foreground">
+                    AI analysis of care team conversations will appear here.
+                  </p>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="prescriptions">
+              <PrescriptionWriter patientId={patientId} />
+            </TabsContent>
+
+            <TabsContent value="timeline">
+              <Card>
+                <CardContent className="p-6">
+                  Patient timeline will go here
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="habits">
+              <Card>
+                <CardContent className="p-6">
+                  Habits tracking will go here
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="notes">
+              <Card>
+                <CardContent className="p-6">
+                  Doctor's notes will go here
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </div>
       </div>
 
       <div className="container py-6">
-        <TabsContent value="chat" className="m-0 outline-none">
-          <div className="h-[calc(100vh-220px)]">
-            {roomLoading ? (
-              <div className="flex justify-center items-center h-full">
-                <Skeleton className="h-[400px] w-full" />
-              </div>
-            ) : selectedRoomId ? (
-              <CareTeamRoomChat 
-                selectedRoomId={selectedRoomId} 
-                isMobileView={isMobile || isTablet}
-              />
-            ) : (
-              <div className="flex justify-center items-center h-full flex-col p-4">
-                <p className="text-muted-foreground text-center mb-4">
-                  {roomError ? "Error loading care team chat" : "No care team chat found for this patient."}
-                </p>
-                {roomError && (
-                  <Button 
-                    onClick={() => navigate("/dashboard")} 
-                    variant="outline"
-                  >
-                    Return to Dashboard
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="analyze" className="m-0 outline-none">
-          <Card>
-            <CardContent className="p-6">
-              <h2 className="text-lg font-semibold mb-4">Conversation Analysis</h2>
-              <p className="text-muted-foreground">
-                AI analysis of care team conversations will appear here.
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="prescriptions" className="m-0 outline-none">
-          <PrescriptionWriter patientId={patientId} />
-        </TabsContent>
-
-        <TabsContent value="timeline" className="m-0 outline-none">
-          <Card>
-            <CardContent className="p-6">
-              Patient timeline will go here
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="habits" className="m-0 outline-none">
-          <Card>
-            <CardContent className="p-6">
-              Habits tracking will go here
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="notes" className="m-0 outline-none">
-          <Card>
-            <CardContent className="p-6">
-              Doctor's notes will go here
-            </CardContent>
-          </Card>
-        </TabsContent>
+        {/* Remove the duplicate TabsContent blocks here since they're now properly inside the Tabs component above */}
       </div>
     </div>
   );
