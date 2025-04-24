@@ -86,8 +86,8 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-        <div className="container py-3 flex items-center justify-between">
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container py-3">
           <div className="flex items-center gap-3">
             <Button
               variant="ghost"
@@ -114,10 +114,10 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
                   size="lg"
                 />
                 <div>
-                  <h1 className="text-xl font-semibold">
+                  <h1 className="text-xl font-semibold text-[#7E69AB]">
                     {patientData?.first_name} {patientData?.last_name}
                   </h1>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-[#9b87f5]/70">
                     Patient Details
                   </p>
                 </div>
@@ -157,13 +157,15 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
               <div className="h-[calc(100vh-220px)]">
                 {roomLoading ? (
                   <div className="flex justify-center items-center h-full">
-                    <Skeleton className="h-[400px] w-full" />
+                    <Skeleton className="h-[400px] w-full rounded-lg" />
                   </div>
                 ) : selectedRoomId ? (
-                  <CareTeamRoomChat 
-                    selectedRoomId={selectedRoomId} 
-                    isMobileView={isMobile || isTablet}
-                  />
+                  <div className="bg-white/5 dark:bg-black/5 rounded-lg backdrop-blur-sm">
+                    <CareTeamRoomChat 
+                      selectedRoomId={selectedRoomId} 
+                      isMobileView={isMobile || isTablet}
+                    />
+                  </div>
                 ) : (
                   <div className="flex justify-center items-center h-full flex-col p-4">
                     <p className="text-muted-foreground text-center mb-4">
@@ -183,42 +185,36 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
             )}
 
             {activeSection === "analyze" && (
-              <Card>
-                <CardContent className="p-6">
-                  <h2 className="text-lg font-semibold mb-4">Conversation Analysis</h2>
-                  <p className="text-muted-foreground">
-                    AI analysis of care team conversations will appear here.
-                  </p>
-                </CardContent>
-              </Card>
+              <div className="bg-white/5 dark:bg-black/5 rounded-lg backdrop-blur-sm p-6">
+                <h2 className="text-lg font-semibold mb-4 text-[#7E69AB]">Conversation Analysis</h2>
+                <p className="text-muted-foreground">
+                  AI analysis of care team conversations will appear here.
+                </p>
+              </div>
             )}
 
             {activeSection === "prescriptions" && (
-              <PrescriptionWriter patientId={patientId} />
+              <div className="bg-white/5 dark:bg-black/5 rounded-lg backdrop-blur-sm">
+                <PrescriptionWriter patientId={patientId} />
+              </div>
             )}
 
             {activeSection === "timeline" && (
-              <Card>
-                <CardContent className="p-6">
-                  Patient timeline will go here
-                </CardContent>
-              </Card>
+              <div className="bg-white/5 dark:bg-black/5 rounded-lg backdrop-blur-sm p-6">
+                Patient timeline will go here
+              </div>
             )}
 
             {activeSection === "habits" && (
-              <Card>
-                <CardContent className="p-6">
-                  Habits tracking will go here
-                </CardContent>
-              </Card>
+              <div className="bg-white/5 dark:bg-black/5 rounded-lg backdrop-blur-sm p-6">
+                Habits tracking will go here
+              </div>
             )}
 
             {activeSection === "notes" && (
-              <Card>
-                <CardContent className="p-6">
-                  Doctor's notes will go here
-                </CardContent>
-              </Card>
+              <div className="bg-white/5 dark:bg-black/5 rounded-lg backdrop-blur-sm p-6">
+                Doctor's notes will go here
+              </div>
             )}
           </div>
         </div>
