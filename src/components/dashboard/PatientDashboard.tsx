@@ -149,7 +149,7 @@ export const PatientDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-3 space-y-4">
+        <div className="md:col-span-3 space-y-2"> {/* Reduced space-y from 4 to 2 */}
           {patientData?.nextAppointment && (
             <div className="p-4 bg-[#E5DEFF]/20 rounded-lg">
               <div className="flex items-center justify-between">
