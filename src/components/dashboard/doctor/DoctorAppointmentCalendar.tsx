@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,13 +5,13 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { CalendarIcon, Clock, Plus, User } from "lucide-react";
+import { CalendarIcon, ChevronDown, ChevronUp, Clock, Plus, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 import { Button } from "@/components/ui/button";
 import { useBreakpoint, useResponsiveButtonSize } from "@/hooks/use-responsive";
 import { ResponsiveText } from "@/components/ui/responsive-typography";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 interface DoctorAppointmentCalendarProps {
   doctorId: string;
@@ -31,6 +30,7 @@ interface AppointmentWithPatient {
 
 export const DoctorAppointmentCalendar = ({ doctorId }: DoctorAppointmentCalendarProps) => {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [isOpen, setIsOpen] = useState(true);
   const { toast } = useToast();
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
   const buttonSize = useResponsiveButtonSize({
@@ -38,10 +38,8 @@ export const DoctorAppointmentCalendar = ({ doctorId }: DoctorAppointmentCalenda
     default: 'default'
   });
 
-  // Format the selected date to be used in the query
   const formattedDate = format(selectedDate, "yyyy-MM-dd");
 
-  // Fetch appointments for the selected date
   const {
     data: appointments = [],
     isLoading,
@@ -52,7 +50,6 @@ export const DoctorAppointmentCalendar = ({ doctorId }: DoctorAppointmentCalenda
     queryFn: async () => {
       if (!doctorId) return [];
 
-      // Call RPC function to get appointments for this doctor on the selected date
       const { data, error } = await supabase.rpc("get_appointments_by_date", {
         p_doctor_id: doctorId,
         p_date: formattedDate,
@@ -68,7 +65,6 @@ export const DoctorAppointmentCalendar = ({ doctorId }: DoctorAppointmentCalenda
     enabled: !!doctorId,
   });
 
-  // Handle date change
   const handleDateChange = (date: Date | undefined) => {
     if (date) {
       setSelectedDate(date);
@@ -80,113 +76,116 @@ export const DoctorAppointmentCalendar = ({ doctorId }: DoctorAppointmentCalenda
       <CardHeader className={`pb-3 ${isSmallScreen ? 'p-3' : ''}`}>
         <div className="flex justify-between items-center">
           <div>
-            <CardTitle className={isSmallScreen ? 'text-lg' : 'text-2xl'}>
-              Appointment Calendar
-            </CardTitle>
+            <div className="flex items-center gap-2">
+              <CardTitle className={isSmallScreen ? 'text-lg' : 'text-2xl'}>
+                Appointment Calendar
+              </CardTitle>
+              <CollapsibleTrigger 
+                className="hover:bg-gray-100 p-1 rounded-full transition-colors"
+                onClick={() => setIsOpen(!isOpen)}
+              >
+                {isOpen ? (
+                  <ChevronUp className="h-4 w-4 text-gray-500" />
+                ) : (
+                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                )}
+              </CollapsibleTrigger>
+            </div>
             <CardDescription>
               {format(selectedDate, "MMMM d, yyyy")}
             </CardDescription>
           </div>
-          <ScheduleAppointment 
-            callerRole="doctor" 
-            preSelectedDoctorId={doctorId}
-            preSelectedDate={selectedDate}>
-            <Button 
-              size={buttonSize}
-              className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-1">
-              <Plus size={isSmallScreen ? 14 : 16} />
-              <span>{isSmallScreen ? 'Add' : 'Schedule'}</span>
-            </Button>
-          </ScheduleAppointment>
         </div>
       </CardHeader>
-      <CardContent className={isSmallScreen ? 'p-3 pt-0' : ''}>
-        <div className={`grid ${isSmallScreen ? 'grid-cols-1 gap-4' : isMediumScreen ? 'grid-cols-1 md:grid-cols-7 gap-6' : 'md:grid-cols-7 gap-8'}`}>
-          {/* Calendar takes up 3 columns on desktop */}
-          <div className={isSmallScreen ? 'w-full' : isMediumScreen ? 'w-full' : 'md:col-span-3'}>
-            <div className={`flex ${isSmallScreen ? 'justify-center' : isMediumScreen ? 'justify-center md:justify-start' : 'justify-center md:justify-start'}`}>
-              <Calendar
-                mode="single"
-                selected={selectedDate}
-                onSelect={handleDateChange}
-                className={`border rounded-md bg-white shadow-sm ${isSmallScreen ? 'scale-90 transform origin-top' : ''}`}
-              />
-            </div>
-          </div>
-
-          {/* Appointments take up 4 columns on desktop */}
-          <div className={isSmallScreen ? 'w-full mt-2' : isMediumScreen ? 'w-full md:col-span-4' : 'md:col-span-4'}>
-            <div className="bg-slate-50 p-3 sm:p-4 rounded-lg h-full">
-              <div className="flex items-center mb-3 sm:mb-4">
-                <CalendarIcon className="mr-2 h-4 w-4 text-[#9b87f5]" />
-                <ResponsiveText weight="semibold" mobileSize="sm" tabletSize="base">
-                  Appointments for {format(selectedDate, "MMMM d")}
-                </ResponsiveText>
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleContent>
+          <CardContent className={isSmallScreen ? 'p-3 pt-0' : ''}>
+            <div className={`grid ${isSmallScreen ? 'grid-cols-1 gap-4' : isMediumScreen ? 'grid-cols-1 md:grid-cols-7 gap-6' : 'md:grid-cols-7 gap-8'}`}>
+              <div className={isSmallScreen ? 'w-full' : isMediumScreen ? 'w-full' : 'md:col-span-3'}>
+                <div className={`flex ${isSmallScreen ? 'justify-center' : isMediumScreen ? 'justify-center md:justify-start' : 'justify-center md:justify-start'}`}>
+                  <Calendar
+                    mode="single"
+                    selected={selectedDate}
+                    onSelect={handleDateChange}
+                    className={`border rounded-md bg-white shadow-sm ${isSmallScreen ? 'scale-90 transform origin-top' : ''}`}
+                  />
+                </div>
               </div>
 
-              {isLoading ? (
-                <div className="space-y-3">
-                  <Skeleton className="h-16 w-full" />
-                  <Skeleton className="h-16 w-full" />
-                  <Skeleton className="h-16 w-full" />
-                </div>
-              ) : isError ? (
-                <div className="text-red-500 p-4 bg-red-50 rounded-md">
-                  Error loading appointments: {(error as Error).message}
-                </div>
-              ) : appointments.length === 0 ? (
-                <div className="text-center py-6 sm:py-8 text-gray-500 bg-white rounded-md border border-dashed border-gray-300">
-                  <p className="mb-3 text-sm sm:text-base">No appointments scheduled</p>
-                  <ScheduleAppointment 
-                    callerRole="doctor" 
-                    preSelectedDoctorId={doctorId}
-                    preSelectedDate={selectedDate}>
-                    <Button 
-                      size={buttonSize}
-                      className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-1">
-                      <Plus size={isSmallScreen ? 14 : 16} />
-                      <span>{isSmallScreen ? 'Add' : 'Schedule Appointment'}</span>
-                    </Button>
-                  </ScheduleAppointment>
-                </div>
-              ) : (
-                <div className="space-y-2 sm:space-y-3 max-h-[250px] sm:max-h-[350px] overflow-y-auto pr-2">
-                  {appointments.map((appointment) => (
-                    <div
-                      key={appointment.id}
-                      className="flex flex-col p-3 sm:p-4 border rounded-lg bg-white hover:bg-slate-50 transition-colors shadow-sm"
-                    >
-                      <div className="flex justify-between items-center">
-                        <div className="flex items-center">
-                          <User className="mr-2 h-4 w-4 text-slate-500" />
-                          <span className={`font-medium ${isSmallScreen ? 'text-sm' : ''}`}>
-                            {appointment.patient_json.first_name} {appointment.patient_json.last_name}
-                          </span>
-                        </div>
-                        <Badge
-                          className={`text-xs ${
-                            appointment.status === "scheduled" ? "bg-blue-500" : 
-                            appointment.status === "completed" ? "bg-green-500" : 
-                            "bg-red-500"
-                          }`}
-                        >
-                          {appointment.status}
-                        </Badge>
-                      </div>
-                      <div className="flex items-center mt-2 text-slate-500">
-                        <Clock className="mr-2 h-3 w-3" />
-                        <time dateTime={appointment.scheduled_at} className={isSmallScreen ? 'text-xs' : 'text-sm'}>
-                          {format(parseISO(appointment.scheduled_at), "h:mm a")}
-                        </time>
-                      </div>
+              <div className={isSmallScreen ? 'w-full mt-2' : isMediumScreen ? 'w-full md:col-span-4' : 'md:col-span-4'}>
+                <div className="bg-slate-50 p-3 sm:p-4 rounded-lg h-full">
+                  <div className="flex items-center mb-3 sm:mb-4">
+                    <CalendarIcon className="mr-2 h-4 w-4 text-[#9b87f5]" />
+                    <ResponsiveText weight="semibold" mobileSize="sm" tabletSize="base">
+                      Appointments for {format(selectedDate, "MMMM d")}
+                    </ResponsiveText>
+                  </div>
+
+                  {isLoading ? (
+                    <div className="space-y-3">
+                      <Skeleton className="h-16 w-full" />
+                      <Skeleton className="h-16 w-full" />
+                      <Skeleton className="h-16 w-full" />
                     </div>
-                  ))}
+                  ) : isError ? (
+                    <div className="text-red-500 p-4 bg-red-50 rounded-md">
+                      Error loading appointments: {(error as Error).message}
+                    </div>
+                  ) : appointments.length === 0 ? (
+                    <div className="text-center py-6 sm:py-8 text-gray-500 bg-white rounded-md border border-dashed border-gray-300">
+                      <p className="mb-3 text-sm sm:text-base">No appointments scheduled</p>
+                      <ScheduleAppointment 
+                        callerRole="doctor" 
+                        preSelectedDoctorId={doctorId}
+                        preSelectedDate={selectedDate}>
+                        <Button 
+                          size={buttonSize}
+                          className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-1">
+                          <Plus size={isSmallScreen ? 14 : 16} />
+                          <span>{isSmallScreen ? 'Add' : 'Schedule Appointment'}</span>
+                        </Button>
+                      </ScheduleAppointment>
+                    </div>
+                  ) : (
+                    <div className="space-y-2 sm:space-y-3 max-h-[250px] sm:max-h-[350px] overflow-y-auto pr-2">
+                      {appointments.map((appointment) => (
+                        <div
+                          key={appointment.id}
+                          className="flex flex-col p-3 sm:p-4 border rounded-lg bg-white hover:bg-slate-50 transition-colors shadow-sm"
+                        >
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center">
+                              <User className="mr-2 h-4 w-4 text-slate-500" />
+                              <span className={`font-medium ${isSmallScreen ? 'text-sm' : ''}`}>
+                                {appointment.patient_json.first_name} {appointment.patient_json.last_name}
+                              </span>
+                            </div>
+                            <Badge
+                              className={`text-xs ${
+                                appointment.status === "scheduled" ? "bg-blue-500" : 
+                                appointment.status === "completed" ? "bg-green-500" : 
+                                "bg-red-500"
+                              }`}
+                            >
+                              {appointment.status}
+                            </Badge>
+                          </div>
+                          <div className="flex items-center mt-2 text-slate-500">
+                            <Clock className="mr-2 h-3 w-3" />
+                            <time dateTime={appointment.scheduled_at} className={isSmallScreen ? 'text-xs' : 'text-sm'}>
+                              {format(parseISO(appointment.scheduled_at), "h:mm a")}
+                            </time>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
-          </div>
-        </div>
-      </CardContent>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 };

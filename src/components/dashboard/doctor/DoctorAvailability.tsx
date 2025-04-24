@@ -1,4 +1,5 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -7,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Clock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { TimePicker } from "@/components/ui/time-picker";
 
 interface TimeSlot {
   dayOfWeek: number;
@@ -26,10 +28,16 @@ interface AvailabilityRecord {
   updated_at: string;
 }
 
+interface DayAvailability {
+  isAvailable: boolean;
+  startTime: string;
+  endTime: string;
+}
+
 export const DoctorAvailability = ({ doctorId }: { doctorId: string }) => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [availability, setAvailability] = React.useState<Record<number, boolean>>({});
+  const [availability, setAvailability] = useState<Record<number, DayAvailability>>({});
 
   const { data, isLoading } = useQuery({
     queryKey: ["doctor-availability", doctorId],
@@ -45,8 +53,12 @@ export const DoctorAvailability = ({ doctorId }: { doctorId: string }) => {
       // Convert data to state format
       const availabilityMap = Array.isArray(data) ? data.reduce((acc, slot: AvailabilityRecord) => ({
         ...acc,
-        [slot.day_of_week]: slot.is_available
-      }), {} as Record<number, boolean>) : {};
+        [slot.day_of_week]: {
+          isAvailable: slot.is_available,
+          startTime: slot.start_time,
+          endTime: slot.end_time
+        }
+      }), {} as Record<number, DayAvailability>) : {};
 
       setAvailability(availabilityMap);
       return data as AvailabilityRecord[];
@@ -56,18 +68,32 @@ export const DoctorAvailability = ({ doctorId }: { doctorId: string }) => {
   const handleToggleDay = (day: number) => {
     setAvailability(prev => ({
       ...prev,
-      [day]: !prev[day]
+      [day]: {
+        isAvailable: !prev[day]?.isAvailable,
+        startTime: prev[day]?.startTime || "09:00",
+        endTime: prev[day]?.endTime || "17:00"
+      }
+    }));
+  };
+
+  const handleTimeChange = (day: number, type: 'startTime' | 'endTime', time: string) => {
+    setAvailability(prev => ({
+      ...prev,
+      [day]: {
+        ...prev[day],
+        [type]: time
+      }
     }));
   };
 
   const handleSaveAvailability = async () => {
     setIsSubmitting(true);
     try {
-      const availabilityData = Object.entries(availability).map(([day, isAvailable]) => ({
+      const availabilityData = Object.entries(availability).map(([day, data]) => ({
         day_of_week: parseInt(day),
-        start_time: "09:00",
-        end_time: "17:00",
-        is_available: isAvailable
+        start_time: data.startTime,
+        end_time: data.endTime,
+        is_available: data.isAvailable
       }));
 
       const { error } = await supabase
@@ -76,9 +102,7 @@ export const DoctorAvailability = ({ doctorId }: { doctorId: string }) => {
           p_availabilities: JSON.stringify(availabilityData)
         });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
       toast({
         title: "Availability Updated",
@@ -109,19 +133,30 @@ export const DoctorAvailability = ({ doctorId }: { doctorId: string }) => {
       <CardContent>
         <div className="space-y-4">
           {dayNames.map((day, index) => (
-            <div key={day} className="flex items-center justify-between border-b pb-2">
-              <div>
-                <Label>{day}</Label>
-              </div>
-              <div className="flex items-center gap-4">
+            <div key={day} className="space-y-2">
+              <div className="flex items-center justify-between border-b pb-2">
+                <div>
+                  <Label>{day}</Label>
+                </div>
                 <Switch 
-                  checked={availability[index + 1] || false}
+                  checked={availability[index + 1]?.isAvailable || false}
                   onCheckedChange={() => handleToggleDay(index + 1)}
                 />
-                <span className="text-sm text-muted-foreground">
-                  9:00 AM - 5:00 PM
-                </span>
               </div>
+              {availability[index + 1]?.isAvailable && (
+                <div className="grid grid-cols-2 gap-4 pl-4">
+                  <TimePicker
+                    value={availability[index + 1]?.startTime || "09:00"}
+                    onChange={(time) => handleTimeChange(index + 1, 'startTime', time)}
+                    label="Start Time"
+                  />
+                  <TimePicker
+                    value={availability[index + 1]?.endTime || "17:00"}
+                    onChange={(time) => handleTimeChange(index + 1, 'endTime', time)}
+                    label="End Time"
+                  />
+                </div>
+              )}
             </div>
           ))}
           <Button 
