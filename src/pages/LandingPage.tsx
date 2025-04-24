@@ -1,12 +1,10 @@
+
 import { useState, useEffect, useCallback, lazy, Suspense } from "react";
 import { Hero } from "@/components/Hero";
 import { Features } from "@/components/Features";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { StandaloneVideoList } from "@/components/videos/VideoList";
-import { featureFlags } from "@/config/features";
 import { LoadingSpinner } from "@/components/common/LoadingSpinner";
 
 // Lazy-loaded components
@@ -30,7 +28,6 @@ export const LandingPage = () => {
     features: false,
     testimonials: false,
     pricing: false,
-    videos: false,
     footer: false
   });
   
@@ -44,7 +41,6 @@ export const LandingPage = () => {
         features: true,
         testimonials: true,
         pricing: true,
-        videos: true,
         footer: true
       });
       return;
@@ -62,9 +58,6 @@ export const LandingPage = () => {
               }
               if (sectionId === 'pricing-section' && !prev.pricing) {
                 return { ...prev, pricing: true };
-              }
-              if (sectionId === 'video-section' && !prev.videos) {
-                return { ...prev, videos: true };
               }
               if (sectionId === 'footer-section' && !prev.footer) {
                 return { ...prev, footer: true };
@@ -86,7 +79,6 @@ export const LandingPage = () => {
     const sections = [
       'testimonials-section', 
       'pricing-section', 
-      'video-section', 
       'footer-section'
     ];
     
@@ -129,21 +121,6 @@ export const LandingPage = () => {
           )}
         </div>
         
-        <div id="video-section" className="container mx-auto px-4 py-6 min-h-[20px]">
-          {visibleSections.videos && (
-            <CollapsibleSection 
-              title="Knowledge Sharing" 
-              className="bg-white dark:bg-gray-800 shadow-md border-[#D6BCFA]"
-              defaultOpen={false}
-              lazyLoad={true}
-            >
-              <Suspense fallback={<LoadingSpinner />}>
-                <StandaloneVideoList />
-              </Suspense>
-            </CollapsibleSection>
-          )}
-        </div>
-        
         <div id="footer-section" className="min-h-[20px]">
           {visibleSections.footer && (
             <Suspense fallback={<LoadingSpinner />}>
@@ -157,3 +134,4 @@ export const LandingPage = () => {
 };
 
 export default LandingPage;
+
