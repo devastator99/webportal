@@ -6,7 +6,6 @@ import { useToast } from "@/hooks/use-toast";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import { PatientStats } from "./patient/PatientStats";
 import { DashboardHeader } from "./DashboardHeader";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
@@ -172,59 +171,49 @@ export const PatientDashboard = () => {
             </div>
           )}
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Care Team Chat
-              </CardTitle>
-              <CardDescription>
-                Connect with your healthcare team, send updates, and upload medical reports.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="w-full max-w-2xl mx-auto">
-                <WhatsAppStyleChatInterface patientRoomId={careTeamRoomId} />
-              </div>
-            </CardContent>
-          </Card>
+          <div>
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <UserRound className="h-5 w-5" />
+              Care Team Chat
+            </h2>
+            <p className="text-muted-foreground mb-4">
+              Connect with your healthcare team, send updates, and upload medical reports.
+            </p>
+            <div className="w-full max-w-2xl mx-auto">
+              <WhatsAppStyleChatInterface patientRoomId={careTeamRoomId} />
+            </div>
+          </div>
           
           <PatientCuratedHealthTips />
           
           {patientData?.latestPrescription && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-purple-500" />
-                  Latest Prescription
-                </CardTitle>
-                <CardDescription>
-                  Issued on {new Date(patientData.latestPrescription.created_at).toLocaleDateString()} by Dr. {patientData.latestPrescription.doctor_first_name} {patientData.latestPrescription.doctor_last_name}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="pb-3">
-                <div className="space-y-3">
-                  <div>
-                    <h4 className="text-sm font-medium">Diagnosis</h4>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {patientData.latestPrescription.diagnosis}
-                    </p>
-                  </div>
-                  <Separator />
-                  <div>
-                    <h4 className="text-sm font-medium">Prescribed Medications</h4>
-                    <p className="text-sm text-muted-foreground line-clamp-2">
-                      {patientData.latestPrescription.prescription}
-                    </p>
-                  </div>
+            <div>
+              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <FileText className="h-5 w-5 text-purple-500" />
+                Latest Prescription
+              </h2>
+              <p className="text-muted-foreground mb-4">
+                Issued on {new Date(patientData.latestPrescription.created_at).toLocaleDateString()} by Dr. {patientData.latestPrescription.doctor_first_name} {patientData.latestPrescription.doctor_last_name}
+              </p>
+              <div className="space-y-3 p-4 bg-muted/20 rounded-lg">
+                <div>
+                  <h4 className="text-sm font-medium">Diagnosis</h4>
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {patientData.latestPrescription.diagnosis}
+                  </p>
                 </div>
-              </CardContent>
-              <CardFooter>
-                <Button variant="outline" size="sm" className="ml-auto" onClick={() => navigate('/patient/prescriptions')}>
+                <Separator />
+                <div>
+                  <h4 className="text-sm font-medium">Prescribed Medications</h4>
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {patientData.latestPrescription.prescription}
+                  </p>
+                </div>
+                <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate('/patient/prescriptions')}>
                   View All Prescriptions <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
-              </CardFooter>
-            </Card>
+              </div>
+            </div>
           )}
         </div>
       </div>
