@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -8,17 +7,12 @@ import { ArrowLeft, FileText, Brain, MessageSquare, Activity, FileSpreadsheet, F
 import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWriter";
 import { useResponsive } from "@/contexts/ResponsiveContext";
 import { useBreakpoint } from "@/hooks/use-responsive";
-import { ResponsiveCard } from "@/components/ui/responsive-card";
 import { CareTeamRoomChat } from "@/components/chat/CareTeamRoomChat";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { PatientAvatar } from "./PatientAvatar";
-
-interface PatientDetailsProps {
-  patientId: string;
-}
 
 export const PatientDetails = ({ patientId }: { patientId: string }) => {
   const navigate = useNavigate();
@@ -27,13 +21,6 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
   const [selectedRoomId, setSelectedRoomId] = useState<string | null>(null);
 
-  // Responsive spacing and sizes
-  const containerPadding = isMobile ? "p-3" : isTablet ? "p-4" : "p-6";
-  const buttonSize = isMobile ? "sm" : "default";
-  const cardPadding = isMobile ? "p-3" : isTablet ? "p-4" : "p-5";
-  const headerSpacing = isMobile ? "mb-3" : isTablet ? "mb-4" : "mb-6";
-
-  // Fetch patient details
   const { data: patientData, isLoading: patientLoading } = useQuery({
     queryKey: ["patient_details", patientId],
     queryFn: async () => {
@@ -52,7 +39,6 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
     enabled: !!patientId
   });
 
-  // Fetch the patient's care team room ID
   const { data: roomData, isLoading: roomLoading, error: roomError } = useQuery({
     queryKey: ["patient_care_team_room", patientId],
     queryFn: async () => {
@@ -83,147 +69,177 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
     retry: 1
   });
 
-  // Set the selected room ID when data is available
   useEffect(() => {
     if (roomData && roomData.room_id) {
-      console.log("Setting room ID:", roomData.room_id);
       setSelectedRoomId(roomData.room_id);
-    } else if (roomError) {
-      console.error("Room data error:", roomError);
     }
-  }, [roomData, roomError]);
+  }, [roomData]);
 
   return (
-    <div className="w-full mx-auto p-4 space-y-4 max-w-full animate-fade-up">
-      <div className="flex flex-col space-y-4">
-        {/* Header with back button and patient info */}
-        <div className="flex items-center justify-between">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => navigate("/dashboard")}
-            className="gap-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back
-          </Button>
-        </div>
-
-        <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-none">
-          <CardContent className="p-6">
+    <div className="min-h-screen bg-background">
+      <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+        <div className="container py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/dashboard")}
+              className="shrink-0"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            
             {patientLoading ? (
-              <Skeleton className="h-8 w-1/3" />
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-10 w-10 rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-3 w-24" />
+                </div>
+              </div>
             ) : (
-              <div className="flex items-center gap-4">
-                <PatientAvatar 
+              <div className="flex items-center gap-3">
+                <PatientAvatar
                   firstName={patientData?.first_name || ''}
                   lastName={patientData?.last_name || ''}
                   size="lg"
                 />
                 <div>
-                  <h1 className="text-2xl font-bold text-primary/90">
+                  <h1 className="text-xl font-semibold">
                     {patientData?.first_name} {patientData?.last_name}
                   </h1>
-                  <p className="text-muted-foreground">Patient Details</p>
+                  <p className="text-sm text-muted-foreground">
+                    Patient Details
+                  </p>
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+
+        <div className="container">
+          <Tabs 
+            value={activeTab} 
+            onValueChange={setActiveTab} 
+            className="w-full"
+          >
+            <TabsList className="inline-flex h-11 items-center justify-start w-full bg-transparent p-0 mb-0">
+              <TabsTrigger
+                value="chat"
+                className="inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
+              >
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Care Team Chat
+              </TabsTrigger>
+              <TabsTrigger
+                value="analyze"
+                className="inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
+              >
+                <Brain className="mr-2 h-4 w-4" />
+                Analyze
+              </TabsTrigger>
+              <TabsTrigger
+                value="prescriptions"
+                className="inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
+              >
+                <FileUp className="mr-2 h-4 w-4" />
+                Prescriptions
+              </TabsTrigger>
+              <TabsTrigger
+                value="timeline"
+                className="inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
+              >
+                <FileSpreadsheet className="mr-2 h-4 w-4" />
+                Timeline
+              </TabsTrigger>
+              <TabsTrigger
+                value="habits"
+                className="inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
+              >
+                <Activity className="mr-2 h-4 w-4" />
+                Habits
+              </TabsTrigger>
+              <TabsTrigger
+                value="notes"
+                className="inline-flex items-center justify-center whitespace-nowrap px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm border-b-2 border-transparent data-[state=active]:border-primary rounded-none"
+              >
+                <FileText className="mr-2 h-4 w-4" />
+                Notes
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
       </div>
 
-      <Card className="overflow-hidden border-0 shadow-sm">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="w-full border-b bg-white sticky top-0 z-10">
-            <div className="overflow-x-auto">
-              <TabsList className="w-full justify-start rounded-none border-b bg-white px-6">
-                <TabsTrigger value="chat" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
-                  <MessageSquare className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
-                  Care Team Chat
-                </TabsTrigger>
-                <TabsTrigger value="analyze" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
-                  <Brain className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
-                  Analyze Conversation
-                </TabsTrigger>
-                <TabsTrigger value="prescriptions" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
-                  <FileUp className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
-                  Prescriptions
-                </TabsTrigger>
-                <TabsTrigger value="timeline" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
-                  <FileSpreadsheet className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
-                  Timeline
-                </TabsTrigger>
-                <TabsTrigger value="habits" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
-                  <Activity className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
-                  Habits
-                </TabsTrigger>
-                <TabsTrigger value="notes" className="data-[state=active]:bg-[#E5DEFF] data-[state=active]:text-[#9b87f5]">
-                  <FileText className={`${isMobile ? "h-3 w-3 mr-1" : "h-4 w-4 mr-2"}`} />
-                  Notes
-                </TabsTrigger>
-              </TabsList>
-            </div>
+      <div className="container py-6">
+        <TabsContent value="chat" className="m-0 outline-none">
+          <div className="h-[calc(100vh-220px)]">
+            {roomLoading ? (
+              <div className="flex justify-center items-center h-full">
+                <Skeleton className="h-[400px] w-full" />
+              </div>
+            ) : selectedRoomId ? (
+              <CareTeamRoomChat 
+                selectedRoomId={selectedRoomId} 
+                isMobileView={isMobile || isTablet}
+              />
+            ) : (
+              <div className="flex justify-center items-center h-full flex-col p-4">
+                <p className="text-muted-foreground text-center mb-4">
+                  {roomError ? "Error loading care team chat" : "No care team chat found for this patient."}
+                </p>
+                {roomError && (
+                  <Button 
+                    onClick={() => navigate("/dashboard")} 
+                    variant="outline"
+                  >
+                    Return to Dashboard
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
+        </TabsContent>
 
-          <TabsContent value="chat" className="m-0 p-0 border-none">
-            <div className="h-[calc(100vh-220px)]">
-              {roomLoading ? (
-                <div className="flex justify-center items-center h-full">
-                  <Skeleton className="h-[400px] w-full" />
-                </div>
-              ) : selectedRoomId ? (
-                <CareTeamRoomChat 
-                  selectedRoomId={selectedRoomId} 
-                  isMobileView={isMobile || isTablet}
-                />
-              ) : (
-                <div className="flex justify-center items-center h-full flex-col p-4">
-                  <p className="text-muted-foreground text-center mb-4">
-                    {roomError ? "Error loading care team chat" : "No care team chat found for this patient."}
-                  </p>
-                  {roomError && (
-                    <Button 
-                      onClick={() => navigate("/dashboard")} 
-                      variant="outline"
-                    >
-                      Return to Dashboard
-                    </Button>
-                  )}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="analyze" className="p-6">
-            <Card className={cardPadding}>
+        <TabsContent value="analyze" className="m-0 outline-none">
+          <Card>
+            <CardContent className="p-6">
               <h2 className="text-lg font-semibold mb-4">Conversation Analysis</h2>
-              <p className="text-muted-foreground">AI analysis of care team conversations will appear here.</p>
-            </Card>
-          </TabsContent>
+              <p className="text-muted-foreground">
+                AI analysis of care team conversations will appear here.
+              </p>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          <TabsContent value="prescriptions" className="p-6">
-            <PrescriptionWriter patientId={patientId} />
-          </TabsContent>
+        <TabsContent value="prescriptions" className="m-0 outline-none">
+          <PrescriptionWriter patientId={patientId} />
+        </TabsContent>
 
-          <TabsContent value="timeline" className="p-6">
-            <Card className={cardPadding}>
+        <TabsContent value="timeline" className="m-0 outline-none">
+          <Card>
+            <CardContent className="p-6">
               Patient timeline will go here
-            </Card>
-          </TabsContent>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          <TabsContent value="habits" className="p-6">
-            <Card className={cardPadding}>
+        <TabsContent value="habits" className="m-0 outline-none">
+          <Card>
+            <CardContent className="p-6">
               Habits tracking will go here
-            </Card>
-          </TabsContent>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          <TabsContent value="notes" className="p-6">
-            <Card className={cardPadding}>
+        <TabsContent value="notes" className="m-0 outline-none">
+          <Card>
+            <CardContent className="p-6">
               Doctor's notes will go here
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </div>
     </div>
   );
 };
