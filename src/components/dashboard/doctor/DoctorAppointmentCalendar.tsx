@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,31 +75,30 @@ export const DoctorAppointmentCalendar = ({ doctorId }: DoctorAppointmentCalenda
 
   return (
     <Card className="shadow-sm">
-      <CardHeader className={`pb-3 ${isSmallScreen ? 'p-3' : ''}`}>
-        <div className="flex justify-between items-center">
-          <div>
-            <div className="flex items-center gap-2">
-              <CardTitle className={isSmallScreen ? 'text-lg' : 'text-2xl'}>
-                Appointment Calendar
-              </CardTitle>
-              <CollapsibleTrigger 
-                className="hover:bg-gray-100 p-1 rounded-full transition-colors"
-                onClick={() => setIsOpen(!isOpen)}
-              >
-                {isOpen ? (
-                  <ChevronUp className="h-4 w-4 text-gray-500" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
-                )}
-              </CollapsibleTrigger>
-            </div>
-            <CardDescription>
-              {format(selectedDate, "MMMM d, yyyy")}
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CardHeader className={`pb-3 ${isSmallScreen ? 'p-3' : ''}`}>
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="flex items-center gap-2">
+                <CardTitle className={isSmallScreen ? 'text-lg' : 'text-2xl'}>
+                  Appointment Calendar
+                </CardTitle>
+                <CollapsibleTrigger 
+                  className="hover:bg-gray-100 p-1 rounded-full transition-colors"
+                >
+                  {isOpen ? (
+                    <ChevronUp className="h-4 w-4 text-gray-500" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-gray-500" />
+                  )}
+                </CollapsibleTrigger>
+              </div>
+              <CardDescription>
+                {format(selectedDate, "MMMM d, yyyy")}
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
         <CollapsibleContent>
           <CardContent className={isSmallScreen ? 'p-3 pt-0' : ''}>
             <div className={`grid ${isSmallScreen ? 'grid-cols-1 gap-4' : isMediumScreen ? 'grid-cols-1 md:grid-cols-7 gap-6' : 'md:grid-cols-7 gap-8'}`}>
