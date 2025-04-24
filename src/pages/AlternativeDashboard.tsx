@@ -1,9 +1,10 @@
+
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NoRoleWarning } from "@/components/auth/NoRoleWarning";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { PatientDashboard } from "@/components/dashboard/PatientDashboard";
-import { DoctorDashboard } from "@/components/dashboard/DoctorDashboard";
+import { DoctorDashboard } from "@/components/dashboard/doctor/DoctorDashboard";
 import { NutritionistDashboard } from "@/components/dashboard/NutritionistDashboard";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { ReceptionDashboard } from "@/components/dashboard/ReceptionDashboard";
