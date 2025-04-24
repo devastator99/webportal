@@ -1,10 +1,9 @@
-
 import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NoRoleWarning } from "@/components/auth/NoRoleWarning";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { PatientDashboard } from "@/components/dashboard/PatientDashboard";
-import { AlternativeDoctorDashboard } from "@/components/dashboard/doctor/AlternativeDoctorDashboard";
+import { DoctorDashboard } from "@/components/dashboard/DoctorDashboard";
 import { NutritionistDashboard } from "@/components/dashboard/NutritionistDashboard";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { ReceptionDashboard } from "@/components/dashboard/ReceptionDashboard";
@@ -21,28 +20,24 @@ const AlternativeDashboard = () => {
     }
   }, [user, isLoading, navigate]);
 
-  // Show loading state
   if (isLoading) {
     return <DashboardSkeleton />;
   }
 
-  // After loading, if no user is found, useEffect will handle redirect
   if (!user) {
     return null;
   }
 
-  // Handle no role case
   if (!userRole) {
     return <NoRoleWarning onSignOut={signOut} />;
   }
   
-  // Render appropriate dashboard based on role with Navbar
   return (
     <div className="pt-16 md:pt-20">
       {(() => {
         switch (userRole) {
           case "doctor":
-            return <AlternativeDoctorDashboard />;
+            return <DoctorDashboard />;
           case "patient":
             return <PatientDashboard />;
           case "nutritionist":
