@@ -4,9 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useResponsive } from "@/contexts/ResponsiveContext";
 import { useResponsiveValue } from "@/hooks/use-responsive";
 import { AllPatientsList } from "@/components/dashboard/doctor/AllPatientsList";
-import { DoctorAppointmentCalendar } from "@/components/dashboard/doctor/DoctorAppointmentCalendar";
-import { DoctorAvailabilityCalendar } from "@/components/dashboard/doctor/DoctorAvailabilityCalendar";
-import { ResponsiveCard } from "@/components/ui/responsive-card";
+import { UnifiedDoctorCalendar } from "@/components/dashboard/doctor/UnifiedDoctorCalendar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users, Calendar, UserRound } from "lucide-react";
 
@@ -55,10 +53,7 @@ export const DoctorDashboard = () => {
         </TabsContent>
 
         <TabsContent value="calendar" className={sectionSpacing}>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DoctorAppointmentCalendar doctorId={user?.id || ""} />
-            <DoctorAvailabilityCalendar doctorId={user?.id || ""} />
-          </div>
+          <UnifiedDoctorCalendar doctorId={user?.id || ""} />
         </TabsContent>
       </Tabs>
     </div>
