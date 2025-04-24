@@ -1,6 +1,5 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Lightbulb } from "lucide-react";
 
 const mockHealthTips = [
@@ -30,29 +29,25 @@ export const PatientCuratedHealthTips = () => {
   }
 
   return (
-    <Card className="w-full">
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2 text-sm">
-          <Lightbulb className="h-4 w-4 text-yellow-500" />
-          Personalized Health Tips
-        </CardTitle>
-        <CardDescription className="text-xs">
-          AI-powered suggestions tailored to your health profile
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="pt-2">
-        <div className="space-y-2">
-          {mockHealthTips.map((tip) => (
-            <div 
-              key={tip.id} 
-              className="p-2 bg-muted/10 border border-muted rounded-lg"
-            >
-              <h3 className="font-medium text-xs mb-1">{tip.title}</h3>
-              <p className="text-xs text-muted-foreground">{tip.content}</p>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+    <div>
+      <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+        <Lightbulb className="h-4 w-4 text-yellow-500" />
+        Personalized Health Tips
+      </h2>
+      <p className="text-xs text-muted-foreground mb-4">
+        AI-powered suggestions tailored to your health profile
+      </p>
+      <div className="space-y-2">
+        {mockHealthTips.map((tip) => (
+          <div 
+            key={tip.id} 
+            className="p-2 bg-muted/10 border border-muted rounded-lg"
+          >
+            <h3 className="font-medium text-xs mb-1">{tip.title}</h3>
+            <p className="text-xs text-muted-foreground">{tip.content}</p>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 };
