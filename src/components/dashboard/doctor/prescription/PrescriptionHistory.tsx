@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { usePrescriptions as usePrescriptionsHook } from "@/hooks/usePrescriptions"; // Import the correct hook
 import { Card, CardContent } from "@/components/ui/card";

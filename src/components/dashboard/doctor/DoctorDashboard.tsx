@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TodaySchedule } from "./TodaySchedule";
@@ -9,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 import { useBreakpoint } from "@/hooks/use-responsive";
+import { DoctorAvailability } from "./DoctorAvailability";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();

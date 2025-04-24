@@ -24,10 +24,9 @@ export const DoctorAvailability = ({ doctorId }: { doctorId: string }) => {
     queryKey: ["doctor-availability", doctorId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('doctor_availability')
-        .select('*')
-        .eq('doctor_id', doctorId)
-        .single();
+        .rpc('get_doctor_availability', {
+          p_doctor_id: doctorId
+        });
 
       if (error) {
         console.error("Error fetching availability:", error);
@@ -41,7 +40,24 @@ export const DoctorAvailability = ({ doctorId }: { doctorId: string }) => {
   const handleSaveAvailability = async () => {
     setIsSubmitting(true);
     try {
-      // Save availability logic here
+      const timeSlots = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"].map((day, index) => ({
+        dayOfWeek: index + 1, // 1 = Monday, 5 = Friday
+        startTime: "09:00",
+        endTime: "17:00",
+        isAvailable: true
+      }));
+
+      // Use Promise.all to update all time slots
+      await Promise.all(timeSlots.map(slot => 
+        supabase.rpc('update_doctor_availability', {
+          p_doctor_id: doctorId,
+          p_day_of_week: slot.dayOfWeek,
+          p_start_time: slot.startTime,
+          p_end_time: slot.endTime,
+          p_is_available: slot.isAvailable
+        })
+      ));
+
       toast({
         title: "Availability Updated",
         description: "Your availability has been successfully updated.",
