@@ -17,7 +17,7 @@ const ChatPage = () => {
   const [loadingRoom, setLoadingRoom] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
 
-  const isPatient = userRole === UserRoleEnum.PATIENT || userRole === "patient";
+  const isPatient = userRole === UserRoleEnum.PATIENT;
 
   useEffect(() => {
     if (!isLoading) {
