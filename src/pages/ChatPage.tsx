@@ -22,7 +22,7 @@ const ChatPage = () => {
     if (!isLoading) {
       if (!user) {
         navigate('/');
-      } else if (userRole === 'patient') {
+      } else if (userRole === UserRoleEnum.PATIENT) {
         navigate('/dashboard');
       }
     }
@@ -30,7 +30,7 @@ const ChatPage = () => {
   
   // For patients, get their care team chat room (keeping code but will never execute due to redirect)
   useEffect(() => {
-    if (user && userRole === 'patient') {
+    if (user && userRole === UserRoleEnum.PATIENT) {
       const fetchPatientChatRoom = async () => {
         setLoadingRoom(true);
         setRoomError(null);
@@ -125,13 +125,13 @@ const ChatPage = () => {
     }
   }, [user, userRole, toast]);
 
-  if (isLoading || (userRole === 'patient' && loadingRoom)) {
+  if (isLoading || (userRole === UserRoleEnum.PATIENT && loadingRoom)) {
     return (
       <div className="container pt-24 animate-fade-in">
         <div className="mx-auto flex flex-col items-center justify-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin rounded-full border-primary border-t-transparent" />
           <p className="text-muted-foreground text-sm">
-            {userRole === 'patient' ? 'Loading your care team chat...' : 'Loading chat...'}
+            {userRole === UserRoleEnum.PATIENT ? 'Loading your care team chat...' : 'Loading chat...'}
           </p>
         </div>
       </div>
@@ -139,20 +139,20 @@ const ChatPage = () => {
   }
 
   // This page should not be accessible to patients, but we'll keep the JSX just in case
-  if (!user || userRole === 'patient') return null;
+  if (!user || userRole === UserRoleEnum.PATIENT) return null;
 
   return (
     <div className="container pt-16 md:pt-20">
       <ErrorBoundary>
         <h1 className="text-2xl font-bold mb-2">Care Team Chat</h1>
         <p className="text-muted-foreground mb-4">
-          {userRole === 'patient' 
+          {userRole === UserRoleEnum.PATIENT 
             ? "Chat with your healthcare team and upload medical reports" 
             : "Connect with your patients and their care teams"}
         </p>
         <Separator className="my-4" />
         
-        {userRole === 'patient' && roomError && !patientRoomId && (
+        {userRole === UserRoleEnum.PATIENT && roomError && !patientRoomId && (
           <Alert variant="destructive" className="mb-4">
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>No care team available</AlertTitle>
@@ -164,7 +164,7 @@ const ChatPage = () => {
         
         <div className="h-[calc(100vh-220px)]">
           <WhatsAppStyleChatInterface 
-            patientRoomId={userRole === 'patient' ? patientRoomId : undefined} 
+            patientRoomId={userRole === UserRoleEnum.PATIENT ? patientRoomId : undefined} 
           />
         </div>
       </ErrorBoundary>
