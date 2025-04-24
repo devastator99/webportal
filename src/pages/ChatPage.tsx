@@ -17,7 +17,6 @@ const ChatPage = () => {
   const [loadingRoom, setLoadingRoom] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
 
-  // Redirect if not logged in or if user is a patient
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
@@ -28,7 +27,6 @@ const ChatPage = () => {
     }
   }, [user, isLoading, navigate, userRole]);
   
-  // For patients, get their care team chat room (keeping code but will never execute due to redirect)
   useEffect(() => {
     if (user && userRole === UserRoleEnum.PATIENT) {
       const fetchPatientChatRoom = async () => {
@@ -38,7 +36,6 @@ const ChatPage = () => {
         try {
           console.log("Fetching care team room for patient ID:", user.id);
           
-          // First try RPC call to get existing room
           const { data: roomData, error: roomError } = await supabase.rpc('get_patient_care_team_room', {
             p_patient_id: user.id
           });
@@ -54,7 +51,6 @@ const ChatPage = () => {
             return;
           }
           
-          // If no room exists, try to create one using patient assignments
           console.log("No existing room, checking for care team assignments");
           const { data: assignmentData, error: assignmentError } = await supabase
             .from('patient_assignments')
@@ -69,7 +65,6 @@ const ChatPage = () => {
           
           if (assignmentData?.doctor_id) {
             console.log("Found doctor assignment, creating care team room");
-            // Create room with doctor and nutritionist if they exist
             const { data: createdRoom, error: createError } = await supabase.rpc('create_care_team_room', {
               p_patient_id: user.id,
               p_doctor_id: assignmentData.doctor_id,
@@ -88,7 +83,6 @@ const ChatPage = () => {
             }
           }
           
-          // Fall back to checking room memberships
           console.log("Checking room memberships as fallback");
           const { data: roomMemberships, error: membershipError } = await supabase
             .from('room_members')
@@ -109,7 +103,6 @@ const ChatPage = () => {
             return;
           }
           
-          // No room found or created
           console.log("No care team room found or created for patient");
           setRoomError("No care team room found or created");
           
@@ -138,7 +131,6 @@ const ChatPage = () => {
     );
   }
 
-  // This page should not be accessible to patients, but we'll keep the JSX just in case
   if (!user || userRole === UserRoleEnum.PATIENT) return null;
 
   return (
