@@ -18,6 +18,8 @@ export const SignOutButton = ({ onSignOutStart, onSignOutEnd }: SignOutButtonPro
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
+    if (isSigningOut) return; // Prevent multiple clicks
+    
     try {
       setIsSigningOut(true);
       if (onSignOutStart) onSignOutStart();
@@ -29,8 +31,8 @@ export const SignOutButton = ({ onSignOutStart, onSignOutEnd }: SignOutButtonPro
         description: "You have been signed out of your account",
       });
       
-      // Force redirect to home page
-      navigate('/', { replace: true });
+      // Ensure we redirect to home page and refresh the app state
+      window.location.href = '/';
     } catch (error) {
       console.error("Error signing out:", error);
       toast({
@@ -38,8 +40,7 @@ export const SignOutButton = ({ onSignOutStart, onSignOutEnd }: SignOutButtonPro
         title: "Error signing out",
         description: "There was a problem signing you out. Please try again.",
       });
-    } finally {
-      setIsSigningOut(false);
+      setIsSigningOut(false); // Reset signing out state on error
       if (onSignOutEnd) onSignOutEnd();
     }
   };

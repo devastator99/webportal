@@ -1,3 +1,4 @@
+
 import './App.css';
 import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -53,7 +54,7 @@ function PasswordResetRedirect() {
 
 function App() {
   const [chatEnabled, setChatEnabled] = useState(featureFlags.enableChat);
-  const [chatbotWidgetEnabled, setChatbotWidgetEnabled] = useState(featureFlags.enableChatbotWidget);
+  const [chatbotWidgetEnabled, setChatbotWidgetEnabled] = useState(false); // Set to false to remove the chatbot widget
   const [chatbotVoiceEnabled, setChatbotVoiceEnabled] = useState(featureFlags.enableChatbotVoice);
   
   useEffect(() => {
@@ -64,7 +65,7 @@ function App() {
       if (savedFlags) {
         const parsedFlags = JSON.parse(savedFlags);
         setChatEnabled(parsedFlags.enableChat);
-        setChatbotWidgetEnabled(parsedFlags.enableChatbotWidget);
+        setChatbotWidgetEnabled(false); // Always keep disabled
         setChatbotVoiceEnabled(parsedFlags.enableChatbotVoice);
       }
     };

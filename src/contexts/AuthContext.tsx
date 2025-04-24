@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -187,12 +188,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Sign out function
   const signOut = async () => {
+    console.log("SignOut function called");
     try {
       // Clear any inactivity timer
       if (inactivityTimer) {
         clearTimeout(inactivityTimer);
         setInactivityTimer(null);
       }
+      
+      // Clear local state first to improve perceived performance
+      setUser(null);
+      setSession(null);
+      setUserRole(null);
       
       // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
@@ -202,15 +209,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
       
-      // Clear local state
-      setUser(null);
-      setSession(null);
-      setUserRole(null);
+      console.log("Successfully signed out");
       
-      // Force navigation to home page
-      window.location.href = '/';
+      // Force a hard redirect to home page - this is important to reload the app state
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100);
+      
     } catch (error) {
       console.error("Error signing out:", error);
+      
+      // Even if there's an error, try to reset the app state
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100);
+      
       throw error;
     }
   };
@@ -248,5 +261,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-// Remove duplicate exports - we already exported these earlier in the file
