@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Users } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, UserRoleEnum } from "@/contexts/AuthContext";
 
 export const DoctorActions = () => {
   const { userRole, resetInactivityTimer } = useAuth();
@@ -11,7 +11,7 @@ export const DoctorActions = () => {
   
   const isPatientsPage = location.pathname === '/patients';
 
-  if (userRole !== 'doctor') return null;
+  if (userRole !== UserRoleEnum.DOCTOR) return null;
   
   return (
     <>

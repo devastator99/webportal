@@ -5,8 +5,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
-// Define UserRole type
+// Define UserRole type and enum
 export type UserRole = 'patient' | 'doctor' | 'nutritionist' | 'administrator' | 'reception' | null;
+
+// Create a UserRole enum for value references
+export enum UserRoleEnum {
+  PATIENT = 'patient',
+  DOCTOR = 'doctor',
+  NUTRITIONIST = 'nutritionist',
+  ADMINISTRATOR = 'administrator',
+  RECEPTION = 'reception'
+}
 
 // Helper function to handle doctor redirects
 export const redirectFixForDoctor = (): string => {
@@ -101,15 +110,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 console.log("User role on sign in:", userRoleValue);
                 
                 // Redirect based on role
-                if (userRoleValue === 'doctor') {
+                if (userRoleValue === UserRoleEnum.DOCTOR) {
                   // Use the redirectFixForDoctor helper to ensure we go to /dashboard
                   const targetRoute = redirectFixForDoctor();
                   navigate(targetRoute);
-                } else if (userRoleValue === 'patient') {
+                } else if (userRoleValue === UserRoleEnum.PATIENT) {
                   navigate('/dashboard');
-                } else if (userRoleValue === 'administrator') {
+                } else if (userRoleValue === UserRoleEnum.ADMINISTRATOR) {
                   navigate('/admin');
-                } else if (userRoleValue === 'nutritionist') {
+                } else if (userRoleValue === UserRoleEnum.NUTRITIONIST) {
                   navigate('/dashboard');
                 } else {
                   navigate('/');
@@ -225,5 +234,6 @@ export const useAuth = () => {
   return context;
 };
 
-// Re-export the UserRole type for convenience
+// Export both type and enum for UserRole
 export type { UserRole };
+export { UserRoleEnum };

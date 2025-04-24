@@ -1,5 +1,5 @@
 
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, UserRoleEnum } from "@/contexts/AuthContext";
 import { useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { Logo } from "@/components/navbar/Logo";
@@ -75,12 +75,12 @@ export const Navbar = () => {
               <DashboardButton />
               <DoctorActions />
               {/* Completely exclude the chat icon for patients */}
-              {userRole !== "patient" && (
+              {userRole !== UserRoleEnum.PATIENT && (
                 <>
                   {/* Placeholder for other roles to add chat icon or other items */}
                 </>
               )}
-              {userRole === "administrator" && <ForceLogoutButton />}
+              {userRole === UserRoleEnum.ADMINISTRATOR && <ForceLogoutButton />}
               <SignOutButton 
                 onSignOutStart={() => setIsSigningOut(true)} 
                 onSignOutEnd={() => setIsSigningOut(false)} 
@@ -102,12 +102,12 @@ export const Navbar = () => {
                   <DashboardButton />
                   <DoctorActions />
                   {/* Completely exclude chat icon for patients */}
-                  {userRole !== "patient" && (
+                  {userRole !== UserRoleEnum.PATIENT && (
                     <>
                       {/* Placeholder for chat icon or other items for other roles */}
                     </>
                   )}
-                  {userRole === "administrator" && <ForceLogoutButton />}
+                  {userRole === UserRoleEnum.ADMINISTRATOR && <ForceLogoutButton />}
                   <SignOutButton 
                     onSignOutStart={() => setIsSigningOut(true)} 
                     onSignOutEnd={() => setIsSigningOut(false)} 

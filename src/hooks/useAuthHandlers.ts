@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase, createUserRole, createPatientDetails } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { User } from '@supabase/supabase-js';
-import { UserRole } from '@/contexts/AuthContext';
+import { UserRole, UserRoleEnum } from '@/contexts/AuthContext';
 
 export interface PatientData {
   age: string;
@@ -19,8 +19,9 @@ export interface PatientData {
   currentMedicalConditions?: string;
 }
 
-// Re-export UserRole type from the AuthContext
+// Re-export UserRole type and UserRoleEnum from the AuthContext
 export type { UserRole };
+export { UserRoleEnum };
 
 export const useAuthHandlers = () => {
   const [loading, setLoading] = useState(false);
