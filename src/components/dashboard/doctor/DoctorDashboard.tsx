@@ -1,59 +1,78 @@
 
-import React from "react";
-import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
-import { EnhancedPatientList } from "./EnhancedPatientList";
-import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TodaySchedule } from "./TodaySchedule";
+import { DoctorAppointmentCalendar } from "./DoctorAppointmentCalendar";
+import { StatsCards } from "./StatsCards";
+import { PrescriptionWriter } from "./prescription/PrescriptionWriter";
+import { Button } from "@/components/ui/button";
+import { Plus } from "lucide-react";
+import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
+import { useBreakpoint } from "@/hooks/use-responsive";
 
 export const DoctorDashboard = () => {
   const { user } = useAuth();
-  const doctorName = `${user?.user_metadata?.first_name || ''} ${user?.user_metadata?.last_name || ''}`.trim();
-  const initials = `${(user?.user_metadata?.first_name?.[0] || '')}${(user?.user_metadata?.last_name?.[0] || '')}`.toUpperCase();
-
-  const { data: patients = [], isLoading } = useQuery({
-    queryKey: ["doctor_patients", user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      
-      const { data, error } = await supabase
-        .rpc('get_doctor_patients', {
-          p_doctor_id: user.id
-        });
-        
-      if (error) throw error;
-      
-      const patientsWithCreatedAt = (data || []).map(patient => ({
-        ...patient,
-        created_at: new Date().toISOString()
-      }));
-      
-      return patientsWithCreatedAt;
-    },
-    enabled: !!user?.id
-  });
+  const { isSmallScreen } = useBreakpoint();
+  
+  if (!user) return null;
 
   return (
-    <div className="container mx-auto space-y-6 p-6">
-      <Card className="p-6 bg-white shadow-sm border-0">
-        <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16 bg-[#E5DEFF]">
-            <AvatarFallback className="text-[#9b87f5] text-xl">
-              {initials}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Welcome back, Dr. {user?.user_metadata?.last_name || 'Doctor'}
-            </h1>
-            <p className="text-gray-500">
-              Here's an overview of your patients
-            </p>
+    <div className="space-y-4 animate-fade-up p-4">
+      {/* Welcome Section */}
+      <Card className="bg-white shadow-sm">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <span className="text-lg font-semibold text-primary">
+                  {user.user_metadata.first_name?.[0]}{user.user_metadata.last_name?.[0]}
+                </span>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold">
+                  Welcome, Dr. {user.user_metadata.last_name}
+                </h2>
+                <p className="text-muted-foreground">
+                  Here's your daily overview
+                </p>
+              </div>
+            </div>
+            
+            <ScheduleAppointment callerRole="doctor" preSelectedDoctorId={user.id}>
+              <Button size={isSmallScreen ? "sm" : "default"} className="bg-primary">
+                <Plus className="mr-2 h-4 w-4" />
+                Schedule Appointment
+              </Button>
+            </ScheduleAppointment>
           </div>
-        </div>
+        </CardHeader>
       </Card>
-      <EnhancedPatientList patients={patients} isLoading={isLoading} />
+
+      {/* Stats Overview */}
+      <StatsCards />
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+        {/* Today's Schedule - Takes 4 columns on desktop */}
+        <div className="md:col-span-4">
+          <TodaySchedule />
+        </div>
+
+        {/* Appointment Calendar - Takes 8 columns on desktop */}
+        <div className="md:col-span-8">
+          <DoctorAppointmentCalendar doctorId={user.id} />
+        </div>
+      </div>
+
+      {/* Prescription Writer Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Quick Prescription</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <PrescriptionWriter />
+        </CardContent>
+      </Card>
     </div>
   );
 };
