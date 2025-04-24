@@ -11,6 +11,7 @@ import { ForceLogoutButton } from "@/components/navbar/ForceLogoutButton";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 
 export const Navbar = () => {
   const { user, isLoading, userRole } = useAuth();
@@ -24,17 +25,20 @@ export const Navbar = () => {
   const isAuthPage = location.pathname === '/auth';
   const useResponsiveDisplay = isMobile || isIPad;
 
-  const navbarClass = "fixed top-0 w-full bg-white dark:bg-gray-900 z-50 border-b border-[#D6BCFA] shadow-lg";
+  // Enhanced navbar styling with explicit z-index and shadow
+  const navbarClass = "fixed top-0 w-full bg-white dark:bg-gray-900 z-[100] border-b border-[#D6BCFA] shadow-lg";
 
-  // Close mobile menu on route changes
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
-  // Prepare auth button UI based on loading state and user existence
   const renderAuthButton = () => {
     if (isLoading) {
-      return null; // Don't show anything while loading
+      return (
+        <div className="flex items-center justify-center h-9">
+          <Spinner size="sm" className="text-[#9b87f5]" />
+        </div>
+      );
     }
     
     if (user) {
@@ -44,7 +48,9 @@ export const Navbar = () => {
           onSignOutEnd={() => setIsSigningOut(false)} 
         />
       );
-    } else if (!isAuthPage) {
+    }
+    
+    if (!isAuthPage) {
       return <LoginDialog />;
     }
     
@@ -53,11 +59,11 @@ export const Navbar = () => {
 
   return (
     <nav className={navbarClass}>
-      <div className="container mx-auto px-4 py-3 flex justify-between items-center">
+      <div className="container mx-auto px-4 py-3 flex justify-between items-center relative">
         <Logo />
         
-        {/* Desktop navigation */}
-        <div className={`${useResponsiveDisplay ? 'hidden' : 'flex'} items-center gap-4`}>
+        {/* Desktop navigation with improved z-index */}
+        <div className={`${useResponsiveDisplay ? 'hidden' : 'flex'} items-center gap-4 z-[101]`}>
           {user && !isLoading && (
             <>
               <DashboardButton />
@@ -68,23 +74,24 @@ export const Navbar = () => {
           {renderAuthButton()}
         </div>
 
-        {/* Mobile menu button and login */}
+        {/* Mobile menu button and auth button with improved visibility */}
         {useResponsiveDisplay && (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 z-[101]">
             {renderAuthButton()}
             <Button
               variant="ghost"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              className="relative z-[102]"
             >
               {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
         )}
         
-        {/* Mobile menu dropdown */}
+        {/* Enhanced mobile menu dropdown with proper z-index */}
         {useResponsiveDisplay && mobileMenuOpen && (
-          <div className="absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-b border-[#D6BCFA] shadow-lg z-50 py-4 px-4">
+          <div className="absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-b border-[#D6BCFA] shadow-lg z-[99] py-4 px-4">
             <div className="flex flex-col gap-3">
               {user && !isLoading && (
                 <>

@@ -16,7 +16,7 @@ export const SignOutButton = ({ onSignOutStart, onSignOutEnd }: SignOutButtonPro
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
-    if (isSigningOut) return; // Prevent multiple clicks
+    if (isSigningOut) return;
     
     try {
       setIsSigningOut(true);
@@ -41,7 +41,7 @@ export const SignOutButton = ({ onSignOutStart, onSignOutEnd }: SignOutButtonPro
         description: "There was a problem signing you out. Please try again.",
       });
     } finally {
-      setIsSigningOut(false); // Reset signing out state
+      setIsSigningOut(false);
       if (onSignOutEnd) onSignOutEnd();
     }
   };
@@ -53,7 +53,7 @@ export const SignOutButton = ({ onSignOutStart, onSignOutEnd }: SignOutButtonPro
         handleSignOut();
       }}
       variant="outline" 
-      className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2 font-medium shadow-sm z-50"
+      className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2 font-medium shadow-sm z-[101] relative"
       size="sm"
       disabled={isSigningOut}
     >
