@@ -28,7 +28,7 @@ export const DoctorDashboard = () => {
   return (
     <div className="container mx-auto px-4 animate-fade-up">
       <div className="mb-8">
-        <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-center gap-3">
           <div className="bg-[#E5DEFF] p-2 rounded-full">
             <UserRound className="h-6 w-6 text-[#9b87f5]" />
           </div>
@@ -36,9 +36,6 @@ export const DoctorDashboard = () => {
             Welcome, Dr. {doctorFirstName}
           </h1>
         </div>
-        <p className="text-muted-foreground ml-11">
-          Have a great day ahead!
-        </p>
       </div>
 
       <Tabs defaultValue="patients" className="space-y-6">
@@ -58,10 +55,8 @@ export const DoctorDashboard = () => {
         </TabsContent>
 
         <TabsContent value="calendar" className={sectionSpacing}>
-          <div className="grid gap-6">
-            <ResponsiveCard withShadow>
-              <DoctorAppointmentCalendar doctorId={user?.id || ""} />
-            </ResponsiveCard>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DoctorAppointmentCalendar doctorId={user?.id || ""} />
             <DoctorAvailabilityCalendar doctorId={user?.id || ""} />
           </div>
         </TabsContent>

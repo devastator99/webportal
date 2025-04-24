@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,11 +37,16 @@ export const DoctorAvailabilityCalendar = ({ doctorId }: { doctorId: string }) =
     if (!selectedDate) return;
 
     try {
+      const availabilityData = [{
+        day_of_week: selectedDate.getDay(),
+        start_time: startTime,
+        end_time: endTime,
+        is_available: true
+      }];
+
       const { error } = await supabase.rpc('update_doctor_availability', {
         p_doctor_id: doctorId,
-        p_start_time: startTime,
-        p_end_time: endTime,
-        p_date: format(selectedDate, 'yyyy-MM-dd')
+        p_availabilities: JSON.stringify(availabilityData)
       });
 
       if (error) throw error;
@@ -60,15 +66,15 @@ export const DoctorAvailabilityCalendar = ({ doctorId }: { doctorId: string }) =
   };
 
   return (
-    <Card className="border shadow-sm">
-      <CardHeader>
+    <Card className="shadow-sm">
+      <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <Clock className="h-5 w-5 text-primary" />
           <CardTitle>Set Availability</CardTitle>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-1">
           <div className="flex justify-center">
             <Calendar
               mode="single"
