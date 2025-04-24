@@ -1,77 +1,38 @@
-import { Routes, Route, Navigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
-import { lazy, Suspense } from "react";
-import { Loader2 } from "lucide-react";
-import { ProtectedRoute } from "@/components/auth/ProtectedRoute"; 
-import { RoleProtectedRoute } from "@/components/auth/RoleProtectedRoute";
+import React, { lazy, Suspense } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import LandingPage from '@/pages/LandingPage';
+import Auth from '@/pages/Auth';
+import UpdatePassword from '@/pages/UpdatePassword';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { RoleProtectedRoute } from '@/components/auth/RoleProtectedRoute';
+import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
+import PatientDetailsPage from '@/pages/PatientDetailsPage';
+import PatientsView from '@/pages/PatientsView';
+import Dashboard from '@/pages/Dashboard';
 
-// Lazy-loaded pages
-const Landing = lazy(() => import("@/pages/LandingPage"));
-const Login = lazy(() => import("@/pages/Auth"));
-const ChatPage = lazy(() => import("@/pages/ChatPage"));
-const AuthCallback = lazy(() => import("@/pages/Auth"));
-const Dashboard = lazy(() => import("@/pages/Dashboard"));
-const DoctorDashboard = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
-const AppointmentBooking = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard 
-const PatientProfile = lazy(() => import("@/pages/patient/PatientProfilePage")); // Use the correct patient profile page
-const UploadPage = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
-const RegistrationPage = lazy(() => import("@/pages/Auth")); // Use Auth page
-const VerifyEmail = lazy(() => import("@/pages/Auth")); // Use Auth page
-const ResetPasswordPage = lazy(() => import("@/pages/Auth")); 
-const UpdatePassword = lazy(() => import("@/pages/UpdatePassword"));
-const AdminDashboard = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
-const NutritionistDashboard = lazy(() => import("@/pages/Dashboard")); // Fallback to Dashboard
-const AiChatPage = lazy(() => import("@/pages/ChatPage")); // Use the ChatPage as a fallback
-const FAQPage = lazy(() => import("@/pages/LandingPage")); // Use LandingPage as fallback
-const Prescriptions = lazy(() => import("@/pages/PatientPrescriptionsPage")); // Update to use correct page
-const HabitTracker = lazy(() => import("@/pages/PatientHabitsPage")); // Update to use correct page
-const Providers = lazy(() => import("@/pages/LandingPage")); // Use LandingPage as fallback
-const ProviderProfile = lazy(() => import("@/pages/LandingPage")); // Use LandingPage as fallback
-const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
-const PatientDetailsPage = lazy(() => import("@/pages/PatientDetailsPage"));
-
-const LoadingFallback = () => (
-  <div className="h-screen flex items-center justify-center">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-  </div>
-);
+// Lazy loaded components
+const ChatPage = lazy(() => import('@/pages/ChatPage'));
+const Admin = lazy(() => import('@/pages/Admin'));
+const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
+const MessageSearchPage = lazy(() => import('@/pages/MessageSearchPage'));
+const PatientHabitsPage = lazy(() => import('@/pages/PatientHabitsPage'));
+const PatientPrescriptionsPage = lazy(() => import('@/pages/PatientPrescriptionsPage'));
+const PatientProfilePage = lazy(() => import('@/pages/patient/PatientProfilePage'));
+const AlternativeDashboard = lazy(() => import('@/pages/AlternativeDashboard'));
 
 export const AppRoutes = () => {
   const { userRole } = useAuth();
 
-  // Determine the default route based on user role
-  const getDefaultRoute = () => {
-    switch (userRole) {
-      case "patient":
-        return "/dashboard";
-      case "doctor":
-        return "/doctor-dashboard";
-      case "administrator":
-        return "/admin";
-      case "nutritionist":
-        return "/nutritionist-dashboard";
-      default:
-        return "/";
-    }
-  };
-
   return (
-    <Suspense fallback={<LoadingFallback />}>
+    <Suspense fallback={<DashboardSkeleton />}>
       <Routes>
-        {/* Public routes */}
-        <Route path="/" element={<Landing />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<RegistrationPage />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        {/* Public Routes */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/auth/*" element={<Auth />} />
         <Route path="/update-password" element={<UpdatePassword />} />
-        <Route path="/auth" element={<AuthCallback />} />
-        <Route path="/auth/callback" element={<AuthCallback />} />
-        <Route path="/faq" element={<FAQPage />} />
-        <Route path="/providers" element={<Providers />} />
-        <Route path="/provider/:id" element={<ProviderProfile />} />
-
-        {/* Protected routes */}
+        
+        {/* Protected Routes */}
         <Route
           path="/dashboard"
           element={
@@ -80,23 +41,59 @@ export const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+        
+        {/* Handle redirect from "/doctor-dashboard" to "/dashboard" */}
+        <Route
+          path="/doctor-dashboard"
+          element={<Navigate to="/dashboard" replace />}
+        />
+        
+        <Route
+          path="/dashboard-alt"
+          element={
+            <ProtectedRoute>
+              <AlternativeDashboard />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Other routes */}
         <Route
           path="/chat"
           element={
             <ProtectedRoute>
-              {/* Redirect patients to dashboard if they try to access the chat page directly */}
-              {userRole === 'patient' ? <Navigate to="/dashboard" replace /> : <ChatPage />}
+              <ChatPage />
             </ProtectedRoute>
           }
         />
+        
         <Route
-          path="/ai-chat"
+          path="/patients"
           element={
-            <ProtectedRoute>
-              <AiChatPage />
-            </ProtectedRoute>
+            <RoleProtectedRoute allowedRoles={['doctor', 'administrator']}>
+              <PatientsView />
+            </RoleProtectedRoute>
           }
         />
+        
+        <Route
+          path="/patient/:patientId"
+          element={
+            <RoleProtectedRoute allowedRoles={['doctor', 'administrator']}>
+              <PatientDetailsPage />
+            </RoleProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/admin/*"
+          element={
+            <RoleProtectedRoute allowedRoles={['administrator']}>
+              <Admin />
+            </RoleProtectedRoute>
+          }
+        />
+        
         <Route
           path="/notifications"
           element={
@@ -105,81 +102,45 @@ export const AppRoutes = () => {
             </ProtectedRoute>
           }
         />
+        
         <Route
-          path="/doctor-dashboard"
-          element={
-            <RoleProtectedRoute allowedRoles={["doctor"]}>
-              <DoctorDashboard />
-            </RoleProtectedRoute>
-          }
-        />
-        <Route
-          path="/nutritionist-dashboard"
-          element={
-            <RoleProtectedRoute allowedRoles={["nutritionist"]}>
-              <NutritionistDashboard />
-            </RoleProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <RoleProtectedRoute allowedRoles={["administrator"]}>
-              <AdminDashboard />
-            </RoleProtectedRoute>
-          }
-        />
-        <Route
-          path="/book-appointment"
-          element={
-            <RoleProtectedRoute allowedRoles={["patient"]}>
-              <AppointmentBooking />
-            </RoleProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <RoleProtectedRoute allowedRoles={["patient"]}>
-              <PatientProfile />
-            </RoleProtectedRoute>
-          }
-        />
-        <Route
-          path="/uploads"
-          element={
-            <RoleProtectedRoute allowedRoles={["patient"]}>
-              <UploadPage />
-            </RoleProtectedRoute>
-          }
-        />
-        <Route
-          path="/prescriptions"
+          path="/messages"
           element={
             <ProtectedRoute>
-              <Prescriptions />
+              <MessageSearchPage />
             </ProtectedRoute>
           }
         />
+        
         <Route
-          path="/habits"
+          path="/patient-habits"
           element={
-            <ProtectedRoute>
-              <HabitTracker />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/patient/:patientId"
-          element={
-            <RoleProtectedRoute allowedRoles={["doctor"]}>
-              <PatientDetailsPage />
+            <RoleProtectedRoute allowedRoles={['patient']}>
+              <PatientHabitsPage />
             </RoleProtectedRoute>
           }
         />
-
-        {/* Default route redirect */}
-        <Route path="*" element={<Navigate to={getDefaultRoute()} replace />} />
+        
+        <Route
+          path="/prescriptions/:patientId"
+          element={
+            <RoleProtectedRoute allowedRoles={['patient', 'doctor']}>
+              <PatientPrescriptionsPage />
+            </RoleProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/patient-profile"
+          element={
+            <RoleProtectedRoute allowedRoles={['patient']}>
+              <PatientProfilePage />
+            </RoleProtectedRoute>
+          }
+        />
+        
+        {/* Fallback route */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
   );

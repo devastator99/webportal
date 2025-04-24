@@ -1,4 +1,5 @@
 
+import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useResponsive } from "@/contexts/ResponsiveContext";
 import { useResponsiveValue } from "@/hooks/use-responsive";
@@ -6,7 +7,7 @@ import { AllPatientsList } from "@/components/dashboard/doctor/AllPatientsList";
 import { DoctorAppointmentCalendar } from "@/components/dashboard/doctor/DoctorAppointmentCalendar";
 import { ResponsiveCard } from "@/components/ui/responsive-card";
 
-export const AlternativeDoctorDashboard = () => {
+export const DoctorDashboard = () => {
   const { user } = useAuth();
   const { isMobile } = useResponsive();
   
@@ -47,3 +48,5 @@ export const AlternativeDoctorDashboard = () => {
     </div>
   );
 };
+
+export default DoctorDashboard; // Add default export for dynamic import
