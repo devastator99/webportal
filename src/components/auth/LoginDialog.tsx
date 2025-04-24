@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { DialogTrigger } from "@radix-ui/react-dialog";
 import { Button } from "@/components/ui/button";
@@ -14,8 +14,15 @@ export const LoginDialog = () => {
   const [isLoginMode, setIsLoginMode] = useState(true);
   const { loading, error, handleLogin, handleSignUp, setError } = useAuthHandlers();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { resetInactivityTimer } = useAuth();
+  const { resetInactivityTimer, user } = useAuth();
   const navigate = useNavigate();
+  
+  // Close dialog if user becomes authenticated
+  useEffect(() => {
+    if (user && isDialogOpen) {
+      setIsDialogOpen(false);
+    }
+  }, [user, isDialogOpen]);
 
   // Handle form submission
   const handleFormSubmit = async (
@@ -66,7 +73,7 @@ export const LoginDialog = () => {
     >
       <DialogTrigger asChild>
         <Button 
-          className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md"
+          className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-2 shadow-md z-50"
           size="sm"
           onClick={() => {
             console.log("Sign In button clicked, opening dialog");
@@ -79,7 +86,7 @@ export const LoginDialog = () => {
           <span className="sm:hidden">Login</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] bg-white dark:bg-gray-800">
+      <DialogContent className="sm:max-w-[425px] bg-white dark:bg-gray-800 z-[100]">
         <DialogTitle className="sr-only">
           {isLoginMode ? "Sign In" : "Create an Account"}
         </DialogTitle>

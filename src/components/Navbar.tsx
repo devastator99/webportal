@@ -29,15 +29,31 @@ export const Navbar = () => {
 
   const navbarClass = "fixed top-0 w-full bg-white dark:bg-gray-900 z-50 border-b border-[#D6BCFA] shadow-lg";
 
+  // Only reset inactivity timer on route changes, not on every render
   useEffect(() => {
+    console.log("Navbar: Route changed, resetting inactivity timer");
     resetInactivityTimer();
   }, [location.pathname, resetInactivityTimer]);
 
+  // Close mobile menu on route changes
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
   const useResponsiveDisplay = isMobile || isIPad;
+
+  // Debug auth state
+  useEffect(() => {
+    if (user) {
+      console.log("Navbar: User is authenticated", { 
+        userId: user.id, 
+        userRole,
+        path: location.pathname
+      });
+    } else {
+      console.log("Navbar: No authenticated user", { path: location.pathname });
+    }
+  }, [user, userRole, location.pathname]);
 
   // If user exists but we're still in a loading state, show the loading navbar
   if (isLoading && !isSigningOut) {
@@ -49,18 +65,6 @@ export const Navbar = () => {
         </div>
       </nav>
     );
-  }
-
-  // Check if user is authenticated but log state for debugging
-  if (user) {
-    console.log("Navbar: User is authenticated", { 
-      userId: user.id, 
-      userRole,
-      isMobile,
-      isIPad,
-      useResponsiveDisplay,
-      mobileMenuOpen 
-    });
   }
 
   return (
@@ -123,10 +127,6 @@ export const Navbar = () => {
                   <DashboardButton />
                   <DoctorActions />
                   {userRole === UserRoleEnum.ADMINISTRATOR && <ForceLogoutButton />}
-                  <SignOutButton 
-                    onSignOutStart={() => setIsSigningOut(true)} 
-                    onSignOutEnd={() => setIsSigningOut(false)} 
-                  />
                 </>
               )}
             </div>

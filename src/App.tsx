@@ -1,3 +1,4 @@
+
 import './App.css';
 import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -90,11 +91,22 @@ function App() {
             <PasswordResetRedirect />
             <AuthProvider>
               <Navbar />
-              <div className="mobile-content">
-                <ErrorBoundary>
+              <ErrorBoundary fallback={
+                <div className="container mx-auto p-4 mt-24 text-center">
+                  <h2 className="text-xl font-semibold mb-4">Something went wrong</h2>
+                  <p>We're sorry, but there was an error loading this page.</p>
+                  <button 
+                    onClick={() => window.location.reload()}
+                    className="mt-4 px-4 py-2 bg-[#9b87f5] text-white rounded-md hover:bg-[#7E69AB]"
+                  >
+                    Reload Page
+                  </button>
+                </div>
+              }>
+                <div className="mobile-content pt-16 md:pt-20 min-h-[calc(100vh-70px)]">
                   <AppRoutes />
-                </ErrorBoundary>
-              </div>
+                </div>
+              </ErrorBoundary>
               
               <MobileNavigation />
               

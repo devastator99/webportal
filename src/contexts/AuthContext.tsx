@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -52,46 +52,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [inactivityTimer, setInactivityTimer] = useState<NodeJS.Timeout | null>(null);
-  const navigate = useNavigate();
-
-  // Handle session changes
+  const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isSigningOutRef = useRef(false);
+  const authStateInitializedRef = useRef(false);
+  
+  // Initialize auth state only once
   useEffect(() => {
-    // Try to get the session from localStorage if available
-    const fetchInitialSession = async () => {
-      try {
-        const { data: { session: initialSession } } = await supabase.auth.getSession();
-        if (initialSession) {
-          setSession(initialSession);
-          setUser(initialSession.user);
-          
-          // Fetch user role
-          if (initialSession.user) {
-            const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
-              lookup_user_id: initialSession.user.id
-            });
-            
-            if (!roleError && roleData) {
-              setUserRole(roleData[0]?.role as UserRole || null);
-              console.log("User role set:", roleData);
-            } else if (roleError) {
-              console.error("Error fetching user role:", roleError);
-            }
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching initial session:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    if (authStateInitializedRef.current) return;
     
-    fetchInitialSession();
+    console.log("Initializing auth state");
+    authStateInitializedRef.current = true;
     
     // Subscribe to auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log("Auth state change:", event);
+        
+        if (isSigningOutRef.current && event === 'SIGNED_OUT') {
+          console.log("Sign out confirmed by auth state change");
+          return; // Skip further processing if we're in the middle of signing out
+        }
         
         if (event === 'SIGNED_IN' && newSession) {
           setSession(newSession);
@@ -108,25 +88,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 const userRoleValue = roleData[0]?.role as UserRole || null;
                 setUserRole(userRoleValue);
                 console.log("User role on sign in:", userRoleValue);
-                
-                // Redirect based on role
-                if (userRoleValue === UserRoleEnum.DOCTOR) {
-                  // Use the redirectFixForDoctor helper to ensure we go to /dashboard
-                  const targetRoute = redirectFixForDoctor();
-                  navigate(targetRoute);
-                } else if (userRoleValue === UserRoleEnum.PATIENT) {
-                  navigate('/dashboard');
-                } else if (userRoleValue === UserRoleEnum.ADMINISTRATOR) {
-                  navigate('/admin');
-                } else if (userRoleValue === UserRoleEnum.NUTRITIONIST) {
-                  navigate('/dashboard');
-                } else {
-                  navigate('/');
-                }
               } else if (roleError) {
                 console.error("Error fetching user role on sign in:", roleError);
-                // No role? Go to home page
-                navigate('/');
               }
             } catch (error) {
               console.error("Error in role handling:", error);
@@ -136,7 +99,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(null);
           setUser(null);
           setUserRole(null);
-          navigate('/');
         } else if (event === 'TOKEN_REFRESHED' && newSession) {
           setSession(newSession);
           setUser(newSession.user);
@@ -147,53 +109,96 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
     
+    // Try to get the session from localStorage if available
+    const fetchInitialSession = async () => {
+      try {
+        const { data: { session: initialSession } } = await supabase.auth.getSession();
+        if (initialSession) {
+          console.log("Initial session found", initialSession.user?.email);
+          setSession(initialSession);
+          setUser(initialSession.user);
+          
+          // Fetch user role
+          if (initialSession.user) {
+            const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
+              lookup_user_id: initialSession.user.id
+            });
+            
+            if (!roleError && roleData) {
+              const role = roleData[0]?.role as UserRole || null;
+              setUserRole(role);
+              console.log("User role set:", role);
+            } else if (roleError) {
+              console.error("Error fetching user role:", roleError);
+            }
+          }
+        } else {
+          console.log("No initial session found");
+        }
+      } catch (error) {
+        console.error("Error fetching initial session:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchInitialSession();
+    
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, []);
   
   // Set up inactivity timer
   useEffect(() => {
+    const clearInactivityTimer = () => {
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = null;
+      }
+    };
+    
     if (user) {
-      const timer = setTimeout(() => {
+      clearInactivityTimer();
+      
+      inactivityTimerRef.current = setTimeout(() => {
         // Auto logout after inactivity
         signOut();
         toast.info("You have been signed out due to inactivity");
       }, INACTIVITY_TIMEOUT);
-      
-      setInactivityTimer(timer);
-      
-      return () => {
-        if (timer) {
-          clearTimeout(timer);
-        }
-      };
     }
+    
+    return clearInactivityTimer;
   }, [user]);
   
-  // Function to reset inactivity timer
+  // Reset inactivity timer - memoized to prevent unnecessary re-renders
   const resetInactivityTimer = useCallback(() => {
-    if (inactivityTimer) {
-      clearTimeout(inactivityTimer);
+    if (user && inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
       
-      const newTimer = setTimeout(() => {
+      inactivityTimerRef.current = setTimeout(() => {
         // Auto logout after inactivity
         signOut();
         toast.info("You have been signed out due to inactivity");
       }, INACTIVITY_TIMEOUT);
-      
-      setInactivityTimer(newTimer);
     }
-  }, [inactivityTimer]);
+  }, [user]);
   
   // Sign out function
   const signOut = async () => {
     console.log("SignOut function called");
+    if (isSigningOutRef.current) {
+      console.log("Already signing out, skipping redundant call");
+      return;
+    }
+    
     try {
+      isSigningOutRef.current = true;
+      
       // Clear any inactivity timer
-      if (inactivityTimer) {
-        clearTimeout(inactivityTimer);
-        setInactivityTimer(null);
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current);
+        inactivityTimerRef.current = null;
       }
       
       // Clear local state first to improve perceived performance
@@ -209,22 +214,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
       
-      console.log("Successfully signed out");
+      console.log("Successfully signed out from Supabase");
+      
+      // Clear any local storage items that might contain auth state
+      localStorage.removeItem('supabase.auth.token');
       
       // Force a hard redirect to home page - this is important to reload the app state
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 100);
-      
+      window.location.href = '/';
     } catch (error) {
       console.error("Error signing out:", error);
       
       // Even if there's an error, try to reset the app state
-      setTimeout(() => {
-        window.location.href = '/';
-      }, 100);
-      
+      window.location.href = '/';
       throw error;
+    } finally {
+      isSigningOutRef.current = false;
     }
   };
   

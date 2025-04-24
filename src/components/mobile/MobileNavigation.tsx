@@ -69,21 +69,25 @@ export const MobileNavigation: React.FC = () => {
   
   const handleSignOut = async (e: React.MouseEvent) => {
     e.preventDefault();
-    setIsSigningOut(true);
+    
+    if (isSigningOut) return; // Prevent multiple clicks
     
     try {
-      await signOut();
+      setIsSigningOut(true);
+      
       toast({
-        title: "Successfully signed out",
-        description: "You have been signed out of your account",
+        title: "Signing out...",
+        description: "Please wait while we sign you out",
       });
+      
+      await signOut();
     } catch (error) {
+      console.error("Error signing out:", error);
       toast({
         variant: "destructive",
         title: "Error signing out",
         description: "There was a problem signing you out. Please try again.",
       });
-    } finally {
       setIsSigningOut(false);
     }
   };

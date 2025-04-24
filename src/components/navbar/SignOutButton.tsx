@@ -4,7 +4,6 @@ import { LogOut } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
 
 interface SignOutButtonProps {
   onSignOutStart?: () => void;
@@ -15,7 +14,6 @@ export const SignOutButton = ({ onSignOutStart, onSignOutEnd }: SignOutButtonPro
   const { signOut, resetInactivityTimer } = useAuth();
   const { toast } = useToast();
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     if (isSigningOut) return; // Prevent multiple clicks
@@ -24,15 +22,17 @@ export const SignOutButton = ({ onSignOutStart, onSignOutEnd }: SignOutButtonPro
       setIsSigningOut(true);
       if (onSignOutStart) onSignOutStart();
       
+      toast({
+        title: "Signing out...",
+        description: "Please wait while we sign you out",
+      });
+      
       await signOut();
       
       toast({
         title: "Successfully signed out",
         description: "You have been signed out of your account",
       });
-      
-      // Ensure we redirect to home page and refresh the app state
-      window.location.href = '/';
     } catch (error) {
       console.error("Error signing out:", error);
       toast({
@@ -40,7 +40,8 @@ export const SignOutButton = ({ onSignOutStart, onSignOutEnd }: SignOutButtonPro
         title: "Error signing out",
         description: "There was a problem signing you out. Please try again.",
       });
-      setIsSigningOut(false); // Reset signing out state on error
+    } finally {
+      setIsSigningOut(false); // Reset signing out state
       if (onSignOutEnd) onSignOutEnd();
     }
   };
@@ -52,7 +53,7 @@ export const SignOutButton = ({ onSignOutStart, onSignOutEnd }: SignOutButtonPro
         handleSignOut();
       }}
       variant="outline" 
-      className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2 font-medium shadow-sm"
+      className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2 font-medium shadow-sm z-50"
       size="sm"
       disabled={isSigningOut}
     >

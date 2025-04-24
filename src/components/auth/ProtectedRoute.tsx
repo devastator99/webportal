@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Spinner } from '@/components/ui/spinner';
+import { toast } from 'sonner';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -46,7 +47,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   // If no user, redirect to auth page
   if (!user) {
     console.log("ProtectedRoute: No user found, redirecting to auth page");
-    return <Navigate to={redirectTo} />;
+    toast.error("You need to be signed in to access this page");
+    return <Navigate to={redirectTo} state={{ from: location.pathname }} />;
   }
   
   console.log("ProtectedRoute: User authenticated, rendering children");
