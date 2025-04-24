@@ -2,13 +2,11 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { DoctorAppointmentCalendar } from "@/components/dashboard/doctor/DoctorAppointmentCalendar";
 import { useResponsive } from "@/contexts/ResponsiveContext";
-import { Users } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { ResponsiveCard } from "@/components/ui/responsive-card";
 import { useResponsiveValue } from "@/hooks/use-responsive";
 import { AllPatientsList } from "@/components/dashboard/doctor/AllPatientsList";
+import { ResponsiveCard } from "@/components/ui/responsive-card";
+import { CollapsibleSection } from "@/components/ui/collapsible-section";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const AlternativeDoctorDashboard = () => {
   const { user } = useAuth();

@@ -6,14 +6,12 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { format, parseISO } from "date-fns";
-import { CalendarIcon, ChevronDown, ChevronUp, Clock, Plus, User } from "lucide-react";
+import { CalendarIcon, ChevronDown, ChevronUp, Clock, User } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 import { useBreakpoint, useResponsiveButtonSize } from "@/hooks/use-responsive";
 import { ResponsiveText } from "@/components/ui/responsive-typography";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ScheduleAppointment } from "@/components/appointments/ScheduleAppointment";
 
 interface DoctorAppointmentCalendarProps {
   doctorId: string;
@@ -135,17 +133,6 @@ export const DoctorAppointmentCalendar = ({ doctorId }: DoctorAppointmentCalenda
                   ) : appointments.length === 0 ? (
                     <div className="text-center py-6 sm:py-8 text-gray-500 bg-white rounded-md border border-dashed border-gray-300">
                       <p className="mb-3 text-sm sm:text-base">No appointments scheduled</p>
-                      <ScheduleAppointment 
-                        callerRole="doctor" 
-                        preSelectedDoctorId={doctorId}
-                        preSelectedDate={selectedDate}>
-                        <Button 
-                          size={buttonSize}
-                          className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white flex items-center gap-1">
-                          <Plus size={isSmallScreen ? 14 : 16} />
-                          <span>{isSmallScreen ? 'Add' : 'Schedule Appointment'}</span>
-                        </Button>
-                      </ScheduleAppointment>
                     </div>
                   ) : (
                     <div className="space-y-2 sm:space-y-3 max-h-[250px] sm:max-h-[350px] overflow-y-auto pr-2">
