@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,11 +17,12 @@ import { ResponsiveContainer } from "@/components/layout/ResponsiveContainer";
 import { ResponsiveGrid } from "@/components/layout/ResponsiveGrid";
 import { DashboardResponsiveLayout } from "@/components/layout/DashboardResponsiveLayout";
 import { ResponsiveChatContainer } from "@/components/chat/ResponsiveChatContainer";
+import { useResponsive } from "@/contexts/ResponsiveContext";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const isIPad = useIsIPad();
+  const { isTablet } = useResponsive();
   const navigate = useNavigate();
 
   const [careTeamRoomId, setCareTeamRoomId] = useState<string | null>(null);
@@ -73,6 +73,12 @@ export const PatientDashboard = () => {
     };
     fetchRoomId();
   }, [user?.id, toast]);
+
+  const navigateToPrescriptions = () => {
+    if (user?.id) {
+      navigate(`/prescriptions/${user.id}`);
+    }
+  };
 
   const { data: patientData, isLoading } = useQuery({
     queryKey: ["patient_dashboard", user?.id],
@@ -140,7 +146,6 @@ export const PatientDashboard = () => {
   return (
     <DashboardResponsiveLayout>
       <ResponsiveContainer fluid withPadding className="space-y-6">
-        {/* Profile Header Section */}
         <div className="flex items-center gap-4 mb-4">
           <Avatar className="h-12 w-12 bg-[#E5DEFF]">
             <AvatarFallback className="text-[#9b87f5] font-medium">
@@ -157,7 +162,6 @@ export const PatientDashboard = () => {
           </div>
         </div>
         
-        {/* Stats Section */}
         <div className="w-full">
           <PatientStats />
         </div>
@@ -169,7 +173,6 @@ export const PatientDashboard = () => {
           gap="lg" 
           className="w-full"
         >
-          {/* Next Appointment Card */}
           {patientData?.nextAppointment && (
             <div className="col-span-full md:col-span-2 lg:col-span-3">
               <div className="p-4 bg-[#E5DEFF]/20 rounded-lg">
@@ -194,7 +197,6 @@ export const PatientDashboard = () => {
             </div>
           )}
 
-          {/* Care Team Chat Section */}
           <div className="col-span-full">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
               <UserRound className="h-5 w-5" />
@@ -214,12 +216,10 @@ export const PatientDashboard = () => {
             </ResponsiveChatContainer>
           </div>
 
-          {/* Curated Health Tips */}
           <div className="col-span-full md:col-span-2 lg:col-span-3">
             <PatientCuratedHealthTips />
           </div>
 
-          {/* Latest Prescription Section */}
           {patientData?.latestPrescription && (
             <div className="col-span-full md:col-span-2 lg:col-span-3">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
