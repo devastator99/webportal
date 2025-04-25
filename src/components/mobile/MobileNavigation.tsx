@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, User, Settings, MessageCircle, FileText, Activity, LogOut } from 'lucide-react';
+import { MessageCircle, Settings, Activity, FileText, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { WhatsAppStyleChatInterface } from '@/components/chat/WhatsAppStyleChatInterface';
@@ -42,7 +41,6 @@ export const MobileNavigation: React.FC = () => {
     }
   }, [user, userRole]);
   
-  // If no user is logged in, don't show the navigation
   if (!user) {
     return null;
   }
@@ -70,7 +68,7 @@ export const MobileNavigation: React.FC = () => {
   const handleSignOut = async (e: React.MouseEvent) => {
     e.preventDefault();
     
-    if (isSigningOut) return; // Prevent multiple clicks
+    if (isSigningOut) return;
     
     try {
       setIsSigningOut(true);
@@ -92,18 +90,7 @@ export const MobileNavigation: React.FC = () => {
     }
   };
   
-  const baseNavItems = [
-    {
-      label: 'Home',
-      icon: Home,
-      action: () => navigate('/dashboard'),
-      active: location.pathname === '/dashboard'
-    }
-  ];
-  
-  // Create separate navigation items for patients that don't include chat
   const patientNavItems = [
-    ...baseNavItems,
     {
       label: 'Prescription',
       icon: FileText,
@@ -131,13 +118,6 @@ export const MobileNavigation: React.FC = () => {
   ];
   
   const otherRoleNavItems = [
-    ...baseNavItems,
-    {
-      label: 'Patients',
-      icon: User,
-      action: () => navigate('/patients'),
-      active: location.pathname === '/patients'
-    },
     {
       label: 'Chat',
       icon: MessageCircle,
