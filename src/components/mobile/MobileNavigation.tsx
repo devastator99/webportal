@@ -5,6 +5,7 @@ import { MessageCircle, FileText, Activity, LogOut, UserRound } from 'lucide-rea
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { cn } from '@/lib/utils';
 
 export const MobileNavigation: React.FC = () => {
   const location = useLocation();
@@ -122,7 +123,7 @@ export const MobileNavigation: React.FC = () => {
       disabled: false
     },
     {
-      label: isSigningOut ? 'Signing Out...' : 'Sign Out',
+      label: 'Sign Out',
       icon: LogOut,
       action: handleSignOut,
       active: false,
@@ -146,7 +147,7 @@ export const MobileNavigation: React.FC = () => {
       disabled: false
     },
     {
-      label: isSigningOut ? 'Signing Out...' : 'Sign Out',
+      label: 'Sign Out',
       icon: LogOut,
       action: handleSignOut,
       active: false,
@@ -157,19 +158,21 @@ export const MobileNavigation: React.FC = () => {
   let navItems = userRole === 'patient' ? patientNavItems : otherRoleNavItems;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 dark:bg-gray-900/80 flex justify-around z-50">
+    <nav className="mobile-nav">
       {navItems.map((item) => (
         <button
           key={item.label}
-          className={`flex flex-col items-center justify-center py-3 px-4 ${
-            item.active ? 'text-[#9b87f5]' : 'text-gray-500'
-          } ${item.disabled ? 'opacity-50' : 'hover:text-[#7E69AB]'}`}
+          className={cn(
+            "mobile-nav-item",
+            item.active && "active",
+            item.disabled && "opacity-50 pointer-events-none"
+          )}
           onClick={item.action}
           aria-label={item.label}
           disabled={item.disabled}
         >
-          <item.icon className="h-5 w-5 mb-1" />
-          <span className="text-xs">{item.label}</span>
+          <item.icon className="mobile-nav-icon h-5 w-5" />
+          <span className="text-xs">{item.disabled && item.label === 'Sign Out' ? 'Signing Out...' : item.label}</span>
         </button>
       ))}
     </nav>
