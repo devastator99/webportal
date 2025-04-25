@@ -7,15 +7,13 @@ import { useResponsiveValue } from '@/hooks/use-responsive';
 export const Hero = () => {
   const { isMobile, isTablet } = useResponsive();
   
-  // Use responsive values for adjusting padding
   const paddingY = useResponsiveValue({
-    mobile: 'py-8',
-    tablet: 'py-12',
-    desktop: 'py-20',
-    default: 'py-10'
+    mobile: 'min-h-screen flex items-center',
+    tablet: 'min-h-screen flex items-center',
+    desktop: 'min-h-screen flex items-center',
+    default: 'min-h-screen flex items-center'
   });
   
-  // Heading sizes can be more dynamic
   const headingSize = useResponsiveValue({
     mobile: '3xl',
     tablet: '4xl',
@@ -23,7 +21,6 @@ export const Hero = () => {
     default: '4xl'
   });
   
-  // Responsive margin values
   const marginBottom = useResponsiveValue({
     mobile: 'mb-4',
     tablet: 'mb-6',
@@ -40,7 +37,7 @@ export const Hero = () => {
             mobileSize="3xl"
             tabletSize="4xl"
             desktopSize="6xl"
-            className={`text-[#6E59A5] ${marginBottom}`}
+            className={`text-[#6E59A5] ${marginBottom} animate-fade-up`}
           >
             Expert Endocrinology Care for Your Health
           </ResponsiveHeading>
@@ -49,14 +46,14 @@ export const Hero = () => {
             mobileSize="base"
             tabletSize="lg"
             desktopSize="xl"
-            className="text-[#7E69AB] mb-6 md:mb-8"
+            className="text-[#7E69AB] mb-6 md:mb-8 animate-fade-up"
           >
             Specialized treatment for hormonal disorders, diabetes, and thyroid conditions with personalized care from experienced endocrinologists.
           </ResponsiveText>
           
           {!isMobile && (
-            <div className={`mt-8 ${isTablet ? 'px-6' : 'px-0'}`}>
-              <div className="inline-block bg-[#E5DEFF] px-4 py-2 rounded-full text-[#7E69AB]">
+            <div className={`mt-8 animate-fade-up ${isTablet ? 'px-6' : 'px-0'}`}>
+              <div className="inline-block bg-[#E5DEFF]/50 backdrop-blur-sm px-4 py-2 rounded-full text-[#7E69AB]">
                 Trusted by thousands of patients across India
               </div>
             </div>

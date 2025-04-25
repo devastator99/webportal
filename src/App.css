@@ -12,7 +12,7 @@
   margin: 0 auto;
   min-height: 100vh;
   position: relative;
-  background-color: #f8f9fa;
+  background-color: #fff;
   overflow: hidden;
   
   /* Responsive sizing based on device */
@@ -657,4 +657,50 @@
 [data-radix-collapsible-content] {
   overflow: hidden;
   transition: height 300ms cubic-bezier(0.87, 0, 0.13, 1);
+}
+
+/* Clean Scrolling Utilities */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+body::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.app-container {
+  max-width: 100%;
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+  background-color: #fff;
+  overflow: hidden;
+}
+
+/* Remove card boundaries */
+.mobile-card,
+.card {
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  border-radius: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* Smooth section transitions */
+section {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 0;
+  transition: all 0.5s ease;
 }

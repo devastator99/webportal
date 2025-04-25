@@ -1,3 +1,4 @@
+
 import { Stethoscope, Brain, Activity, ClipboardCheck } from "lucide-react";
 
 const features = [
@@ -25,7 +26,7 @@ const features = [
 
 export const Features = () => {
   return (
-    <section id="features" className="py-20 bg-[#E5DEFF]">
+    <section className="py-20">
       <div className="container mx-auto px-4">
         <h2 className="text-3xl md:text-4xl font-bold text-center text-[#7E69AB] mb-12">
           Comprehensive Endocrinology Services
@@ -34,7 +35,7 @@ export const Features = () => {
           {features.map((feature, index) => (
             <div
               key={index}
-              className="bg-white p-6 rounded-lg shadow-sm hover:shadow-md transition-shadow"
+              className="p-6 transition-all duration-300 hover:-translate-y-1"
             >
               <div className="mb-4">{feature.icon}</div>
               <h3 className="text-xl font-semibold mb-2 text-[#7E69AB]">{feature.title}</h3>
