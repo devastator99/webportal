@@ -21,7 +21,7 @@ export const Navbar = () => {
   const useResponsiveDisplay = isMobile || isIPad;
 
   return (
-    <nav className="fixed top-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border-b border-[#D6BCFA] shadow-sm z-50">
+    <nav className="fixed top-0 w-full glass-nav z-50">
       <div className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
           <Logo />
@@ -60,7 +60,7 @@ export const Navbar = () => {
 
         {/* Mobile menu */}
         {useResponsiveDisplay && mobileMenuOpen && (
-          <div className="absolute top-full left-0 right-0 bg-white dark:bg-gray-900 border-b border-[#D6BCFA] shadow-lg">
+          <div className="absolute top-full left-0 right-0 glass-nav">
             <div className="container mx-auto px-4 py-4 flex flex-col gap-3">
               {user && !isLoading && (
                 <>

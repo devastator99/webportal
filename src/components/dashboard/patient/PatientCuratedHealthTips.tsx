@@ -38,7 +38,7 @@ export const PatientCuratedHealthTips = () => {
         {mockHealthTips.map((tip) => (
           <Card 
             key={tip.id} 
-            className="p-4 transition-all duration-200 hover:shadow-md"
+            className="p-4 transition-all duration-200 hover:shadow-md glass-card"
           >
             <h3 className="font-medium text-sm mb-2">{tip.title}</h3>
             <p className="text-sm text-muted-foreground">{tip.content}</p>

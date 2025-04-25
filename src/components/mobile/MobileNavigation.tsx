@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, FileText, Activity, LogOut, UserRound } from 'lucide-react';
@@ -141,8 +142,8 @@ export const MobileNavigation: React.FC = () => {
     {
       label: 'Profile',
       icon: UserRound,
-      action: () => navigate('/dashboard-alt'),
-      active: location.pathname === '/dashboard-alt',
+      action: () => navigate('/dashboard'),
+      active: location.pathname === '/dashboard',
       disabled: false
     },
     {
@@ -157,7 +158,7 @@ export const MobileNavigation: React.FC = () => {
   let navItems = userRole === 'patient' ? patientNavItems : otherRoleNavItems;
 
   return (
-    <nav className="mobile-nav">
+    <nav className="mobile-nav glassmorphism">
       {navItems.map((item) => (
         <button
           key={item.label}

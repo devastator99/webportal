@@ -19,7 +19,6 @@ const MessageSearchPage = lazy(() => import('@/pages/MessageSearchPage'));
 const PatientHabitsPage = lazy(() => import('@/pages/PatientHabitsPage'));
 const PatientPrescriptionsPage = lazy(() => import('@/pages/PatientPrescriptionsPage'));
 const PatientProfilePage = lazy(() => import('@/pages/patient/PatientProfilePage'));
-const AlternativeDashboard = lazy(() => import('@/pages/AlternativeDashboard'));
 
 export const AppRoutes = () => {
   const { userRole } = useAuth();
@@ -46,15 +45,6 @@ export const AppRoutes = () => {
         <Route
           path="/doctor-dashboard"
           element={<Navigate to="/dashboard" replace />}
-        />
-        
-        <Route
-          path="/dashboard-alt"
-          element={
-            <ProtectedRoute>
-              <AlternativeDashboard />
-            </ProtectedRoute>
-          }
         />
         
         {/* Other routes */}
