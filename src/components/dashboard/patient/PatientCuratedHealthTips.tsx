@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Lightbulb } from "lucide-react";
-import { Card } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useResponsive } from "@/contexts/ResponsiveContext";
 
 const mockHealthTips = [
@@ -21,30 +21,32 @@ export const PatientCuratedHealthTips = () => {
   }
 
   return (
-    <div className="w-full">
-      <div className="flex items-center gap-2 mb-4">
-        <div className="bg-yellow-100 p-2 rounded-full">
-          <Lightbulb className="h-4 w-4 text-yellow-500" />
+    <Card className="h-full bg-[#E5DEFF]/20">
+      <CardHeader className="pb-2">
+        <div className="flex items-center gap-3">
+          <div className="bg-[#E5DEFF] p-2 rounded-full">
+            <Lightbulb className="h-4 w-4 text-[#9b87f5]" />
+          </div>
+          <div>
+            <CardTitle className="text-sm font-medium">Personalized Health Tips</CardTitle>
+            <CardDescription className="text-xs">
+              AI-powered suggestions for your health
+            </CardDescription>
+          </div>
         </div>
-        <div>
-          <h2 className="text-lg font-semibold">Personalized Health Tips</h2>
-          <p className="text-sm text-muted-foreground">
-            AI-powered suggestions tailored to your health profile
-          </p>
-        </div>
-      </div>
-      
-      <div>
+      </CardHeader>
+      <CardContent>
         {mockHealthTips.map((tip) => (
-          <Card 
+          <div 
             key={tip.id} 
-            className="p-4 transition-all duration-200 hover:shadow-md glass-card"
+            className="p-3 bg-white/50 backdrop-blur-sm rounded-lg"
           >
             <h3 className="font-medium text-sm mb-2">{tip.title}</h3>
-            <p className="text-sm text-muted-foreground">{tip.content}</p>
-          </Card>
+            <p className="text-xs text-muted-foreground">{tip.content}</p>
+          </div>
         ))}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 };
+

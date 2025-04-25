@@ -175,37 +175,36 @@ export const PatientDashboard = () => {
               desktopColumns={3} 
               gap="lg"
             >
-              {patientData?.nextAppointment && (
-                <Card className="col-span-full md:col-span-1 lg:col-span-2 bg-[#E5DEFF]/20">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-[#E5DEFF] p-2 rounded-full">
-                          <Calendar className="h-5 w-5 text-[#9b87f5]" />
+              <div className="col-span-full md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {patientData?.nextAppointment && (
+                  <Card className="bg-[#E5DEFF]/20">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-[#E5DEFF] p-2 rounded-full">
+                            <Calendar className="h-5 w-5 text-[#9b87f5]" />
+                          </div>
+                          <div>
+                            <h3 className="font-medium text-sm mb-2">Next Appointment</h3>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(patientData.nextAppointment.scheduled_at).toLocaleDateString()} at {new Date(patientData.nextAppointment.scheduled_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </p>
+                            <p className="text-xs">
+                              With Dr. {patientData.nextAppointment.doctor_first_name} {patientData.nextAppointment.doctor_last_name}
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h3 className="font-medium text-sm mb-2">Next Appointment</h3>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(patientData.nextAppointment.scheduled_at).toLocaleDateString()} at {new Date(patientData.nextAppointment.scheduled_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                          </p>
-                          <p className="text-xs">
-                            With Dr. {patientData.nextAppointment.doctor_first_name} {patientData.nextAppointment.doctor_last_name}
-                          </p>
-                        </div>
+                        <Button variant="ghost" size="sm" className="text-[#9b87f5]">
+                          View Details
+                        </Button>
                       </div>
-                      <Button variant="ghost" size="sm" className="text-[#9b87f5]">
-                        View Details
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              <div className="col-span-full md:col-span-1 lg:col-span-1">
+                    </CardContent>
+                  </Card>
+                )}
                 <PatientCuratedHealthTips />
               </div>
 
-              <div className="col-span-full lg:col-span-3">
+              <div className="col-span-full">
                 <Card className="h-full">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -235,3 +234,4 @@ export const PatientDashboard = () => {
     </SidebarProvider>
   );
 };
+
