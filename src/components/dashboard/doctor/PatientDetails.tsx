@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { PatientAvatar } from "./PatientAvatar";
 import { cn } from "@/lib/utils";
+import { PrescriptionTabsViewer } from '@/components/prescriptions/PrescriptionTabsViewer';
 
 export const PatientDetails = ({ patientId }: { patientId: string }) => {
   const navigate = useNavigate();
@@ -183,18 +183,16 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
               </div>
             )}
 
+            {activeSection === "prescriptions" && (
+              <PrescriptionTabsViewer patientId={patientId} />
+            )}
+
             {activeSection === "analyze" && (
               <div className="p-6 rounded-lg border bg-card">
                 <h2 className="text-lg font-semibold mb-4 text-[#7E69AB]">Conversation Analysis</h2>
                 <p className="text-muted-foreground">
                   AI analysis of care team conversations will appear here.
                 </p>
-              </div>
-            )}
-
-            {activeSection === "prescriptions" && (
-              <div className="rounded-lg border bg-card">
-                <PrescriptionWriter patientId={patientId} />
               </div>
             )}
 
