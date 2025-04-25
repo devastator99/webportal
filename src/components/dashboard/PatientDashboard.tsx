@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,11 +11,13 @@ import { ResponsiveContainer } from "@/components/layout/ResponsiveContainer";
 import { DashboardResponsiveLayout } from "@/components/layout/DashboardResponsiveLayout";
 import { useResponsive } from "@/contexts/ResponsiveContext";
 import { DashboardTabs } from "./patient/DashboardTabs";
+import { useNavigate } from "react-router-dom";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isTablet } = useResponsive();
+  const navigate = useNavigate();
 
   const [careTeamRoomId, setCareTeamRoomId] = useState<string | null>(null);
   const [isLoadingRoom, setIsLoadingRoom] = useState(true);

@@ -2,6 +2,10 @@
 import React from 'react';
 import { Lightbulb } from "lucide-react";
 
+interface PatientCuratedHealthTipsProps {
+  filterType?: 'diet' | 'mental' | string;
+}
+
 const mockHealthTips = [
   {
     id: "1",
@@ -19,13 +23,40 @@ const mockHealthTips = [
     id: "3",
     title: "Personalize Your Diet",
     content: "Incorporate more fiber, less sugar to manage diabetes risk.",
-    category: "nutrition"
+    category: "diet"
+  },
+  {
+    id: "4",
+    title: "Practice Mindfulness",
+    content: "Daily meditation can help reduce stress and improve mental clarity.",
+    category: "mental"
+  },
+  {
+    id: "5",
+    title: "Balanced Nutrition",
+    content: "Aim for a colorful plate with diverse vegetables and fruits.",
+    category: "diet"
+  },
+  {
+    id: "6",
+    title: "Stress Management",
+    content: "Try deep breathing exercises when feeling overwhelmed.",
+    category: "mental"
   },
 ];
 
-export const PatientCuratedHealthTips = () => {
-  if (!mockHealthTips.length) {
-    return null;
+export const PatientCuratedHealthTips = ({ filterType }: PatientCuratedHealthTipsProps) => {
+  // Filter tips based on filterType if provided
+  const displayTips = filterType 
+    ? mockHealthTips.filter(tip => tip.category === filterType)
+    : mockHealthTips;
+    
+  if (!displayTips.length) {
+    return (
+      <div className="text-center p-4">
+        <p className="text-muted-foreground">No health tips available for this category.</p>
+      </div>
+    );
   }
 
   return (
@@ -38,7 +69,7 @@ export const PatientCuratedHealthTips = () => {
         AI-powered suggestions tailored to your health profile
       </p>
       <div className="space-y-2">
-        {mockHealthTips.map((tip) => (
+        {displayTips.map((tip) => (
           <div 
             key={tip.id} 
             className="p-2 bg-muted/10 border border-muted rounded-lg"
