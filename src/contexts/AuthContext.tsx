@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -70,7 +69,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (isSigningOutRef.current && event === 'SIGNED_OUT') {
           console.log("Sign out confirmed by auth state change");
-          return; // Skip further processing if we're in the middle of signing out
+          isSigningOutRef.current = false;
+          setSession(null);
+          setUser(null);
+          setUserRole(null);
+          return;
         }
         
         if (event === 'SIGNED_IN' && newSession) {
@@ -184,7 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
   
-  // Sign out function
+  // Sign out function - IMPROVED implementation
   const signOut = async () => {
     console.log("SignOut function called");
     if (isSigningOutRef.current) {
@@ -201,13 +204,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         inactivityTimerRef.current = null;
       }
       
-      // Clear local state first to improve perceived performance
-      setUser(null);
-      setSession(null);
-      setUserRole(null);
-      
-      // Sign out from Supabase
-      const { error } = await supabase.auth.signOut();
+      // Sign out from Supabase - BEFORE clearing local state
+      const { error } = await supabase.auth.signOut({
+        scope: 'global' // Ensure we sign out from all devices/tabs
+      });
       
       if (error) {
         console.error("Error signing out from Supabase:", error);
@@ -216,18 +216,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       console.log("Successfully signed out from Supabase");
       
+      // Clear local state AFTER successful server logout
+      setUser(null);
+      setSession(null);
+      setUserRole(null);
+      
       // Clear any local storage items that might contain auth state
       localStorage.removeItem('supabase.auth.token');
       
-      // Force a hard redirect to home page - this is important to reload the app state
-      window.location.href = '/';
+      // Use a timer to ensure state updates before navigation
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100);
     } catch (error) {
       console.error("Error signing out:", error);
       
       // Even if there's an error, try to reset the app state
-      window.location.href = '/';
-      throw error;
+      setUser(null);
+      setSession(null);
+      setUserRole(null);
+      
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 100);
     } finally {
+      // Always reset the signing out flag
       isSigningOutRef.current = false;
     }
   };

@@ -15,14 +15,21 @@ const Auth = () => {
   
   const isRegistration = location.pathname.includes('/register');
 
-  // Redirect based on user role
+  // Redirect based on user role with a slight delay to ensure auth state is updated
   useEffect(() => {
     if (!isLoading && user) {
-      if (userRole === 'patient') {
-        navigate("/dashboard");
-      } else if (userRole) {
-        navigate("/dashboard");
-      }
+      console.log("Auth page detected logged in user, redirecting...");
+      
+      // Use setTimeout to ensure state is fully updated
+      const redirectTimer = setTimeout(() => {
+        if (userRole === 'patient') {
+          navigate("/dashboard", { replace: true });
+        } else if (userRole) {
+          navigate("/dashboard", { replace: true });
+        }
+      }, 100);
+      
+      return () => clearTimeout(redirectTimer);
     }
   }, [user, userRole, isLoading, navigate]);
 
@@ -72,7 +79,7 @@ const Auth = () => {
           ) : (
             <SupabaseAuthUI 
               view="sign_in"
-              redirectTo={`${window.location.origin}/auth`}
+              redirectTo={`${window.location.origin}/dashboard`}
               showLinks={true}
             />
           )}

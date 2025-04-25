@@ -11,6 +11,8 @@ export const ForceLogoutButton = () => {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleForceLogout = async () => {
+    if (isSigningOut) return;
+    
     try {
       setIsSigningOut(true);
       toast({
@@ -20,6 +22,7 @@ export const ForceLogoutButton = () => {
       
       await forceSignOut();
       
+      // This toast might not be seen due to redirect
       toast({
         title: "Logged out",
         description: "You have been successfully signed out",

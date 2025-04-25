@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { LogIn, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -23,8 +22,11 @@ export const AuthButton = () => {
         description: "Please wait while we sign you out",
       });
       
+      // Important: call signOut without chaining other functions
       await signOut();
       
+      // The success toast will likely not be seen due to page redirect
+      // but we'll keep it for completeness
       toast({
         title: "Successfully signed out",
         description: "You have been signed out of your account",
@@ -46,6 +48,7 @@ export const AuthButton = () => {
       <Button 
         onClick={() => {
           resetInactivityTimer();
+          // Call handleSignOut directly without chaining
           handleSignOut();
         }}
         variant="outline" 
