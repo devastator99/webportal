@@ -86,7 +86,6 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header Section */}
       <div className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container py-3">
           <div className="flex items-center gap-3">
@@ -130,7 +129,6 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
 
       <div className="container py-6">
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Navigation List */}
           <div className="lg:w-56 flex-shrink-0">
             <div className="sticky top-24 space-y-1 rounded-lg overflow-hidden border bg-card">
               {menuItems.map((item) => (
@@ -143,7 +141,13 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
                       ? "border-l-[#9b87f5] bg-[#E5DEFF] text-[#7E69AB]"
                       : "border-l-transparent hover:border-l-[#9b87f5] hover:bg-[#E5DEFF] hover:text-[#7E69AB]"
                   )}
-                  onClick={() => setActiveSection(item.id)}
+                  onClick={() => {
+                    if (item.id === "prescriptions") {
+                      navigate(`/prescriptions/${patientId}`);
+                    } else {
+                      setActiveSection(item.id);
+                    }
+                  }}
                 >
                   {item.icon}
                   <span>{item.label}</span>
@@ -152,7 +156,6 @@ export const PatientDetails = ({ patientId }: { patientId: string }) => {
             </div>
           </div>
 
-          {/* Main Content Area */}
           <div className="flex-1 min-w-0">
             {activeSection === "chat" && (
               <div className="h-[calc(100vh-220px)] rounded-lg border bg-card">
