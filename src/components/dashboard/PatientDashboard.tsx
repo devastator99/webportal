@@ -5,25 +5,16 @@ import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import { PatientStats } from "./patient/PatientStats";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { useNavigate } from "react-router-dom";
-import { Calendar, FileText, ArrowRight, UserRound } from "lucide-react";
-import { MedicalRecordsList } from './patient/MedicalRecordsList';
-import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
-import { PatientCuratedHealthTips } from "./patient/PatientCuratedHealthTips";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ResponsiveContainer } from "@/components/layout/ResponsiveContainer";
-import { ResponsiveGrid } from "@/components/layout/ResponsiveGrid";
 import { DashboardResponsiveLayout } from "@/components/layout/DashboardResponsiveLayout";
-import { ResponsiveChatContainer } from "@/components/chat/ResponsiveChatContainer";
 import { useResponsive } from "@/contexts/ResponsiveContext";
+import { DashboardTabs } from "./patient/DashboardTabs";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isTablet } = useResponsive();
-  const navigate = useNavigate();
 
   const [careTeamRoomId, setCareTeamRoomId] = useState<string | null>(null);
   const [isLoadingRoom, setIsLoadingRoom] = useState(true);
@@ -166,95 +157,7 @@ export const PatientDashboard = () => {
           <PatientStats />
         </div>
 
-        <ResponsiveGrid 
-          mobileColumns={1} 
-          tabletColumns={2} 
-          desktopColumns={3} 
-          gap="lg" 
-          className="w-full"
-        >
-          {patientData?.nextAppointment && (
-            <div className="col-span-full md:col-span-2 lg:col-span-3">
-              <div className="p-4 bg-[#E5DEFF]/20 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-[#E5DEFF] p-2 rounded-full">
-                      <Calendar className="h-5 w-5 text-[#9b87f5]" />
-                    </div>
-                    <div>
-                      <h3 className="font-medium text-sm">Next Appointment</h3>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(patientData.nextAppointment.scheduled_at).toLocaleDateString()} at {new Date(patientData.nextAppointment.scheduled_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                      </p>
-                      <p className="text-xs">With Dr. {patientData.nextAppointment.doctor_first_name} {patientData.nextAppointment.doctor_last_name}</p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm" className="text-[#9b87f5]">
-                    View Details
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="col-span-full">
-            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <UserRound className="h-5 w-5" />
-              Care Team Chat
-            </h2>
-            <p className="text-muted-foreground mb-4">
-              Connect with your healthcare team, send updates, and upload medical reports.
-            </p>
-            <ResponsiveChatContainer>
-              {isLoadingRoom ? (
-                <div className="flex justify-center items-center p-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9b87f5]"></div>
-                </div>
-              ) : (
-                <WhatsAppStyleChatInterface patientRoomId={careTeamRoomId} />
-              )}
-            </ResponsiveChatContainer>
-          </div>
-
-          <div className="col-span-full md:col-span-2 lg:col-span-3">
-            <PatientCuratedHealthTips />
-          </div>
-
-          {patientData?.latestPrescription && (
-            <div className="col-span-full md:col-span-2 lg:col-span-3">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <FileText className="h-5 w-5 text-purple-500" />
-                Latest Prescription
-              </h2>
-              <p className="text-muted-foreground mb-4">
-                Issued on {new Date(patientData.latestPrescription.created_at).toLocaleDateString()} by Dr. {patientData.latestPrescription.doctor_first_name} {patientData.latestPrescription.doctor_last_name}
-              </p>
-              <div className="space-y-3 p-4 bg-muted/20 rounded-lg">
-                <div>
-                  <h4 className="text-sm font-medium">Diagnosis</h4>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {patientData.latestPrescription.diagnosis}
-                  </p>
-                </div>
-                <Separator />
-                <div>
-                  <h4 className="text-sm font-medium">Prescribed Medications</h4>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {patientData.latestPrescription.prescription}
-                  </p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="mt-4" 
-                  onClick={navigateToPrescriptions}
-                >
-                  View All Prescriptions <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          )}
-        </ResponsiveGrid>
+        <DashboardTabs />
       </ResponsiveContainer>
     </DashboardResponsiveLayout>
   );
