@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { useResponsive } from "@/contexts/ResponsiveContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { DashboardResponsiveLayout } from "@/components/layout/DashboardResponsiveLayout";
@@ -9,16 +11,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PatientStats } from "./patient/PatientStats";
 import { PatientCuratedHealthTips } from "./patient/PatientCuratedHealthTips";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
-import { useToast } from "@/hooks/use-toast";
-import { useResponsive } from "@/contexts/ResponsiveContext";
-import { Calendar, FileText, ArrowRight, UserRound } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardContent, CardTitle, CardDescription } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardSkeleton } from "./DashboardSkeleton";
-import { Separator } from "@/components/ui/separator";
-import { MedicalRecordsList } from './patient/MedicalRecordsList';
-import { ResponsiveChatContainer } from "@/components/chat/ResponsiveChatContainer";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { PatientSidebar } from "./patient/PatientSidebar";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
@@ -145,85 +141,89 @@ export const PatientDashboard = () => {
   }
 
   return (
-    <DashboardResponsiveLayout>
-      <ResponsiveContainer fluid withPadding className="space-y-6">
-        <div className="flex items-center gap-4 mb-4">
-          <Avatar className="h-12 w-12 bg-[#E5DEFF]">
-            <AvatarFallback className="text-[#9b87f5] font-medium">
-              {patientData?.profile?.first_name?.charAt(0)}{patientData?.profile?.last_name?.charAt(0)}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h1 className="text-2xl font-semibold">Welcome, {patientData?.profile?.first_name}</h1>
-            <p className="text-muted-foreground">Keep track of your health journey</p>
-          </div>
-        </div>
+    <SidebarProvider>
+      <div className="min-h-screen flex w-full">
+        <PatientSidebar />
+        <div className="flex-1">
+          <ResponsiveContainer fluid withPadding className="space-y-6">
+            <div className="flex items-center gap-4 mb-4">
+              <Avatar className="h-12 w-12 bg-[#E5DEFF]">
+                <AvatarFallback className="text-[#9b87f5] font-medium">
+                  {patientData?.profile?.first_name?.charAt(0)}{patientData?.profile?.last_name?.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h1 className="text-2xl font-semibold">Welcome, {patientData?.profile?.first_name}</h1>
+                <p className="text-muted-foreground">Keep track of your health journey</p>
+              </div>
+            </div>
 
-        <div className="w-full">
-          <PatientStats />
-        </div>
+            <div className="w-full">
+              <PatientStats />
+            </div>
 
-        <ResponsiveGrid 
-          mobileColumns={1} 
-          tabletColumns={2} 
-          desktopColumns={3} 
-          gap="lg"
-        >
-          {patientData?.nextAppointment && (
-            <Card className="col-span-full md:col-span-2 lg:col-span-3 bg-[#E5DEFF]/20">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-[#E5DEFF] p-2 rounded-full">
-                      <Calendar className="h-5 w-5 text-[#9b87f5]" />
+            <ResponsiveGrid 
+              mobileColumns={1} 
+              tabletColumns={2} 
+              desktopColumns={3} 
+              gap="lg"
+            >
+              {patientData?.nextAppointment && (
+                <Card className="col-span-full md:col-span-2 lg:col-span-3 bg-[#E5DEFF]/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-[#E5DEFF] p-2 rounded-full">
+                          <Calendar className="h-5 w-5 text-[#9b87f5]" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-sm">Next Appointment</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(patientData.nextAppointment.scheduled_at).toLocaleDateString()} at {new Date(patientData.nextAppointment.scheduled_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          </p>
+                          <p className="text-xs">
+                            With Dr. {patientData.nextAppointment.doctor_first_name} {patientData.nextAppointment.doctor_last_name}
+                          </p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" className="text-[#9b87f5]">
+                        View Details
+                      </Button>
                     </div>
-                    <div>
-                      <h3 className="font-medium text-sm">Next Appointment</h3>
-                      <p className="text-xs text-muted-foreground">
-                        {new Date(patientData.nextAppointment.scheduled_at).toLocaleDateString()} at {new Date(patientData.nextAppointment.scheduled_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                      </p>
-                      <p className="text-xs">
-                        With Dr. {patientData.nextAppointment.doctor_first_name} {patientData.nextAppointment.doctor_last_name}
-                      </p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="sm" className="text-[#9b87f5]">
-                    View Details
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
+                  </CardContent>
+                </Card>
+              )}
 
-          <div className="col-span-full lg:col-span-2">
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <UserRound className="h-5 w-5" />
-                  Care Team Chat
-                </CardTitle>
-                <CardDescription>
-                  Connect with your healthcare team
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-0 h-[500px] lg:h-[600px]">
-                {isLoadingRoom ? (
-                  <div className="flex justify-center items-center h-full">
-                    <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9b87f5]"></div>
-                  </div>
-                ) : (
-                  <WhatsAppStyleChatInterface patientRoomId={careTeamRoomId} />
-                )}
-              </CardContent>
-            </Card>
-          </div>
+              <div className="col-span-full lg:col-span-2">
+                <Card className="h-full">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <UserRound className="h-5 w-5" />
+                      Care Team Chat
+                    </CardTitle>
+                    <CardDescription>
+                      Connect with your healthcare team
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0 h-[500px] lg:h-[600px]">
+                    {isLoadingRoom ? (
+                      <div className="flex justify-center items-center h-full">
+                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9b87f5]"></div>
+                      </div>
+                    ) : (
+                      <WhatsAppStyleChatInterface patientRoomId={careTeamRoomId} />
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
 
-          <div className="col-span-full lg:col-span-1">
-            <PatientCuratedHealthTips />
-          </div>
-        </ResponsiveGrid>
-
-      </ResponsiveContainer>
-    </DashboardResponsiveLayout>
+              <div className="col-span-full lg:col-span-1">
+                <PatientCuratedHealthTips />
+              </div>
+            </ResponsiveGrid>
+          </ResponsiveContainer>
+        </div>
+      </div>
+    </SidebarProvider>
   );
 };
