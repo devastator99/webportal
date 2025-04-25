@@ -6,21 +6,18 @@ import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import { PatientStats } from "./patient/PatientStats";
-import { DashboardHeader } from "./DashboardHeader";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
-import { useIsIPad } from "@/hooks/use-mobile";
-import { 
-  Calendar, 
-  FileText, 
-  ArrowRight,
-  UserRound
-} from "lucide-react";
+import { Calendar, FileText, ArrowRight, UserRound } from "lucide-react";
 import { MedicalRecordsList } from './patient/MedicalRecordsList';
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { PatientCuratedHealthTips } from "./patient/PatientCuratedHealthTips";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ResponsiveContainer } from "@/components/layout/ResponsiveContainer";
+import { ResponsiveGrid } from "@/components/layout/ResponsiveGrid";
+import { DashboardResponsiveLayout } from "@/components/layout/DashboardResponsiveLayout";
+import { ResponsiveChatContainer } from "@/components/chat/ResponsiveChatContainer";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
@@ -140,66 +137,65 @@ export const PatientDashboard = () => {
     return <DashboardSkeleton />;
   }
 
-  const containerClasses = isIPad 
-    ? "container mx-auto pt-20 pb-6 px-4 space-y-6 max-w-[95%]" 
-    : "container mx-auto pt-20 pb-6 px-6 space-y-6";
-
-  // Function to navigate to prescriptions page
-  const navigateToPrescriptions = () => {
-    if (user?.id) {
-      navigate(`/prescriptions/${user.id}`);
-    }
-  };
-
   return (
-    <div className={containerClasses}>
-      <DashboardHeader />
-      
-      <div className="flex items-center gap-4 mb-4">
-        <Avatar className="h-12 w-12 bg-[#E5DEFF]">
-          <AvatarFallback className="text-[#9b87f5] font-medium">
-            {patientData?.profile?.first_name?.charAt(0)}{patientData?.profile?.last_name?.charAt(0)}
-          </AvatarFallback>
-        </Avatar>
-        <div>
-          <h1 className="text-2xl font-semibold">
-            Welcome, {patientData?.profile?.first_name}
-          </h1>
-          <p className="text-muted-foreground">
-            Keep track of your health journey
-          </p>
+    <DashboardResponsiveLayout>
+      <ResponsiveContainer fluid withPadding className="space-y-6">
+        {/* Profile Header Section */}
+        <div className="flex items-center gap-4 mb-4">
+          <Avatar className="h-12 w-12 bg-[#E5DEFF]">
+            <AvatarFallback className="text-[#9b87f5] font-medium">
+              {patientData?.profile?.first_name?.charAt(0)}{patientData?.profile?.last_name?.charAt(0)}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h1 className="text-2xl font-semibold">
+              Welcome, {patientData?.profile?.first_name}
+            </h1>
+            <p className="text-muted-foreground">
+              Keep track of your health journey
+            </p>
+          </div>
         </div>
-      </div>
-      
-      <div className={isIPad ? "overflow-x-auto pb-2" : ""}>
-        <PatientStats />
-      </div>
+        
+        {/* Stats Section */}
+        <div className="w-full">
+          <PatientStats />
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-3 space-y-2">
+        <ResponsiveGrid 
+          mobileColumns={1} 
+          tabletColumns={2} 
+          desktopColumns={3} 
+          gap="lg" 
+          className="w-full"
+        >
+          {/* Next Appointment Card */}
           {patientData?.nextAppointment && (
-            <div className="p-4 bg-[#E5DEFF]/20 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-[#E5DEFF] p-2 rounded-full">
-                    <Calendar className="h-5 w-5 text-[#9b87f5]" />
+            <div className="col-span-full md:col-span-2 lg:col-span-3">
+              <div className="p-4 bg-[#E5DEFF]/20 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-[#E5DEFF] p-2 rounded-full">
+                      <Calendar className="h-5 w-5 text-[#9b87f5]" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-sm">Next Appointment</h3>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(patientData.nextAppointment.scheduled_at).toLocaleDateString()} at {new Date(patientData.nextAppointment.scheduled_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                      </p>
+                      <p className="text-xs">With Dr. {patientData.nextAppointment.doctor_first_name} {patientData.nextAppointment.doctor_last_name}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-medium text-sm">Next Appointment</h3>
-                    <p className="text-xs text-muted-foreground">
-                      {new Date(patientData.nextAppointment.scheduled_at).toLocaleDateString()} at {new Date(patientData.nextAppointment.scheduled_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                    </p>
-                    <p className="text-xs">With Dr. {patientData.nextAppointment.doctor_first_name} {patientData.nextAppointment.doctor_last_name}</p>
-                  </div>
+                  <Button variant="ghost" size="sm" className="text-[#9b87f5]">
+                    View Details
+                  </Button>
                 </div>
-                <Button variant="ghost" size="sm" className="text-[#9b87f5]">
-                  View Details
-                </Button>
               </div>
             </div>
           )}
 
-          <div>
+          {/* Care Team Chat Section */}
+          <div className="col-span-full">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
               <UserRound className="h-5 w-5" />
               Care Team Chat
@@ -207,7 +203,7 @@ export const PatientDashboard = () => {
             <p className="text-muted-foreground mb-4">
               Connect with your healthcare team, send updates, and upload medical reports.
             </p>
-            <div className="w-full max-w-2xl mx-auto">
+            <ResponsiveChatContainer>
               {isLoadingRoom ? (
                 <div className="flex justify-center items-center p-8">
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9b87f5]"></div>
@@ -215,13 +211,17 @@ export const PatientDashboard = () => {
               ) : (
                 <WhatsAppStyleChatInterface patientRoomId={careTeamRoomId} />
               )}
-            </div>
+            </ResponsiveChatContainer>
           </div>
-          
-          <PatientCuratedHealthTips />
-          
+
+          {/* Curated Health Tips */}
+          <div className="col-span-full md:col-span-2 lg:col-span-3">
+            <PatientCuratedHealthTips />
+          </div>
+
+          {/* Latest Prescription Section */}
           {patientData?.latestPrescription && (
-            <div>
+            <div className="col-span-full md:col-span-2 lg:col-span-3">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
                 <FileText className="h-5 w-5 text-purple-500" />
                 Latest Prescription
@@ -254,8 +254,8 @@ export const PatientDashboard = () => {
               </div>
             </div>
           )}
-        </div>
-      </div>
-    </div>
+        </ResponsiveGrid>
+      </ResponsiveContainer>
+    </DashboardResponsiveLayout>
   );
 };
