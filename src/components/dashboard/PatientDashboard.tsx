@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -26,7 +27,7 @@ export const PatientDashboard = () => {
   const { toast } = useToast();
   const { isTablet } = useResponsive();
   const navigate = useNavigate();
-  const { isMobile } = useIsMobile();
+  const isMobile = useIsMobile(); // Fix: useIsMobile() returns a boolean directly, not an object
 
   const [careTeamRoomId, setCareTeamRoomId] = useState<string | null>(null);
   const [isLoadingRoom, setIsLoadingRoom] = useState(true);
