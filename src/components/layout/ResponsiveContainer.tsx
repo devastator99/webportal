@@ -23,14 +23,14 @@ export const ResponsiveContainer = ({
   return (
     <Component
       className={cn(
-        // Base styles for all devices
-        'mx-auto w-full',
-        // Conditional max-width based on fluid prop
+        'w-full mx-auto transition-all duration-200',
         !fluid && 'max-w-screen-xl',
-        // Conditional padding based on device and withPadding prop
         withPadding && (
-          isMobile ? 'px-4' : 
-          isTablet ? 'px-6' : 'px-8'
+          isMobile 
+            ? 'px-3 py-2' 
+            : isTablet 
+              ? 'px-4 py-3' 
+              : 'px-6 py-4'
         ),
         className
       )}
