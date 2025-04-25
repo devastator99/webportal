@@ -29,10 +29,13 @@ export const PatientDashboard = () => {
   const navigate = useNavigate();
 
   const [careTeamRoomId, setCareTeamRoomId] = useState<string | null>(null);
+  const [isLoadingRoom, setIsLoadingRoom] = useState(true);
 
   useEffect(() => {
     const fetchRoomId = async () => {
       if (!user?.id) return;
+      
+      setIsLoadingRoom(true);
       try {
         const { data, error } = await supabase.functions.invoke('get-patient-care-team-room', {
           body: { patient_id: user.id }
@@ -40,6 +43,11 @@ export const PatientDashboard = () => {
         
         if (error) {
           console.error("Failed to get care team chat room:", error);
+          toast({
+            title: "Could not load care team chat",
+            description: "Please try again later",
+            variant: "destructive"
+          });
         } else if (typeof data === "string" && data) {
           setCareTeamRoomId(data);
         } else if (typeof data === "object" && data !== null && data.id) {
@@ -48,14 +56,26 @@ export const PatientDashboard = () => {
           setCareTeamRoomId(data.room_id);
         } else {
           setCareTeamRoomId(null);
+          toast({
+            title: "No care team assigned",
+            description: "Please contact your healthcare provider to set up a care team",
+            variant: "destructive"
+          });
         }
       } catch (err) {
         console.error("Error fetching care team chat room:", err);
+        toast({
+          title: "Error loading care team chat",
+          description: "Please try again later",
+          variant: "destructive"
+        });
         setCareTeamRoomId(null);
+      } finally {
+        setIsLoadingRoom(false);
       }
     };
     fetchRoomId();
-  }, [user?.id]);
+  }, [user?.id, toast]);
 
   const { data: patientData, isLoading } = useQuery({
     queryKey: ["patient_dashboard", user?.id],
@@ -124,6 +144,13 @@ export const PatientDashboard = () => {
     ? "container mx-auto pt-20 pb-6 px-4 space-y-6 max-w-[95%]" 
     : "container mx-auto pt-20 pb-6 px-6 space-y-6";
 
+  // Function to navigate to prescriptions page
+  const navigateToPrescriptions = () => {
+    if (user?.id) {
+      navigate(`/prescriptions/${user.id}`);
+    }
+  };
+
   return (
     <div className={containerClasses}>
       <DashboardHeader />
@@ -149,7 +176,7 @@ export const PatientDashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-3 space-y-2"> {/* Reduced space-y from 4 to 2 */}
+        <div className="md:col-span-3 space-y-2">
           {patientData?.nextAppointment && (
             <div className="p-4 bg-[#E5DEFF]/20 rounded-lg">
               <div className="flex items-center justify-between">
@@ -181,7 +208,13 @@ export const PatientDashboard = () => {
               Connect with your healthcare team, send updates, and upload medical reports.
             </p>
             <div className="w-full max-w-2xl mx-auto">
-              <WhatsAppStyleChatInterface patientRoomId={careTeamRoomId} />
+              {isLoadingRoom ? (
+                <div className="flex justify-center items-center p-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9b87f5]"></div>
+                </div>
+              ) : (
+                <WhatsAppStyleChatInterface patientRoomId={careTeamRoomId} />
+              )}
             </div>
           </div>
           
@@ -210,7 +243,12 @@ export const PatientDashboard = () => {
                     {patientData.latestPrescription.prescription}
                   </p>
                 </div>
-                <Button variant="outline" size="sm" className="mt-4" onClick={() => navigate('/patient/prescriptions')}>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-4" 
+                  onClick={navigateToPrescriptions}
+                >
                   View All Prescriptions <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
