@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -18,12 +19,15 @@ import { DashboardSkeleton } from "./DashboardSkeleton";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { PatientSidebar } from "./patient/PatientSidebar";
 import { Calendar, UserRound } from "lucide-react";
+import { MobileNavigation } from "@/components/mobile/MobileNavigation";
+import { useMobile } from "@/hooks/use-mobile";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isTablet } = useResponsive();
   const navigate = useNavigate();
+  const { isMobile } = useMobile();
 
   const [careTeamRoomId, setCareTeamRoomId] = useState<string | null>(null);
   const [isLoadingRoom, setIsLoadingRoom] = useState(true);
@@ -147,7 +151,7 @@ export const PatientDashboard = () => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <PatientSidebar />
-        <div className="flex-1">
+        <div className="flex-1 pb-16">
           <ResponsiveContainer fluid withPadding className="space-y-6">
             <div className="flex items-center gap-4 mb-4">
               <Avatar className="h-12 w-12 bg-[#E5DEFF]">
@@ -226,6 +230,7 @@ export const PatientDashboard = () => {
             </ResponsiveGrid>
           </ResponsiveContainer>
         </div>
+        {isMobile && <MobileNavigation />}
       </div>
     </SidebarProvider>
   );

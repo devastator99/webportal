@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,89 +7,63 @@
   :root {
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
+
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
+
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
+
+    --primary: 262 56% 68%;
     --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
+
+    --secondary: 260 60% 95%;
     --secondary-foreground: 222.2 47.4% 11.2%;
+
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
+
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
+
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
+
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
-    --radius: 0.75rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-    /* Mobile app specific variables */
-    --mobile-background: 0 0% 98%;
-    --mobile-card: 0 0% 100%;
-    --mobile-primary: 262 83% 76%;
-    --mobile-primary-foreground: 0 0% 98%;
-    --mobile-secondary: 264 100% 94%;
-    --mobile-accent: 262 83% 76%;
-    --mobile-border-radius: 1rem;
-    --mobile-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-    --bottom-nav-height: 4rem;
-    /* Responsive spacing/sizing variables */
-    --container-padding-mobile: 1rem;
-    --container-padding-tablet: 1.5rem;
-    --container-padding-desktop: 2rem;
-    --text-base-size-mobile: 16px;
-    --text-base-size-tablet: 16px;
-    --text-base-size-desktop: 18px;
-    --card-padding-mobile: 1rem;
-    --card-padding-tablet: 1.5rem;
-    --card-padding-desktop: 2rem;
+
+    --radius: 0.5rem;
   }
 
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
+
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
+
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
+
+    --primary: 262 56% 68%;
     --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
+
+    --secondary: 260 35% 25%;
     --secondary-foreground: 210 40% 98%;
+
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
+
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
+
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
-    /* Mobile app specific variables for dark mode */
-    --mobile-background: 240 10% 3.9%;
-    --mobile-card: 240 10% 10%;
-    --mobile-primary: 262 83% 58%;
-    --mobile-primary-foreground: 0 0% 98%;
-    --mobile-secondary: 264 65% 15%;
-    --mobile-accent: 262 83% 58%;
   }
 }
 
@@ -96,408 +71,31 @@
   * {
     @apply border-border;
   }
-  
-  html {
-    -webkit-text-size-adjust: 100%;
-    font-size: 16px;
-    text-size-adjust: 100%;
-    
-    @screen tablet {
-      font-size: 16px;
-    }
-    
-    @screen desktop {
-      font-size: 18px;
-    }
-  }
-  
   body {
     @apply bg-background text-foreground;
-    font-feature-settings: "ss01", "ss02", "cv01", "cv02", "cv03";
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    text-rendering: optimizeLegibility;
+  }
+}
+
+@layer components {
+  /* Add mobile navigation styles */
+  .mobile-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 dark:bg-gray-900/80 flex justify-around z-50;
   }
   
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-bold tracking-tight;
+  .mobile-nav-item {
+    @apply flex flex-col items-center justify-center py-3 px-4 text-gray-500 hover:text-[#7E69AB] transition-colors;
   }
   
-  /* Improved focus styles for accessibility */
-  :focus-visible {
-    @apply outline-none ring-2 ring-primary ring-offset-2;
-  }
-  
-  /* Mobile app specific global styles */
-  .mobile-container {
-    @apply max-w-md mx-auto h-[100svh] overflow-hidden flex flex-col;
-    box-shadow: var(--mobile-shadow);
-  }
-  
-  .mobile-screen {
-    @apply flex-1 overflow-y-auto pb-[var(--bottom-nav-height)] pt-16;
-    -webkit-overflow-scrolling: touch;
-  }
-  
-  .mobile-card {
-    @apply rounded-[var(--mobile-border-radius)] bg-white p-4 shadow-sm;
-  }
-  
-  .mobile-header {
-    @apply fixed top-0 left-0 right-0 z-10 h-16 flex items-center justify-between bg-white/80 px-4 backdrop-blur-md;
-    max-width: inherit;
-    margin: 0 auto;
-  }
-  
-  .bottom-nav {
-    @apply fixed bottom-0 left-0 right-0 z-10 h-[var(--bottom-nav-height)] bg-white border-t flex items-center justify-around;
-    max-width: inherit;
-    margin: 0 auto;
-  }
-  
-  .bottom-nav-item {
-    @apply flex flex-col items-center justify-center text-xs text-gray-500;
-  }
-  
-  .bottom-nav-item.active {
+  .mobile-nav-item.active {
     @apply text-[#9b87f5];
   }
   
-  .nav-icon {
-    @apply mb-1 text-current;
+  .mobile-nav-icon {
+    @apply mb-1;
   }
   
-  /* Status bar */
-  .status-bar {
-    @apply h-6 flex items-center justify-between px-4 text-xs font-medium;
-  }
-  
-  /* Improved scrolling for mobile */
-  .smooth-scroll {
-    -webkit-overflow-scrolling: touch;
-    scroll-behavior: smooth;
-  }
-  
-  /* Hide scrollbar for cleaner look */
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  
-  /* Bottom sheet animation */
-  .sheet-animation-enter {
-    transform: translateY(100%);
-  }
-  
-  .sheet-animation-enter-active {
-    transform: translateY(0);
-    transition: transform 300ms ease-out;
-  }
-  
-  .sheet-animation-exit {
-    transform: translateY(0);
-  }
-  
-  .sheet-animation-exit-active {
-    transform: translateY(100%);
-    transition: transform 300ms ease-in;
-  }
-  
-  /* Responsive utility classes */
-  .responsive-container {
-    @apply w-full px-4 mx-auto;
-    
-    @screen tablet {
-      @apply px-6 max-w-6xl;
-    }
-    
-    @screen desktop {
-      @apply px-8 max-w-7xl;
-    }
-  }
-  
-  .card-responsive {
-    @apply p-4 rounded-lg;
-    
-    @screen tablet {
-      @apply p-6 rounded-xl;
-    }
-    
-    @screen desktop {
-      @apply p-8 rounded-2xl;
-    }
-  }
-  
-  /* Responsive typography utility classes */
-  .text-heading-1 {
-    @apply text-3xl font-bold;
-    
-    @screen tablet {
-      @apply text-4xl;
-    }
-    
-    @screen desktop {
-      @apply text-5xl;
-    }
-  }
-  
-  .text-heading-2 {
-    @apply text-2xl font-bold;
-    
-    @screen tablet {
-      @apply text-3xl;
-    }
-    
-    @screen desktop {
-      @apply text-4xl;
-    }
-  }
-  
-  .text-heading-3 {
-    @apply text-xl font-bold;
-    
-    @screen tablet {
-      @apply text-2xl;
-    }
-    
-    @screen desktop {
-      @apply text-3xl;
-    }
-  }
-  
-  .text-body {
-    @apply text-base;
-    
-    @screen tablet {
-      @apply text-base;
-    }
-    
-    @screen desktop {
-      @apply text-lg;
-    }
-  }
-}
-
-@layer utilities {
-  .rotate-270 {
-    transform: rotate(270deg);
-  }
-  
-  .content-container {
-    position: relative;
-    z-index: 10;
-  }
-  
-  /* Improve sticky header with backdrop blur for better readability */
-  .sticky-header {
-    @apply backdrop-blur-sm bg-white/90 dark:bg-gray-950/90;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-  }
-  
-  /* Hide scrollbar for cleaner UI */
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;
-  }
-  
-  .no-scrollbar {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  
-  /* Ensure document content doesn't overlap with fixed nav */
-  .document-content {
-    position: relative;
-    overflow: auto;
-    height: 100%;
-    padding-top: 3rem;
-  }
-  
-  /* Z-index utilities for proper layering */
-  .z-nav {
-    z-index: 50;
-  }
-  
-  .z-content {
-    z-index: 10;
-  }
-  
-  /* Helper class to provide spacing for fixed headers */
-  .pt-fixed-header {
-    padding-top: 9rem;
-  }
-}
-
-/* Add CSS for message highlighting in search results */
-@keyframes highlight-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(var(--highlight-color), 0.7);
-  }
-  50% {
-    box-shadow: 0 0 0 8px rgba(var(--highlight-color), 0.2);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba(var(--highlight-color), 0);
-  }
-}
-
-.highlight-message {
-  --highlight-color: 79, 70, 229;
-  animation: highlight-pulse 2s ease-out 1;
-  background-color: rgba(var(--highlight-color), 0.1) !important;
-  position: relative;
-  z-index: 10;
-}
-
-.dark .highlight-message {
-  --highlight-color: 129, 140, 248;
-}
-
-/* Fixed position for newly added messages */
-.new-message-enter {
-  opacity: 0;
-  transform: translateY(20px);
-}
-
-.new-message-enter-active {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 300ms, transform 300ms;
-}
-
-/* Date separator styling */
-.date-separator {
-  position: relative;
-  text-align: center;
-  margin: 1rem 0;
-}
-
-.date-separator::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  width: 100%;
-  height: 1px;
-  background-color: hsl(var(--border));
-  z-index: 0;
-}
-
-.date-separator-content {
-  position: relative;
-  display: inline-block;
-  padding: 0 0.5rem;
-  background-color: hsl(var(--background));
-  z-index: 1;
-}
-
-/* Chat message animations */
-.message-enter {
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-.message-enter-active {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 300ms, transform 300ms;
-}
-
-.message-exit {
-  opacity: 1;
-}
-
-.message-exit-active {
-  opacity: 0;
-  transition: opacity 300ms;
-}
-
-/* Message group styling */
-.date-group {
-  margin-bottom: 1.5rem;
-  opacity: 1;
-  transition: opacity 0.2s ease;
-}
-
-.message-item {
-  transition: all 0.2s ease;
-}
-
-.message-groups {
-  display: flex;
-  flex-direction: column;
-}
-
-/* Simple animation utilities for disclosure pattern */
-.animate-in {
-  animation-duration: 150ms;
-  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  animation-fill-mode: forwards;
-}
-
-.fade-in {
-  animation-name: fade-in;
-}
-
-.slide-in-from-top-5 {
-  animation-name: slide-in-from-top-5;
-}
-
-@keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes slide-in-from-top-5 {
-  from {
-    transform: translateY(-5%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-.duration-300 {
-  animation-duration: 300ms;
-}
-
-/* Additional styles for message highlighting in chat */
-.message-highlight {
-  animation: highlight-pulse 2s ease-out;
-  position: relative;
-}
-
-/* Message group styling */
-.date-group {
-  position: relative;
-  margin-bottom: 1.5rem;
-}
-
-/* Ensure space between messages */
-.message-item {
-  margin-bottom: 0.75rem;
-  transition: all 0.2s ease;
-}
-
-/* Add fade in animation for new messages */
-.new-message {
-  animation: fade-in 0.3s ease-out;
-}
-
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  /* Glassmorphism effects */
+  .glassmorphism {
+    @apply bg-white/10 backdrop-blur-lg border-white/20;
   }
 }

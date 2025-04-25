@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Settings, FileText, Activity, LogOut, MessageCircle, UserRound } from 'lucide-react';
+import { MessageCircle, FileText, Activity, LogOut, UserRound } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -110,15 +110,15 @@ export const MobileNavigation: React.FC = () => {
     {
       label: 'Habits',
       icon: Activity,
-      action: () => navigate('/patient-habits'),
-      active: location.pathname === '/patient-habits',
+      action: () => navigate('/habits'),
+      active: location.pathname === '/habits',
       disabled: false
     },
     {
       label: 'Profile',
       icon: UserRound,
-      action: () => navigate('/patient-profile'),
-      active: location.pathname === '/patient-profile' || location.pathname === '/dashboard-alt',
+      action: () => navigate('/profile'),
+      active: location.pathname === '/profile',
       disabled: false
     },
     {
@@ -157,19 +157,19 @@ export const MobileNavigation: React.FC = () => {
   let navItems = userRole === 'patient' ? patientNavItems : otherRoleNavItems;
 
   return (
-    <nav className="mobile-nav">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-md border-t border-gray-200 dark:border-gray-800 dark:bg-gray-900/80 flex justify-around z-50">
       {navItems.map((item) => (
         <button
           key={item.label}
-          className={`mobile-nav-item ${item.active ? 'active' : ''}`}
+          className={`flex flex-col items-center justify-center py-3 px-4 ${
+            item.active ? 'text-[#9b87f5]' : 'text-gray-500'
+          } ${item.disabled ? 'opacity-50' : 'hover:text-[#7E69AB]'}`}
           onClick={item.action}
           aria-label={item.label}
           disabled={item.disabled}
         >
-          <item.icon 
-            className="mobile-nav-icon h-5 w-5" 
-          />
-          <span>{item.label}</span>
+          <item.icon className="h-5 w-5 mb-1" />
+          <span className="text-xs">{item.label}</span>
         </button>
       ))}
     </nav>

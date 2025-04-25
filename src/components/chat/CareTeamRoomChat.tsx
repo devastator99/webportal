@@ -14,6 +14,7 @@ import { CollapsibleMessageGroup } from "./CollapsibleMessageGroup";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { groupMessagesByDate, safeParseISO } from "@/utils/dateUtils";
+import { ChatInput } from "./ChatInput";
 
 interface RoomMessage {
   id: string;
@@ -453,33 +454,14 @@ export const CareTeamRoomChat = ({
       </div>
       
       <div className="p-3 bg-background border-t">
-        <div className="flex gap-2">
-          <Textarea
-            placeholder="Type a message... (Use @AI to ask the AI assistant)"
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            className="resize-none min-h-[50px] max-h-[120px]"
-            rows={1}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleSendMessage();
-              }
-            }}
-          />
-          <Button 
-            onClick={handleSendMessage} 
-            size="icon" 
-            className="h-[50px] w-[50px] rounded-full flex-shrink-0"
-            disabled={isLoading || !message.trim()}
-          >
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
+        <ChatInput
+          value={message}
+          onChange={setMessage}
+          onSend={handleSendMessage}
+          disabled={isLoading || !selectedRoomId}
+          isLoading={isLoading}
+          placeholder="Type a message... (Use @AI to ask the AI assistant)"
+        />
       </div>
     </div>
   );
