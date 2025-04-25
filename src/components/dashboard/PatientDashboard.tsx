@@ -8,6 +8,8 @@ import { DashboardResponsiveLayout } from "@/components/layout/DashboardResponsi
 import { ResponsiveContainer } from "@/components/layout/ResponsiveContainer";
 import { ResponsiveGrid } from "@/components/layout/ResponsiveGrid";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { PatientStats } from "./patient/PatientStats";
 import { PatientCuratedHealthTips } from "./patient/PatientCuratedHealthTips";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
@@ -15,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { PatientSidebar } from "./patient/PatientSidebar";
+import { Calendar, UserRound } from "lucide-react";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
