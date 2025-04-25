@@ -3,8 +3,6 @@ import { useAuth, UserRoleEnum } from "@/contexts/AuthContext";
 import { useLocation } from "react-router-dom";
 import { useState } from "react";
 import { Logo } from "@/components/navbar/Logo";
-import { DashboardButton } from "@/components/navbar/DashboardButton";
-import { DoctorActions } from "@/components/navbar/DoctorActions";
 import { AuthButton } from "@/components/auth/AuthButton";
 import { ForceLogoutButton } from "@/components/navbar/ForceLogoutButton";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
@@ -19,7 +17,6 @@ export const Navbar = () => {
   const isMobile = useIsMobile();
   const isIPad = useIsIPad();
 
-  const isDashboardPage = location.pathname === '/dashboard';
   const isAuthPage = location.pathname === '/auth';
   const useResponsiveDisplay = isMobile || isIPad;
 
@@ -33,8 +30,6 @@ export const Navbar = () => {
           <div className={`${useResponsiveDisplay ? 'hidden' : 'flex'} items-center gap-4`}>
             {user && !isLoading && (
               <>
-                <DashboardButton />
-                <DoctorActions />
                 {userRole === UserRoleEnum.ADMINISTRATOR && <ForceLogoutButton />}
               </>
             )}
@@ -69,8 +64,6 @@ export const Navbar = () => {
             <div className="container mx-auto px-4 py-4 flex flex-col gap-3">
               {user && !isLoading && (
                 <>
-                  <DashboardButton />
-                  <DoctorActions />
                   {userRole === UserRoleEnum.ADMINISTRATOR && <ForceLogoutButton />}
                 </>
               )}
