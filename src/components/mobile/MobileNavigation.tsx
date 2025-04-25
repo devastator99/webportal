@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, FileText, Activity, LogOut, UserRound } from 'lucide-react';
@@ -6,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 export const MobileNavigation: React.FC = () => {
   const location = useLocation();
@@ -15,6 +15,7 @@ export const MobileNavigation: React.FC = () => {
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [careTeamRoomId, setCareTeamRoomId] = useState<string | null>(null);
   const [isLoadingRoom, setIsLoadingRoom] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (user?.id && userRole === 'patient') {
@@ -45,7 +46,7 @@ export const MobileNavigation: React.FC = () => {
     }
   }, [user, userRole]);
 
-  if (!user) {
+  if (!user || !isMobile) {
     return null;
   }
 
@@ -85,10 +86,8 @@ export const MobileNavigation: React.FC = () => {
         return;
       }
       
-      // Navigate to dashboard since the care team chat is embedded there for patients
       navigate('/dashboard');
     } else {
-      // For doctors and other roles, go to the chat page
       navigate('/chat');
     }
   };
