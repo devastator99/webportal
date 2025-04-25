@@ -10,6 +10,7 @@ import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import PatientDetailsPage from '@/pages/PatientDetailsPage';
 import PatientsView from '@/pages/PatientsView';
 import Dashboard from '@/pages/Dashboard';
+import PatientPrescriptionsRoute from '@/routes/PatientPrescriptionsRoute';
 
 // Lazy loaded components
 const ChatPage = lazy(() => import('@/pages/ChatPage'));
@@ -114,8 +115,8 @@ export const AppRoutes = () => {
         <Route
           path="/prescriptions/:patientId"
           element={
-            <RoleProtectedRoute allowedRoles={['patient', 'doctor']}>
-              <PatientPrescriptionsPage />
+            <RoleProtectedRoute allowedRoles={['doctor']}>
+              <PatientPrescriptionsRoute />
             </RoleProtectedRoute>
           }
         />

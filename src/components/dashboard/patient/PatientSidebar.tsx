@@ -1,6 +1,6 @@
 
 import { Home, MessageCircle, FileText, Activity, Video, UserRound } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import {
@@ -50,6 +50,7 @@ const menuItems = [
 export function PatientSidebar() {
   const location = useLocation();
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   if (!user) return null;
 
