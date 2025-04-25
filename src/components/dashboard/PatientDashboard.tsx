@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -20,14 +19,14 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { PatientSidebar } from "./patient/PatientSidebar";
 import { Calendar, UserRound } from "lucide-react";
 import { MobileNavigation } from "@/components/mobile/MobileNavigation";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const { isTablet } = useResponsive();
   const navigate = useNavigate();
-  const { isMobile } = useMobile();
+  const { isMobile } = useIsMobile();
 
   const [careTeamRoomId, setCareTeamRoomId] = useState<string | null>(null);
   const [isLoadingRoom, setIsLoadingRoom] = useState(true);
