@@ -1,11 +1,9 @@
-
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Settings, Activity, FileText, LogOut } from 'lucide-react';
+import { Settings, FileText, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { WhatsAppStyleChatInterface } from '@/components/chat/WhatsAppStyleChatInterface';
-import { supabase } from '@/integrations/supabase/client';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { PrescriptionHistory } from '@/components/dashboard/doctor/prescription/PrescriptionHistory';
 import { useToast } from '@/hooks/use-toast';
 
 export const MobileNavigation: React.FC = () => {
@@ -14,6 +12,7 @@ export const MobileNavigation: React.FC = () => {
   const { user, userRole, signOut } = useAuth();
   const { toast } = useToast();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [showPrescriptions, setShowPrescriptions] = useState(false);
 
   if (!user) {
     return null;
@@ -43,19 +42,17 @@ export const MobileNavigation: React.FC = () => {
       setIsSigningOut(false);
     }
   };
+
+  const handlePrescriptionClick = () => {
+    setShowPrescriptions(true);
+  };
   
   const patientNavItems = [
     {
       label: 'Prescription',
       icon: FileText,
-      action: () => navigate('/prescriptions'),
+      action: handlePrescriptionClick,
       active: location.pathname === '/prescriptions'
-    },
-    {
-      label: 'Habits',
-      icon: Activity,
-      action: () => navigate('/habits'),
-      active: location.pathname === '/habits'
     },
     {
       label: 'Profile',
@@ -106,6 +103,15 @@ export const MobileNavigation: React.FC = () => {
           </button>
         ))}
       </nav>
+
+      <Dialog open={showPrescriptions} onOpenChange={setShowPrescriptions}>
+        <DialogContent className="sm:max-w-[800px]">
+          <DialogHeader>
+            <DialogTitle>My Prescriptions</DialogTitle>
+          </DialogHeader>
+          {user && <PrescriptionHistory patientId={user.id} />}
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
