@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -175,7 +176,7 @@ export const PatientDashboard = () => {
               gap="lg"
             >
               {patientData?.nextAppointment && (
-                <Card className="col-span-full md:col-span-2 lg:col-span-3 bg-[#E5DEFF]/20">
+                <Card className="col-span-full md:col-span-1 lg:col-span-2 bg-[#E5DEFF]/20">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -183,7 +184,7 @@ export const PatientDashboard = () => {
                           <Calendar className="h-5 w-5 text-[#9b87f5]" />
                         </div>
                         <div>
-                          <h3 className="font-medium text-sm">Next Appointment</h3>
+                          <h3 className="font-medium text-sm mb-2">Next Appointment</h3>
                           <p className="text-xs text-muted-foreground">
                             {new Date(patientData.nextAppointment.scheduled_at).toLocaleDateString()} at {new Date(patientData.nextAppointment.scheduled_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                           </p>
@@ -200,7 +201,11 @@ export const PatientDashboard = () => {
                 </Card>
               )}
 
-              <div className="col-span-full lg:col-span-2">
+              <div className="col-span-full md:col-span-1 lg:col-span-1">
+                <PatientCuratedHealthTips />
+              </div>
+
+              <div className="col-span-full lg:col-span-3">
                 <Card className="h-full">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -221,10 +226,6 @@ export const PatientDashboard = () => {
                     )}
                   </CardContent>
                 </Card>
-              </div>
-
-              <div className="col-span-full lg:col-span-1">
-                <PatientCuratedHealthTips />
               </div>
             </ResponsiveGrid>
           </ResponsiveContainer>

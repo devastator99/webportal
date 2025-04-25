@@ -10,19 +10,7 @@ const mockHealthTips = [
     title: "Stay Consistent with Medication",
     content: "Take prescriptions regularly to improve treatment outcomes.",
     category: "medication"
-  },
-  {
-    id: "2",
-    title: "Monitor Daily Habits",
-    content: "Track sleep, water intake, and exercise to spot health patterns.",
-    category: "lifestyle"
-  },
-  {
-    id: "3",
-    title: "Personalize Your Diet",
-    content: "Incorporate more fiber, less sugar to manage diabetes risk.",
-    category: "nutrition"
-  },
+  }
 ];
 
 export const PatientCuratedHealthTips = () => {
@@ -46,7 +34,7 @@ export const PatientCuratedHealthTips = () => {
         </div>
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div>
         {mockHealthTips.map((tip) => (
           <Card 
             key={tip.id} 
