@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Settings, FileText, LogOut } from 'lucide-react';
+import { Settings, FileText, Activity, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { PrescriptionHistory } from '@/components/dashboard/doctor/prescription/PrescriptionHistory';
 import { useToast } from '@/hooks/use-toast';
 
 export const MobileNavigation: React.FC = () => {
@@ -12,7 +10,6 @@ export const MobileNavigation: React.FC = () => {
   const { user, userRole, signOut } = useAuth();
   const { toast } = useToast();
   const [isSigningOut, setIsSigningOut] = useState(false);
-  const [showPrescriptions, setShowPrescriptions] = useState(false);
 
   if (!user) {
     return null;
@@ -42,17 +39,19 @@ export const MobileNavigation: React.FC = () => {
       setIsSigningOut(false);
     }
   };
-
-  const handlePrescriptionClick = () => {
-    setShowPrescriptions(true);
-  };
   
   const patientNavItems = [
     {
       label: 'Prescription',
       icon: FileText,
-      action: handlePrescriptionClick,
-      active: location.pathname === '/prescriptions'
+      action: () => navigate('/prescriptions/' + user.id),
+      active: location.pathname.includes('/prescriptions')
+    },
+    {
+      label: 'Habits',
+      icon: Activity,
+      action: () => navigate('/patient-habits'),
+      active: location.pathname === '/patient-habits'
     },
     {
       label: 'Profile',
@@ -86,32 +85,21 @@ export const MobileNavigation: React.FC = () => {
   let navItems = userRole === 'patient' ? patientNavItems : otherRoleNavItems;
 
   return (
-    <>
-      <nav className="mobile-nav">
-        {navItems.map((item) => (
-          <button
-            key={item.label}
-            className={`mobile-nav-item ${item.active ? 'active' : ''}`}
-            onClick={item.action}
-            aria-label={item.label}
-            disabled={item.label === 'Signing Out...'}
-          >
-            <item.icon 
-              className="mobile-nav-icon h-5 w-5" 
-            />
-            <span>{item.label}</span>
-          </button>
-        ))}
-      </nav>
-
-      <Dialog open={showPrescriptions} onOpenChange={setShowPrescriptions}>
-        <DialogContent className="sm:max-w-[800px]">
-          <DialogHeader>
-            <DialogTitle>My Prescriptions</DialogTitle>
-          </DialogHeader>
-          {user && <PrescriptionHistory patientId={user.id} />}
-        </DialogContent>
-      </Dialog>
-    </>
+    <nav className="mobile-nav">
+      {navItems.map((item) => (
+        <button
+          key={item.label}
+          className={`mobile-nav-item ${item.active ? 'active' : ''}`}
+          onClick={item.action}
+          aria-label={item.label}
+          disabled={item.label === 'Signing Out...'}
+        >
+          <item.icon 
+            className="mobile-nav-icon h-5 w-5" 
+          />
+          <span>{item.label}</span>
+        </button>
+      ))}
+    </nav>
   );
 };
