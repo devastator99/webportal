@@ -33,6 +33,7 @@ const NewLandingPage = () => {
 
   return (
     <div className="min-h-screen bg-[#4A2171] overflow-hidden">
+      {/* Custom cursor or other global elements could go here */}
       <NewHero />
       <NewFeatures />
       <NewSolutions />
