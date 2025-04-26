@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 interface CalendarDay {
   number: number;
@@ -11,6 +12,7 @@ interface CalendarDay {
 }
 
 export const Header: React.FC = () => {
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
   
@@ -32,15 +34,19 @@ export const Header: React.FC = () => {
     setCalendarDays(calendar);
   }, []);
 
+  const handleStart = () => {
+    navigate('/auth');
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
       {/* Wix Studio Banner */}
-      <div className="bg-white text-center py-1 text-sm">
+      <div className="bg-white text-center py-1 text-sm shadow-sm">
         Built on WIX STUDIO
       </div>
       
       {/* Main Header */}
-      <div className="bg-gradient-to-br from-purple-900 via-purple-800 to-purple-700">
+      <div className="bg-gradient-to-br from-purple-900 via-purple-800 to-purple-700 shadow-lg">
         <nav className="container mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <motion.div 
@@ -98,7 +104,7 @@ export const Header: React.FC = () => {
             <p className="text-xl mb-8">Hi, Rakesh!</p>
             <Button 
               className="bg-black hover:bg-black/80 text-white rounded-full px-8 py-6 text-lg"
-              onClick={() => window.location.href = '#start'}
+              onClick={handleStart}
             >
               Start Today
             </Button>
@@ -126,19 +132,18 @@ export const Header: React.FC = () => {
               className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg md:hidden z-50"
             >
               <div className="flex flex-col p-6 space-y-4">
-                <a href="#about" className="text-gray-700 hover:text-primary">About</a>
-                <a href="#services" className="text-gray-700 hover:text-primary">Services</a>
-                <a href="#team" className="text-gray-700 hover:text-primary">Team</a>
-                <a href="#contact" className="text-gray-700 hover:text-primary">Contact</a>
-                <Button asChild className="w-full mt-4">
-                  <a 
-                    href="https://wa.me/917997016598" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="bg-primary hover:bg-primary/90 text-white"
-                  >
-                    Get Started
-                  </a>
+                <div className="flex justify-between items-center pb-4 border-b">
+                  <span className="font-bold text-purple-800">Menu</span>
+                  <button onClick={() => setMobileMenuOpen(false)}>
+                    <X className="h-5 w-5 text-gray-500" />
+                  </button>
+                </div>
+                <a href="#about" className="text-gray-700 hover:text-purple-600">About</a>
+                <a href="#services" className="text-gray-700 hover:text-purple-600">Services</a>
+                <a href="#team" className="text-gray-700 hover:text-purple-600">Team</a>
+                <a href="#contact" className="text-gray-700 hover:text-purple-600">Contact</a>
+                <Button onClick={handleStart} className="w-full mt-4 bg-purple-700 hover:bg-purple-800">
+                  Get Started
                 </Button>
               </div>
             </motion.nav>
