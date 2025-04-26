@@ -8,10 +8,10 @@ export const NewHero = () => {
   const { user } = useAuth();
 
   return (
-    <div className="relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-[#4A2171] via-[#4A2171] to-[#2F3676]">
-      {/* Background floating elements */}
-      <div className="absolute w-[600px] h-[600px] right-[-100px] top-[-100px] bg-[#5E35B1]/20 rounded-full blur-3xl" />
-      <div className="absolute w-[600px] h-[600px] right-[-200px] bottom-[-200px] bg-[#3949AB]/20 rounded-full blur-3xl" />
+    <div className="relative min-h-screen flex items-center bg-gradient-to-br from-[#4A2171] via-[#4A2171] to-purple-900 overflow-hidden">
+      {/* Background decorative elements */}
+      <div className="absolute w-[600px] h-[600px] right-[-100px] top-[-100px] bg-[#5E35B1]/20 rounded-full blur-3xl animate-pulse-light" />
+      <div className="absolute w-[600px] h-[600px] right-[-200px] bottom-[-200px] bg-[#3949AB]/20 rounded-full blur-3xl animate-pulse-light" />
       
       {/* Main content */}
       <div className="container mx-auto px-6 relative z-10">
@@ -36,9 +36,10 @@ export const NewHero = () => {
           </div>
         </div>
 
-        {/* Floating app screenshots */}
+        {/* Floating app interface previews */}
         <div className="absolute top-1/2 right-0 transform -translate-y-1/2 hidden lg:block">
           <div className="relative w-[600px] h-[600px]">
+            {/* Main app preview */}
             <div className="absolute top-0 right-0 w-[300px] shadow-xl rounded-xl bg-black animate-fade-up animate-float">
               <div className="p-4">
                 <div className="mb-1 flex justify-between">

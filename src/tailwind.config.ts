@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -25,12 +24,10 @@ export default {
       lg: "1024px",
       xl: "1280px",
       "2xl": "1536px",
-      // Device-specific breakpoints
       mobile: "640px",
       tablet: "1024px",
       laptop: "1440px",
       desktop: "1536px", 
-      // Orientation-specific breakpoints
       portrait: { raw: "(orientation: portrait)" },
       landscape: { raw: "(orientation: landscape)" },
     },
@@ -74,7 +71,6 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Mobile app specific colors
         mobile: {
           primary: "#9b87f5",
           secondary: "#E5DEFF",
@@ -84,7 +80,6 @@ export default {
           muted: "#64748b",
           border: "#e2e8f0",
         },
-        // Anoobhoti website specific colors
         anoobhoti: {
           primary: "#4A2171",
           secondary: "#2F3676",
@@ -94,7 +89,6 @@ export default {
         },
       },
       spacing: {
-        // Responsive-specific spacing
         'mobile-container': '16px',
         'tablet-container': '24px',
         'desktop-container': '32px',
