@@ -133,6 +133,8 @@ export default {
         "float-slow": "float-slow 5s ease-in-out infinite",
         "float-horizontal": "float-horizontal 6s ease-in-out infinite",
         "pulse-soft": "pulse-soft 3s ease-in-out infinite",
+        "fade-in": "fadeIn 0.5s ease-out",
+        "slide-in": "slideIn 0.3s ease-out",
       },
       backgroundImage: {
         "purple-gradient": "linear-gradient(to bottom right, #4A0072, #9b87f5)",
@@ -147,6 +149,18 @@ export default {
         "mobile": "0 4px 12px rgba(0, 0, 0, 0.1)",
         "glow": "0 0 15px rgba(155, 135, 245, 0.5)",
         "glow-strong": "0 0 30px rgba(155, 135, 245, 0.7)",
+      },
+      colors: {
+        primary: "#16a34a",
+        mobile: {
+          primary: "#9b87f5",
+          secondary: "#E5DEFF",
+          background: "#f8f9fa",
+          card: "#ffffff",
+          text: "#333333",
+          muted: "#64748b",
+          border: "#e2e8f0",
+        },
       },
     },
   },
