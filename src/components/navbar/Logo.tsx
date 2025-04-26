@@ -8,7 +8,7 @@ export const Logo = () => {
 
   return (
     <div 
-      className="text-xl sm:text-2xl font-bold text-[#9b87f5] cursor-pointer whitespace-nowrap" 
+      className="text-xl sm:text-2xl font-bold text-white cursor-pointer whitespace-nowrap" 
       onClick={() => {
         resetInactivityTimer();
         navigate("/");

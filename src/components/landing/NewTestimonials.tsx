@@ -27,9 +27,9 @@ const testimonials = [
 
 export const NewTestimonials = () => {
   return (
-    <section className="py-20 px-4 md:px-6 bg-[#F6F8FD]">
+    <section className="py-20 px-4 md:px-6 bg-[#2F3676]">
       <div className="container mx-auto">
-        <h2 className="text-3xl md:text-4xl font-bold text-center text-[#7E69AB] mb-12 animate-fade-up">
+        <h2 className="text-3xl md:text-4xl font-bold text-center text-white mb-12 animate-fade-up">
           What Our Users Say
         </h2>
         <div className="max-w-4xl mx-auto">
@@ -37,20 +37,22 @@ export const NewTestimonials = () => {
             <CarouselContent>
               {testimonials.map((testimonial, index) => (
                 <CarouselItem key={index}>
-                  <div className="bg-white p-8 rounded-xl shadow-sm">
-                    <p className="text-lg text-[#6E59A5] mb-6 italic">
+                  <div className="bg-[#4A2171]/50 backdrop-blur p-8 rounded-xl shadow-lg">
+                    <p className="text-lg text-white/90 mb-6 italic">
                       "{testimonial.text}"
                     </p>
                     <div>
-                      <p className="font-semibold text-[#7E69AB]">{testimonial.author}</p>
-                      <p className="text-sm text-[#9b87f5]">{testimonial.role}</p>
+                      <p className="font-semibold text-white">{testimonial.author}</p>
+                      <p className="text-sm text-white/80">{testimonial.role}</p>
                     </div>
                   </div>
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <CarouselPrevious />
-            <CarouselNext />
+            <div className="flex justify-center mt-8">
+              <CarouselPrevious className="relative static mr-2 bg-white/10 hover:bg-white/20 text-white border-none" />
+              <CarouselNext className="relative static ml-2 bg-white/10 hover:bg-white/20 text-white border-none" />
+            </div>
           </Carousel>
         </div>
       </div>

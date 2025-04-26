@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -83,6 +84,14 @@ export default {
           muted: "#64748b",
           border: "#e2e8f0",
         },
+        // Anoobhoti website specific colors
+        anoobhoti: {
+          primary: "#4A2171",
+          secondary: "#2F3676",
+          accent: "#5E35B1",
+          text: "#FFFFFF",
+          muted: "#FFFFFF80",
+        },
       },
       spacing: {
         // Responsive-specific spacing
@@ -95,6 +104,10 @@ export default {
           "0%": { opacity: "0", transform: "translateY(20px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
         "slide-in": {
           "0%": { transform: "translateX(100%)" },
           "100%": { transform: "translateX(0)" },
@@ -103,17 +116,32 @@ export default {
           "0%": { transform: "translateX(0)" },
           "100%": { transform: "translateX(-100%)" },
         },
+        "float": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
+        "pulse-light": {
+          "0%, 100%": { opacity: "0.6" },
+          "50%": { opacity: "0.8" },
+        }
       },
       animation: {
         "fade-up": "fade-up 0.7s ease-out forwards",
+        "fade-in": "fade-in 1s ease-out forwards",
         "slide-in": "slide-in 0.3s ease-out forwards",
         "slide-out": "slide-out 0.3s ease-out forwards",
+        "float": "float 6s ease-in-out infinite",
+        "pulse-light": "pulse-light 4s ease-in-out infinite",
       },
       borderRadius: {
         "mobile": "1rem",
       },
       boxShadow: {
         "mobile": "0 4px 12px rgba(0, 0, 0, 0.1)",
+        "glow": "0 0 30px rgba(94, 53, 177, 0.3)",
+      },
+      backdropBlur: {
+        xs: '2px',
       },
     },
   },
