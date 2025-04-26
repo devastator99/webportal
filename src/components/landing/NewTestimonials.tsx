@@ -1,3 +1,5 @@
+
+import { Button } from "@/components/ui/button";
 import {
   Carousel,
   CarouselContent,
@@ -5,7 +7,6 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import { Button } from "@/components/ui/button";
 
 const testimonials = [
   {
@@ -14,14 +15,9 @@ const testimonials = [
     role: "Patient"
   },
   {
-    text: "As a healthcare provider, this platform has revolutionized how I collaborate with other specialists for patient care.",
+    text: "AnubhootiHealth: A 360° wellness revolution—blending AI brilliance with real doctors and counselors to conquer lifestyle diseases at their roots. Affordable, accessible, and truly transformative.",
     author: "Dr. Michael Chen",
     role: "Cardiologist"
-  },
-  {
-    text: "The health monitoring features help me stay on track with my wellness goals. It's like having a personal health assistant.",
-    author: "David Martinez",
-    role: "Patient"
   },
   {
     text: "See results within 15 days. Anoobhooti Health has transformed my approach to managing my chronic condition.",
@@ -32,7 +28,7 @@ const testimonials = [
 
 export const NewTestimonials = () => {
   return (
-    <section className="py-20 px-4 md:px-6 bg-[#2F3676]">
+    <section className="py-20 px-4 md:px-6 bg-gradient-to-br from-[#4A2171] via-[#4A2171] to-[#2F3676]">
       <div className="container mx-auto">
         <h2 className="text-3xl md:text-4xl font-bold text-center text-white mb-6 animate-on-scroll">
           See results within 15 days
@@ -41,7 +37,7 @@ export const NewTestimonials = () => {
           Hear What Our Members Have To Say
         </h3>
         
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-4xl mx-auto mb-20">
           <Carousel>
             <CarouselContent>
               {testimonials.map((testimonial, index) => (
