@@ -1,8 +1,8 @@
+
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import LandingPage from '@/pages/LandingPage';
-import NewLandingPage from '@/pages/NewLandingPage';
 import Auth from '@/pages/Auth';
 import UpdatePassword from '@/pages/UpdatePassword';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -28,8 +28,8 @@ export const AppRoutes = () => {
   return (
     <Suspense fallback={<DashboardSkeleton />}>
       <Routes>
-        {/* Public Routes - Updated to use new landing page */}
-        <Route path="/" element={<NewLandingPage />} />
+        {/* Public Routes */}
+        <Route path="/" element={<LandingPage />} />
         <Route path="/auth/*" element={<Auth />} />
         <Route path="/update-password" element={<UpdatePassword />} />
         

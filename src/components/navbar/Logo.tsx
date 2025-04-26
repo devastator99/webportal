@@ -8,16 +8,13 @@ export const Logo = () => {
 
   return (
     <div 
-      className="flex items-center cursor-pointer" 
+      className="text-xl sm:text-2xl font-bold text-[#9b87f5] cursor-pointer whitespace-nowrap" 
       onClick={() => {
         resetInactivityTimer();
         navigate("/");
       }}
     >
-      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-purple-400 to-pink-400 mr-3"></div>
-      <div className="text-xl sm:text-2xl font-bold text-white whitespace-nowrap">
-        Anoobhooti
-      </div>
+      Anoobhooti
     </div>
   );
 };

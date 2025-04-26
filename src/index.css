@@ -1,3 +1,5 @@
+
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -73,64 +75,6 @@
   body {
     @apply bg-background text-foreground;
   }
-  
-  /* Specific styling for Anoobhooti site */
-  .anoobhooti-gradient {
-    @apply bg-gradient-to-br from-[#4A2171] via-[#4A2171] to-[#2F3676];
-  }
-  
-  .blur-circle {
-    @apply absolute rounded-full opacity-20 blur-3xl;
-    animation: pulse-subtle 8s ease-in-out infinite;
-  }
-  
-  .glass-card {
-    @apply bg-white/10 backdrop-blur-md rounded-xl border border-white/20 shadow-lg;
-  }
-}
-
-/* Animation for subtle pulsing */
-@keyframes pulse-subtle {
-  0%, 100% {
-    opacity: 0.2;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.3;
-    transform: scale(1.05);
-  }
-}
-
-/* Default animate-on-scroll behavior */
-.animate-on-scroll {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: opacity 0.6s ease-out, transform 0.6s ease-out;
-}
-
-.animate-on-scroll.animate-fade-up {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Enhance carousel navigation */
-.embla__button {
-  @apply bg-white/10 hover:bg-white/20 text-white rounded-full p-2;
-  transition: all 0.3s ease;
-}
-
-/* Custom floating animation for hero elements */
-@keyframes float-subtle {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-.float-animation {
-  animation: float-subtle 5s ease-in-out infinite;
 }
 
 @layer components {
