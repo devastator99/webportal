@@ -4,6 +4,10 @@ import {
   Calendar,
   MessageSquare,
   Users,
+  Shield,
+  Clock,
+  Heart,
+  LineChart
 } from "lucide-react";
 
 const features = [
@@ -26,6 +30,26 @@ const features = [
     icon: <Activity className="w-6 h-6 text-[#9b87f5]" />,
     title: "Health Monitoring",
     description: "Track your progress and health metrics in real-time",
+  },
+  {
+    icon: <Shield className="w-6 h-6 text-[#9b87f5]" />,
+    title: "Secure Platform",
+    description: "Your health data is protected with enterprise-grade security",
+  },
+  {
+    icon: <Clock className="w-6 h-6 text-[#9b87f5]" />,
+    title: "24/7 Access",
+    description: "Access your health information and care team anytime",
+  },
+  {
+    icon: <Heart className="w-6 h-6 text-[#9b87f5]" />,
+    title: "Personalized Care",
+    description: "Tailored healthcare plans based on your unique needs",
+  },
+  {
+    icon: <LineChart className="w-6 h-6 text-[#9b87f5]" />,
+    title: "Progress Tracking",
+    description: "Visual insights into your health journey and improvements",
   },
 ];
 
