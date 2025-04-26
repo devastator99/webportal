@@ -19,7 +19,7 @@ export const Team: React.FC = () => {
     {
       name: 'Dr. Khushboo Tewary',
       role: 'Gynecologist',
-      description: 'A respected expert in women's health with decades of experience in gynecology.',
+      description: "A respected expert in women's health with decades of experience in gynecology.",
       image: 'https://source.unsplash.com/featured/200x200/?doctor,female'
     },
     {
