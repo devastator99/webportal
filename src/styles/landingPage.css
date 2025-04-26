@@ -430,3 +430,58 @@
   background-color: white;
   color: rgb(34, 211, 238);
 }
+
+/* New gradient header styles */
+.bg-gradient-header {
+  background: radial-gradient(circle at center, #8B3DFF 0%, #4A0072 100%);
+  min-height: 100vh;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Updated calendar strip styles */
+.calendar-strip {
+  position: fixed;
+  bottom: 8rem;
+  left: 1rem;
+  background-color: #00C2FF;
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 50;
+}
+
+.calendar-day {
+  padding: 0.375rem 0.75rem;
+  text-align: center;
+  border-radius: 0.5rem;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.calendar-day.active {
+  background-color: white;
+  color: #00C2FF;
+}
+
+.calendar-day:not(.active):hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.day-number {
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.day-name {
+  font-size: 0.75rem;
+}
+
+/* Updated mobile navigation styles */
+@media (max-width: 768px) {
+  .calendar-strip {
+    bottom: 5rem;
+    left: 0.5rem;
+  }
+}

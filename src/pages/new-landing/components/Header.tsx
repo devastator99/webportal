@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Menu, X } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
@@ -17,17 +17,17 @@ export const Header: React.FC = () => {
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
   
   useEffect(() => {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const days = ['Wed', 'Thu', 'Fri', 'Sat'];
     const today = new Date();
     const dayOfWeek = today.getDay();
     
     const calendar = days.map((day, index) => {
       const date = new Date();
-      date.setDate(date.getDate() - (dayOfWeek - 1) + index);
+      date.setDate(date.getDate() - (dayOfWeek - 3) + index); // Start from Wednesday
       return {
         number: date.getDate(),
         name: day,
-        isActive: index === 1 // Making Tuesday active to match the image
+        isActive: index === 1 // Making Thursday active
       };
     });
     
@@ -41,56 +41,36 @@ export const Header: React.FC = () => {
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
       {/* Wix Studio Banner */}
-      <div className="bg-white text-center py-1 text-sm border-b">
+      <div className="bg-white text-center py-1.5 text-sm">
         Built on <strong>WIX</strong>STUDIO
       </div>
       
       {/* Main Header */}
-      <div className="bg-gradient-to-br from-purple-900 via-purple-800 to-purple-700">
+      <div className="bg-gradient-header">
         <nav className="container mx-auto px-4 py-3">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center rounded-full bg-white/20 backdrop-blur-sm px-4 py-2">
+            <motion.button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="flex items-center gap-2 text-white"
+            >
+              <Menu className="h-6 w-6" />
+            </motion.button>
+            
             <motion.div 
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5 }}
-              className="text-2xl font-bold text-white flex items-center gap-2"
+              className="text-2xl font-medium text-white flex items-center"
             >
-              <Menu className="h-6 w-6 text-white" />
               AnubhootiHealth
             </motion.div>
             
-            <div className="flex items-center gap-4">
-              {/* Calendar Strip */}
-              <motion.div 
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.2 }}
-                className="hidden md:flex bg-cyan-400 rounded-xl p-2 space-x-2"
-              >
-                {calendarDays.map((day, index) => (
-                  <motion.div 
-                    key={index} 
-                    className={`px-3 py-1.5 text-center rounded-lg transition-colors cursor-pointer ${
-                      day.isActive 
-                        ? 'bg-white text-cyan-400' 
-                        : 'text-white hover:bg-white/10'
-                    }`}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <div className="text-sm font-bold">{day.number}</div>
-                    <div className="text-xs">{day.name}</div>
-                  </motion.div>
-                ))}
-              </motion.div>
-
-              <Button 
-                onClick={handleStart}
-                className="bg-black hover:bg-black/80 text-white rounded-full px-6 py-2"
-              >
-                Start Today
-              </Button>
-            </div>
+            <Button 
+              onClick={handleStart}
+              className="bg-black hover:bg-black/80 text-white rounded-full px-6 py-2"
+            >
+              Start Today
+            </Button>
           </div>
         </nav>
 
@@ -114,44 +94,31 @@ export const Header: React.FC = () => {
             </Button>
           </motion.div>
         </div>
-      </div>
 
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.2 }}
-              className="fixed inset-0 bg-black/50 z-40 md:hidden"
-              onClick={() => setMobileMenuOpen(false)}
-            />
+        {/* Calendar Strip */}
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="fixed bottom-32 left-4 bg-[#00C2FF] rounded-xl p-2 space-x-2 flex"
+        >
+          {calendarDays.map((day, index) => (
             <motion.div 
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", stiffness: 300, damping: 30 }}
-              className="fixed inset-y-0 left-0 w-64 bg-black shadow-lg md:hidden z-50 p-6"
+              key={index}
+              className={`px-3 py-1.5 text-center rounded-lg transition-colors cursor-pointer ${
+                day.isActive 
+                  ? 'bg-white text-[#00C2FF]' 
+                  : 'text-white hover:bg-white/10'
+              }`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <div className="flex flex-col h-full">
-                <div className="flex justify-between items-center mb-8">
-                  <span className="font-bold text-white">Menu</span>
-                  <button onClick={() => setMobileMenuOpen(false)}>
-                    <X className="h-5 w-5 text-white" />
-                  </button>
-                </div>
-                <nav className="flex flex-col gap-4 text-white">
-                  <a href="#about" className="hover:text-purple-300">About</a>
-                  <a href="#services" className="hover:text-purple-300">Services</a>
-                  <a href="#contact" className="hover:text-purple-300">Contact</a>
-                </nav>
-              </div>
+              <div className="text-sm font-bold">{day.number}</div>
+              <div className="text-xs">{day.name}</div>
             </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+          ))}
+        </motion.div>
+      </div>
     </header>
   );
 };
