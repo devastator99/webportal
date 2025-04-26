@@ -1,4 +1,3 @@
-
 import {
   Activity,
   Calendar,
@@ -9,6 +8,7 @@ import {
   Heart,
   LineChart
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const features = [
   {
