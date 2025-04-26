@@ -1,3 +1,4 @@
+
 import './App.css';
 import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -12,6 +13,7 @@ import { MobileNavigation } from './components/mobile/MobileNavigation';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { NotificationBell } from './components/notifications/NotificationBell';
 import { AuthDebugMonitor } from './components/auth/AuthDebugMonitor';
+import { LandingNavbar } from './components/landing/LandingNavbar';
 
 function PasswordResetRedirect() {
   const navigate = useNavigate();
@@ -47,6 +49,14 @@ function PasswordResetRedirect() {
   }, [location, navigate]);
   
   return null;
+}
+
+// Custom component to conditionally show the correct navbar
+function ConditionalNavbar() {
+  const location = useLocation();
+  const isLandingPage = location.pathname === '/';
+  
+  return isLandingPage ? <LandingNavbar /> : <Navbar />;
 }
 
 function App() {
@@ -88,7 +98,7 @@ function App() {
           <Router>
             <PasswordResetRedirect />
             <AuthProvider>
-              <Navbar />
+              <ConditionalNavbar />
               <ErrorBoundary fallback={
                 <div className="container mx-auto p-4 mt-24 text-center">
                   <h2 className="text-xl font-semibold mb-4">Something went wrong</h2>
@@ -101,7 +111,7 @@ function App() {
                   </button>
                 </div>
               }>
-                <div className="mobile-content pt-16 md:pt-20 min-h-[calc(100vh-70px)]">
+                <div className="mobile-content pt-0 min-h-[calc(100vh-70px)]">
                   <AppRoutes />
                 </div>
               </ErrorBoundary>

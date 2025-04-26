@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { LogIn, LogOut } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useState } from "react";
@@ -10,6 +10,8 @@ export const AuthButton = () => {
   const { user, signOut, resetInactivityTimer } = useAuth();
   const navigate = useNavigate();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const location = useLocation();
+  const isLandingPage = location.pathname === '/';
 
   const handleSignOut = async () => {
     if (isSigningOut) return;
@@ -26,12 +28,17 @@ export const AuthButton = () => {
     }
   };
 
+  // Custom styling for landing page
+  const buttonClassesForLanding = isLandingPage 
+    ? "bg-white/10 backdrop-blur-md border-white text-white hover:bg-white/20" 
+    : "border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF]";
+
   if (user) {
     return (
       <Button 
         onClick={handleSignOut}
         variant="outline" 
-        className="auth-button border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2 font-medium"
+        className={`auth-button gap-2 font-medium ${buttonClassesForLanding}`}
         size="sm"
         disabled={isSigningOut}
       >
@@ -46,7 +53,7 @@ export const AuthButton = () => {
     <Button
       onClick={() => navigate("/auth")}
       variant="outline"
-      className="auth-button border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2 font-medium"
+      className={`auth-button gap-2 font-medium ${buttonClassesForLanding}`}
       size="sm"
     >
       <LogIn className="h-4 w-4" />

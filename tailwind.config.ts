@@ -96,6 +96,10 @@ export default {
           "0%": { opacity: "0", transform: "translateY(20px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
+        "fade-in": {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
         "slide-in": {
           "0%": { transform: "translateX(100%)" },
           "100%": { transform: "translateX(0)" },
@@ -104,17 +108,43 @@ export default {
           "0%": { transform: "translateX(0)" },
           "100%": { transform: "translateX(-100%)" },
         },
+        "float": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-10px)" },
+        },
+        "float-horizontal": {
+          "0%, 100%": { transform: "translateX(0)" },
+          "50%": { transform: "translateX(10px)" },
+        },
+        "pulse-soft": {
+          "0%, 100%": { opacity: "1" },
+          "50%": { opacity: "0.7" },
+        },
       },
       animation: {
         "fade-up": "fade-up 0.5s ease-out forwards",
+        "fade-in": "fade-in 0.3s ease-out forwards",
         "slide-in": "slide-in 0.3s ease-out forwards",
         "slide-out": "slide-out 0.3s ease-out forwards",
+        "float": "float 6s ease-in-out infinite",
+        "float-slow": "float 8s ease-in-out infinite",
+        "float-fast": "float 4s ease-in-out infinite",
+        "float-horizontal": "float-horizontal 6s ease-in-out infinite",
+        "pulse-soft": "pulse-soft 3s ease-in-out infinite",
+      },
+      backgroundImage: {
+        "purple-gradient": "linear-gradient(to bottom right, #4A0072, #9b87f5)",
+        "blue-purple-gradient": "linear-gradient(to right, #00AEFF, #9b87f5)",
+        "hero-gradient": "radial-gradient(circle at center, #4A0072, #1E0030)",
+        "button-gradient": "linear-gradient(to right, #9b87f5, #00C2FF)",
       },
       borderRadius: {
         "mobile": "1rem",
       },
       boxShadow: {
         "mobile": "0 4px 12px rgba(0, 0, 0, 0.1)",
+        "glow": "0 0 15px rgba(155, 135, 245, 0.5)",
+        "glow-strong": "0 0 30px rgba(155, 135, 245, 0.7)",
       },
     },
   },

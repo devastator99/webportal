@@ -1,137 +1,40 @@
 
-import { useState, useEffect, useCallback, lazy, Suspense } from "react";
-import { Hero } from "@/components/Hero";
-import { Features } from "@/components/Features";
+import React, { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { LoadingSpinner } from "@/components/common/LoadingSpinner";
+import '../styles/landingPage.css';
 
-// Lazy-loaded components
-const Testimonials = lazy(() => import("@/components/Testimonials").then(module => ({
-  default: module.Testimonials
-})));
-
-const Pricing = lazy(() => import("@/components/Pricing").then(module => ({
-  default: module.Pricing
-})));
-
-const Footer = lazy(() => import("@/components/Footer").then(module => ({
-  default: module.Footer
-})));
+// Import our new components
+import { WixBanner } from "@/components/landing/WixBanner";
+import { NewHero } from "@/components/landing/NewHero";
+import { BenefitsSection } from "@/components/landing/BenefitsSection";
+import { OfferingsSection } from "@/components/landing/OfferingsSection";
+import { JourneySection } from "@/components/landing/JourneySection";
 
 export const LandingPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast: uiToast } = useToast();
-  const [visibleSections, setVisibleSections] = useState({
-    features: false,
-    testimonials: false,
-    pricing: false,
-    footer: false
-  });
   
-  useEffect(() => {
-    // Immediately show features for better perceived performance
-    setVisibleSections(prev => ({ ...prev, features: true }));
-    
-    if (typeof IntersectionObserver === 'undefined') {
-      // For browsers that don't support IntersectionObserver
-      setVisibleSections({
-        features: true,
-        testimonials: true,
-        pricing: true,
-        footer: true
-      });
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          if (entry.isIntersecting) {
-            const sectionId = entry.target.id;
-            
-            setVisibleSections(prev => {
-              if (sectionId === 'testimonials-section' && !prev.testimonials) {
-                return { ...prev, testimonials: true };
-              }
-              if (sectionId === 'pricing-section' && !prev.pricing) {
-                return { ...prev, pricing: true };
-              }
-              if (sectionId === 'footer-section' && !prev.footer) {
-                return { ...prev, footer: true };
-              }
-              return prev;
-            });
-            
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      {
-        rootMargin: '200px',
-        threshold: 0.01
-      }
-    );
-    
-    // Stagger the observation to improve initial load
-    const sections = [
-      'testimonials-section', 
-      'pricing-section', 
-      'footer-section'
-    ];
-    
-    sections.forEach((id, index) => {
-      setTimeout(() => {
-        const element = document.getElementById(id);
-        if (element) {
-          observer.observe(element);
-        }
-      }, index * 100); // Stagger by 100ms
-    });
-    
-    return () => {
-      observer.disconnect();
-    };
-  }, []);
-
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
-      <div className="pt-16 md:pt-20">
-        <Hero />
-        
-        <div id="features-section" className="min-h-[20px]">
-          {visibleSections.features && <Features />}
-        </div>
-        
-        <div id="testimonials-section" className="min-h-[20px]">
-          {visibleSections.testimonials && (
-            <Suspense fallback={<LoadingSpinner />}>
-              <Testimonials />
-            </Suspense>
-          )}
-        </div>
-        
-        <div id="pricing-section" className="min-h-[20px]">
-          {visibleSections.pricing && (
-            <Suspense fallback={<LoadingSpinner />}>
-              <Pricing />
-            </Suspense>
-          )}
-        </div>
-        
-        <div id="footer-section" className="min-h-[20px]">
-          {visibleSections.footer && (
-            <Suspense fallback={<LoadingSpinner />}>
-              <Footer />
-            </Suspense>
-          )}
-        </div>
-      </div>
+    <div className="min-h-screen">
+      {/* Wix Banner */}
+      <WixBanner />
+      
+      {/* Hero Section */}
+      <NewHero />
+      
+      {/* Benefits Section */}
+      <BenefitsSection />
+      
+      {/* Offerings Section */}
+      <OfferingsSection />
+      
+      {/* Journey Section */}
+      <JourneySection />
     </div>
   );
 };
 
 export default LandingPage;
-

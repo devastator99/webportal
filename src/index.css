@@ -1,5 +1,4 @@
 
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -147,4 +146,32 @@
   .glass-popover {
     @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border border-white/20 dark:border-gray-800/30 shadow-lg;
   }
+  
+  /* Landing Page specific utilities */
+  .landing-gradient {
+    @apply bg-gradient-to-br from-purple-600 to-blue-500;
+  }
+  
+  .landing-button {
+    @apply bg-gradient-to-r from-[#9b87f5] to-blue-500 text-white font-medium px-6 py-3 rounded-full hover:shadow-lg transition-all duration-300;
+  }
+  
+  .landing-card {
+    @apply bg-white rounded-xl shadow-lg p-6;
+  }
+  
+  .landing-heading {
+    @apply text-4xl md:text-5xl lg:text-6xl font-bold;
+  }
+  
+  .landing-subheading {
+    @apply text-xl md:text-2xl font-medium text-gray-600;
+  }
+  
+  .landing-section {
+    @apply py-16 md:py-24;
+  }
 }
+
+/* Import landing page specific styles */
+@import url('./styles/landingPage.css');
