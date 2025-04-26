@@ -9,6 +9,7 @@ import '../styles/landingPage.css';
 import { WixBanner } from "@/components/landing/WixBanner";
 import { NewHero } from "@/components/landing/NewHero";
 import { BenefitsSection } from "@/components/landing/BenefitsSection";
+import { BeyondHealthcareSection } from "@/components/landing/BeyondHealthcareSection";
 import { OfferingsSection } from "@/components/landing/OfferingsSection";
 import { JourneySection } from "@/components/landing/JourneySection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
@@ -26,6 +27,9 @@ export const LandingPage = () => {
       
       {/* Hero Section */}
       <NewHero />
+      
+      {/* Beyond Healthcare Section */}
+      <BeyondHealthcareSection />
       
       {/* Benefits Section */}
       <BenefitsSection />
