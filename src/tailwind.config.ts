@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -117,6 +118,10 @@ export default {
         "pulse-light": {
           "0%, 100%": { opacity: "0.6" },
           "50%": { opacity: "0.8" },
+        },
+        "pulse-slow": {
+          "0%, 100%": { opacity: "0.1" },
+          "50%": { opacity: "0.2" },
         }
       },
       animation: {
@@ -126,6 +131,7 @@ export default {
         "slide-out": "slide-out 0.3s ease-out forwards",
         "float": "float 6s ease-in-out infinite",
         "pulse-light": "pulse-light 4s ease-in-out infinite",
+        "pulse-slow": "pulse-slow 8s ease-in-out infinite",
       },
       borderRadius: {
         "mobile": "1rem",
