@@ -6,6 +6,7 @@ import { Services } from './components/Services';
 import { Team } from './components/Team';
 import { About } from './components/About';
 import { Contact } from './components/Contact';
+import { BeyondHealthcare } from './components/BeyondHealthcare';
 
 export const NewLandingPage: React.FC = () => {
   return (
@@ -13,6 +14,7 @@ export const NewLandingPage: React.FC = () => {
       <Header />
       <main>
         <Hero />
+        <BeyondHealthcare />
         <About />
         <Services />
         <Team />
