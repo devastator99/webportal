@@ -8,36 +8,44 @@ export const NewHero = () => {
   const { user } = useAuth();
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center overflow-hidden bg-gradient-to-b from-[#F6F8FD] to-white">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-[40%] -left-[20%] w-[140%] h-[140%] bg-[#E5DEFF] rounded-full opacity-50 blur-3xl" />
-        <div className="absolute top-[20%] -right-[30%] w-[140%] h-[140%] bg-[#FFE8F0] rounded-full opacity-50 blur-3xl" />
-      </div>
+    <div className="relative min-h-screen flex items-center bg-gradient-to-br from-[#4A2171] via-[#4A2171] to-[#2F3676] overflow-hidden">
+      {/* Background floating elements */}
+      <div className="absolute w-[600px] h-[600px] right-[-100px] top-[-100px] bg-[#5E35B1]/20 rounded-full blur-3xl" />
+      <div className="absolute w-[600px] h-[600px] right-[-200px] bottom-[-200px] bg-[#3949AB]/20 rounded-full blur-3xl" />
       
-      <div className="container mx-auto px-6 relative z-10">
-        <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-4xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-[#7E69AB] to-[#9b87f5] bg-clip-text text-transparent animate-fade-up">
-            Modern Healthcare for Today's World
+      {/* Main content */}
+      <div className="container mx-auto px-6 relative z-10 py-20">
+        <div className="max-w-3xl">
+          <h1 className="text-6xl sm:text-7xl font-bold text-white mb-6 leading-tight animate-fade-up">
+            Your Health Journey
+            <br />
+            Starts Here
           </h1>
-          <p className="text-lg md:text-xl text-[#6E59A5] mb-8 max-w-2xl mx-auto animate-fade-up [animation-delay:200ms]">
-            Experience healthcare reimagined with our innovative platform that connects patients with doctors seamlessly
+          <p className="text-xl sm:text-2xl text-white/80 mb-8 animate-fade-up [animation-delay:200ms]">
+            Integrative medicine solutions
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-up [animation-delay:400ms]">
+          <div className="flex gap-4 animate-fade-up [animation-delay:400ms]">
             {!user && (
               <Button
                 onClick={() => navigate("/auth")}
-                className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white px-8 py-6 rounded-full text-lg transition-all duration-300 transform hover:scale-105"
+                className="bg-black hover:bg-black/90 text-white px-8 py-6 text-lg rounded-full"
               >
-                Get Started
+                Start Today
               </Button>
             )}
-            <Button
-              variant="outline"
-              onClick={() => navigate("/about")}
-              className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] px-8 py-6 rounded-full text-lg transition-all duration-300"
-            >
-              Learn More
-            </Button>
+          </div>
+        </div>
+
+        {/* Floating app screenshots */}
+        <div className="absolute top-1/2 right-0 transform -translate-y-1/2 hidden lg:block">
+          <div className="relative w-[600px] h-[600px]">
+            <img 
+              src="/lovable-uploads/cb1900ec-74c6-4ca0-b563-86f81cd8f1df.png"
+              alt="App Interface"
+              className="absolute top-0 right-0 w-[300px] shadow-xl rounded-xl animate-fade-up"
+            />
+            <div className="absolute top-[40%] right-[320px] w-[250px] h-[200px] bg-white/10 backdrop-blur rounded-xl shadow-xl animate-fade-up [animation-delay:200ms]" />
+            <div className="absolute bottom-0 right-[150px] w-[250px] h-[200px] bg-white/10 backdrop-blur rounded-xl shadow-xl animate-fade-up [animation-delay:400ms]" />
           </div>
         </div>
       </div>
