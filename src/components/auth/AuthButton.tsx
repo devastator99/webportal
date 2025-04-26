@@ -1,14 +1,14 @@
+
 import { Button } from "@/components/ui/button";
 import { LogIn, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useState } from "react";
 
 export const AuthButton = () => {
   const { user, signOut, resetInactivityTimer } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -16,29 +16,12 @@ export const AuthButton = () => {
     
     try {
       setIsSigningOut(true);
-      
-      toast({
-        title: "Signing out...",
-        description: "Please wait while we sign you out",
-      });
-      
-      // Important: call signOut without chaining other functions
+      resetInactivityTimer();
       await signOut();
-      
-      // The success toast will likely not be seen due to page redirect
-      // but we'll keep it for completeness
-      toast({
-        title: "Successfully signed out",
-        description: "You have been signed out of your account",
-      });
+      // The navigation will be handled by the AuthContext
     } catch (error) {
       console.error("Error signing out:", error);
-      toast({
-        variant: "destructive",
-        title: "Error signing out",
-        description: "There was a problem signing you out. Please try again.",
-      });
-    } finally {
+      toast.error("There was a problem signing you out. Please try again.");
       setIsSigningOut(false);
     }
   };
@@ -46,11 +29,7 @@ export const AuthButton = () => {
   if (user) {
     return (
       <Button 
-        onClick={() => {
-          resetInactivityTimer();
-          // Call handleSignOut directly without chaining
-          handleSignOut();
-        }}
+        onClick={handleSignOut}
         variant="outline" 
         className="auth-button border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] gap-2 font-medium"
         size="sm"

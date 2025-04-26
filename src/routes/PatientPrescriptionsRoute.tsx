@@ -14,10 +14,15 @@ const PatientPrescriptionsRoute = () => {
   }
 
   if (!user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/auth" replace />;
   }
 
-  if (userRole !== "doctor") {
+  // Check user has proper permissions to view this prescription
+  const hasAccess = userRole === "doctor" || 
+                    userRole === "administrator" || 
+                    (userRole === "patient" && user.id === patientId);
+  
+  if (!hasAccess) {
     return <Navigate to="/dashboard" replace />;
   }
 

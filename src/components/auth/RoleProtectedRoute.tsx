@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { Spinner } from '@/components/ui/spinner';
@@ -19,6 +19,17 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
   const { user, userRole, isLoading } = useAuth();
   const location = useLocation();
   
+  // Enhanced logging for role-based routes
+  useEffect(() => {
+    console.log("RoleProtectedRoute: Checking access:", {
+      userId: user?.id, 
+      userRole, 
+      allowedRoles,
+      pathname: location.pathname,
+      hasAccess: userRole && allowedRoles.includes(userRole)
+    });
+  }, [user, userRole, allowedRoles, location.pathname]);
+  
   // Show loading state while authentication is being checked
   if (isLoading) {
     return (
@@ -32,7 +43,7 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
   if (!user) {
     console.log("RoleProtectedRoute: No user found, redirecting to", redirectTo);
     toast.error("You need to be signed in to access this page");
-    return <Navigate to={redirectTo} state={{ from: location.pathname }} />;
+    return <Navigate to={redirectTo} state={{ from: location.pathname }} replace />;
   }
   
   // If user doesn't have required role, redirect to dashboard
@@ -40,7 +51,7 @@ export const RoleProtectedRoute: React.FC<RoleProtectedRouteProps> = ({
     console.log("RoleProtectedRoute: User does not have required role, redirecting to dashboard");
     console.log("User role:", userRole, "Allowed roles:", allowedRoles);
     toast.error("You don't have permission to access this page");
-    return <Navigate to="/dashboard" />;
+    return <Navigate to="/dashboard" replace />;
   }
   
   // User has required role, render children

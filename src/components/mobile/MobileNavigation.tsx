@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, FileText, Activity, LogOut, UserRound } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -12,7 +12,6 @@ export const MobileNavigation: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, userRole, signOut } = useAuth();
-  const { toast } = useToast();
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [careTeamRoomId, setCareTeamRoomId] = useState<string | null>(null);
   const [isLoadingRoom, setIsLoadingRoom] = useState(false);
@@ -58,20 +57,11 @@ export const MobileNavigation: React.FC = () => {
     
     try {
       setIsSigningOut(true);
-      
-      toast({
-        title: "Signing out...",
-        description: "Please wait while we sign you out",
-      });
-      
       await signOut();
+      // Navigation will be handled by AuthContext
     } catch (error) {
       console.error("Error signing out:", error);
-      toast({
-        variant: "destructive",
-        title: "Error signing out",
-        description: "There was a problem signing you out. Please try again.",
-      });
+      toast.error("There was a problem signing you out. Please try again.");
       setIsSigningOut(false);
     }
   };
@@ -79,11 +69,7 @@ export const MobileNavigation: React.FC = () => {
   const handleChatClick = () => {
     if (userRole === 'patient') {
       if (!careTeamRoomId && !isLoadingRoom) {
-        toast({
-          title: "No care team available",
-          description: "You don't have a care team assigned yet.",
-          variant: "destructive"
-        });
+        toast.error("You don't have a care team assigned yet.");
         return;
       }
       
@@ -91,6 +77,14 @@ export const MobileNavigation: React.FC = () => {
     } else {
       navigate('/chat');
     }
+  };
+  
+  // Get correct patient prescriptions path
+  const getPrescriptionsPath = () => {
+    if (userRole === 'patient' && user?.id) {
+      return `/prescriptions/${user.id}`;
+    }
+    return '/patient-prescriptions';
   };
   
   const patientNavItems = [
@@ -104,22 +98,22 @@ export const MobileNavigation: React.FC = () => {
     {
       label: 'Prescription',
       icon: FileText,
-      action: () => navigate('/prescriptions/' + user.id),
+      action: () => navigate(getPrescriptionsPath()),
       active: location.pathname.includes('/prescriptions'),
       disabled: false
     },
     {
       label: 'Habits',
       icon: Activity,
-      action: () => navigate('/habits'),
-      active: location.pathname === '/habits',
+      action: () => navigate('/patient-habits'),
+      active: location.pathname === '/patient-habits',
       disabled: false
     },
     {
       label: 'Profile',
       icon: UserRound,
-      action: () => navigate('/profile'),
-      active: location.pathname === '/profile',
+      action: () => navigate('/patient-profile'),
+      active: location.pathname === '/patient-profile',
       disabled: false
     },
     {

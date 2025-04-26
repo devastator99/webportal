@@ -1,7 +1,7 @@
 
 import { useAuth, UserRoleEnum } from "@/contexts/AuthContext";
 import { useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Logo } from "@/components/navbar/Logo";
 import { AuthButton } from "@/components/auth/AuthButton";
 import { ForceLogoutButton } from "@/components/navbar/ForceLogoutButton";
@@ -17,6 +17,16 @@ export const Navbar = () => {
   const isMobile = useIsMobile();
   const isIPad = useIsIPad();
 
+  // Log auth state changes for debugging
+  useEffect(() => {
+    console.log("Navbar auth state:", { 
+      user: user?.id,
+      userRole, 
+      isLoading,
+      pathname: location.pathname
+    });
+  }, [user, userRole, isLoading, location.pathname]);
+
   const isAuthPage = location.pathname === '/auth';
   const useResponsiveDisplay = isMobile || isIPad;
 
@@ -31,6 +41,11 @@ export const Navbar = () => {
             {user && !isLoading && (
               <>
                 {userRole === UserRoleEnum.ADMINISTRATOR && <ForceLogoutButton />}
+                {user.email && (
+                  <span className="text-sm text-[#7E69AB] mr-2 hidden md:inline-block">
+                    {user.email}
+                  </span>
+                )}
               </>
             )}
             {isLoading ? (
@@ -65,6 +80,11 @@ export const Navbar = () => {
               {user && !isLoading && (
                 <>
                   {userRole === UserRoleEnum.ADMINISTRATOR && <ForceLogoutButton />}
+                  {user.email && (
+                    <span className="text-sm text-[#7E69AB]">
+                      Signed in as: {user.email}
+                    </span>
+                  )}
                 </>
               )}
             </div>

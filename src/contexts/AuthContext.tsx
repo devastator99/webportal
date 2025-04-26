@@ -1,7 +1,7 @@
+
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 // Define UserRole type and enum
@@ -187,7 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
   
-  // Sign out function - IMPROVED implementation
+  // IMPROVED Sign out function with proper sequence
   const signOut = async () => {
     console.log("SignOut function called");
     if (isSigningOutRef.current) {
@@ -204,27 +204,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         inactivityTimerRef.current = null;
       }
       
-      // Sign out from Supabase - BEFORE clearing local state
+      toast.info("Signing out...");
+      
+      // Clear local state BEFORE Supabase signout to improve UI responsiveness
+      setUser(null);
+      setSession(null);
+      setUserRole(null);
+      
+      // Sign out from Supabase
       const { error } = await supabase.auth.signOut({
-        scope: 'global' // Ensure we sign out from all devices/tabs
+        scope: 'global' // Sign out from all devices/tabs
       });
       
       if (error) {
         console.error("Error signing out from Supabase:", error);
+        toast.error("Error signing out. Please try again.");
         throw error;
       }
       
       console.log("Successfully signed out from Supabase");
       
-      // Clear local state AFTER successful server logout
-      setUser(null);
-      setSession(null);
-      setUserRole(null);
-      
       // Clear any local storage items that might contain auth state
       localStorage.removeItem('supabase.auth.token');
       
-      // Use a timer to ensure state updates before navigation
+      // Navigation handled by onAuthStateChange listener
+      toast.success("Successfully signed out");
+      
+      // Force a page reload to ensure clean state
       setTimeout(() => {
         window.location.href = '/';
       }, 100);
@@ -241,7 +247,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }, 100);
     } finally {
       // Always reset the signing out flag
-      isSigningOutRef.current = false;
+      setTimeout(() => {
+        isSigningOutRef.current = false;
+      }, 500);
     }
   };
   

@@ -1,3 +1,4 @@
+
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -112,12 +113,13 @@ export const AppRoutes = () => {
           }
         />
         
+        {/* Updated route to allow both doctors and patients to view prescriptions */}
         <Route
           path="/prescriptions/:patientId"
           element={
-            <RoleProtectedRoute allowedRoles={['doctor']}>
+            <ProtectedRoute>
               <PatientPrescriptionsRoute />
-            </RoleProtectedRoute>
+            </ProtectedRoute>
           }
         />
         
