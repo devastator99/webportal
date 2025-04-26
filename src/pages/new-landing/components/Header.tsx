@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Menu } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 export const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -17,7 +18,11 @@ export const Header: React.FC = () => {
             className="md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
-            <Menu className="h-6 w-6" />
+            {mobileMenuOpen ? (
+              <X className="h-6 w-6" />
+            ) : (
+              <Menu className="h-6 w-6" />
+            )}
           </button>
           
           {/* Desktop menu */}
@@ -42,14 +47,19 @@ export const Header: React.FC = () => {
           </div>
         </div>
         
-        {/* Mobile menu */}
-        <div className={`md:hidden ${mobileMenuOpen ? 'block' : 'hidden'} mt-4`}>
-          <div className="flex flex-col space-y-4">
+        {/* Mobile menu with Framer Motion */}
+        <motion.nav 
+          initial={{ x: "-100%" }}
+          animate={mobileMenuOpen ? { x: 0 } : { x: "-100%" }}
+          transition={{ type: "tween", duration: 0.3 }}
+          className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg md:hidden z-50"
+        >
+          <div className="flex flex-col p-6 space-y-4">
             <a href="#about" className="text-gray-700 hover:text-primary">About</a>
             <a href="#services" className="text-gray-700 hover:text-primary">Services</a>
             <a href="#team" className="text-gray-700 hover:text-primary">Team</a>
             <a href="#contact" className="text-gray-700 hover:text-primary">Contact</a>
-            <Button asChild className="w-full">
+            <Button asChild className="w-full mt-4">
               <a 
                 href="https://wa.me/917997016598" 
                 target="_blank" 
@@ -60,7 +70,19 @@ export const Header: React.FC = () => {
               </a>
             </Button>
           </div>
-        </div>
+        </motion.nav>
+
+        {/* Backdrop overlay when mobile menu is open */}
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
       </nav>
     </header>
   );
