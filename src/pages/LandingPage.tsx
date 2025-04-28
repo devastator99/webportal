@@ -1,48 +1,55 @@
-
-import React from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
-import '../styles/landingPage.css';
-
-// Import components
-import { WixBanner } from "@/components/landing/WixBanner";
-import { NewHero } from "@/components/landing/NewHero";
-import { BenefitsSection } from "@/components/landing/BenefitsSection";
-import { OfferingsSection } from "@/components/landing/OfferingsSection";
-import { JourneySection } from "@/components/landing/JourneySection";
-import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
-import { ComingSoonSection } from "@/components/landing/ComingSoonSection";
+import { useEffect } from 'react';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
+import { HeroSection } from '@/components/landing/NewHero';
+import { BenefitsSection } from '@/components/landing/BenefitsSection';
+import { OfferingsSection } from '@/components/landing/OfferingsSection';
+import { JourneySection } from '@/components/landing/JourneySection';
+import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
+import { ComingSoonSection } from '@/components/landing/ComingSoonSection';
+import { CallToAction } from '@/components/landing/CallToAction';
 
 export const LandingPage = () => {
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const { toast: uiToast } = useToast();
+  // Intersection Observer for animated elements
+  useEffect(() => {
+    const animatedElements = document.querySelectorAll('[data-animate]');
+    
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-fade-up');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, {
+      threshold: 0.1,
+      rootMargin: '0px 0px -100px 0px'
+    });
+    
+    animatedElements.forEach(element => {
+      observer.observe(element);
+    });
+    
+    return () => {
+      animatedElements.forEach(element => {
+        observer.unobserve(element);
+      });
+    };
+  }, []);
   
   return (
-    <div className="min-h-screen">
-      {/* Wix Banner */}
-      <WixBanner />
-      
-      {/* Hero Section */}
-      <NewHero />
-      
-      {/* Benefits Section */}
-      <BenefitsSection />
-      
-      {/* Testimonials Section */}
-      <TestimonialsSection />
-      
-      {/* Coming Soon Section */}
-      <ComingSoonSection />
-      
-      {/* Offerings Section */}
-      <OfferingsSection />
-      
-      {/* Journey Section */}
-      <JourneySection />
+    <div className="w-full flex flex-col">
+      <Header />
+      <main className="flex-grow">
+        <HeroSection />
+        <BenefitsSection />
+        <TestimonialsSection />
+        <OfferingsSection />
+        <ComingSoonSection />
+        <JourneySection />
+        <CallToAction />
+      </main>
+      <Footer />
     </div>
   );
 };
-
-export default LandingPage;

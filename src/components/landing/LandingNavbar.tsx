@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -25,7 +24,7 @@ export const LandingNavbar = () => {
 
   return (
     <nav className="fixed top-8 left-0 right-0 z-50 px-4">
-      <div className="bg-white/20 backdrop-blur-md rounded-full shadow-lg max-w-6xl mx-auto flex justify-between items-center px-4 py-2">
+      <div className="bg-white/20 backdrop-blur-md rounded-full shadow-lg max-w-6xl mx-auto flex justify-between items-center px-4 py-2 gap-x-4">
         <div className="flex items-center gap-4">
           <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="md:hidden">
             ≡

@@ -1,145 +1,78 @@
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { MobileAppMockup } from '../ui/MobileAppMockup';
+import { ChevronRight } from 'lucide-react';
 
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-
-export const NewHero = () => {
-  const navigate = useNavigate();
-  const { user, resetInactivityTimer } = useAuth();
-
-  const handleStartClick = () => {
-    resetInactivityTimer();
-    if (user) {
-      navigate('/dashboard');
-    } else {
-      navigate('/auth');
-    }
-  };
+export const HeroSection = () => {
+  const [isLoaded, setIsLoaded] = useState(false);
   
-  // Calendar component
-  const CalendarStrip = () => {
-    const days = [
-      { num: '24', name: 'Mon', active: false },
-      { num: '25', name: 'Tue', active: false },
-      { num: '26', name: 'Wed', active: false },
-      { num: '27', name: 'Thu', active: false },
-      { num: '28', name: 'Fri', active: false },
-      { num: '29', name: 'Sat', active: true }
-    ];
-    
-    return (
-      <div className="floating-calendar animate-float-slow">
-        {days.map((day, index) => (
-          <div key={index} className={`calendar-day ${day.active ? 'active' : ''}`}>
-            <div className="day-number">{day.num}</div>
-            <div className="day-name">{day.name}</div>
-          </div>
-        ))}
-      </div>
-    );
-  };
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
   
-  // Doctor mockup
-  const DoctorMockup = () => {
-    return (
-      <div className="relative mt-8 md:mt-0 animate-float-slow">
-        <img 
-          src="/lovable-uploads/5989b36b-4d21-46b9-9fee-38c13b8afdf3.png" 
-          alt="Doctor" 
-          className="w-28 h-28 md:w-36 md:h-36 mx-auto"
-        />
-      </div>
-    );
-  };
-  
-  // Chart mockup
-  const ChartMockup = () => {
-    return (
-      <div className="relative mt-8 mb-8 animate-float">
-        <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="60" cy="60" r="54" stroke="#9b87f5" strokeWidth="12" strokeDasharray="339.292" strokeDashoffset="0" />
-          <circle cx="60" cy="60" r="54" stroke="#00C2FF" strokeWidth="12" strokeDasharray="339.292" strokeDashoffset="169.646" />
-          <circle cx="60" cy="60" r="54" stroke="#4CAF50" strokeWidth="12" strokeDasharray="339.292" strokeDashoffset="254.469" />
-          <circle cx="60" cy="60" r="30" fill="#1E0030" />
-        </svg>
-      </div>
-    );
-  };
-
-  // App mockup
-  const AppMockup = () => {
-    return (
-      <div className="app-mockup mt-8 md:mt-0 animate-float">
-        <div className="mockup-header">
-          <div className="mockup-menu">≡</div>
-          <div className="mockup-logo">AnubhootiHealth</div>
-        </div>
-        <div className="mb-6">
-          <h3 className="text-2xl font-bold mb-2">Hi, Rakesh!</h3>
-          <CalendarStrip />
-        </div>
-        
-        <div className="flex justify-between items-center mb-6">
-          <ChartMockup />
-          <DoctorMockup />
-        </div>
-        
-        <div className="text-xl mb-4">Ai Backed</div>
-        
-        <div className="flex justify-between mt-8">
-          <img 
-            src="/lovable-uploads/870b51cf-c572-4707-b400-708b5ad12f86.png"
-            alt="Apple"
-            className="w-20 h-20"
-          />
-          <div className="mockup-chat rounded-2xl">
-            Hello, how are you?
-          </div>
-        </div>
-        
-        <div className="mockup-reply rounded-2xl">
-          I'm feeling better today!
-        </div>
-        
-        <div className="flex justify-end mt-8">
-          <img 
-            src="/lovable-uploads/84490f3a-446e-485c-871d-a173180f2eef.png"
-            alt="Runner"
-            className="w-24 h-24"
-          />
-        </div>
-      </div>
-    );
-  };
-
   return (
-    <div className="hero-section">
-      {/* Floating elements */}
-      <div className="floating-element circle circle-1 animate-float-slow"></div>
-      <div className="floating-element circle circle-2 animate-float"></div>
+    <section 
+      className="relative min-h-screen flex items-center pt-20 overflow-hidden"
+      style={{
+        background: 'linear-gradient(135deg, #4a2f80 0%, #6b46c1 100%)',
+      }}
+    >
+      {/* Animated circles background */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-purple-500 rounded-full opacity-20 blur-3xl animate-pulse-slow"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-500 rounded-full opacity-20 blur-3xl animate-float-slow"></div>
+        <div className="absolute top-3/4 left-3/4 w-48 h-48 bg-teal-500 rounded-full opacity-10 blur-3xl animate-float"></div>
+      </div>
       
-      <div className="hero-container">
+      <div className="container mx-auto px-4 relative z-10">
         <div className="flex flex-col md:flex-row items-center">
-          <div className="w-full md:w-1/2 text-center md:text-left mb-10 md:mb-0">
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold mb-6">
-              Your Health Journey Starts Here
+          <div 
+            className={`w-full md:w-1/2 text-white text-center md:text-left mb-12 md:mb-0 ${isLoaded ? 'animate-fade-up' : 'opacity-0'}`}
+            style={{ animationDelay: '0.2s' }}
+          >
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+              Your Health Journey<br />Starts Here
             </h1>
-            <p className="text-xl md:text-2xl mb-8">
-              Integrative medicine solutions
+            <p className="text-xl md:text-2xl mb-8 text-purple-200">
+              Integrative medicine solutions powered by<br className="hidden md:block" /> AI and human expertise
             </p>
-            <button 
-              onClick={handleStartClick} 
-              className="action-button"
-            >
-              Start Today
-            </button>
+            <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start space-y-4 sm:space-y-0 sm:space-x-4">
+              <Button 
+                size="lg" 
+                className="bg-white hover:bg-gray-100 text-purple-700 text-base px-8"
+              >
+                Start Today
+                <ChevronRight className="ml-2 h-4 w-4" />
+              </Button>
+              <Button 
+                variant="outline" 
+                size="lg"
+                className="bg-purple-500 border-white text-white hover:bg-white/20 hover:text-white text-base px-8"
+              >
+                Learn More
+              </Button>
+            </div>
           </div>
           
-          <div className="w-full md:w-1/2 flex justify-center">
-            <AppMockup />
+          <div 
+            className={`w-full md:w-1/2 flex justify-center ${isLoaded ? 'animate-fade-up' : 'opacity-0'}`}
+            style={{ animationDelay: '0.4s' }}
+          >
+            <MobileAppMockup />
           </div>
         </div>
       </div>
-    </div>
+      
+      {/* Wave shape at bottom */}
+      <div className="absolute bottom-0 left-0 right-0">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 100" preserveAspectRatio="none">
+          <path 
+            fill="#ffffff" 
+            fillOpacity="1" 
+            d="M0,64L120,69.3C240,75,480,85,720,80C960,75,1200,53,1320,42.7L1440,32L1440,100L1320,100C1200,100,960,100,720,100C480,100,240,100,120,100L0,100Z">
+          </path>
+        </svg>
+      </div>
+    </section>
   );
 };

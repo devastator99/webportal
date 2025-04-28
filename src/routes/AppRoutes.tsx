@@ -1,7 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import LandingPage from '@/pages/LandingPage';
+import { LandingPage } from '@/pages/LandingPage';
 import NewLandingPage from '@/pages/new-landing/NewLandingPage';
 import Auth from '@/pages/Auth';
 import UpdatePassword from '@/pages/UpdatePassword';
