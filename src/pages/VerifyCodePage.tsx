@@ -8,6 +8,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from '@/hooks/use-toast';
+import { LucideLoader2 } from 'lucide-react';
 
 const verifyCodeSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -74,7 +75,7 @@ export const VerifyCodePage = () => {
                 <FormItem>
                   <FormLabel>Email</FormLabel>
                   <FormControl>
-                    <Input type="email" disabled placeholder="Enter your email" {...field} />
+                    <Input type="email" placeholder="Enter your email" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -95,8 +96,24 @@ export const VerifyCodePage = () => {
               )}
             />
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Verifying..." : "Verify Code"}
+            <Button
+              type="submit"
+              className="w-full flex items-center justify-center bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-semibold py-3 rounded-xl shadow-md hover:from-purple-600 hover:to-indigo-600 transition-all duration-200"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <LucideLoader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Verifying...
+                </>
+              ) : (
+                <>
+                  <svg className="mr-2 h-5 w-5 text-white" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  Verify Code
+                </>
+              )}
             </Button>
           </form>
         </Form>
