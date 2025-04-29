@@ -1,8 +1,9 @@
 
-import { Home, MessageCircle, FileText, Activity, Video, UserRound } from "lucide-react";
+import { Home, MessageCircle, FileText, Activity, Video, UserRound, Menu } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Sidebar,
   SidebarContent,
@@ -12,12 +13,18 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
 
 export function PatientSidebar() {
   const location = useLocation();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
+  const { toggleSidebar } = useSidebar();
   
   if (!user) return null;
 
@@ -55,38 +62,79 @@ export function PatientSidebar() {
     }
   ];
 
+  // Sidebar content that will be used in both mobile and desktop
+  const SidebarMenuContent = () => (
+    <>
+      <div className="p-4 mb-4">
+        <h1 className="text-2xl font-semibold text-[#7E69AB]">AnubhootiHealth</h1>
+      </div>
+      <SidebarMenu>
+        {menuItems.map((item) => (
+          <SidebarMenuItem key={item.title}>
+            <SidebarMenuButton
+              asChild
+              isActive={location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)}
+              tooltip={item.title}
+            >
+              <Link
+                to={item.path}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors",
+                  (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
+                    ? "bg-[#9b87f5] text-white"
+                    : "text-[#7E69AB] hover:bg-[#E5DEFF]"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                <span>{item.title}</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        ))}
+      </SidebarMenu>
+    </>
+  );
+
+  // Mobile sidebar using Sheet component
+  if (isMobile) {
+    return (
+      <>
+        <div className="fixed top-0 left-0 right-0 z-40 p-4 bg-white/10 backdrop-blur-lg border-b border-white/20">
+          <div className="flex justify-between items-center">
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-[#7E69AB]">
+                <Menu className="h-6 w-6" />
+                <span className="sr-only">Toggle Menu</span>
+              </Button>
+            </SheetTrigger>
+            <h1 className="text-xl font-semibold text-[#7E69AB]">AnubhootiHealth</h1>
+            <div className="w-10" /> {/* Empty div for centering */}
+          </div>
+        </div>
+        
+        <Sheet>
+          <SheetContent 
+            side="left" 
+            className="w-64 p-0 bg-white/10 backdrop-blur-lg border-r border-white/20"
+          >
+            <div className="h-full overflow-y-auto">
+              <SidebarGroupContent>
+                <SidebarMenuContent />
+              </SidebarGroupContent>
+            </div>
+          </SheetContent>
+        </Sheet>
+      </>
+    );
+  }
+
+  // Desktop sidebar
   return (
     <Sidebar className="bg-white/10 backdrop-blur-lg border-r border-white/20">
       <SidebarContent>
         <SidebarGroup>
-          <div className="p-4 mb-4">
-            <h1 className="text-2xl font-semibold text-[#7E69AB]">AnubhootiHealth</h1>
-          </div>
           <SidebarGroupContent>
-            <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)}
-                    tooltip={item.title}
-                  >
-                    <Link
-                      to={item.path}
-                      className={cn(
-                        "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors",
-                        (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
-                          ? "bg-[#9b87f5] text-white"
-                          : "text-[#7E69AB] hover:bg-[#E5DEFF]"
-                      )}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
+            <SidebarMenuContent />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

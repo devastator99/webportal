@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, FileText, Activity, LogOut, UserRound } from 'lucide-react';
+import { MessageCircle, FileText, Activity, LogOut, UserRound, Menu } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
 
 export const MobileNavigation: React.FC = () => {
   const location = useLocation();
@@ -152,20 +154,22 @@ export const MobileNavigation: React.FC = () => {
   let navItems = userRole === 'patient' ? patientNavItems : otherRoleNavItems;
 
   return (
-    <nav className="mobile-nav glassmorphism">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/10 backdrop-blur-lg border-t border-white/20 p-2 flex justify-around items-center animate-fade-up">
       {navItems.map((item) => (
         <button
           key={item.label}
           className={cn(
-            "mobile-nav-item",
-            item.active && "active",
+            "flex flex-col items-center justify-center p-2 rounded-lg transition-colors",
+            item.active 
+              ? "bg-[#9b87f5]/20 text-[#7E69AB]" 
+              : "text-gray-600 hover:text-[#7E69AB]",
             item.disabled && "opacity-50 pointer-events-none"
           )}
           onClick={item.action}
           aria-label={item.label}
           disabled={item.disabled}
         >
-          <item.icon className="mobile-nav-icon h-5 w-5" />
+          <item.icon className="h-5 w-5 mb-1" />
           <span className="text-xs">{item.disabled && item.label === 'Sign Out' ? 'Signing Out...' : item.label}</span>
         </button>
       ))}
