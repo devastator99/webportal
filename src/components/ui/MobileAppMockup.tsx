@@ -1,4 +1,4 @@
-import { Heart, Calendar, Activity, MessageCircle, User } from 'lucide-react';
+import { Heart, Calendar, Activity, MessageCircle, User } from "lucide-react";
 
 export const MobileAppMockup = () => {
   return (
@@ -27,26 +27,32 @@ export const MobileAppMockup = () => {
               </div>
             </div>
           </div>
-          
+
           {/* Calendar strip */}
           <div className="flex justify-between px-6 py-3 bg-purple-50">
-            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => (
-              <div 
-                key={i} 
-                className={`flex flex-col items-center ${i === 5 ? 'bg-purple-100 text-purple-700 rounded-full w-8 h-12 flex items-center justify-center' : ''}`}
+            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => (
+              <div
+                key={i}
+                className={`flex flex-col items-center ${
+                  i === 5
+                    ? "bg-purple-100 text-purple-700 rounded-full w-8 h-12 flex items-center justify-center"
+                    : ""
+                }`}
               >
                 <div className="text-[10px] font-medium">{day}</div>
                 <div className="text-xs font-bold">{24 + i}</div>
               </div>
             ))}
           </div>
-          
+
           {/* Main content */}
           <div className="p-4">
             {/* Stats section */}
             <div className="bg-gray-50 rounded-xl p-3 shadow-sm mb-3">
               <div className="flex justify-between">
-                <div className="text-xs font-medium text-gray-500">Today's Stats</div>
+                <div className="text-xs font-medium text-gray-500">
+                  Today's Stats
+                </div>
                 <div className="text-xs text-purple-600">View All</div>
               </div>
               <div className="flex justify-around mt-2">
@@ -73,14 +79,18 @@ export const MobileAppMockup = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* AI Chat preview */}
             <div className="bg-gray-50 rounded-xl p-3 shadow-sm mb-3">
               <div className="flex justify-between items-center mb-2">
-                <div className="text-xs font-medium text-gray-500">AI Health Assistant</div>
-                <div className="bg-green-100 text-green-800 text-[8px] px-2 py-0.5 rounded-full">ONLINE</div>
+                <div className="text-xs font-medium text-gray-500">
+                  AI Health Assistant
+                </div>
+                <div className="bg-green-100 text-green-800 text-[8px] px-2 py-0.5 rounded-full">
+                  ONLINE
+                </div>
               </div>
-              
+
               <div className="flex space-x-2 items-end mb-2">
                 <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center">
                   <MessageCircle size={12} className="text-purple-600" />
@@ -89,7 +99,7 @@ export const MobileAppMockup = () => {
                   Good morning Rakesh! How are you feeling today?
                 </div>
               </div>
-              
+
               <div className="flex flex-row-reverse space-x-reverse space-x-2 items-end">
                 <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
                   <User size={12} className="text-gray-600" />
@@ -99,33 +109,41 @@ export const MobileAppMockup = () => {
                 </div>
               </div>
             </div>
-            
+
             {/* Quick Actions */}
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-teal-50 p-3 rounded-xl">
-                <div className="text-[10px] font-medium text-teal-800 mb-1">Diabetes Control</div>
-                <div className="text-[8px] text-teal-600">Track your progress</div>
+                <div className="text-[10px] font-medium text-teal-800 mb-1">
+                  Diabetes Control
+                </div>
+                <div className="text-[8px] text-teal-600">
+                  Track your progress
+                </div>
               </div>
               <div className="bg-purple-50 p-3 rounded-xl">
-                <div className="text-[10px] font-medium text-purple-800 mb-1">Health Journal</div>
-                <div className="text-[8px] text-purple-600">Log your updates</div>
+                <div className="text-[10px] font-medium text-purple-800 mb-1">
+                  Health Journal
+                </div>
+                <div className="text-[8px] text-purple-600">
+                  Log your updates
+                </div>
               </div>
             </div>
           </div>
-          
+
           {/* Navigation bar */}
           <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-2 flex justify-around">
             <div className="flex flex-col items-center">
-              <Heart size={16} className="text-purple-600" />
-              <div className="text-[8px] text-gray-500">Health</div>
+              <MessageCircle size={16} className="text-purple-600" />
+              <div className="text-[8px] text-gray-500">Chat</div>
             </div>
             <div className="flex flex-col items-center">
               <Calendar size={16} className="text-gray-400" />
-              <div className="text-[8px] text-gray-500">Plan</div>
+              <div className="text-[8px] text-gray-500">Plans</div>
             </div>
             <div className="flex flex-col items-center">
               <Activity size={16} className="text-gray-400" />
-              <div className="text-[8px] text-gray-500">Activity</div>
+              <div className="text-[8px] text-gray-500">Habits</div>
             </div>
             <div className="flex flex-col items-center">
               <User size={16} className="text-gray-400" />
@@ -133,11 +151,11 @@ export const MobileAppMockup = () => {
             </div>
           </div>
         </div>
+
+        {/* Decorative elements */}
+        <div className="absolute -top-8 -left-8 w-32 h-32 bg-teal-400 rounded-full opacity-20 blur-xl animate-float-slow"></div>
+        <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-purple-500 rounded-full opacity-20 blur-xl animate-float"></div>
       </div>
-      
-      {/* Decorative elements */}
-      <div className="absolute -top-8 -left-8 w-32 h-32 bg-teal-400 rounded-full opacity-20 blur-xl animate-float-slow"></div>
-      <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-purple-500 rounded-full opacity-20 blur-xl animate-float"></div>
     </div>
   );
 };

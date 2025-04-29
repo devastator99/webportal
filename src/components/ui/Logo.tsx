@@ -19,7 +19,8 @@ export const Logo = ({ className, isScrolled, theme = 'light' }: LogoProps) => {
     <div className={cn("flex items-center", className)}>
       <div className="flex items-center justify-center w-11 h-11 relative group">
         {/* Animated gradient background with blur */}
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-300 via-indigo-400 to-purple-700 rounded-full opacity-90 group-hover:opacity-100 transition-all duration-300 blur-[2px] animate-pulse"></div>
+        {/* bg-gradient-to-r from-purple-400 to-indigo-400 */}
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-400 via-indigo-400 to-purple-700 rounded-full opacity-90 group-hover:opacity-100 transition-all duration-300 blur-[2px] animate-pulse"></div>
         
         {/* Glow effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-purple-400 to-indigo-500 rounded-full opacity-75 group-hover:opacity-90 transition-all duration-300 blur-xl scale-110"></div>
