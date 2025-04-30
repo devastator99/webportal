@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthButton } from '@/components/auth/AuthButton';
@@ -8,12 +8,12 @@ export const LandingNavbar = () => {
   const navigate = useNavigate();
   const { user, resetInactivityTimer, isSigningOut } = useAuth();
   
-  const handleLogoClick = () => {
+  const handleLogoClick = useCallback(() => {
     resetInactivityTimer();
     navigate('/');
-  };
+  }, [navigate, resetInactivityTimer]);
   
-  const handleStartClick = () => {
+  const handleStartClick = useCallback(() => {
     resetInactivityTimer();
     // If signing out, don't navigate to prevent conflicts
     if (isSigningOut) return;
@@ -23,7 +23,7 @@ export const LandingNavbar = () => {
     } else {
       navigate('/auth');
     }
-  };
+  }, [user, isSigningOut, navigate, resetInactivityTimer]);
 
   return (
     <nav className="fixed top-8 left-0 right-0 z-50 px-4">

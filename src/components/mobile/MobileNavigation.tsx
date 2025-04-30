@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, FileText, Activity, LogOut, UserRound } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -55,7 +56,7 @@ export const MobileNavigation: React.FC = () => {
     
     try {
       await signOut();
-      // Navigation will be handled by AuthContext
+      // Navigation will be handled by AuthService
     } catch (error) {
       console.error("Error signing out:", error);
       toast.error("There was a problem signing you out. Please try again.");

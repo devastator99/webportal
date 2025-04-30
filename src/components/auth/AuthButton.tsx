@@ -4,6 +4,7 @@ import { LogIn, LogOut } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { useCallback } from "react";
 
 export const AuthButton = () => {
   const { user, signOut, resetInactivityTimer, isSigningOut } = useAuth();
@@ -11,23 +12,25 @@ export const AuthButton = () => {
   const location = useLocation();
   const isLandingPage = location.pathname === '/';
 
-  const handleSignOut = async () => {
+  // Handle sign-out with proper error handling
+  const handleSignOut = useCallback(async (e?: React.MouseEvent) => {
+    if (e) e.preventDefault();
     if (isSigningOut) return;
     
     try {
       resetInactivityTimer();
       await signOut();
-      // The navigation will be handled by the AuthContext
+      // The navigation will be handled by the AuthService
     } catch (error) {
       console.error("Error signing out:", error);
       toast.error("There was a problem signing you out. Please try again.");
     }
-  };
+  }, [isSigningOut, resetInactivityTimer, signOut]);
 
   // Handle navigation to auth page
-  const handleSignIn = () => {
+  const handleSignIn = useCallback(() => {
     navigate("/auth");
-  };
+  }, [navigate]);
 
   // Custom styling for landing page
   const buttonClassesForLanding = isLandingPage 
