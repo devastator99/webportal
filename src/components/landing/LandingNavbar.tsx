@@ -1,5 +1,5 @@
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthButton } from '@/components/auth/AuthButton';
@@ -7,6 +7,17 @@ import { AuthButton } from '@/components/auth/AuthButton';
 export const LandingNavbar = () => {
   const navigate = useNavigate();
   const { user, resetInactivityTimer, isSigningOut } = useAuth();
+  const [scrolled, setScrolled] = useState(false);
+  
+  // Check scroll position and update navbar transparency
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
   
   const handleLogoClick = useCallback(() => {
     resetInactivityTimer();
@@ -26,8 +37,8 @@ export const LandingNavbar = () => {
   }, [user, isSigningOut, navigate, resetInactivityTimer]);
 
   return (
-    <nav className="fixed top-8 left-0 right-0 z-50 px-4">
-      <div className="bg-white/20 backdrop-blur-md rounded-full shadow-lg max-w-6xl mx-auto flex justify-between items-center px-4 py-2">
+    <nav className={`fixed top-0 left-0 right-0 ${scrolled ? 'glass-nav scrolled' : 'glass-nav'} top-navbar`}>
+      <div className="max-w-6xl mx-auto flex justify-between items-center px-4 py-3">
         <div 
           className="text-xl sm:text-2xl font-bold text-white cursor-pointer" 
           onClick={handleLogoClick}

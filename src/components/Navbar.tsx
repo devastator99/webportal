@@ -16,6 +16,17 @@ export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const isMobile = useIsMobile();
   const isIPad = useIsIPad();
+  const [scrolled, setScrolled] = useState(false);
+
+  // Check scroll position
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   // Log auth state changes for debugging
   useEffect(() => {
@@ -31,7 +42,7 @@ export const Navbar = () => {
   const useResponsiveDisplay = isMobile || isIPad;
 
   return (
-    <nav className="fixed top-0 w-full glass-nav z-50">
+    <nav className={`fixed top-0 w-full ${scrolled ? 'glass-nav scrolled' : 'glass-nav'} z-50`}>
       <div className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
           <Logo />
