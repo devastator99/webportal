@@ -1,20 +1,16 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, FileText, Activity, LogOut, UserRound, Menu } from 'lucide-react';
+import { MessageCircle, FileText, Activity, LogOut, UserRound } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
 
 export const MobileNavigation: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, userRole, signOut } = useAuth();
-  const [isSigningOut, setIsSigningOut] = useState(false);
+  const { user, userRole, signOut, isSigningOut } = useAuth();
   const [careTeamRoomId, setCareTeamRoomId] = useState<string | null>(null);
   const [isLoadingRoom, setIsLoadingRoom] = useState(false);
   const isMobile = useIsMobile();
@@ -58,13 +54,11 @@ export const MobileNavigation: React.FC = () => {
     if (isSigningOut) return;
     
     try {
-      setIsSigningOut(true);
       await signOut();
       // Navigation will be handled by AuthContext
     } catch (error) {
       console.error("Error signing out:", error);
       toast.error("There was a problem signing you out. Please try again.");
-      setIsSigningOut(false);
     }
   };
 
@@ -163,14 +157,14 @@ export const MobileNavigation: React.FC = () => {
             item.active 
               ? "bg-[#9b87f5]/20 text-[#7E69AB]" 
               : "text-gray-600 hover:text-[#7E69AB]",
-            item.disabled && "opacity-50 pointer-events-none"
+            (item.disabled || (item.label === 'Sign Out' && isSigningOut)) && "opacity-50 pointer-events-none"
           )}
           onClick={item.action}
           aria-label={item.label}
-          disabled={item.disabled}
+          disabled={item.disabled || (item.label === 'Sign Out' && isSigningOut)}
         >
           <item.icon className="h-5 w-5 mb-1" />
-          <span className="text-xs">{item.disabled && item.label === 'Sign Out' ? 'Signing Out...' : item.label}</span>
+          <span className="text-xs">{isSigningOut && item.label === 'Sign Out' ? 'Signing Out...' : item.label}</span>
         </button>
       ))}
     </nav>

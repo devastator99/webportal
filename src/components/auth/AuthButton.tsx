@@ -4,12 +4,10 @@ import { LogIn, LogOut } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { useState } from "react";
 
 export const AuthButton = () => {
-  const { user, signOut, resetInactivityTimer } = useAuth();
+  const { user, signOut, resetInactivityTimer, isSigningOut } = useAuth();
   const navigate = useNavigate();
-  const [isSigningOut, setIsSigningOut] = useState(false);
   const location = useLocation();
   const isLandingPage = location.pathname === '/';
 
@@ -17,15 +15,18 @@ export const AuthButton = () => {
     if (isSigningOut) return;
     
     try {
-      setIsSigningOut(true);
       resetInactivityTimer();
       await signOut();
       // The navigation will be handled by the AuthContext
     } catch (error) {
       console.error("Error signing out:", error);
       toast.error("There was a problem signing you out. Please try again.");
-      setIsSigningOut(false);
     }
+  };
+
+  // Handle navigation to auth page
+  const handleSignIn = () => {
+    navigate("/auth");
   };
 
   // Custom styling for landing page
@@ -51,7 +52,7 @@ export const AuthButton = () => {
 
   return (
     <Button
-      onClick={() => navigate("/auth")}
+      onClick={handleSignIn}
       variant="outline"
       className={`auth-button gap-2 font-medium ${buttonClassesForLanding}`}
       size="sm"

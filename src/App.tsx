@@ -7,7 +7,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ResponsiveProvider } from './contexts/ResponsiveContext';
 import { Navbar } from './components/Navbar';
 import { AppRoutes } from './routes/AppRoutes';
-import React, { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MobileStatusBar } from './components/mobile/MobileStatusBar';
 import { MobileNavigation } from './components/mobile/MobileNavigation';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
@@ -60,35 +60,9 @@ function ConditionalNavbar() {
 }
 
 function App() {
-  const [chatEnabled, setChatEnabled] = useState(false);
-  const [chatbotWidgetEnabled, setChatbotWidgetEnabled] = useState(false);
-  const [chatbotVoiceEnabled, setChatbotVoiceEnabled] = useState(false);
-  
-  useEffect(() => {
-    const checkFeatureFlags = () => {
-      if (typeof window === 'undefined') return;
-      
-      const savedFlags = localStorage.getItem('featureFlags');
-      if (savedFlags) {
-        const parsedFlags = JSON.parse(savedFlags);
-        setChatEnabled(false);
-        setChatbotWidgetEnabled(false);
-        setChatbotVoiceEnabled(false);
-      }
-    };
-    
-    checkFeatureFlags();
-    
-    if (typeof window !== 'undefined') {
-      window.addEventListener('storage', checkFeatureFlags);
-      window.addEventListener('featureFlagsChanged', checkFeatureFlags);
-      
-      return () => {
-        window.removeEventListener('storage', checkFeatureFlags);
-        window.removeEventListener('featureFlagsChanged', checkFeatureFlags);
-      };
-    }
-  }, []);
+  const [chatEnabled] = useState(false);
+  const [chatbotWidgetEnabled] = useState(false);
+  const [chatbotVoiceEnabled] = useState(false);
 
   return (
     <ThemeProvider defaultTheme="light" storageKey="vite-ui-theme">

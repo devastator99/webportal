@@ -3,6 +3,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 // Define UserRole type and enum
 export type UserRole = 'patient' | 'doctor' | 'nutritionist' | 'administrator' | 'reception' | null;
@@ -27,6 +28,7 @@ interface AuthContextType {
   session: Session | null;
   userRole: UserRole;
   isLoading: boolean;
+  isSigningOut: boolean;
   signOut: () => Promise<void>;
   forceSignOut: () => Promise<void>;
   resetInactivityTimer: () => void;
@@ -38,6 +40,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   userRole: null,
   isLoading: true,
+  isSigningOut: false,
   signOut: async () => {},
   forceSignOut: async () => {},
   resetInactivityTimer: () => {},
@@ -51,8 +54,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isSigningOutRef = useRef(false);
   const authStateInitializedRef = useRef(false);
   
   // Initialize auth state only once
@@ -67,9 +70,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       async (event, newSession) => {
         console.log("Auth state change:", event);
         
-        if (isSigningOutRef.current && event === 'SIGNED_OUT') {
-          console.log("Sign out confirmed by auth state change");
-          isSigningOutRef.current = false;
+        if (event === 'SIGNED_OUT') {
+          console.log("User signed out, clearing auth state");
           setSession(null);
           setUser(null);
           setUserRole(null);
@@ -98,10 +100,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               console.error("Error in role handling:", error);
             }
           }
-        } else if (event === 'SIGNED_OUT') {
-          setSession(null);
-          setUser(null);
-          setUserRole(null);
         } else if (event === 'TOKEN_REFRESHED' && newSession) {
           setSession(newSession);
           setUser(newSession.user);
@@ -189,14 +187,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // IMPROVED Sign out function with proper sequence
   const signOut = async () => {
-    console.log("SignOut function called");
-    if (isSigningOutRef.current) {
+    // Prevent multiple sign-out attempts
+    if (isSigningOut) {
       console.log("Already signing out, skipping redundant call");
       return;
     }
     
     try {
-      isSigningOutRef.current = true;
+      console.log("SignOut function called");
+      setIsSigningOut(true);
       
       // Clear any inactivity timer
       if (inactivityTimerRef.current) {
@@ -227,10 +226,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // Clear any local storage items that might contain auth state
       localStorage.removeItem('supabase.auth.token');
       
-      // Navigation handled by onAuthStateChange listener
+      // Explicitly navigate to the landing page with a small delay to ensure state updates
+      // are processed
       toast.success("Successfully signed out");
-      
-      // Force a page reload to ensure clean state
       setTimeout(() => {
         window.location.href = '/';
       }, 100);
@@ -238,18 +236,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error("Error signing out:", error);
       
       // Even if there's an error, try to reset the app state
-      setUser(null);
-      setSession(null);
-      setUserRole(null);
-      
       setTimeout(() => {
         window.location.href = '/';
       }, 100);
     } finally {
-      // Always reset the signing out flag
+      // Clear the signing out flag after a short delay to allow navigation to complete
       setTimeout(() => {
-        isSigningOutRef.current = false;
-      }, 500);
+        setIsSigningOut(false);
+      }, 300);
     }
   };
   
@@ -270,6 +264,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session,
     userRole,
     isLoading,
+    isSigningOut,
     signOut,
     forceSignOut,
     resetInactivityTimer
