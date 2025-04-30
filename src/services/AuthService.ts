@@ -46,7 +46,7 @@ class AuthService {
     console.log('Initializing auth state');
     
     // Always set up listeners BEFORE checking session
-    this.authStateSubscription = supabase.auth.onAuthStateChange(
+    const { data } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log("Auth state change:", event);
         
@@ -92,6 +92,15 @@ class AuthService {
         }
       }
     );
+    
+    // Create a proper subscription object with unsubscribe method
+    this.authStateSubscription = {
+      unsubscribe: () => {
+        if (data && data.subscription) {
+          data.subscription.unsubscribe();
+        }
+      }
+    };
     
     // Get initial session state
     this.getInitialSession(setUser, setSession, setUserRole, setIsLoading);
