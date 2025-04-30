@@ -63,11 +63,14 @@ export function PatientSidebar() {
   ];
 
   // Sidebar content that will be used in both mobile and desktop
-  const SidebarMenuContent = () => (
+  // Modified to accept a showHeading prop
+  const SidebarMenuContent = ({ showHeading = true }) => (
     <>
-      <div className="p-4 mb-4">
-        <h1 className="text-2xl font-semibold text-[#7E69AB]">AnubhootiHealth</h1>
-      </div>
+      {showHeading && (
+        <div className="p-4 mb-4">
+          <h1 className="text-2xl font-semibold text-[#7E69AB]">AnubhootiHealth</h1>
+        </div>
+      )}
       <SidebarMenu>
         {menuItems.map((item) => (
           <SidebarMenuItem key={item.title}>
@@ -119,7 +122,7 @@ export function PatientSidebar() {
           >
             <div className="h-full overflow-y-auto">
               <SidebarGroupContent>
-                <SidebarMenuContent />
+                <SidebarMenuContent showHeading={false} />
               </SidebarGroupContent>
             </div>
           </SheetContent>
