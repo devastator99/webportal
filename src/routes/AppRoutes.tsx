@@ -1,3 +1,4 @@
+
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,7 +22,7 @@ const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const MessageSearchPage = lazy(() => import('@/pages/MessageSearchPage'));
 const PatientHabitsPage = lazy(() => import('@/pages/PatientHabitsPage'));
 const PatientPrescriptionsPage = lazy(() => import('@/pages/PatientPrescriptionsPage'));
-const PatientProfilePage = lazy(() => import('@/pages/patient/PatientProfilePage'));
+const PatientProfilePage = lazy(() => import('@/components/dashboard/patient/PatientProfilePage'));
 
 export const AppRoutes = () => {
   const { userRole } = useAuth();
