@@ -1,7 +1,7 @@
+
 import './App.css';
 import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
-// import { ThemeProvider } from './contexts/ThemeProvider';
 import { ThemeProvider } from './components/ui/theme-provider';
 import { AuthProvider } from './contexts/AuthContext';
 import { ResponsiveProvider } from './contexts/ResponsiveContext';
@@ -15,12 +15,7 @@ import { NotificationBell } from './components/notifications/NotificationBell';
 import { AuthDebugMonitor } from './components/auth/AuthDebugMonitor';
 import { LandingNavbar } from './components/landing/LandingNavbar';
 
-// Simplified conditional navbar
-function ConditionalNavbar() {
-  const location = useLocation();
-  return location.pathname !== '/' ? <Navbar /> : null;
-}
-
+// Password reset redirect function
 function PasswordResetRedirect() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -57,8 +52,6 @@ function PasswordResetRedirect() {
   return null;
 }
 
- newlanding
-=======
 // Custom component to conditionally show the correct navbar based on route
 function ConditionalNavbar() {
   const location = useLocation();
@@ -72,7 +65,6 @@ function ConditionalNavbar() {
   return <Navbar />;
 }
 
-main
 function App() {
   const [chatEnabled] = useState(false);
   const [chatbotWidgetEnabled] = useState(false);
@@ -81,24 +73,6 @@ function App() {
   return (
     <ThemeProvider defaultTheme="light" storageKey="theme">
       <ResponsiveProvider>
- newlanding
-        <Router>
-          <PasswordResetRedirect />
-          <AuthProvider>
-            <ConditionalNavbar />
-            <ErrorBoundary fallback={
-              <div className="text-center p-4">
-                <h2 className="text-xl font-semibold mb-4">Something went wrong</h2>
-                <button 
-                  onClick={() => window.location.reload()}
-                  className="mt-4 px-4 py-2 bg-[#9b87f5] text-white rounded-md hover:bg-[#7E69AB]"
-                >
-                  Reload Page
-                </button>
-              </div>
-            }>
-              <AppRoutes />
-=======
         <div className="app-container">
           <MobileStatusBar />
           <Router>
@@ -124,7 +98,6 @@ function App() {
               </ErrorBoundary>
               
               <MobileNavigation />
- main
               
               <div className="fixed right-6 bottom-6">
                 <NotificationBell />
@@ -132,9 +105,9 @@ function App() {
               
               <AuthDebugMonitor />
               <Toaster position="top-center" />
-            </ErrorBoundary>
-          </AuthProvider>
-        </Router>
+            </AuthProvider>
+          </Router>
+        </div>
       </ResponsiveProvider>
     </ThemeProvider>
   );
