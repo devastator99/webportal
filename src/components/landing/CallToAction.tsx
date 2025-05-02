@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import '../styles/glass.css';
+import '@/styles/glass.css';
 
 interface CallToActionProps {
   openAuthModal?: (view: 'login' | 'register') => void;

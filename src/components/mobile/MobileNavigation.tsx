@@ -6,7 +6,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import '../styles/glass.css';
+// Corrected import path
+import '@/styles/glass.css';
 
 export const MobileNavigation: React.FC = () => {
   const location = useLocation();

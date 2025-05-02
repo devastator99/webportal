@@ -1,9 +1,8 @@
-
 import * as React from "react"
 import * as PopoverPrimitive from "@radix-ui/react-popover"
 
 import { cn } from "@/lib/utils"
-import '../styles/glass.css';
+import '@/styles/glass.css';
 
 interface PopoverProps extends React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Root> {
   glassmorphism?: boolean;

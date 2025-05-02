@@ -9,7 +9,8 @@ import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import './styles/glass.css';
+// Corrected import path
+import '@/styles/glass.css';
 
 export const Navbar = () => {
   const { user, isLoading, userRole } = useAuth();

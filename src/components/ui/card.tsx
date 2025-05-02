@@ -2,7 +2,8 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
-import '../styles/glass.css';
+// Corrected import path
+import '@/styles/glass.css';
 
 const Card = React.forwardRef<
   HTMLDivElement,

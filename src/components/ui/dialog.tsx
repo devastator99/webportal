@@ -1,10 +1,9 @@
-
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import '../styles/glass.css';
+import '@/styles/glass.css';
 
 const Dialog = DialogPrimitive.Root
 

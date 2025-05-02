@@ -1,11 +1,10 @@
-
 import { Button } from "@/components/ui/button";
 import { LogIn, LogOut } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useCallback } from "react";
-import '../styles/glass.css';
+import '@/styles/glass.css';
 
 interface AuthButtonProps {
   openAuthModal?: (view: 'login' | 'register') => void;
