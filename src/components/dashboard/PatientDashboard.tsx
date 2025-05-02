@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +19,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { PatientSidebar } from "./patient/PatientSidebar";
 import { Calendar, UserRound } from "lucide-react";
 import { MobileNavigation } from "@/components/mobile/MobileNavigation";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsMobileOrIPad } from "@/hooks/use-mobile";
 import { usePatientHabits } from "@/hooks/usePatientHabits";
 
 export const PatientDashboard = () => {
@@ -29,6 +28,7 @@ export const PatientDashboard = () => {
   const { isTablet } = useResponsive();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const isMobileOrTablet = useIsMobileOrIPad();
 
   const [careTeamRoomId, setCareTeamRoomId] = useState<string | null>(null);
   const [isLoadingRoom, setIsLoadingRoom] = useState(true);
@@ -155,7 +155,7 @@ export const PatientDashboard = () => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <PatientSidebar />
-        <div className={`flex-1 ${isMobile ? "pb-20" : "pb-16"}`}>
+        <div className={`flex-1 ${isMobileOrTablet ? "pb-20" : "pb-16"}`}>
           <ResponsiveContainer fluid withPadding className="space-y-6">
             {isMobile ? (
               <div className="h-16"></div> // Spacer for mobile header
@@ -231,7 +231,7 @@ export const PatientDashboard = () => {
             </div>
           </ResponsiveContainer>
         </div>
-        {isMobile && <MobileNavigation />}
+        {isMobileOrTablet && <MobileNavigation />}
       </div>
     </SidebarProvider>
   );

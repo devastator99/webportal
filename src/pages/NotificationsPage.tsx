@@ -4,11 +4,11 @@ import { NotificationManager } from '@/components/notifications/NotificationMana
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import { MobileNavigation } from '@/components/mobile/MobileNavigation';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobileOrIPad } from '@/hooks/use-mobile';
 
 const NotificationsPage: React.FC = () => {
   const { user } = useAuth();
-  const isMobile = useIsMobile();
+  const isMobileOrTablet = useIsMobileOrIPad();
   
   if (!user) {
     return <Navigate to="/auth" replace />;
@@ -20,7 +20,7 @@ const NotificationsPage: React.FC = () => {
       <div className="max-w-md mx-auto">
         <NotificationManager />
       </div>
-      {isMobile && <MobileNavigation />}
+      {isMobileOrTablet && <MobileNavigation />}
     </div>
   );
 };

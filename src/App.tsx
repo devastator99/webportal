@@ -1,3 +1,4 @@
+
 import './App.css';
 import './styles/glass.css';
 import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
@@ -9,7 +10,6 @@ import { Navbar } from './components/Navbar';
 import { AppRoutes } from './routes/AppRoutes';
 import { useState, useEffect } from 'react';
 import { MobileStatusBar } from './components/mobile/MobileStatusBar';
-import { MobileNavigation } from './components/mobile/MobileNavigation';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { NotificationBell } from './components/notifications/NotificationBell';
 import { AuthDebugMonitor } from './components/auth/AuthDebugMonitor';
@@ -95,9 +95,6 @@ function App() {
                   <AppRoutes />
                 </div>
               </ErrorBoundary>
-              
-              {/* Note: MobileNavigation is now included directly in individual page components 
-                  for more specific control and to avoid duplicate navigation elements */}
               
               <div className="fixed right-6 bottom-6 z-30">
                 <NotificationBell />

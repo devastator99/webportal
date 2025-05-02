@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, MessageCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsMobileOrIPad } from "@/hooks/use-mobile";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { PatientSidebar } from "@/components/dashboard/patient/PatientSidebar";
 import { MobileNavigation } from "@/components/mobile/MobileNavigation";
@@ -20,6 +20,7 @@ const ChatPage = () => {
   const [patientRoomId, setPatientRoomId] = useState<string | null>(null);
   const [loadingRoom, setLoadingRoom] = useState(false);
   const isMobile = useIsMobile();
+  const isMobileOrTablet = useIsMobileOrIPad();
   const isPatient = userRole === UserRoleEnum.PATIENT;
 
   useEffect(() => {
@@ -88,7 +89,7 @@ const ChatPage = () => {
             Loading chat...
           </p>
         </div>
-        {isMobile && <MobileNavigation />}
+        {isMobileOrTablet && <MobileNavigation />}
       </div>
     );
   }
@@ -101,7 +102,7 @@ const ChatPage = () => {
       <SidebarProvider>
         <div className="min-h-screen flex w-full">
           <PatientSidebar />
-          <div className={`flex-1 ${isMobile ? "pb-20" : "pb-8"}`}>
+          <div className={`flex-1 ${isMobileOrTablet ? "pb-20" : "pb-8"}`}>
             <div className={`container ${isMobile ? "pt-16 pb-24" : "pt-20 pb-8"} px-4`}>
               <ErrorBoundary>
                 <div className="flex items-center gap-2 mb-2">
@@ -117,7 +118,7 @@ const ChatPage = () => {
               </ErrorBoundary>
             </div>
           </div>
-          {isMobile && <MobileNavigation />}
+          {isMobileOrTablet && <MobileNavigation />}
         </div>
       </SidebarProvider>
     );
@@ -142,7 +143,7 @@ const ChatPage = () => {
           <WhatsAppStyleChatInterface patientRoomId={isPatient ? patientRoomId : undefined} />
         </div>
       </ErrorBoundary>
-      {isMobile && <MobileNavigation />}
+      {isMobileOrTablet && <MobileNavigation />}
     </div>
   );
 };

@@ -5,17 +5,17 @@ import { MessageCircle, FileText, Activity, Home, Video, UserRound, LogOut } fro
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useIsMobileOrIPad } from '@/hooks/use-mobile';
 import '@/styles/glass.css';
 
 export const MobileNavigation: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, userRole, signOut, isSigningOut } = useAuth();
-  const isMobile = useIsMobile();
+  const isMobileOrTablet = useIsMobileOrIPad();
 
-  // Always render for mobile users, regardless of auth status
-  if (!isMobile) {
+  // Always render for mobile and tablet users, regardless of auth status
+  if (!isMobileOrTablet) {
     return null;
   }
 

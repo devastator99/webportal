@@ -6,12 +6,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Search } from "lucide-react";
 import { EmailMessageSearch } from "@/components/chat/EmailMessageSearch";
 import { MobileNavigation } from "@/components/mobile/MobileNavigation";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobileOrIPad } from "@/hooks/use-mobile";
 
 const MessageSearchPage = () => {
   const { user, userRole } = useAuth();
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
+  const isMobileOrTablet = useIsMobileOrIPad();
   
   // Redirect if not admin or doctor
   useEffect(() => {
@@ -41,7 +41,7 @@ const MessageSearchPage = () => {
           </CardContent>
         </Card>
       </div>
-      {isMobile && <MobileNavigation />}
+      {isMobileOrTablet && <MobileNavigation />}
     </div>
   );
 };

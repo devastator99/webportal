@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { AddHabitDialog } from '@/components/dashboard/patient/AddHabitDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { MobileNavigation } from '@/components/mobile/MobileNavigation';
+import { useIsMobileOrIPad } from '@/hooks/use-mobile';
 
 const typeIcons = {
   food: <Utensils className="h-5 w-5 text-green-500" />,
@@ -56,6 +57,7 @@ const PatientHabitsPage = () => {
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
   const { isTablet, isMobile } = useResponsive();
   const { padding, margin, gapSize } = useResponsiveLayout();
+  const isMobileOrTablet = useIsMobileOrIPad();
   
   const [addHabitDialogOpen, setAddHabitDialogOpen] = useState(false);
 
@@ -86,7 +88,7 @@ const PatientHabitsPage = () => {
         <div className="flex-1 flex justify-center items-center h-[60vh]">
           <Spinner size="lg" />
         </div>
-        <MobileNavigation />
+        {isMobileOrTablet && <MobileNavigation />}
       </>
     );
   }
@@ -105,7 +107,7 @@ const PatientHabitsPage = () => {
             </CardContent>
           </Card>
         </div>
-        <MobileNavigation />
+        {isMobileOrTablet && <MobileNavigation />}
       </>
     );
   }
@@ -268,8 +270,8 @@ const PatientHabitsPage = () => {
         />
       </div>
       
-      {/* Add mobile navigation component */}
-      <MobileNavigation />
+      {/* Add mobile navigation component for both mobile and tablet */}
+      {isMobileOrTablet && <MobileNavigation />}
     </div>
   );
 };

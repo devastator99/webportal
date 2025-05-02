@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +17,8 @@ import { useResponsive } from "@/contexts/ResponsiveContext";
 import { useBreakpoint } from "@/hooks/use-responsive";
 import { DashboardResponsiveLayout, DashboardResponsiveSection } from "@/components/layout/DashboardResponsiveLayout";
 import { PatientHeader } from "@/components/dashboard/patient/PatientHeader";
+import { MobileNavigation } from "@/components/mobile/MobileNavigation";
+import { useIsMobileOrIPad } from "@/hooks/use-mobile";
 
 interface Prescription {
   id: string;
@@ -58,6 +59,7 @@ const PatientPrescriptionsPage: React.FC = () => {
   const { isTablet, isMobile } = useResponsive();
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
   const [manualError, setManualError] = useState<Error | null>(null);
+  const isMobileOrTablet = useIsMobileOrIPad();
   
   // Effect to check if component is rendered
   useEffect(() => {
@@ -176,6 +178,7 @@ const PatientPrescriptionsPage: React.FC = () => {
             <Spinner size="lg" />
           </div>
         </DashboardResponsiveLayout>
+        {isMobileOrTablet && <MobileNavigation />}
       </>
     );
   }
@@ -203,6 +206,7 @@ const PatientPrescriptionsPage: React.FC = () => {
             </CardContent>
           </Card>
         </DashboardResponsiveLayout>
+        {isMobileOrTablet && <MobileNavigation />}
       </>
     );
   }
@@ -436,6 +440,7 @@ const PatientPrescriptionsPage: React.FC = () => {
           </DialogContent>
         </Dialog>
       </DashboardResponsiveLayout>
+      {isMobileOrTablet && <MobileNavigation />}
     </>
   );
 };
