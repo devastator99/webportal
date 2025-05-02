@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -34,7 +33,7 @@ export const PatientDashboard = () => {
   const [isLoadingRoom, setIsLoadingRoom] = useState(true);
   
   // Get habit summary data using the usePatientHabits hook
-  const { habitSummary, isLoadingSummary } = usePatientHabits();
+  const { summaryData, percentages, habitSummary, isLoading: isLoadingSummary } = usePatientHabits();
 
   useEffect(() => {
     const fetchRoomId = async () => {

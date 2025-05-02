@@ -1,4 +1,3 @@
-
 import { useState, useCallback } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -215,6 +214,7 @@ export const usePatientHabits = () => {
     groupedItems,
     summaryData,
     percentages,
+    habitSummary,
     selectedItem,
     setSelectedItem,
     reminderDialogOpen,
