@@ -6,7 +6,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
-// Corrected import path
 import '@/styles/glass.css';
 
 export const MobileNavigation: React.FC = () => {
@@ -83,7 +82,7 @@ export const MobileNavigation: React.FC = () => {
       label: 'Profile',
       icon: UserRound,
       action: () => navigate('/patient-profile'),
-      active: location.pathname === '/patient-profile',
+      active: location.pathname === '/patient-profile' || location.pathname === '/notifications',
       disabled: false
     }
   ];

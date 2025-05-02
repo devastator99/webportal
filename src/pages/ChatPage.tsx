@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { PatientSidebar } from "@/components/dashboard/patient/PatientSidebar";
+import { MobileNavigation } from "@/components/mobile/MobileNavigation";
 
 const ChatPage = () => {
   const { user, userRole, isLoading } = useAuth();
@@ -87,6 +88,7 @@ const ChatPage = () => {
             Loading chat...
           </p>
         </div>
+        {isMobile && <MobileNavigation />}
       </div>
     );
   }
@@ -115,6 +117,7 @@ const ChatPage = () => {
               </ErrorBoundary>
             </div>
           </div>
+          {isMobile && <MobileNavigation />}
         </div>
       </SidebarProvider>
     );
@@ -139,6 +142,7 @@ const ChatPage = () => {
           <WhatsAppStyleChatInterface patientRoomId={isPatient ? patientRoomId : undefined} />
         </div>
       </ErrorBoundary>
+      {isMobile && <MobileNavigation />}
     </div>
   );
 };
