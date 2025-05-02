@@ -1,16 +1,13 @@
 
 import React from 'react';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
-import StandaloneVideoList, { VideoList } from '@/components/videos/VideoList';
-import { VideoUploader } from '@/components/videos/VideoUploader';
-import { useAuth, UserRoleEnum } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { PatientPageLayout } from '@/components/layout/PatientPageLayout';
-import { Card } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Video } from 'lucide-react';
 
 const VideosPage: React.FC = () => {
-  const { user, userRole } = useAuth();
-  const canUpload = userRole === UserRoleEnum.DOCTOR || userRole === UserRoleEnum.ADMINISTRATOR;
+  const { user } = useAuth();
 
   if (!user) return null;
 
@@ -25,15 +22,23 @@ const VideosPage: React.FC = () => {
           <h2 className="text-xl font-semibold">Health Knowledge Videos</h2>
         </div>
 
-        {canUpload && (
-          <div className="mb-8">
-            <VideoUploader />
-          </div>
-        )}
-
-        <div className="mt-6">
-          <StandaloneVideoList />
-        </div>
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>Videos Coming Soon</CardTitle>
+            <CardDescription>
+              Our educational video library is currently under construction
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col items-center justify-center py-12">
+              <Video className="h-16 w-16 text-muted-foreground mb-4" />
+              <p className="text-center text-muted-foreground">
+                We're working hard to bring you educational videos about health and wellness.
+                Please check back soon for new content.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </ErrorBoundary>
     </PatientPageLayout>
   );
