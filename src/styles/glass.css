@@ -1,0 +1,47 @@
+
+/* Glass Effect Utility Classes */
+
+.glass-nav {
+  @apply bg-white/10 backdrop-blur-md border-white/20 shadow-sm transition-all duration-300;
+}
+
+.glass-nav.scrolled {
+  @apply bg-white/20 shadow-md;
+}
+
+.glass-card {
+  @apply bg-white/30 backdrop-blur-md border border-white/30 shadow-md;
+}
+
+.glass-card-dark {
+  @apply bg-black/10 backdrop-blur-md border border-white/10 shadow-md;
+}
+
+.glass-dialog {
+  @apply bg-white/70 backdrop-blur-md border border-white/30 shadow-lg;
+}
+
+.glass-dialog-overlay {
+  @apply bg-black/40 backdrop-blur-sm;
+}
+
+.glass-popover {
+  @apply bg-white/80 backdrop-blur-md border border-white/30 shadow-md;
+}
+
+.glass-dropdown {
+  @apply bg-white/90 backdrop-blur-md border border-white/30 shadow-lg z-50;
+}
+
+/* Glass variants based on theme */
+.glass-primary {
+  @apply bg-purple-600/10 backdrop-blur-md border border-purple-600/20 shadow-sm;
+}
+
+.glass-secondary {
+  @apply bg-indigo-500/10 backdrop-blur-md border border-indigo-500/20 shadow-sm;
+}
+
+.glass-tertiary {
+  @apply bg-blue-500/10 backdrop-blur-md border border-blue-500/20 shadow-sm;
+}

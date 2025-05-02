@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthButton } from '@/components/auth/AuthButton';
 import { motion } from 'framer-motion';
+import '../styles/glass.css';
 
 interface LandingNavbarProps {
   openAuthModal?: (view: 'login' | 'register') => void;

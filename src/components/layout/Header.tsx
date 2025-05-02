@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { LandingNavbar } from '@/components/landing/LandingNavbar';
+import '../styles/glass.css';
 
 interface HeaderProps {
   openAuthModal?: (view: 'login' | 'register') => void;

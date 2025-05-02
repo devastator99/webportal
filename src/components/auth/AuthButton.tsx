@@ -5,6 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useCallback } from "react";
+import '../styles/glass.css';
 
 interface AuthButtonProps {
   openAuthModal?: (view: 'login' | 'register') => void;

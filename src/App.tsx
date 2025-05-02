@@ -1,4 +1,5 @@
 import './App.css';
+import './styles/glass.css';
 import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from './components/ui/theme-provider';
@@ -12,7 +13,6 @@ import { MobileNavigation } from './components/mobile/MobileNavigation';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { NotificationBell } from './components/notifications/NotificationBell';
 import { AuthDebugMonitor } from './components/auth/AuthDebugMonitor';
-import { LandingNavbar } from './components/landing/LandingNavbar';
 
 // Password reset redirect function
 function PasswordResetRedirect() {

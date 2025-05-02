@@ -9,6 +9,7 @@ import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { PatientData } from "@/hooks/useAuthHandlers";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import '../styles/glass.css';
 
 interface AuthModalProps {
   isOpen: boolean;

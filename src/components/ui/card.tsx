@@ -2,6 +2,7 @@
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import '../styles/glass.css';
 
 const Card = React.forwardRef<
   HTMLDivElement,
@@ -10,7 +11,7 @@ const Card = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-xl bg-white/50 backdrop-blur-sm shadow-sm",
+      "rounded-xl glass-card",
       className
     )}
     {...props}
@@ -85,7 +86,7 @@ const GlassCard = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-xl bg-white/10 backdrop-blur-lg border-0 border-white/20 shadow-sm",
+      "rounded-xl glass-card",
       className
     )}
     {...props}
@@ -101,7 +102,7 @@ const DarkGlassCard = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "rounded-xl bg-black/10 backdrop-blur-lg border-0 border-white/10 shadow-lg",
+      "rounded-xl glass-card-dark",
       className
     )}
     {...props}

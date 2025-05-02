@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import '../styles/glass.css';
 
 export const MobileNavigation: React.FC = () => {
   const location = useLocation();
@@ -130,7 +131,7 @@ export const MobileNavigation: React.FC = () => {
       ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/10 backdrop-blur-lg border-t border-white/20 p-2 flex justify-around items-center animate-fade-up">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 glass-nav border-t border-white/20 p-2 flex justify-around items-center animate-fade-up">
       {navItems.map((item) => (
         <button
           key={item.label}
