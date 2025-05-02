@@ -97,6 +97,7 @@ function App() {
                 </div>
               </ErrorBoundary>
               
+              {/* Always include MobileNavigation for proper navigation consistency */}
               <MobileNavigation />
               
               <div className="fixed right-6 bottom-6">

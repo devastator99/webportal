@@ -92,7 +92,7 @@ const ChatPage = () => {
   if (!user) return null;
 
   return (
-    <div className={`container ${isMobile ? "pt-16 pb-20" : "pt-20 pb-8"}`}>
+    <div className={`container ${isMobile ? "pt-16 pb-24" : "pt-20 pb-8"}`}>
       <ErrorBoundary>
         <div className="flex items-center gap-2 mb-2">
           <MessageCircle className="h-5 w-5 text-[#7E69AB]" />

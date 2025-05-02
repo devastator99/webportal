@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, FileText, Activity, LogOut, UserRound } from 'lucide-react';
+import { MessageCircle, FileText, Activity, Home, Video, UserRound, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -31,11 +31,6 @@ export const MobileNavigation: React.FC = () => {
     }
   };
 
-  // Always navigate directly to chat page
-  const handleChatClick = () => {
-    navigate('/chat');
-  };
-  
   // Get correct patient prescriptions path
   const getPrescriptionsPath = () => {
     if (userRole === 'patient' && user?.id) {
@@ -46,10 +41,17 @@ export const MobileNavigation: React.FC = () => {
   
   const patientNavItems = [
     {
+      label: 'Dashboard',
+      icon: Home,
+      action: () => navigate('/dashboard'),
+      active: location.pathname === '/dashboard',
+      disabled: false
+    },
+    {
       label: 'Chat',
       icon: MessageCircle,
-      action: handleChatClick,
-      active: location.pathname === '/dashboard' || location.pathname === '/chat',
+      action: () => navigate('/chat'),
+      active: location.pathname === '/chat',
       disabled: false
     },
     {
@@ -67,22 +69,29 @@ export const MobileNavigation: React.FC = () => {
       disabled: false
     },
     {
+      label: 'Videos',
+      icon: Video,
+      action: () => navigate('/videos'),
+      active: location.pathname === '/videos',
+      disabled: false
+    },
+    {
       label: 'Profile',
       icon: UserRound,
       action: () => navigate('/patient-profile'),
       active: location.pathname === '/patient-profile',
       disabled: false
-    },
-    {
-      label: 'Sign Out',
-      icon: LogOut,
-      action: handleSignOut,
-      active: false,
-      disabled: isSigningOut
     }
   ];
   
   const otherRoleNavItems = [
+    {
+      label: 'Dashboard',
+      icon: Home,
+      action: () => navigate('/dashboard'),
+      active: location.pathname === '/dashboard',
+      disabled: false
+    },
     {
       label: 'Chat',
       icon: MessageCircle,
