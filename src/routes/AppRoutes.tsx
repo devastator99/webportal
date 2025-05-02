@@ -1,7 +1,7 @@
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import LandingPage from '@/pages/LandingPage';
+import { LandingPage } from '@/pages/LandingPage';
 import NewLandingPage from '@/pages/new-landing/NewLandingPage';
 import Auth from '@/pages/Auth';
 import UpdatePassword from '@/pages/UpdatePassword';
@@ -12,6 +12,8 @@ import PatientDetailsPage from '@/pages/PatientDetailsPage';
 import PatientsView from '@/pages/PatientsView';
 import Dashboard from '@/pages/Dashboard';
 import PatientPrescriptionsRoute from '@/routes/PatientPrescriptionsRoute';
+import VerifyCodePage from '@/pages/VerifyCodePage';
+import { ForgotPasswordRouteWrapper } from '@/pages/ForgotPasswordRouteWrapper';
 
 // Lazy loaded components
 const ChatPage = lazy(() => import('@/pages/ChatPage'));
@@ -32,6 +34,8 @@ export const AppRoutes = () => {
         <Route path="/" element={<LandingPage />} />
         <Route path="/new" element={<NewLandingPage />} />
         <Route path="/auth/*" element={<Auth />} />
+        <Route path="/verify-code" element={<VerifyCodePage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordRouteWrapper />} />
         <Route path="/update-password" element={<UpdatePassword />} />
         
         {/* Protected Routes */}

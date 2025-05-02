@@ -1,9 +1,8 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { DialogTitle, DialogDescription, DialogContent, Dialog, DialogHeader } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
@@ -16,10 +15,11 @@ const forgotPasswordSchema = z.object({
 });
 
 interface ForgotPasswordFormProps {
+  open: boolean;
   onClose: () => void;
 }
 
-export const ForgotPasswordForm = ({ onClose }: ForgotPasswordFormProps) => {
+const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const form = useForm({
@@ -31,41 +31,27 @@ export const ForgotPasswordForm = ({ onClose }: ForgotPasswordFormProps) => {
   const onSubmit = async (values: { email: string }) => {
     setLoading(true);
     try {
-      // Create the absolute URL with the exact path
       const siteOrigin = getSiteUrl();
-      const redirectUrl = `${siteOrigin}/update-password`;
-      
-      console.log("Sending reset password with redirect to:", redirectUrl);
-      
-      // Use our edge function instead of direct auth call
-      const response = await supabase.functions.invoke('password-reset-helper', {
-        body: {
-          email: values.email,
-          redirectUrl: redirectUrl
+      const { error } = await supabase.auth.signInWithOtp({
+        email: values.email,
+        options: {
+          emailRedirectTo: `${siteOrigin}/verify-code`
         }
       });
+
+      if (error) throw error;
       
-      if (response.error) {
-        console.error("Reset password error:", response.error);
-        toast({
-          variant: "destructive",
-          title: "Reset Failed",
-          description: response.error.message || "Failed to send reset email",
-        });
-      } else {
-        toast({
-          variant: "default",
-          title: "Check your email",
-          description: "If an account exists for this email, a password reset link has been sent.",
-        });
-        onClose();
-      }
+      toast({
+        variant: "default",
+        title: "Check your email",
+        description: "If an account exists, a verification code has been sent.",
+      });
+      onClose();
     } catch (e: any) {
-      console.error("Exception in reset password:", e);
       toast({
         variant: "destructive",
-        title: "An error occurred",
-        description: e.message || "Unknown error",
+        title: "Error",
+        description: e.message || "Failed to send verification code",
       });
     } finally {
       setLoading(false);
@@ -73,36 +59,38 @@ export const ForgotPasswordForm = ({ onClose }: ForgotPasswordFormProps) => {
   };
 
   return (
-    <div>
-      <DialogTitle>Reset Password</DialogTitle>
-      <DialogDescription>
-        Enter your account email. We'll send password reset instructions.
-      </DialogDescription>
-      <Form {...form}>
-        <form
-          className="space-y-3 mt-2"
-          onSubmit={form.handleSubmit(onSubmit)}
-        >
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email Address</FormLabel>
-                <FormControl>
-                  <Input type="email" placeholder="your@email.com" {...field} disabled={loading} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="flex gap-2 pt-2">
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Password Recovery</DialogTitle>
+          <DialogDescription>
+            Enter your email to receive a password reset link
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="email@example.com" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Sending..." : "Send Reset Link"}
             </Button>
-          </div>
-        </form>
-      </Form>
-    </div>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 };
+
+export default ForgotPasswordForm;

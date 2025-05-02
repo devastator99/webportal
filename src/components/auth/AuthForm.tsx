@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { LucideLoader2, Calendar as CalendarIcon } from "lucide-react";
+import { LucideLoader2, Calendar as CalendarIcon, Mail, Lock } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -19,7 +19,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDateForDisplay, parseDateFromDisplay } from "@/utils/dateUtils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { ForgotPasswordForm } from "./ForgotPasswordForm";
+import ForgotPasswordForm from "./ForgotPasswordForm";
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -134,6 +134,26 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
     try {
       const { email, password, firstName, lastName } = data;
       
+      if (type === "register") {
+        if (!userType) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Please select a user type"
+          });
+          return;
+        }
+
+        if (!firstName || !lastName) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Please fill in all required fields"
+          });
+          return;
+        }
+      }
+
       if (type === "register" && userType === "patient") {
         const birthDateFormatted = data.birthDate ? new Date(data.birthDate).toISOString().split('T')[0] : null;
         
@@ -195,25 +215,26 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
         className="space-y-6"
       >
         {error && (
-          <Alert variant="destructive" className="bg-red-500/10 text-red-400 border-none">
+          <Alert variant="destructive" className="bg-red-100 border-red-200 text-red-600">
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
         {type === "register" && (
-          <>
-            <motion.div variants={itemVariants}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <motion.div variants={itemVariants} className="space-y-1">
               <FormField
                 control={form.control}
                 name="firstName"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel className="text-gray-600 font-medium">First Name</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
-                        placeholder="First Name"
+                        placeholder="John"
                         disabled={loading}
-                        className="auth-input"
+                        className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       />
                     </FormControl>
                   </FormItem>
@@ -221,18 +242,19 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
               />
             </motion.div>
 
-            <motion.div variants={itemVariants}>
+            <motion.div variants={itemVariants} className="space-y-1">
               <FormField
                 control={form.control}
                 name="lastName"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel className="text-gray-600 font-medium">Last Name</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
-                        placeholder="Last Name"
+                        placeholder="Doe"
                         disabled={loading}
-                        className="auth-input"
+                        className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                       />
                     </FormControl>
                   </FormItem>
@@ -240,12 +262,13 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
               />
             </motion.div>
 
-            <motion.div variants={itemVariants}>
+            <motion.div variants={itemVariants} className="md:col-span-2">
               <FormField
                 control={form.control}
                 name="userType"
                 render={({ field }) => (
                   <FormItem>
+                    <FormLabel className="text-gray-600 font-medium">I am a</FormLabel>
                     <Select
                       disabled={loading}
                       onValueChange={(value: "patient" | "doctor" | "nutritionist") => {
@@ -255,36 +278,37 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
                       defaultValue={userType}
                     >
                       <FormControl>
-                        <SelectTrigger className="auth-input">
+                        <SelectTrigger className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500">
                           <SelectValue placeholder="Select User Type" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="auth-glass">
-                        <SelectItem value="patient">Patient</SelectItem>
-                        <SelectItem value="doctor">Doctor</SelectItem>
-                        <SelectItem value="nutritionist">Nutritionist</SelectItem>
+                      <SelectContent className="rounded-lg border-gray-200 shadow-lg">
+                        <SelectItem value="patient" className="hover:bg-purple-50">Patient</SelectItem>
+                        <SelectItem value="doctor" className="hover:bg-purple-50">Doctor</SelectItem>
+                        <SelectItem value="nutritionist" className="hover:bg-purple-50">Nutritionist</SelectItem>
                       </SelectContent>
                     </Select>
                   </FormItem>
                 )}
               />
             </motion.div>
-          </>
+          </div>
         )}
 
-        <motion.div variants={itemVariants}>
+        <motion.div variants={itemVariants} className="space-y-1">
           <FormField
             control={form.control}
             name="email"
             render={({ field }) => (
               <FormItem>
+                <FormLabel className="text-gray-600 font-medium">Email</FormLabel>
                 <FormControl>
                   <Input
                     {...field}
                     type="email"
-                    placeholder="Email"
+                    placeholder="john@example.com"
                     disabled={loading}
-                    className="auth-input"
+                    className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   />
                 </FormControl>
               </FormItem>
@@ -292,34 +316,34 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           />
         </motion.div>
 
-        <motion.div variants={itemVariants}>
+        <motion.div variants={itemVariants} className="space-y-1">
           <FormField
             control={form.control}
             name="password"
             render={({ field }) => (
               <FormItem>
+                <FormLabel className="text-gray-600 font-medium">Password</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
                       {...field}
                       type={showPassword ? "text" : "password"}
-                      placeholder="Password"
+                      placeholder="••••••••"
                       disabled={loading}
-                      className="auth-input"
-                      minLength={6}
+                      className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                     />
                   </div>
                 </FormControl>
-                <div className="flex items-center space-x-2 mt-1">
+                <div className="flex items-center space-x-2 mt-2">
                   <Checkbox 
                     id="showPassword" 
                     checked={showPassword} 
                     onCheckedChange={(checked) => setShowPassword(checked === true)}
-                    className="border-gray-200/20"
+                    className="border-gray-300 text-purple-600 focus:ring-purple-500"
                   />
                   <label 
                     htmlFor="showPassword" 
-                    className="text-xs cursor-pointer text-gray-400/80"
+                    className="text-sm text-gray-500"
                   >
                     Show password
                   </label>
@@ -329,33 +353,123 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           />
         </motion.div>
 
-        {type === "login" && (
-          <div className="space-y-2">
-            <Button
-              type="button"
-              variant="ghost"
-              className="text-sm text-[#9b87f5]/80 hover:text-[#9b87f5] w-full"
-              onClick={() => setShowForgotPassword(true)}
-              disabled={loading}
-            >
-              Forgot password?
-            </Button>
+        {type === "register" && userType === "patient" && (
+          <div className="bg-gray-50 p-6 rounded-xl space-y-4">
+            <h3 className="text-lg font-semibold text-gray-700">Patient Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <motion.div variants={itemVariants}>
+                <FormField
+                  control={form.control}
+                  name="age"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-600 font-medium">Age</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type="number"
+                          placeholder="28"
+                          disabled={loading}
+                          className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </motion.div>
+
+              <motion.div variants={itemVariants}>
+                <FormField
+                  control={form.control}
+                  name="gender"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-600 font-medium">Gender</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500">
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="rounded-lg border-gray-200 shadow-lg">
+                          <SelectItem value="male" className="hover:bg-purple-50">Male</SelectItem>
+                          <SelectItem value="female" className="hover:bg-purple-50">Female</SelectItem>
+                          <SelectItem value="other" className="hover:bg-purple-50">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+              </motion.div>
+
+              <motion.div variants={itemVariants}>
+                <FormField
+                  control={form.control}
+                  name="bloodGroup"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-600 font-medium">Blood Group</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500">
+                            <SelectValue placeholder="Select blood group" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="rounded-lg border-gray-200 shadow-lg">
+                          {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map(group => (
+                            <SelectItem key={group} value={group} className="hover:bg-purple-50">
+                              {group}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
+              </motion.div>
+
+              <motion.div variants={itemVariants}>
+                <FormField
+                  control={form.control}
+                  name="emergencyContact"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-gray-600 font-medium">Emergency Contact</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="+1 234 567 890"
+                          disabled={loading}
+                          className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500"
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </motion.div>
+            </div>
           </div>
         )}
 
         <motion.div variants={itemVariants}>
           <Button 
             type="submit" 
-            className="auth-button"
-            disabled={loading}
+            className="w-full h-12 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors"
+            disabled={loading || !form.formState.isValid}
           >
             {loading ? (
               <span className="flex items-center justify-center">
-                <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                <LucideLoader2 className="mr-2 h-5 w-5 animate-spin" />
                 {type === "login" ? "Signing in..." : "Creating account..."}
               </span>
             ) : (
-              type === "login" ? "Sign In" : "Sign Up"
+              type === "login" ? "Sign In" : "Create Account"
             )}
           </Button>
         </motion.div>
@@ -363,7 +477,10 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
 
       <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
         <DialogContent className="auth-glass">
-          <ForgotPasswordForm onClose={() => setShowForgotPassword(false)} />
+          <ForgotPasswordForm 
+            open={showForgotPassword}
+            onClose={() => setShowForgotPassword(false)}
+          />
         </DialogContent>
       </Dialog>
     </Form>
