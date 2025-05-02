@@ -26,7 +26,7 @@ export const PatientPageLayout = ({
       <div className="min-h-screen flex w-full">
         <PatientSidebar />
         <div className={`flex-1 ${isMobileOrTablet ? "pb-20" : "pb-8"}`}>
-          <div className={`container ${isMobile ? "pt-16 pb-24" : "pt-20 pb-8"} px-4`}>
+          <div className={`container ${isMobile ? "pt-16" : "pt-20"} px-4 pb-8`}>
             {showHeader && title && (
               <div className="mb-6">
                 <h1 className="text-2xl font-bold">{title}</h1>

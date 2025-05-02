@@ -1,3 +1,4 @@
+
 import { useAuth, UserRoleEnum } from "@/contexts/AuthContext";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
@@ -103,9 +104,9 @@ const ChatPage = () => {
           <h1 className="text-2xl font-bold">Care Team Chat</h1>
         </div>
         <p className="text-muted-foreground mb-4">Connect with your healthcare team</p>
-        <Separator className="my-4 bg-white/20" />
+        <Separator className="my-4" />
         
-        <div className="h-[calc(100vh-220px)] bg-white/5 rounded-xl backdrop-blur-sm p-4 border-0">
+        <div className="h-[calc(100vh-220px)]">
           <WhatsAppStyleChatInterface patientRoomId={patientRoomId} />
         </div>
       </PatientPageLayout>
@@ -114,7 +115,7 @@ const ChatPage = () => {
 
   // For non-patient users, use original layout
   return (
-    <div className={`container ${isMobile ? "pt-16 pb-24" : "pt-20 pb-8"}`}>
+    <div className={`container ${isMobile ? "pt-16 pb-24" : "pt-20 pb-8"} px-4`}>
       <ErrorBoundary>
         <div className="flex items-center gap-2 mb-2">
           <MessageCircle className="h-5 w-5 text-[#7E69AB]" />
