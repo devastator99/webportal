@@ -13,7 +13,8 @@ export const MobileNavigation: React.FC = () => {
   const { user, userRole, signOut, isSigningOut } = useAuth();
   const isMobile = useIsMobile();
 
-  if (!user || !isMobile) {
+  // Only check if user exists, not isMobile, so navigation appears on all mobile screens
+  if (!user) {
     return null;
   }
 
@@ -108,8 +109,13 @@ export const MobileNavigation: React.FC = () => {
   
   let navItems = userRole === 'patient' ? patientNavItems : otherRoleNavItems;
 
+  // Only render the navigation if on a mobile device, this is key to ensure it's displayed
+  if (!isMobile) {
+    return null;
+  }
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/10 backdrop-blur-lg border-t border-white/20 p-2 flex justify-around items-center animate-fade-up">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-lg border-t border-white/20 p-2 flex justify-around items-center animate-fade-up">
       {navItems.map((item) => (
         <button
           key={item.label}
