@@ -33,6 +33,23 @@ export const MobileNavigation: React.FC = () => {
     }
   };
 
+  // Function to check if a path is active, including handling nested routes
+  const isPathActive = (path: string): boolean => {
+    // For prescriptions path, match any route that includes /prescriptions/
+    if (path.includes('/prescriptions') && location.pathname.includes('/prescriptions')) {
+      return true;
+    }
+    
+    // For user profile, match both /patient-profile and /notifications
+    if (path === '/patient-profile' && 
+        (location.pathname === '/patient-profile' || location.pathname === '/notifications')) {
+      return true;
+    }
+    
+    // Default exact matching for other routes
+    return location.pathname === path;
+  };
+
   // Get correct patient prescriptions path
   const getPrescriptionsPath = () => {
     if (userRole === 'patient' && user?.id) {
@@ -46,43 +63,42 @@ export const MobileNavigation: React.FC = () => {
       label: 'Dashboard',
       icon: Home,
       action: () => navigate('/dashboard'),
-      active: location.pathname === '/dashboard',
+      active: isPathActive('/dashboard'),
       disabled: false
     },
     {
       label: 'Chat',
       icon: MessageCircle,
       action: () => navigate('/chat'),
-      active: location.pathname === '/chat',
+      active: isPathActive('/chat'),
       disabled: false
     },
     {
       label: 'Prescription',
       icon: FileText,
       action: () => navigate(getPrescriptionsPath()),
-      active: location.pathname.includes('/prescriptions'),
+      active: isPathActive('/prescriptions'),
       disabled: false
     },
     {
       label: 'Habits',
       icon: Activity,
       action: () => navigate('/patient-habits'),
-      // Update to match both '/patient-habits' and '/habits' paths for flexibility
-      active: location.pathname === '/patient-habits' || location.pathname === '/habits',
+      active: isPathActive('/patient-habits'),
       disabled: false
     },
     {
       label: 'Videos',
       icon: Video,
       action: () => navigate('/videos'),
-      active: location.pathname === '/videos',
+      active: isPathActive('/videos'),
       disabled: false
     },
     {
       label: 'Profile',
       icon: UserRound,
       action: () => navigate('/patient-profile'),
-      active: location.pathname === '/patient-profile' || location.pathname === '/notifications',
+      active: isPathActive('/patient-profile'),
       disabled: false
     }
   ];
@@ -92,21 +108,21 @@ export const MobileNavigation: React.FC = () => {
       label: 'Dashboard',
       icon: Home,
       action: () => navigate('/dashboard'),
-      active: location.pathname === '/dashboard',
+      active: isPathActive('/dashboard'),
       disabled: false
     },
     {
       label: 'Chat',
       icon: MessageCircle,
       action: () => navigate('/chat'),
-      active: location.pathname === '/chat',
+      active: isPathActive('/chat'),
       disabled: false
     },
     {
       label: 'Profile',
       icon: UserRound,
       action: () => navigate('/dashboard'),
-      active: location.pathname === '/dashboard',
+      active: isPathActive('/dashboard'),
       disabled: false
     },
     {
@@ -126,7 +142,7 @@ export const MobileNavigation: React.FC = () => {
           label: 'Home',
           icon: Home,
           action: () => navigate('/'),
-          active: location.pathname === '/',
+          active: isPathActive('/'),
           disabled: false
         }
       ];

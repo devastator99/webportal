@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +8,8 @@ import { CalendarCheckIcon, ClipboardList, BookOpenIcon, MessageCircle, Calendar
 import { supabase } from "@/integrations/supabase/client";
 import { PatientSidebar } from "@/components/dashboard/patient/PatientSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsMobileOrIPad } from "@/hooks/use-mobile";
+import { MobileNavigation } from "@/components/mobile/MobileNavigation";
 
 // Simplified dashboard components for patient
 const UserWelcome = ({ title, description }: { title: string; description: string }) => (
@@ -141,6 +143,7 @@ const PatientDashboard = () => {
   const { user } = useAuth();
   const [careTeamRoomId, setCareTeamRoomId] = useState<string | null>(null);
   const isMobile = useIsMobile();
+  const isMobileOrTablet = useIsMobileOrIPad();
   
   useEffect(() => {
     if (user) {
@@ -170,7 +173,7 @@ const PatientDashboard = () => {
     <SidebarProvider>
       <div className="flex flex-col md:flex-row min-h-screen w-full">
         <PatientSidebar />
-        <div className={`flex-1 ${isMobile ? "pt-16" : ""}`}>
+        <div className={`flex-1 ${isMobile ? "pt-16" : ""} ${isMobileOrTablet ? "pb-20" : ""}`}>
           <div className="container mx-auto px-4 py-6">
             <UserWelcome
               title="Welcome to Your Health Dashboard"
@@ -282,6 +285,7 @@ const PatientDashboard = () => {
             </div>
           </div>
         </div>
+        {isMobileOrTablet && <MobileNavigation />}
       </div>
     </SidebarProvider>
   );
