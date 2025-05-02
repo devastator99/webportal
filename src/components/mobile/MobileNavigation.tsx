@@ -119,6 +119,13 @@ export const MobileNavigation: React.FC = () => {
       disabled: false
     },
     {
+      label: 'Videos',
+      icon: Video,
+      action: () => navigate('/videos'),
+      active: isPathActive('/videos'),
+      disabled: false
+    },
+    {
       label: 'Profile',
       icon: UserRound,
       action: () => navigate('/dashboard'),
