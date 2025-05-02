@@ -5,7 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AuthButton } from '@/components/auth/AuthButton';
 import { motion } from 'framer-motion';
 
-export const LandingNavbar = () => {
+interface LandingNavbarProps {
+  openAuthModal?: (view: 'login' | 'register') => void;
+}
+
+export const LandingNavbar: React.FC<LandingNavbarProps> = ({ openAuthModal }) => {
   const navigate = useNavigate();
   const { user, resetInactivityTimer, isSigningOut } = useAuth();
   const [scrolled, setScrolled] = useState(false);
@@ -33,10 +37,12 @@ export const LandingNavbar = () => {
     
     if (user) {
       navigate('/dashboard');
+    } else if (openAuthModal) {
+      openAuthModal('register');
     } else {
       navigate('/auth');
     }
-  }, [user, isSigningOut, navigate, resetInactivityTimer]);
+  }, [user, isSigningOut, navigate, resetInactivityTimer, openAuthModal]);
 
   return (
     <motion.nav 
@@ -71,7 +77,7 @@ export const LandingNavbar = () => {
           >
             Start Today
           </button>
-          <AuthButton />
+          <AuthButton openAuthModal={openAuthModal} />
         </div>
       </div>
       

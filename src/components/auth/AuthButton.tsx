@@ -6,7 +6,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { useCallback } from "react";
 
-export const AuthButton = () => {
+interface AuthButtonProps {
+  openAuthModal?: (view: 'login' | 'register') => void;
+}
+
+export const AuthButton: React.FC<AuthButtonProps> = ({ openAuthModal }) => {
   const { user, signOut, resetInactivityTimer, isSigningOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -27,10 +31,14 @@ export const AuthButton = () => {
     }
   }, [isSigningOut, resetInactivityTimer, signOut]);
 
-  // Handle navigation to auth page
+  // Handle navigation to auth page or open auth modal
   const handleSignIn = useCallback(() => {
-    navigate("/auth");
-  }, [navigate]);
+    if (openAuthModal) {
+      openAuthModal('login');
+    } else {
+      navigate("/auth");
+    }
+  }, [navigate, openAuthModal]);
 
   // Custom styling for landing page
   const buttonClassesForLanding = isLandingPage 

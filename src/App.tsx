@@ -1,4 +1,3 @@
-
 import './App.css';
 import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -57,9 +56,10 @@ function ConditionalNavbar() {
   const location = useLocation();
   const isLandingPage = location.pathname === '/';
   
-  // Only render the appropriate navbar for the current route
+  // We'll now render navbar from individual pages instead
+  // to avoid duplication and allow passing props
   if (isLandingPage) {
-    return <LandingNavbar />;
+    return null; // The LandingPage component will render LandingNavbar
   }
   
   return <Navbar />;
@@ -78,7 +78,6 @@ function App() {
           <Router>
             <PasswordResetRedirect />
             <AuthProvider>
-              {/* Using ConditionalNavbar to prevent overlapping */}
               <ConditionalNavbar />
               <ErrorBoundary fallback={
                 <div className="container mx-auto p-4 mt-24 text-center">
@@ -97,7 +96,6 @@ function App() {
                 </div>
               </ErrorBoundary>
               
-              {/* Always include MobileNavigation for consistent navigation */}
               <MobileNavigation />
               
               <div className="fixed right-6 bottom-6 z-30">

@@ -1,16 +1,29 @@
+
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { MobileAppMockup } from '../ui/MobileAppMockup';
 import { ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-export const HeroSection = () => {
+interface HeroSectionProps {
+  openAuthModal?: (view: 'login' | 'register') => void;
+}
+
+export const HeroSection: React.FC<HeroSectionProps> = ({ openAuthModal }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const navigate = useNavigate();
   
   useEffect(() => {
     setIsLoaded(true);
   }, []);
+  
+  const handleStartClick = () => {
+    if (openAuthModal) {
+      openAuthModal('register');
+    } else {
+      navigate('/auth');
+    }
+  };
   
   return (
     <section 
@@ -41,7 +54,7 @@ export const HeroSection = () => {
             <div className="flex flex-col sm:flex-row items-center justify-center md:justify-start space-y-4 sm:space-y-0 sm:space-x-4">
               <Button 
                 size="lg" 
-                onClick={() => navigate("/auth")}
+                onClick={handleStartClick}
                 className="bg-white hover:bg-gray-100 text-purple-700 text-base px-8"
               >
                 Start Today
