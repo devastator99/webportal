@@ -1,4 +1,6 @@
+
 import { useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { HeroSection } from '@/components/landing/NewHero';
@@ -8,6 +10,7 @@ import { JourneySection } from '@/components/landing/JourneySection';
 import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
 import { ComingSoonSection } from '@/components/landing/ComingSoonSection';
 import { CallToAction } from '@/components/landing/CallToAction';
+import '../styles/landingPage.css';
 
 export const LandingPage = () => {
   // Intersection Observer for animated elements

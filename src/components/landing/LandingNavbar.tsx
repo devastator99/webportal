@@ -3,6 +3,7 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AuthButton } from '@/components/auth/AuthButton';
+import { motion } from 'framer-motion';
 
 export const LandingNavbar = () => {
   const navigate = useNavigate();
@@ -38,7 +39,12 @@ export const LandingNavbar = () => {
   }, [user, isSigningOut, navigate, resetInactivityTimer]);
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 ${scrolled ? 'glass-nav scrolled' : 'glass-nav'} top-navbar`}>
+    <motion.nav 
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className={`fixed top-0 left-0 right-0 ${scrolled ? 'glass-nav scrolled' : 'glass-nav'} top-navbar z-50`}
+    >
       <div className="max-w-6xl mx-auto flex justify-between items-center px-4 py-3">
         <div className="flex items-center gap-4">
           {/* Mobile menu button, only shown on mobile */}
@@ -60,7 +66,7 @@ export const LandingNavbar = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={handleStartClick}
-            className="bg-black text-white rounded-full px-6 py-2 font-medium hover:bg-opacity-80 hidden md:block"
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full px-6 py-2 font-medium hover:shadow-lg transition-all duration-300 hidden md:block"
             disabled={isSigningOut}
           >
             Start Today
@@ -71,16 +77,21 @@ export const LandingNavbar = () => {
       
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div className="md:hidden glass-nav pb-4 px-4">
+        <motion.div 
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          exit={{ opacity: 0, height: 0 }}
+          className="md:hidden glass-nav pb-4 px-4"
+        >
           <button
             onClick={handleStartClick}
-            className="bg-black text-white rounded-full w-full py-2 font-medium hover:bg-opacity-80 mt-2"
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full w-full py-2 font-medium hover:shadow-lg transition-all duration-300 mt-2"
             disabled={isSigningOut}
           >
             Start Today
           </button>
-        </div>
+        </motion.div>
       )}
-    </nav>
+    </motion.nav>
   );
 };

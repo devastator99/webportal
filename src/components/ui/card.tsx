@@ -93,4 +93,46 @@ const GlassCard = React.forwardRef<
 ))
 GlassCard.displayName = "GlassCard"
 
-export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent, GlassCard }
+// Dark glass variant
+const DarkGlassCard = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-xl bg-black/10 backdrop-blur-lg border-0 border-white/10 shadow-lg",
+      className
+    )}
+    {...props}
+  />
+))
+DarkGlassCard.displayName = "DarkGlassCard"
+
+// Gradient card variant
+const GradientCard = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-xl bg-gradient-to-br from-purple-500/50 to-indigo-500/50 backdrop-blur-sm border-0 shadow-md",
+      className
+    )}
+    {...props}
+  />
+))
+GradientCard.displayName = "GradientCard"
+
+export { 
+  Card, 
+  CardHeader, 
+  CardFooter, 
+  CardTitle, 
+  CardDescription, 
+  CardContent, 
+  GlassCard,
+  DarkGlassCard,
+  GradientCard
+}

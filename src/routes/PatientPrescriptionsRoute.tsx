@@ -7,6 +7,7 @@ import { PrescriptionTabsViewer } from "@/components/prescriptions/PrescriptionT
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { PatientSidebar } from "@/components/dashboard/patient/PatientSidebar";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { motion } from "framer-motion";
 
 const PatientPrescriptionsRoute = () => {
   const { user, userRole, isLoading } = useAuth();
@@ -36,13 +37,18 @@ const PatientPrescriptionsRoute = () => {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full bg-gradient-to-br from-purple-50 to-indigo-50">
         {userRole === "patient" && <PatientSidebar />}
-        <div className={`flex-1 ${isMobile ? "pb-20" : "pb-8"}`}>
+        <motion.div 
+          className={`flex-1 ${isMobile ? "pb-20" : "pb-8"}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
           <div className={`container mx-auto pt-16 md:pt-20 ${isMobile ? "pb-24" : ""}`}>
-            <PrescriptionTabsViewer patientId={patientId} className="!border-0 !shadow-none" />
+            <PrescriptionTabsViewer patientId={patientId} className="!border-0 !shadow-lg" />
           </div>
-        </div>
+        </motion.div>
       </div>
     </SidebarProvider>
   );
