@@ -709,3 +709,24 @@ section {
   padding: 4rem 0;
   transition: all 0.5s ease;
 }
+
+/* Glass navigation styling */
+.glass-nav {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  z-index: 50;
+  transition: background-color 0.3s ease;
+}
+
+/* On scroll, increase opacity for better readability */
+.glass-nav.scrolled {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Fix for scrolling overlap issues */
+.top-navbar {
+  z-index: 55;
+}

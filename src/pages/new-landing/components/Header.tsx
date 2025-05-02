@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 interface CalendarDay {
   number: number;
@@ -38,6 +39,13 @@ export const Header: React.FC = () => {
     navigate('/auth');
   };
 
+  const menuLinks = [
+    { title: "About Us", url: "#about" },
+    { title: "Services", url: "#services" },
+    { title: "Team", url: "#team" },
+    { title: "Contact", url: "#contact" },
+  ];
+
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
       {/* Wix Studio Banner */}
@@ -49,12 +57,33 @@ export const Header: React.FC = () => {
       <div className="bg-gradient-header">
         <nav className="container mx-auto px-4 py-3">
           <div className="flex justify-between items-center rounded-full bg-white/20 backdrop-blur-sm px-4 py-2">
-            <motion.button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="flex items-center gap-2 text-white"
-            >
-              <Menu className="h-6 w-6" />
-            </motion.button>
+            <Sheet>
+              <SheetTrigger asChild>
+                <motion.button className="flex items-center gap-2 text-white">
+                  <Menu className="h-6 w-6" />
+                </motion.button>
+              </SheetTrigger>
+              <SheetContent side="left" className="w-64 bg-white/10 backdrop-blur-lg border-r border-white/20 p-0">
+                <div className="p-4 flex flex-col gap-4">
+                  <div className="text-2xl font-medium text-white mb-8">AnubhootiHealth</div>
+                  {menuLinks.map((link, index) => (
+                    <a 
+                      key={index} 
+                      href={link.url}
+                      className="text-white hover:text-white/80 py-2 text-lg"
+                    >
+                      {link.title}
+                    </a>
+                  ))}
+                  <Button 
+                    onClick={handleStart}
+                    className="bg-black hover:bg-black/80 text-white rounded-full px-6 py-2 mt-4"
+                  >
+                    Start Today
+                  </Button>
+                </div>
+              </SheetContent>
+            </Sheet>
             
             <motion.div 
               initial={{ opacity: 0, x: -20 }}

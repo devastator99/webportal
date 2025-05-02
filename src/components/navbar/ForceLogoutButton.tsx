@@ -1,42 +1,29 @@
 
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export const ForceLogoutButton = () => {
-  const { forceSignOut } = useAuth();
-  const { toast } = useToast();
-  const [isSigningOut, setIsSigningOut] = useState(false);
+  const { forceSignOut, isSigningOut } = useAuth();
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleForceLogout = async () => {
-    if (isSigningOut) return;
+  const handleForceLogout = useCallback(async () => {
+    if (isSigningOut || isProcessing) return;
     
+    setIsProcessing(true);
     try {
-      setIsSigningOut(true);
-      toast({
-        title: "Logging out...",
-        description: "Forcefully signing you out of your account",
-      });
-      
+      toast.info("Logging out all users...");
       await forceSignOut();
-      
-      // This toast might not be seen due to redirect
-      toast({
-        title: "Logged out",
-        description: "You have been successfully signed out",
-      });
+      // Navigation will be handled by AuthService
     } catch (error) {
-      toast({
-        variant: "destructive",
-        title: "Error signing out",
-        description: "There was a problem signing you out. Please try again.",
-      });
+      console.error("Error during force logout:", error);
+      toast.error("There was a problem signing out. Please try again.");
     } finally {
-      setIsSigningOut(false);
+      setIsProcessing(false);
     }
-  };
+  }, [forceSignOut, isSigningOut, isProcessing]);
 
   return (
     <Button
@@ -44,10 +31,10 @@ export const ForceLogoutButton = () => {
       variant="destructive"
       className="gap-2 shadow-sm"
       size="sm"
-      disabled={isSigningOut}
+      disabled={isSigningOut || isProcessing}
     >
       <LogOut className="h-4 w-4" />
-      <span>{isSigningOut ? "Logging Out..." : "Force Logout"}</span>
+      <span>{isSigningOut || isProcessing ? "Logging Out..." : "Force Logout"}</span>
     </Button>
   );
 };

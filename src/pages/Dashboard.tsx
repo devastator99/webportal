@@ -12,12 +12,14 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Dashboard = () => {
   const { user, userRole, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [dashboardError, setDashboardError] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   console.log("Dashboard render:", { 
     user: user?.id, 
@@ -88,9 +90,9 @@ const Dashboard = () => {
 
   console.log(`[Dashboard] Attempting to render ${userRole} dashboard`);
   
-  // Render appropriate dashboard based on role with Navbar
+  // Render appropriate dashboard based on role without fixed padding for mobile
   return (
-    <div className="pt-16 md:pt-20">
+    <div className={isMobile ? "" : "pt-16 md:pt-20"}>
       {(() => {
         try {
           switch (userRole) {

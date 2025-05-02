@@ -151,19 +151,23 @@ export const PatientDashboard = () => {
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
         <PatientSidebar />
-        <div className="flex-1 pb-16">
+        <div className={`flex-1 ${isMobile ? "pb-20" : "pb-16"}`}>
           <ResponsiveContainer fluid withPadding className="space-y-6">
-            <div className="flex items-center gap-4 mb-4">
-              <Avatar className="h-12 w-12 bg-[#E5DEFF]">
-                <AvatarFallback className="text-[#9b87f5] font-medium">
-                  {patientData?.profile?.first_name?.charAt(0)}{patientData?.profile?.last_name?.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h1 className="text-2xl font-semibold">Welcome, {patientData?.profile?.first_name}</h1>
-                <p className="text-muted-foreground">Keep track of your health journey</p>
+            {isMobile ? (
+              <div className="h-16"></div> // Spacer for mobile header
+            ) : (
+              <div className="flex items-center gap-4 mb-4">
+                <Avatar className="h-12 w-12 bg-[#E5DEFF]">
+                  <AvatarFallback className="text-[#9b87f5] font-medium">
+                    {patientData?.profile?.first_name?.charAt(0)}{patientData?.profile?.last_name?.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h1 className="text-2xl font-semibold">Welcome, {patientData?.profile?.first_name}</h1>
+                  <p className="text-muted-foreground">Keep track of your health journey</p>
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="w-full">
               <PatientStats />
@@ -234,4 +238,3 @@ export const PatientDashboard = () => {
     </SidebarProvider>
   );
 };
-
