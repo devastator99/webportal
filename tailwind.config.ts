@@ -26,6 +26,10 @@ export default {
           foreground: "hsl(var(--primary-foreground))",
         },
       },
+      boxShadow: {
+        'chat': '0 1px 3px rgba(0, 0, 0, 0.08)',
+        'sm': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+      },
     },
   },
   plugins: [],

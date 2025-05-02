@@ -388,7 +388,7 @@ export const CareTeamRoomChat = ({
                             return (
                               <div
                                 key={msg.id}
-                                className={`flex ${isSelf ? 'justify-end' : 'justify-start'} message-item`}
+                                className={`flex ${isSelf ? 'justify-end' : 'justify-start'} message-item my-2`}
                                 id={`message-${msg.id}`}
                               >
                                 <div className="flex gap-2 max-w-[80%]">
@@ -411,12 +411,14 @@ export const CareTeamRoomChat = ({
                                     )}
                                     
                                     <div
-                                      className={`rounded-lg p-3 text-sm relative
+                                      className={`rounded-lg p-3 text-sm shadow-sm relative
                                         ${isSystem 
-                                          ? 'bg-blue-100 dark:bg-blue-900/30 text-center mx-auto' 
+                                          ? 'bg-blue-100/70 dark:bg-blue-900/20 text-center mx-auto' 
                                           : isSelf
-                                          ? 'bg-primary text-primary-foreground' 
-                                          : 'bg-muted'}
+                                          ? 'bg-[#9b87f5]/90 text-white' 
+                                          : isAI
+                                            ? 'bg-purple-50/80 dark:bg-purple-900/10'
+                                            : 'bg-neutral-100/80 dark:bg-neutral-800/50'}
                                       `}
                                     >
                                       {isAI && (

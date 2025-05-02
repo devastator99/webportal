@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
-import { Menu, ChevronLeft, UserCircle, Users, MessageCircle, Loader, AlertCircle, Search, ChevronDown, FileText, Pill, ListCheck } from "lucide-react";
+import { Menu, ChevronLeft, UserCircle, Users, MessageCircle, Loader, AlertCircle, Search, ChevronDown, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -677,28 +677,6 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                   {roomMembers.length} members
                 </span>
               </div>
-              {userRole === 'patient' && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => navigate("/prescriptions")}
-                    type="button"
-                    className="flex items-center gap-1 h-7 px-2 rounded-full border bg-blue-50 hover:bg-blue-100 transition text-blue-700 border-blue-200 text-xs font-medium shadow active:scale-[0.98]"
-                    title="My Prescriptions"
-                  >
-                    <Pill className="h-4 w-4 mr-0.5" />
-                    My Prescriptions
-                  </button>
-                  <button
-                    onClick={() => navigate("/habits")}
-                    type="button"
-                    className="flex items-center gap-1 h-7 px-2 rounded-full border bg-green-50 hover:bg-green-100 transition text-green-700 border-green-200 text-xs font-medium shadow active:scale-[0.98]"
-                    title="My Habits"
-                  >
-                    <ListCheck className="h-4 w-4 mr-0.5" />
-                    My Habits
-                  </button>
-                </div>
-              )}
               <div className="flex items-center gap-2">
                 <Button
                   variant="ghost"
@@ -846,12 +824,12 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                                           <div 
                                             className={`p-3 rounded-lg ${
                                               message.is_system_message 
-                                                ? 'bg-muted text-muted-foreground text-xs italic' 
+                                                ? 'bg-muted/70 text-muted-foreground text-xs italic' 
                                                 : isCurrentUser
-                                                  ? 'bg-primary text-primary-foreground'
+                                                  ? 'bg-[#9b87f5]/90 text-white shadow-sm'
                                                   : isAi
-                                                    ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800'
-                                                    : 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700'
+                                                    ? 'bg-purple-50/80 dark:bg-purple-900/10 shadow-sm'
+                                                    : 'bg-neutral-100/80 dark:bg-neutral-800/50 shadow-sm'
                                             }`}
                                           >
                                             {message.message.startsWith('[FILE]') ? (
@@ -934,7 +912,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                 
                 {isAiResponding && (
                   <div className="flex items-center justify-center py-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background px-3 py-1.5 rounded-full border">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background/70 px-3 py-1.5 rounded-full shadow-sm">
                       <Loader className="h-3 w-3 animate-spin" />
                       <span>AI is responding...</span>
                     </div>

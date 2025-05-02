@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -255,16 +254,14 @@ export const ChatMessagesList = ({
                       .map((message) => {
                         const isCurrentUser = message.sender_id === user?.id;
                         const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
-
+                        
                         return (
                           <div 
                             key={message.id} 
                             id={`message-${message.id}`}
-                            className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} my-2 message-item`}
-                            data-message-id={message.id}
-                            data-created-at={message.created_at}
+                            className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} my-2`}
                           >
-                            <div className="flex items-start gap-2 max-w-[80%]">
+                            <div className="flex items-start gap-2 max-w-[75%]">
                               {!isCurrentUser && !message.is_system_message && (
                                 <Avatar className="h-8 w-8">
                                   {isAi ? (
@@ -272,59 +269,53 @@ export const ChatMessagesList = ({
                                       AI
                                     </AvatarFallback>
                                   ) : (
-                                    <AvatarFallback>
+                                    <AvatarFallback className={
+                                      message.sender_role === 'doctor' ? 'bg-blue-100 text-blue-800' :
+                                      message.sender_role === 'nutritionist' ? 'bg-green-100 text-green-800' :
+                                      message.sender_role === 'patient' ? 'bg-orange-100 text-orange-800' :
+                                      'bg-gray-100 text-gray-800'
+                                    }>
                                       {message.sender_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
                                     </AvatarFallback>
                                   )}
                                 </Avatar>
                               )}
-                              <div className={`space-y-1 ${isCurrentUser ? 'order-first mr-2' : 'ml-0'}`}>
+                              
+                              <div>
                                 {!isCurrentUser && !message.is_system_message && (
-                                  <div className="flex items-center gap-1">
-                                    <span className="text-xs font-medium">
-                                      {isAi ? 'AI Assistant' : message.sender_name}
-                                    </span>
+                                  <div className="text-xs font-medium mb-1">
+                                    {isAi ? 'AI Assistant' : message.sender_name}
                                     {message.sender_role && (
-                                      <Badge variant="outline" className="text-[10px] py-0 px-1">
+                                      <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1">
                                         {message.sender_role}
                                       </Badge>
                                     )}
                                   </div>
                                 )}
-                                <div 
-                                  className={`p-3 rounded-lg ${
+                                
+                                <div
+                                  className={`p-3 rounded-lg text-sm shadow-sm ${
                                     message.is_system_message 
-                                      ? 'bg-muted text-muted-foreground text-xs italic' 
+                                      ? 'bg-muted/70 text-muted-foreground text-xs italic' 
                                       : isCurrentUser
-                                        ? 'bg-primary text-primary-foreground'
+                                        ? 'bg-[#9b87f5]/90 text-white' 
                                         : isAi
-                                          ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800'
-                                          : 'bg-neutral-100 dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700'
+                                          ? 'bg-purple-50/80 dark:bg-purple-900/10'
+                                          : 'bg-neutral-100/80 dark:bg-neutral-800/50'
                                   }`}
                                 >
-                                  {message.message.startsWith('[FILE]') ? (
-                                    <div>
-                                      <div className="flex items-center gap-2 text-xs">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-file">
-                                          <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                                          <polyline points="14 2 14 8 20 8"/>
-                                        </svg>
-                                        <a 
-                                          href={message.message.split(' - ')[1]} 
-                                          target="_blank" 
-                                          rel="noopener noreferrer"
-                                          className="underline"
-                                        >
-                                          {message.message.split(' - ')[0].replace('[FILE] ', '')}
-                                        </a>
-                                      </div>
-                                    </div>
-                                  ) : (
-                                    <p className="text-sm whitespace-pre-wrap">{message.message}</p>
-                                  )}
-                                  <p className="text-[10px] opacity-70 mt-1">
-                                    {new Date(message.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  <p className="whitespace-pre-wrap">
+                                    {message.message}
                                   </p>
+                                  <div className="text-[10px] opacity-70 mt-1 text-right">
+                                    {new Date(message.created_at).toLocaleTimeString([], {
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                    {isCurrentUser && (
+                                      <span className="ml-1">✓</span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -340,19 +331,20 @@ export const ChatMessagesList = ({
             </div>
           )}
         </div>
+        
+        {showScrollButton && (
+          <Button
+            size="icon"
+            variant="secondary"
+            className="fixed bottom-24 right-4 h-8 w-8 rounded-full shadow-md z-10"
+            onClick={scrollToBottom}
+          >
+            <ChevronDown className="h-4 w-4" />
+          </Button>
+        )}
+        
         <div ref={endRef} />
       </ScrollArea>
-
-      {showScrollButton && (
-        <Button
-          size="icon"
-          variant="secondary"
-          className="fixed bottom-20 right-4 h-8 w-8 rounded-full shadow-md z-10"
-          onClick={scrollToBottom}
-        >
-          <ChevronDown className="h-4 w-4" />
-        </Button>
-      )}
     </ErrorBoundary>
   );
 };

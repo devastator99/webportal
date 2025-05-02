@@ -1,62 +1,64 @@
 
-import { useState, useEffect } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { shouldExpandDateGroup, formatMessageDateGroup } from "@/utils/dateUtils";
+import React, { useState } from 'react';
+import { format, isToday, isYesterday } from 'date-fns';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface CollapsibleMessageGroupProps {
   date: string;
-  messages: any[];
   children: React.ReactNode;
   isLatestGroup?: boolean;
+  messages: any[];
 }
 
 export const CollapsibleMessageGroup = ({ 
   date, 
-  messages, 
-  children,
-  isLatestGroup = false
+  children, 
+  isLatestGroup = false,
+  messages 
 }: CollapsibleMessageGroupProps) => {
-  const [isOpen, setIsOpen] = useState<boolean>(false);
-
-  // Set initial state based on whether this is the latest group
-  useEffect(() => {
-    setIsOpen(isLatestGroup || shouldExpandDateGroup(date));
-  }, [date, isLatestGroup]);
-
-  const formattedDate = formatMessageDateGroup(date);
-  const messagesCount = messages?.length || 0;
-
-  const toggleOpen = () => {
-    setIsOpen(!isOpen);
+  const [isCollapsed, setIsCollapsed] = useState(!isLatestGroup);
+  
+  const getFormattedDate = () => {
+    try {
+      const dateObj = new Date(date);
+      
+      if (isToday(dateObj)) {
+        return "Today";
+      } else if (isYesterday(dateObj)) {
+        return "Yesterday";
+      } else {
+        return format(dateObj, 'MMMM d, yyyy');
+      }
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return date;
+    }
   };
-
+  
+  const formattedDate = getFormattedDate();
+  
+  const toggleCollapse = () => {
+    setIsCollapsed(prev => !prev);
+  };
+  
   return (
-    <div className="space-y-2 mb-6 relative date-group" data-date={date}>
-      <div className="relative py-2">
-        <Separator className="absolute inset-0 my-auto z-0" />
-        <div className="flex justify-between items-center relative z-10">
-          <Badge 
-            variant="outline" 
-            className="bg-background/95 shadow-sm cursor-pointer flex items-center hover:bg-accent/80 transition-colors px-3 py-1"
-            onClick={toggleOpen}
-          >
-            {formattedDate}
-            {isOpen ? (
-              <ChevronUp className="h-3 w-3 ml-1" />
-            ) : (
-              <ChevronDown className="h-3 w-3 ml-1" />
-            )}
-          </Badge>
-          <span className="text-xs text-muted-foreground bg-background/95 px-2 rounded-sm">
-            {messagesCount} {messagesCount === 1 ? 'message' : 'messages'}
-          </span>
-        </div>
+    <div className="message-group">
+      <div className="flex justify-center mb-2">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={toggleCollapse}
+          className="h-6 text-xs text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted/50 rounded-full px-3 flex items-center gap-1 shadow-sm"
+        >
+          {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          <span>{formattedDate}</span>
+          <span className="text-[10px] opacity-70">({messages.length})</span>
+        </Button>
       </div>
       
-      {isOpen && (
-        <div className="space-y-2 mt-2 animate-in fade-in slide-in-from-top-5 duration-300">
+      {!isCollapsed && (
+        <div className="space-y-2 mb-4">
           {children}
         </div>
       )}

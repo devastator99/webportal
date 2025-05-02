@@ -1,3 +1,4 @@
+
 import { format } from "date-fns";
 import { Check, CheckCheck, Clock, Bot } from "lucide-react";
 
@@ -54,10 +55,12 @@ export const ChatMessage = ({
       className={`flex ${isCurrentUser ? "justify-end" : "justify-start"}`}
     >
       <div
-        className={`max-w-[75%] px-3 py-2 rounded-lg ${
+        className={`max-w-[75%] px-3 py-2 rounded-lg shadow-sm ${
           isCurrentUser
-            ? "bg-primary text-primary-foreground rounded-tr-none"
-            : "bg-muted rounded-tl-none"
+            ? "bg-[#9b87f5]/90 text-white"
+            : isAiBot 
+              ? "bg-purple-50/80 dark:bg-purple-900/10"
+              : "bg-neutral-100/80 dark:bg-neutral-800/50"
         }`}
       >
         {showAvatar && !isCurrentUser && (
