@@ -97,10 +97,10 @@ function App() {
                 </div>
               </ErrorBoundary>
               
-              {/* Always include MobileNavigation for proper navigation consistency */}
+              {/* Always include MobileNavigation for consistent navigation */}
               <MobileNavigation />
               
-              <div className="fixed right-6 bottom-6">
+              <div className="fixed right-6 bottom-6 z-30">
                 <NotificationBell />
               </div>
               

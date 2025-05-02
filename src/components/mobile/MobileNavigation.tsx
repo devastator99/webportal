@@ -13,7 +13,8 @@ export const MobileNavigation: React.FC = () => {
   const { user, userRole, signOut, isSigningOut } = useAuth();
   const isMobile = useIsMobile();
 
-  if (!user || !isMobile) {
+  // Always render for mobile users, regardless of auth status
+  if (!isMobile) {
     return null;
   }
 
@@ -115,7 +116,18 @@ export const MobileNavigation: React.FC = () => {
     }
   ];
   
-  let navItems = userRole === 'patient' ? patientNavItems : otherRoleNavItems;
+  // Handle non-authenticated users with a minimal navigation
+  let navItems = user 
+    ? (userRole === 'patient' ? patientNavItems : otherRoleNavItems)
+    : [
+        {
+          label: 'Home',
+          icon: Home,
+          action: () => navigate('/'),
+          active: location.pathname === '/',
+          disabled: false
+        }
+      ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/10 backdrop-blur-lg border-t border-white/20 p-2 flex justify-around items-center animate-fade-up">
