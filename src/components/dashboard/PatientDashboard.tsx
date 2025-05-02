@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -176,64 +177,58 @@ export const PatientDashboard = () => {
               <HealthTrackingCards habitSummary={habitSummary} />
             </div>
 
-            <ResponsiveGrid 
-              mobileColumns={1} 
-              tabletColumns={2} 
-              desktopColumns={3} 
-              gap="lg"
-            >
-              <div className="col-span-full md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                {patientData?.nextAppointment && (
-                  <Card className="bg-[#E5DEFF]/20">
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="bg-[#E5DEFF] p-2 rounded-full">
-                            <Calendar className="h-5 w-5 text-[#9b87f5]" />
-                          </div>
-                          <div>
-                            <h3 className="font-medium text-sm mb-2">Next Appointment</h3>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(patientData.nextAppointment.scheduled_at).toLocaleDateString()} at {new Date(patientData.nextAppointment.scheduled_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                            </p>
-                            <p className="text-xs">
-                              With Dr. {patientData.nextAppointment.doctor_first_name} {patientData.nextAppointment.doctor_last_name}
-                            </p>
-                          </div>
+            {/* Updated grid layout to ensure the two cards take full row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {patientData?.nextAppointment && (
+                <Card className="bg-[#E5DEFF]/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-[#E5DEFF] p-2 rounded-full">
+                          <Calendar className="h-5 w-5 text-[#9b87f5]" />
                         </div>
-                        <Button variant="ghost" size="sm" className="text-[#9b87f5]">
-                          View Details
-                        </Button>
+                        <div>
+                          <h3 className="font-medium text-sm mb-2">Next Appointment</h3>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(patientData.nextAppointment.scheduled_at).toLocaleDateString()} at {new Date(patientData.nextAppointment.scheduled_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                          </p>
+                          <p className="text-xs">
+                            With Dr. {patientData.nextAppointment.doctor_first_name} {patientData.nextAppointment.doctor_last_name}
+                          </p>
+                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                )}
-                <PatientCuratedHealthTips />
-              </div>
-
-              <div className="col-span-full">
-                <Card className="h-full">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <UserRound className="h-5 w-5" />
-                      Care Team Chat
-                    </CardTitle>
-                    <CardDescription>
-                      Connect with your healthcare team
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="p-0 h-[500px] lg:h-[600px]">
-                    {isLoadingRoom ? (
-                      <div className="flex justify-center items-center h-full">
-                        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9b87f5]"></div>
-                      </div>
-                    ) : (
-                      <WhatsAppStyleChatInterface patientRoomId={careTeamRoomId} />
-                    )}
+                      <Button variant="ghost" size="sm" className="text-[#9b87f5]">
+                        View Details
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
-              </div>
-            </ResponsiveGrid>
+              )}
+              <PatientCuratedHealthTips />
+            </div>
+
+            <div className="w-full">
+              <Card className="h-full">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserRound className="h-5 w-5" />
+                    Care Team Chat
+                  </CardTitle>
+                  <CardDescription>
+                    Connect with your healthcare team
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0 h-[500px] lg:h-[600px]">
+                  {isLoadingRoom ? (
+                    <div className="flex justify-center items-center h-full">
+                      <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9b87f5]"></div>
+                    </div>
+                  ) : (
+                    <WhatsAppStyleChatInterface patientRoomId={careTeamRoomId} />
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           </ResponsiveContainer>
         </div>
         {isMobile && <MobileNavigation />}
