@@ -2,7 +2,6 @@ import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LandingPage } from '@/pages/LandingPage';
-import NewLandingPage from '@/pages/new-landing/NewLandingPage';
 import Auth from '@/pages/Auth';
 import UpdatePassword from '@/pages/UpdatePassword';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
@@ -32,7 +31,6 @@ export const AppRoutes = () => {
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
-        <Route path="/new" element={<NewLandingPage />} />
         <Route path="/auth/*" element={<Auth />} />
         <Route path="/verify-code" element={<VerifyCodePage />} />
         <Route path="/forgot-password" element={<ForgotPasswordRouteWrapper />} />
