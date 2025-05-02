@@ -1,3 +1,4 @@
+
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -142,6 +143,16 @@ export const AppRoutes = () => {
             <RoleProtectedRoute allowedRoles={['patient']}>
               <PatientProfilePage />
             </RoleProtectedRoute>
+          }
+        />
+
+        {/* Add a temporary route handler for non-patient profiles */}
+        <Route
+          path="/user-profile"
+          element={
+            <ProtectedRoute>
+              <Navigate to="/dashboard" replace />
+            </ProtectedRoute>
           }
         />
         

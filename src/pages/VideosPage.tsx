@@ -7,7 +7,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Video } from 'lucide-react';
 
 const VideosPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, userRole } = useAuth();
 
   if (!user) return null;
 

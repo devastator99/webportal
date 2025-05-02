@@ -35,6 +35,11 @@ export const MobileNavigation: React.FC = () => {
 
   // Function to check if a path is active, including handling nested routes
   const isPathActive = (path: string): boolean => {
+    // Special case for videos page to ensure it's recognized
+    if (path === '/videos' && location.pathname === '/videos') {
+      return true;
+    }
+
     // For prescriptions path, match any route that includes /prescriptions/
     if (path.includes('/prescriptions') && location.pathname.includes('/prescriptions')) {
       return true;
@@ -128,8 +133,8 @@ export const MobileNavigation: React.FC = () => {
     {
       label: 'Profile',
       icon: UserRound,
-      action: () => navigate('/dashboard'),
-      active: isPathActive('/dashboard'),
+      action: () => navigate('/user-profile'), // Fixed: Route to user-profile instead of dashboard
+      active: isPathActive('/user-profile'),
       disabled: false
     },
     {
