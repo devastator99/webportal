@@ -102,38 +102,38 @@ export function PatientSidebar() {
   if (isMobile) {
     return (
       <>
-        <div className="fixed top-0 left-0 right-0 z-40 p-4 bg-white/90 backdrop-blur-lg border-b border-white/20">
+        <div className="fixed top-0 left-0 right-0 z-40 p-4 bg-white/10 backdrop-blur-lg border-b border-white/20">
           <div className="flex justify-between items-center">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-[#7E69AB]">
-                  <Menu className="h-6 w-6" />
-                  <span className="sr-only">Toggle Menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent 
-                side="left" 
-                className="w-64 p-0 bg-white/90 backdrop-blur-lg border-r border-white/20"
-              >
-                <div className="h-full overflow-y-auto pt-4">
-                  <SidebarGroupContent>
-                    <SidebarMenuContent showHeading={true} />
-                  </SidebarGroupContent>
-                </div>
-              </SheetContent>
-            </Sheet>
-            
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="text-[#7E69AB]">
+                <Menu className="h-6 w-6" />
+                <span className="sr-only">Toggle Menu</span>
+              </Button>
+            </SheetTrigger>
             <h1 className="text-xl font-semibold text-[#7E69AB]">AnubhootiHealth</h1>
             <div className="w-10" /> {/* Empty div for centering */}
           </div>
         </div>
+        
+        <Sheet>
+          <SheetContent 
+            side="left" 
+            className="w-64 p-0 bg-white/10 backdrop-blur-lg border-r border-white/20"
+          >
+            <div className="h-full overflow-y-auto">
+              <SidebarGroupContent>
+                <SidebarMenuContent showHeading={false} />
+              </SidebarGroupContent>
+            </div>
+          </SheetContent>
+        </Sheet>
       </>
     );
   }
 
   // Desktop sidebar
   return (
-    <Sidebar className="bg-white/90 backdrop-blur-lg border-r border-white/20">
+    <Sidebar className="bg-white/10 backdrop-blur-lg border-r border-white/20">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>

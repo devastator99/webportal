@@ -97,10 +97,9 @@ function App() {
                 </div>
               </ErrorBoundary>
               
-              {/* MobileNavigation should always be rendered (component has internal checks) */}
               <MobileNavigation />
               
-              <div className="fixed right-6 bottom-6 z-40">
+              <div className="fixed right-6 bottom-6">
                 <NotificationBell />
               </div>
               
