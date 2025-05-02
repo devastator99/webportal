@@ -96,7 +96,8 @@ function App() {
                 </div>
               </ErrorBoundary>
               
-              <MobileNavigation />
+              {/* Note: MobileNavigation is now included directly in individual page components 
+                  for more specific control and to avoid duplicate navigation elements */}
               
               <div className="fixed right-6 bottom-6 z-30">
                 <NotificationBell />

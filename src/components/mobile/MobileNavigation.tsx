@@ -68,7 +68,8 @@ export const MobileNavigation: React.FC = () => {
       label: 'Habits',
       icon: Activity,
       action: () => navigate('/patient-habits'),
-      active: location.pathname === '/patient-habits',
+      // Update to match both '/patient-habits' and '/habits' paths for flexibility
+      active: location.pathname === '/patient-habits' || location.pathname === '/habits',
       disabled: false
     },
     {

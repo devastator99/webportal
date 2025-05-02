@@ -17,6 +17,7 @@ import { PatientHeader } from '@/components/dashboard/patient/PatientHeader';
 import { Button } from '@/components/ui/button';
 import { AddHabitDialog } from '@/components/dashboard/patient/AddHabitDialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { MobileNavigation } from '@/components/mobile/MobileNavigation';
 
 const typeIcons = {
   food: <Utensils className="h-5 w-5 text-green-500" />,
@@ -81,30 +82,36 @@ const PatientHabitsPage = () => {
 
   if (isLoading) {
     return (
-      <div className="flex-1 flex justify-center items-center h-[60vh]">
-        <Spinner size="lg" />
-      </div>
+      <>
+        <div className="flex-1 flex justify-center items-center h-[60vh]">
+          <Spinner size="lg" />
+        </div>
+        <MobileNavigation />
+      </>
     );
   }
 
   if (planError) {
     return (
-      <div className="px-4 pt-6 pb-4">
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive">Error Loading Health Plan</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>There was an error loading your health plan. Please try again later.</p>
-            <p className="text-sm text-muted-foreground mt-2">{(planError as Error).message}</p>
-          </CardContent>
-        </Card>
-      </div>
+      <>
+        <div className="px-4 pt-6 pb-4">
+          <Card className="border-destructive">
+            <CardHeader>
+              <CardTitle className="text-destructive">Error Loading Health Plan</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>There was an error loading your health plan. Please try again later.</p>
+              <p className="text-sm text-muted-foreground mt-2">{(planError as Error).message}</p>
+            </CardContent>
+          </Card>
+        </div>
+        <MobileNavigation />
+      </>
     );
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen pb-16 md:pb-0">
       <PatientHeader />
       
       <div className={`px-${isSmallScreen || isMobile ? '3' : isTablet || isMediumScreen ? '4' : '6'} pb-16 flex-1 overflow-y-auto`}>
@@ -260,6 +267,9 @@ const PatientHabitsPage = () => {
           onHabitAdded={refetchHealthPlanItems}
         />
       </div>
+      
+      {/* Add mobile navigation component */}
+      <MobileNavigation />
     </div>
   );
 };
