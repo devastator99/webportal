@@ -11,7 +11,7 @@ import { ResponsiveGrid } from "@/components/layout/ResponsiveGrid";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PatientStats } from "./patient/PatientStats";
+import { HealthTrackingCards } from "./patient/HealthTrackingCards";
 import { PatientCuratedHealthTips } from "./patient/PatientCuratedHealthTips";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { useQuery } from "@tanstack/react-query";
@@ -21,6 +21,7 @@ import { PatientSidebar } from "./patient/PatientSidebar";
 import { Calendar, UserRound } from "lucide-react";
 import { MobileNavigation } from "@/components/mobile/MobileNavigation";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { usePatientHabits } from "@/hooks/usePatientHabits";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
@@ -31,6 +32,9 @@ export const PatientDashboard = () => {
 
   const [careTeamRoomId, setCareTeamRoomId] = useState<string | null>(null);
   const [isLoadingRoom, setIsLoadingRoom] = useState(true);
+  
+  // Get habit summary data using the usePatientHabits hook
+  const { habitSummary, isLoadingSummary } = usePatientHabits();
 
   useEffect(() => {
     const fetchRoomId = async () => {
@@ -170,7 +174,7 @@ export const PatientDashboard = () => {
             )}
 
             <div className="w-full">
-              <PatientStats />
+              <HealthTrackingCards habitSummary={habitSummary} />
             </div>
 
             <ResponsiveGrid 

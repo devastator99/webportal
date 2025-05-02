@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Activity, Moon } from "lucide-react";
+import { Activity, Utensils, Moon, Brain } from "lucide-react";
 
 interface HealthTrackingCardProps {
   title: string;
@@ -84,7 +84,7 @@ export const HealthTrackingCards = ({ habitSummary }: HealthTrackingCardsProps) 
         title="Nutrition" 
         value={getHabitValue('nutrition')} 
         percentage={getHabitPercentage('nutrition')}
-        icon={<Activity className="h-4 w-4 text-[#9b87f5]" />} 
+        icon={<Utensils className="h-4 w-4 text-[#9b87f5]" />} 
       />
       
       <HealthTrackingCard 
@@ -98,7 +98,7 @@ export const HealthTrackingCards = ({ habitSummary }: HealthTrackingCardsProps) 
         title="Mindfulness" 
         value={getHabitValue('mindfulness')} 
         percentage={getHabitPercentage('mindfulness')}
-        icon={<Activity className="h-4 w-4 text-[#9b87f5]" />} 
+        icon={<Brain className="h-4 w-4 text-[#9b87f5]" />} 
       />
     </div>
   );
