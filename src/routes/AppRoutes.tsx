@@ -21,7 +21,8 @@ const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const MessageSearchPage = lazy(() => import('@/pages/MessageSearchPage'));
 const PatientHabitsPage = lazy(() => import('@/pages/PatientHabitsPage'));
 const PatientPrescriptionsPage = lazy(() => import('@/pages/PatientPrescriptionsPage'));
-const PatientProfilePage = lazy(() => import('@/components/dashboard/patient/PatientProfilePage'));
+const PatientProfilePage = lazy(() => import('@/pages/PatientProfilePage'));
+const VideosPage = lazy(() => import('@/pages/VideosPage'));
 
 export const AppRoutes = () => {
   const { userRole } = useAuth();
@@ -113,6 +114,15 @@ export const AppRoutes = () => {
             <RoleProtectedRoute allowedRoles={['patient']}>
               <PatientHabitsPage />
             </RoleProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/videos"
+          element={
+            <ProtectedRoute>
+              <VideosPage />
+            </ProtectedRoute>
           }
         />
         

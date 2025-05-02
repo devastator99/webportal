@@ -1,278 +1,263 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Spinner } from "@/components/ui/spinner";
-import { HabitsProgressCharts } from "@/components/dashboard/patient/HabitsProgressCharts";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Activity, Dumbbell, Utensils, Moon, Brain, Pill, Plus } from 'lucide-react';
-import { usePatientHabits } from '@/hooks/usePatientHabits';
-import { HealthPlanSummary } from '@/components/dashboard/patient/HealthPlanSummary';
-import { ProgressSummary } from '@/components/dashboard/patient/ProgressSummary';
-import { DetailedHealthPlan } from '@/components/dashboard/patient/DetailedHealthPlan';
-import { ReminderDialog } from '@/components/dashboard/patient/ReminderDialog';
-import { CompletionDialog } from '@/components/dashboard/patient/CompletionDialog';
-import { useBreakpoint, useResponsiveLayout } from '@/hooks/use-responsive';
-import { ResponsiveText } from '@/components/ui/responsive-typography';
-import { useResponsive } from '@/contexts/ResponsiveContext';
-import { PatientHeader } from '@/components/dashboard/patient/PatientHeader';
-import { Button } from '@/components/ui/button';
-import { AddHabitDialog } from '@/components/dashboard/patient/AddHabitDialog';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { PatientPageLayout } from '@/components/layout/PatientPageLayout';
+import { Activity } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { MobileNavigation } from '@/components/mobile/MobileNavigation';
-import { useIsMobileOrIPad } from '@/hooks/use-mobile';
-
-const typeIcons = {
-  food: <Utensils className="h-5 w-5 text-green-500" />,
-  exercise: <Dumbbell className="h-5 w-5 text-blue-500" />,
-  meditation: <Brain className="h-5 w-5 text-purple-500" />,
-  sleep: <Moon className="h-5 w-5 text-indigo-500" />,
-  medication: <Pill className="h-5 w-5 text-red-500" />
-};
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useToast } from '@/hooks/use-toast';
+import { usePatientHabits } from '@/hooks/usePatientHabits';
+import { Separator } from '@/components/ui/separator';
+import { CheckCircle2, XCircle } from 'lucide-react';
+import { format } from 'date-fns';
 
 const PatientHabitsPage = () => {
-  const {
-    healthPlanItems,
-    isLoading,
-    planError,
-    groupedItems,
-    summaryData,
-    percentages,
-    selectedItem,
-    setSelectedItem,
-    reminderDialogOpen,
-    setReminderDialogOpen,
-    selectedReminder,
-    completionDialogOpen,
-    setCompletionDialogOpen,
-    newLogValue,
-    setNewLogValue,
-    newLogNotes,
-    setNewLogNotes,
-    setupReminder,
-    saveReminder,
-    markAsCompleted,
-    refetchHealthPlanItems
-  } = usePatientHabits();
-
   const { user } = useAuth();
-  const { isSmallScreen, isMediumScreen } = useBreakpoint();
-  const { isTablet, isMobile } = useResponsive();
-  const { padding, margin, gapSize } = useResponsiveLayout();
-  const isMobileOrTablet = useIsMobileOrIPad();
-  
-  const [addHabitDialogOpen, setAddHabitDialogOpen] = useState(false);
+  const { toast } = useToast();
+  const [activeTab, setActiveTab] = useState('today');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [habitEntries, setHabitEntries] = useState<Record<string, boolean>>({});
+  const { habits, isLoading, summaryData, percentages, habitSummary, refetch } = usePatientHabits();
+  const [selectedDate, setSelectedDate] = useState(new Date());
 
-  // Separate health plan items between patient-created and nutritionist-created
-  // based on whether nutritionist_id matches patient_id
-  const nutritionistItems = {};
-  const patientItems = {};
-  
-  healthPlanItems?.forEach(item => {
-    if (item.nutritionist_id === user?.id) {
-      // If nutritionist_id is the same as the user's id, it was created by the patient
-      if (!patientItems[item.type]) {
-        patientItems[item.type] = [];
-      }
-      patientItems[item.type].push(item);
-    } else {
-      // Otherwise it was created by a nutritionist or doctor
-      if (!nutritionistItems[item.type]) {
-        nutritionistItems[item.type] = [];
-      }
-      nutritionistItems[item.type].push(item);
+  useEffect(() => {
+    if (habits && habits.length > 0) {
+      const initialEntries: Record<string, boolean> = {};
+      habits.forEach(habit => {
+        initialEntries[habit.id] = false;
+      });
+      setHabitEntries(initialEntries);
     }
-  });
+  }, [habits]);
 
-  if (isLoading) {
-    return (
-      <>
-        <div className="flex-1 flex justify-center items-center h-[60vh]">
-          <Spinner size="lg" />
-        </div>
-        {isMobileOrTablet && <MobileNavigation />}
-      </>
-    );
-  }
+  const handleHabitToggle = (habitId: string) => {
+    setHabitEntries(prev => ({
+      ...prev,
+      [habitId]: !prev[habitId]
+    }));
+  };
 
-  if (planError) {
-    return (
-      <>
-        <div className="px-4 pt-6 pb-4">
-          <Card className="border-destructive">
-            <CardHeader>
-              <CardTitle className="text-destructive">Error Loading Health Plan</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>There was an error loading your health plan. Please try again later.</p>
-              <p className="text-sm text-muted-foreground mt-2">{(planError as Error).message}</p>
-            </CardContent>
-          </Card>
-        </div>
-        {isMobileOrTablet && <MobileNavigation />}
-      </>
-    );
-  }
+  const handleSubmitHabits = async () => {
+    if (!user) return;
+    
+    setIsSubmitting(true);
+    
+    try {
+      const entries = Object.entries(habitEntries).map(([habitId, completed]) => ({
+        habit_id: habitId,
+        patient_id: user.id,
+        completed,
+        entry_date: new Date().toISOString().split('T')[0]
+      }));
+      
+      const { error } = await supabase
+        .from('habit_entries')
+        .upsert(entries, { onConflict: 'habit_id, patient_id, entry_date' });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Habits updated",
+        description: "Your habit tracking has been updated successfully.",
+      });
+      
+      refetch();
+    } catch (error) {
+      console.error('Error submitting habits:', error);
+      toast({
+        title: "Update failed",
+        description: "There was an error updating your habits. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
-    <div className="flex flex-col min-h-screen pb-16 md:pb-0">
-      <PatientHeader />
+    <PatientPageLayout
+      title="Health Habits"
+      description="Track your daily health habits and activities"
+    >
+      <div className="flex items-center gap-2 mb-6">
+        <Activity className="h-5 w-5 text-[#7E69AB]" />
+        <h2 className="text-xl font-semibold">Your Health Habits</h2>
+      </div>
       
-      <div className={`px-${isSmallScreen || isMobile ? '3' : isTablet || isMediumScreen ? '4' : '6'} pb-16 flex-1 overflow-y-auto`}>
-        <div className="flex justify-between items-center mt-2 mb-4">
-          <ResponsiveText
-            as="h1"
-            className="mt-2"
-            mobileSize="xl"
-            tabletSize="2xl"
-            desktopSize="2xl"
-            weight="bold"
-          >
-            My Health Plan
-          </ResponsiveText>
-          
-          <Button 
-            variant="default" 
-            size={isSmallScreen || isMobile ? "sm" : "default"} 
-            onClick={() => setAddHabitDialogOpen(true)}
-            className="bg-[#9b87f5] hover:bg-[#8a74e8]"
-          >
-            <Plus className="h-4 w-4 mr-1" />
-            Add Habit
-          </Button>
+      <ErrorBoundary>
+        <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {/* Summary Cards */}
+          {!isLoading && summaryData && (
+            <>
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Overall Completion</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{percentages.overall}%</div>
+                  <Progress value={percentages.overall} className="h-2 mt-2" />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {summaryData.completed} of {summaryData.total} habits completed
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Weekly Streak</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{summaryData.streak} days</div>
+                  <Progress value={(summaryData.streak / 7) * 100} className="h-2 mt-2" />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {summaryData.streak === 7 ? "Perfect week!" : `${7 - summaryData.streak} more days for a perfect week`}
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Monthly Progress</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{percentages.monthly}%</div>
+                  <Progress value={percentages.monthly} className="h-2 mt-2" />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Based on the last 30 days
+                  </p>
+                </CardContent>
+              </Card>
+            </>
+          )}
         </div>
         
-        <p className={`text-muted-foreground mb-${isSmallScreen || isMobile ? '3' : '5'} text-sm sm:text-base`}>
-          Track your habits and follow your personalized health plan
-        </p>
-
-        <Tabs defaultValue="overview" className={`mb-${isSmallScreen || isMobile ? '4' : '6'}`}>
-          <TabsList className={`mb-4 ${isSmallScreen || isMobile ? 'w-full' : ''}`}>
-            <TabsTrigger value="overview" className={isSmallScreen || isMobile ? 'text-xs py-1.5' : ''}>Overview</TabsTrigger>
-            <TabsTrigger value="progress" className={isSmallScreen || isMobile ? 'text-xs py-1.5' : ''}>Progress</TabsTrigger>
-            <TabsTrigger value="plan" className={isSmallScreen || isMobile ? 'text-xs py-1.5' : ''}>Recommended Plan</TabsTrigger>
-            <TabsTrigger value="my-habits" className={isSmallScreen || isMobile ? 'text-xs py-1.5' : ''}>My Habits</TabsTrigger>
+        <Separator className="my-6" />
+        
+        <Tabs defaultValue="today" className="w-full" onValueChange={setActiveTab}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="today">Today's Habits</TabsTrigger>
+            <TabsTrigger value="history">History</TabsTrigger>
+            <TabsTrigger value="all">All Habits</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="overview" className="min-h-[60vh]">
-            <div className={`grid gap-${isSmallScreen || isMobile ? '3' : isTablet || isMediumScreen ? '4' : '6'} ${isSmallScreen || isMobile ? 'grid-cols-1' : isTablet || isMediumScreen ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-2'}`}>
-              <HealthPlanSummary 
-                healthPlanItems={healthPlanItems}
-                onSetupReminder={setupReminder}
-                onMarkComplete={(item) => {
-                  setSelectedItem(item);
-                  setNewLogValue(0);
-                  setNewLogNotes("");
-                  setCompletionDialogOpen(true);
-                }}
-              />
-              
-              <ProgressSummary
-                summaryData={summaryData}
-                percentages={percentages}
-              />
-            </div>
+          <TabsContent value="today" className="space-y-4">
+            {isLoading ? (
+              <div className="text-center py-8">Loading your habits...</div>
+            ) : habits && habits.length > 0 ? (
+              <>
+                <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+                  {habits.map(habit => (
+                    <Card key={habit.id} className={habitEntries[habit.id] ? "border-green-500/50" : ""}>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base font-medium flex items-center justify-between">
+                          {habit.name}
+                          <Button 
+                            variant={habitEntries[habit.id] ? "default" : "outline"} 
+                            size="sm"
+                            onClick={() => handleHabitToggle(habit.id)}
+                            className={habitEntries[habit.id] ? "bg-green-500 hover:bg-green-600" : ""}
+                          >
+                            {habitEntries[habit.id] ? "Completed" : "Mark Complete"}
+                          </Button>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground">{habit.description}</p>
+                        {habit.target_value && (
+                          <p className="text-xs mt-2">Target: {habit.target_value} {habit.unit}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+                
+                <div className="flex justify-end mt-6">
+                  <Button 
+                    onClick={handleSubmitHabits} 
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "Saving..." : "Save Today's Progress"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <Card>
+                <CardContent className="py-8 text-center">
+                  <p>No habits have been assigned to you yet.</p>
+                  <p className="text-muted-foreground text-sm mt-2">
+                    Your care team will add habits for you to track.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
           
-          <TabsContent value="progress" className="min-h-[60vh]">
+          <TabsContent value="history">
             <Card>
-              <CardHeader className={isSmallScreen || isMobile ? 'p-3' : ''}>
-                <CardTitle className={isSmallScreen || isMobile ? 'text-lg' : ''}>Progress Charts</CardTitle>
-                <CardDescription>Visual representation of your health habits</CardDescription>
+              <CardHeader>
+                <CardTitle>Habit History</CardTitle>
               </CardHeader>
-              <CardContent className={isSmallScreen || isMobile ? 'p-3 pt-0' : ''}>
-                <HabitsProgressCharts />
+              <CardContent>
+                <div className="space-y-4">
+                  {habitSummary && habitSummary.length > 0 ? (
+                    habitSummary.map((day, index) => (
+                      <div key={index} className="flex items-center justify-between border-b pb-2">
+                        <div>
+                          <p className="font-medium">{format(new Date(day.date), 'EEEE, MMMM d')}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {day.completed} of {day.total} habits completed
+                          </p>
+                        </div>
+                        <div className="flex items-center">
+                          <Progress value={(day.completed / day.total) * 100} className="h-2 w-24 mr-2" />
+                          <span className="text-sm font-medium">{Math.round((day.completed / day.total) * 100)}%</span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center py-4">No history available yet.</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
           
-          <TabsContent value="plan" id="plan-section" className="min-h-[60vh]">
-            <Card className="mb-4">
+          <TabsContent value="all">
+            <Card>
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-green-500" />
-                  Recommended Health Plan
-                </CardTitle>
-                <CardDescription>
-                  Personalized recommendations from your care team
-                </CardDescription>
+                <CardTitle>All Assigned Habits</CardTitle>
               </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {habits && habits.length > 0 ? (
+                    habits.map(habit => (
+                      <div key={habit.id} className="flex items-center justify-between border-b pb-2">
+                        <div>
+                          <p className="font-medium">{habit.name}</p>
+                          <p className="text-sm text-muted-foreground">{habit.description}</p>
+                        </div>
+                        <div>
+                          {habit.frequency && (
+                            <span className="text-xs bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                              {habit.frequency}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center py-4">No habits assigned yet.</p>
+                  )}
+                </div>
+              </CardContent>
             </Card>
-            
-            <DetailedHealthPlan
-              groupedItems={nutritionistItems}
-              typeIcons={typeIcons}
-              onSetupReminder={setupReminder}
-              onMarkComplete={(item) => {
-                setSelectedItem(item);
-                setNewLogValue(0);
-                setNewLogNotes("");
-                setCompletionDialogOpen(true);
-              }}
-              emptyMessage="No recommendations from your care team yet."
-            />
-          </TabsContent>
-          
-          <TabsContent value="my-habits" id="my-habits-section" className="min-h-[60vh]">
-            <Card className="mb-4">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="h-5 w-5 text-[#9b87f5]" />
-                  My Personal Habits
-                </CardTitle>
-                <CardDescription>
-                  Habits you've created to track your personal health goals
-                </CardDescription>
-              </CardHeader>
-            </Card>
-            
-            <DetailedHealthPlan
-              groupedItems={patientItems}
-              typeIcons={typeIcons}
-              onSetupReminder={setupReminder}
-              onMarkComplete={(item) => {
-                setSelectedItem(item);
-                setNewLogValue(0);
-                setNewLogNotes("");
-                setCompletionDialogOpen(true);
-              }}
-              emptyMessage="You haven't added any personal habits yet. Click the 'Add Habit' button to get started."
-              isPatientCreated={true}
-            />
           </TabsContent>
         </Tabs>
-        
-        {/* Set Reminder Dialog */}
-        <ReminderDialog
-          open={reminderDialogOpen}
-          onOpenChange={setReminderDialogOpen}
-          selectedReminder={selectedReminder}
-          onSaveReminder={saveReminder}
-          typeIcons={typeIcons}
-        />
-        
-        {/* Mark as Complete Dialog */}
-        <CompletionDialog
-          open={completionDialogOpen}
-          onOpenChange={setCompletionDialogOpen}
-          selectedItem={selectedItem}
-          newLogValue={newLogValue}
-          setNewLogValue={setNewLogValue}
-          newLogNotes={newLogNotes}
-          setNewLogNotes={setNewLogNotes}
-          onMarkAsCompleted={markAsCompleted}
-          typeIcons={typeIcons}
-        />
-        
-        {/* Add Habit Dialog */}
-        <AddHabitDialog
-          open={addHabitDialogOpen}
-          onOpenChange={setAddHabitDialogOpen}
-          onHabitAdded={refetchHealthPlanItems}
-        />
-      </div>
-      
-      {/* Add mobile navigation component for both mobile and tablet */}
-      {isMobileOrTablet && <MobileNavigation />}
-    </div>
+      </ErrorBoundary>
+    </PatientPageLayout>
   );
 };
 
