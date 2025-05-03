@@ -5,7 +5,7 @@ import './styles/ai-chat.css';
 import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from './components/ui/theme-provider';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ResponsiveProvider } from './contexts/ResponsiveContext';
 import { Navbar } from './components/Navbar';
 import { AppRoutes } from './routes/AppRoutes';
