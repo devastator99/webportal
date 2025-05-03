@@ -1,7 +1,9 @@
+
 import { useAuth, UserRoleEnum } from '@/contexts/AuthContext';
 import { Navigate, useParams } from 'react-router-dom';
 import PatientPrescriptionsPage from '@/pages/PatientPrescriptionsPage';
 import { PatientPageLayout } from '@/components/layout/PatientPageLayout';
+import { PrescriptionsView } from '@/components/prescriptions/PrescriptionsView';
 
 /**
  * This route component determines how to display prescriptions
@@ -20,13 +22,13 @@ const PatientPrescriptionsRoute = () => {
         title="My Prescriptions"
         description="View your medical prescriptions and medications"
       >
-        <PatientPrescriptionsPage />
+        <PrescriptionsView />
       </PatientPageLayout>
     );
   }
   
-  // Otherwise, let the PatientPrescriptionsPage handle the layout
-  return <PatientPrescriptionsPage />;
+  // For doctors and other roles, return the centralized prescriptions view
+  return <PrescriptionsView />;
 };
 
 export default PatientPrescriptionsRoute;

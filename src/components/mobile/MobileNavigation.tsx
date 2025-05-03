@@ -35,7 +35,7 @@ export const MobileNavigation: React.FC = () => {
 
   // Function to check if a path is active, including handling nested routes
   const isPathActive = (path: string): boolean => {
-    // Special case for videos page to ensure it's recognized
+    // Special case for videos page to ensure it's recognized correctly
     if (path === '/videos' && location.pathname === '/videos') {
       return true;
     }
