@@ -1,7 +1,8 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import AuthService, { UserRole } from '@/services/AuthService';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 // Define UserRole enum for value references (keep existing enum)
 export enum UserRoleEnum {
@@ -52,6 +53,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const authServiceRef = useRef<AuthService>(AuthService.getInstance());
   const authStateInitializedRef = useRef(false);
   
+  // Setup cross-tab signout listener
+  useEffect(() => {
+    // Listen for signout events from other tabs
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key === 'auth_signout_broadcast' && user) {
+        console.log('Received sign-out broadcast from another tab');
+        // Perform local signout without redirecting
+        setUser(null);
+        setSession(null);
+        setUserRole(null);
+        // Show notification
+        toast.info('Signed out in another tab');
+      }
+    };
+
+    // Listen for BroadcastChannel if available
+    let bc: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      bc = new BroadcastChannel('auth_signout_channel');
+      bc.onmessage = (event) => {
+        if (event.data === 'signout' && user) {
+          console.log('Received sign-out broadcast via BroadcastChannel');
+          // Perform local signout without redirecting
+          setUser(null);
+          setSession(null);
+          setUserRole(null);
+          // Show notification
+          toast.info('Signed out in another tab');
+        }
+      };
+    }
+
+    // Add storage event listener for browsers without BroadcastChannel
+    window.addEventListener('storage', handleStorageChange);
+
+    // Clean up
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      if (bc) bc.close();
+    };
+  }, [user]);
+  
   // Initialize auth state only once
   useEffect(() => {
     if (authStateInitializedRef.current) return;
@@ -77,34 +120,48 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (user) {
       authServiceRef.current.setupInactivityTimer(signOut);
+      
+      // Add activity listeners to reset timer
+      const handleActivity = () => resetInactivityTimer();
+      window.addEventListener('mousemove', handleActivity);
+      window.addEventListener('keydown', handleActivity);
+      window.addEventListener('touchstart', handleActivity);
+      window.addEventListener('click', handleActivity);
+      
+      return () => {
+        window.removeEventListener('mousemove', handleActivity);
+        window.removeEventListener('keydown', handleActivity);
+        window.removeEventListener('touchstart', handleActivity);
+        window.removeEventListener('click', handleActivity);
+      };
     }
   }, [user]);
   
   // Reset inactivity timer - memoized through the ref to prevent unnecessary re-renders
-  const resetInactivityTimer = () => {
+  const resetInactivityTimer = useCallback(() => {
     if (user) {
       authServiceRef.current.resetInactivityTimer(signOut);
     }
-  };
+  }, [user]);
   
   // IMPROVED Sign out function with proper transaction handling
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       await authServiceRef.current.signOut();
     } catch (error) {
       console.error("Error during sign out:", error);
     }
-  };
+  }, []);
   
   // Force sign out (for admins)
-  const forceSignOut = async () => {
+  const forceSignOut = useCallback(async () => {
     try {
       await authServiceRef.current.signOut(true);
     } catch (error) {
       console.error("Error during force sign out:", error);
       throw error;
     }
-  };
+  }, []);
   
   const value = {
     user,

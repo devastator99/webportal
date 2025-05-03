@@ -1,3 +1,4 @@
+
 import './App.css';
 import './styles/glass.css';
 import './styles/ai-chat.css';
@@ -65,6 +66,31 @@ function ConditionalNavbar() {
   return <Navbar />;
 }
 
+// SessionManager to handle browser events for authentication
+function SessionManager() {
+  const { user, signOut } = useAuth();
+  
+  useEffect(() => {
+    // No need for handling beforeunload as we're doing it in AuthService
+    
+    // Handle page visibility changes for session validation
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && user) {
+        console.log('Tab became visible, checking session validity');
+        // We could add additional session validation here if needed
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [user, signOut]);
+
+  return null; // This is just a behavior component, no rendering
+}
+
 function App() {
   const [chatEnabled] = useState(false);
   const [chatbotWidgetEnabled] = useState(false);
@@ -78,6 +104,7 @@ function App() {
           <Router>
             <PasswordResetRedirect />
             <AuthProvider>
+              <SessionManager />
               <ConditionalNavbar />
               <ErrorBoundary fallback={
                 <div className="container mx-auto p-4 mt-24 text-center">

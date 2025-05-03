@@ -168,6 +168,13 @@ export const MobileNavigation: React.FC = () => {
           action: () => navigate('/'),
           active: isPathActive('/'),
           disabled: false
+        },
+        {
+          label: 'Login',
+          icon: LogOut,
+          action: () => navigate('/auth'),
+          active: isPathActive('/auth'),
+          disabled: false
         }
       ];
 

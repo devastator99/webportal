@@ -16,10 +16,12 @@ class AuthService {
   private readonly INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
   private signingOut = false;
   private signOutPromise: Promise<void> | null = null;
+  private windowEventHandlersAttached = false;
   
   // Private constructor for singleton pattern
   private constructor() {
     this.setupSupabaseClient();
+    this.setupWindowEventHandlers();
   }
 
   // Get singleton instance
@@ -34,6 +36,44 @@ class AuthService {
   private setupSupabaseClient(): void {
     // Service is using the already configured supabase client
     console.log('AuthService initialized');
+  }
+  
+  // Setup window event handlers to handle page close/refresh
+  private setupWindowEventHandlers(): void {
+    if (typeof window !== 'undefined' && !this.windowEventHandlersAttached) {
+      // Handle beforeunload event (page close/refresh)
+      window.addEventListener('beforeunload', () => {
+        // Only attempt cleanup if user is logged in
+        if (supabase.auth.getSession().then(({ data }) => data.session)) {
+          // We don't want to block page unload with async operations
+          // Just clear local timers and state
+          this.clearInactivityTimer();
+        }
+      });
+      
+      // Handle visibility change (tab switching)
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          // When tab becomes visible, validate the session
+          this.validateSession();
+        }
+      });
+      
+      // Track that handlers are attached
+      this.windowEventHandlersAttached = true;
+      console.log('Window event handlers attached for auth state management');
+    }
+  }
+  
+  // Validate the current session
+  private async validateSession(): Promise<boolean> {
+    try {
+      const { data } = await supabase.auth.getSession();
+      return !!data.session;
+    } catch (error) {
+      console.error('Error validating session:', error);
+      return false;
+    }
   }
 
   // Initialize auth state listeners
@@ -177,6 +217,51 @@ class AuthService {
     return this.signingOut;
   }
 
+  // Clear all auth-related localStorage items
+  private clearAuthLocalStorage(): void {
+    try {
+      // Clear Supabase-specific items
+      localStorage.removeItem('supabase.auth.token');
+      localStorage.removeItem('supabase.auth.expires_at');
+      localStorage.removeItem('supabase.auth.refresh_token');
+      
+      // Clear potential old format items
+      localStorage.removeItem('sb-refresh-token');
+      localStorage.removeItem('sb-access-token');
+      localStorage.removeItem('sb-provider-token');
+      localStorage.removeItem('sb-auth-token');
+      
+      // Clear project-specific items (use the correct project ref)
+      const projectRef = 'hcaqodjylicmppxcbqbh';
+      localStorage.removeItem(`sb-${projectRef}-auth-token`);
+      localStorage.removeItem(`sb-${projectRef}-provider-token`);
+      localStorage.removeItem(`sb-${projectRef}-access-token`);
+      localStorage.removeItem(`sb-${projectRef}-refresh-token`);
+      
+      console.log('Auth localStorage items cleared');
+    } catch (error) {
+      console.error('Error clearing auth localStorage:', error);
+    }
+  }
+  
+  // Broadcast sign-out event to other tabs
+  private broadcastSignOut(): void {
+    try {
+      // Use BroadcastChannel API if available
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('auth_signout_channel');
+        bc.postMessage('signout');
+        setTimeout(() => bc.close(), 1000);
+      } else {
+        // Fallback for browsers without BroadcastChannel API
+        localStorage.setItem('auth_signout_broadcast', Date.now().toString());
+        setTimeout(() => localStorage.removeItem('auth_signout_broadcast'), 1000);
+      }
+    } catch (error) {
+      console.error('Error broadcasting sign out:', error);
+    }
+  }
+
   // Sign out user with proper transaction handling
   public async signOut(forceSignOut = false): Promise<void> {
     // Prevent multiple sign-out attempts running simultaneously
@@ -196,6 +281,9 @@ class AuthService {
         this.clearInactivityTimer();
         
         toast.info("Signing out...");
+        
+        // Broadcast sign-out event to other tabs
+        this.broadcastSignOut();
         
         // Sign out from Supabase with retry
         let attempts = 0;
@@ -228,13 +316,13 @@ class AuthService {
         }
         
         // Clear any local storage items that might contain auth state
-        localStorage.removeItem('supabase.auth.token');
+        this.clearAuthLocalStorage();
+        
+        // Return to landing page
+        toast.success("Successfully signed out");
         
         // Navigate after successful sign out with delay to ensure state updates
         // are processed
-        toast.success("Successfully signed out");
-        
-        // Return to landing page
         setTimeout(() => {
           window.location.href = '/';
         }, 300);
