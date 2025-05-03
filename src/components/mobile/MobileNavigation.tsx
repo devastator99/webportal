@@ -133,7 +133,7 @@ export const MobileNavigation: React.FC = () => {
     {
       label: 'Profile',
       icon: UserRound,
-      action: () => navigate('/user-profile'), // Fixed: Route to user-profile instead of dashboard
+      action: () => navigate('/user-profile'),
       active: isPathActive('/user-profile'),
       disabled: false
     },
