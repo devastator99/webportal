@@ -79,25 +79,36 @@ export function PatientSidebar() {
               isActive={location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)}
               tooltip={item.title}
             >
-              <Link
-                to={item.path}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors",
-                  (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
-                    ? "bg-[#9b87f5] text-white"
-                    : "text-[#7E69AB] hover:bg-[#E5DEFF]"
-                )}
-                onClick={(e) => {
-                  if (item.path === '/videos') {
-                    e.preventDefault();
+              {item.path === '/videos' ? (
+                <div
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors cursor-pointer",
+                    (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
+                      ? "bg-[#9b87f5] text-white"
+                      : "text-[#7E69AB] hover:bg-[#E5DEFF]"
+                  )}
+                  onClick={() => {
                     console.log('Navigating to /videos from sidebar');
                     navigate('/videos');
-                  }
-                }}
-              >
-                <item.icon className="h-5 w-5" />
-                <span>{item.title}</span>
-              </Link>
+                  }}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.title}</span>
+                </div>
+              ) : (
+                <Link
+                  to={item.path}
+                  className={cn(
+                    "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors",
+                    (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
+                      ? "bg-[#9b87f5] text-white"
+                      : "text-[#7E69AB] hover:bg-[#E5DEFF]"
+                  )}
+                >
+                  <item.icon className="h-5 w-5" />
+                  <span>{item.title}</span>
+                </Link>
+              )}
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}

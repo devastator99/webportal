@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useAuth } from '@/contexts/AuthContext';
 import { PatientPageLayout } from '@/components/layout/PatientPageLayout';
@@ -8,6 +8,11 @@ import { Video } from 'lucide-react';
 
 const VideosPage: React.FC = () => {
   const { user, userRole } = useAuth();
+  
+  // Log when the component mounts for debugging purposes
+  useEffect(() => {
+    console.log('VideosPage mounted successfully');
+  }, []);
 
   // Layout wrapper based on user role
   const ContentWrapper = ({ children }: { children: React.ReactNode }) => {

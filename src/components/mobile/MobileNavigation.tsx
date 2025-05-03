@@ -54,6 +54,13 @@ export const MobileNavigation: React.FC = () => {
     return location.pathname === path;
   };
 
+  // Custom navigation handler for videos page to ensure it works correctly
+  const handleVideosNavigation = () => {
+    console.log('MobileNavigation: Navigating to /videos');
+    // Force a direct navigation to ensure we're loading the correct component
+    window.location.href = '/videos';
+  };
+
   // Get correct patient prescriptions path
   const getPrescriptionsPath = () => {
     if (userRole === 'patient' && user?.id) {
@@ -94,10 +101,7 @@ export const MobileNavigation: React.FC = () => {
     {
       label: 'Videos',
       icon: Video,
-      action: () => {
-        console.log('Navigating to /videos');
-        navigate('/videos');
-      },
+      action: handleVideosNavigation,
       active: isPathActive('/videos'),
       disabled: false
     },
@@ -128,10 +132,7 @@ export const MobileNavigation: React.FC = () => {
     {
       label: 'Videos',
       icon: Video,
-      action: () => {
-        console.log('Navigating to /videos');
-        navigate('/videos');
-      },
+      action: handleVideosNavigation,
       active: isPathActive('/videos'),
       disabled: false
     },
