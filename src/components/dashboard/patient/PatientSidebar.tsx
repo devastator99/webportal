@@ -1,4 +1,3 @@
-
 import { Home, MessageCircle, FileText, Activity, Video, UserRound, Menu } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -79,36 +78,18 @@ export function PatientSidebar() {
               isActive={location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)}
               tooltip={item.title}
             >
-              {item.path === '/videos' ? (
-                <div
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors cursor-pointer",
-                    (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
-                      ? "bg-[#9b87f5] text-white"
-                      : "text-[#7E69AB] hover:bg-[#E5DEFF]"
-                  )}
-                  onClick={() => {
-                    console.log('Navigating to /videos from sidebar');
-                    navigate('/videos');
-                  }}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.title}</span>
-                </div>
-              ) : (
-                <Link
-                  to={item.path}
-                  className={cn(
-                    "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors",
-                    (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
-                      ? "bg-[#9b87f5] text-white"
-                      : "text-[#7E69AB] hover:bg-[#E5DEFF]"
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  <span>{item.title}</span>
-                </Link>
-              )}
+              <Link
+                to={item.path}
+                className={cn(
+                  "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors",
+                  (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
+                    ? "bg-[#9b87f5] text-white"
+                    : "text-[#7E69AB] hover:bg-[#E5DEFF]"
+                )}
+              >
+                <item.icon className="h-5 w-5" />
+                <span>{item.title}</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
