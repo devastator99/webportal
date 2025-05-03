@@ -9,13 +9,29 @@ import { Video } from 'lucide-react';
 const VideosPage: React.FC = () => {
   const { user, userRole } = useAuth();
 
-  if (!user) return null;
+  // Layout wrapper based on user role
+  const ContentWrapper = ({ children }: { children: React.ReactNode }) => {
+    if (userRole === 'patient') {
+      return (
+        <PatientPageLayout
+          title="Educational Videos"
+          description="Watch educational videos about health and wellness"
+        >
+          {children}
+        </PatientPageLayout>
+      );
+    }
+    
+    return (
+      <div className="container mx-auto px-4 py-6 mt-14 md:mt-16">
+        <h1 className="text-2xl font-bold mb-6">Educational Videos</h1>
+        {children}
+      </div>
+    );
+  };
 
   return (
-    <PatientPageLayout
-      title="Educational Videos"
-      description="Watch educational videos about health and wellness"
-    >
+    <ContentWrapper>
       <ErrorBoundary>
         <div className="flex items-center gap-2 mb-6">
           <Video className="h-5 w-5 text-[#7E69AB]" />
@@ -40,7 +56,7 @@ const VideosPage: React.FC = () => {
           </CardContent>
         </Card>
       </ErrorBoundary>
-    </PatientPageLayout>
+    </ContentWrapper>
   );
 };
 

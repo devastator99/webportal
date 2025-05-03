@@ -87,6 +87,13 @@ export function PatientSidebar() {
                     ? "bg-[#9b87f5] text-white"
                     : "text-[#7E69AB] hover:bg-[#E5DEFF]"
                 )}
+                onClick={(e) => {
+                  if (item.path === '/videos') {
+                    e.preventDefault();
+                    console.log('Navigating to /videos from sidebar');
+                    navigate('/videos');
+                  }
+                }}
               >
                 <item.icon className="h-5 w-5" />
                 <span>{item.title}</span>

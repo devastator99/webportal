@@ -1,4 +1,3 @@
-
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,6 +13,7 @@ import Dashboard from '@/pages/Dashboard';
 import PatientPrescriptionsRoute from '@/routes/PatientPrescriptionsRoute';
 import VerifyCodePage from '@/pages/VerifyCodePage';
 import { ForgotPasswordRouteWrapper } from '@/pages/ForgotPasswordRouteWrapper';
+import VideosPage from '@/pages/VideosPage';
 
 // Lazy loaded components
 const ChatPage = lazy(() => import('@/pages/ChatPage'));
@@ -23,7 +23,6 @@ const MessageSearchPage = lazy(() => import('@/pages/MessageSearchPage'));
 const PatientHabitsPage = lazy(() => import('@/pages/PatientHabitsPage'));
 const PatientPrescriptionsPage = lazy(() => import('@/pages/PatientPrescriptionsPage'));
 const PatientProfilePage = lazy(() => import('@/pages/PatientProfilePage'));
-const VideosPage = lazy(() => import('@/pages/VideosPage'));
 
 export const AppRoutes = () => {
   const { userRole } = useAuth();
