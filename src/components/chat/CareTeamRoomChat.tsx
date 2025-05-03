@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -5,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, ArrowDown, Brain, User, Users } from "lucide-react";
+import { Loader2, Send, ArrowDown, Brain, User, Users, Sparkles } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -15,6 +16,7 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { groupMessagesByDate, safeParseISO } from "@/utils/dateUtils";
 import { ChatInput } from "./ChatInput";
+import { cn } from "@/lib/utils";
 
 interface RoomMessage {
   id: string;
@@ -57,6 +59,7 @@ export const CareTeamRoomChat = ({
   const [isLoading, setIsLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [isAiTyping, setIsAiTyping] = useState(false);
 
   const { data: roomDetails } = useQuery({
     queryKey: ["care_team_room", selectedRoomId],
@@ -260,7 +263,12 @@ export const CareTeamRoomChat = ({
       
       queryClient.invalidateQueries({ queryKey: ["room_messages", selectedRoomId] });
       
-      if (message.toLowerCase().includes('@ai') || message.toLowerCase().includes('@assistant')) {
+      // Check if the message includes an AI command
+      const hasAiCommand = message.toLowerCase().includes('@ai') || message.toLowerCase().includes('@assistant');
+      
+      if (hasAiCommand) {
+        setIsAiTyping(true);
+        
         try {
           const { data: aiResponse, error: aiError } = await supabase.functions.invoke(
             'care-team-ai-chat',
@@ -275,9 +283,11 @@ export const CareTeamRoomChat = ({
           
           setTimeout(() => {
             queryClient.invalidateQueries({ queryKey: ["room_messages", selectedRoomId] });
+            setIsAiTyping(false);
           }, 1000);
         } catch (aiErr) {
           console.error("Error invoking AI chat:", aiErr);
+          setIsAiTyping(false);
         }
       }
     } catch (error) {
@@ -315,6 +325,18 @@ export const CareTeamRoomChat = ({
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  // Highlight AI commands in a message
+  const formatMessageWithAiHighlight = (text: string) => {
+    if (!text) return text;
+    
+    // Look for @ai or @assistant mentions
+    const aiPattern = /(@ai|@assistant)/gi;
+    
+    return text.replace(aiPattern, (match) => {
+      return `<span class="ai-command-highlight">${match}</span>`;
+    });
   };
 
   const messageGroups = groupMessagesByDate(messages);
@@ -388,21 +410,30 @@ export const CareTeamRoomChat = ({
                             return (
                               <div
                                 key={msg.id}
-                                className={`flex ${isSelf ? 'justify-end' : 'justify-start'} message-item my-2`}
+                                className={cn(
+                                  "flex message-item my-2",
+                                  isSelf ? "justify-end" : "justify-start",
+                                  !isSystem && isAI && !isSelf && "ai-message-container",
+                                  "bubble-in"
+                                )}
                                 id={`message-${msg.id}`}
                               >
                                 <div className="flex gap-2 max-w-[80%]">
                                   {!isSelf && !isSystem && (
-                                    <Avatar className="h-8 w-8 flex-shrink-0">
+                                    <Avatar className={cn("h-8 w-8 flex-shrink-0", isAI && "ring-2 ring-purple-200 ring-offset-1")}>
                                       <AvatarFallback className={getAvatarColorClass(msg.sender_role)}>
-                                        {isAI ? <Brain className="h-4 w-4" /> : getInitials(msg.sender_name)}
+                                        {isAI ? <Sparkles className="h-4 w-4" /> : getInitials(msg.sender_name)}
                                       </AvatarFallback>
                                     </Avatar>
                                   )}
                                   
                                   <div>
                                     {!isSelf && !isSystem && (
-                                      <div className="text-xs font-medium mb-1">
+                                      <div className={cn(
+                                        "text-xs font-medium mb-1 flex items-center",
+                                        isAI && "text-purple-700 dark:text-purple-400"
+                                      )}>
+                                        {isAI && <Sparkles className="h-3 w-3 mr-1" />}
                                         {msg.sender_name}
                                         <span className="text-xs text-muted-foreground ml-1">
                                           {msg.sender_role}
@@ -411,20 +442,33 @@ export const CareTeamRoomChat = ({
                                     )}
                                     
                                     <div
-                                      className={`rounded-lg p-3 text-sm shadow-sm relative
-                                        ${isSystem 
-                                          ? 'bg-blue-100/70 dark:bg-blue-900/20 text-center mx-auto' 
+                                      className={cn(
+                                        "rounded-lg p-3 text-sm shadow-sm relative",
+                                        isSystem 
+                                          ? "bg-blue-100/70 dark:bg-blue-900/20 text-center mx-auto" 
                                           : isSelf
-                                          ? 'bg-[#9b87f5]/90 text-white' 
-                                          : isAI
-                                            ? 'bg-purple-50/80 dark:bg-purple-900/10'
-                                            : 'bg-neutral-100/80 dark:bg-neutral-800/50'}
-                                      `}
+                                            ? "bg-[#9b87f5]/90 text-white" 
+                                            : isAI
+                                              ? "bg-purple-50/80 dark:bg-purple-900/10"
+                                              : "bg-neutral-100/80 dark:bg-neutral-800/50",
+                                        isAI && !isSelf && !isSystem && "border border-purple-100 dark:border-purple-900/30"
+                                      )}
                                     >
                                       {isAI && (
-                                        <Brain className="h-3 w-3 absolute top-2 right-2 text-purple-500" />
+                                        <Sparkles className="h-3 w-3 absolute top-2 right-2 text-purple-500" />
                                       )}
-                                      {msg.message}
+                                      
+                                      <div 
+                                        className={cn(
+                                          isAI && !isSelf && "leading-relaxed"
+                                        )}
+                                        dangerouslySetInnerHTML={{ 
+                                          __html: isSelf 
+                                            ? formatMessageWithAiHighlight(msg.message) 
+                                            : msg.message 
+                                        }}
+                                      />
+                                      
                                       <div className="text-xs opacity-70 mt-1">
                                         {format(safeParseISO(msg.created_at), 'h:mm a')}
                                       </div>
@@ -439,6 +483,25 @@ export const CareTeamRoomChat = ({
                   })}
               </ErrorBoundary>
             )}
+            
+            {isAiTyping && (
+              <div className="ai-typing ml-10">
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="bg-purple-100 text-purple-800">
+                      <Sparkles className="h-3 w-3" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex items-center">
+                    <span className="text-xs text-muted-foreground mr-2">AI is thinking</span>
+                    <div className="ai-typing-dot"></div>
+                    <div className="ai-typing-dot"></div>
+                    <div className="ai-typing-dot"></div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             <div ref={endRef} />
           </div>
         </ScrollArea>
@@ -460,8 +523,8 @@ export const CareTeamRoomChat = ({
           value={message}
           onChange={setMessage}
           onSend={handleSendMessage}
-          disabled={isLoading || !selectedRoomId}
-          isLoading={isLoading}
+          disabled={isLoading || !selectedRoomId || isAiTyping}
+          isLoading={isLoading || isAiTyping}
           placeholder="Type a message... (Use @AI to ask the AI assistant)"
         />
       </div>

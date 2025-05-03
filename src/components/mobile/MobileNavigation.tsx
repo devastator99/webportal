@@ -107,6 +107,13 @@ export const MobileNavigation: React.FC = () => {
       action: () => navigate('/patient-profile'),
       active: isPathActive('/patient-profile'),
       disabled: false
+    },
+    {
+      label: 'Sign Out',
+      icon: LogOut,
+      action: handleSignOut,
+      active: false,
+      disabled: isSigningOut
     }
   ];
   

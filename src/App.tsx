@@ -1,6 +1,6 @@
-
 import './App.css';
 import './styles/glass.css';
+import './styles/ai-chat.css';
 import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from './components/ui/theme-provider';

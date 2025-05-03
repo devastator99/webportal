@@ -1,0 +1,146 @@
+
+/* AI Chat Interface styling */
+.ai-message-container {
+  position: relative;
+  transition: all 0.2s ease-in-out;
+}
+
+.ai-message-container::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  height: 0%;
+  width: 3px;
+  background: linear-gradient(to bottom, rgba(139, 92, 246, 0), rgba(139, 92, 246, 0.6), rgba(139, 92, 246, 0));
+  transition: height 0.3s ease-in-out;
+  transform: translateY(-50%);
+  opacity: 0;
+  border-radius: 3px;
+}
+
+.ai-message-container:hover::before {
+  height: 80%;
+  opacity: 1;
+}
+
+.ai-typing {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 1rem;
+  background-color: rgba(139, 92, 246, 0.1);
+  margin: 0.5rem 0;
+  width: fit-content;
+}
+
+.ai-typing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: rgba(139, 92, 246, 0.6);
+  margin: 0 1px;
+  animation: ai-typing 1.4s infinite ease-in-out;
+}
+
+.ai-typing-dot:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.ai-typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.ai-typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes ai-typing {
+  0%, 60%, 100% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Message date groups */
+.message-date-group {
+  position: relative;
+  margin: 1.5rem 0;
+  transition: opacity 0.3s ease;
+}
+
+.message-date-divider {
+  display: flex;
+  align-items: center;
+  margin: 1.5rem 0 1rem;
+  opacity: 0.7;
+}
+
+.message-date-divider::before,
+.message-date-divider::after {
+  content: '';
+  flex-grow: 1;
+  height: 1px;
+  background-color: rgba(156, 163, 175, 0.3);
+}
+
+.message-date-label {
+  padding: 0 0.75rem;
+  font-size: 0.8rem;
+  color: rgb(107, 114, 128);
+  background-color: white;
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.dark .message-date-label {
+  background-color: rgb(30, 30, 30);
+  color: rgb(156, 163, 175);
+}
+
+/* Message highlights */
+.highlight-message {
+  animation: highlight-pulse 2s ease-in-out;
+}
+
+@keyframes highlight-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(139, 92, 246, 0.2);
+  }
+}
+
+/* Bubble animations */
+.bubble-in {
+  animation: bubble-in 0.3s ease-out forwards;
+  transform-origin: bottom left;
+  opacity: 0;
+}
+
+.sent.bubble-in {
+  transform-origin: bottom right;
+}
+
+@keyframes bubble-in {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* AI command highlight */
+.ai-command-highlight {
+  background-color: rgba(139, 92, 246, 0.1);
+  border-radius: 0.25rem;
+  padding: 0 0.25rem;
+  font-family: monospace;
+}
