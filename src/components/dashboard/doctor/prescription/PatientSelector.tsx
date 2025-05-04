@@ -19,7 +19,7 @@ interface PatientProfile {
 interface PatientSelectorProps {
   selectedPatient: string;
   setSelectedPatient: (id: string) => void;
-  onPatientSelect: () => void;
+  onPatientSelect: (patientData: any) => void;
 }
 
 export const PatientSelector = ({ 
@@ -103,7 +103,7 @@ export const PatientSelector = ({
                       onSelect={() => {
                         setSelectedPatient(patient.id);
                         setPatientSearchOpen(false);
-                        onPatientSelect();
+                        onPatientSelect(patient);
                       }}
                     >
                       {patient.first_name || "Unknown"} {patient.last_name || ""}

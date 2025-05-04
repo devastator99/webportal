@@ -59,6 +59,7 @@ export const PrescriptionWriter: React.FC<PrescriptionWriterProps> = ({
     }
   }, [initialPatientId, initialPatientInfo]);
 
+  // Fix the type signature by changing the function to accept a parameter
   const onPatientSelect = (patientData: any) => {
     setActiveTab("write");
     setSavedPrescriptionId(null);

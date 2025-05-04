@@ -55,6 +55,7 @@ export const usePrescriptions = () => {
     try {
       setIsLoading(true);
 
+      // Cast the complex objects to unknown first, then to any to satisfy TypeScript's Json type requirements
       const { data: result, error } = await supabase.rpc(
         'save_structured_prescription',
         {
@@ -62,12 +63,12 @@ export const usePrescriptions = () => {
           p_doctor_id: user.id,
           p_diagnosis: data.diagnosis,
           p_notes: data.notes || null,
-          p_vitals: data.vitals || null,
+          p_vitals: data.vitals as unknown as Record<string, any>,
           p_follow_up_date: data.follow_up_date || null,
           p_validity_period: data.validity_period || 30,
           p_format_type: data.format_type || 'standard',
-          p_medications: data.medications || [],
-          p_tests: data.tests || []
+          p_medications: data.medications as unknown as Record<string, any>[],
+          p_tests: data.tests as unknown as Record<string, any>[]
         }
       );
 
