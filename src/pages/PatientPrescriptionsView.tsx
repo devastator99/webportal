@@ -8,7 +8,6 @@ import { FileText, Download, Printer, Share2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { generatePdfFromElement } from '@/utils/pdfUtils';
-import { DashboardResponsiveLayout } from "@/components/layout/DashboardResponsiveLayout";
 
 const PatientPrescriptionsView = () => {
   const { user } = useAuth();
@@ -66,36 +65,34 @@ const PatientPrescriptionsView = () => {
       description="View and manage your prescriptions"
       showHeader
     >
-      <DashboardResponsiveLayout className="w-full max-w-full" withPadding fullHeight>
-        <div className="w-full max-w-full space-y-6">
-          {/* Heading */}
-          <div>
-            <h1 className="text-2xl font-bold text-amber-700 mb-1">Your Prescriptions</h1>
-            <p className="text-gray-600">Access and manage all your health plan information</p>
-          </div>
-          
-          {/* Main Content */}
-          <div id="prescription-content" className="w-full max-w-full">
-            {patientId && <PrescriptionTabsViewer patientId={patientId} className="w-full max-w-full" />}
-          </div>
-          
-          {/* Action Buttons */}
-          <div className="w-full flex flex-wrap justify-end gap-2 print:hidden">
-            <Button variant="outline" size="sm" onClick={handlePrint}>
-              <Printer className="h-4 w-4 mr-2" />
-              Print
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleDownloadPdf}>
-              <Download className="h-4 w-4 mr-2" />
-              Download PDF
-            </Button>
-            <Button variant="outline" size="sm" onClick={handleShare}>
-              <Share2 className="h-4 w-4 mr-2" />
-              Share
-            </Button>
-          </div>
+      <div className="w-full h-full flex flex-col">
+        {/* Heading */}
+        <div className="w-full mb-6">
+          <h1 className="text-2xl font-bold text-amber-700 mb-1">Your Prescriptions</h1>
+          <p className="text-gray-600">Access and manage all your health plan information</p>
         </div>
-      </DashboardResponsiveLayout>
+        
+        {/* Main Content - Ensuring full width */}
+        <div id="prescription-content" className="w-full flex-1">
+          {patientId && <PrescriptionTabsViewer patientId={patientId} className="w-full" />}
+        </div>
+        
+        {/* Action Buttons */}
+        <div className="w-full flex flex-wrap justify-end gap-2 print:hidden mt-6">
+          <Button variant="outline" size="sm" onClick={handlePrint}>
+            <Printer className="h-4 w-4 mr-2" />
+            Print
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleDownloadPdf}>
+            <Download className="h-4 w-4 mr-2" />
+            Download PDF
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleShare}>
+            <Share2 className="h-4 w-4 mr-2" />
+            Share
+          </Button>
+        </div>
+      </div>
     </PatientAppLayout>
   );
 };
