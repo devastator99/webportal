@@ -15,7 +15,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import html2pdf from 'html2pdf.js';
 import { useBreakpoint } from "@/hooks/use-responsive";
-import { useIsMobileOrIPad } from "@/hooks/use-mobile";
+import { useIsMobileOrIPad, useIsMobile } from "@/hooks/use-mobile";
 
 interface Prescription {
   id: string;
@@ -56,6 +56,7 @@ const PatientPrescriptionsPage: React.FC = () => {
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
   const [manualError, setManualError] = useState<Error | null>(null);
   const isMobileOrTablet = useIsMobileOrIPad();
+  const isMobile = useIsMobile();
   
   // Effect to check if component is rendered
   useEffect(() => {
@@ -222,8 +223,8 @@ const PatientPrescriptionsPage: React.FC = () => {
               <TabsTrigger value="timeline" className={isSmallScreen ? 'w-full' : ''}>Timeline</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="list">
-              <div className="grid gap-4">
+            <TabsContent value="list" className="w-full">
+              <div className="grid gap-4 w-full">
                 {prescriptions.map((prescription) => (
                   <Card key={prescription.id} className="overflow-hidden">
                     <CardHeader className="pb-2">
@@ -297,8 +298,8 @@ const PatientPrescriptionsPage: React.FC = () => {
               </div>
             </TabsContent>
             
-            <TabsContent value="timeline">
-              <Card>
+            <TabsContent value="timeline" className="w-full">
+              <Card className="w-full">
                 <CardHeader>
                   <CardTitle>Prescription Timeline</CardTitle>
                   <CardDescription>View your prescription history over time</CardDescription>
