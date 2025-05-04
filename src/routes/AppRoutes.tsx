@@ -126,7 +126,17 @@ export const AppRoutes = () => {
           }
         />
         
-        {/* Updated route to allow both doctors and patients to view prescriptions */}
+        {/* Add direct route without patientId for patients viewing their own prescriptions */}
+        <Route
+          path="/prescriptions"
+          element={
+            <ProtectedRoute>
+              <PatientPrescriptionsRoute />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* Keep existing route for prescriptions with patientId for doctors/admins */}
         <Route
           path="/prescriptions/:patientId"
           element={

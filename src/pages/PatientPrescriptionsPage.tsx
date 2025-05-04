@@ -200,7 +200,11 @@ const PatientPrescriptionsPage: React.FC = () => {
   }
 
   return (
-    <PatientAppLayout showHeader title="My Prescriptions" description="View and download your prescriptions from your doctors.">
+    <PatientAppLayout
+      showHeader
+      title="My Prescriptions"
+      description="View and download your prescriptions from your doctors."
+    >
       <div className="space-y-6">
         {(!prescriptions || prescriptions.length === 0) ? (
           <Card>
