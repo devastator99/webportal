@@ -55,28 +55,30 @@ const VideosPage = () => {
   };
 
   return getLayout(
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
-      {videos.map((video) => (
-        <Card key={video.id} className="overflow-hidden">
-          <div className="relative aspect-video">
-            <img 
-              src={video.thumbnail} 
-              alt={video.title} 
-              className="w-full h-full object-cover"
-            />
-            <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 text-xs rounded">
-              {video.duration}
+    <div className="w-full max-w-[1200px] mx-auto px-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full">
+        {videos.map((video) => (
+          <Card key={video.id} className="overflow-hidden">
+            <div className="relative aspect-video">
+              <img 
+                src={video.thumbnail} 
+                alt={video.title} 
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 text-xs rounded">
+                {video.duration}
+              </div>
             </div>
-          </div>
-          <CardContent className="p-4">
-            <div className="text-sm text-[#9b87f5] mb-1">{video.category}</div>
-            <h3 className="font-semibold mb-2">{video.title}</h3>
-            <button className="w-full bg-[#9b87f5] text-white py-2 rounded hover:bg-[#7E69AB]">
-              Watch Now
-            </button>
-          </CardContent>
-        </Card>
-      ))}
+            <CardContent className="p-4">
+              <div className="text-sm text-[#9b87f5] mb-1">{video.category}</div>
+              <h3 className="font-semibold mb-2">{video.title}</h3>
+              <button className="w-full bg-[#9b87f5] text-white py-2 rounded hover:bg-[#7E69AB]">
+                Watch Now
+              </button>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 };

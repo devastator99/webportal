@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { PatientAppLayout } from "@/layouts/PatientAppLayout";
@@ -65,7 +66,7 @@ const PatientPrescriptionsView = () => {
       showHeader={false}
       fullWidth={true}
     >
-      <div className="w-full max-w-6xl mx-auto px-4 py-6">
+      <div className="w-full max-w-[1200px] mx-auto px-4 py-6">
         {/* Main Content - ensuring full width without any borders */}
         <div id="prescription-content" className="w-full">
           {patientId && <PrescriptionTabsViewer patientId={patientId} />}

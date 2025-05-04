@@ -16,7 +16,7 @@ const PatientHabitsPage = () => {
   
   return (
     <PatientAppLayout showHeader title="Health Habits" description="Track your daily health activities and see your progress" fullWidth={true}>
-      <div className="w-full">
+      <div className="w-full max-w-[1200px] mx-auto px-4">
         {isLoading ? (
           <div className="flex justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />

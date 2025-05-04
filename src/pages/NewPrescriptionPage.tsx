@@ -26,7 +26,7 @@ const NewPrescriptionPage: React.FC = () => {
   };
 
   return getLayout(
-    <div className="w-full max-w-7xl mx-auto">
+    <div className="w-full max-w-[1200px] mx-auto px-4">
       <UnderConstructionPage 
         title="Prescriptions Coming Soon" 
         description="We're working on enhancing your prescription experience. Please check back soon!"
