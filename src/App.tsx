@@ -1,3 +1,4 @@
+
 import './App.css';
 import './styles/glass.css';
 import './styles/ai-chat.css';
@@ -9,10 +10,9 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ResponsiveProvider } from './contexts/ResponsiveContext';
 import { Navbar } from './components/Navbar';
 import { AppRoutes } from './routes/AppRoutes';
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { MobileStatusBar } from './components/mobile/MobileStatusBar';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { NotificationBell } from './components/notifications/NotificationBell';
 import { AuthDebugMonitor } from './components/auth/AuthDebugMonitor';
 import { SidebarProvider } from './components/ui/sidebar';
 
@@ -92,11 +92,11 @@ function SessionManager() {
   return null; // This is just a behavior component, no rendering
 }
 
+// Main App component
 function App() {
-  const [chatEnabled] = useState(false);
-  const [chatbotWidgetEnabled] = useState(false);
-  const [chatbotVoiceEnabled] = useState(false);
-
+  // IMPORTANT: Don't define hooks outside of the component body
+  // These are moved inside the component function
+  
   return (
     <ThemeProvider defaultTheme="light" storageKey="theme">
       <ResponsiveProvider>

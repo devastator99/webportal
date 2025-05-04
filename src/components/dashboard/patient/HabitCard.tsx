@@ -6,14 +6,10 @@ import { format, startOfWeek, addDays } from 'date-fns';
 import { Calendar, Droplet, Activity, Apple, Brain, Moon } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { EditButton } from "@/components/ui/edit-button";
+import { HealthPlanItem } from '@/interfaces/HealthHabits';
 
 interface HabitCardProps {
-  habit: {
-    id: string;
-    type: string;
-    description: string;
-    frequency: string;
-  };
+  habit: HealthPlanItem;
   onComplete: (habitId: string, completed: boolean) => void;
   completed?: boolean;
 }
@@ -83,7 +79,9 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onComplete, complet
             const newProgress = { ...weeklyProgress };
             newProgress[i] = !newProgress[i];
             setWeeklyProgress(newProgress);
-            onComplete(habit.id, !weeklyProgress[i]);
+            if (habit.id) {
+              onComplete(habit.id, !weeklyProgress[i]);
+            }
           }}
         >
           <span className="text-sm font-medium">{dayName}</span>
@@ -105,7 +103,11 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onComplete, complet
           "w-8 h-8 rounded-full border cursor-pointer transition-all flex items-center justify-center",
           completed ? "bg-green-500 border-green-600" : "border-gray-300"
         )}
-        onClick={() => onComplete(habit.id, !completed)}
+        onClick={() => {
+          if (habit.id) {
+            onComplete(habit.id, !completed);
+          }
+        }}
       >
         {completed && (
           <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
