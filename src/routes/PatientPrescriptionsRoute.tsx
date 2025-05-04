@@ -2,7 +2,6 @@
 import { useAuth, UserRoleEnum } from '@/contexts/AuthContext';
 import { Navigate, useParams } from 'react-router-dom';
 import PatientPrescriptionsPage from '@/pages/PatientPrescriptionsPage';
-import { PatientPageLayout } from '@/components/layout/PatientPageLayout';
 import { PrescriptionsView } from '@/components/prescriptions/PrescriptionsView';
 
 /**
@@ -15,16 +14,10 @@ const PatientPrescriptionsRoute = () => {
   
   if (!user) return <Navigate to="/auth" replace />;
   
-  // If a patient is viewing their own prescriptions, we'll use the PatientPageLayout
+  // If a patient is viewing prescriptions (either their own or someone else's)
+  // we'll use the PatientPrescriptionsPage component which has the correct layout
   if (userRole === UserRoleEnum.PATIENT) {
-    return (
-      <PatientPageLayout
-        title="My Prescriptions"
-        description="View your medical prescriptions and medications"
-      >
-        <PrescriptionsView />
-      </PatientPageLayout>
-    );
+    return <PatientPrescriptionsPage />;
   }
   
   // For doctors and other roles, return the centralized prescriptions view

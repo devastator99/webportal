@@ -4,7 +4,7 @@ import { AppLayout } from "./AppLayout";
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { PatientSidebar } from "@/components/dashboard/patient/PatientSidebar";
 import { MobileNavigation } from "@/components/mobile/MobileNavigation";
-import { useIsMobileOrIPad } from "@/hooks/use-mobile";
+import { useIsMobile, useIsMobileOrIPad } from "@/hooks/use-mobile";
 
 interface PatientAppLayoutProps {
   children: ReactNode;
@@ -19,6 +19,7 @@ export function PatientAppLayout({
   title,
   description,
 }: PatientAppLayoutProps) {
+  const isMobile = useIsMobile();
   const isMobileOrTablet = useIsMobileOrIPad();
 
   return (
@@ -28,7 +29,7 @@ export function PatientAppLayout({
           <PatientSidebar />
           
           <div className={`flex-1 ${isMobileOrTablet ? "pb-20" : "pb-8"}`}>
-            <div className="container px-4 pt-16 pb-8">
+            <div className={`container ${isMobile ? "pt-16" : "pt-20"} px-4 pb-8`}>
               {showHeader && title && (
                 <div className="mb-6">
                   <h1 className="text-2xl font-bold">{title}</h1>

@@ -42,7 +42,8 @@ export function PatientSidebar() {
     {
       title: "Prescriptions",
       icon: FileText,
-      path: user?.id ? `/prescriptions/${user.id}` : "/prescriptions"
+      // Important: Fix the prescriptions route - don't include user ID in the path
+      path: "/prescriptions"
     },
     {
       title: "Habits",
