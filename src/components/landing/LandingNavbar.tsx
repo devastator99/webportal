@@ -1,7 +1,7 @@
+
 import React, { useCallback, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { AuthButton } from '@/components/auth/AuthButton';
 import { motion } from 'framer-motion';
 import '@/styles/glass.css';
 
@@ -69,15 +69,14 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ openAuthModal }) =
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div>
           <button
             onClick={handleStartClick}
-            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full px-6 py-2 font-medium hover:shadow-lg transition-all duration-300 hidden md:block"
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full px-6 py-2 font-medium hover:shadow-lg transition-all duration-300"
             disabled={isSigningOut}
           >
-            Start Today
+            {user ? "Dashboard" : "Start Today"}
           </button>
-          <AuthButton openAuthModal={openAuthModal} />
         </div>
       </div>
       
@@ -94,7 +93,7 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ openAuthModal }) =
             className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full w-full py-2 font-medium hover:shadow-lg transition-all duration-300 mt-2"
             disabled={isSigningOut}
           >
-            Start Today
+            {user ? "Dashboard" : "Start Today"}
           </button>
         </motion.div>
       )}
