@@ -1,4 +1,6 @@
 
+@import './components/ui/sidebar-variables.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
