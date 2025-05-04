@@ -128,9 +128,9 @@ export function PatientSidebar() {
     );
   }
 
-  // Desktop sidebar - making it thinner
+  // Desktop sidebar - using CSS variables for width
   return (
-    <Sidebar className="bg-white/10 backdrop-blur-lg border-r border-white/20" style={{ "--sidebar-width": "14rem" } as React.CSSProperties}>
+    <Sidebar className="bg-white/10 backdrop-blur-lg border-r border-white/20">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
