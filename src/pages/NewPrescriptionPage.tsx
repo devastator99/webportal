@@ -1,12 +1,9 @@
 
 import React from 'react';
 import { PatientAppLayout } from '@/layouts/PatientAppLayout';
-import { PrescriptionTabsViewer } from '@/components/prescriptions/PrescriptionTabsViewer';
-import { useAuth } from '@/contexts/AuthContext';
+import UnderConstructionPage from '@/components/common/UnderConstructionPage';
 
 const NewPrescriptionPage: React.FC = () => {
-  const { user } = useAuth();
-  
   return (
     <PatientAppLayout
       title="Prescriptions"
@@ -15,7 +12,10 @@ const NewPrescriptionPage: React.FC = () => {
       fullWidth
     >
       <div className="w-full max-w-7xl mx-auto">
-        {user?.id && <PrescriptionTabsViewer patientId={user.id} />}
+        <UnderConstructionPage 
+          title="Prescriptions Coming Soon" 
+          description="We're working on enhancing your prescription experience. Please check back soon!"
+        />
       </div>
     </PatientAppLayout>
   );
