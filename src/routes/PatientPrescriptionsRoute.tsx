@@ -1,25 +1,33 @@
 
 import { useAuth } from '@/contexts/AuthContext';
-import { Navigate } from 'react-router-dom';
-import UnderConstructionPage from '@/components/common/UnderConstructionPage';
-import { DashboardResponsiveLayout } from '@/components/layout/DashboardResponsiveLayout';
+import { Navigate, useParams } from 'react-router-dom';
+import { PatientAppLayout } from '@/layouts/PatientAppLayout';
+import { PrescriptionTabsViewer } from '@/components/prescriptions/PrescriptionTabsViewer';
 
 /**
- * This route component shows an Under Construction page
- * replacing the previous prescriptions view
+ * This route component shows patient prescriptions
+ * using the same layout as the videos page
  */
 const PatientPrescriptionsRoute = () => {
   const { user } = useAuth();
+  const { patientId } = useParams();
   
   if (!user) return <Navigate to="/auth" replace />;
   
+  // Use the current user's ID if no patientId is provided in the URL
+  const effectivePatientId = patientId || user.id;
+  
   return (
-    <DashboardResponsiveLayout fullHeight withPadding={false}>
-      <UnderConstructionPage 
-        title="Prescriptions Coming Soon" 
-        description="We're building an improved prescriptions experience for you."
-      />
-    </DashboardResponsiveLayout>
+    <PatientAppLayout
+      title="Prescriptions"
+      description="View and manage your prescriptions"
+      showHeader
+      fullWidth
+    >
+      <div className="w-full">
+        <PrescriptionTabsViewer patientId={effectivePatientId} />
+      </div>
+    </PatientAppLayout>
   );
 };
 
