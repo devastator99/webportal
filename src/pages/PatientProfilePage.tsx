@@ -2,7 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { PatientPageLayout } from '@/components/layout/PatientPageLayout';
+import { PatientAppLayout } from '@/layouts/PatientAppLayout';
 import { UserRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -18,9 +18,10 @@ const PatientProfilePage: React.FC = () => {
   }
 
   return (
-    <PatientPageLayout
+    <PatientAppLayout
       title="Your Profile"
       description="View and update your personal information"
+      showHeader
     >
       <div className="flex items-center gap-2 mb-6">
         <UserRound className="h-5 w-5 text-[#7E69AB]" />
@@ -69,7 +70,7 @@ const PatientProfilePage: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
-    </PatientPageLayout>
+    </PatientAppLayout>
   );
 };
 
