@@ -22,7 +22,7 @@ const PatientPrescriptionsRoute = () => {
       title="Prescriptions"
       description="View and manage your prescriptions"
       showHeader
-      fullWidth
+      fullWidth={true}
     >
       <div className="w-full">
         <PrescriptionTabsViewer patientId={effectivePatientId} />

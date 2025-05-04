@@ -10,7 +10,7 @@ const NewPrescriptionPage: React.FC = () => {
       title="Prescriptions"
       description="View your prescriptions and recommendations"
       showHeader
-      fullWidth
+      fullWidth={true}
     >
       <div className="w-full max-w-7xl mx-auto">
         <UnderConstructionPage 
