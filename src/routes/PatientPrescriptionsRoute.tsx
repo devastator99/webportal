@@ -1,8 +1,9 @@
 
-import { useAuth, UserRoleEnum } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import UnderConstructionPage from '@/components/common/UnderConstructionPage';
 import { PatientAppLayout } from '@/layouts/PatientAppLayout';
+import { DashboardResponsiveLayout } from '@/components/layout/DashboardResponsiveLayout';
 
 /**
  * This route component shows an Under Construction page
@@ -20,10 +21,12 @@ const PatientPrescriptionsRoute = () => {
       showHeader
       fullWidth
     >
-      <UnderConstructionPage 
-        title="Prescriptions Coming Soon" 
-        description="We're building an improved prescriptions experience for you."
-      />
+      <DashboardResponsiveLayout>
+        <UnderConstructionPage 
+          title="Prescriptions Coming Soon" 
+          description="We're building an improved prescriptions experience for you."
+        />
+      </DashboardResponsiveLayout>
     </PatientAppLayout>
   );
 };
