@@ -21,7 +21,7 @@ const Admin = lazy(() => import('@/pages/Admin'));
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const MessageSearchPage = lazy(() => import('@/pages/MessageSearchPage'));
 const PatientHabitsPage = lazy(() => import('@/pages/PatientHabitsPage'));
-const PatientPrescriptionsPage = lazy(() => import('@/pages/PatientPrescriptionsPage'));
+const PatientPrescriptionsView = lazy(() => import('@/pages/PatientPrescriptionsView'));
 const PatientProfilePage = lazy(() => import('@/pages/PatientProfilePage'));
 
 export const AppRoutes = () => {

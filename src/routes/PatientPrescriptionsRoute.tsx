@@ -1,7 +1,7 @@
 
 import { useAuth, UserRoleEnum } from '@/contexts/AuthContext';
 import { Navigate, useParams } from 'react-router-dom';
-import PatientPrescriptionsPage from '@/pages/PatientPrescriptionsPage';
+import PatientPrescriptionsView from '@/pages/PatientPrescriptionsView';
 import { PrescriptionsView } from '@/components/prescriptions/PrescriptionsView';
 
 /**
@@ -14,9 +14,9 @@ const PatientPrescriptionsRoute = () => {
   
   if (!user) return <Navigate to="/auth" replace />;
   
-  // Always use PatientPrescriptionsPage for patients to ensure consistent layout
+  // Use PatientPrescriptionsView for patients to ensure consistent layout with dashboard
   if (userRole === UserRoleEnum.PATIENT) {
-    return <PatientPrescriptionsPage />;
+    return <PatientPrescriptionsView />;
   }
   
   // For doctors and other roles, return the centralized prescriptions view

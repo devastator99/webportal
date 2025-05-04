@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, FileText, Activity, Home, Video, UserRound, LogOut } from 'lucide-react';
@@ -53,14 +52,6 @@ export const MobileNavigation: React.FC = () => {
     // Default exact matching for other routes
     return location.pathname === path;
   };
-
-  // Get correct patient prescriptions path
-  const getPrescriptionsPath = () => {
-    if (userRole === 'patient' && user?.id) {
-      return `/prescriptions/${user.id}`;
-    }
-    return '/patient-prescriptions';
-  };
   
   const patientNavItems = [
     {
@@ -80,7 +71,7 @@ export const MobileNavigation: React.FC = () => {
     {
       label: 'Prescription',
       icon: FileText,
-      action: () => navigate(getPrescriptionsPath()),
+      action: () => navigate('/prescriptions'),
       active: isPathActive('/prescriptions'),
       disabled: false
     },
