@@ -109,8 +109,8 @@ const PatientPrescriptionsRoute = () => {
   
   return getLayout(
     <div className="w-full max-w-[1200px] mx-auto px-4 pb-16">
-      {/* Added action buttons at the top for desktop view */}
-      {!isMobileOrTablet && viewMode === "view" && canWritePrescription && (
+      {/* Action buttons at the top for both desktop view and mobile doctor view */}
+      {((!isMobileOrTablet && viewMode === "view") || (isMobileOrTablet && userRole === "doctor" && viewMode === "view")) && canWritePrescription && (
         <div className="flex justify-between items-center mb-6 print:hidden">
           <h2 className="text-xl font-semibold">Patient Prescriptions</h2>
           <div className="flex space-x-3">
