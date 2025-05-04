@@ -10,12 +10,12 @@ import { AppLayout } from '@/layouts/AppLayout';
 import { PrescriptionTabsViewer } from '@/components/prescriptions/PrescriptionTabsViewer';
 import { Button } from "@/components/ui/button";
 import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWriter";
-import { FileText, Download } from "lucide-react";
+import { FileText, Download, Pen } from "lucide-react";
 import { generatePdfFromElement } from "@/utils/pdfUtils";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
-import { MobileMoreMenu } from "@/components/ui/mobile-more-menu";
 import { useIsMobileOrIPad } from "@/hooks/use-mobile";
+import { ModernTabBar } from "@/components/navigation/ModernTabBar";
 
 /**
  * This route component shows patient prescriptions
@@ -75,73 +75,81 @@ const PatientPrescriptionsRoute = () => {
   // Action buttons based on user role
   const renderActionButtons = () => {
     if (isMobileOrTablet) {
-      // Mobile version using the MobileMoreMenu component
-      const menuItems = [
-        ...(canWritePrescription && viewMode === "view" ? [
+      // Modern action tabs for mobile using the new ModernTabBar
+      const actionItems = [
+        {
+          label: "View",
+          icon: FileText,
+          onClick: () => setViewMode("view"),
+          active: viewMode === "view",
+          disabled: false
+        },
+        ...(canWritePrescription ? [
           {
-            icon: FileText,
-            label: "Write Prescription",
+            label: "Write",
+            icon: Pen,
             onClick: () => setViewMode("write"),
-            active: false
+            active: viewMode === "write",
+            disabled: false
           }
         ] : []),
         {
+          label: "Download",
           icon: Download,
-          label: "Download PDF",
           onClick: handleDownloadPdf,
-          active: false
+          active: false,
+          disabled: viewMode === "write"
         }
       ];
 
-      return menuItems.length > 0 ? (
-        <div className="fixed bottom-20 right-4 z-30">
-          <MobileMoreMenu
-            items={menuItems}
-            trigger={
-              <Button size="icon" className="h-12 w-12 rounded-full shadow-lg">
-                <FileText className="h-6 w-6" />
-              </Button>
-            }
-            title="Prescription Options"
-            className="pb-safe"
-          />
+      return viewMode === "view" ? (
+        <div className="fixed bottom-20 left-0 right-0 z-30 print:hidden">
+          <ModernTabBar items={actionItems} className="pb-0 bottom-0 shadow-none" />
         </div>
       ) : null;
     }
 
-    // Desktop version
-    return (
-      <div className="flex justify-end space-x-2 mt-4 print:hidden">
-        {canWritePrescription && viewMode === "view" && (
+    // Desktop version - elegant buttons with hover effect
+    return viewMode === "view" ? (
+      <div className="flex justify-end space-x-3 mt-6 print:hidden">
+        {canWritePrescription && (
           <Button 
             onClick={() => setViewMode("write")}
-            className="bg-primary"
+            className="bg-[#9b87f5] hover:bg-[#7E69AB] transition-colors shadow-md hover:shadow-lg"
           >
-            <FileText className="h-4 w-4 mr-2" />
+            <Pen className="h-4 w-4 mr-2" />
             Write Prescription
           </Button>
         )}
-        <Button variant="outline" onClick={handleDownloadPdf}>
+        <Button 
+          variant="outline" 
+          onClick={handleDownloadPdf}
+          className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] transition-colors"
+        >
           <Download className="h-4 w-4 mr-2" />
           Download PDF
         </Button>
       </div>
-    );
+    ) : null;
   };
   
   return getLayout(
     <div className="w-full max-w-[1200px] mx-auto px-4">
       {viewMode === "view" ? (
         <>
-          <div id="prescription-content">
+          <div id="prescription-content" className="pb-20">
             <PrescriptionTabsViewer patientId={effectivePatientId} />
           </div>
           {renderActionButtons()}
         </>
       ) : (
         <div className="mt-4">
-          <div className="mb-4">
-            <Button variant="outline" onClick={() => setViewMode("view")}>
+          <div className="mb-6">
+            <Button 
+              variant="outline" 
+              onClick={() => setViewMode("view")}
+              className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] transition-colors"
+            >
               ← Back to Prescriptions
             </Button>
           </div>

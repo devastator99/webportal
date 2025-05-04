@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, FileText, Activity, Home, Video, UserRound, LogOut, MoreHorizontal } from 'lucide-react';
@@ -6,8 +5,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useIsMobileOrIPad } from '@/hooks/use-mobile';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import '@/styles/glass.css';
+import { ModernTabBar } from '@/components/navigation/ModernTabBar';
 
 export const MobileNavigation: React.FC = () => {
   const location = useLocation();
@@ -188,7 +188,7 @@ export const MobileNavigation: React.FC = () => {
   // Split items into primary (shown in navbar) and secondary (shown in more menu)
   const primaryNavItems = allNavItems.filter(item => 
     item.priority === 'high' || (item.active && item.priority === 'medium')
-  ).slice(0, 3); // Limit to 3 items in the primary nav
+  ).slice(0, 4); // Allow up to 4 items in the primary nav for more flexibility
   
   const secondaryNavItems = allNavItems.filter(item => 
     !primaryNavItems.includes(item)
@@ -209,26 +209,16 @@ export const MobileNavigation: React.FC = () => {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-40 glass-nav border-t border-white/20 p-2 flex justify-around items-center animate-fade-up">
-        {navbarItems.map((item) => (
-          <button
-            key={item.label}
-            className={cn(
-              "flex flex-col items-center justify-center p-2 rounded-lg transition-colors",
-              item.active 
-                ? "bg-[#9b87f5]/20 text-[#7E69AB]" 
-                : "text-gray-600 hover:text-[#7E69AB]",
-              (item.disabled || (item.label === 'Sign Out' && isSigningOut)) && "opacity-50 pointer-events-none"
-            )}
-            onClick={item.action}
-            aria-label={item.label}
-            disabled={item.disabled || (item.label === 'Sign Out' && isSigningOut)}
-          >
-            <item.icon className="h-5 w-5 mb-1" />
-            <span className="text-xs">{isSigningOut && item.label === 'Sign Out' ? 'Signing Out...' : item.label}</span>
-          </button>
-        ))}
-      </nav>
+      {/* Replace the standard navigation bar with our new ModernTabBar */}
+      <ModernTabBar 
+        items={navbarItems.map(item => ({
+          label: isSigningOut && item.label === 'Sign Out' ? 'Signing Out...' : item.label,
+          icon: item.icon,
+          onClick: item.action,
+          active: item.active,
+          disabled: item.disabled || (item.label === 'Sign Out' && isSigningOut)
+        }))}
+      />
 
       {/* More menu using Sheet component */}
       <Sheet open={isMoreMenuOpen} onOpenChange={setIsMoreMenuOpen}>
