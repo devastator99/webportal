@@ -26,7 +26,9 @@ export const PatientPageLayout = ({
       description={description}
       showHeader={showHeader}
     >
-      {children}
+      <div className="w-full">
+        {children}
+      </div>
     </PatientAppLayout>
   );
 };
