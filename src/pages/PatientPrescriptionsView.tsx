@@ -3,13 +3,11 @@ import React from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { PatientAppLayout } from "@/layouts/PatientAppLayout";
 import { PrescriptionTabsViewer } from '@/components/prescriptions/PrescriptionTabsViewer';
-import { Card, CardContent } from '@/components/ui/card';
-import { FileText, Download, Printer, Share2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { FileText, Download, Printer, Share2 } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { generatePdfFromElement } from '@/utils/pdfUtils';
-import { DashboardResponsiveLayout } from '@/components/layout/DashboardResponsiveLayout';
 
 const PatientPrescriptionsView = () => {
   const { user } = useAuth();
@@ -53,16 +51,10 @@ const PatientPrescriptionsView = () => {
         description="View and manage your prescriptions"
         showHeader
       >
-        <DashboardResponsiveLayout>
-          <Card className="w-full">
-            <CardContent className="p-6">
-              <div className="text-center">
-                <h2 className="text-xl font-semibold mb-2">Not Authorized</h2>
-                <p>Please log in to view your prescriptions.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </DashboardResponsiveLayout>
+        <div className="text-center w-full">
+          <h2 className="text-xl font-semibold mb-2">Not Authorized</h2>
+          <p>Please log in to view your prescriptions.</p>
+        </div>
       </PatientAppLayout>
     );
   }
@@ -82,7 +74,7 @@ const PatientPrescriptionsView = () => {
         
         {/* Main Content */}
         <div id="prescription-content" className="w-full">
-          {patientId && <PrescriptionTabsViewer patientId={patientId} />}
+          {patientId && <PrescriptionTabsViewer patientId={patientId} className="w-full" />}
         </div>
         
         {/* Action Buttons */}

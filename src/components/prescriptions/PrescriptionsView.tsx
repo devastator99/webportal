@@ -153,7 +153,7 @@ export const PrescriptionsView = () => {
       
       {/* Main Content */}
       <div id="prescription-content" className="w-full">
-        {effectivePatientId && <PrescriptionTabsViewer patientId={effectivePatientId} className="mb-6" />}
+        {effectivePatientId && <PrescriptionTabsViewer patientId={effectivePatientId} className="w-full mb-6" />}
       </div>
       
       {/* Action Buttons */}

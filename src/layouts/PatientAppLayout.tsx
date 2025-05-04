@@ -29,14 +29,16 @@ export function PatientAppLayout({
           <PatientSidebar />
           
           <main className="flex-1 w-full">
-            <div className={`w-full ${isMobile ? "pt-16" : "pt-20"} px-6 pb-8`}>
+            <div className={`w-full ${isMobile ? "pt-16" : "pt-20"} px-4 md:px-6 pb-8`}>
               {showHeader && title && (
                 <div className="mb-6">
                   <h1 className="text-2xl font-bold">{title}</h1>
                   {description && <p className="text-muted-foreground">{description}</p>}
                 </div>
               )}
-              {children}
+              <div className="w-full max-w-full">
+                {children}
+              </div>
             </div>
           </main>
           

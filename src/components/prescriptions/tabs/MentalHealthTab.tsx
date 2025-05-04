@@ -62,19 +62,21 @@ export const MentalHealthTab = ({ patientId }: MentalHealthTabProps) => {
 
         <div>
           <h3 className="text-lg font-medium mb-2">Recommended Resources</h3>
-          <Card className="bg-purple-50 mb-3 w-full">
-            <CardContent className="p-4">
-              <p className="font-medium">Sleep Meditation</p>
-              <p className="text-sm text-muted-foreground">Available in the Resources section</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-purple-50 w-full">
-            <CardContent className="p-4">
-              <p className="font-medium">Stress Management Guide</p>
-              <p className="text-sm text-muted-foreground">PDF available for download</p>
-            </CardContent>
-          </Card>
+          <div className="grid gap-3 w-full sm:grid-cols-1 md:grid-cols-2">
+            <Card className="bg-purple-50 w-full">
+              <CardContent className="p-4">
+                <p className="font-medium">Sleep Meditation</p>
+                <p className="text-sm text-muted-foreground">Available in the Resources section</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-purple-50 w-full">
+              <CardContent className="p-4">
+                <p className="font-medium">Stress Management Guide</p>
+                <p className="text-sm text-muted-foreground">PDF available for download</p>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

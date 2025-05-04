@@ -56,15 +56,15 @@ export const MedicationsTab = ({ patientId }: MedicationsTabProps) => {
         </p>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-4 w-full">
         {/* Example medications based on the mockup */}
         <Card className="overflow-hidden border border-gray-200 w-full">
-          <CardContent className="p-4 flex justify-between items-center">
+          <CardContent className="p-4 flex flex-col md:flex-row justify-between md:items-center gap-2">
             <div>
               <h3 className="text-lg font-medium text-amber-700">Lisinopril 10mg</h3>
               <p className="text-muted-foreground">For blood pressure management</p>
             </div>
-            <div className="text-right">
+            <div className="md:text-right">
               <p className="font-medium">1 tablet</p>
               <p className="text-sm text-muted-foreground">Once daily, morning</p>
             </div>
@@ -72,12 +72,12 @@ export const MedicationsTab = ({ patientId }: MedicationsTabProps) => {
         </Card>
 
         <Card className="overflow-hidden border border-gray-200 w-full">
-          <CardContent className="p-4 flex justify-between items-center">
+          <CardContent className="p-4 flex flex-col md:flex-row justify-between md:items-center gap-2">
             <div>
               <h3 className="text-lg font-medium text-amber-700">Vitamin D3 1000 IU</h3>
               <p className="text-muted-foreground">Supplement</p>
             </div>
-            <div className="text-right">
+            <div className="md:text-right">
               <p className="font-medium">1 tablet</p>
               <p className="text-sm text-muted-foreground">Once daily, with food</p>
             </div>

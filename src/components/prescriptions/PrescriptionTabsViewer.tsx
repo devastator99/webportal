@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { GlassCard } from '@/components/ui/card';
 import { Pill, Utensils, Dumbbell, Brain } from 'lucide-react';
 import { MedicationsTab } from './tabs/MedicationsTab';
 import { DietPlanTab } from './tabs/DietPlanTab';
@@ -41,7 +40,7 @@ export const PrescriptionTabsViewer = ({ patientId, className }: PrescriptionTab
           </TabsTrigger>
         </TabsList>
 
-        <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border-0 w-full">
+        <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 md:p-6 border-0 w-full">
           <TabsContent value="medications" className="mt-0 w-full">
             <MedicationsTab patientId={patientId} />
           </TabsContent>
@@ -61,4 +60,4 @@ export const PrescriptionTabsViewer = ({ patientId, className }: PrescriptionTab
       </Tabs>
     </div>
   );
-};
+}

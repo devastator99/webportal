@@ -128,11 +128,14 @@ export function PatientSidebar() {
     );
   }
 
-  // Desktop sidebar - using CSS variables for width
+  // Desktop sidebar - set a fixed width using CSS variables for consistency
   return (
     <Sidebar 
       className="min-h-screen bg-white/10 backdrop-blur-lg border-r border-white/20"
-      style={{ width: 'var(--sidebar-width)' }}
+      style={{ 
+        width: 'var(--sidebar-width)', 
+        flexShrink: 0 
+      }}
     >
       <SidebarContent>
         <SidebarGroup>
