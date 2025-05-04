@@ -64,21 +64,16 @@ const PatientPrescriptionsView = () => {
       title="My Prescriptions"
       description="View and manage your prescriptions"
       showHeader
+      fullWidth
     >
-      <div className="w-full h-full flex flex-col">
-        {/* Heading */}
-        <div className="w-full mb-6">
-          <h1 className="text-2xl font-bold text-amber-700 mb-1">Your Prescriptions</h1>
-          <p className="text-gray-600">Access and manage all your health plan information</p>
-        </div>
-        
-        {/* Main Content - Ensuring full width */}
-        <div id="prescription-content" className="w-full flex-1">
-          {patientId && <PrescriptionTabsViewer patientId={patientId} className="w-full" />}
+      <div className="w-full h-full">
+        {/* Main Content - Using fullWidth */}
+        <div id="prescription-content" className="w-full">
+          {patientId && <PrescriptionTabsViewer patientId={patientId} />}
         </div>
         
         {/* Action Buttons */}
-        <div className="w-full flex flex-wrap justify-end gap-2 print:hidden mt-6">
+        <div className="w-full flex flex-wrap justify-end gap-2 print:hidden mt-6 px-4 md:px-6">
           <Button variant="outline" size="sm" onClick={handlePrint}>
             <Printer className="h-4 w-4 mr-2" />
             Print
