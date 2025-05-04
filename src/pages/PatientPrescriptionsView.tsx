@@ -50,7 +50,7 @@ const PatientPrescriptionsView = () => {
       <PatientAppLayout
         title="My Prescriptions"
         description="View and manage your prescriptions"
-        showHeader
+        showHeader={false}
         fullWidth
       >
         <div className="text-center w-full">
@@ -63,12 +63,10 @@ const PatientPrescriptionsView = () => {
 
   return (
     <PatientAppLayout
-      title="My Prescriptions"
-      description="View and manage your prescriptions"
-      showHeader
+      showHeader={false}
       fullWidth
     >
-      <div className="w-full">
+      <div className="w-full max-w-6xl mx-auto px-4 py-6">
         {/* Main Content - ensuring full width without any borders */}
         <div id="prescription-content" className="w-full">
           {patientId && <PrescriptionTabsViewer patientId={patientId} />}

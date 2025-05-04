@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -27,7 +26,7 @@ export const MentalHealthTab = ({ patientId }: MentalHealthTabProps) => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center w-full p-6">
+      <div className="flex justify-center w-full py-10">
         <Spinner />
       </div>
     );
@@ -35,7 +34,7 @@ export const MentalHealthTab = ({ patientId }: MentalHealthTabProps) => {
 
   if (!mentalHealthPlans?.length) {
     return (
-      <div className="text-center w-full p-6 text-muted-foreground">
+      <div className="text-center w-full py-10 text-muted-foreground">
         No mental health recommendations found.
       </div>
     );
@@ -43,14 +42,12 @@ export const MentalHealthTab = ({ patientId }: MentalHealthTabProps) => {
 
   return (
     <div className="w-full">
-      <div className="mb-6">
-        <h2 className="text-2xl font-semibold text-amber-700">Mental Wellbeing Plan</h2>
-        <p className="text-muted-foreground">
-          From Dr. Lisa Patel, Psychologist on April 7, 2025
-        </p>
-      </div>
+      <h2 className="text-2xl font-medium text-amber-700 mb-2">Mental Wellbeing Plan</h2>
+      <p className="text-gray-500 mb-6">
+        From Dr. Lisa Patel, Psychologist on April 7, 2025
+      </p>
 
-      <div className="space-y-6 w-full">
+      <div className="space-y-6">
         <div>
           <h3 className="text-lg font-medium mb-2">Daily Practices</h3>
           <ul className="list-disc pl-5 space-y-2">
@@ -62,20 +59,16 @@ export const MentalHealthTab = ({ patientId }: MentalHealthTabProps) => {
 
         <div>
           <h3 className="text-lg font-medium mb-2">Recommended Resources</h3>
-          <div className="grid gap-3 w-full sm:grid-cols-1 md:grid-cols-2">
-            <Card className="bg-purple-50 w-full">
-              <CardContent className="p-4">
-                <p className="font-medium">Sleep Meditation</p>
-                <p className="text-sm text-muted-foreground">Available in the Resources section</p>
-              </CardContent>
-            </Card>
+          <div className="grid gap-3 grid-cols-1 md:grid-cols-2">
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <p className="font-medium">Sleep Meditation</p>
+              <p className="text-sm text-gray-500">Available in the Resources section</p>
+            </div>
             
-            <Card className="bg-purple-50 w-full">
-              <CardContent className="p-4">
-                <p className="font-medium">Stress Management Guide</p>
-                <p className="text-sm text-muted-foreground">PDF available for download</p>
-              </CardContent>
-            </Card>
+            <div className="bg-purple-50 p-4 rounded-lg">
+              <p className="font-medium">Stress Management Guide</p>
+              <p className="text-sm text-gray-500">PDF available for download</p>
+            </div>
           </div>
         </div>
       </div>

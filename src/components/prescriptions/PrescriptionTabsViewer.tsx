@@ -16,31 +16,44 @@ interface PrescriptionTabsViewerProps {
 export const PrescriptionTabsViewer = ({ patientId, className }: PrescriptionTabsViewerProps) => {
   return (
     <div className={cn("w-full", className)}>
+      <h1 className="text-2xl font-semibold mb-6 text-amber-700">Your Prescriptions</h1>
       <Tabs defaultValue="medications" className="w-full">
-        <TabsList className="grid grid-cols-4 w-full mb-6 bg-white/20 backdrop-blur-md rounded-lg border-0 p-1">
-          <TabsTrigger value="medications" className="flex items-center gap-2 rounded-md data-[state=active]:bg-white/60">
-            <Pill className="h-4 w-4" />
-            <span className="hidden sm:inline">Medications</span>
-            <span className="sm:hidden">Meds</span>
+        <TabsList className="grid grid-cols-4 w-full mb-6 bg-gray-50 shadow-sm border-0 rounded-lg overflow-hidden">
+          <TabsTrigger 
+            value="medications" 
+            className="flex items-center gap-2 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-700 data-[state=active]:bg-white"
+          >
+            <Pill className="h-5 w-5 text-amber-700" />
+            <span className="hidden sm:inline text-sm font-medium">Medications</span>
+            <span className="sm:hidden text-sm font-medium">Meds</span>
           </TabsTrigger>
-          <TabsTrigger value="diet" className="flex items-center gap-2 rounded-md data-[state=active]:bg-white/60">
-            <Utensils className="h-4 w-4" />
-            <span className="hidden sm:inline">Diet Plan</span>
-            <span className="sm:hidden">Diet</span>
+          <TabsTrigger 
+            value="diet" 
+            className="flex items-center gap-2 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-700 data-[state=active]:bg-white"
+          >
+            <Utensils className="h-5 w-5 text-amber-700" />
+            <span className="hidden sm:inline text-sm font-medium">Diet Plan</span>
+            <span className="sm:hidden text-sm font-medium">Diet</span>
           </TabsTrigger>
-          <TabsTrigger value="exercise" className="flex items-center gap-2 rounded-md data-[state=active]:bg-white/60">
-            <Dumbbell className="h-4 w-4" />
-            <span className="hidden sm:inline">Exercise</span>
-            <span className="sm:hidden">Exer</span>
+          <TabsTrigger 
+            value="exercise" 
+            className="flex items-center gap-2 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-700 data-[state=active]:bg-white"
+          >
+            <Dumbbell className="h-5 w-5 text-amber-700" />
+            <span className="hidden sm:inline text-sm font-medium">Exercise</span>
+            <span className="sm:hidden text-sm font-medium">Exer</span>
           </TabsTrigger>
-          <TabsTrigger value="mental" className="flex items-center gap-2 rounded-md data-[state=active]:bg-white/60">
-            <Brain className="h-4 w-4" />
-            <span className="hidden sm:inline">Mental Health</span>
-            <span className="sm:hidden">Mental</span>
+          <TabsTrigger 
+            value="mental" 
+            className="flex items-center gap-2 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-700 data-[state=active]:bg-white"
+          >
+            <Brain className="h-5 w-5 text-amber-700" />
+            <span className="hidden sm:inline text-sm font-medium">Mental Health</span>
+            <span className="sm:hidden text-sm font-medium">Mental</span>
           </TabsTrigger>
         </TabsList>
 
-        <div className="w-full">
+        <div className="w-full bg-white rounded-xl p-6 shadow-sm">
           <TabsContent value="medications" className="mt-0 w-full">
             <MedicationsTab patientId={patientId} />
           </TabsContent>

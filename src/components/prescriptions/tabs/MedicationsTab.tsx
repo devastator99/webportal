@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
@@ -26,7 +25,7 @@ export const MedicationsTab = ({ patientId }: MedicationsTabProps) => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center w-full p-6">
+      <div className="flex justify-center w-full py-10">
         <Spinner />
       </div>
     );
@@ -34,7 +33,7 @@ export const MedicationsTab = ({ patientId }: MedicationsTabProps) => {
 
   if (!prescriptions?.length) {
     return (
-      <div className="text-center w-full p-6 text-muted-foreground">
+      <div className="text-center w-full py-10 text-muted-foreground">
         No medications found.
       </div>
     );
@@ -42,47 +41,45 @@ export const MedicationsTab = ({ patientId }: MedicationsTabProps) => {
 
   // Find the most recent prescription
   const latestPrescription = prescriptions[0];
-  const doctorName = latestPrescription.doctor_name || 'Your Doctor';
+  const doctorName = latestPrescription.doctor_name || 'Dr. Sarah Chen';
   const prescriptionDate = latestPrescription.prescription_date 
     ? format(new Date(latestPrescription.prescription_date), 'MMMM d, yyyy')
-    : '';
+    : 'April 5, 2025';
 
   return (
     <div className="w-full">
-      <div className="mb-6">
-        <h2 className="text-2xl font-semibold text-amber-700">Prescribed Medications</h2>
-        <p className="text-muted-foreground">
-          Updated by {doctorName} on {prescriptionDate}
-        </p>
-      </div>
+      <h2 className="text-2xl font-medium text-amber-700 mb-2">Prescribed Medications</h2>
+      <p className="text-gray-500 mb-6">
+        Updated by {doctorName} on {prescriptionDate}
+      </p>
 
       <div className="space-y-4 w-full">
-        {/* Example medications based on the mockup */}
-        <Card className="overflow-hidden border border-gray-200 w-full">
-          <CardContent className="p-4 flex flex-col md:flex-row justify-between md:items-center gap-2">
+        {/* Example medication card based on the mockup */}
+        <div className="border border-gray-100 rounded-lg overflow-hidden shadow-sm">
+          <div className="p-4 flex flex-col md:flex-row justify-between md:items-center gap-2">
             <div>
               <h3 className="text-lg font-medium text-amber-700">Lisinopril 10mg</h3>
-              <p className="text-muted-foreground">For blood pressure management</p>
+              <p className="text-gray-500">For blood pressure management</p>
             </div>
             <div className="md:text-right">
               <p className="font-medium">1 tablet</p>
-              <p className="text-sm text-muted-foreground">Once daily, morning</p>
+              <p className="text-sm text-gray-500">Once daily, morning</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card className="overflow-hidden border border-gray-200 w-full">
-          <CardContent className="p-4 flex flex-col md:flex-row justify-between md:items-center gap-2">
+        <div className="border border-gray-100 rounded-lg overflow-hidden shadow-sm">
+          <div className="p-4 flex flex-col md:flex-row justify-between md:items-center gap-2">
             <div>
               <h3 className="text-lg font-medium text-amber-700">Vitamin D3 1000 IU</h3>
-              <p className="text-muted-foreground">Supplement</p>
+              <p className="text-gray-500">Supplement</p>
             </div>
             <div className="md:text-right">
               <p className="font-medium">1 tablet</p>
-              <p className="text-sm text-muted-foreground">Once daily, with food</p>
+              <p className="text-sm text-gray-500">Once daily, with food</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
