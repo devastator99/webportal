@@ -44,11 +44,11 @@ const VideosPage = () => {
   const getLayout = (children: React.ReactNode) => {
     switch (userRole) {
       case "patient":
-        return <PatientAppLayout showHeader title="Educational Videos" description="Watch videos to learn about health and wellness">{children}</PatientAppLayout>;
+        return <PatientAppLayout showHeader title="Educational Videos" description="Watch videos to learn about health and wellness" fullWidth={true}>{children}</PatientAppLayout>;
       case "doctor":
-        return <DoctorAppLayout showHeader title="Educational Videos" description="Videos for your patients">{children}</DoctorAppLayout>;
+        return <DoctorAppLayout showHeader title="Educational Videos" description="Videos for your patients" fullWidth={true}>{children}</DoctorAppLayout>;
       case "administrator":
-        return <AdminAppLayout showHeader title="Educational Videos" description="Manage video resources">{children}</AdminAppLayout>;
+        return <AdminAppLayout showHeader title="Educational Videos" description="Manage video resources" fullWidth={true}>{children}</AdminAppLayout>;
       default:
         return <AppLayout>{children}</AppLayout>;
     }

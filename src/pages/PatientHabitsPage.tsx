@@ -15,7 +15,7 @@ const PatientHabitsPage = () => {
   }, [refetchHealthPlanItems]);
   
   return (
-    <PatientAppLayout showHeader title="Health Habits" description="Track your daily health activities and see your progress">
+    <PatientAppLayout showHeader title="Health Habits" description="Track your daily health activities and see your progress" fullWidth={true}>
       <div className="w-full">
         {isLoading ? (
           <div className="flex justify-center p-8">

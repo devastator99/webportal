@@ -205,6 +205,7 @@ const PatientPrescriptionsPage: React.FC = () => {
       showHeader
       title="My Prescriptions"
       description="View and download your prescriptions from your doctors."
+      fullWidth={true}
     >
       {(!prescriptions || prescriptions.length === 0) ? (
         <Card>

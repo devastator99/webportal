@@ -22,6 +22,7 @@ const PatientProfilePage: React.FC = () => {
       title="Your Profile"
       description="View and update your personal information"
       showHeader
+      fullWidth={true}
     >
       <div className="w-full">
         <div className="flex items-center gap-2 mb-6">

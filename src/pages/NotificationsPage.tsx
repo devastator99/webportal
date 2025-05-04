@@ -18,6 +18,7 @@ const NotificationsPage: React.FC = () => {
       title="Notification Settings"
       description="Manage your notification preferences"
       showHeader
+      fullWidth={true}
     >
       <div className="w-full">
         <div className="flex items-center gap-2 mb-6">

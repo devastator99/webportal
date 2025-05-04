@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { PatientAppLayout } from "@/layouts/PatientAppLayout";
@@ -51,7 +50,7 @@ const PatientPrescriptionsView = () => {
         title="My Prescriptions"
         description="View and manage your prescriptions"
         showHeader={false}
-        fullWidth
+        fullWidth={true}
       >
         <div className="text-center w-full">
           <h2 className="text-xl font-semibold mb-2">Not Authorized</h2>
@@ -64,7 +63,7 @@ const PatientPrescriptionsView = () => {
   return (
     <PatientAppLayout
       showHeader={false}
-      fullWidth
+      fullWidth={true}
     >
       <div className="w-full max-w-6xl mx-auto px-4 py-6">
         {/* Main Content - ensuring full width without any borders */}
