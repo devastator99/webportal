@@ -22,7 +22,7 @@ const PatientPrescriptionsRoute = () => {
   
   // For doctors and other roles, use the DashboardResponsiveLayout for consistent sizing
   return (
-    <DashboardResponsiveLayout fullHeight withPadding className="w-full">
+    <DashboardResponsiveLayout fullHeight withPadding className="w-full max-w-full">
       <PrescriptionsView />
     </DashboardResponsiveLayout>
   );
