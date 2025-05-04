@@ -67,8 +67,8 @@ const PatientPrescriptionsView = () => {
       showHeader
       fullWidth
     >
-      <div className="w-full h-full">
-        {/* Main Content - Using fullWidth */}
+      <div className="w-full h-full px-0">
+        {/* Main Content - Using fullWidth and removing any padding */}
         <div id="prescription-content" className="w-full">
           {patientId && <PrescriptionTabsViewer patientId={patientId} />}
         </div>
