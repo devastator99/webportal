@@ -47,17 +47,23 @@ export const DoctorDashboard = () => {
         onValueChange={handleTabChange}
         className="space-y-6"
       >
-        <TabsList className="bg-muted/50 p-1 w-full md:w-auto flex">
+        <TabsList className="p-1 w-full md:w-auto flex rounded-full bg-slate-100/80 border border-slate-200">
           <TabsTrigger 
             value="patients" 
-            className={`gap-2 flex-1 md:flex-initial transition-all duration-200 ${activeTab === "patients" ? "bg-white text-[#7E69AB]" : ""}`}
+            className={`gap-2 flex-1 md:flex-initial transition-all duration-200 rounded-full px-6 py-2.5
+              ${activeTab === "patients" 
+                ? "bg-white text-[#7E69AB] shadow-sm border border-slate-200" 
+                : "text-slate-600 hover:text-[#7E69AB] hover:bg-white/50"}`}
           >
             <Users className={`h-4 w-4 ${activeTab === "patients" ? "text-[#9b87f5]" : ""}`} />
             <span className="hidden sm:inline">Patients</span>
           </TabsTrigger>
           <TabsTrigger 
             value="calendar" 
-            className={`gap-2 flex-1 md:flex-initial transition-all duration-200 ${activeTab === "calendar" ? "bg-white text-[#7E69AB]" : ""}`}
+            className={`gap-2 flex-1 md:flex-initial transition-all duration-200 rounded-full px-6 py-2.5
+              ${activeTab === "calendar" 
+                ? "bg-white text-[#7E69AB] shadow-sm border border-slate-200" 
+                : "text-slate-600 hover:text-[#7E69AB] hover:bg-white/50"}`}
           >
             <Calendar className={`h-4 w-4 ${activeTab === "calendar" ? "text-[#9b87f5]" : ""}`} />
             <span className="hidden sm:inline">Calendar</span>
