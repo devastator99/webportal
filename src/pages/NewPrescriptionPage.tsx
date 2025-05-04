@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { PatientAppLayout } from '@/layouts/PatientAppLayout';
+import { AppLayout } from '@/layouts/AppLayout';
 import UnderConstructionPage from '@/components/common/UnderConstructionPage';
 
 const NewPrescriptionPage: React.FC = () => {
