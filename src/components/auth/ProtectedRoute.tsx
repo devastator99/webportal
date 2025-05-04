@@ -36,10 +36,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       const allowedPatientRoutes = [
         '/dashboard', 
         '/prescriptions', 
+        '/new-prescription', // Added new-prescription route to allowed routes
         '/patient-habits', 
         '/patient-profile', 
         '/chat',
-        '/videos' // Added videos route to allowed routes
+        '/videos'
       ];
       
       // Check if on allowed route or subcategory of allowed route
