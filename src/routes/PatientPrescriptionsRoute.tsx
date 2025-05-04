@@ -2,7 +2,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate } from 'react-router-dom';
 import UnderConstructionPage from '@/components/common/UnderConstructionPage';
-import { PatientAppLayout } from '@/layouts/PatientAppLayout';
+import { DashboardResponsiveLayout } from '@/components/layout/DashboardResponsiveLayout';
 
 /**
  * This route component shows an Under Construction page
@@ -14,17 +14,12 @@ const PatientPrescriptionsRoute = () => {
   if (!user) return <Navigate to="/auth" replace />;
   
   return (
-    <PatientAppLayout
-      title="Prescriptions"
-      description="Patient prescription management"
-      showHeader
-      fullWidth
-    >
+    <DashboardResponsiveLayout fullHeight withPadding={false}>
       <UnderConstructionPage 
         title="Prescriptions Coming Soon" 
         description="We're building an improved prescriptions experience for you."
       />
-    </PatientAppLayout>
+    </DashboardResponsiveLayout>
   );
 };
 
