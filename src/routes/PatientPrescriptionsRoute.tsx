@@ -111,7 +111,7 @@ const PatientPrescriptionsRoute = () => {
 
     // Desktop version - elegant buttons with hover effect
     return viewMode === "view" ? (
-      <div className="flex justify-end space-x-3 mt-6 print:hidden">
+      <div className="flex justify-end space-x-3 print:hidden">
         {canWritePrescription && (
           <Button 
             onClick={() => setViewMode("write")}
@@ -135,12 +135,37 @@ const PatientPrescriptionsRoute = () => {
   
   return getLayout(
     <div className="w-full max-w-[1200px] mx-auto px-4">
+      {/* Added action buttons at the top for desktop view */}
+      {!isMobileOrTablet && viewMode === "view" && canWritePrescription && (
+        <div className="flex justify-between items-center mb-4 print:hidden">
+          <h2 className="text-xl font-semibold">Patient Prescriptions</h2>
+          <div className="flex space-x-3">
+            <Button 
+              onClick={() => setViewMode("write")}
+              className="bg-[#9b87f5] hover:bg-[#7E69AB] transition-colors shadow-md hover:shadow-lg"
+            >
+              <Pen className="h-4 w-4 mr-2" />
+              Write Prescription
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={handleDownloadPdf}
+              className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] transition-colors"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download PDF
+            </Button>
+          </div>
+        </div>
+      )}
+      
       {viewMode === "view" ? (
         <>
           <div id="prescription-content" className="pb-20">
             <PrescriptionTabsViewer patientId={effectivePatientId} />
           </div>
-          {renderActionButtons()}
+          {/* Only show bottom action buttons on mobile */}
+          {isMobileOrTablet && renderActionButtons()}
         </>
       ) : (
         <div className="mt-4">
