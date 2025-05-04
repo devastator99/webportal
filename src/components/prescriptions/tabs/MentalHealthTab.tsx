@@ -42,7 +42,7 @@ export const MentalHealthTab = ({ patientId }: MentalHealthTabProps) => {
   }
 
   return (
-    <div className="w-full max-w-full">
+    <div className="w-full">
       <div className="mb-6">
         <h2 className="text-2xl font-semibold text-amber-700">Mental Wellbeing Plan</h2>
         <p className="text-muted-foreground">

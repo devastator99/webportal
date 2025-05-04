@@ -50,10 +50,10 @@ export const ExerciseTab = ({ patientId }: ExerciseTabProps) => {
         </p>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-6 w-full">
         <div>
           <h3 className="text-lg font-medium mb-4">Weekly Plan</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
             <Card className="border border-gray-200">
               <CardContent className="p-4">
                 <p className="font-medium">Monday, Wednesday, Friday</p>
