@@ -22,38 +22,39 @@ export const PrescriptionsView = () => {
   const [doctorInfo, setDoctorInfo] = useState<any>(null);
   
   // Check if the current user is viewing their own prescriptions or if they have permission
-  const isOwnPrescription = user?.id === patientId;
+  const effectivePatientId = patientId || user?.id;
+  const isOwnPrescription = user?.id === effectivePatientId;
   const canEdit = userRole === 'doctor' || userRole === 'administrator';
   const isNutritionist = userRole === 'nutritionist';
   
   // Fetch patient info
   const { data: patient, isLoading: isLoadingPatient } = useQuery({
-    queryKey: ['patient_profile', patientId],
+    queryKey: ['patient_profile', effectivePatientId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', patientId)
+        .eq('id', effectivePatientId)
         .single();
         
       if (error) throw error;
       return data;
     },
-    enabled: !!patientId,
+    enabled: !!effectivePatientId,
   });
   
   // Fetch patient care team information
   const { data: careTeam, isLoading: isLoadingCareTeam } = useQuery({
-    queryKey: ['patient_care_team', patientId],
+    queryKey: ['patient_care_team', effectivePatientId],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_patient_care_team', {
-        p_patient_id: patientId
+        p_patient_id: effectivePatientId
       });
       
       if (error) throw error;
       return data;
     },
-    enabled: !!patientId,
+    enabled: !!effectivePatientId,
   });
   
   useEffect(() => {
@@ -92,7 +93,6 @@ export const PrescriptionsView = () => {
   };
   
   const handleShare = async () => {
-    // In a real app, this could open a dialog to share via email, etc.
     toast({
       description: "Share functionality would be implemented here"
     });
@@ -120,7 +120,7 @@ export const PrescriptionsView = () => {
   }
 
   return (
-    <div className="w-full space-y-6">
+    <div className="w-full max-w-full space-y-6">
       {/* Patient Info Banner */}
       <Card className="w-full bg-white/60 backdrop-blur-sm border-0 shadow-sm">
         <CardContent className="p-4">
@@ -153,7 +153,7 @@ export const PrescriptionsView = () => {
       
       {/* Main Content */}
       <div id="prescription-content" className="w-full">
-        {patientId && <PrescriptionTabsViewer patientId={patientId} className="mb-6" />}
+        {effectivePatientId && <PrescriptionTabsViewer patientId={effectivePatientId} className="mb-6" />}
       </div>
       
       {/* Action Buttons */}

@@ -58,7 +58,7 @@ export const MedicationsTab = ({ patientId }: MedicationsTabProps) => {
 
       <div className="space-y-4">
         {/* Example medications based on the mockup */}
-        <Card className="overflow-hidden border border-gray-200">
+        <Card className="overflow-hidden border border-gray-200 w-full">
           <CardContent className="p-4 flex justify-between items-center">
             <div>
               <h3 className="text-lg font-medium text-amber-700">Lisinopril 10mg</h3>
@@ -71,7 +71,7 @@ export const MedicationsTab = ({ patientId }: MedicationsTabProps) => {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden border border-gray-200">
+        <Card className="overflow-hidden border border-gray-200 w-full">
           <CardContent className="p-4 flex justify-between items-center">
             <div>
               <h3 className="text-lg font-medium text-amber-700">Vitamin D3 1000 IU</h3>

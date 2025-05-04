@@ -3,6 +3,7 @@ import { useAuth, UserRoleEnum } from '@/contexts/AuthContext';
 import { Navigate, useParams } from 'react-router-dom';
 import PatientPrescriptionsView from '@/pages/PatientPrescriptionsView';
 import { PrescriptionsView } from '@/components/prescriptions/PrescriptionsView';
+import { DashboardResponsiveLayout } from '@/components/layout/DashboardResponsiveLayout';
 
 /**
  * This route component determines how to display prescriptions
@@ -19,9 +20,12 @@ const PatientPrescriptionsRoute = () => {
     return <PatientPrescriptionsView />;
   }
   
-  // For doctors and other roles, return the centralized prescriptions view
-  // The prescriptions view will handle getting the patientId from params
-  return <PrescriptionsView />;
+  // For doctors and other roles, use the DashboardResponsiveLayout for consistent sizing
+  return (
+    <DashboardResponsiveLayout fullHeight withPadding className="w-full">
+      <PrescriptionsView />
+    </DashboardResponsiveLayout>
+  );
 };
 
 export default PatientPrescriptionsRoute;

@@ -16,7 +16,7 @@ interface PrescriptionTabsViewerProps {
 
 export const PrescriptionTabsViewer = ({ patientId, className }: PrescriptionTabsViewerProps) => {
   return (
-    <div className={cn("w-full", className)}>
+    <div className={cn("w-full max-w-full", className)}>
       <Tabs defaultValue="medications" className="w-full">
         <TabsList className="grid grid-cols-4 w-full mb-6 bg-white/20 backdrop-blur-md rounded-lg border-0 p-1">
           <TabsTrigger value="medications" className="flex items-center gap-2 rounded-md data-[state=active]:bg-white/60">
@@ -41,7 +41,7 @@ export const PrescriptionTabsViewer = ({ patientId, className }: PrescriptionTab
           </TabsTrigger>
         </TabsList>
 
-        <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border-0">
+        <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border-0 w-full">
           <TabsContent value="medications" className="mt-0 w-full">
             <MedicationsTab patientId={patientId} />
           </TabsContent>

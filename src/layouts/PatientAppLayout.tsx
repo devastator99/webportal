@@ -25,7 +25,7 @@ export function PatientAppLayout({
   return (
     <AppLayout>
       <SidebarProvider>
-        <div className="flex min-h-screen">
+        <div className="flex min-h-screen w-full">
           <PatientSidebar />
           
           <main className="flex-1 w-full">

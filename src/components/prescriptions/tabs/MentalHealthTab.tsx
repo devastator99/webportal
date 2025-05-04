@@ -50,7 +50,7 @@ export const MentalHealthTab = ({ patientId }: MentalHealthTabProps) => {
         </p>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-6 w-full">
         <div>
           <h3 className="text-lg font-medium mb-2">Daily Practices</h3>
           <ul className="list-disc pl-5 space-y-2">
@@ -62,14 +62,14 @@ export const MentalHealthTab = ({ patientId }: MentalHealthTabProps) => {
 
         <div>
           <h3 className="text-lg font-medium mb-2">Recommended Resources</h3>
-          <Card className="bg-purple-50 mb-3">
+          <Card className="bg-purple-50 mb-3 w-full">
             <CardContent className="p-4">
               <p className="font-medium">Sleep Meditation</p>
               <p className="text-sm text-muted-foreground">Available in the Resources section</p>
             </CardContent>
           </Card>
           
-          <Card className="bg-purple-50">
+          <Card className="bg-purple-50 w-full">
             <CardContent className="p-4">
               <p className="font-medium">Stress Management Guide</p>
               <p className="text-sm text-muted-foreground">PDF available for download</p>
