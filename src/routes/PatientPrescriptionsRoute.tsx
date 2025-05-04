@@ -15,6 +15,7 @@ import { generatePdfFromElement } from "@/utils/pdfUtils";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useIsMobileOrIPad } from "@/hooks/use-mobile";
+import { ModernTabBar } from "@/components/navigation/ModernTabBar";
 
 /**
  * This route component shows patient prescriptions
