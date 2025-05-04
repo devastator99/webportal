@@ -131,7 +131,7 @@ export function PatientSidebar() {
   // Desktop sidebar - using CSS variables for width
   return (
     <Sidebar 
-      className="bg-white/10 backdrop-blur-lg border-r border-white/20"
+      className="min-h-screen bg-white/10 backdrop-blur-lg border-r border-white/20"
       style={{ width: 'var(--sidebar-width)' }}
     >
       <SidebarContent>

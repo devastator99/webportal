@@ -205,7 +205,7 @@ const PatientPrescriptionsPage: React.FC = () => {
       title="My Prescriptions"
       description="View and download your prescriptions from your doctors."
     >
-      <div className="space-y-6">
+      <div className="space-y-6 w-full">
         {(!prescriptions || prescriptions.length === 0) ? (
           <Card>
             <CardHeader>

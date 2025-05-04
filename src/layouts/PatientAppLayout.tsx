@@ -28,8 +28,8 @@ export function PatientAppLayout({
         <div className="flex min-h-screen w-full">
           <PatientSidebar />
           
-          <div className={`flex-1 ${isMobileOrTablet ? "pb-20" : "pb-8"}`}>
-            <div className={`container ${isMobile ? "pt-16" : "pt-20"} px-4 pb-8`}>
+          <div className="flex-1 w-full">
+            <div className={`container ${isMobile ? "pt-16" : "pt-20"} px-4 pb-8 max-w-full`}>
               {showHeader && title && (
                 <div className="mb-6">
                   <h1 className="text-2xl font-bold">{title}</h1>
