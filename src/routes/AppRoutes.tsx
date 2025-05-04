@@ -14,6 +14,7 @@ import PatientPrescriptionsRoute from '@/routes/PatientPrescriptionsRoute';
 import VerifyCodePage from '@/pages/VerifyCodePage';
 import { ForgotPasswordRouteWrapper } from '@/pages/ForgotPasswordRouteWrapper';
 import VideosPage from '@/pages/VideosPage';
+import NewPrescriptionPage from '@/pages/NewPrescriptionPage';
 
 // Lazy loaded components
 const ChatPage = lazy(() => import('@/pages/ChatPage'));
@@ -121,6 +122,16 @@ export const AppRoutes = () => {
           element={
             <ProtectedRoute>
               <VideosPage />
+            </ProtectedRoute>
+          }
+        />
+        
+        {/* New Prescription Route */}
+        <Route
+          path="/new-prescription"
+          element={
+            <ProtectedRoute>
+              <NewPrescriptionPage />
             </ProtectedRoute>
           }
         />

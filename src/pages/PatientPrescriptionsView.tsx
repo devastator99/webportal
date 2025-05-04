@@ -4,10 +4,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { PatientAppLayout } from "@/layouts/PatientAppLayout";
 import { PrescriptionTabsViewer } from '@/components/prescriptions/PrescriptionTabsViewer';
 import { Button } from "@/components/ui/button";
-import { FileText, Download, Printer, Share2 } from 'lucide-react';
+import { FileText, Download, Printer, Share2, FilePlus } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { format } from 'date-fns';
 import { generatePdfFromElement } from '@/utils/pdfUtils';
+import { Link } from 'react-router-dom';
 
 const PatientPrescriptionsView = () => {
   const { user } = useAuth();
@@ -75,6 +76,12 @@ const PatientPrescriptionsView = () => {
         
         {/* Action Buttons */}
         <div className="w-full flex flex-wrap justify-end gap-2 print:hidden mt-6">
+          <Link to="/new-prescription">
+            <Button className="bg-primary" size="sm">
+              <FilePlus className="h-4 w-4 mr-2" />
+              New Prescription
+            </Button>
+          </Link>
           <Button variant="outline" size="sm" onClick={handlePrint}>
             <Printer className="h-4 w-4 mr-2" />
             Print
