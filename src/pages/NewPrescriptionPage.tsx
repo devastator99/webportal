@@ -1,20 +1,22 @@
 
 import React from 'react';
 import { PatientAppLayout } from '@/layouts/PatientAppLayout';
-import UnderConstructionPage from '@/components/common/UnderConstructionPage';
+import { PrescriptionTabsViewer } from '@/components/prescriptions/PrescriptionTabsViewer';
+import { useAuth } from '@/contexts/AuthContext';
 
 const NewPrescriptionPage: React.FC = () => {
+  const { user } = useAuth();
+  
   return (
     <PatientAppLayout
-      title="New Prescription"
-      description="Create a new prescription"
+      title="Prescriptions"
+      description="View your prescriptions and recommendations"
       showHeader
       fullWidth
     >
-      <UnderConstructionPage 
-        title="New Prescription Feature Coming Soon" 
-        description="We're working on building a new prescription creation feature. Stay tuned!" 
-      />
+      <div className="w-full max-w-7xl mx-auto">
+        {user?.id && <PrescriptionTabsViewer patientId={user.id} />}
+      </div>
     </PatientAppLayout>
   );
 };

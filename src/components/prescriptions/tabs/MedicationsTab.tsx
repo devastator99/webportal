@@ -53,8 +53,7 @@ export const MedicationsTab = ({ patientId }: MedicationsTabProps) => {
         Updated by {doctorName} on {prescriptionDate}
       </p>
 
-      <div className="space-y-4 w-full">
-        {/* Example medication card based on the mockup */}
+      <div className="space-y-4">
         <div className="border border-gray-100 rounded-lg overflow-hidden shadow-sm">
           <div className="p-4 flex flex-col md:flex-row justify-between md:items-center gap-2">
             <div>
