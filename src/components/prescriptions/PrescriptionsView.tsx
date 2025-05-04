@@ -120,7 +120,7 @@ export const PrescriptionsView = () => {
   }
 
   return (
-    <div className="w-full space-y-6 p-4 md:p-6">
+    <div className="w-full max-w-[1200px] mx-auto px-4 py-6">
       {/* Patient Info Banner */}
       <Card className="w-full bg-white/60 backdrop-blur-sm border-0 shadow-sm">
         <CardContent className="p-4">
