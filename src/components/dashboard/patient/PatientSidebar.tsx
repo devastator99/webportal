@@ -42,7 +42,6 @@ export function PatientSidebar() {
     {
       title: "Prescriptions",
       icon: FileText,
-      // Fix the prescriptions route - simply use "/prescriptions"
       path: "/prescriptions"
     },
     {

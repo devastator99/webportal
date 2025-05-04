@@ -14,8 +14,7 @@ const PatientPrescriptionsRoute = () => {
   
   if (!user) return <Navigate to="/auth" replace />;
   
-  // If a patient is viewing prescriptions, always use PatientPrescriptionsPage 
-  // which has the correct patient layout with sidebar
+  // Always use PatientPrescriptionsPage for patients to ensure consistent layout
   if (userRole === UserRoleEnum.PATIENT) {
     return <PatientPrescriptionsPage />;
   }
