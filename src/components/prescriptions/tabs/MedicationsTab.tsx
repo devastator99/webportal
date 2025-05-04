@@ -42,7 +42,7 @@ export const MedicationsTab = ({ patientId }: MedicationsTabProps) => {
 
   // Find the most recent prescription
   const latestPrescription = prescriptions[0];
-  const doctorName = latestPrescription.doctor_name || `Dr. ${latestPrescription.doctor_first_name || ''} ${latestPrescription.doctor_last_name || ''}`;
+  const doctorName = latestPrescription.doctor_name || 'Your Doctor';
   const prescriptionDate = latestPrescription.prescription_date 
     ? format(new Date(latestPrescription.prescription_date), 'MMMM d, yyyy')
     : '';
