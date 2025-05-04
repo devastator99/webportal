@@ -168,7 +168,7 @@ const PatientPrescriptionsPage: React.FC = () => {
   if (isLoading) {
     return (
       <PatientAppLayout showHeader title="My Prescriptions" description="Loading your prescriptions...">
-        <div className="flex justify-center items-center h-[60vh]">
+        <div className="flex justify-center items-center h-[60vh] w-full">
           <Spinner size="lg" />
         </div>
       </PatientAppLayout>
@@ -180,21 +180,23 @@ const PatientPrescriptionsPage: React.FC = () => {
     console.error("Prescription error details:", displayError);
     return (
       <PatientAppLayout showHeader title="My Prescriptions" description="Error loading prescriptions">
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive">Error Loading Prescriptions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p>There was an error loading your prescriptions. Please try again later.</p>
-            <p className="text-sm text-muted-foreground mt-2">{(displayError as Error).message}</p>
-            <Button 
-              className="mt-4"
-              onClick={() => window.location.reload()}
-            >
-              Retry
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="w-full">
+          <Card className="border-destructive">
+            <CardHeader>
+              <CardTitle className="text-destructive">Error Loading Prescriptions</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p>There was an error loading your prescriptions. Please try again later.</p>
+              <p className="text-sm text-muted-foreground mt-2">{(displayError as Error).message}</p>
+              <Button 
+                className="mt-4"
+                onClick={() => window.location.reload()}
+              >
+                Retry
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </PatientAppLayout>
     );
   }
