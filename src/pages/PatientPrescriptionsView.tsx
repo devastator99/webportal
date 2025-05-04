@@ -50,6 +50,7 @@ const PatientPrescriptionsView = () => {
         title="My Prescriptions"
         description="View and manage your prescriptions"
         showHeader
+        fullWidth
       >
         <div className="text-center w-full">
           <h2 className="text-xl font-semibold mb-2">Not Authorized</h2>
@@ -73,7 +74,7 @@ const PatientPrescriptionsView = () => {
         </div>
         
         {/* Action Buttons */}
-        <div className="w-full flex flex-wrap justify-end gap-2 print:hidden mt-6 px-4 md:px-6">
+        <div className="w-full flex flex-wrap justify-end gap-2 print:hidden mt-6">
           <Button variant="outline" size="sm" onClick={handlePrint}>
             <Printer className="h-4 w-4 mr-2" />
             Print
