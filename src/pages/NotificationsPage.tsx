@@ -19,15 +19,13 @@ const NotificationsPage: React.FC = () => {
       description="Manage your notification preferences"
       showHeader
     >
-      <div className="w-full">
-        <div className="flex items-center gap-2 mb-6">
-          <Bell className="h-5 w-5 text-[#7E69AB]" />
-          <h2 className="text-xl font-semibold">Notification Preferences</h2>
-        </div>
-        
-        <div className="max-w-md mx-auto">
-          <NotificationManager />
-        </div>
+      <div className="flex items-center gap-2 mb-6">
+        <Bell className="h-5 w-5 text-[#7E69AB]" />
+        <h2 className="text-xl font-semibold">Notification Preferences</h2>
+      </div>
+      
+      <div className="max-w-md mx-auto">
+        <NotificationManager />
       </div>
     </PatientAppLayout>
   );

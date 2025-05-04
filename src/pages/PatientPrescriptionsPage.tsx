@@ -168,7 +168,7 @@ const PatientPrescriptionsPage: React.FC = () => {
   if (isLoading) {
     return (
       <PatientAppLayout showHeader title="My Prescriptions" description="Loading your prescriptions...">
-        <div className="flex justify-center items-center h-[60vh] w-full">
+        <div className="flex justify-center items-center h-[60vh]">
           <Spinner size="lg" />
         </div>
       </PatientAppLayout>
@@ -180,23 +180,21 @@ const PatientPrescriptionsPage: React.FC = () => {
     console.error("Prescription error details:", displayError);
     return (
       <PatientAppLayout showHeader title="My Prescriptions" description="Error loading prescriptions">
-        <div className="w-full">
-          <Card className="border-destructive">
-            <CardHeader>
-              <CardTitle className="text-destructive">Error Loading Prescriptions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>There was an error loading your prescriptions. Please try again later.</p>
-              <p className="text-sm text-muted-foreground mt-2">{(displayError as Error).message}</p>
-              <Button 
-                className="mt-4"
-                onClick={() => window.location.reload()}
-              >
-                Retry
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Error Loading Prescriptions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>There was an error loading your prescriptions. Please try again later.</p>
+            <p className="text-sm text-muted-foreground mt-2">{(displayError as Error).message}</p>
+            <Button 
+              className="mt-4"
+              onClick={() => window.location.reload()}
+            >
+              Retry
+            </Button>
+          </CardContent>
+        </Card>
       </PatientAppLayout>
     );
   }
@@ -207,153 +205,151 @@ const PatientPrescriptionsPage: React.FC = () => {
       title="My Prescriptions"
       description="View and download your prescriptions from your doctors."
     >
-      <div className="w-full space-y-6">
-        {(!prescriptions || prescriptions.length === 0) ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>No Prescriptions Found</CardTitle>
-              <CardDescription>
-                You don't have any prescriptions yet. Once your doctor writes a prescription, it will appear here.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        ) : (
-          <Tabs defaultValue="list" className="w-full">
-            <TabsList className={`mb-4 ${isSmallScreen ? 'w-full grid grid-cols-2' : ''}`}>
-              <TabsTrigger value="list" className={isSmallScreen ? 'w-full' : ''}>List View</TabsTrigger>
-              <TabsTrigger value="timeline" className={isSmallScreen ? 'w-full' : ''}>Timeline</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="list">
-              <div className="grid gap-4">
-                {prescriptions.map((prescription) => (
-                  <Card key={prescription.id} className="overflow-hidden">
-                    <CardHeader className="pb-2">
-                      <div className="flex flex-col md:flex-row md:justify-between md:items-start">
-                        <div>
-                          <CardTitle className="text-lg">
-                            Prescription
-                          </CardTitle>
-                          <CardDescription>
-                            {safeFormatDate(prescription.created_at, 'PPP')} by Dr. {prescription.doctor_first_name} {prescription.doctor_last_name}
-                          </CardDescription>
-                        </div>
-                        <Badge variant="outline" className="mt-2 md:mt-0 w-fit">
-                          {safeFormatRelativeTime(prescription.created_at)}
-                        </Badge>
+      {(!prescriptions || prescriptions.length === 0) ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>No Prescriptions Found</CardTitle>
+            <CardDescription>
+              You don't have any prescriptions yet. Once your doctor writes a prescription, it will appear here.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      ) : (
+        <Tabs defaultValue="list" className="w-full">
+          <TabsList className={`mb-4 ${isSmallScreen ? 'w-full grid grid-cols-2' : ''}`}>
+            <TabsTrigger value="list" className={isSmallScreen ? 'w-full' : ''}>List View</TabsTrigger>
+            <TabsTrigger value="timeline" className={isSmallScreen ? 'w-full' : ''}>Timeline</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="list">
+            <div className="grid gap-4">
+              {prescriptions.map((prescription) => (
+                <Card key={prescription.id} className="overflow-hidden">
+                  <CardHeader className="pb-2">
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-start">
+                      <div>
+                        <CardTitle className="text-lg">
+                          Prescription
+                        </CardTitle>
+                        <CardDescription>
+                          {safeFormatDate(prescription.created_at, 'PPP')} by Dr. {prescription.doctor_first_name} {prescription.doctor_last_name}
+                        </CardDescription>
                       </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="space-y-4">
-                        <div>
-                          <h3 className="font-medium text-sm flex items-center gap-2 mb-1">
-                            <Pill className="h-4 w-4 text-blue-500" />
-                            Diagnosis
-                          </h3>
-                          <p className="text-sm">{prescription.diagnosis || "No diagnosis provided"}</p>
-                        </div>
-                        
-                        <div>
-                          <h3 className="font-medium text-sm flex items-center gap-2 mb-1">
-                            <FileText className="h-4 w-4 text-green-500" />
-                            Prescription
-                          </h3>
-                          <p className="text-sm whitespace-pre-wrap">{prescription.prescription || "No specific medications prescribed"}</p>
-                        </div>
-                        
-                        {prescription.notes && (
-                          <div>
-                            <h3 className="font-medium text-sm flex items-center gap-2 mb-1">
-                              <User className="h-4 w-4 text-purple-500" />
-                              Notes
-                            </h3>
-                            <p className="text-sm whitespace-pre-wrap">{prescription.notes}</p>
-                          </div>
-                        )}
-                      </div>
-                    </CardContent>
-                    <div className={`px-6 py-4 bg-muted/20 flex ${isSmallScreen || isMobileOrTablet ? 'flex-col space-y-2' : 'justify-end space-x-2'}`}>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => openPdfPreview(prescription)}
-                        className={isSmallScreen || isMobileOrTablet ? 'w-full' : ''}
-                      >
-                        <FileText className="mr-2 h-4 w-4" />
-                        PDF Preview
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setSelectedPrescription(prescription);
-                          generatePdf(prescription);
-                        }}
-                        className={isSmallScreen || isMobileOrTablet ? 'w-full' : ''}
-                      >
-                        <Download className="mr-2 h-4 w-4" />
-                        Download
-                      </Button>
+                      <Badge variant="outline" className="mt-2 md:mt-0 w-fit">
+                        {safeFormatRelativeTime(prescription.created_at)}
+                      </Badge>
                     </div>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="timeline">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Prescription Timeline</CardTitle>
-                  <CardDescription>View your prescription history over time</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-border">
-                    {prescriptions.map((prescription) => (
-                      <div key={prescription.id} className="relative pl-8">
-                        <div className="absolute left-0 top-0 bg-primary rounded-full w-10 h-10 flex items-center justify-center text-white">
-                          <FileText className="h-5 w-5" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <h3 className="font-medium text-sm flex items-center gap-2 mb-1">
+                          <Pill className="h-4 w-4 text-blue-500" />
+                          Diagnosis
+                        </h3>
+                        <p className="text-sm">{prescription.diagnosis || "No diagnosis provided"}</p>
+                      </div>
+                      
+                      <div>
+                        <h3 className="font-medium text-sm flex items-center gap-2 mb-1">
+                          <FileText className="h-4 w-4 text-green-500" />
+                          Prescription
+                        </h3>
+                        <p className="text-sm whitespace-pre-wrap">{prescription.prescription || "No specific medications prescribed"}</p>
+                      </div>
+                      
+                      {prescription.notes && (
+                        <div>
+                          <h3 className="font-medium text-sm flex items-center gap-2 mb-1">
+                            <User className="h-4 w-4 text-purple-500" />
+                            Notes
+                          </h3>
+                          <p className="text-sm whitespace-pre-wrap">{prescription.notes}</p>
                         </div>
-                        <div className="pt-2">
-                          <div className="font-semibold text-md mb-1">
-                            Prescription from Dr. {prescription.doctor_first_name} {prescription.doctor_last_name}
-                          </div>
-                          <time className="block text-xs text-gray-500 mb-2">
-                            {safeFormatDate(prescription.created_at)} 
-                          </time>
-                          <div className="text-sm">
-                            <strong>Diagnosis:</strong> {prescription.diagnosis || "No diagnosis provided"}
-                          </div>
-                          <div className={`mt-2 flex ${isSmallScreen || isMobileOrTablet ? 'flex-col space-y-2' : 'flex-row space-x-2'}`}>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => openPdfPreview(prescription)}
-                              className={isSmallScreen || isMobileOrTablet ? 'w-full' : ''}
-                            >
-                              View Details
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => {
-                                setSelectedPrescription(prescription);
-                                generatePdf(prescription);
-                              }}
-                              className={isSmallScreen || isMobileOrTablet ? 'w-full' : ''}
-                            >
-                              <Download className="mr-2 h-4 w-4" />
-                              Download
-                            </Button>
-                          </div>
+                      )}
+                    </div>
+                  </CardContent>
+                  <div className={`px-6 py-4 bg-muted/20 flex ${isSmallScreen || isMobileOrTablet ? 'flex-col space-y-2' : 'justify-end space-x-2'}`}>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => openPdfPreview(prescription)}
+                      className={isSmallScreen || isMobileOrTablet ? 'w-full' : ''}
+                    >
+                      <FileText className="mr-2 h-4 w-4" />
+                      PDF Preview
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setSelectedPrescription(prescription);
+                        generatePdf(prescription);
+                      }}
+                      className={isSmallScreen || isMobileOrTablet ? 'w-full' : ''}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="timeline">
+            <Card>
+              <CardHeader>
+                <CardTitle>Prescription Timeline</CardTitle>
+                <CardDescription>View your prescription history over time</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-8 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px before:h-full before:w-0.5 before:bg-border">
+                  {prescriptions.map((prescription) => (
+                    <div key={prescription.id} className="relative pl-8">
+                      <div className="absolute left-0 top-0 bg-primary rounded-full w-10 h-10 flex items-center justify-center text-white">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <div className="pt-2">
+                        <div className="font-semibold text-md mb-1">
+                          Prescription from Dr. {prescription.doctor_first_name} {prescription.doctor_last_name}
+                        </div>
+                        <time className="block text-xs text-gray-500 mb-2">
+                          {safeFormatDate(prescription.created_at)} 
+                        </time>
+                        <div className="text-sm">
+                          <strong>Diagnosis:</strong> {prescription.diagnosis || "No diagnosis provided"}
+                        </div>
+                        <div className={`mt-2 flex ${isSmallScreen || isMobileOrTablet ? 'flex-col space-y-2' : 'flex-row space-x-2'}`}>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => openPdfPreview(prescription)}
+                            className={isSmallScreen || isMobileOrTablet ? 'w-full' : ''}
+                          >
+                            View Details
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              setSelectedPrescription(prescription);
+                              generatePdf(prescription);
+                            }}
+                            className={isSmallScreen || isMobileOrTablet ? 'w-full' : ''}
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Download
+                          </Button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
-        )}
-      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
       
       {/* PDF Preview Dialog */}
       <Dialog open={pdfPreviewOpen} onOpenChange={setPdfPreviewOpen}>
