@@ -15,8 +15,6 @@ import { generatePdfFromElement } from "@/utils/pdfUtils";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useIsMobileOrIPad } from "@/hooks/use-mobile";
-import { ModernTabBar } from "@/components/navigation/ModernTabBar";
-import { MobileMoreMenu } from "@/components/ui/mobile-more-menu";
 
 /**
  * This route component shows patient prescriptions
@@ -73,9 +71,9 @@ const PatientPrescriptionsRoute = () => {
     }
   };
 
-  // Action buttons for mobile view
+  // Action buttons for mobile view - only for patient view, removed for doctor view
   const renderMobileActions = () => {
-    if (!isMobileOrTablet) return null;
+    if (!isMobileOrTablet || userRole !== "patient") return null;
     
     const actionItems = [
       {
@@ -139,7 +137,7 @@ const PatientPrescriptionsRoute = () => {
           <div id="prescription-content">
             <PrescriptionTabsViewer patientId={effectivePatientId} />
           </div>
-          {/* Only show mobile action buttons on mobile */}
+          {/* Only show mobile action buttons for patient role */}
           {renderMobileActions()}
         </>
       ) : (
