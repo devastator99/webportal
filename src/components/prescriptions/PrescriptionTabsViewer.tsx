@@ -17,7 +17,7 @@ export const PrescriptionTabsViewer = ({ patientId, className }: PrescriptionTab
   return (
     <div className={cn("w-full", className)}>
       <Tabs defaultValue="medications" className="w-full">
-        <div className="w-full px-4 md:px-6">
+        <div className="w-full">
           <TabsList className="grid grid-cols-4 w-full mb-6 bg-white/20 backdrop-blur-md rounded-lg border-0 p-1">
             <TabsTrigger value="medications" className="flex items-center gap-2 rounded-md data-[state=active]:bg-white/60">
               <Pill className="h-4 w-4" />
