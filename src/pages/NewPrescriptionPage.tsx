@@ -7,6 +7,7 @@ import { DoctorAppLayout } from '@/layouts/DoctorAppLayout';
 import { AdminAppLayout } from '@/layouts/AdminAppLayout';
 import { AppLayout } from '@/layouts/AppLayout';
 import UnderConstructionPage from '@/components/common/UnderConstructionPage';
+import { ContentContainer } from '@/components/layout/ContentContainer';
 
 const NewPrescriptionPage: React.FC = () => {
   const { userRole } = useAuth();
@@ -26,12 +27,12 @@ const NewPrescriptionPage: React.FC = () => {
   };
 
   return getLayout(
-    <div className="w-full max-w-[1200px] mx-auto px-4">
+    <ContentContainer>
       <UnderConstructionPage 
         title="Prescriptions Coming Soon" 
         description="We're working on enhancing your prescription experience. Please check back soon!"
       />
-    </div>
+    </ContentContainer>
   );
 };
 
