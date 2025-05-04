@@ -1,26 +1,31 @@
 
 import { useAuth, UserRoleEnum } from '@/contexts/AuthContext';
-import { Navigate, useParams } from 'react-router-dom';
-import PatientPrescriptionsView from '@/pages/PatientPrescriptionsView';
-import { PrescriptionsView } from '@/components/prescriptions/PrescriptionsView';
+import { Navigate } from 'react-router-dom';
+import UnderConstructionPage from '@/components/common/UnderConstructionPage';
+import { PatientAppLayout } from '@/layouts/PatientAppLayout';
 
 /**
- * This route component determines how to display prescriptions
- * based on user role and parameters
+ * This route component shows an Under Construction page
+ * replacing the previous prescriptions view
  */
 const PatientPrescriptionsRoute = () => {
-  const { user, userRole } = useAuth();
-  const { patientId } = useParams<{ patientId?: string }>();
+  const { user } = useAuth();
   
   if (!user) return <Navigate to="/auth" replace />;
   
-  // Always use PatientPrescriptionsView for patients to ensure consistent layout with dashboard
-  if (userRole === UserRoleEnum.PATIENT) {
-    return <PatientPrescriptionsView />;
-  }
-  
-  // For doctors and other roles, use the full-width PrescriptionsView
-  return <PrescriptionsView />;
+  return (
+    <PatientAppLayout
+      title="Prescriptions"
+      description="Patient prescription management"
+      showHeader
+      fullWidth
+    >
+      <UnderConstructionPage 
+        title="Prescriptions Coming Soon" 
+        description="We're building an improved prescriptions experience for you."
+      />
+    </PatientAppLayout>
+  );
 };
 
 export default PatientPrescriptionsRoute;
