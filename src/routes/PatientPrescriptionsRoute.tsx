@@ -10,7 +10,7 @@ import { AppLayout } from '@/layouts/AppLayout';
 import { PrescriptionTabsViewer } from '@/components/prescriptions/PrescriptionTabsViewer';
 import { Button } from "@/components/ui/button";
 import { PrescriptionWriter } from "@/components/dashboard/doctor/PrescriptionWriter";
-import { FileText, Download, Pen } from "lucide-react";
+import { FileText, Pen } from "lucide-react";
 import { generatePdfFromElement } from "@/utils/pdfUtils";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -120,7 +120,7 @@ const PatientPrescriptionsRoute = () => {
       ] : []),
       {
         label: "Download",
-        icon: Download,
+        icon: FileText,
         onClick: handleDownloadPdf,
         active: false,
         disabled: viewMode === "write"
@@ -150,14 +150,7 @@ const PatientPrescriptionsRoute = () => {
               <Pen className="h-4 w-4 mr-2" />
               Write Prescription
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleDownloadPdf}
-              className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] transition-colors"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Download PDF
-            </Button>
+            {/* Removed the Download PDF button from here as it's duplicated elsewhere */}
           </div>
         </div>
       )}
