@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { PatientAppLayout } from "@/layouts/PatientAppLayout";
 import { PrescriptionTabsViewer } from '@/components/prescriptions/PrescriptionTabsViewer';
@@ -53,7 +53,7 @@ const PatientPrescriptionsView = () => {
         description="View and manage your prescriptions"
         showHeader
       >
-        <Card>
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Not Authorized</CardTitle>
             <CardDescription>Please log in to view your prescriptions.</CardDescription>
@@ -69,9 +69,9 @@ const PatientPrescriptionsView = () => {
       description="View and manage your prescriptions"
       showHeader
     >
-      <div className="w-full space-y-6">
+      <div className="w-full max-w-full space-y-6">
         {/* Card showing patient info */}
-        <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-sm w-full">
+        <Card className="w-full bg-white/60 backdrop-blur-sm border-0 shadow-sm">
           <CardContent className="p-4">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
@@ -98,7 +98,7 @@ const PatientPrescriptionsView = () => {
         </div>
         
         {/* Action Buttons */}
-        <div className="flex flex-wrap justify-end gap-2 print:hidden">
+        <div className="w-full flex flex-wrap justify-end gap-2 print:hidden">
           <Button variant="outline" size="sm" onClick={handlePrint}>
             <Printer className="h-4 w-4 mr-2" />
             Print

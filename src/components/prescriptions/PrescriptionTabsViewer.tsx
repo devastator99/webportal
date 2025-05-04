@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, GlassCard } from '@/components/ui/card';
+import { GlassCard } from '@/components/ui/card';
 import { Pill, Utensils, Dumbbell, Brain } from 'lucide-react';
 import { MedicationsTab } from './tabs/MedicationsTab';
 import { DietPlanTab } from './tabs/DietPlanTab';
@@ -17,7 +17,7 @@ interface PrescriptionTabsViewerProps {
 export const PrescriptionTabsViewer = ({ patientId, className }: PrescriptionTabsViewerProps) => {
   return (
     <GlassCard className={cn(
-      "p-4 backdrop-blur-lg border-0 shadow-sm rounded-xl", 
+      "w-full p-4 backdrop-blur-lg border-0 shadow-sm rounded-xl", 
       className
     )}>
       <Tabs defaultValue="medications" className="w-full">
@@ -44,19 +44,19 @@ export const PrescriptionTabsViewer = ({ patientId, className }: PrescriptionTab
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="medications" className="rounded-lg bg-white/5 backdrop-blur-sm p-4 border-0">
+        <TabsContent value="medications" className="w-full rounded-lg bg-white/5 backdrop-blur-sm p-4 border-0">
           <MedicationsTab patientId={patientId} />
         </TabsContent>
         
-        <TabsContent value="diet" className="rounded-lg bg-white/5 backdrop-blur-sm p-4 border-0">
+        <TabsContent value="diet" className="w-full rounded-lg bg-white/5 backdrop-blur-sm p-4 border-0">
           <DietPlanTab patientId={patientId} />
         </TabsContent>
         
-        <TabsContent value="exercise" className="rounded-lg bg-white/5 backdrop-blur-sm p-4 border-0">
+        <TabsContent value="exercise" className="w-full rounded-lg bg-white/5 backdrop-blur-sm p-4 border-0">
           <ExerciseTab patientId={patientId} />
         </TabsContent>
         
-        <TabsContent value="mental" className="rounded-lg bg-white/5 backdrop-blur-sm p-4 border-0">
+        <TabsContent value="mental" className="w-full rounded-lg bg-white/5 backdrop-blur-sm p-4 border-0">
           <MentalHealthTab patientId={patientId} />
         </TabsContent>
       </Tabs>

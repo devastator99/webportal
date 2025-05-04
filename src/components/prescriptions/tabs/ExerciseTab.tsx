@@ -28,7 +28,7 @@ export const ExerciseTab = ({ patientId }: ExerciseTabProps) => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center p-6">
+      <div className="flex justify-center w-full p-6">
         <Spinner />
       </div>
     );
@@ -36,16 +36,16 @@ export const ExerciseTab = ({ patientId }: ExerciseTabProps) => {
 
   if (!exercises?.length) {
     return (
-      <div className="text-center p-6 text-muted-foreground">
+      <div className="text-center w-full p-6 text-muted-foreground">
         No exercise plans found.
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="w-full space-y-4">
       {exercises.map((exercise) => (
-        <Card key={exercise.id} className="bg-white/50 backdrop-blur-sm">
+        <Card key={exercise.id} className="w-full bg-white/50 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center gap-4 pb-2">
             <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
               <Dumbbell className="h-4 w-4 text-blue-600" />

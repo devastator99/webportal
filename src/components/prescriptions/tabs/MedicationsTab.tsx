@@ -30,7 +30,7 @@ export const MedicationsTab = ({ patientId }: MedicationsTabProps) => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center p-6">
+      <div className="flex justify-center w-full p-6">
         <Spinner />
       </div>
     );
@@ -38,16 +38,16 @@ export const MedicationsTab = ({ patientId }: MedicationsTabProps) => {
 
   if (!prescriptions?.length) {
     return (
-      <div className="text-center p-6 text-muted-foreground">
+      <div className="text-center w-full p-6 text-muted-foreground">
         No prescriptions found.
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="w-full space-y-4">
       {prescriptions.map((prescription: any) => (
-        <Card key={prescription.prescription_id} className="bg-white/50 backdrop-blur-sm">
+        <Card key={prescription.prescription_id} className="w-full bg-white/50 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <div>
               <CardTitle className="text-sm font-medium">

@@ -28,7 +28,7 @@ export const DietPlanTab = ({ patientId }: DietPlanTabProps) => {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center p-6">
+      <div className="flex justify-center w-full p-6">
         <Spinner />
       </div>
     );
@@ -36,16 +36,16 @@ export const DietPlanTab = ({ patientId }: DietPlanTabProps) => {
 
   if (!dietPlans?.length) {
     return (
-      <div className="text-center p-6 text-muted-foreground">
+      <div className="text-center w-full p-6 text-muted-foreground">
         No diet plans found.
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="w-full space-y-4">
       {dietPlans.map((plan) => (
-        <Card key={plan.id} className="bg-white/50 backdrop-blur-sm">
+        <Card key={plan.id} className="w-full bg-white/50 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center gap-4 pb-2">
             <div className="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center">
               <Utensils className="h-4 w-4 text-green-600" />

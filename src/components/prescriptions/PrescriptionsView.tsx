@@ -20,7 +20,6 @@ export const PrescriptionsView = () => {
   const { toast } = useToast();
   const [patientInfo, setPatientInfo] = useState<any>(null);
   const [doctorInfo, setDoctorInfo] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<string>('medications');
   
   // Check if the current user is viewing their own prescriptions or if they have permission
   const isOwnPrescription = user?.id === patientId;
@@ -101,7 +100,7 @@ export const PrescriptionsView = () => {
   
   if (isLoadingPatient || isLoadingCareTeam) {
     return (
-      <div className="flex justify-center items-center min-h-[400px]">
+      <div className="flex justify-center items-center min-h-[400px] w-full">
         <Spinner size="lg" />
       </div>
     );
@@ -109,7 +108,7 @@ export const PrescriptionsView = () => {
   
   if (!patientInfo) {
     return (
-      <Card className="border-destructive">
+      <Card className="border-destructive w-full">
         <CardHeader>
           <CardTitle>Patient Not Found</CardTitle>
         </CardHeader>
@@ -121,9 +120,9 @@ export const PrescriptionsView = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="w-full space-y-6">
       {/* Patient Info Banner */}
-      <Card className="bg-white/60 backdrop-blur-sm border-0 shadow-sm">
+      <Card className="w-full bg-white/60 backdrop-blur-sm border-0 shadow-sm">
         <CardContent className="p-4">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -153,12 +152,12 @@ export const PrescriptionsView = () => {
       </Card>
       
       {/* Main Content */}
-      <div id="prescription-content">
+      <div id="prescription-content" className="w-full">
         {patientId && <PrescriptionTabsViewer patientId={patientId} className="mb-6" />}
       </div>
       
       {/* Action Buttons */}
-      <div className="flex flex-wrap justify-end gap-2 print:hidden">
+      <div className="w-full flex flex-wrap justify-end gap-2 print:hidden">
         <Button variant="outline" size="sm" onClick={handlePrint}>
           <Printer className="h-4 w-4 mr-2" />
           Print
