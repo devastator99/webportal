@@ -111,7 +111,7 @@ export function PatientSidebar() {
               </SheetTrigger>
               <SheetContent 
                 side="left" 
-                className="w-64 p-0 bg-white/10 backdrop-blur-lg border-r border-white/20"
+                className="w-[var(--sidebar-width-mobile)] p-0 bg-white/10 backdrop-blur-lg border-r border-white/20"
               >
                 <div className="h-full overflow-y-auto pt-4">
                   <SidebarGroupContent>
@@ -130,7 +130,10 @@ export function PatientSidebar() {
 
   // Desktop sidebar - using CSS variables for width
   return (
-    <Sidebar className="bg-white/10 backdrop-blur-lg border-r border-white/20">
+    <Sidebar 
+      className="bg-white/10 backdrop-blur-lg border-r border-white/20"
+      style={{ width: 'var(--sidebar-width)' }}
+    >
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
