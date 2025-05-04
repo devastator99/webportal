@@ -4,18 +4,3 @@
   --sidebar-width-mobile: 18rem;
   --sidebar-width-icon: 3rem;
 }
-
-@media (min-width: 1024px) {
-  :root {
-    --sidebar-width: 16rem;
-  }
-}
-
-body, html {
-  margin: 0;
-  padding: 0;
-  width: 100%;
-  height: 100%;
-  overflow-x: hidden;
-}
-
