@@ -9,7 +9,6 @@ import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-// Corrected import path
 import '@/styles/glass.css';
 
 export const Navbar = () => {
@@ -42,6 +41,10 @@ export const Navbar = () => {
 
   const isAuthPage = location.pathname === '/auth';
   const useResponsiveDisplay = isMobile || isIPad;
+
+  // Don't show navbar on dashboard for authenticated users
+  const isDashboardRoute = location.pathname.includes('/dashboard');
+  if (user && isDashboardRoute) return null;
 
   return (
     <nav className={`fixed top-0 w-full ${scrolled ? 'glass-nav scrolled' : 'glass-nav'} z-50`}>

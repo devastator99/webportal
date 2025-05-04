@@ -1,4 +1,5 @@
-import { Home, MessageCircle, FileText, Users, Video, UserRound, Menu } from "lucide-react";
+
+import { Home, FileText, Users, Video, UserRound, Menu } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -36,11 +37,6 @@ export function DoctorSidebar() {
       title: "Patients",
       icon: Users,
       path: "/patients"
-    },
-    {
-      title: "Chat",
-      icon: MessageCircle,
-      path: "/chat"
     },
     {
       title: "Prescriptions",
