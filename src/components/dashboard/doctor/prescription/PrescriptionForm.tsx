@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Save, UserPlus, CalendarPlus, Activity, X, FileText } from "lucide-react";
+import { Plus, Save, CalendarPlus, Activity, X, FileText } from "lucide-react";
 import { usePrescriptions } from "@/hooks/usePrescriptions";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import type { PrescriptionData } from "@/hooks/usePrescriptions";
@@ -15,17 +15,27 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Separator } from "@/components/ui/separator";
 import { PrescriptionLetterhead } from "./PrescriptionLetterhead";
 import { PrescriptionFooter } from "./PrescriptionFooter";
+import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 export interface PrescriptionFormProps {
   patientId: string;
   onSaved?: (prescriptionId: string) => void;
+  patientInfo?: {
+    name?: string;
+    age?: number;
+    gender?: string;
+    contactNumber?: string;
+  };
 }
 
 export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
   patientId,
-  onSaved
+  onSaved,
+  patientInfo
 }) => {
   const { savePrescription, isLoading } = usePrescriptions();
+  const { toast } = useToast();
   const [diagnosis, setDiagnosis] = useState("");
   const [notes, setNotes] = useState("");
   const [medications, setMedications] = useState<PrescriptionData["medications"]>([]);
@@ -33,7 +43,13 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
   const [showMedicationDialog, setShowMedicationDialog] = useState(false);
   const [showTestDialog, setShowTestDialog] = useState(false);
   const [showVitalsDialog, setShowVitalsDialog] = useState(false);
-  const [vitals, setVitals] = useState<PrescriptionData["vitals"]>();
+  const [vitals, setVitals] = useState<PrescriptionData["vitals"]>({
+    blood_pressure: '',
+    temperature: undefined,
+    heart_rate: undefined,
+    respiratory_rate: undefined,
+    oxygen_saturation: undefined
+  });
   const [followUpDate, setFollowUpDate] = useState("");
   const [validityPeriod, setValidityPeriod] = useState(30); // Default 30 days
   const [headerInfo, setHeaderInfo] = useState({
@@ -73,7 +89,11 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
 
   const handleSavePrescription = async () => {
     if (!diagnosis) {
-      alert("Diagnosis is required");
+      toast({
+        title: "Error",
+        description: "Diagnosis is required",
+        variant: "destructive"
+      });
       return;
     }
 
@@ -88,22 +108,49 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
       format_type: 'standard'
     };
 
-    const prescriptionId = await savePrescription(patientId, prescriptionData);
-    if (prescriptionId && onSaved) {
-      onSaved(prescriptionId);
-      // Reset form
-      setDiagnosis("");
-      setNotes("");
-      setMedications([]);
-      setTests([]);
-      setVitals(undefined);
-      setFollowUpDate("");
+    try {
+      const prescriptionId = await savePrescription(patientId, prescriptionData);
+      if (prescriptionId) {
+        toast({
+          title: "Success",
+          description: "Prescription saved successfully"
+        });
+        
+        if (onSaved) {
+          onSaved(prescriptionId);
+        }
+        
+        // Reset form
+        setDiagnosis("");
+        setNotes("");
+        setMedications([]);
+        setTests([]);
+        setVitals({
+          blood_pressure: '',
+          temperature: undefined,
+          heart_rate: undefined,
+          respiratory_rate: undefined,
+          oxygen_saturation: undefined
+        });
+        setFollowUpDate("");
+      }
+    } catch (error) {
+      console.error("Error saving prescription:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save prescription",
+        variant: "destructive"
+      });
     }
   };
 
   const handleAddMedication = () => {
     if (!newMedication.medication_name || !newMedication.dosage || !newMedication.frequency) {
-      alert("Medication name, dosage and frequency are required");
+      toast({
+        title: "Error",
+        description: "Medication name, dosage and frequency are required",
+        variant: "destructive"
+      });
       return;
     }
     setMedications([...medications, newMedication]);
@@ -120,7 +167,11 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
 
   const handleAddTest = () => {
     if (!newTest.test_name) {
-      alert("Test name is required");
+      toast({
+        title: "Error",
+        description: "Test name is required",
+        variant: "destructive"
+      });
       return;
     }
     setTests([...tests, newTest]);
@@ -415,6 +466,10 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
           variant="outline"
           onClick={() => {
             // Preview logic would go here
+            toast({
+              title: "Preview",
+              description: "Prescription preview is being generated"
+            });
           }}
         >
           <FileText className="h-4 w-4 mr-2" />

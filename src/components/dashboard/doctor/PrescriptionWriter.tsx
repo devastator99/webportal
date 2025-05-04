@@ -6,28 +6,69 @@ import { PatientSelector } from "../doctor/prescription/PatientSelector";
 import { PrescriptionForm } from "../doctor/prescription/PrescriptionForm";
 import { PrescriptionHistory } from "../doctor/prescription/PrescriptionHistory";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface PrescriptionWriterProps {
   patientId?: string;  // Optional when accessed from dashboard
   onPrescriptionSaved?: () => void;
+  patientInfo?: {
+    name?: string;
+    age?: number;
+    gender?: string;
+    contactNumber?: string;
+  };
 }
 
-export const PrescriptionWriter: React.FC<PrescriptionWriterProps> = ({ patientId: initialPatientId, onPrescriptionSaved }) => {
+export const PrescriptionWriter: React.FC<PrescriptionWriterProps> = ({ 
+  patientId: initialPatientId, 
+  onPrescriptionSaved,
+  patientInfo: initialPatientInfo
+}) => {
   const [selectedPatient, setSelectedPatient] = useState<string>(initialPatientId || "");
   const [activeTab, setActiveTab] = useState<string>("write");
   const [savedPrescriptionId, setSavedPrescriptionId] = useState<string | null>(null);
+  const [patientInfo, setPatientInfo] = useState<any>(initialPatientInfo || null);
   const { toast } = useToast();
 
   useEffect(() => {
     // Update selected patient if initialPatientId changes
     if (initialPatientId) {
       setSelectedPatient(initialPatientId);
+      
+      // If we don't have patient info and we have a patient ID, fetch it
+      if (!initialPatientInfo && initialPatientId) {
+        const fetchPatientInfo = async () => {
+          try {
+            const { data, error } = await supabase
+              .from('profiles')
+              .select('first_name, last_name')
+              .eq('id', initialPatientId)
+              .single();
+              
+            if (error) throw error;
+            setPatientInfo({
+              name: `${data.first_name} ${data.last_name}`
+            });
+          } catch (err) {
+            console.error('Error fetching patient info:', err);
+          }
+        };
+        
+        fetchPatientInfo();
+      }
     }
-  }, [initialPatientId]);
+  }, [initialPatientId, initialPatientInfo]);
 
-  const onPatientSelect = () => {
+  const onPatientSelect = (patientData: any) => {
     setActiveTab("write");
     setSavedPrescriptionId(null);
+    
+    // Update patient info if available
+    if (patientData && patientData.first_name) {
+      setPatientInfo({
+        name: `${patientData.first_name} ${patientData.last_name}`
+      });
+    }
   };
 
   const handlePrescriptionSaved = (id: string) => {
@@ -44,12 +85,17 @@ export const PrescriptionWriter: React.FC<PrescriptionWriterProps> = ({ patientI
 
   const handleAssignNutritionist = (prescriptionId: string) => {
     console.log("Assigning nutritionist for prescription:", prescriptionId);
+    // Implementation would go here
   };
 
   return (
     <Card className="col-span-6">
       <CardHeader>
-        <CardTitle>Prescription Writer</CardTitle>
+        <CardTitle>
+          {patientInfo?.name 
+            ? `Write Prescription for ${patientInfo.name}` 
+            : 'Prescription Writer'}
+        </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
@@ -72,6 +118,7 @@ export const PrescriptionWriter: React.FC<PrescriptionWriterProps> = ({ patientI
                 <PrescriptionForm
                   patientId={selectedPatient}
                   onSaved={savedPrescriptionId ? undefined : handlePrescriptionSaved}
+                  patientInfo={patientInfo}
                 />
               </TabsContent>
               

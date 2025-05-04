@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from '@/contexts/AuthContext';
 import { Navigate, useParams } from 'react-router-dom';
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useIsMobileOrIPad } from "@/hooks/use-mobile";
 import { ModernTabBar } from "@/components/navigation/ModernTabBar";
+import { supabase } from "@/integrations/supabase/client";
 
 /**
  * This route component shows patient prescriptions
@@ -27,6 +28,30 @@ const PatientPrescriptionsRoute = () => {
   const { toast } = useToast();
   const isMobileOrTablet = useIsMobileOrIPad();
   const [viewMode, setViewMode] = useState<"view" | "write">("view");
+  const [patientInfo, setPatientInfo] = useState<any>(null);
+  
+  // Fetch patient data if needed
+  useEffect(() => {
+    // Only fetch if we're dealing with a doctor viewing someone else's prescriptions
+    if (patientId && userRole === 'doctor') {
+      const fetchPatientInfo = async () => {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('id', patientId)
+            .single();
+            
+          if (error) throw error;
+          setPatientInfo(data);
+        } catch (err) {
+          console.error('Error fetching patient info:', err);
+        }
+      };
+      
+      fetchPatientInfo();
+    }
+  }, [patientId, userRole]);
   
   if (!user) return <Navigate to="/auth" replace />;
   
@@ -112,7 +137,11 @@ const PatientPrescriptionsRoute = () => {
       {/* Action buttons at the top for both desktop view and mobile doctor view */}
       {((!isMobileOrTablet && viewMode === "view") || (isMobileOrTablet && userRole === "doctor" && viewMode === "view")) && canWritePrescription && (
         <div className="flex justify-between items-center mb-6 print:hidden">
-          <h2 className="text-xl font-semibold">Patient Prescriptions</h2>
+          <h2 className="text-xl font-semibold">
+            {patientInfo 
+              ? `${patientInfo.first_name} ${patientInfo.last_name}'s Prescriptions` 
+              : 'Patient Prescriptions'}
+          </h2>
           <div className="flex space-x-3">
             <Button 
               onClick={() => setViewMode("write")}
@@ -154,7 +183,10 @@ const PatientPrescriptionsRoute = () => {
           </div>
           <PrescriptionWriter 
             patientId={effectivePatientId} 
-            onPrescriptionSaved={() => setViewMode("view")} 
+            onPrescriptionSaved={() => setViewMode("view")}
+            patientInfo={patientInfo ? {
+              name: `${patientInfo.first_name} ${patientInfo.last_name}`
+            } : undefined}
           />
         </div>
       )}

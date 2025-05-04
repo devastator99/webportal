@@ -42,7 +42,7 @@ export const usePrescriptions = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  const savePrescription = async (patientId: string, data: PrescriptionData) => {
+  const savePrescription = async (patientId: string, data: PrescriptionData): Promise<string | null> => {
     if (!user?.id) {
       toast({
         title: "Error",
@@ -61,28 +61,27 @@ export const usePrescriptions = () => {
           p_patient_id: patientId,
           p_doctor_id: user.id,
           p_diagnosis: data.diagnosis,
-          p_notes: data.notes,
-          p_vitals: data.vitals as any,
-          p_follow_up_date: data.follow_up_date,
-          p_validity_period: data.validity_period,
+          p_notes: data.notes || null,
+          p_vitals: data.vitals || null,
+          p_follow_up_date: data.follow_up_date || null,
+          p_validity_period: data.validity_period || 30,
           p_format_type: data.format_type || 'standard',
-          p_medications: data.medications as any,
-          p_tests: data.tests as any
+          p_medications: data.medications || [],
+          p_tests: data.tests || []
         }
       );
 
-      if (error) throw error;
-
-      toast({
-        title: "Success",
-        description: "Prescription saved successfully",
-      });
+      if (error) {
+        console.error("Error saving prescription:", error);
+        throw error;
+      }
 
       return result;
     } catch (error: any) {
+      console.error("Exception in savePrescription:", error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error.message || "Failed to save prescription",
         variant: "destructive",
       });
       return null;
@@ -100,10 +99,14 @@ export const usePrescriptions = () => {
         { p_prescription_id: prescriptionId }
       );
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching prescription:", error);
+        throw error;
+      }
 
       return data;
     } catch (error: any) {
+      console.error("Exception in getPrescription:", error);
       toast({
         title: "Error",
         description: "Failed to load prescription details",
@@ -124,10 +127,14 @@ export const usePrescriptions = () => {
         { p_patient_id: patientId }
       );
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching prescriptions:", error);
+        throw error;
+      }
 
-      return data;
+      return data || [];
     } catch (error: any) {
+      console.error("Exception in getPatientPrescriptions:", error);
       toast({
         title: "Error",
         description: "Failed to load prescriptions",
