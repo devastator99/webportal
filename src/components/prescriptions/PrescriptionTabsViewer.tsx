@@ -16,12 +16,9 @@ interface PrescriptionTabsViewerProps {
 
 export const PrescriptionTabsViewer = ({ patientId, className }: PrescriptionTabsViewerProps) => {
   return (
-    <GlassCard className={cn(
-      "w-full p-4 backdrop-blur-lg border-0 shadow-sm rounded-xl", 
-      className
-    )}>
+    <div className={cn("w-full", className)}>
       <Tabs defaultValue="medications" className="w-full">
-        <TabsList className="grid grid-cols-4 w-full bg-white/20 backdrop-blur-md rounded-lg border-0 mb-4 p-1">
+        <TabsList className="grid grid-cols-4 w-full mb-6 bg-white/20 backdrop-blur-md rounded-lg border-0 p-1">
           <TabsTrigger value="medications" className="flex items-center gap-2 rounded-md data-[state=active]:bg-white/60">
             <Pill className="h-4 w-4" />
             <span className="hidden sm:inline">Medications</span>
@@ -44,22 +41,24 @@ export const PrescriptionTabsViewer = ({ patientId, className }: PrescriptionTab
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="medications" className="w-full rounded-lg bg-white/5 backdrop-blur-sm p-4 border-0">
-          <MedicationsTab patientId={patientId} />
-        </TabsContent>
-        
-        <TabsContent value="diet" className="w-full rounded-lg bg-white/5 backdrop-blur-sm p-4 border-0">
-          <DietPlanTab patientId={patientId} />
-        </TabsContent>
-        
-        <TabsContent value="exercise" className="w-full rounded-lg bg-white/5 backdrop-blur-sm p-4 border-0">
-          <ExerciseTab patientId={patientId} />
-        </TabsContent>
-        
-        <TabsContent value="mental" className="w-full rounded-lg bg-white/5 backdrop-blur-sm p-4 border-0">
-          <MentalHealthTab patientId={patientId} />
-        </TabsContent>
+        <div className="bg-white/5 backdrop-blur-sm rounded-lg p-6 border-0">
+          <TabsContent value="medications" className="mt-0 w-full">
+            <MedicationsTab patientId={patientId} />
+          </TabsContent>
+          
+          <TabsContent value="diet" className="mt-0 w-full">
+            <DietPlanTab patientId={patientId} />
+          </TabsContent>
+          
+          <TabsContent value="exercise" className="mt-0 w-full">
+            <ExerciseTab patientId={patientId} />
+          </TabsContent>
+          
+          <TabsContent value="mental" className="mt-0 w-full">
+            <MentalHealthTab patientId={patientId} />
+          </TabsContent>
+        </div>
       </Tabs>
-    </GlassCard>
+    </div>
   );
 };

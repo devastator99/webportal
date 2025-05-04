@@ -14,7 +14,7 @@ const PatientPrescriptionsRoute = () => {
   
   if (!user) return <Navigate to="/auth" replace />;
   
-  // Use PatientPrescriptionsView for patients to ensure consistent layout with dashboard
+  // Always use PatientPrescriptionsView for patients to ensure consistent layout with dashboard
   if (userRole === UserRoleEnum.PATIENT) {
     return <PatientPrescriptionsView />;
   }

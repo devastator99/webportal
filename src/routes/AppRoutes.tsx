@@ -13,7 +13,7 @@ import Dashboard from '@/pages/Dashboard';
 import PatientPrescriptionsRoute from '@/routes/PatientPrescriptionsRoute';
 import VerifyCodePage from '@/pages/VerifyCodePage';
 import { ForgotPasswordRouteWrapper } from '@/pages/ForgotPasswordRouteWrapper';
-import VideosPage from '@/pages/VideosPage'; // Import directly, not lazy-loaded
+import VideosPage from '@/pages/VideosPage';
 
 // Lazy loaded components
 const ChatPage = lazy(() => import('@/pages/ChatPage'));
@@ -21,7 +21,6 @@ const Admin = lazy(() => import('@/pages/Admin'));
 const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const MessageSearchPage = lazy(() => import('@/pages/MessageSearchPage'));
 const PatientHabitsPage = lazy(() => import('@/pages/PatientHabitsPage'));
-const PatientPrescriptionsView = lazy(() => import('@/pages/PatientPrescriptionsView'));
 const PatientProfilePage = lazy(() => import('@/pages/PatientProfilePage'));
 
 export const AppRoutes = () => {
@@ -126,7 +125,7 @@ export const AppRoutes = () => {
           }
         />
         
-        {/* Add direct route without patientId for patients viewing their own prescriptions */}
+        {/* Routes for prescriptions */}
         <Route
           path="/prescriptions"
           element={
@@ -136,7 +135,6 @@ export const AppRoutes = () => {
           }
         />
         
-        {/* Keep existing route for prescriptions with patientId for doctors/admins */}
         <Route
           path="/prescriptions/:patientId"
           element={

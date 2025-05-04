@@ -3,13 +3,12 @@ import React from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { PatientAppLayout } from "@/layouts/PatientAppLayout";
 import { PrescriptionTabsViewer } from '@/components/prescriptions/PrescriptionTabsViewer';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { FileText, Download, Printer, Share2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { generatePdfFromElement } from '@/utils/pdfUtils';
 import { format } from 'date-fns';
+import { generatePdfFromElement } from '@/utils/pdfUtils';
 
 const PatientPrescriptionsView = () => {
   const { user } = useAuth();
@@ -54,10 +53,12 @@ const PatientPrescriptionsView = () => {
         showHeader
       >
         <Card className="w-full">
-          <CardHeader>
-            <CardTitle>Not Authorized</CardTitle>
-            <CardDescription>Please log in to view your prescriptions.</CardDescription>
-          </CardHeader>
+          <CardContent className="p-6">
+            <div className="text-center">
+              <h2 className="text-xl font-semibold mb-2">Not Authorized</h2>
+              <p>Please log in to view your prescriptions.</p>
+            </div>
+          </CardContent>
         </Card>
       </PatientAppLayout>
     );
@@ -70,27 +71,11 @@ const PatientPrescriptionsView = () => {
       showHeader
     >
       <div className="w-full max-w-full space-y-6">
-        {/* Card showing patient info */}
-        <Card className="w-full bg-white/60 backdrop-blur-sm border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div>
-                <h2 className="text-xl font-semibold mb-1">
-                  Your Prescriptions
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Manage and view all your medical prescriptions
-                </p>
-              </div>
-              
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="outline" className="px-3 py-1">
-                  Personal Records
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Heading */}
+        <div>
+          <h1 className="text-2xl font-bold text-amber-700 mb-1">Your Prescriptions</h1>
+          <p className="text-gray-600">Access and manage all your health plan information</p>
+        </div>
         
         {/* Main Content */}
         <div id="prescription-content" className="w-full">

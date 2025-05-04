@@ -1,10 +1,9 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { supabase } from '@/integrations/supabase/client';
-import { Brain } from 'lucide-react';
 
 interface MentalHealthTabProps {
   patientId: string;
@@ -43,31 +42,41 @@ export const MentalHealthTab = ({ patientId }: MentalHealthTabProps) => {
   }
 
   return (
-    <div className="w-full space-y-4">
-      {mentalHealthPlans.map((plan) => (
-        <Card key={plan.id} className="w-full bg-white/50 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center gap-4 pb-2">
-            <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
-              <Brain className="h-4 w-4 text-purple-600" />
-            </div>
-            <div>
-              <CardTitle className="text-sm font-medium">
-                {plan.description}
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                {plan.scheduled_time} • {plan.frequency}
-              </p>
-            </div>
-          </CardHeader>
-          {plan.duration && (
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Duration: {plan.duration}
-              </p>
+    <div className="w-full">
+      <div className="mb-6">
+        <h2 className="text-2xl font-semibold text-amber-700">Mental Wellbeing Plan</h2>
+        <p className="text-muted-foreground">
+          From Dr. Lisa Patel, Psychologist on April 7, 2025
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-medium mb-2">Daily Practices</h3>
+          <ul className="list-disc pl-5 space-y-2">
+            <li>10 minutes morning meditation</li>
+            <li>Gratitude journaling before bed</li>
+            <li>Deep breathing exercises when feeling stressed</li>
+          </ul>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-medium mb-2">Recommended Resources</h3>
+          <Card className="bg-purple-50 mb-3">
+            <CardContent className="p-4">
+              <p className="font-medium">Sleep Meditation</p>
+              <p className="text-sm text-muted-foreground">Available in the Resources section</p>
             </CardContent>
-          )}
-        </Card>
-      ))}
+          </Card>
+          
+          <Card className="bg-purple-50">
+            <CardContent className="p-4">
+              <p className="font-medium">Stress Management Guide</p>
+              <p className="text-sm text-muted-foreground">PDF available for download</p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 };

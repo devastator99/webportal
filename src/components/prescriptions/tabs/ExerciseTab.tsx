@@ -1,10 +1,9 @@
 
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { supabase } from '@/integrations/supabase/client';
-import { Dumbbell } from 'lucide-react';
 
 interface ExerciseTabProps {
   patientId: string;
@@ -43,31 +42,47 @@ export const ExerciseTab = ({ patientId }: ExerciseTabProps) => {
   }
 
   return (
-    <div className="w-full space-y-4">
-      {exercises.map((exercise) => (
-        <Card key={exercise.id} className="w-full bg-white/50 backdrop-blur-sm">
-          <CardHeader className="flex flex-row items-center gap-4 pb-2">
-            <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center">
-              <Dumbbell className="h-4 w-4 text-blue-600" />
-            </div>
-            <div>
-              <CardTitle className="text-sm font-medium">
-                {exercise.description}
-              </CardTitle>
-              <p className="text-xs text-muted-foreground">
-                {exercise.scheduled_time} • {exercise.frequency}
-              </p>
-            </div>
-          </CardHeader>
-          {exercise.duration && (
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Duration: {exercise.duration}
-              </p>
-            </CardContent>
-          )}
-        </Card>
-      ))}
+    <div className="w-full">
+      <div className="mb-6">
+        <h2 className="text-2xl font-semibold text-amber-700">Exercise Regimen</h2>
+        <p className="text-muted-foreground">
+          Designed by Michael Johnson, Physical Therapist on March 30, 2025
+        </p>
+      </div>
+
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-medium mb-4">Weekly Plan</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="border border-gray-200">
+              <CardContent className="p-4">
+                <p className="font-medium">Monday, Wednesday, Friday</p>
+                <p className="text-muted-foreground">20 minutes walking, 10 minutes stretching</p>
+              </CardContent>
+            </Card>
+            <Card className="border border-gray-200">
+              <CardContent className="p-4">
+                <p className="font-medium">Tuesday, Thursday</p>
+                <p className="text-muted-foreground">Light strength training with resistance bands</p>
+              </CardContent>
+            </Card>
+            <Card className="border border-gray-200">
+              <CardContent className="p-4">
+                <p className="font-medium">Weekend</p>
+                <p className="text-muted-foreground">30 minutes leisure activity (swimming, hiking, etc.)</p>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-lg font-medium mb-2">Notes</h3>
+          <p className="text-muted-foreground">
+            Start slowly and build up intensity. Focus on proper form rather than duration. 
+            Stay hydrated during exercise.
+          </p>
+        </div>
+      </div>
     </div>
   );
 };
