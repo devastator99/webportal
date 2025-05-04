@@ -25,10 +25,10 @@ export function PatientAppLayout({
   return (
     <AppLayout>
       <SidebarProvider>
-        <div className="flex min-h-screen w-full">
+        <div className="flex min-h-screen">
           <PatientSidebar />
           
-          <main className="flex-1 overflow-x-hidden">
+          <main className="flex-1">
             <div className={`w-full ${isMobile ? "pt-16" : "pt-20"} px-6 pb-8`}>
               {showHeader && title && (
                 <div className="mb-6">
