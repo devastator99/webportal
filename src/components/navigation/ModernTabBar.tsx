@@ -54,7 +54,7 @@ export const ModernTabBar: React.FC<ModernTabBarProps> = ({ items, className }) 
   
   return (
     <div className={cn(
-      "fixed bottom-4 left-0 right-0 z-40 mx-auto px-4 pb-safe animate-fade-up",
+      "fixed bottom-6 left-0 right-0 z-40 mx-auto px-4 pb-safe animate-fade-up",
       className
     )}>
       <div className="relative flex items-center justify-around max-w-md mx-auto rounded-full p-1.5 glass-nav shadow-lg">
@@ -70,7 +70,7 @@ export const ModernTabBar: React.FC<ModernTabBarProps> = ({ items, className }) 
             key={item.label}
             ref={el => itemRefs.current[index] = el}
             className={cn(
-              "relative flex flex-col items-center justify-center py-2 px-3 rounded-full transition-all duration-300 z-10",
+              "relative flex flex-col items-center justify-center py-2 px-4 rounded-full transition-all duration-300 z-10",
               item.active 
                 ? "text-[#7E69AB] scale-105" 
                 : "text-gray-500 hover:text-[#7E69AB]/80",
@@ -81,10 +81,10 @@ export const ModernTabBar: React.FC<ModernTabBarProps> = ({ items, className }) 
           >
             <item.icon className={cn(
               "transition-all duration-300",
-              item.active ? "h-6 w-6 mb-1" : "h-5 w-5 mb-0.5"
+              item.active ? "h-5 w-5 mb-1" : "h-4 w-4 mb-0.5"
             )} />
             <span className={cn(
-              "text-xs transition-all duration-300",
+              "text-[10px] font-medium transition-all duration-300",
               item.active ? "opacity-100" : "opacity-80"
             )}>
               {item.label}

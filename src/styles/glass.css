@@ -2,11 +2,11 @@
 /* Glass Effect Utility Classes */
 
 .glass-nav {
-  @apply bg-white/10 backdrop-blur-md border-white/20 shadow-sm transition-all duration-300;
+  @apply bg-white/75 backdrop-blur-lg border border-white/30 shadow-lg transition-all duration-300;
 }
 
 .glass-nav.scrolled {
-  @apply bg-white/20 shadow-md;
+  @apply bg-white/90 shadow-md;
 }
 
 .glass-card {
@@ -102,3 +102,4 @@
 .pill {
   @apply rounded-full px-4 py-2;
 }
+

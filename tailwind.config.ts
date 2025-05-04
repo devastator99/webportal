@@ -30,6 +30,8 @@ export default {
         'chat': '0 1px 3px rgba(0, 0, 0, 0.08)',
         'sm': '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
         'pill': '0 4px 10px rgba(0, 0, 0, 0.1)',
+        'floating': '0 8px 16px rgba(0, 0, 0, 0.08), 0 4px 8px rgba(0, 0, 0, 0.06)',
+        'nav': '0 -2px 10px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.1)',
       },
       animation: {
         'fade-up': 'fadeUp 0.5s ease-out forwards',

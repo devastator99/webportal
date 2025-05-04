@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useIsMobileOrIPad } from "@/hooks/use-mobile";
 import { ModernTabBar } from "@/components/navigation/ModernTabBar";
+import { MobileMoreMenu } from "@/components/ui/mobile-more-menu";
 
 /**
  * This route component shows patient prescriptions
@@ -72,72 +73,46 @@ const PatientPrescriptionsRoute = () => {
     }
   };
 
-  // Action buttons based on user role
-  const renderActionButtons = () => {
-    if (isMobileOrTablet) {
-      // Modern action tabs for mobile using the new ModernTabBar
-      const actionItems = [
+  // Action buttons for mobile view
+  const renderMobileActions = () => {
+    if (!isMobileOrTablet) return null;
+    
+    const actionItems = [
+      {
+        label: "View",
+        icon: FileText,
+        onClick: () => setViewMode("view"),
+        active: viewMode === "view",
+        disabled: false
+      },
+      ...(canWritePrescription ? [
         {
-          label: "View",
-          icon: FileText,
-          onClick: () => setViewMode("view"),
-          active: viewMode === "view",
+          label: "Write",
+          icon: Pen,
+          onClick: () => setViewMode("write"),
+          active: viewMode === "write",
           disabled: false
-        },
-        ...(canWritePrescription ? [
-          {
-            label: "Write",
-            icon: Pen,
-            onClick: () => setViewMode("write"),
-            active: viewMode === "write",
-            disabled: false
-          }
-        ] : []),
-        {
-          label: "Download",
-          icon: Download,
-          onClick: handleDownloadPdf,
-          active: false,
-          disabled: viewMode === "write"
         }
-      ];
+      ] : []),
+      {
+        label: "Download",
+        icon: Download,
+        onClick: handleDownloadPdf,
+        active: false,
+        disabled: viewMode === "write"
+      }
+    ];
 
-      return viewMode === "view" ? (
-        <div className="fixed bottom-20 left-0 right-0 z-30 print:hidden">
-          <ModernTabBar items={actionItems} className="pb-0 bottom-0 shadow-none" />
-        </div>
-      ) : null;
-    }
-
-    // Desktop version - elegant buttons with hover effect
     return viewMode === "view" ? (
-      <div className="flex justify-end space-x-3 print:hidden">
-        {canWritePrescription && (
-          <Button 
-            onClick={() => setViewMode("write")}
-            className="bg-[#9b87f5] hover:bg-[#7E69AB] transition-colors shadow-md hover:shadow-lg"
-          >
-            <Pen className="h-4 w-4 mr-2" />
-            Write Prescription
-          </Button>
-        )}
-        <Button 
-          variant="outline" 
-          onClick={handleDownloadPdf}
-          className="border-[#9b87f5] text-[#7E69AB] hover:bg-[#E5DEFF] transition-colors"
-        >
-          <Download className="h-4 w-4 mr-2" />
-          Download PDF
-        </Button>
-      </div>
+      <ModernTabBar items={actionItems} />
     ) : null;
   };
   
   return getLayout(
-    <div className="w-full max-w-[1200px] mx-auto px-4">
+    <div className="w-full max-w-[1200px] mx-auto px-4 pb-16">
       {/* Added action buttons at the top for desktop view */}
       {!isMobileOrTablet && viewMode === "view" && canWritePrescription && (
-        <div className="flex justify-between items-center mb-4 print:hidden">
+        <div className="flex justify-between items-center mb-6 print:hidden">
           <h2 className="text-xl font-semibold">Patient Prescriptions</h2>
           <div className="flex space-x-3">
             <Button 
@@ -161,11 +136,11 @@ const PatientPrescriptionsRoute = () => {
       
       {viewMode === "view" ? (
         <>
-          <div id="prescription-content" className="pb-20">
+          <div id="prescription-content">
             <PrescriptionTabsViewer patientId={effectivePatientId} />
           </div>
-          {/* Only show bottom action buttons on mobile */}
-          {isMobileOrTablet && renderActionButtons()}
+          {/* Only show mobile action buttons on mobile */}
+          {renderMobileActions()}
         </>
       ) : (
         <div className="mt-4">
