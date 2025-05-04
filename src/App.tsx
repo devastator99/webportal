@@ -1,7 +1,7 @@
-
 import './App.css';
 import './styles/glass.css';
 import './styles/ai-chat.css';
+import './components/ui/sidebar-variables.css';
 import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { ThemeProvider } from './components/ui/theme-provider';
@@ -14,6 +14,7 @@ import { MobileStatusBar } from './components/mobile/MobileStatusBar';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { NotificationBell } from './components/notifications/NotificationBell';
 import { AuthDebugMonitor } from './components/auth/AuthDebugMonitor';
+import { SidebarProvider } from './components/ui/sidebar';
 
 // Password reset redirect function
 function PasswordResetRedirect() {
@@ -122,10 +123,6 @@ function App() {
                   <AppRoutes />
                 </div>
               </ErrorBoundary>
-              
-              <div className="fixed right-6 bottom-6 z-30">
-                <NotificationBell />
-              </div>
               
               <AuthDebugMonitor />
               <Toaster position="top-center" />

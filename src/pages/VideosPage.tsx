@@ -1,67 +1,83 @@
 
-import React, { useEffect } from 'react';
-import { ErrorBoundary } from '@/components/common/ErrorBoundary';
-import { useAuth } from '@/contexts/AuthContext';
-import { PatientPageLayout } from '@/components/layout/PatientPageLayout';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Video } from 'lucide-react';
+import { useEffect, useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Card, CardContent } from "@/components/ui/card";
+import { PatientAppLayout } from "@/layouts/PatientAppLayout";
+import { DoctorAppLayout } from "@/layouts/DoctorAppLayout";
+import { AdminAppLayout } from "@/layouts/AdminAppLayout";
+import { AppLayout } from "@/layouts/AppLayout";
 
-const VideosPage: React.FC = () => {
-  const { user, userRole } = useAuth();
-  
-  // Log when the component mounts for debugging purposes
-  useEffect(() => {
-    console.log('VideosPage mounted successfully');
-  }, []);
-
-  // Layout wrapper based on user role
-  const ContentWrapper = ({ children }: { children: React.ReactNode }) => {
-    if (userRole === 'patient') {
-      return (
-        <PatientPageLayout
-          title="Educational Videos"
-          description="Watch educational videos about health and wellness"
-        >
-          {children}
-        </PatientPageLayout>
-      );
+const VideosPage = () => {
+  const { userRole } = useAuth();
+  const [videos, setVideos] = useState([
+    {
+      id: 1,
+      title: "Understanding Nutrition Basics",
+      thumbnail: "https://images.unsplash.com/photo-1490818387583-1baba5e638af",
+      duration: "15:20",
+      category: "Nutrition"
+    },
+    {
+      id: 2,
+      title: "Daily Exercise Routines",
+      thumbnail: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b",
+      duration: "12:45",
+      category: "Exercise"
+    },
+    {
+      id: 3,
+      title: "Stress Management Techniques",
+      thumbnail: "https://images.unsplash.com/photo-1506126613408-eca07ce68773",
+      duration: "10:15",
+      category: "Mental Health"
+    },
+    {
+      id: 4,
+      title: "Healthy Cooking Methods",
+      thumbnail: "https://images.unsplash.com/photo-1556911220-e15b29be8c8f",
+      duration: "18:30",
+      category: "Nutrition"
     }
-    
-    return (
-      <div className="container mx-auto px-4 py-6 mt-14 md:mt-16">
-        <h1 className="text-2xl font-bold mb-6">Educational Videos</h1>
-        {children}
-      </div>
-    );
+  ]);
+
+  // Function to render the appropriate layout based on user role
+  const getLayout = (children: React.ReactNode) => {
+    switch (userRole) {
+      case "patient":
+        return <PatientAppLayout showHeader title="Educational Videos" description="Watch videos to learn about health and wellness">{children}</PatientAppLayout>;
+      case "doctor":
+        return <DoctorAppLayout showHeader title="Educational Videos" description="Videos for your patients">{children}</DoctorAppLayout>;
+      case "administrator":
+        return <AdminAppLayout showHeader title="Educational Videos" description="Manage video resources">{children}</AdminAppLayout>;
+      default:
+        return <AppLayout>{children}</AppLayout>;
+    }
   };
 
-  return (
-    <ContentWrapper>
-      <ErrorBoundary>
-        <div className="flex items-center gap-2 mb-6">
-          <Video className="h-5 w-5 text-[#7E69AB]" />
-          <h2 className="text-xl font-semibold">Health Knowledge Videos</h2>
-        </div>
-
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Videos Coming Soon</CardTitle>
-            <CardDescription>
-              Our educational video library is currently under construction
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-col items-center justify-center py-12">
-              <Video className="h-16 w-16 text-muted-foreground mb-4" />
-              <p className="text-center text-muted-foreground">
-                We're working hard to bring you educational videos about health and wellness.
-                Please check back soon for new content.
-              </p>
+  return getLayout(
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {videos.map((video) => (
+        <Card key={video.id} className="overflow-hidden">
+          <div className="relative aspect-video">
+            <img 
+              src={video.thumbnail} 
+              alt={video.title} 
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute bottom-2 right-2 bg-black/70 text-white px-2 py-1 text-xs rounded">
+              {video.duration}
             </div>
+          </div>
+          <CardContent className="p-4">
+            <div className="text-sm text-[#9b87f5] mb-1">{video.category}</div>
+            <h3 className="font-semibold mb-2">{video.title}</h3>
+            <button className="w-full bg-[#9b87f5] text-white py-2 rounded hover:bg-[#7E69AB]">
+              Watch Now
+            </button>
           </CardContent>
         </Card>
-      </ErrorBoundary>
-    </ContentWrapper>
+      ))}
+    </div>
   );
 };
 

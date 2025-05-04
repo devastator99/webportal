@@ -1,5 +1,5 @@
 
-import { Home, MessageCircle, FileText, Activity, Video, UserRound, Menu } from "lucide-react";
+import { Home, MessageCircle, FileText, Users, Video, UserRound, Menu } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -9,7 +9,6 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -18,7 +17,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
-export function PatientSidebar() {
+export function DoctorSidebar() {
   const location = useLocation();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -27,12 +26,17 @@ export function PatientSidebar() {
   
   if (!user) return null;
 
-  // Define menu items with correct routes for patients
+  // Define menu items with correct routes for doctors
   const menuItems = [
     {
       title: "Dashboard",
       icon: Home,
       path: "/dashboard"
+    },
+    {
+      title: "Patients",
+      icon: Users,
+      path: "/patients"
     },
     {
       title: "Chat",
@@ -42,12 +46,7 @@ export function PatientSidebar() {
     {
       title: "Prescriptions",
       icon: FileText,
-      path: user?.id ? `/prescriptions/${user.id}` : "/prescriptions"
-    },
-    {
-      title: "Habits",
-      icon: Activity,
-      path: "/patient-habits"
+      path: "/prescriptions"
     },
     {
       title: "Videos",
@@ -57,7 +56,7 @@ export function PatientSidebar() {
     {
       title: "Profile",
       icon: UserRound,
-      path: "/patient-profile"
+      path: "/user-profile"
     }
   ];
 

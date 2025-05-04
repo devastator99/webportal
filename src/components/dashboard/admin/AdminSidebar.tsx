@@ -1,5 +1,5 @@
 
-import { Home, MessageCircle, FileText, Activity, Video, UserRound, Menu } from "lucide-react";
+import { Home, MessageCircle, Users, UserPlus, Settings, UserRound, Menu } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -9,7 +9,6 @@ import {
   SidebarContent,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -18,7 +17,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 
-export function PatientSidebar() {
+export function AdminSidebar() {
   const location = useLocation();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -27,7 +26,7 @@ export function PatientSidebar() {
   
   if (!user) return null;
 
-  // Define menu items with correct routes for patients
+  // Define menu items with correct routes for admin
   const menuItems = [
     {
       title: "Dashboard",
@@ -35,33 +34,33 @@ export function PatientSidebar() {
       path: "/dashboard"
     },
     {
+      title: "Users",
+      icon: Users,
+      path: "/admin/users"
+    },
+    {
+      title: "Registration",
+      icon: UserPlus,
+      path: "/admin/register"
+    },
+    {
+      title: "Settings",
+      icon: Settings,
+      path: "/admin/settings"
+    },
+    {
       title: "Chat",
       icon: MessageCircle,
       path: "/chat"
     },
     {
-      title: "Prescriptions",
-      icon: FileText,
-      path: user?.id ? `/prescriptions/${user.id}` : "/prescriptions"
-    },
-    {
-      title: "Habits",
-      icon: Activity,
-      path: "/patient-habits"
-    },
-    {
-      title: "Videos",
-      icon: Video,
-      path: "/videos"
-    },
-    {
       title: "Profile",
       icon: UserRound,
-      path: "/patient-profile"
+      path: "/user-profile"
     }
   ];
 
-  // Sidebar content that will be used in both mobile and desktop
+  // Sidebar content for both mobile and desktop
   const SidebarMenuContent = ({ showHeading = true }) => (
     <>
       {showHeading && (
