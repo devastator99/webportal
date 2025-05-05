@@ -28,8 +28,8 @@ export function useChatScroll({
       if (!containerRef.current) return;
       
       const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-      // Consider "near bottom" to be within 100px of the bottom
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      // Consider "near bottom" to be within 120px of the bottom to account for mobile navigation
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 120;
       
       setShouldAutoScroll(isNearBottom);
       setShowScrollButton(!isNearBottom);
@@ -66,10 +66,16 @@ export function useChatScroll({
   }, [messages, loadingMessages, loadingMore, shouldAutoScroll, isNewMessage, messagesToShow]);
 
   const scrollToBottom = () => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
-    setShouldAutoScroll(true);
-    setShowScrollButton(false);
-    setHasScrolledUp(false);
+    if (endRef.current) {
+      // Additional offset to account for mobile navigation
+      endRef.current.scrollIntoView({ 
+        behavior: 'smooth',
+        block: 'end'
+      });
+      setShouldAutoScroll(true);
+      setShowScrollButton(false);
+      setHasScrolledUp(false);
+    }
   };
 
   return {

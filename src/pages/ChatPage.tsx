@@ -106,7 +106,7 @@ const ChatPage = () => {
         <p className="text-muted-foreground mb-4">Connect with your healthcare team</p>
         <Separator className="my-4" />
         
-        <div className="h-[calc(100vh-220px)] chat-container">
+        <div className="h-[calc(100vh-280px)] chat-container">
           <WhatsAppStyleChatInterface patientRoomId={patientRoomId} />
         </div>
       </PatientPageLayout>
@@ -115,7 +115,7 @@ const ChatPage = () => {
 
   // For non-patient users, use original layout
   return (
-    <div className={`container ${isMobile ? "pt-16 pb-24" : "pt-20 pb-8"} px-4`}>
+    <div className={`container ${isMobile ? "pt-16 pb-28" : "pt-20 pb-8"} px-4`}>
       <ErrorBoundary>
         <div className="flex items-center gap-2 mb-2">
           <MessageCircle className="h-5 w-5 text-[#7E69AB]" />
@@ -128,7 +128,7 @@ const ChatPage = () => {
         </p>
         <Separator className="my-4" />
         
-        <div className="h-[calc(100vh-220px)] chat-container">
+        <div className="h-[calc(100vh-280px)] chat-container">
           <WhatsAppStyleChatInterface patientRoomId={isPatient ? patientRoomId : undefined} />
         </div>
       </ErrorBoundary>

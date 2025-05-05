@@ -18,6 +18,8 @@
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
 }
 
 .dark .chat-container {
@@ -200,4 +202,43 @@
 .patient-avatar {
   background: linear-gradient(135deg, #FFB74D 0%, #FF9800 100%);
   box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+}
+
+/* Safe areas and mobile adjustments */
+.mb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+.glass-nav {
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.glass-nav.scrolled {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.dark .glass-nav {
+  background: rgba(20, 20, 30, 0.8);
+  border-bottom: 1px solid rgba(60, 60, 80, 0.3);
+}
+
+.dark .glass-nav.scrolled {
+  background: rgba(20, 20, 30, 0.95);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Fixed bottom spacing to prevent overlap with mobile navigation */
+.chat-container {
+  padding-bottom: env(safe-area-inset-bottom, 80px);
+}
+
+@media (max-width: 768px) {
+  .chat-container {
+    border-radius: 12px;
+  }
 }
