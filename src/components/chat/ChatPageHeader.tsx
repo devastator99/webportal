@@ -55,14 +55,14 @@ export const ChatPageHeader = ({
           </CardContent>
         </Card>
       ) : careTeamGroup ? (
-        // Patient view - show care team chat
-        <div className="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-1 gap-6 h-full">
+        // Patient view - show care team chat with compact user list
+        <div className="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-1 gap-4 h-full">
           <Card className="lg:col-span-1 md:col-span-1 sm:col-span-1">
-            <CardContent className="p-4">
-              <div className="space-y-4">
+            <CardContent className="p-2">
+              <div className="space-y-2">
                 <div>
-                  <h3 className="font-medium mb-2 flex items-center">
-                    <Users className="h-4 w-4 mr-2" />
+                  <h3 className="text-sm font-medium mb-1.5 flex items-center">
+                    <Users className="h-3 w-3 mr-1.5" />
                     {careTeamGroup.groupName}
                   </h3>
                   <UsersList
@@ -70,13 +70,14 @@ export const ChatPageHeader = ({
                     selectedUser={null}
                     onUserSelect={() => {}}
                     disableSelection
+                    compact={true}
                   />
                 </div>
               </div>
             </CardContent>
           </Card>
           <Card className="lg:col-span-3 md:col-span-2 sm:col-span-1">
-            <CardContent className="p-4">
+            <CardContent className="p-3">
               <ChatInterface 
                 careTeamGroup={careTeamGroup} 
                 showGroupChat={true} 

@@ -98,14 +98,14 @@ const ChatPage = () => {
   if (isPatient) {
     return (
       <PatientPageLayout showHeader={false}>
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-1.5">
           <MessageCircle className="h-5 w-5 text-[#7E69AB]" />
-          <h1 className="text-2xl font-bold">Care Team Chat</h1>
+          <h1 className="text-xl font-bold">Care Team Chat</h1>
         </div>
-        <p className="text-muted-foreground mb-4">Connect with your healthcare team</p>
-        <Separator className="my-4" />
+        <p className="text-muted-foreground text-sm mb-2">Connect with your healthcare team</p>
+        <Separator className="mb-3" />
         
-        <div className="h-[calc(100vh-300px)] chat-container">
+        <div className="h-[calc(100vh-280px)] chat-container">
           <WhatsAppStyleChatInterface patientRoomId={patientRoomId} />
         </div>
       </PatientPageLayout>
@@ -114,20 +114,20 @@ const ChatPage = () => {
 
   // For non-patient users, use original layout
   return (
-    <div className={`container ${isMobile ? "pt-16 pb-32" : "pt-20 pb-8"} px-4`}>
+    <div className={`container ${isMobile ? "pt-14 pb-32" : "pt-16 pb-8"} px-3`}>
       <ErrorBoundary>
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-1.5">
           <MessageCircle className="h-5 w-5 text-[#7E69AB]" />
-          <h1 className="text-2xl font-bold">Care Team Chat</h1>
+          <h1 className="text-xl font-bold">Care Team Chat</h1>
         </div>
-        <p className="text-muted-foreground mb-4">
+        <p className="text-muted-foreground text-sm mb-2">
           {isPatient 
             ? "Connect with your healthcare team" 
             : "Connect with your patients and their care teams"}
         </p>
-        <Separator className="my-4" />
+        <Separator className="mb-3" />
         
-        <div className="h-[calc(100vh-300px)] chat-container">
+        <div className="h-[calc(100vh-280px)] chat-container">
           <WhatsAppStyleChatInterface patientRoomId={isPatient ? patientRoomId : undefined} />
         </div>
       </ErrorBoundary>

@@ -9,16 +9,18 @@ interface UsersListProps {
   selectedUser: UserProfile | null;
   onUserSelect: (user: UserProfile) => void;
   disableSelection?: boolean;
+  compact?: boolean;
 }
 
 export const UsersList = ({
   users,
   selectedUser,
   onUserSelect,
-  disableSelection = false
+  disableSelection = false,
+  compact = false
 }: UsersListProps) => {
   if (!users || users.length === 0) {
-    return <div className="text-muted-foreground text-center py-4">No users available</div>;
+    return <div className="text-muted-foreground text-center py-2 text-sm">No users available</div>;
   }
 
   const getInitials = (user: UserProfile) => {
@@ -53,18 +55,21 @@ export const UsersList = ({
   };
 
   return (
-    <ul className="space-y-2">
+    <ul className={cn("space-y-1", compact && "flex flex-wrap gap-1")}>
       {users.map((user) => {
         const isSelected = selectedUser?.id === user.id;
         const role = getUserRole(user);
 
         return (
-          <li key={user.id}>
+          <li key={user.id} className={compact ? "flex-shrink-0" : "w-full"}>
             <button
               onClick={() => !disableSelection && onUserSelect(user)}
               disabled={disableSelection}
               className={cn(
-                "w-full flex items-center gap-3 p-2 rounded-md transition-colors",
+                "flex items-center gap-2 rounded-md transition-colors",
+                compact 
+                  ? "p-1 text-xs" 
+                  : "p-2 w-full",
                 isSelected 
                   ? "bg-primary/10 text-primary font-medium" 
                   : "hover:bg-muted",
@@ -73,21 +78,30 @@ export const UsersList = ({
                   : "cursor-pointer"
               )}
             >
-              <Avatar className="h-8 w-8">
+              <Avatar className={cn(compact ? "h-6 w-6" : "h-8 w-8")}>
                 <AvatarFallback className={getAvatarColor(role)}>
                   {getInitials(user)}
                 </AvatarFallback>
               </Avatar>
-              <div className="text-left">
-                <p className="text-sm font-medium">
-                  {user.first_name} {user.last_name}
-                </p>
-                {role && (
-                  <p className="text-xs text-muted-foreground capitalize">
-                    {role}
+              
+              {!compact && (
+                <div className="text-left">
+                  <p className="text-sm font-medium">
+                    {user.first_name} {user.last_name}
                   </p>
-                )}
-              </div>
+                  {role && (
+                    <p className="text-xs text-muted-foreground capitalize">
+                      {role}
+                    </p>
+                  )}
+                </div>
+              )}
+              
+              {compact && (
+                <span className="text-xs line-clamp-1">
+                  {user.first_name}
+                </span>
+              )}
             </button>
           </li>
         );

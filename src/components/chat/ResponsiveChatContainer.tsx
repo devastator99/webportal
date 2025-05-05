@@ -37,10 +37,10 @@ export const ResponsiveChatContainer = ({
         ),
         withPadding && (
           isSmallScreen || isMobile 
-            ? 'px-2' 
+            ? 'px-1.5' // Reduce horizontal padding
             : isTablet || isMediumScreen 
-              ? 'px-3' 
-              : 'px-5'
+              ? 'px-2' // Reduce horizontal padding
+              : 'px-4' // Slightly reduce horizontal padding
         ),
         className
       )}
@@ -71,10 +71,10 @@ export const ResponsiveChatHeader = ({
         sticky && 'sticky top-0',
         withBorder && 'border-b',
         isSmallScreen || isMobile 
-          ? 'py-2 px-2' 
+          ? 'py-1.5 px-1.5' // Reduce vertical padding
           : isTablet || isMediumScreen 
-            ? 'py-2 px-3' 
-            : 'py-3 px-4',
+            ? 'py-1.5 px-2' // Reduce vertical padding
+            : 'py-2 px-3', // Slightly reduce vertical padding
         className
       )}
     >
@@ -104,10 +104,10 @@ export const ResponsiveChatFooter = ({
         sticky && 'sticky bottom-0',
         withBorder && 'border-t',
         isSmallScreen || isMobile 
-          ? 'py-2 px-2 pb-24' // Increased padding for mobile navigation
+          ? 'py-1.5 px-1.5 pb-24' // Increased padding for mobile navigation
           : isTablet || isMediumScreen 
-            ? 'py-2 px-3 pb-20' // Increased padding for tablet navigation
-            : 'py-3 px-4',
+            ? 'py-1.5 px-2 pb-20' // Increased padding for tablet navigation
+            : 'py-2 px-3',
         className
       )}
     >
@@ -134,10 +134,10 @@ export const ResponsiveChatBody = ({
         'w-full',
         scrollable && 'overflow-y-auto',
         isSmallScreen || isMobile 
-          ? 'px-2 py-2' 
+          ? 'px-1.5 py-1.5' // Reduce vertical and horizontal padding
           : isTablet || isMediumScreen 
-            ? 'px-3 py-2' 
-            : 'px-4 py-3',
+            ? 'px-2 py-1.5' // Reduce vertical and horizontal padding
+            : 'px-3 py-2', // Slightly reduce vertical and horizontal padding
         className
       )}
     >

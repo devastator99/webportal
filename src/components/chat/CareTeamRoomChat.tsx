@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -351,25 +350,25 @@ export const CareTeamRoomChat = ({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-3 bg-muted/40 border-b flex items-center">
+      <div className="p-2 bg-muted/40 border-b flex items-center">
         {isMobileView && onBack && (
-          <Button variant="ghost" size="icon" onClick={onBack} className="mr-2">
+          <Button variant="ghost" size="icon" onClick={onBack} className="mr-1.5">
             <ArrowDown className="rotate-90 h-4 w-4" />
           </Button>
         )}
         
-        <Users className="h-5 w-5 mr-2 text-primary" />
+        <Users className="h-4 w-4 mr-1.5 text-primary" />
         
         <div className="flex-1">
-          <div className="font-medium line-clamp-1">
+          <div className="font-medium line-clamp-1 text-sm">
             {roomDetails?.room_name || "Care Team Chat"}
           </div>
           
           <div className="text-xs text-muted-foreground flex items-center gap-1">
-            <User className="h-3 w-3 mr-1" />
-            {roomDetails?.patient_name || "Patient"} • 
-            <Badge variant="outline" className="text-xs h-4 ml-1">
-              {roomDetails?.member_count || 0} members
+            <User className="h-3 w-3 mr-0.5" />
+            <span className="truncate max-w-[120px]">{roomDetails?.patient_name || "Patient"}</span> • 
+            <Badge variant="outline" className="text-xs h-4 ml-0.5">
+              {roomDetails?.member_count || 0}
             </Badge>
           </div>
         </div>
