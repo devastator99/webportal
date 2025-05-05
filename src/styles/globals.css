@@ -74,6 +74,18 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Softer text for mobile */
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight;
+  }
+  
+  @media (max-width: 640px) {
+    h1 { @apply text-2xl; }
+    h2 { @apply text-xl; }
+    h3 { @apply text-lg; }
+    h4 { @apply text-base; }
+  }
 }
 
 @layer utilities {
@@ -84,6 +96,24 @@
   
   .no-scrollbar::-webkit-scrollbar {
     display: none;  /* Chrome, Safari, Opera */
+  }
+  
+  /* Subtle shadow for elements */
+  .shadow-subtle {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.02);
+  }
+  
+  /* Soft gradient backgrounds */
+  .bg-soft-purple {
+    background: linear-gradient(135deg, rgba(229,222,255,0.6) 0%, rgba(248,245,255,0.6) 100%);
+  }
+  
+  .bg-soft-amber {
+    background: linear-gradient(135deg, rgba(254,240,215,0.6) 0%, rgba(252,247,236,0.6) 100%);
+  }
+  
+  .bg-soft-blue {
+    background: linear-gradient(135deg, rgba(224,236,255,0.6) 0%, rgba(245,248,255,0.6) 100%);
   }
 }
 

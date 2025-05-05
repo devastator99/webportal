@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { generatePdfFromElement } from '@/utils/pdfUtils';
 import { useToast } from '@/hooks/use-toast';
+import { ResponsiveText } from '@/components/ui/responsive-typography';
 
 export const PrescriptionsView = () => {
   const { patientId } = useParams<{ patientId: string }>();
@@ -120,29 +121,36 @@ export const PrescriptionsView = () => {
   }
 
   return (
-    <div className="w-full max-w-[1200px] mx-auto px-4 py-6">
+    <div className="w-full max-w-[1200px] mx-auto px-4 py-4 sm:py-6">
       {/* Patient Info Banner */}
-      <Card className="w-full bg-white/60 backdrop-blur-sm border-0 shadow-sm">
-        <CardContent className="p-4">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <Card className="w-full bg-white/70 backdrop-blur-sm border-0 shadow-sm glass-card-soft mb-4">
+        <CardContent className="p-3 sm:p-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 sm:gap-4">
             <div>
-              <h2 className="text-xl font-semibold mb-1">
+              <ResponsiveText 
+                as="h2" 
+                mobileSize="base" 
+                tabletSize="lg" 
+                desktopSize="xl" 
+                weight="semibold" 
+                className="mb-0.5"
+              >
                 {patientInfo.first_name} {patientInfo.last_name}'s Prescriptions
-              </h2>
+              </ResponsiveText>
               {doctorInfo && (
-                <p className="text-sm text-muted-foreground">
+                <p className="text-xs text-muted-foreground">
                   Assigned Doctor: Dr. {doctorInfo.first_name} {doctorInfo.last_name}
                 </p>
               )}
             </div>
             
             <div className="flex flex-wrap gap-2">
-              <Badge variant="outline" className="px-3 py-1">
+              <Badge variant="outline" className="px-2 py-0.5 text-xs">
                 {isOwnPrescription ? "Your Prescriptions" : "Patient's Prescriptions"}
               </Badge>
               
               {userRole && (
-                <Badge variant="secondary" className="px-3 py-1 capitalize">
+                <Badge variant="secondary" className="px-2 py-0.5 text-xs capitalize">
                   {userRole}
                 </Badge>
               )}
@@ -153,32 +161,32 @@ export const PrescriptionsView = () => {
       
       {/* Main Content */}
       <div id="prescription-content" className="w-full">
-        {effectivePatientId && <PrescriptionTabsViewer patientId={effectivePatientId} className="w-full mb-6" />}
+        {effectivePatientId && <PrescriptionTabsViewer patientId={effectivePatientId} className="w-full mb-4" />}
       </div>
       
       {/* Action Buttons */}
       <div className="w-full flex flex-wrap justify-end gap-2 print:hidden">
-        <Button variant="outline" size="sm" onClick={handlePrint}>
-          <Printer className="h-4 w-4 mr-2" />
+        <Button variant="outline" size="sm" className="h-8 text-xs px-2.5">
+          <Printer className="h-3 w-3 mr-1.5" />
           Print
         </Button>
-        <Button variant="outline" size="sm" onClick={handleDownloadPdf}>
-          <Download className="h-4 w-4 mr-2" />
-          Download PDF
+        <Button variant="outline" size="sm" onClick={handleDownloadPdf} className="h-8 text-xs px-2.5">
+          <Download className="h-3 w-3 mr-1.5" />
+          Download
         </Button>
-        <Button variant="outline" size="sm" onClick={handleShare}>
-          <Share2 className="h-4 w-4 mr-2" />
+        <Button variant="outline" size="sm" onClick={handleShare} className="h-8 text-xs px-2.5">
+          <Share2 className="h-3 w-3 mr-1.5" />
           Share
         </Button>
         
         {canEdit && (
-          <Button size="sm">
+          <Button size="sm" className="h-8 text-xs px-2.5 bg-[#9b87f5]/90 hover:bg-[#7E69AB]">
             Edit Prescription
           </Button>
         )}
         
         {isNutritionist && (
-          <Button size="sm">
+          <Button size="sm" className="h-8 text-xs px-2.5 bg-[#9b87f5]/90 hover:bg-[#7E69AB]">
             Update Diet Plan
           </Button>
         )}

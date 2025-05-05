@@ -7,6 +7,7 @@ import { Plus } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { HealthPlanItem } from "@/interfaces/HealthHabits";
+import { ResponsiveText } from "@/components/ui/responsive-typography";
 
 interface HabitTrackerProps {
   habits: HealthPlanItem[];
@@ -89,24 +90,39 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-amber-800">Habit Tracker</h1>
-          <p className="text-gray-600 mt-2">Track and maintain your healthy habits.</p>
+          <ResponsiveText 
+            as="h1" 
+            mobileSize="xl" 
+            tabletSize="2xl" 
+            desktopSize="3xl" 
+            weight="semibold" 
+            className="text-amber-700"
+          >
+            Habit Tracker
+          </ResponsiveText>
+          <ResponsiveText 
+            mobileSize="sm" 
+            className="text-gray-500 mt-1"
+          >
+            Track and maintain your healthy habits
+          </ResponsiveText>
         </div>
         <Button
           onClick={() => setAddHabitDialogOpen(true)} 
-          className="bg-[#9b87f5] hover:bg-[#7E69AB]"
+          className="bg-[#9b87f5]/90 hover:bg-[#7E69AB] text-sm px-3 py-1.5 h-auto"
+          size="sm"
         >
-          <Plus className="mr-2 h-5 w-5" />
-          Add Habit
+          <Plus className="mr-1 h-4 w-4" />
+          Add
         </Button>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {habits.length === 0 ? (
-          <div className="text-center py-8 bg-gray-50 rounded-lg">
+          <div className="text-center py-6 bg-gray-50 rounded-lg">
             <p className="text-gray-500">No habits found. Add some habits to start tracking.</p>
           </div>
         ) : (

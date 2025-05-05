@@ -8,6 +8,7 @@ import { HabitTracker } from "@/components/dashboard/patient/HabitTracker";
 import { HabitsProgressCharts } from "@/components/dashboard/patient/HabitsProgressCharts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card } from "@/components/ui/card";
+import { ResponsiveText } from "@/components/ui/responsive-typography";
 
 const PatientHabitsPage = () => {
   const { isLoading, refetchHealthPlanItems, healthPlanItems, progressLogs } = usePatientHabits();
@@ -44,9 +45,19 @@ const PatientHabitsPage = () => {
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full grid grid-cols-2 mb-8">
-              <TabsTrigger value="habits" className="text-lg">Habits</TabsTrigger>
-              <TabsTrigger value="progress" className="text-lg">Progress</TabsTrigger>
+            <TabsList className="w-full grid grid-cols-2 mb-4 sm:mb-6 glass-card">
+              <TabsTrigger 
+                value="habits" 
+                className="text-base py-2.5"
+              >
+                Habits
+              </TabsTrigger>
+              <TabsTrigger 
+                value="progress" 
+                className="text-base py-2.5"
+              >
+                Progress
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="habits" className="w-full">
@@ -58,7 +69,7 @@ const PatientHabitsPage = () => {
             </TabsContent>
             
             <TabsContent value="progress">
-              <Card className="p-6">
+              <Card className="p-4 sm:p-6 glass-card-soft shadow-sm">
                 <HabitsProgressCharts />
               </Card>
             </TabsContent>
