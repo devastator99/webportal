@@ -1,3 +1,4 @@
+
 import { useAuth, UserRoleEnum } from "@/contexts/AuthContext";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
@@ -98,14 +99,13 @@ const ChatPage = () => {
   if (isPatient) {
     return (
       <PatientPageLayout showHeader={false}>
-        <div className="flex items-center gap-2 mb-1.5">
+        <div className="flex items-center gap-2 mb-1">
           <MessageCircle className="h-5 w-5 text-[#7E69AB]" />
-          <h1 className="text-xl font-bold">Care Team Chat</h1>
+          <h1 className="text-lg font-bold">Care Team Chat</h1>
         </div>
-        <p className="text-muted-foreground text-sm mb-2">Connect with your healthcare team</p>
-        <Separator className="mb-3" />
+        <Separator className="mb-2" />
         
-        <div className="h-[calc(100vh-280px)] chat-container">
+        <div className="h-[calc(100vh-260px)] chat-container">
           <WhatsAppStyleChatInterface patientRoomId={patientRoomId} />
         </div>
       </PatientPageLayout>
@@ -114,18 +114,13 @@ const ChatPage = () => {
 
   // For non-patient users, use original layout
   return (
-    <div className={`container ${isMobile ? "pt-14 pb-32" : "pt-16 pb-8"} px-3`}>
+    <div className={`container ${isMobile ? "pt-12 pb-28 px-1" : "pt-16 pb-8 px-3"}`}>
       <ErrorBoundary>
-        <div className="flex items-center gap-2 mb-1.5">
+        <div className="flex items-center gap-2 mb-1">
           <MessageCircle className="h-5 w-5 text-[#7E69AB]" />
-          <h1 className="text-xl font-bold">Care Team Chat</h1>
+          <h1 className="text-lg font-bold">Care Team Chat</h1>
         </div>
-        <p className="text-muted-foreground text-sm mb-2">
-          {isPatient 
-            ? "Connect with your healthcare team" 
-            : "Connect with your patients and their care teams"}
-        </p>
-        <Separator className="mb-3" />
+        <Separator className="mb-2" />
         
         <div className="h-[calc(100vh-280px)] chat-container">
           <WhatsAppStyleChatInterface patientRoomId={isPatient ? patientRoomId : undefined} />

@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ChatInterface } from "./ChatInterface";
 import { UsersList } from "./UsersList";
 import { CareTeamGroup, UserProfile } from "./UsersProvider";
+import { useBreakpoint } from "@/hooks/use-responsive";
 
 interface ChatPageHeaderProps {
   careTeamGroup: CareTeamGroup | null;
@@ -20,6 +21,8 @@ export const ChatPageHeader = ({
   error,
   userRole
 }: ChatPageHeaderProps) => {
+  const { isSmallScreen, isMediumScreen } = useBreakpoint();
+  
   if (isLoading) {
     return (
       <div className="flex justify-center py-12">
@@ -37,15 +40,16 @@ export const ChatPageHeader = ({
   }
 
   const title = "Care Team Chat";
+  const isCompactView = isSmallScreen;
 
   return (
-    <div className="space-y-6 w-full h-full">
-      <h2 className="text-2xl font-bold text-center p-4">{title}</h2>
+    <div className="space-y-2 w-full h-full">
+      {!isCompactView && <h2 className="text-2xl font-bold text-center p-2">{title}</h2>}
       
       {userRole === "doctor" || userRole === "nutritionist" ? (
         // Healthcare provider view - WhatsApp-like interface showing all patient messages
         <Card className="h-full">
-          <CardContent className="p-4 h-full">
+          <CardContent className="p-2 h-full">
             <ChatInterface 
               assignedUsers={assignedUsers}
               showGroupChat={true}
@@ -56,14 +60,19 @@ export const ChatPageHeader = ({
         </Card>
       ) : careTeamGroup ? (
         // Patient view - show care team chat with compact user list
-        <div className="grid lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-1 gap-4 h-full">
-          <Card className="lg:col-span-1 md:col-span-1 sm:col-span-1">
-            <CardContent className="p-2">
-              <div className="space-y-2">
+        <div className={cn(
+          "grid gap-2 h-full",
+          isCompactView ? "grid-rows-[auto_1fr]" : "lg:grid-cols-4 md:grid-cols-3 sm:grid-cols-1 gap-4"
+        )}>
+          <Card className={cn(
+            isCompactView ? "row-span-1" : "lg:col-span-1 md:col-span-1 sm:col-span-1"
+          )}>
+            <CardContent className="p-1">
+              <div className="space-y-1">
                 <div>
-                  <h3 className="text-sm font-medium mb-1.5 flex items-center">
-                    <Users className="h-3 w-3 mr-1.5" />
-                    {careTeamGroup.groupName}
+                  <h3 className="text-xs font-medium mb-0.5 flex items-center">
+                    <Users className="h-3 w-3 mr-1" />
+                    {isCompactView ? 'Care Team' : careTeamGroup.groupName}
                   </h3>
                   <UsersList
                     users={careTeamGroup.members}
@@ -76,8 +85,10 @@ export const ChatPageHeader = ({
               </div>
             </CardContent>
           </Card>
-          <Card className="lg:col-span-3 md:col-span-2 sm:col-span-1">
-            <CardContent className="p-3">
+          <Card className={cn(
+            isCompactView ? "row-span-1" : "lg:col-span-3 md:col-span-2 sm:col-span-1"
+          )}>
+            <CardContent className="p-2">
               <ChatInterface 
                 careTeamGroup={careTeamGroup} 
                 showGroupChat={true} 
@@ -96,3 +107,8 @@ export const ChatPageHeader = ({
     </div>
   );
 };
+
+// Helper function since we need cn here
+function cn(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(' ');
+}

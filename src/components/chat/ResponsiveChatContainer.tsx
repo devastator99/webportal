@@ -27,7 +27,7 @@ export const ResponsiveChatContainer = ({
     <div
       className={cn(
         'w-full mx-auto',
-        maxWidth,
+        isSmallScreen || isMobile ? '' : maxWidth, // Remove max-width on mobile for full width
         fullHeight && (
           isSmallScreen || isMobile 
             ? 'min-h-[calc(100vh-200px)]' // Increased space for mobile navigation
@@ -37,7 +37,7 @@ export const ResponsiveChatContainer = ({
         ),
         withPadding && (
           isSmallScreen || isMobile 
-            ? 'px-1.5' // Reduce horizontal padding
+            ? 'px-0.5' // Minimal horizontal padding for full width
             : isTablet || isMediumScreen 
               ? 'px-2' // Reduce horizontal padding
               : 'px-4' // Slightly reduce horizontal padding
@@ -71,7 +71,7 @@ export const ResponsiveChatHeader = ({
         sticky && 'sticky top-0',
         withBorder && 'border-b',
         isSmallScreen || isMobile 
-          ? 'py-1.5 px-1.5' // Reduce vertical padding
+          ? 'py-1 px-1' // Reduce vertical padding
           : isTablet || isMediumScreen 
             ? 'py-1.5 px-2' // Reduce vertical padding
             : 'py-2 px-3', // Slightly reduce vertical padding
@@ -104,7 +104,7 @@ export const ResponsiveChatFooter = ({
         sticky && 'sticky bottom-0',
         withBorder && 'border-t',
         isSmallScreen || isMobile 
-          ? 'py-1.5 px-1.5 pb-24' // Increased padding for mobile navigation
+          ? 'py-1 px-0.5 pb-20' // Reduced horizontal padding, ensure space for navigation
           : isTablet || isMediumScreen 
             ? 'py-1.5 px-2 pb-20' // Increased padding for tablet navigation
             : 'py-2 px-3',
@@ -134,7 +134,7 @@ export const ResponsiveChatBody = ({
         'w-full',
         scrollable && 'overflow-y-auto',
         isSmallScreen || isMobile 
-          ? 'px-1.5 py-1.5' // Reduce vertical and horizontal padding
+          ? 'px-0.5 py-1' // Minimal padding for more space
           : isTablet || isMediumScreen 
             ? 'px-2 py-1.5' // Reduce vertical and horizontal padding
             : 'px-3 py-2', // Slightly reduce vertical and horizontal padding

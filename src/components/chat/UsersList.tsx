@@ -3,6 +3,7 @@ import { useState } from "react";
 import { UserProfile } from "./UsersProvider";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { useBreakpoint } from "@/hooks/use-responsive";
 
 interface UsersListProps {
   users: UserProfile[];
@@ -19,6 +20,8 @@ export const UsersList = ({
   disableSelection = false,
   compact = false
 }: UsersListProps) => {
+  const { isSmallScreen } = useBreakpoint();
+  
   if (!users || users.length === 0) {
     return <div className="text-muted-foreground text-center py-2 text-sm">No users available</div>;
   }
@@ -54,8 +57,15 @@ export const UsersList = ({
     }
   };
 
+  // For very compact mobile view, show only avatars horizontally
+  const avatarsOnlyMode = compact && isSmallScreen;
+
   return (
-    <ul className={cn("space-y-1", compact && "flex flex-wrap gap-1")}>
+    <ul className={cn(
+      avatarsOnlyMode ? "flex justify-center gap-1 py-1" : 
+      compact ? "flex flex-wrap gap-1" : 
+      "space-y-1"
+    )}>
       {users.map((user) => {
         const isSelected = selectedUser?.id === user.id;
         const role = getUserRole(user);
@@ -66,9 +76,9 @@ export const UsersList = ({
               onClick={() => !disableSelection && onUserSelect(user)}
               disabled={disableSelection}
               className={cn(
-                "flex items-center gap-2 rounded-md transition-colors",
+                "flex items-center gap-1 rounded-md transition-colors",
                 compact 
-                  ? "p-1 text-xs" 
+                  ? avatarsOnlyMode ? "p-0.5" : "p-1 text-xs"
                   : "p-2 w-full",
                 isSelected 
                   ? "bg-primary/10 text-primary font-medium" 
@@ -78,13 +88,16 @@ export const UsersList = ({
                   : "cursor-pointer"
               )}
             >
-              <Avatar className={cn(compact ? "h-6 w-6" : "h-8 w-8")}>
+              <Avatar className={cn(
+                avatarsOnlyMode ? "h-6 w-6" :
+                compact ? "h-7 w-7" : "h-8 w-8"
+              )}>
                 <AvatarFallback className={getAvatarColor(role)}>
                   {getInitials(user)}
                 </AvatarFallback>
               </Avatar>
               
-              {!compact && (
+              {!avatarsOnlyMode && !compact && (
                 <div className="text-left">
                   <p className="text-sm font-medium">
                     {user.first_name} {user.last_name}
@@ -97,7 +110,7 @@ export const UsersList = ({
                 </div>
               )}
               
-              {compact && (
+              {!avatarsOnlyMode && compact && (
                 <span className="text-xs line-clamp-1">
                   {user.first_name}
                 </span>
