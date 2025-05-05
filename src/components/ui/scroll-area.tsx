@@ -7,27 +7,28 @@ import { cn } from "@/lib/utils"
 interface ScrollAreaProps extends React.ComponentPropsWithoutRef<typeof ScrollAreaPrimitive.Root> {
   orientation?: "vertical" | "horizontal" | "both";
   viewportRef?: React.RefObject<HTMLDivElement>;
+  invisibleScrollbar?: boolean;
 }
 
 const ScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
   ScrollAreaProps
->(({ className, children, orientation = "vertical", viewportRef, ...props }, ref) => (
+>(({ className, children, orientation = "vertical", viewportRef, invisibleScrollbar = false, ...props }, ref) => (
   <ScrollAreaPrimitive.Root
     ref={ref}
     className={cn("relative overflow-hidden", className)}
     {...props}
   >
     <ScrollAreaPrimitive.Viewport 
-      className="h-full w-full rounded-[inherit]"
+      className={cn("h-full w-full rounded-[inherit]", invisibleScrollbar && "invisible-scroll")}
       ref={viewportRef}
     >
       {children}
     </ScrollAreaPrimitive.Viewport>
-    {(orientation === "both" || orientation === "vertical") && (
+    {!invisibleScrollbar && (orientation === "both" || orientation === "vertical") && (
       <ScrollBar orientation="vertical" />
     )}
-    {(orientation === "both" || orientation === "horizontal") && (
+    {!invisibleScrollbar && (orientation === "both" || orientation === "horizontal") && (
       <ScrollBar orientation="horizontal" />
     )}
     <ScrollAreaPrimitive.Corner />

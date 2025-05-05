@@ -9,6 +9,7 @@ import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { PatientData } from "@/hooks/useAuthHandlers";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 // Corrected import path
 import '@/styles/glass.css';
 
@@ -57,8 +58,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="glass-dialog border-0 p-0 overflow-hidden max-w-md w-full">
-        <div className="relative">
+      <DialogContent className="glass-dialog border-0 p-0 overflow-hidden max-w-md w-full max-h-[90vh]">
+        <div className="relative h-full">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -68,42 +69,44 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <X className="h-4 w-4" />
           </Button>
           
-          <motion.div
-            className="p-6"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <h1 className="text-2xl font-bold text-center mb-6">
-              {view === "login" ? "Welcome Back" : "Create Your Account"}
-            </h1>
-            
-            {view === "login" ? (
-              <SupabaseAuthUI
-                view="sign_in"
-                redirectTo={`${window.location.origin}/dashboard`}
-                showLinks={false}
-              />
-            ) : (
-              <AuthForm
-                type="register"
-                onSubmit={handleFormSubmit}
-                error={error}
-                loading={loading}
-              />
-            )}
-            
-            <div className="mt-6 text-center">
-              <button
-                onClick={toggleView}
-                className="text-sm font-medium text-purple-600 hover:text-purple-500"
-              >
-                {view === "login"
-                  ? "Don't have an account? Register now"
-                  : "Already have an account? Sign in"}
-              </button>
-            </div>
-          </motion.div>
+          <ScrollArea className="h-full max-h-[90vh]">
+            <motion.div
+              className="p-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <h1 className="text-2xl font-bold text-center mb-6">
+                {view === "login" ? "Welcome Back" : "Create Your Account"}
+              </h1>
+              
+              {view === "login" ? (
+                <SupabaseAuthUI
+                  view="sign_in"
+                  redirectTo={`${window.location.origin}/dashboard`}
+                  showLinks={false}
+                />
+              ) : (
+                <AuthForm
+                  type="register"
+                  onSubmit={handleFormSubmit}
+                  error={error}
+                  loading={loading}
+                />
+              )}
+              
+              <div className="mt-6 text-center pb-4">
+                <button
+                  onClick={toggleView}
+                  className="text-sm font-medium text-purple-600 hover:text-purple-500"
+                >
+                  {view === "login"
+                    ? "Don't have an account? Register now"
+                    : "Already have an account? Sign in"}
+                </button>
+              </div>
+            </motion.div>
+          </ScrollArea>
         </div>
       </DialogContent>
     </Dialog>

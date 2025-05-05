@@ -1,18 +1,11 @@
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { DialogTitle, DialogDescription, DialogContent, Dialog, DialogHeader } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { getSiteUrl } from "@/utils/environmentUtils";
 
-const forgotPasswordSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-});
+import { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { toast } from '@/hooks/use-toast';
+import { LucideLoader2, CheckCircle } from 'lucide-react';
+import { ScrollArea } from '../ui/scroll-area';
 
 interface ForgotPasswordFormProps {
   open: boolean;
@@ -20,38 +13,42 @@ interface ForgotPasswordFormProps {
 }
 
 const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
+  const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const { toast } = useToast();
-  const form = useForm({
-    resolver: zodResolver(forgotPasswordSchema),
-    defaultValues: { email: "" },
-    mode: "onChange",
-  });
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const onSubmit = async (values: { email: string }) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email) {
+      setError('Please enter your email address');
+      return;
+    }
+    
     setLoading(true);
+    setError(null);
+    
     try {
-      const siteOrigin = getSiteUrl();
-      const { error } = await supabase.auth.signInWithOtp({
-        email: values.email,
-        options: {
-          emailRedirectTo: `${siteOrigin}/verify-code`
-        }
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/update-password`,
       });
-
+      
       if (error) throw error;
       
+      setSuccess(true);
       toast({
-        variant: "default",
-        title: "Check your email",
-        description: "If an account exists, a verification code has been sent.",
+        title: 'Password Reset Email Sent',
+        description: 'Check your email for the password reset link.',
       });
-      onClose();
-    } catch (e: any) {
+      
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      setError(error.message || 'Failed to send password reset email');
       toast({
-        variant: "destructive",
-        title: "Error",
-        description: e.message || "Failed to send verification code",
+        title: 'Password Reset Failed',
+        description: error.message || 'Failed to send password reset email',
+        variant: 'destructive',
       });
     } finally {
       setLoading(false);
@@ -59,37 +56,78 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
   };
 
   return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Password Recovery</DialogTitle>
-          <DialogDescription>
-            Enter your email to receive a password reset link
-          </DialogDescription>
-        </DialogHeader>
+    <ScrollArea className="max-h-[80vh]">
+      <div className="p-4">
+        <h2 className="text-2xl font-bold text-center mb-6">Reset Password</h2>
         
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="email@example.com" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+        {!success ? (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email Address
+              </label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="Enter your email address"
+                className="w-full"
+                required
+              />
+            </div>
+            
+            {error && (
+              <div className="text-sm text-red-500">{error}</div>
+            )}
+            
+            <Button 
+              type="submit"
+              className="w-full"
+              disabled={loading}
+            >
+              {loading ? (
+                <span className="flex items-center">
+                  <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </span>
+              ) : (
+                'Send Reset Link'
               )}
-            />
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Sending..." : "Send Reset Link"}
             </Button>
+            
+            <div className="text-center">
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-sm text-gray-500 hover:text-gray-700"
+              >
+                Back to Login
+              </button>
+            </div>
           </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+        ) : (
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <div className="rounded-full bg-green-100 p-3">
+                <CheckCircle className="h-6 w-6 text-green-600" />
+              </div>
+            </div>
+            <p className="text-lg font-medium">Reset Link Sent</p>
+            <p className="text-gray-600">
+              We've sent a password reset link to <span className="font-medium">{email}</span>.
+              Please check your email inbox.
+            </p>
+            <Button 
+              onClick={onClose}
+              className="mt-4"
+            >
+              Close
+            </Button>
+          </div>
+        )}
+      </div>
+    </ScrollArea>
   );
 };
 

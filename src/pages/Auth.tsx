@@ -8,6 +8,7 @@ import { LucideLoader2, CheckCircle2 } from "lucide-react";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { RegistrationPayment } from "@/components/auth/RegistrationPayment";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const Auth = () => {
   const { user, userRole, isLoading } = useAuth();
@@ -112,13 +113,15 @@ const Auth = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         {registrationStep === 1 && (
-          <div className="bg-white py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10">
-            <AuthForm 
-              type="register"
-              onSubmit={handleFormSubmit}
-              error={error}
-              loading={loading}
-            />
+          <div className="bg-white py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10 max-h-[70vh]">
+            <ScrollArea className="h-full max-h-[70vh] pr-4">
+              <AuthForm 
+                type="register"
+                onSubmit={handleFormSubmit}
+                error={error}
+                loading={loading}
+              />
+            </ScrollArea>
           </div>
         )}
         
