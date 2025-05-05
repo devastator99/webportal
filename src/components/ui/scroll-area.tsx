@@ -21,8 +21,7 @@ const ScrollArea = React.forwardRef<
   >
     <ScrollAreaPrimitive.Viewport 
       className={cn("h-full w-full rounded-[inherit]", 
-        invisibleScrollbar && "invisible-scroll scrollbar-hide", 
-        props.className
+        invisibleScrollbar && "invisible-scroll scrollbar-hide"
       )}
       ref={viewportRef}
       style={{
