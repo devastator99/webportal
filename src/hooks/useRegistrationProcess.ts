@@ -92,7 +92,7 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
           user_id: user.id,
           razorpay_payment_id: paymentId,
           razorpay_order_id: orderId,
-          razorpay_signature: signature || 'demo-signature'
+          razorpay_signature: signature || 'manual'
         }
       });
       

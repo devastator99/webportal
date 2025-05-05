@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Users, Loader2, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { DefaultCareTeam } from "@/types/registration";
 
 export const DefaultCareTeamSettings = () => {
   const { toast } = useToast();
@@ -41,22 +42,30 @@ export const DefaultCareTeamSettings = () => {
   });
   
   // Fetch current default care team
-  const { data: defaultCareTeam, isLoading: defaultCareTeamLoading } = useQuery({
+  const { data: defaultCareTeam, isLoading: defaultCareTeamLoading } = useQuery<DefaultCareTeam>({
     queryKey: ["default_care_team"],
     queryFn: async () => {
-      const { data, error } = await supabase.rpc('get_active_default_care_team');
-      if (error) throw error;
-      return data || null;
-    },
-    onSuccess: (data) => {
-      if (data && data.default_doctor_id) {
-        setSelectedDoctor(data.default_doctor_id);
-        if (data.default_nutritionist_id) {
-          setSelectedNutritionist(data.default_nutritionist_id);
-        }
-      }
+      const { data, error } = await supabase.from('default_care_teams')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') throw error; // PGRST116 is "no rows returned" - not an error for us
+      return data as DefaultCareTeam;
     }
   });
+  
+  // Update state when default care team data is loaded
+  React.useEffect(() => {
+    if (defaultCareTeam) {
+      setSelectedDoctor(defaultCareTeam.default_doctor_id);
+      if (defaultCareTeam.default_nutritionist_id) {
+        setSelectedNutritionist(defaultCareTeam.default_nutritionist_id);
+      }
+    }
+  }, [defaultCareTeam]);
   
   const handleNutritionistChange = (value: string) => {
     setSelectedNutritionist(value === "none" ? null : value);
@@ -85,13 +94,22 @@ export const DefaultCareTeamSettings = () => {
     setSuccessMessage(null);
     
     try {
-      const { data, error } = await supabase.functions.invoke('admin-setup-default-care-team', {
-        body: {
-          doctor_id: selectedDoctor,
-          nutritionist_id: selectedNutritionist,
-          admin_id: user.id
-        }
-      });
+      // First deactivate all existing default care teams
+      await supabase
+        .from('default_care_teams')
+        .update({ is_active: false })
+        .eq('is_active', true);
+      
+      // Create a new active default care team
+      const { data, error } = await supabase
+        .from('default_care_teams')
+        .insert({
+          default_doctor_id: selectedDoctor,
+          default_nutritionist_id: selectedNutritionist,
+          is_active: true
+        })
+        .select('id')
+        .single();
       
       if (error) throw error;
       

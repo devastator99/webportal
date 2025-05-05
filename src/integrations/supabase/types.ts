@@ -65,6 +65,20 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "analyzed_documents_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analyzed_documents_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
       appointments: {
@@ -130,6 +144,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "appointments_doctor_profile_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_doctor_profile_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "appointments_patient_profile_fkey"
             columns: ["patient_id"]
             isOneToOne: false
@@ -149,6 +177,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_patient_profile_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "appointments_patient_profile_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -206,6 +248,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "chat_messages_receiver_profile_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_receiver_profile_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "chat_messages_sender_profile_fkey"
             columns: ["sender_id"]
             isOneToOne: false
@@ -225,6 +281,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_sender_profile_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_messages_sender_profile_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -285,6 +355,33 @@ export type Database = {
         }
         Relationships: []
       }
+      default_care_teams: {
+        Row: {
+          created_at: string | null
+          default_doctor_id: string | null
+          default_nutritionist_id: string | null
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          default_doctor_id?: string | null
+          default_nutritionist_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          default_doctor_id?: string | null
+          default_nutritionist_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       doctor_availability: {
         Row: {
           created_at: string
@@ -337,6 +434,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_availability_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_availability_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -395,6 +506,20 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_details_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doctor_details_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -545,6 +670,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_videos_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "knowledge_videos_uploaded_by_fkey"
+            columns: ["uploaded_by"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -799,6 +938,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "patient_assignments_doctor_profile_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_assignments_doctor_profile_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "patient_assignments_nutritionist_profile_fkey"
             columns: ["nutritionist_id"]
             isOneToOne: false
@@ -820,6 +973,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "patient_assignments_nutritionist_profile_fkey"
+            columns: ["nutritionist_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_assignments_nutritionist_profile_fkey"
+            columns: ["nutritionist_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "patient_assignments_patient_profile_fkey"
             columns: ["patient_id"]
             isOneToOne: true
@@ -839,6 +1006,20 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_assignments_patient_profile_fkey"
+            columns: ["patient_id"]
+            isOneToOne: true
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_assignments_patient_profile_fkey"
+            columns: ["patient_id"]
+            isOneToOne: true
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -903,6 +1084,20 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_details_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_details_id_fkey"
+            columns: ["id"]
+            isOneToOne: true
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -978,6 +1173,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "patient_invoices_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_invoices_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "patient_invoices_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
@@ -997,6 +1206,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_invoices_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_invoices_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -1051,6 +1274,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_patient_profile"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_patient_profile"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
+          },
+          {
             foreignKeyName: "patient_medical_reports_patient_id_fkey"
             columns: ["patient_id"]
             isOneToOne: false
@@ -1070,6 +1307,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_medical_reports_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_medical_reports_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -1440,6 +1691,20 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "user_roles_profile_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_roles_profile_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
+          },
         ]
       }
     }
@@ -1539,7 +1804,39 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "patient_assignments_doctor_profile_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_assignments_doctor_profile_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "registration_progress"
+            referencedColumns: ["user_id"]
+          },
         ]
+      }
+      registration_progress: {
+        Row: {
+          care_team_assigned: boolean | null
+          chat_room_created: boolean | null
+          chatroom_notification_sent: boolean | null
+          created_at: string | null
+          email: string | null
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+          payment_status: string | null
+          registration_completed: boolean | null
+          updated_at: string | null
+          user_id: string | null
+          welcome_notification_sent: boolean | null
+        }
+        Relationships: []
       }
     }
     Functions: {
@@ -1615,6 +1912,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      complete_patient_registration: {
+        Args: {
+          p_user_id: string
+          p_payment_id: string
+          p_razorpay_order_id: string
+          p_razorpay_payment_id: string
+        }
+        Returns: Json
+      }
       create_appointment: {
         Args: {
           p_patient_id: string
@@ -1668,6 +1974,16 @@ export type Database = {
           p_description?: string
         }
         Returns: string
+      }
+      get_active_default_care_team: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          default_doctor_id: string
+          default_nutritionist_id: string
+          is_active: boolean
+          created_at: string
+        }[]
       }
       get_admin_clinics_count: {
         Args: Record<PropertyKey, never>
@@ -2216,6 +2532,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin_user: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
+      is_current_user_admin: {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }

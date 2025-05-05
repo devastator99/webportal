@@ -48,7 +48,7 @@ serve(async (req) => {
       'complete_patient_registration',
       {
         p_user_id: user_id,
-        p_payment_id: "manual",
+        p_payment_id: razorpay_payment_id,
         p_razorpay_order_id: razorpay_order_id,
         p_razorpay_payment_id: razorpay_payment_id
       }

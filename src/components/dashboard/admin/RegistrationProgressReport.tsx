@@ -9,22 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle, XCircle, AlertCircle, RefreshCw, Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
-
-interface RegistrationProgress {
-  id: string;
-  user_id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  payment_status: string;
-  care_team_assigned: boolean;
-  chat_room_created: boolean;
-  welcome_notification_sent: boolean;
-  chatroom_notification_sent: boolean;
-  registration_completed: boolean;
-  created_at: string;
-  updated_at: string;
-}
+import { RegistrationProgress } from "@/types/registration";
 
 export const RegistrationProgressReport = () => {
   const { toast } = useToast();
@@ -81,6 +66,7 @@ export const RegistrationProgressReport = () => {
   const getPaymentStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
+      case 'paid':
         return <Badge className="bg-green-500">Completed</Badge>;
       case 'pending':
         return <Badge className="bg-yellow-500">Pending</Badge>;

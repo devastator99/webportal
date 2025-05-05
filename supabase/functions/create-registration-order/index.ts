@@ -123,16 +123,25 @@ serve(async (req) => {
       orderData = await response.json();
     }
     
-    // Record the order in registration_status table
-    await supabaseClient
-      .from('registration_status')
+    // Create invoice record in patient_invoices table
+    const { data: invoiceData, error: invoiceError } = await supabaseClient
+      .from('patient_invoices')
       .insert({
-        user_id: user_id,
-        payment_status: 'pending',
-        razorpay_order_id: orderData.id
+        patient_id: user_id,
+        amount: orderData.amount / 100,
+        currency: orderData.currency,
+        description: 'Registration fee',
+        razorpay_order_id: orderData.id,
+        invoice_number: `INV-${Date.now()}`,
+        status: 'pending'
       })
-      .onConflict('user_id')
-      .merge();
+      .select('id')
+      .single();
+    
+    if (invoiceError) {
+      console.error("Error creating invoice record:", invoiceError);
+      // Continue anyway, not critical for the order creation
+    }
     
     // Return the order data for client-side payment
     return new Response(
@@ -142,6 +151,7 @@ serve(async (req) => {
         amount: orderData.amount / 100, // Convert back to regular currency units
         currency: orderData.currency,
         demo_mode: DEMO_MODE,
+        invoice_id: invoiceData?.id,
         prefill: {
           name: `${profile.first_name} ${profile.last_name}`.trim(),
         }

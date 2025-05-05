@@ -47,7 +47,9 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
     document.body.appendChild(script);
     
     return () => {
-      document.body.removeChild(script);
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
     };
   }, []);
 
@@ -77,7 +79,7 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
     }
     
     const options = {
-      key: 'your_razorpay_key_id', // You need to add this to your Supabase environment vars
+      key: 'rzp_test_placeholder', // This will be replaced by environment variable in production
       amount: orderData.amount * 100,
       currency: orderData.currency,
       name: 'AnubhootiHealth',
