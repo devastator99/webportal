@@ -19,6 +19,7 @@ import { groupMessagesByDate, sortByDate, formatChatMessageTime, isToday } from 
 import { CollapsibleMessageGroup } from "./CollapsibleMessageGroup";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { useNavigate } from "react-router-dom";
+import { useBreakpoint } from "@/hooks/use-responsive";
 
 interface WhatsAppStyleChatInterfaceProps {
   patientRoomId?: string | null;
@@ -34,6 +35,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   const [roomMembers, setRoomMembers] = useState<any[]>([]);
   const isMobile = useIsMobile();
   const isIPad = useIsIPad();
+  const { isSmallScreen } = useBreakpoint();
   const [showSidebar, setShowSidebar] = useState(!isMobile && userRole !== 'patient');
   const [isLoadingMembers, setIsLoadingMembers] = useState(false);
   const [isAiResponding, setIsAiResponding] = useState(false);
@@ -47,6 +49,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   const [showSearch, setShowSearch] = useState(false);
   const [newMessageAdded, setNewMessageAdded] = useState(false);
   const [pendingPdfData, setPendingPdfData] = useState<null | any>(null);
+  const [showAllMembers, setShowAllMembers] = useState(false);
   
   const messageGroups = groupMessagesByDate(localMessages);
   
@@ -685,51 +688,123 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                 >
                   <Search className="h-4 w-4" />
                 </Button>
+                {isSmallScreen && roomMembers.length > 4 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowAllMembers(!showAllMembers)}
+                    className="h-7 text-xs px-2"
+                  >
+                    {showAllMembers ? "Show Less" : "Show All"}
+                  </Button>
+                )}
               </div>
             </div>
             
-            <div className="flex flex-wrap gap-2 px-3 pb-2 pt-1 bg-white/20 dark:bg-neutral-900/20 backdrop-blur-sm">
-              {roomMembers.map((member) => {
-                const isPatient = member.role === "patient" && user?.id === member.id && userRole === "patient";
-                const avatarClass = 
-                  member.role === 'doctor' ? 'doctor-avatar' :
-                  member.role === 'nutritionist' ? 'nutritionist-avatar' :
-                  member.role === 'aibot' ? 'ai-avatar' : 
-                  'patient-avatar';
-                
-                return (
-                  <div key={member.id} className="flex items-center gap-1.5">
-                    {isPatient ? (
-                      <button
-                        onClick={() => navigate("/profile")}
-                        type="button"
-                        className="focus:outline-none rounded-full p-0.5 transition hover:scale-105"
-                        title="View or edit profile"
-                      >
-                        <Avatar className={`h-6 w-6 ${avatarClass}`}>
-                          <AvatarFallback className="text-xs">
-                            {`${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
-                          </AvatarFallback>
-                        </Avatar>
-                      </button>
-                    ) : (
-                      <Avatar className={`h-6 w-6 ${avatarClass}`}>
-                        <AvatarFallback className="text-xs">
-                          {member.role === 'aibot' ? 'AI' : 
-                            `${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
-                        </AvatarFallback>
-                      </Avatar>
-                    )}
-                    <span className="text-sm">
-                      {member.first_name} {member.last_name}
-                      <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1">
-                        {member.role}
-                      </Badge>
-                    </span>
+            <div className={`${isSmallScreen ? 'overflow-x-auto' : 'flex flex-wrap'} gap-2 px-3 pb-2 pt-1 bg-white/20 dark:bg-neutral-900/20 backdrop-blur-sm`}>
+              {/* Horizontal scrollable container for mobile */}
+              <div className={`${isSmallScreen ? 'flex py-1 no-scrollbar' : 'flex flex-wrap'} gap-2`}>
+                {roomMembers
+                  .slice(0, isSmallScreen && !showAllMembers ? 8 : undefined)
+                  .map((member) => {
+                    const isPatient = member.role === "patient" && user?.id === member.id && userRole === "patient";
+                    const avatarClass = 
+                      member.role === 'doctor' ? 'doctor-avatar' :
+                      member.role === 'nutritionist' ? 'nutritionist-avatar' :
+                      member.role === 'aibot' ? 'ai-avatar' : 
+                      'patient-avatar';
+                    
+                    const roleAbbr = member.role?.slice(0, 2).toUpperCase() || "??";
+                    
+                    return (
+                      <div key={member.id} className="flex-shrink-0">
+                        {isSmallScreen ? (
+                          <div className="flex flex-col items-center">
+                            {isPatient ? (
+                              <button
+                                onClick={() => navigate("/profile")}
+                                type="button"
+                                className="focus:outline-none rounded-full transition hover:scale-105"
+                                title="View or edit profile"
+                              >
+                                <Avatar className={`h-8 w-8 ${avatarClass}`}>
+                                  <AvatarFallback className="text-xs">
+                                    {`${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
+                                  </AvatarFallback>
+                                </Avatar>
+                              </button>
+                            ) : (
+                              <Avatar className={`h-8 w-8 ${avatarClass}`}>
+                                <AvatarFallback className="text-xs">
+                                  {member.role === 'aibot' ? 'AI' : 
+                                    `${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
+                                </AvatarFallback>
+                              </Avatar>
+                            )}
+                            <span className="text-[10px] bg-background rounded-full px-1.5 py-0.5 mt-1 border text-center font-medium">
+                              {roleAbbr}
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            {isPatient ? (
+                              <button
+                                onClick={() => navigate("/profile")}
+                                type="button"
+                                className="focus:outline-none rounded-full p-0.5 transition hover:scale-105"
+                                title="View or edit profile"
+                              >
+                                <Avatar className={`h-6 w-6 ${avatarClass}`}>
+                                  <AvatarFallback className="text-xs">
+                                    {`${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
+                                  </AvatarFallback>
+                                </Avatar>
+                              </button>
+                            ) : (
+                              <Avatar className={`h-6 w-6 ${avatarClass}`}>
+                                <AvatarFallback className="text-xs">
+                                  {member.role === 'aibot' ? 'AI' : 
+                                    `${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
+                                </AvatarFallback>
+                              </Avatar>
+                            )}
+                            <span className="text-sm">
+                              {member.first_name} {member.last_name}
+                              <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1">
+                                {member.role}
+                              </Badge>
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                {isSmallScreen && !showAllMembers && roomMembers.length > 8 && (
+                  <div className="flex items-center justify-center">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => setShowAllMembers(true)}
+                      className="h-8 w-8 rounded-full p-0"
+                    >
+                      <span className="text-xs">+{roomMembers.length - 8}</span>
+                    </Button>
                   </div>
-                );
-              })}
+                )}
+              </div>
             </div>
+            
+            {/* Add custom CSS to hide scrollbar but keep functionality */}
+            <style jsx="true">{`
+              .no-scrollbar {
+                -ms-overflow-style: none;  /* IE and Edge */
+                scrollbar-width: none;  /* Firefox */
+                overflow-x: auto;
+              }
+              .no-scrollbar::-webkit-scrollbar {
+                display: none;  /* Chrome, Safari, Opera */
+              }
+            `}</style>
             
             <div className="flex-1 overflow-hidden flex flex-col relative">
               <SearchMessages

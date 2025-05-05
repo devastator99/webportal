@@ -62,12 +62,13 @@ export const UsersList = ({
 
   return (
     <ul className={cn(
-      useCompactView ? "flex flex-wrap gap-1.5 py-1" : "space-y-1"
+      useCompactView ? "flex flex-row flex-nowrap overflow-x-auto gap-1.5 py-1 no-scrollbar" : "space-y-1"
     )}>
       {users.map((user) => {
         const isSelected = selectedUser?.id === user.id;
         const role = getUserRole(user);
         const initials = getInitials(user);
+        const roleAbbr = role.slice(0, 2).toUpperCase();
 
         return (
           <li key={user.id} className={useCompactView ? "flex-shrink-0 relative" : "w-full"}>
@@ -77,7 +78,7 @@ export const UsersList = ({
               className={cn(
                 "flex items-center gap-1.5 rounded-md transition-colors",
                 useCompactView 
-                  ? "p-0.5" 
+                  ? "p-0.5 flex-col" 
                   : "p-2 w-full",
                 isSelected 
                   ? "bg-primary/10 text-primary font-medium" 
@@ -87,22 +88,17 @@ export const UsersList = ({
                   : "cursor-pointer"
               )}
             >
-              <div className="relative">
-                <Avatar className={useCompactView ? "h-8 w-8" : "h-8 w-8"}>
-                  <AvatarFallback className={getAvatarColor(role)}>
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                
-                {/* Role badge for compact view */}
-                {useCompactView && (
-                  <span className="absolute -bottom-1 -right-1 text-[8px] font-medium px-1 py-0.5 rounded-full bg-background border shadow-sm">
-                    {role.slice(0, 3)}
-                  </span>
-                )}
-              </div>
+              <Avatar className={useCompactView ? "h-8 w-8" : "h-8 w-8"}>
+                <AvatarFallback className={getAvatarColor(role)}>
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
               
-              {!useCompactView && (
+              {useCompactView ? (
+                <span className="text-[10px] bg-background rounded-full px-1.5 py-0.5 mt-1 border text-center font-medium">
+                  {roleAbbr}
+                </span>
+              ) : (
                 <div className="text-left">
                   <p className="text-sm font-medium">
                     {user.first_name} {user.last_name}

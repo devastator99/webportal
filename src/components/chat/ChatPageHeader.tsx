@@ -5,6 +5,7 @@ import { ChatInterface } from "./ChatInterface";
 import { UsersList } from "./UsersList";
 import { CareTeamGroup, UserProfile } from "./UsersProvider";
 import { useBreakpoint } from "@/hooks/use-responsive";
+import { cn } from "@/lib/utils";
 
 interface ChatPageHeaderProps {
   careTeamGroup: CareTeamGroup | null;
@@ -109,8 +110,3 @@ export const ChatPageHeader = ({
     </div>
   );
 };
-
-// Helper function since we need cn here
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
-}
