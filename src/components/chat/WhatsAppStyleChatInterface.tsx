@@ -794,17 +794,8 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
               </div>
             </div>
             
-            {/* Add custom CSS to hide scrollbar but keep functionality */}
-            <style jsx="true">{`
-              .no-scrollbar {
-                -ms-overflow-style: none;  /* IE and Edge */
-                scrollbar-width: none;  /* Firefox */
-                overflow-x: auto;
-              }
-              .no-scrollbar::-webkit-scrollbar {
-                display: none;  /* Chrome, Safari, Opera */
-              }
-            `}</style>
+            {/* Add the CSS for no-scrollbar as a global class in globals.css,
+                so we no longer need inline styles here */}
             
             <div className="flex-1 overflow-hidden flex flex-col relative">
               <SearchMessages
