@@ -112,7 +112,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <X className="h-4 w-4" />
           </Button>
           
-          <ScrollArea className="h-full max-h-[90vh]" invisibleScrollbar={true}>
+          <ScrollArea className="h-full max-h-[90vh] registration-scroll-area" invisibleScrollbar={true}>
             <motion.div
               className="p-6"
               initial={{ opacity: 0, y: 20 }}

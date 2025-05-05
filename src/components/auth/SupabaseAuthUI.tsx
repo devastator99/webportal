@@ -1,3 +1,4 @@
+
 import { Auth } from "@supabase/auth-ui-react";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,8 +31,23 @@ export const SupabaseAuthUI = ({
                 brandAccent: 'hsl(0 0% 20%)',
                 anchorTextColor: 'hsl(0 0% 90%)',
               },
+              borderWidths: {
+                buttonBorderWidth: '1px',
+                inputBorderWidth: '1px',
+              },
+              radii: {
+                buttonBorderRadius: '8px',
+                inputBorderRadius: '8px',
+              },
             },
-          }
+          },
+          className: {
+            container: 'auth-form-container',
+            button: 'auth-button',
+            input: 'auth-input',
+            label: 'auth-label',
+            anchor: 'auth-link'
+          },
         }}
         providers={[]}
         redirectTo={redirectTo}

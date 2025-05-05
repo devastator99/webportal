@@ -102,25 +102,27 @@ const Auth = () => {
 
   // For registration process with multiple steps
   return (
-    <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 pt-16 md:pt-20">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-saas-dark">
+        <h2 className="mt-3 text-center text-2xl sm:text-3xl font-bold text-saas-dark">
           {registrationStep === 1 ? 'Create your account' : 
            registrationStep === 2 ? 'Complete registration' : 
            'Registration successful'}
         </h2>
       </div>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+      <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         {registrationStep === 1 && (
-          <div className="bg-white py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10 max-h-[70vh]">
-            <ScrollArea className="h-full max-h-[70vh] pr-4" invisibleScrollbar={true}>
-              <AuthForm 
-                type="register"
-                onSubmit={handleFormSubmit}
-                error={error}
-                loading={loading}
-              />
+          <div className="bg-white py-6 sm:py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10 max-h-[80vh] overflow-hidden">
+            <ScrollArea className="h-full max-h-[70vh] pr-4 registration-scroll-area" invisibleScrollbar={true}>
+              <div className="py-2">
+                <AuthForm 
+                  type="register"
+                  onSubmit={handleFormSubmit}
+                  error={error}
+                  loading={loading}
+                />
+              </div>
             </ScrollArea>
           </div>
         )}
