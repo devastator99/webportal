@@ -1,70 +1,203 @@
 
-/* Glassmorphic effect for UI elements */
-.glass {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-}
+/* Modern Borderless Chat Design */
 
-/* Glass dialog and overlay */
 .glass-dialog {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  border-radius: 16px;
 }
 
 .glass-dialog-overlay {
-  background: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.2);
 }
 
-/* For auth modals specifically */
-.auth-glass {
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+.chat-container {
+  background: linear-gradient(109.6deg, rgba(223,234,247,1) 11.2%, rgba(244,248,252,1) 91.1%);
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(31, 38, 135, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.18);
   overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
 }
 
-/* Scrollbar styling for dialogs */
-.glass-dialog ::-webkit-scrollbar,
-.auth-glass ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+.dark .chat-container {
+  background: linear-gradient(180deg, rgba(30, 30, 46, 0.9) 0%, rgba(26, 24, 38, 0.9) 100%);
 }
 
-.glass-dialog ::-webkit-scrollbar-track,
-.auth-glass ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+.message-bubble {
+  transition: all 0.3s ease;
+  animation: fadeIn 0.3s ease-out;
 }
 
-.glass-dialog ::-webkit-scrollbar-thumb,
-.auth-glass ::-webkit-scrollbar-thumb {
-  background: rgba(155, 135, 245, 0.5);
-  border-radius: 10px;
+.message-bubble.current-user {
+  background: linear-gradient(90deg, #9b87f5 0%, #7E69AB 100%);
+  border-radius: 16px 16px 4px 16px;
+  box-shadow: 0 2px 8px rgba(155, 135, 245, 0.2);
 }
 
-.glass-dialog ::-webkit-scrollbar-thumb:hover,
-.auth-glass ::-webkit-scrollbar-thumb:hover {
-  background: rgba(155, 135, 245, 0.8);
+.message-bubble.ai-message {
+  background: linear-gradient(90deg, rgba(238, 174, 255, 0.2) 0%, rgba(201, 122, 255, 0.1) 100%);
+  border-radius: 16px 16px 16px 4px;
+  border: 1px solid rgba(201, 122, 255, 0.3);
 }
 
-/* Hide scrollbars for certain elements while preserving functionality */
-.invisible-scroll {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+.message-bubble.doctor-message {
+  background: linear-gradient(90deg, rgba(100, 181, 246, 0.2) 0%, rgba(30, 136, 229, 0.1) 100%);
+  border-radius: 16px 16px 16px 4px;
+  border: 1px solid rgba(30, 136, 229, 0.2);
 }
 
-.invisible-scroll::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari, Opera */
+.message-bubble.nutritionist-message {
+  background: linear-gradient(90deg, rgba(129, 199, 132, 0.2) 0%, rgba(76, 175, 80, 0.1) 100%);
+  border-radius: 16px 16px 16px 4px;
+  border: 1px solid rgba(76, 175, 80, 0.2);
+}
+
+.message-bubble.system-message {
+  background: linear-gradient(90deg, rgba(225, 245, 254, 0.5) 0%, rgba(179, 229, 252, 0.3) 100%);
+  border-radius: 16px;
+  border: 1px solid rgba(3, 169, 244, 0.1);
+}
+
+.message-input {
+  background: rgba(255, 255, 255, 0.8);
+  border-radius: 24px;
+  border: 1px solid rgba(236, 239, 241, 0.8);
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.message-input:focus-within {
+  background: rgba(255, 255, 255, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(155, 135, 245, 0.3);
+}
+
+.dark .message-input {
+  background: rgba(30, 30, 46, 0.8);
+  border: 1px solid rgba(60, 60, 80, 0.8);
+}
+
+.dark .message-input:focus-within {
+  background: rgba(40, 40, 56, 1);
+  border: 1px solid rgba(155, 135, 245, 0.4);
+}
+
+.chat-header {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(236, 239, 241, 0.8);
+}
+
+.dark .chat-header {
+  background: rgba(30, 30, 46, 0.9);
+  border-bottom: 1px solid rgba(60, 60, 80, 0.8);
+}
+
+.ai-command-highlight {
+  color: #9b87f5;
+  font-weight: 500;
+}
+
+.bubble-in {
+  animation: bubbleIn 0.3s ease-out forwards;
+}
+
+.highlight-message {
+  animation: highlightPulse 2s ease-out;
+}
+
+@keyframes bubbleIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes highlightPulse {
+  0%, 100% {
+    background-color: transparent;
+  }
+  25% {
+    background-color: rgba(155, 135, 245, 0.15);
+  }
+  75% {
+    background-color: rgba(155, 135, 245, 0.05);
+  }
+}
+
+.ai-typing {
+  padding: 8px 12px;
+  border-radius: 16px;
+  margin-bottom: 8px;
+  max-width: 120px;
+  background: rgba(225, 245, 254, 0.5);
+}
+
+.ai-typing-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #9b87f5;
+  margin: 0 2px;
+  opacity: 0.6;
+  animation: typingAnimation 1.4s infinite both;
+}
+
+.ai-typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.ai-typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typingAnimation {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.message-time {
+  font-size: 0.7rem;
+  opacity: 0.7;
+}
+
+/* Message sender animations */
+.doctor-avatar, .nutritionist-avatar, .patient-avatar, .ai-avatar {
+  transition: all 0.3s ease;
+}
+
+.doctor-avatar:hover, .nutritionist-avatar:hover, .patient-avatar:hover, .ai-avatar:hover {
+  transform: scale(1.05);
+}
+
+.ai-avatar {
+  background: linear-gradient(135deg, #9b87f5 0%, #7E69AB 100%);
+  box-shadow: 0 2px 8px rgba(155, 135, 245, 0.3);
+}
+
+.doctor-avatar {
+  background: linear-gradient(135deg, #64B5F6 0%, #1E88E5 100%);
+  box-shadow: 0 2px 8px rgba(30, 136, 229, 0.3);
+}
+
+.nutritionist-avatar {
+  background: linear-gradient(135deg, #81C784 0%, #4CAF50 100%);
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.patient-avatar {
+  background: linear-gradient(135deg, #FFB74D 0%, #FF9800 100%);
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
 }

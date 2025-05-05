@@ -106,7 +106,7 @@ const ChatPage = () => {
         <p className="text-muted-foreground mb-4">Connect with your healthcare team</p>
         <Separator className="my-4" />
         
-        <div className="h-[calc(100vh-220px)]">
+        <div className="h-[calc(100vh-220px)] chat-container">
           <WhatsAppStyleChatInterface patientRoomId={patientRoomId} />
         </div>
       </PatientPageLayout>
@@ -128,7 +128,7 @@ const ChatPage = () => {
         </p>
         <Separator className="my-4" />
         
-        <div className="h-[calc(100vh-220px)]">
+        <div className="h-[calc(100vh-220px)] chat-container">
           <WhatsAppStyleChatInterface patientRoomId={isPatient ? patientRoomId : undefined} />
         </div>
       </ErrorBoundary>

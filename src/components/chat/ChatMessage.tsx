@@ -48,28 +48,33 @@ export const ChatMessage = ({
   const isAiBot = message.is_ai_message || message.sender.role === 'aibot' || message.sender.id === '00000000-0000-0000-0000-000000000000';
   
   const isNutritionist = message.sender.role === 'nutritionist';
+  const isDoctor = message.sender.role === 'doctor';
   
   const isPdfMessage = message.message.includes("PDF has been generated") || 
                       message.message.includes("prescription as a PDF") ||
                       message.message.includes("ready for download");
   
   const isSystemMessage = message.is_system_message;
+
+  const getBubbleClass = () => {
+    if (isSystemMessage) return "system-message";
+    if (isCurrentUser) return "current-user";
+    if (isAiBot) return "ai-message";
+    if (isDoctor) return "doctor-message";
+    if (isNutritionist) return "nutritionist-message";
+    return "";
+  };
   
   return (
     <div
-      className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} group transition-opacity`}
+      className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} group transition-opacity bubble-in`}
     >
       <div
         className={cn(
-          "max-w-[75%] px-3 py-2 rounded-lg shadow-sm transition-all duration-200 border",
-          isSystemMessage
-            ? "bg-blue-50/70 dark:bg-blue-900/10 text-center mx-auto border-blue-100 dark:border-blue-800/20"
-            : isCurrentUser
-              ? "bg-[#9b87f5]/90 text-white border-[#8B5CF6]/20"
-              : isAiBot 
-                ? "bg-purple-50/80 dark:bg-purple-900/10 border-purple-200/50 dark:border-purple-500/20" 
-                : "bg-neutral-100/80 dark:bg-neutral-800/50 border-neutral-200/50 dark:border-neutral-700/30",
-          isAiBot && !isCurrentUser && "hover:shadow-md group-hover:bg-purple-50/90 dark:group-hover:bg-purple-900/20"
+          "max-w-[75%] px-3 py-2 rounded-lg shadow-sm transition-all duration-200 message-bubble",
+          getBubbleClass(),
+          isSystemMessage && "mx-auto text-center",
+          isAiBot && !isCurrentUser && !isSystemMessage && "hover:shadow-md"
         )}
       >
         {showAvatar && !isCurrentUser && (
@@ -107,7 +112,7 @@ export const ChatMessage = ({
           {message.message}
         </p>
         
-        <div className="flex items-center justify-end gap-1 mt-1">
+        <div className="flex items-center justify-end gap-1 mt-1 message-time">
           <span className="text-xs opacity-70">{formattedTime}</span>
           
           {isCurrentUser && (

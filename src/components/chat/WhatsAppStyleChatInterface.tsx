@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CareTeamRoomsSelector } from "@/components/chat/CareTeamRoomsSelector";
 import { ChatInput } from "@/components/chat/ChatInput";
@@ -641,10 +640,10 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
   };
 
   return (
-    <div className="h-full flex overflow-hidden rounded-md border border-neutral-200 dark:border-neutral-800 shadow-sm">
+    <div className="h-full flex overflow-hidden rounded-md border-none shadow-none">
       {showSidebar && (
-        <div className="w-72 border-r border-neutral-200 dark:border-neutral-800 flex flex-col">
-          <div className="p-3 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+        <div className="w-72 border-r border-neutral-100 dark:border-neutral-800/50 flex flex-col bg-white/50 dark:bg-neutral-900/50 backdrop-blur-sm">
+          <div className="p-3 border-b border-neutral-100 dark:border-neutral-800/50 flex items-center justify-between chat-header">
             <h3 className="font-medium text-sm">Care Team Chats</h3>
             <Button
               variant="ghost"
@@ -667,10 +666,10 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
       <div className="flex-1 flex flex-col h-full">
         {selectedRoomId && (
           <>
-            <div className="p-3 border-b border-neutral-200 dark:border-neutral-800 flex items-center justify-between">
+            <div className="p-3 border-b border-neutral-100 dark:border-neutral-800/50 flex items-center justify-between chat-header">
               <div className="flex items-center gap-2">
                 <h3 className="font-medium text-sm flex items-center gap-2">
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <Users className="h-4 w-4 text-[#7E69AB]" />
                   Care Team Members
                 </h3>
                 <span className="text-xs text-muted-foreground">
@@ -689,35 +688,33 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
               </div>
             </div>
             
-            <div className="flex flex-wrap gap-2 px-3 pb-2 pt-1">
+            <div className="flex flex-wrap gap-2 px-3 pb-2 pt-1 bg-white/20 dark:bg-neutral-900/20 backdrop-blur-sm">
               {roomMembers.map((member) => {
                 const isPatient = member.role === "patient" && user?.id === member.id && userRole === "patient";
+                const avatarClass = 
+                  member.role === 'doctor' ? 'doctor-avatar' :
+                  member.role === 'nutritionist' ? 'nutritionist-avatar' :
+                  member.role === 'aibot' ? 'ai-avatar' : 
+                  'patient-avatar';
+                
                 return (
                   <div key={member.id} className="flex items-center gap-1.5">
                     {isPatient ? (
                       <button
                         onClick={() => navigate("/profile")}
                         type="button"
-                        className="focus:outline-none border border-primary rounded-full p-0.5 transition hover:scale-105"
+                        className="focus:outline-none rounded-full p-0.5 transition hover:scale-105"
                         title="View or edit profile"
                       >
-                        <Avatar className="h-6 w-6">
-                          <AvatarFallback className={
-                            `text-xs bg-orange-100 text-orange-800`
-                          }>
+                        <Avatar className={`h-6 w-6 ${avatarClass}`}>
+                          <AvatarFallback className="text-xs">
                             {`${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
                           </AvatarFallback>
                         </Avatar>
                       </button>
                     ) : (
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className={`text-xs ${
-                          member.role === 'doctor' ? 'bg-blue-100 text-blue-800' :
-                          member.role === 'nutritionist' ? 'bg-green-100 text-green-800' :
-                          member.role === 'patient' ? 'bg-orange-100 text-orange-800' :
-                          member.role === 'aibot' ? 'bg-purple-100 text-purple-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}>
+                      <Avatar className={`h-6 w-6 ${avatarClass}`}>
+                        <AvatarFallback className="text-xs">
                           {member.role === 'aibot' ? 'AI' : 
                             `${member.first_name?.[0] || ''}${member.last_name?.[0] || ''}`}
                         </AvatarFallback>
@@ -787,17 +784,32 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                                       message.message.includes("PDF has been generated") ||
                                       message.message.includes("ready for download")
                                     );
+                                    
+                                  const avatarClass = 
+                                    message.sender_role === 'doctor' ? 'doctor-avatar' :
+                                    message.sender_role === 'nutritionist' ? 'nutritionist-avatar' :
+                                    isAi ? 'ai-avatar' : 
+                                    'patient-avatar';
+                                    
+                                  const messageClass = 
+                                    message.is_system_message ? "system-message" :
+                                    isCurrentUser ? "current-user" :
+                                    isAi ? "ai-message" :
+                                    message.sender_role === 'doctor' ? "doctor-message" :
+                                    message.sender_role === 'nutritionist' ? "nutritionist-message" :
+                                    "";
+                                    
                                   return (
                                     <div 
                                       key={message.id} 
                                       id={`message-${message.id}`}
-                                      className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} my-2`}
+                                      className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} my-2 bubble-in`}
                                     >
                                       <div className="flex items-start gap-2 max-w-[80%]">
                                         {!isCurrentUser && !message.is_system_message && (
-                                          <Avatar className="h-8 w-8">
+                                          <Avatar className={`h-8 w-8 ${avatarClass}`}>
                                             {isAi ? (
-                                              <AvatarFallback className="bg-purple-100 text-purple-800">
+                                              <AvatarFallback>
                                                 AI
                                               </AvatarFallback>
                                             ) : (
@@ -821,17 +833,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                                               )}
                                             </div>
                                           )}
-                                          <div 
-                                            className={`p-3 rounded-lg ${
-                                              message.is_system_message 
-                                                ? 'bg-muted/70 text-muted-foreground text-xs italic' 
-                                                : isCurrentUser
-                                                  ? 'bg-[#9b87f5]/90 text-white shadow-sm'
-                                                  : isAi
-                                                    ? 'bg-purple-50/80 dark:bg-purple-900/10 shadow-sm'
-                                                    : 'bg-neutral-100/80 dark:bg-neutral-800/50 shadow-sm'
-                                            }`}
-                                          >
+                                          <div className={`p-3 rounded-lg message-bubble ${messageClass}`}>
                                             {message.message.startsWith('[FILE]') ? (
                                               <div>
                                                 <div className="flex items-center gap-2 text-xs">
@@ -888,7 +890,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                                                   </div>
                                                 )}
                                                 <p className="text-sm whitespace-pre-wrap">{message.message}</p>
-                                                <p className="text-[10px] opacity-70 mt-1">
+                                                <p className="text-[10px] opacity-70 mt-1 message-time">
                                                   {formatChatMessageTime(message.created_at)}
                                                 </p>
                                               </>
@@ -912,9 +914,19 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                 
                 {isAiResponding && (
                   <div className="flex items-center justify-center py-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground bg-background/70 px-3 py-1.5 rounded-full shadow-sm">
-                      <Loader className="h-3 w-3 animate-spin" />
-                      <span>AI is responding...</span>
+                    <div className="ai-typing ml-10">
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6 ai-avatar">
+                          <AvatarFallback className="text-xs">
+                            AI
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex items-center">
+                          <div className="ai-typing-dot"></div>
+                          <div className="ai-typing-dot"></div>
+                          <div className="ai-typing-dot"></div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -933,7 +945,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                 </Button>
               )}
               
-              <div className="p-3 border-t border-neutral-200 dark:border-neutral-800">
+              <div className="p-3 border-t border-neutral-100 dark:border-neutral-800/50">
                 <ChatInput
                   value={newMessage}
                   onChange={setNewMessage}
@@ -943,6 +955,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
                   onClearFile={() => setSelectedFile(null)}
                   isLoading={isUploading || isAiResponding}
                   uploadProgress={uploadProgress}
+                  className="message-input"
                 />
               </div>
             </div>
@@ -950,7 +963,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatI
         )}
         
         {!selectedRoomId && (
-          <div className="flex-1 flex items-center justify-center p-4">
+          <div className="flex-1 flex items-center justify-center p-4 bg-white/20 dark:bg-neutral-900/20 backdrop-blur-sm">
             <div className="text-center space-y-2">
               <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground opacity-20" />
               <h3 className="font-medium">No conversation selected</h3>
