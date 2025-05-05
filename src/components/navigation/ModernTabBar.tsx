@@ -54,7 +54,7 @@ export const ModernTabBar: React.FC<ModernTabBarProps> = ({ items, className }) 
   
   return (
     <div className={cn(
-      "fixed bottom-6 left-0 right-0 z-40 mx-auto px-4 pb-safe animate-fade-up",
+      "fixed bottom-0 left-0 right-0 z-40 mx-auto px-4 pb-1 animate-fade-up",
       className
     )}>
       <div className="relative flex items-center justify-around max-w-md mx-auto rounded-full p-1.5 glass-nav shadow-lg">

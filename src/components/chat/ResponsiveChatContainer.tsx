@@ -30,9 +30,9 @@ export const ResponsiveChatContainer = ({
         maxWidth,
         fullHeight && (
           isSmallScreen || isMobile 
-            ? 'min-h-[calc(100vh-180px)]' 
+            ? 'min-h-[calc(100vh-200px)]' // Increased space for mobile navigation
             : isTablet || isMediumScreen 
-              ? 'min-h-[calc(100vh-160px)]' 
+              ? 'min-h-[calc(100vh-180px)]' // Increased space for tablet navigation  
               : 'min-h-[calc(100vh-160px)]'
         ),
         withPadding && (
@@ -104,9 +104,9 @@ export const ResponsiveChatFooter = ({
         sticky && 'sticky bottom-0',
         withBorder && 'border-t',
         isSmallScreen || isMobile 
-          ? 'py-2 px-2 pb-20' // Added extra bottom padding for mobile navigation
+          ? 'py-2 px-2 pb-24' // Increased padding for mobile navigation
           : isTablet || isMediumScreen 
-            ? 'py-2 px-3 pb-16' // Added extra bottom padding for tablet navigation
+            ? 'py-2 px-3 pb-20' // Increased padding for tablet navigation
             : 'py-3 px-4',
         className
       )}

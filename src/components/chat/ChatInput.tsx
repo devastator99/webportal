@@ -81,7 +81,7 @@ export const ChatInput = ({
 
   return (
     <div className={cn(
-      "flex flex-col gap-2 transition-all duration-300 mb-safe",
+      "flex flex-col gap-2 transition-all duration-300 mb-safe pb-6",
       className
     )}>
       {selectedFile && (
