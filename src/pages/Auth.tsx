@@ -113,17 +113,21 @@ const Auth = () => {
 
       <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         {registrationStep === 1 && (
-          <div className="bg-white py-6 sm:py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10 max-h-[80vh] overflow-hidden">
-            <ScrollArea className="h-full max-h-[70vh] pr-4 registration-scroll-area" invisibleScrollbar={true}>
-              <div className="py-2">
+          <div className="bg-white py-6 sm:py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10 relative">
+            <div className="registration-form-container">
+              <ScrollArea 
+                className="w-full pr-2" 
+                invisibleScrollbar={true}
+                maxHeight="70vh"
+              >
                 <AuthForm 
                   type="register"
                   onSubmit={handleFormSubmit}
                   error={error}
                   loading={loading}
                 />
-              </div>
-            </ScrollArea>
+              </ScrollArea>
+            </div>
           </div>
         )}
         

@@ -8,12 +8,13 @@ interface ScrollAreaProps extends React.ComponentPropsWithoutRef<typeof ScrollAr
   orientation?: "vertical" | "horizontal" | "both";
   viewportRef?: React.RefObject<HTMLDivElement>;
   invisibleScrollbar?: boolean;
+  maxHeight?: string;
 }
 
 const ScrollArea = React.forwardRef<
   React.ElementRef<typeof ScrollAreaPrimitive.Root>,
   ScrollAreaProps
->(({ className, children, orientation = "vertical", viewportRef, invisibleScrollbar = false, ...props }, ref) => (
+>(({ className, children, orientation = "vertical", viewportRef, invisibleScrollbar = false, maxHeight, ...props }, ref) => (
   <ScrollAreaPrimitive.Root
     ref={ref}
     className={cn("relative overflow-hidden", className)}
@@ -25,7 +26,8 @@ const ScrollArea = React.forwardRef<
       )}
       ref={viewportRef}
       style={{
-        WebkitOverflowScrolling: "touch"
+        WebkitOverflowScrolling: "touch",
+        maxHeight: maxHeight,
       }}
     >
       {children}

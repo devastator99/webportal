@@ -97,6 +97,24 @@
     display: none;  /* Chrome, Safari, Opera */
   }
   
+  /* New invisible-scroll class for ScrollArea component */
+  .invisible-scroll {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+  }
+  
+  /* Fix for scrollbar hiding */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
   /* Subtle shadow for elements */
   .shadow-subtle {
     box-shadow: 0 2px 5px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.02);
@@ -116,15 +134,6 @@
   }
 
   /* Mobile scrolling optimizations */
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-  
   .scroll-smooth {
     scroll-behavior: smooth;
   }
@@ -138,6 +147,14 @@
     max-height: 85vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Registration form specific styles */
+  .registration-form-container {
+    max-height: 70vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-right: 0.5rem;
   }
 }
 

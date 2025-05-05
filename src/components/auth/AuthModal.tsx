@@ -106,13 +106,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           <Button 
             variant="ghost" 
             size="icon" 
-            className="absolute right-2 top-2 z-10 rounded-full bg-white/10 backdrop-blur-md text-white hover:bg-white/20"
+            className="absolute right-2 top-2 z-10 rounded-full bg-white/10 backdrop-blur-md hover:bg-white/20"
             onClick={handleClose}
           >
             <X className="h-4 w-4" />
           </Button>
           
-          <ScrollArea className="h-full max-h-[90vh] registration-scroll-area" invisibleScrollbar={true}>
+          <ScrollArea 
+            className="h-full" 
+            invisibleScrollbar={true}
+            maxHeight="80vh"
+          >
             <motion.div
               className="p-6"
               initial={{ opacity: 0, y: 20 }}
@@ -130,12 +134,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     view="sign_in"
                     redirectTo={`${window.location.origin}/dashboard`}
                     showLinks={false}
+                    className="mobile-form-container"
                   />
                 </>
               ) : (
                 <>
                   {registrationStep === 1 && (
-                    <>
+                    <div className="registration-form-container">
                       <h1 className="text-2xl font-bold text-center mb-6">
                         Create Your Account
                       </h1>
@@ -145,7 +150,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         error={error}
                         loading={loading}
                       />
-                    </>
+                    </div>
                   )}
                   
                   {/* Step 2: Payment */}

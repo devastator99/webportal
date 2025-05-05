@@ -9,15 +9,17 @@ interface SupabaseAuthUIProps {
   view?: AuthView;
   redirectTo?: string;
   showLinks?: boolean;
+  className?: string;
 }
 
 export const SupabaseAuthUI = ({ 
   view = "sign_in", 
   redirectTo,
-  showLinks = true
+  showLinks = true,
+  className
 }: SupabaseAuthUIProps) => {
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 ${className}`}>
       <Auth
         supabaseClient={supabase}
         view={view}
