@@ -34,7 +34,7 @@ export const useAuthHandlers = () => {
     firstName?: string, 
     lastName?: string,
     patientData?: PatientData
-  ) => {
+  ): Promise<User | null> => {
     setLoading(true);
     setError(null);
     

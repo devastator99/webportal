@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -57,11 +58,12 @@ const Auth = () => {
     patientData?: any
   ) => {
     try {
-      const result = await handleSignUp(email, password, userType as any, firstName, lastName, patientData);
+      // Fix: Directly assign the returned user
+      const user = await handleSignUp(email, password, userType as any, firstName, lastName, patientData);
       
       // If this is a patient registration and we were successful, move to payment step
-      if (result && result.user && userType === 'patient') {
-        setRegisteredUser(result.user);
+      if (user && userType === 'patient') {
+        setRegisteredUser(user);
         setRegistrationStep(2);
       }
     } catch (error: any) {
