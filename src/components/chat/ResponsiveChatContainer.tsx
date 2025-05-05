@@ -30,14 +30,14 @@ export const ResponsiveChatContainer = ({
         isSmallScreen || isMobile ? '' : maxWidth, // Remove max-width on mobile for full width
         fullHeight && (
           isSmallScreen || isMobile 
-            ? 'min-h-[calc(100vh-200px)]' // Increased space for mobile navigation
+            ? 'min-h-[calc(100vh-180px)]' // Reduced space for mobile navigation
             : isTablet || isMediumScreen 
-              ? 'min-h-[calc(100vh-180px)]' // Increased space for tablet navigation  
+              ? 'min-h-[calc(100vh-180px)]' // Consistent space for tablet  
               : 'min-h-[calc(100vh-160px)]'
         ),
         withPadding && (
           isSmallScreen || isMobile 
-            ? 'px-0.5' // Minimal horizontal padding for full width
+            ? 'px-0' // No horizontal padding for full width
             : isTablet || isMediumScreen 
               ? 'px-2' // Reduce horizontal padding
               : 'px-4' // Slightly reduce horizontal padding
@@ -71,10 +71,10 @@ export const ResponsiveChatHeader = ({
         sticky && 'sticky top-0',
         withBorder && 'border-b',
         isSmallScreen || isMobile 
-          ? 'py-1 px-1' // Reduce vertical padding
+          ? 'py-0.5 px-0.5' // Minimum padding
           : isTablet || isMediumScreen 
-            ? 'py-1.5 px-2' // Reduce vertical padding
-            : 'py-2 px-3', // Slightly reduce vertical padding
+            ? 'py-1 px-1.5' // Reduce padding
+            : 'py-2 px-3', // Standard padding
         className
       )}
     >
@@ -104,7 +104,7 @@ export const ResponsiveChatFooter = ({
         sticky && 'sticky bottom-0',
         withBorder && 'border-t',
         isSmallScreen || isMobile 
-          ? 'py-1 px-0.5 pb-20' // Reduced horizontal padding, ensure space for navigation
+          ? 'py-1 px-0 pb-20' // No horizontal padding, ensure space for navigation
           : isTablet || isMediumScreen 
             ? 'py-1.5 px-2 pb-20' // Increased padding for tablet navigation
             : 'py-2 px-3',
@@ -134,10 +134,10 @@ export const ResponsiveChatBody = ({
         'w-full',
         scrollable && 'overflow-y-auto',
         isSmallScreen || isMobile 
-          ? 'px-0.5 py-1' // Minimal padding for more space
+          ? 'px-0 py-0.5' // No horizontal padding for more space
           : isTablet || isMediumScreen 
-            ? 'px-2 py-1.5' // Reduce vertical and horizontal padding
-            : 'px-3 py-2', // Slightly reduce vertical and horizontal padding
+            ? 'px-1.5 py-1' // Minimal padding
+            : 'px-3 py-2', // Standard padding
         className
       )}
     >

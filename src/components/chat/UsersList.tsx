@@ -57,28 +57,27 @@ export const UsersList = ({
     }
   };
 
-  // For very compact mobile view, show only avatars horizontally
-  const avatarsOnlyMode = compact && isSmallScreen;
+  // For compact mobile view, show avatars with role badge
+  const useCompactView = compact || isSmallScreen;
 
   return (
     <ul className={cn(
-      avatarsOnlyMode ? "flex justify-center gap-1 py-1" : 
-      compact ? "flex flex-wrap gap-1" : 
-      "space-y-1"
+      useCompactView ? "flex flex-wrap gap-1.5 py-1" : "space-y-1"
     )}>
       {users.map((user) => {
         const isSelected = selectedUser?.id === user.id;
         const role = getUserRole(user);
+        const initials = getInitials(user);
 
         return (
-          <li key={user.id} className={compact ? "flex-shrink-0" : "w-full"}>
+          <li key={user.id} className={useCompactView ? "flex-shrink-0 relative" : "w-full"}>
             <button
               onClick={() => !disableSelection && onUserSelect(user)}
               disabled={disableSelection}
               className={cn(
-                "flex items-center gap-1 rounded-md transition-colors",
-                compact 
-                  ? avatarsOnlyMode ? "p-0.5" : "p-1 text-xs"
+                "flex items-center gap-1.5 rounded-md transition-colors",
+                useCompactView 
+                  ? "p-0.5" 
                   : "p-2 w-full",
                 isSelected 
                   ? "bg-primary/10 text-primary font-medium" 
@@ -88,16 +87,22 @@ export const UsersList = ({
                   : "cursor-pointer"
               )}
             >
-              <Avatar className={cn(
-                avatarsOnlyMode ? "h-6 w-6" :
-                compact ? "h-7 w-7" : "h-8 w-8"
-              )}>
-                <AvatarFallback className={getAvatarColor(role)}>
-                  {getInitials(user)}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className={useCompactView ? "h-8 w-8" : "h-8 w-8"}>
+                  <AvatarFallback className={getAvatarColor(role)}>
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                
+                {/* Role badge for compact view */}
+                {useCompactView && (
+                  <span className="absolute -bottom-1 -right-1 text-[8px] font-medium px-1 py-0.5 rounded-full bg-background border shadow-sm">
+                    {role.slice(0, 3)}
+                  </span>
+                )}
+              </div>
               
-              {!avatarsOnlyMode && !compact && (
+              {!useCompactView && (
                 <div className="text-left">
                   <p className="text-sm font-medium">
                     {user.first_name} {user.last_name}
@@ -108,12 +113,6 @@ export const UsersList = ({
                     </p>
                   )}
                 </div>
-              )}
-              
-              {!avatarsOnlyMode && compact && (
-                <span className="text-xs line-clamp-1">
-                  {user.first_name}
-                </span>
               )}
             </button>
           </li>

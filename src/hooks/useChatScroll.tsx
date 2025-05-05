@@ -28,8 +28,8 @@ export function useChatScroll({
       if (!containerRef.current) return;
       
       const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-      // Consider "near bottom" to be within 150px of the bottom to account for mobile navigation
-      const isNearBottom = scrollHeight - scrollTop - clientHeight < 150;
+      // Consider "near bottom" to be within 100px of the bottom for faster detection on mobile
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
       
       setShouldAutoScroll(isNearBottom);
       setShowScrollButton(!isNearBottom);
@@ -51,7 +51,7 @@ export function useChatScroll({
     };
   }, [hasScrolledUp]);
 
-  // Handle auto-scrolling - improved to better handle new messages
+  // Handle auto-scrolling - optimized for mobile
   useEffect(() => {
     // Only auto-scroll in these conditions:
     // 1. When user is already near bottom
@@ -59,23 +59,25 @@ export function useChatScroll({
     // 3. Not during initial loading of messages
     // 4. Not during loading more (older) messages
     if ((shouldAutoScroll || isNewMessage) && !loadingMessages && !loadingMore) {
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         endRef.current?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
+      });
     }
   }, [messages, loadingMessages, loadingMore, shouldAutoScroll, isNewMessage, messagesToShow]);
 
   const scrollToBottom = () => {
     if (endRef.current) {
-      // Additional offset to account for mobile navigation
-      endRef.current.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'end',
-        inline: 'nearest'
+      // Use requestAnimationFrame for smoother scrolling
+      requestAnimationFrame(() => {
+        endRef.current?.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'end',
+          inline: 'nearest'
+        });
+        setShouldAutoScroll(true);
+        setShowScrollButton(false);
+        setHasScrolledUp(false);
       });
-      setShouldAutoScroll(true);
-      setShowScrollButton(false);
-      setHasScrolledUp(false);
     }
   };
 

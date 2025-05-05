@@ -67,13 +67,15 @@ export const ChatPageHeader = ({
           <Card className={cn(
             isCompactView ? "row-span-1" : "lg:col-span-1 md:col-span-1 sm:col-span-1"
           )}>
-            <CardContent className="p-1">
-              <div className="space-y-1">
+            <CardContent className="p-0.5 sm:p-1">
+              <div className="space-y-0.5">
                 <div>
-                  <h3 className="text-xs font-medium mb-0.5 flex items-center">
-                    <Users className="h-3 w-3 mr-1" />
-                    {isCompactView ? 'Care Team' : careTeamGroup.groupName}
-                  </h3>
+                  <div className="flex items-center justify-between mb-0.5 px-1">
+                    <h3 className="text-xs font-medium flex items-center">
+                      <Users className="h-3 w-3 mr-1" />
+                      {isCompactView ? `Team (${careTeamGroup.members.length})` : 'Care Team'}
+                    </h3>
+                  </div>
                   <UsersList
                     users={careTeamGroup.members}
                     selectedUser={null}
@@ -88,7 +90,7 @@ export const ChatPageHeader = ({
           <Card className={cn(
             isCompactView ? "row-span-1" : "lg:col-span-3 md:col-span-2 sm:col-span-1"
           )}>
-            <CardContent className="p-2">
+            <CardContent className="p-1 sm:p-2">
               <ChatInterface 
                 careTeamGroup={careTeamGroup} 
                 showGroupChat={true} 
