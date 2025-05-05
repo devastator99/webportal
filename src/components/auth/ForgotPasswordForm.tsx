@@ -56,7 +56,7 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
   };
 
   return (
-    <ScrollArea className="max-h-[80vh]">
+    <ScrollArea className="max-h-[80vh]" invisibleScrollbar={true}>
       <div className="p-4">
         <h2 className="text-2xl font-bold text-center mb-6">Reset Password</h2>
         

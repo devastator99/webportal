@@ -114,7 +114,7 @@ const Auth = () => {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         {registrationStep === 1 && (
           <div className="bg-white py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10 max-h-[70vh]">
-            <ScrollArea className="h-full max-h-[70vh] pr-4">
+            <ScrollArea className="h-full max-h-[70vh] pr-4" invisibleScrollbar={true}>
               <AuthForm 
                 type="register"
                 onSubmit={handleFormSubmit}
