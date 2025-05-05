@@ -102,7 +102,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="glass-dialog border-0 p-0 overflow-hidden max-w-md w-full max-h-[90vh]">
-        <div className="relative h-full">
+        <div className="relative h-full w-full">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -113,9 +113,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </Button>
           
           <ScrollArea 
-            className="h-full" 
+            className="h-full w-full" 
             invisibleScrollbar={true}
-            maxHeight="80vh"
+            maxHeight="85vh"
           >
             <motion.div
               className="p-6"
@@ -140,7 +140,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               ) : (
                 <>
                   {registrationStep === 1 && (
-                    <div className="registration-form-container">
+                    <div className="mobile-form-container px-1">
                       <h1 className="text-2xl font-bold text-center mb-6">
                         Create Your Account
                       </h1>

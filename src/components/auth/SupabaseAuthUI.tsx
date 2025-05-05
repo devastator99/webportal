@@ -19,7 +19,7 @@ export const SupabaseAuthUI = ({
   className
 }: SupabaseAuthUIProps) => {
   return (
-    <div className={`space-y-6 ${className}`}>
+    <div className={`space-y-6 ${className} overflow-auto`}>
       <Auth
         supabaseClient={supabase}
         view={view}

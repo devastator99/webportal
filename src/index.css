@@ -21,4 +21,5 @@
   }
 }
 
+@import './styles/globals.css';
 @import './styles/glass.css';

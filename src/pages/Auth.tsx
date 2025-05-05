@@ -102,7 +102,7 @@ const Auth = () => {
 
   // For registration process with multiple steps
   return (
-    <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 pt-16 md:pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 pt-16 md:pt-20 overflow-hidden">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-3 text-center text-2xl sm:text-3xl font-bold text-saas-dark">
           {registrationStep === 1 ? 'Create your account' : 
@@ -114,20 +114,20 @@ const Auth = () => {
       <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         {registrationStep === 1 && (
           <div className="bg-white py-6 sm:py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10 relative">
-            <div className="registration-form-container">
-              <ScrollArea 
-                className="w-full pr-2" 
-                invisibleScrollbar={true}
-                maxHeight="70vh"
-              >
+            <ScrollArea 
+              className="w-full" 
+              invisibleScrollbar={true}
+              maxHeight="65vh"
+            >
+              <div className="mobile-form-container pr-1">
                 <AuthForm 
                   type="register"
                   onSubmit={handleFormSubmit}
                   error={error}
                   loading={loading}
                 />
-              </ScrollArea>
-            </div>
+              </div>
+            </ScrollArea>
           </div>
         )}
         
