@@ -9,6 +9,7 @@ import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { RegistrationPayment } from "@/components/auth/RegistrationPayment";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "@/hooks/use-toast";
 
 const Auth = () => {
   const { user, userRole, isLoading } = useAuth();
@@ -59,22 +60,42 @@ const Auth = () => {
     patientData?: any
   ) => {
     try {
-      // Fix: Directly assign the returned user
+      console.log("Form submitted with user type:", userType);
+      
+      // Clear any previous errors
+      setError(null);
+      
+      // Attempt registration
       const user = await handleSignUp(email, password, userType as any, firstName, lastName, patientData);
       
       // If this is a patient registration and we were successful, move to payment step
       if (user && userType === 'patient') {
+        console.log("Patient registered successfully, moving to payment step");
         setRegisteredUser(user);
         setRegistrationStep(2);
+        toast({
+          title: "Account created",
+          description: "Please complete your registration by making the payment",
+        });
       }
     } catch (error: any) {
       console.error("Registration error:", error);
+      toast({
+        title: "Registration failed",
+        description: error.message || "An error occurred during registration",
+        variant: "destructive"
+      });
     }
   };
   
   // When payment is complete, move to final step
   const handlePaymentComplete = () => {
+    console.log("Payment completed, moving to final step");
     setRegistrationStep(3);
+    toast({
+      title: "Registration complete",
+      description: "Your account has been set up successfully",
+    });
   };
 
   // For non-registration routes
@@ -131,7 +152,7 @@ const Auth = () => {
           </div>
         )}
         
-        {registrationStep === 2 && (
+        {registrationStep === 2 && registeredUser && (
           <RegistrationPayment 
             onComplete={handlePaymentComplete}
             registrationFee={500}
