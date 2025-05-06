@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase, createUserRole, createPatientDetails } from '@/integrations/supabase/client';
@@ -39,6 +40,8 @@ export const useAuthHandlers = () => {
     setError(null);
     
     try {
+      console.log("Starting signup process for user type:", userType);
+      
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -59,6 +62,8 @@ export const useAuthHandlers = () => {
         throw new Error("User creation failed");
       }
       
+      console.log("User created successfully, updating profile:", user.id);
+      
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
@@ -71,6 +76,7 @@ export const useAuthHandlers = () => {
       if (profileError) throw profileError;
       
       // Create user role using Edge Function instead of direct RPC
+      console.log("Assigning role:", userType);
       const roleResult = await createUserRole(user.id, userType);
       
       if (!roleResult || (roleResult as any).error) {
@@ -78,6 +84,7 @@ export const useAuthHandlers = () => {
       }
       
       if (userType === 'patient' && patientData) {
+        console.log("Creating patient details");
         // Using Edge Function instead of direct RPC
         const patientResult = await createPatientDetails(
           user.id,
@@ -97,6 +104,7 @@ export const useAuthHandlers = () => {
         }
       }
       
+      console.log("Signup completed successfully");
       return user;
     } catch (err: any) {
       console.error("Signup error:", err);

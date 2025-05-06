@@ -17,8 +17,12 @@ serve(async (req) => {
   }
   
   try {
+    console.log("create-registration-order function called");
+    
     // Get details from request
     const { user_id, amount = 500, currency = "INR" } = await req.json();
+    
+    console.log("Request data:", { user_id, amount, currency });
     
     if (!user_id) {
       return new Response(
@@ -65,6 +69,7 @@ serve(async (req) => {
     let orderData;
     
     if (DEMO_MODE) {
+      console.log("Using DEMO mode for payment");
       // For demo/testing: generate mock order data
       orderData = {
         id: `order_demo_${Date.now()}`,
@@ -123,6 +128,8 @@ serve(async (req) => {
       orderData = await response.json();
     }
     
+    console.log("Order data created:", orderData);
+    
     // Create invoice record in patient_invoices table
     const { data: invoiceData, error: invoiceError } = await supabaseClient
       .from('patient_invoices')
@@ -141,6 +148,8 @@ serve(async (req) => {
     if (invoiceError) {
       console.error("Error creating invoice record:", invoiceError);
       // Continue anyway, not critical for the order creation
+    } else {
+      console.log("Invoice created:", invoiceData);
     }
     
     // Return the order data for client-side payment

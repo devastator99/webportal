@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -25,20 +24,29 @@ const Auth = () => {
   // Redirect based on user role with a slight delay to ensure auth state is updated
   useEffect(() => {
     if (!isLoading && user) {
-      console.log("Auth page detected logged in user, redirecting...");
-      
-      // Use setTimeout to ensure state is fully updated
-      const redirectTimer = setTimeout(() => {
-        if (userRole === 'patient') {
-          navigate("/dashboard", { replace: true });
-        } else if (userRole) {
-          navigate("/dashboard", { replace: true });
-        }
-      }, 100);
-      
-      return () => clearTimeout(redirectTimer);
+      // Only redirect users who aren't in the middle of the patient registration flow
+      if (!isRegistration || (userRole === 'patient' && registrationStep === 1)) {
+        console.log("Auth page detected logged in user, checking registration status...");
+        
+        // Use setTimeout to ensure state is fully updated
+        const redirectTimer = setTimeout(() => {
+          // Don't redirect if we're in the registration flow (steps 2 or 3)
+          if (isRegistration && registrationStep > 1) {
+            console.log("Staying on registration page for payment flow, step:", registrationStep);
+            return;
+          }
+          
+          // Otherwise redirect to dashboard
+          if (userRole) {
+            console.log("Redirecting to dashboard as", userRole);
+            navigate("/dashboard", { replace: true });
+          }
+        }, 100);
+        
+        return () => clearTimeout(redirectTimer);
+      }
     }
-  }, [user, userRole, isLoading, navigate]);
+  }, [user, userRole, isLoading, navigate, isRegistration, registrationStep]);
 
   // Show loading state
   if (isLoading) {

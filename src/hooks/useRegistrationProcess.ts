@@ -42,6 +42,7 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
     setError(null);
     
     try {
+      console.log("Calling create-registration-order edge function for user:", user.id);
       const { data, error } = await supabase.functions.invoke('create-registration-order', {
         body: {
           user_id: user.id,
@@ -49,6 +50,8 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
           currency: defaultOptions.currency
         }
       });
+      
+      console.log("Edge function response:", data, error);
       
       if (error) throw new Error(error.message);
       
@@ -87,6 +90,12 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
     setIsLoading(true);
     
     try {
+      console.log("Calling complete-registration edge function with:", {
+        user_id: user.id,
+        payment_id: paymentId,
+        order_id: orderId
+      });
+      
       const { data, error } = await supabase.functions.invoke('complete-registration', {
         body: {
           user_id: user.id,
@@ -96,6 +105,8 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
         }
       });
       
+      console.log("Complete registration response:", data, error);
+      
       if (error) throw new Error(error.message);
       
       toast({
@@ -103,11 +114,7 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
         description: 'Your care team has been assigned. Redirecting to dashboard...',
       });
       
-      // Redirect to dashboard after registration completes
-      setTimeout(() => {
-        navigate(defaultOptions.redirectUrl);
-      }, 2000);
-      
+      // Don't redirect automatically - let the parent component handle the next step
       return true;
       
     } catch (err: any) {

@@ -54,13 +54,20 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
   }, []);
 
   const handlePayment = async () => {
+    console.log("Initiating payment process");
     const orderData = await createOrder();
     
-    if (!orderData) return;
+    if (!orderData) {
+      console.error("Failed to create order");
+      return;
+    }
+    
+    console.log("Order created:", orderData);
     
     // For demo mode
     if (orderData.demo_mode) {
       // Simulate successful payment in demo mode
+      console.log("Using demo mode for payment");
       const demoPaymentId = `pay_demo_${Date.now()}`;
       const success = await completeRegistration(demoPaymentId, orderData.order_id);
       
@@ -87,6 +94,7 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
       order_id: orderData.order_id,
       prefill: orderData.prefill,
       handler: async function(response: any) {
+        console.log("Payment successful, verifying with backend", response);
         const success = await completeRegistration(
           response.razorpay_payment_id,
           response.razorpay_order_id,
