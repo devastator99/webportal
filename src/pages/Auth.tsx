@@ -23,32 +23,51 @@ const Auth = () => {
   
   const isRegistration = location.pathname.includes('/register');
 
+  // Check registration state from localStorage on initial load
+  useEffect(() => {
+    const paymentPending = localStorage.getItem('registration_payment_pending') === 'true';
+    const paymentComplete = localStorage.getItem('registration_payment_complete') === 'true';
+    
+    console.log("Auth page loaded with registration state:", { paymentPending, paymentComplete });
+    
+    if (paymentPending) {
+      setIsRegistrationFlow(true);
+      setRegistrationStep(2);
+    } else if (paymentComplete) {
+      setIsRegistrationFlow(true);
+      setRegistrationStep(3);
+    }
+  }, []);
+
   // Redirect based on user role with a slight delay to ensure auth state is updated
   useEffect(() => {
     if (!isLoading && user) {
-      // Only redirect users who aren't in the middle of the patient registration flow
-      if (!isRegistration || (userRole === 'patient' && !isRegistrationFlow)) {
-        console.log("Auth page detected logged in user, checking registration status...");
-        
-        // Use setTimeout to ensure state is fully updated
+      console.log("Auth page detected logged in user. Registration step:", registrationStep, 
+                  "isRegistrationFlow:", isRegistrationFlow);
+      
+      // If we're in the middle of registration flow, don't redirect
+      if (isRegistrationFlow && registrationStep < 3) {
+        console.log("Staying on registration page for payment flow, step:", registrationStep);
+        return;
+      }
+      
+      // For completed registration or non-registration flows, redirect to dashboard
+      if (userRole && (!isRegistrationFlow || registrationStep === 3)) {
         const redirectTimer = setTimeout(() => {
-          // Don't redirect if we're in the registration flow (steps 2 or 3)
-          if (isRegistrationFlow && registrationStep > 1) {
-            console.log("Staying on registration page for payment flow, step:", registrationStep);
-            return;
-          }
+          console.log("Redirecting to dashboard as", userRole);
+          navigate("/dashboard", { replace: true });
           
-          // Otherwise redirect to dashboard
-          if (userRole) {
-            console.log("Redirecting to dashboard as", userRole);
-            navigate("/dashboard", { replace: true });
+          // Clean up localStorage
+          if (isRegistrationFlow) {
+            localStorage.removeItem('registration_payment_pending');
+            localStorage.removeItem('registration_payment_complete');
           }
         }, 100);
         
         return () => clearTimeout(redirectTimer);
       }
     }
-  }, [user, userRole, isLoading, navigate, isRegistration, registrationStep, isRegistrationFlow]);
+  }, [user, userRole, isLoading, navigate, registrationStep, isRegistrationFlow]);
 
   // Show loading state
   if (isLoading) {
@@ -76,13 +95,20 @@ const Auth = () => {
       setError(null);
       
       // Flag this as a registration flow before user creation
-      setIsRegistrationFlow(userType === 'patient');
+      const isPatientRegistration = userType === 'patient';
+      setIsRegistrationFlow(isPatientRegistration);
+      
+      // Set localStorage flag to prevent redirection race condition
+      if (isPatientRegistration) {
+        localStorage.setItem('registration_payment_pending', 'true');
+        localStorage.setItem('registration_payment_complete', 'false');
+      }
       
       // Attempt registration
       const user = await handleSignUp(email, password, userType as any, firstName, lastName, patientData);
       
       // If this is a patient registration and we were successful, move to payment step
-      if (user && userType === 'patient') {
+      if (user && isPatientRegistration) {
         console.log("Patient registered successfully, moving to payment step");
         setRegisteredUser(user);
         setRegistrationStep(2);
@@ -93,6 +119,13 @@ const Auth = () => {
       }
     } catch (error: any) {
       console.error("Registration error:", error);
+      
+      // Clean up localStorage if registration fails
+      if (userType === 'patient') {
+        localStorage.removeItem('registration_payment_pending');
+        localStorage.removeItem('registration_payment_complete');
+      }
+      
       toast({
         title: "Registration failed",
         description: error.message || "An error occurred during registration",
@@ -165,7 +198,7 @@ const Auth = () => {
           </div>
         )}
         
-        {registrationStep === 2 && registeredUser && (
+        {registrationStep === 2 && (user || registeredUser) && (
           <RegistrationPayment 
             onComplete={handlePaymentComplete}
             registrationFee={500}
@@ -181,7 +214,7 @@ const Auth = () => {
             </div>
             <h3 className="text-xl font-medium mb-2">Registration Complete!</h3>
             <p className="mb-6 text-gray-600">
-              Your care team has been assigned. You can now access all features of AnubhootiHealth.
+              Your care team is being assigned. You will be redirected to your dashboard now.
             </p>
             <Button 
               onClick={() => navigate('/dashboard')}

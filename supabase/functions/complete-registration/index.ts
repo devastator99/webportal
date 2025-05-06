@@ -83,40 +83,54 @@ serve(async (req) => {
     
     // Use a nutritionist ID even if missing from default care team
     const nutritionistId = careTeamData.default_nutritionist_id || "00000000-0000-0000-0000-000000000000";
-    
-    // Call the RPC function to complete registration
-    console.log("Calling complete_patient_registration RPC with doctor:", careTeamData.default_doctor_id, "and nutritionist:", nutritionistId);
-    const { data, error } = await supabaseClient.rpc(
-      'complete_patient_registration',
-      {
-        p_user_id: user_id,
-        p_payment_id: razorpay_payment_id,
-        p_razorpay_order_id: razorpay_order_id,
-        p_razorpay_payment_id: razorpay_payment_id,
-        p_doctor_id: careTeamData.default_doctor_id,
-        p_nutritionist_id: nutritionistId
-      }
-    );
-    
-    if (error) {
-      console.error("Error completing registration:", error);
-      return new Response(
-        JSON.stringify({ error: error.message }),
-        { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 500 
+
+    // Start async task for care team assignment and chat room creation
+    EdgeRuntime.waitUntil(async () => {
+      try {
+        console.log("Starting background task to assign care team and create chat room");
+        
+        // Call the RPC function to complete registration
+        const { data, error } = await supabaseClient.rpc(
+          'complete_patient_registration',
+          {
+            p_user_id: user_id,
+            p_payment_id: razorpay_payment_id,
+            p_razorpay_order_id: razorpay_order_id,
+            p_razorpay_payment_id: razorpay_payment_id,
+            p_doctor_id: careTeamData.default_doctor_id,
+            p_nutritionist_id: nutritionistId
+          }
+        );
+        
+        if (error) {
+          console.error("Error in background task - Failed to complete registration:", error);
+          return;
         }
-      );
-    }
+        
+        console.log("Background task completed successfully:", data);
+        
+        // Send notification to patient about successful registration and care team assignment
+        await supabaseClient.functions.invoke('send-ai-care-team-message', {
+          body: {
+            patient_id: user_id,
+            title: "Welcome to AnubhootiHealth",
+            message: "Your registration is complete and your care team has been assigned. You can now communicate with your doctor and nutritionist through this chat.",
+          }
+        }).catch(err => {
+          console.error("Failed to send welcome message:", err);
+        });
+      } catch (err) {
+        console.error("Unexpected error in background task:", err);
+      }
+    });
     
-    console.log("Registration completed successfully:", data);
-    
-    // Return success response
+    // Return immediate success response without waiting for background tasks
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Registration completed successfully",
-        data
+        message: "Registration payment completed successfully",
+        payment_id: razorpay_payment_id,
+        order_id: razorpay_order_id
       }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
@@ -45,6 +45,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   ) => {
     try {
       if (view === "register") {
+        // Set localStorage flag to prevent redirection race condition
+        if (userType === 'patient') {
+          localStorage.setItem('registration_payment_pending', 'true');
+          localStorage.setItem('registration_payment_complete', 'false');
+        }
+        
         const user = await handleSignUp(email, password, userType as any, firstName, lastName, patientData);
         
         // If this is a patient registration and we were successful, move to payment step
@@ -61,6 +67,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       // For login, the SupabaseAuthUI handles the submission
     } catch (error: any) {
       console.error("Authentication error:", error);
+      
+      // Clean up localStorage if registration fails
+      if (view === "register" && registrationStep === 1) {
+        localStorage.removeItem('registration_payment_pending');
+        localStorage.removeItem('registration_payment_complete');
+      }
+      
       toast({
         title: "Registration Error",
         description: error.message || "Failed to create account",
@@ -94,6 +107,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setRegistrationStep(1);
     setRegisteredUser(null);
     setError(null);
+    
+    // Clean up localStorage if modal is closed during registration
+    if (view === "register" && registrationStep < 3) {
+      localStorage.removeItem('registration_payment_pending');
+      localStorage.removeItem('registration_payment_complete');
+    }
+    
     onClose();
   };
 
@@ -102,6 +122,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setView(view === "login" ? "register" : "login");
     setError(null); // Clear any previous errors when switching views
     setRegistrationStep(1); // Reset to step 1 when switching views
+    
+    // Clean up localStorage when switching views
+    localStorage.removeItem('registration_payment_pending');
+    localStorage.removeItem('registration_payment_complete');
   };
 
   // Function to navigate to dashboard
@@ -165,7 +189,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   )}
                   
                   {/* Step 2: Payment */}
-                  {registrationStep === 2 && registeredUser && (
+                  {registrationStep === 2 && (registeredUser) && (
                     <>
                       <h1 className="text-2xl font-bold text-center mb-6">
                         Complete Registration
@@ -187,7 +211,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       </div>
                       <h3 className="text-xl font-medium mb-2">Registration Complete!</h3>
                       <p className="mb-6 text-gray-600">
-                        Your care team has been assigned. You can now access all features of AnubhootiHealth.
+                        Your care team is being assigned. You will be notified shortly.
                       </p>
                       <Button onClick={goToDashboard} className="w-full">
                         Go to Dashboard

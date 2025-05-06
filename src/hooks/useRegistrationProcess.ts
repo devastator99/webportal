@@ -101,6 +101,10 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
         signature: signature || 'manual'
       });
       
+      // Store registration state in localStorage to prevent redirect issues
+      localStorage.setItem('registration_payment_pending', 'false');
+      localStorage.setItem('registration_payment_complete', 'true');
+      
       const { data, error } = await supabase.functions.invoke('complete-registration', {
         body: {
           user_id: user.id,
@@ -119,7 +123,7 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
       
       toast({
         title: 'Registration Complete',
-        description: 'Your care team has been assigned. Redirecting to dashboard...',
+        description: 'Your payment was successful. Your care team is being assigned and you will be notified shortly.',
       });
       
       // Don't redirect automatically - let the parent component handle the next step

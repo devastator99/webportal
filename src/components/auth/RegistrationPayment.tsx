@@ -33,6 +33,19 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
     error
   } = useRegistrationProcess({ registrationFee });
 
+  // Set registration in progress flag when component mounts
+  useEffect(() => {
+    localStorage.setItem('registration_payment_pending', 'true');
+    localStorage.setItem('registration_payment_complete', 'false');
+    
+    return () => {
+      // Only clear the pending flag if we're not completing successfully
+      if (!paymentComplete) {
+        localStorage.removeItem('registration_payment_pending');
+      }
+    };
+  }, [paymentComplete]);
+
   // Load Razorpay script
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -178,7 +191,7 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
             </div>
             <h3 className="text-xl font-semibold mb-2">Registration Complete!</h3>
             <p className="text-center text-muted-foreground">
-              You've been assigned to a care team. You'll be redirected to your dashboard shortly.
+              Your payment was successful. Your care team is being assigned and you will be notified shortly.
             </p>
           </div>
         ) : (
