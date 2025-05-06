@@ -55,6 +55,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             title: "Account Created",
             description: "Please complete your registration with payment",
           });
+          return; // Important! Don't close the modal yet
         }
       }
       // For login, the SupabaseAuthUI handles the submission
@@ -79,6 +80,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   // Handle modal close
   const handleClose = () => {
+    // Don't close if we're in the middle of patient registration
+    if (view === "register" && registrationStep > 1 && registrationStep < 3) {
+      toast({
+        title: "Registration in progress",
+        description: "Please complete the registration process",
+        variant: "destructive"
+      });
+      return;
+    }
+    
     // Reset states when closing the modal
     setRegistrationStep(1);
     setRegisteredUser(null);

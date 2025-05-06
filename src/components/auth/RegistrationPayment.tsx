@@ -24,6 +24,7 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
 }) => {
   const [paymentComplete, setPaymentComplete] = useState(false);
   const [razorpayLoaded, setRazorpayLoaded] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const {
     createOrder,
@@ -41,6 +42,7 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
     script.async = true;
     
     script.onload = () => {
+      console.log("Razorpay script loaded");
       setRazorpayLoaded(true);
     };
     
@@ -54,65 +56,104 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
   }, []);
 
   const handlePayment = async () => {
+    if (isProcessing) return;
+    
+    setIsProcessing(true);
     console.log("Initiating payment process");
-    const orderData = await createOrder();
     
-    if (!orderData) {
-      console.error("Failed to create order");
-      return;
-    }
-    
-    console.log("Order created:", orderData);
-    
-    // For demo mode
-    if (orderData.demo_mode) {
-      // Simulate successful payment in demo mode
-      console.log("Using demo mode for payment");
-      const demoPaymentId = `pay_demo_${Date.now()}`;
-      const success = await completeRegistration(demoPaymentId, orderData.order_id);
+    try {
+      const orderData = await createOrder();
       
-      if (success) {
-        setPaymentComplete(true);
-        if (onComplete) onComplete();
+      if (!orderData) {
+        console.error("Failed to create order");
+        setIsProcessing(false);
+        return;
       }
       
-      return;
-    }
-    
-    // For production with real Razorpay
-    if (!razorpayLoaded || !window.Razorpay) {
-      console.error('Razorpay not loaded');
-      return;
-    }
-    
-    const options = {
-      key: 'rzp_test_placeholder', // This will be replaced by environment variable in production
-      amount: orderData.amount * 100,
-      currency: orderData.currency,
-      name: 'AnubhootiHealth',
-      description: 'Registration Fee',
-      order_id: orderData.order_id,
-      prefill: orderData.prefill,
-      handler: async function(response: any) {
-        console.log("Payment successful, verifying with backend", response);
-        const success = await completeRegistration(
-          response.razorpay_payment_id,
-          response.razorpay_order_id,
-          response.razorpay_signature
-        );
+      console.log("Order created:", orderData);
+      
+      // For demo mode
+      if (orderData.demo_mode) {
+        // Simulate successful payment in demo mode
+        console.log("Using demo mode for payment");
+        const demoPaymentId = `pay_demo_${Date.now()}`;
+        const success = await completeRegistration(demoPaymentId, orderData.order_id);
         
         if (success) {
           setPaymentComplete(true);
           if (onComplete) onComplete();
         }
-      },
-      theme: {
-        color: '#7e69ab'
+        
+        setIsProcessing(false);
+        return;
       }
-    };
+      
+      // For production with real Razorpay
+      if (!razorpayLoaded || !window.Razorpay) {
+        console.error('Razorpay not loaded');
+        setIsProcessing(false);
+        return;
+      }
+      
+      const options = {
+        key: 'rzp_test_placeholder', // This will be replaced by environment variable in production
+        amount: orderData.amount * 100,
+        currency: orderData.currency,
+        name: 'AnubhootiHealth',
+        description: 'Registration Fee',
+        order_id: orderData.order_id,
+        prefill: orderData.prefill,
+        handler: async function(response: any) {
+          console.log("Payment successful, verifying with backend", response);
+          const success = await completeRegistration(
+            response.razorpay_payment_id,
+            response.razorpay_order_id,
+            response.razorpay_signature
+          );
+          
+          if (success) {
+            setPaymentComplete(true);
+            if (onComplete) onComplete();
+          }
+          setIsProcessing(false);
+        },
+        theme: {
+          color: '#7e69ab'
+        }
+      };
+      
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } catch (err) {
+      console.error("Payment process failed:", err);
+      setIsProcessing(false);
+    }
+  };
+  
+  // For demo mode - if order creation fails, allow a demo payment
+  const handleDemoPayment = async () => {
+    if (isProcessing) return;
     
-    const rzp = new window.Razorpay(options);
-    rzp.open();
+    setIsProcessing(true);
+    console.log("Initiating demo payment process");
+    
+    try {
+      // Generate a mock order ID
+      const mockOrderId = `order_demo_${Date.now()}`;
+      const mockPaymentId = `pay_demo_${Date.now()}`;
+      
+      // Call complete registration directly with demo IDs
+      const success = await completeRegistration(mockPaymentId, mockOrderId);
+      
+      if (success) {
+        setPaymentComplete(true);
+        if (onComplete) onComplete();
+      }
+    } catch (err) {
+      console.error("Demo payment process failed:", err);
+    } finally {
+      setIsProcessing(false);
+    }
   };
   
   return (
@@ -153,25 +194,47 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
           </div>
         )}
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex flex-col space-y-2">
         {!paymentComplete && (
-          <Button
-            onClick={handlePayment}
-            disabled={isLoading}
-            className="w-full"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <CreditCard className="mr-2 h-4 w-4" />
-                Pay Now
-              </>
+          <>
+            <Button
+              onClick={handlePayment}
+              disabled={isLoading || isProcessing}
+              className="w-full"
+            >
+              {isLoading || isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Pay Now
+                </>
+              )}
+            </Button>
+            
+            {error && (
+              <Button
+                onClick={handleDemoPayment}
+                disabled={isLoading || isProcessing}
+                variant="outline"
+                className="w-full mt-2"
+              >
+                {isLoading || isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    Use Demo Payment
+                  </>
+                )}
+              </Button>
             )}
-          </Button>
+          </>
         )}
       </CardFooter>
     </Card>

@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +19,7 @@ const Auth = () => {
   
   const [registrationStep, setRegistrationStep] = useState(1);
   const [registeredUser, setRegisteredUser] = useState<any>(null);
+  const [isRegistrationFlow, setIsRegistrationFlow] = useState(false);
   
   const isRegistration = location.pathname.includes('/register');
 
@@ -25,13 +27,13 @@ const Auth = () => {
   useEffect(() => {
     if (!isLoading && user) {
       // Only redirect users who aren't in the middle of the patient registration flow
-      if (!isRegistration || (userRole === 'patient' && registrationStep === 1)) {
+      if (!isRegistration || (userRole === 'patient' && !isRegistrationFlow)) {
         console.log("Auth page detected logged in user, checking registration status...");
         
         // Use setTimeout to ensure state is fully updated
         const redirectTimer = setTimeout(() => {
           // Don't redirect if we're in the registration flow (steps 2 or 3)
-          if (isRegistration && registrationStep > 1) {
+          if (isRegistrationFlow && registrationStep > 1) {
             console.log("Staying on registration page for payment flow, step:", registrationStep);
             return;
           }
@@ -46,7 +48,7 @@ const Auth = () => {
         return () => clearTimeout(redirectTimer);
       }
     }
-  }, [user, userRole, isLoading, navigate, isRegistration, registrationStep]);
+  }, [user, userRole, isLoading, navigate, isRegistration, registrationStep, isRegistrationFlow]);
 
   // Show loading state
   if (isLoading) {
@@ -72,6 +74,9 @@ const Auth = () => {
       
       // Clear any previous errors
       setError(null);
+      
+      // Flag this as a registration flow before user creation
+      setIsRegistrationFlow(userType === 'patient');
       
       // Attempt registration
       const user = await handleSignUp(email, password, userType as any, firstName, lastName, patientData);

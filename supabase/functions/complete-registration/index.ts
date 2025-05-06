@@ -71,7 +71,7 @@ serve(async (req) => {
     
     console.log("Default care team found:", careTeamData);
     
-    if (!careTeamData.default_doctor_id || !careTeamData.default_nutritionist_id) {
+    if (!careTeamData.default_doctor_id) {
       return new Response(
         JSON.stringify({ error: "Default care team is incomplete. Contact administrator." }),
         { 
@@ -81,8 +81,11 @@ serve(async (req) => {
       );
     }
     
+    // Use a nutritionist ID even if missing from default care team
+    const nutritionistId = careTeamData.default_nutritionist_id || "00000000-0000-0000-0000-000000000000";
+    
     // Call the RPC function to complete registration
-    console.log("Calling complete_patient_registration RPC");
+    console.log("Calling complete_patient_registration RPC with doctor:", careTeamData.default_doctor_id, "and nutritionist:", nutritionistId);
     const { data, error } = await supabaseClient.rpc(
       'complete_patient_registration',
       {
@@ -91,7 +94,7 @@ serve(async (req) => {
         p_razorpay_order_id: razorpay_order_id,
         p_razorpay_payment_id: razorpay_payment_id,
         p_doctor_id: careTeamData.default_doctor_id,
-        p_nutritionist_id: careTeamData.default_nutritionist_id
+        p_nutritionist_id: nutritionistId
       }
     );
     

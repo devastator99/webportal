@@ -53,9 +53,13 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
       
       console.log("Edge function response:", data, error);
       
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error("Edge function error:", error);
+        throw new Error(error.message || "Failed to create order");
+      }
       
       if (!data?.order_id) {
+        console.error("No order ID returned:", data);
         throw new Error('No order ID returned from server');
       }
       
@@ -93,7 +97,8 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
       console.log("Calling complete-registration edge function with:", {
         user_id: user.id,
         payment_id: paymentId,
-        order_id: orderId
+        order_id: orderId,
+        signature: signature || 'manual'
       });
       
       const { data, error } = await supabase.functions.invoke('complete-registration', {
@@ -107,7 +112,10 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
       
       console.log("Complete registration response:", data, error);
       
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error("Edge function error:", error);
+        throw new Error(error.message || "Failed to complete registration");
+      }
       
       toast({
         title: 'Registration Complete',
