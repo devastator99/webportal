@@ -93,6 +93,10 @@ verify_jwt = false
 [functions.handle-password-reset]
 verify_jwt = false
 
+# Process registration tasks function - public access
+[functions.process-registration-tasks]
+verify_jwt = false
+
 # Allow browser requests to edge functions
 [functions]
 serve_local_functions = true

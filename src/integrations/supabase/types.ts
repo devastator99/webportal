@@ -1491,6 +1491,10 @@ export type Database = {
           id: string
           last_name: string | null
           phone: string | null
+          registration_completed_at: string | null
+          registration_status:
+            | Database["public"]["Enums"]["registration_status"]
+            | null
           specialty: string | null
           updated_at: string
           visiting_hours: string | null
@@ -1503,6 +1507,10 @@ export type Database = {
           id: string
           last_name?: string | null
           phone?: string | null
+          registration_completed_at?: string | null
+          registration_status?:
+            | Database["public"]["Enums"]["registration_status"]
+            | null
           specialty?: string | null
           updated_at?: string
           visiting_hours?: string | null
@@ -1515,6 +1523,10 @@ export type Database = {
           id?: string
           last_name?: string | null
           phone?: string | null
+          registration_completed_at?: string | null
+          registration_status?:
+            | Database["public"]["Enums"]["registration_status"]
+            | null
           specialty?: string | null
           updated_at?: string
           visiting_hours?: string | null
@@ -1553,6 +1565,48 @@ export type Database = {
           p256dh?: string
           updated_at?: string
           user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      registration_tasks: {
+        Row: {
+          created_at: string
+          error_details: Json | null
+          id: string
+          next_retry_at: string
+          priority: number
+          result_payload: Json | null
+          retry_count: number
+          status: Database["public"]["Enums"]["task_status"]
+          task_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          error_details?: Json | null
+          id?: string
+          next_retry_at?: string
+          priority?: number
+          result_payload?: Json | null
+          retry_count?: number
+          status?: Database["public"]["Enums"]["task_status"]
+          task_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          error_details?: Json | null
+          id?: string
+          next_retry_at?: string
+          priority?: number
+          result_payload?: Json | null
+          retry_count?: number
+          status?: Database["public"]["Enums"]["task_status"]
+          task_type?: string
+          updated_at?: string
           user_id?: string
         }
         Relationships: []
@@ -1884,6 +1938,10 @@ export type Database = {
         }
         Returns: string
       }
+      can_access_tasks: {
+        Args: { user_id: string }
+        Returns: boolean
+      }
       can_insert_user_role: {
         Args: { checking_user_id: string }
         Returns: boolean
@@ -1953,6 +2011,10 @@ export type Database = {
           p_notes: string
         }
         Returns: string
+      }
+      create_registration_tasks: {
+        Args: { p_user_id: string; p_tasks: Json }
+        Returns: string[]
       }
       create_test_users: {
         Args: Record<PropertyKey, never>
@@ -2203,6 +2265,16 @@ export type Database = {
       get_medical_report_url: {
         Args: { p_report_id: string }
         Returns: string
+      }
+      get_next_pending_registration_task: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          task_id: string
+          user_id: string
+          task_type: string
+          retry_count: number
+          created_at: string
+        }[]
       }
       get_nutritionist_patients: {
         Args: { p_nutritionist_id: string }
@@ -2501,6 +2573,10 @@ export type Database = {
           quiet_hours_end: string
         }[]
       }
+      get_user_registration_status: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       get_user_role: {
         Args: { lookup_user_id: string }
         Returns: {
@@ -2664,6 +2740,15 @@ export type Database = {
         }
         Returns: string
       }
+      update_registration_task_status: {
+        Args: {
+          p_task_id: string
+          p_status: Database["public"]["Enums"]["task_status"]
+          p_result_payload?: Json
+          p_error_details?: Json
+        }
+        Returns: string
+      }
       upsert_doctor_details: {
         Args: {
           p_doctor_id: string
@@ -2718,6 +2803,12 @@ export type Database = {
         | "medication"
         | "general"
       payment_status: "pending" | "completed" | "failed"
+      registration_status:
+        | "payment_pending"
+        | "payment_complete"
+        | "care_team_assigned"
+        | "fully_registered"
+      task_status: "pending" | "in_progress" | "completed" | "failed"
       user_type:
         | "patient"
         | "doctor"
@@ -2850,6 +2941,13 @@ export const Constants = {
         "general",
       ],
       payment_status: ["pending", "completed", "failed"],
+      registration_status: [
+        "payment_pending",
+        "payment_complete",
+        "care_team_assigned",
+        "fully_registered",
+      ],
+      task_status: ["pending", "in_progress", "completed", "failed"],
       user_type: [
         "patient",
         "doctor",

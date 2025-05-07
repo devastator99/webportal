@@ -51,86 +51,52 @@ serve(async (req) => {
       }
     );
     
-    // Check if there's a default care team available
-    const { data: careTeamData, error: careTeamError } = await supabaseClient
-      .from('default_care_teams')
-      .select('default_doctor_id, default_nutritionist_id')
-      .eq('is_active', true)
-      .single();
-      
-    if (careTeamError || !careTeamData) {
-      console.error("Error getting default care team:", careTeamError);
-      return new Response(
-        JSON.stringify({ error: "No default care team available" }),
-        { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 500 
-        }
-      );
-    }
-    
-    console.log("Default care team found:", careTeamData);
-    
-    if (!careTeamData.default_doctor_id) {
-      return new Response(
-        JSON.stringify({ error: "Default care team is incomplete. Contact administrator." }),
-        { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 500 
-        }
-      );
-    }
-    
-    // Use a nutritionist ID even if missing from default care team
-    const nutritionistId = careTeamData.default_nutritionist_id || "00000000-0000-0000-0000-000000000000";
-
-    // Start async task for care team assignment and chat room creation
-    EdgeRuntime.waitUntil(async () => {
-      try {
-        console.log("Starting background task to assign care team and create chat room");
-        
-        // Call the RPC function to complete registration
-        const { data, error } = await supabaseClient.rpc(
-          'complete_patient_registration',
-          {
-            p_user_id: user_id,
-            p_payment_id: razorpay_payment_id,
-            p_razorpay_order_id: razorpay_order_id,
-            p_razorpay_payment_id: razorpay_payment_id,
-            p_doctor_id: careTeamData.default_doctor_id,
-            p_nutritionist_id: nutritionistId
-          }
-        );
-        
-        if (error) {
-          console.error("Error in background task - Failed to complete registration:", error);
-          return;
-        }
-        
-        console.log("Background task completed successfully:", data);
-        
-        // Send notification to patient about successful registration and care team assignment
-        await supabaseClient.functions.invoke('send-ai-care-team-message', {
-          body: {
-            patient_id: user_id,
-            title: "Welcome to AnubhootiHealth",
-            message: "Your registration is complete and your care team has been assigned. You can now communicate with your doctor and nutritionist through this chat.",
-          }
-        }).catch(err => {
-          console.error("Failed to send welcome message:", err);
-        });
-      } catch (err) {
-        console.error("Unexpected error in background task:", err);
+    // Call RPC function to complete registration and queue tasks
+    const { data, error } = await supabaseClient.rpc(
+      'complete_patient_registration',
+      {
+        p_user_id: user_id,
+        p_payment_id: razorpay_payment_id,
+        p_razorpay_order_id: razorpay_order_id,
+        p_razorpay_payment_id: razorpay_payment_id
       }
-    });
+    );
     
-    // Return immediate success response without waiting for background tasks
+    if (error) {
+      console.error("Error completing registration:", error);
+      return new Response(
+        JSON.stringify({ error: error.message }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 500 
+        }
+      );
+    }
+    
+    console.log("Registration tasks queued:", data);
+    
+    // Trigger task processing asynchronously without waiting for completion
+    EdgeRuntime.waitUntil(
+      fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/process-registration-tasks`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+        },
+        body: JSON.stringify({}),
+      }).catch(err => {
+        console.error("Error triggering tasks processor:", err);
+      })
+    );
+    
+    // Return success response immediately, without waiting for background tasks
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Registration payment completed successfully",
+        message: "Registration payment completed successfully. Tasks have been queued.",
         payment_id: razorpay_payment_id,
-        order_id: razorpay_order_id
+        order_id: razorpay_order_id,
+        tasks: data.tasks
       }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -14,6 +14,7 @@ import { RegistrationProgress } from "@/types/registration";
 export const RegistrationProgressReport = () => {
   const { toast } = useToast();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isProcessingTasks, setIsProcessingTasks] = useState(false);
   
   const { data, isLoading, error, refetch } = useQuery<RegistrationProgress[]>({
     queryKey: ["registration_progress"],
@@ -46,6 +47,33 @@ export const RegistrationProgressReport = () => {
       setIsRefreshing(false);
     }
   };
+
+  const handleProcessTasks = async () => {
+    setIsProcessingTasks(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('process-registration-tasks', {
+        body: {}
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Tasks processed",
+        description: data.message || "Registration tasks processed successfully"
+      });
+      
+      // Refresh data after processing
+      await refetch();
+    } catch (error: any) {
+      toast({
+        title: "Error processing tasks",
+        description: error.message,
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingTasks(false);
+    }
+  };
   
   const formatTimeAgo = (dateString: string) => {
     try {
@@ -63,13 +91,16 @@ export const RegistrationProgressReport = () => {
     );
   };
   
-  const getPaymentStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'completed':
-      case 'paid':
-        return <Badge className="bg-green-500">Completed</Badge>;
-      case 'pending':
-        return <Badge className="bg-yellow-500">Pending</Badge>;
+      case 'fully_registered':
+        return <Badge className="bg-green-500">Complete</Badge>;
+      case 'care_team_assigned':
+        return <Badge className="bg-blue-500">Team Assigned</Badge>;
+      case 'payment_complete':
+        return <Badge className="bg-yellow-500">Payment Complete</Badge>;
+      case 'payment_pending':
+        return <Badge className="bg-gray-500">Payment Pending</Badge>;
       default:
         return <Badge className="bg-gray-500">{status}</Badge>;
     }
@@ -79,19 +110,36 @@ export const RegistrationProgressReport = () => {
     <Card className="mb-6">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Registration Progress</CardTitle>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={isLoading || isRefreshing}
-        >
-          {isRefreshing ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <RefreshCw className="h-4 w-4" />
-          )}
-          <span className="ml-2">Refresh</span>
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleProcessTasks}
+            disabled={isProcessingTasks}
+          >
+            {isProcessingTasks ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Process Tasks
+              </>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isLoading || isRefreshing}
+          >
+            {isRefreshing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <RefreshCw className="h-4 w-4" />
+            )}
+            <span className="ml-2">Refresh</span>
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         {error ? (
@@ -116,7 +164,7 @@ export const RegistrationProgressReport = () => {
                 <TableRow>
                   <TableHead>Patient</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Payment</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="text-center">Care Team</TableHead>
                   <TableHead className="text-center">Chat Room</TableHead>
                   <TableHead>Registered</TableHead>
@@ -130,7 +178,7 @@ export const RegistrationProgressReport = () => {
                     </TableCell>
                     <TableCell>{item.email}</TableCell>
                     <TableCell>
-                      {getPaymentStatusBadge(item.payment_status)}
+                      {getStatusBadge(item.registration_status || 'payment_pending')}
                     </TableCell>
                     <TableCell className="text-center">
                       {getStatusIcon(item.care_team_assigned)}

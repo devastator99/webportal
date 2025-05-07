@@ -19,6 +19,10 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
   const [isLoading, setIsLoading] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [registrationProgress, setRegistrationProgress] = useState<{
+    status: 'payment_pending' | 'payment_complete' | 'care_team_assigned' | 'fully_registered';
+    tasks: { id: string; task_type: string; status: string }[];
+  } | null>(null);
   
   const defaultOptions = {
     registrationFee: options.registrationFee || 500,
@@ -121,8 +125,14 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
         throw new Error(error.message || "Failed to complete registration");
       }
       
+      // Check if tasks were created successfully
+      if (data?.tasks) {
+        // Update registration status
+        await fetchRegistrationProgress();
+      }
+      
       toast({
-        title: 'Registration Complete',
+        title: 'Registration Payment Complete',
         description: 'Your payment was successful. Your care team is being assigned and you will be notified shortly.',
       });
       
@@ -143,11 +153,80 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
     }
   };
   
+  // Fetch registration progress
+  const fetchRegistrationProgress = async () => {
+    if (!user?.id) {
+      setError('User not authenticated');
+      return null;
+    }
+    
+    try {
+      const { data, error } = await supabase.rpc('get_user_registration_status', {
+        p_user_id: user.id
+      });
+      
+      if (error) {
+        console.error("Error fetching registration status:", error);
+        return null;
+      }
+      
+      setRegistrationProgress({
+        status: data?.registration_status || 'payment_pending',
+        tasks: data?.tasks || []
+      });
+      
+      return data;
+    } catch (err) {
+      console.error('Error fetching registration progress:', err);
+      return null;
+    }
+  };
+  
+  // Process pending tasks manually (for demo/testing purposes)
+  const triggerTaskProcessing = async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke('process-registration-tasks', {
+        body: {}
+      });
+      
+      if (error) {
+        console.error("Error processing tasks:", error);
+        toast({
+          title: 'Task Processing Failed',
+          description: error.message,
+          variant: 'destructive'
+        });
+        return false;
+      }
+      
+      // Refresh progress
+      await fetchRegistrationProgress();
+      
+      toast({
+        title: 'Task Processing Triggered',
+        description: data.message || 'Registration tasks are being processed',
+      });
+      
+      return true;
+    } catch (err: any) {
+      console.error('Error triggering task processing:', err);
+      toast({
+        title: 'Task Processing Failed',
+        description: err.message,
+        variant: 'destructive'
+      });
+      return false;
+    }
+  };
+  
   return {
     createOrder,
     completeRegistration,
+    fetchRegistrationProgress,
+    triggerTaskProcessing,
     isLoading,
     orderId,
-    error
+    error,
+    registrationProgress
   };
 }

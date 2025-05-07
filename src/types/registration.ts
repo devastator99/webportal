@@ -13,6 +13,7 @@ export interface RegistrationProgress {
   registration_completed: boolean;
   created_at: string;
   updated_at: string;
+  registration_status?: 'payment_pending' | 'payment_complete' | 'care_team_assigned' | 'fully_registered';
 }
 
 export interface DefaultCareTeam {
@@ -21,4 +22,18 @@ export interface DefaultCareTeam {
   default_nutritionist_id: string | null;
   is_active: boolean;
   created_at: string;
+}
+
+export interface RegistrationTask {
+  id: string;
+  user_id: string;
+  task_type: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  priority: number;
+  retry_count: number;
+  created_at: string;
+  updated_at: string;
+  next_retry_at: string;
+  result_payload?: any;
+  error_details?: any;
 }
