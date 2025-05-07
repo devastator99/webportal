@@ -1,44 +1,29 @@
+
 import { Button } from "@/components/ui/button";
-import { LogIn, LogOut } from "lucide-react";
+import { LogIn } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
-import { useCallback } from "react";
 import '@/styles/glass.css';
+import { SignOutButton } from "./SignOutButton";
 
 interface AuthButtonProps {
   openAuthModal?: (view: 'login' | 'register') => void;
 }
 
 export const AuthButton: React.FC<AuthButtonProps> = ({ openAuthModal }) => {
-  const { user, signOut, resetInactivityTimer, isSigningOut } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const isLandingPage = location.pathname === '/';
 
-  // Handle sign-out with proper error handling
-  const handleSignOut = useCallback(async (e?: React.MouseEvent) => {
-    if (e) e.preventDefault();
-    if (isSigningOut) return;
-    
-    try {
-      resetInactivityTimer();
-      await signOut();
-      // The navigation will be handled by the AuthService
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast.error("There was a problem signing you out. Please try again.");
-    }
-  }, [isSigningOut, resetInactivityTimer, signOut]);
-
   // Handle navigation to auth page or open auth modal
-  const handleSignIn = useCallback(() => {
+  const handleSignIn = () => {
     if (openAuthModal) {
       openAuthModal('login');
     } else {
       navigate("/auth");
     }
-  }, [navigate, openAuthModal]);
+  };
 
   // Custom styling for landing page
   const buttonClassesForLanding = isLandingPage 
@@ -47,17 +32,11 @@ export const AuthButton: React.FC<AuthButtonProps> = ({ openAuthModal }) => {
 
   if (user) {
     return (
-      <Button 
-        onClick={handleSignOut}
-        variant="outline" 
+      <SignOutButton 
+        variant="outline"
+        size="sm" 
         className={`auth-button gap-2 font-medium ${buttonClassesForLanding}`}
-        size="sm"
-        disabled={isSigningOut}
-      >
-        <LogOut className="h-4 w-4" />
-        <span className="hidden sm:inline">{isSigningOut ? "Signing Out..." : "Sign Out"}</span>
-        <span className="sm:hidden">{isSigningOut ? "..." : "Logout"}</span>
-      </Button>
+      />
     );
   }
 

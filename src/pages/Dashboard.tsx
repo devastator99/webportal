@@ -18,6 +18,35 @@ import { AdminAppLayout } from "@/layouts/AdminAppLayout";
 import { AppLayout } from "@/layouts/AppLayout";
 import { RegistrationStatusChecker } from "@/components/auth/RegistrationStatusChecker";
 
+// Map user roles to their respective layouts and dashboards
+const roleLayouts = {
+  patient: {
+    Layout: PatientAppLayout,
+    Dashboard: ({ children }: { children?: React.ReactNode }) => (
+      <RegistrationStatusChecker>
+        <PatientDashboard />
+        {children}
+      </RegistrationStatusChecker>
+    ),
+  },
+  doctor: {
+    Layout: DoctorAppLayout,
+    Dashboard: DoctorDashboard,
+  },
+  nutritionist: {
+    Layout: AppLayout,
+    Dashboard: NutritionistDashboard,
+  },
+  administrator: {
+    Layout: AdminAppLayout,
+    Dashboard: AdminDashboard,
+  },
+  reception: {
+    Layout: AppLayout,
+    Dashboard: ReceptionDashboard,
+  },
+};
+
 const Dashboard = () => {
   const { user, userRole, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
@@ -69,51 +98,26 @@ const Dashboard = () => {
   
   // Render appropriate dashboard based on role
   try {
-    switch (userRole) {
-      case "doctor":
-        console.log("[Dashboard] Rendering doctor dashboard");
-        return (
-          <DoctorAppLayout>
-            <DoctorDashboard />
-          </DoctorAppLayout>
-        );
-      case "patient":
-        console.log("[Dashboard] Rendering patient dashboard");
-        return (
-          <PatientAppLayout>
-            <RegistrationStatusChecker>
-              <PatientDashboard />
-            </RegistrationStatusChecker>
-          </PatientAppLayout>
-        );
-      case "nutritionist":
-        console.log("[Dashboard] Rendering nutritionist dashboard");
-        return (
-          <AppLayout>
-            <NutritionistDashboard />
-          </AppLayout>
-        );
-      case "administrator":
-        console.log("[Dashboard] Rendering admin dashboard");
-        return (
-          <AdminAppLayout>
-            <AdminDashboard />
-          </AdminAppLayout>
-        );
-      case "reception":
-        console.log("[Dashboard] Rendering reception dashboard");
-        return (
-          <AppLayout>
-            <ReceptionDashboard />
-          </AppLayout>
-        );
-      default:
-        console.log(`[Dashboard] Invalid role: ${userRole}, rendering NoRoleWarning`);
-        return (
-          <AppLayout>
-            <NoRoleWarning onSignOut={signOut} />
-          </AppLayout>
-        );
+    // Get the layout and dashboard components for the current role
+    const roleConfig = roleLayouts[userRole as keyof typeof roleLayouts];
+    
+    if (roleConfig) {
+      const { Layout, Dashboard: RoleDashboard } = roleConfig;
+      console.log(`[Dashboard] Rendering ${userRole} dashboard`);
+      
+      return (
+        <Layout>
+          <RoleDashboard />
+        </Layout>
+      );
+    } else {
+      // Fallback for unknown roles
+      console.log(`[Dashboard] Invalid role: ${userRole}, rendering NoRoleWarning`);
+      return (
+        <AppLayout>
+          <NoRoleWarning onSignOut={signOut} />
+        </AppLayout>
+      );
     }
   } catch (error) {
     console.error("[Dashboard] Error rendering dashboard:", error);

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -96,7 +95,7 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
   }
   
   // If registration is fully completed, redirect to dashboard
-  if (registrationStatus.registration_status === 'fully_registered') {
+  if (registrationStatus?.registration_status === 'fully_registered') {
     return (
       <Card className="bg-white">
         <CardHeader>
@@ -141,40 +140,40 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className={`h-5 w-5 ${registrationStatus.registration_status !== 'payment_pending' ? 'text-green-500' : 'text-gray-300'}`} />
+              <CheckCircle2 className={`h-5 w-5 ${registrationStatus?.registration_status !== 'payment_pending' ? 'text-green-500' : 'text-gray-300'}`} />
               <span>Payment Completed</span>
             </div>
             <span className="text-sm text-muted-foreground">
-              {registrationStatus.registration_status !== 'payment_pending' ? 'Completed' : 'Pending'}
+              {registrationStatus?.registration_status !== 'payment_pending' ? 'Completed' : 'Pending'}
             </span>
           </div>
           
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CheckCircle2 className={`h-5 w-5 ${
-                ['care_team_assigned', 'fully_registered'].includes(registrationStatus.registration_status) ? 'text-green-500' : 'text-gray-300'
+                ['care_team_assigned', 'fully_registered'].includes(registrationStatus?.registration_status as any) ? 'text-green-500' : 'text-gray-300'
               }`} />
               <span>Care Team Assignment</span>
             </div>
             <span className="text-sm text-muted-foreground">
-              {['care_team_assigned', 'fully_registered'].includes(registrationStatus.registration_status) ? 'Completed' : 'In Progress'}
+              {['care_team_assigned', 'fully_registered'].includes(registrationStatus?.registration_status as any) ? 'Completed' : 'In Progress'}
             </span>
           </div>
           
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CheckCircle2 className={`h-5 w-5 ${
-                registrationStatus.registration_status === 'fully_registered' ? 'text-green-500' : 'text-gray-300'
+                registrationStatus?.registration_status === 'fully_registered' ? 'text-green-500' : 'text-gray-300'
               }`} />
               <span>Account Setup Complete</span>
             </div>
             <span className="text-sm text-muted-foreground">
-              {registrationStatus.registration_status === 'fully_registered' ? 'Completed' : 'In Progress'}
+              {registrationStatus?.registration_status === 'fully_registered' ? 'Completed' : 'In Progress'}
             </span>
           </div>
           
           {/* Show task status if available */}
-          {registrationStatus.tasks && registrationStatus.tasks.length > 0 && (
+          {registrationStatus?.tasks && registrationStatus.tasks.length > 0 && (
             <div className="mt-4 pt-4 border-t">
               <p className="text-sm font-medium mb-2">Task Status:</p>
               {registrationStatus.tasks.map(task => (
