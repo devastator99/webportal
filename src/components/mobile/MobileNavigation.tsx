@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { MessageCircle, FileText, Activity, Home, Video, UserRound, MoreHorizontal } from 'lucide-react';
+import { MessageCircle, FileText, Activity, Home, Video, UserRound, MoreHorizontal, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 import { useIsMobileOrIPad } from '@/hooks/use-mobile';
