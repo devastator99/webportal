@@ -4,14 +4,14 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { RefreshCw } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
-export const SyncCareTeamsButton = () => {
+export const SetUpDefaultNutritionistButton = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSync = async () => {
+  const handleClick = async () => {
     if (!user?.id) {
       toast({
         title: "Error",
@@ -23,26 +23,26 @@ export const SyncCareTeamsButton = () => {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('sync-care-team-rooms', {
+      const { data, error } = await supabase.functions.invoke('admin-setup-nutritionist-as-default', {
         body: { admin_id: user.id }
       });
 
       if (error) {
-        console.error("Error syncing care teams:", error);
+        console.error("Error setting up default nutritionist:", error);
         throw error;
       }
 
-      console.log("Care team sync response:", data);
+      console.log("Default nutritionist setup response:", data);
       
       toast({
         title: "Success",
-        description: "Care team rooms have been synchronized successfully",
+        description: "NutritionistJee has been set as the default nutritionist",
       });
     } catch (err: any) {
-      console.error("Error syncing care teams:", err);
+      console.error("Error setting up default nutritionist:", err);
       toast({
         title: "Error",
-        description: err.message || "Failed to sync care teams",
+        description: err.message || "Failed to set up default nutritionist",
         variant: "destructive"
       });
     } finally {
@@ -53,15 +53,18 @@ export const SyncCareTeamsButton = () => {
   return (
     <Button 
       variant="outline" 
-      onClick={handleSync} 
+      onClick={handleClick} 
       disabled={isLoading}
-      size="sm"
       className="flex items-center gap-1"
     >
-      <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-      {isLoading ? 'Syncing...' : 'Sync Care Teams'}
+      {isLoading ? (
+        <>
+          <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+          Setting up...
+        </>
+      ) : (
+        "Set NutritionistJee as Default"
+      )}
     </Button>
   );
 };
-
-export default SyncCareTeamsButton;

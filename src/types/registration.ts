@@ -13,8 +13,10 @@ export interface RegistrationProgress {
   registration_completed: boolean;
   created_at: string;
   updated_at: string;
-  registration_status?: 'payment_pending' | 'payment_complete' | 'care_team_assigned' | 'fully_registered';
+  registration_status?: RegistrationStatus;
 }
+
+export type RegistrationStatus = 'payment_pending' | 'payment_complete' | 'care_team_assigned' | 'fully_registered';
 
 export interface DefaultCareTeam {
   id: string;
@@ -39,7 +41,7 @@ export interface RegistrationTask {
 }
 
 export interface UserRegistrationStatus {
-  registration_status: 'payment_pending' | 'payment_complete' | 'care_team_assigned' | 'fully_registered';
+  registration_status: RegistrationStatus;
   registration_completed_at: string | null;
   tasks: RegistrationTask[];
 }

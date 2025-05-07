@@ -1,102 +1,20 @@
 
-# A string used to distinguish different Supabase projects on the same host. Defaults to the working
-# directory name when running `supabase init`.
 project_id = "hcaqodjylicmppxcbqbh"
-organization_id = "ocqbnhhxtbgwkocmbyxu"
 
 [api]
-# Port to use for the API URL.
-port = 54321
-# Schemas to expose in your API. Tables, views and stored procedures in this schema will get API
-# endpoints. public and storage are always included.
-schemas = ["public", "storage", "graphql_public"]
-# Extra schemas to add to the search_path of every request. public is always included.
-extra_search_path = ["public", "extensions"]
-# Maximum rows to return from a view, table, or stored procedure. Limits payload size for accidental
-# or malicious requests.
-max_rows = 1000
+enabled = true
 
 [db]
-# Port to use for the local database URL.
-port = 54322
-# The database major version to use. This has to be the same as your remote database's. Run `SHOW
-# server_version;` on the remote database to check.
-major_version = 15
-
-[studio]
-# Port to use for Supabase Studio.
-port = 54323
-
-# Email testing server. Emails sent with the local dev setup are not actually sent - rather, they
-# are monitored, and you can view the emails that would have been sent from the web interface.
-[inbucket]
-# Port to use for the email testing server web interface.
-port = 54324
-smtp_port = 54325
-pop3_port = 54326
-
-[storage]
-# The maximum file size allowed (e.g. "5MB", "500KB").
-file_size_limit = "50MiB"
-
-[auth]
-# The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
-# in emails.
-site_url = "https://anubhooti-phase1.lovable.app"
-# A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = [
-  "https://anubhooti-phase1.lovable.app/update-password", 
-  "https://anubhooti-phase1.lovable.app/auth", 
-  "https://anubhooti-phase1.lovable.app"
-]
-# How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 seconds (1
-# week).
-jwt_expiry = 3600
-# Allow/disallow new user signups to your project.
-enable_signup = true
-# If disabled, the user will be redirected to the site URL after a successful signup, otherwise a
-# success message will be shown on the signup page.
-disable_signup_success_messages = false
-# If enabled, users need to confirm their email address before signing in.
-enable_confirmations = true
-
-# Configure Email Sign In.
-[auth.email]
-# Allow/disallow sign in with email.
-enable_sign_up = true
-# Allow/disallow sign in with email.
-enable_sign_in = true
-# If enabled, users need to have a confirmed email address to sign in.
-enable_confirmations = true
-
-[auth.email.template.invite]
-subject = "You have been invited"
-content_path = "supabase/templates/invite.html"
-
-[auth.sms]
-# Allow/disallow sign in with SMS.
-enable_sign_up = false
-# Allow/disallow sign in with SMS.
-enable_sign_in = false
-# If enabled, users need to confirm their phone number before signing in.
-enable_confirmations = false
+enabled = true
 
 [analytics]
 enabled = false
-port = 54327
 
-# Configure Supabase functions when running locally [experimental].
-[functions.password-reset-helper]
-verify_jwt = false
-
-# Define a function to handle password reset URLs
-[functions.handle-password-reset]
-verify_jwt = false
-
-# Process registration tasks function - public access
-[functions.process-registration-tasks]
-verify_jwt = false
-
-# Allow browser requests to edge functions
 [functions]
-serve_local_functions = true
+enabled = true
+
+[functions.admin-setup-nutritionist-as-default]
+verify_jwt = true
+
+[functions.sync-care-team-rooms]
+verify_jwt = true
