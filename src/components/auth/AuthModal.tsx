@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { RegistrationPayment } from "@/components/auth/RegistrationPayment";
 import { CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { RegistrationProgressReport } from "@/components/auth/RegistrationProgressReport";
 import '@/styles/glass.css';
 
 interface AuthModalProps {
@@ -33,6 +34,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Check if there's any pending registration process on open
+  useEffect(() => {
+    if (isOpen && view === "register") {
+      const paymentPending = localStorage.getItem('registration_payment_pending') === 'true';
+      const paymentComplete = localStorage.getItem('registration_payment_complete') === 'true';
+      
+      if (paymentPending) {
+        setRegistrationStep(2);
+      } else if (paymentComplete) {
+        setRegistrationStep(3);
+      } else {
+        setRegistrationStep(1);
+      }
+    }
+  }, [isOpen, view]);
 
   // Form submission handler
   const handleFormSubmit = async (
@@ -62,6 +79,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             description: "Please complete your registration with payment",
           });
           return; // Important! Don't close the modal yet
+        } else if (user) {
+          // Non-patient users can go directly to dashboard
+          toast({
+            title: "Account Created",
+            description: "Your account has been set up successfully",
+          });
+          handleClose();
+          navigate("/dashboard");
         }
       }
       // For login, the SupabaseAuthUI handles the submission
@@ -85,9 +110,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   // When payment is complete, move to final step
   const handlePaymentComplete = () => {
     setRegistrationStep(3);
+    localStorage.setItem('registration_payment_pending', 'false');
+    localStorage.setItem('registration_payment_complete', 'true');
     toast({
-      title: "Registration Complete",
-      description: "Your account is now fully set up",
+      title: "Registration Payment Complete",
+      description: "Your payment has been processed. Your care team is being assigned.",
     });
   };
 
@@ -189,7 +216,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   )}
                   
                   {/* Step 2: Payment */}
-                  {registrationStep === 2 && (registeredUser) && (
+                  {registrationStep === 2 && (
                     <>
                       <h1 className="text-2xl font-bold text-center mb-6">
                         Complete Registration
@@ -201,21 +228,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     </>
                   )}
                   
-                  {/* Step 3: Success */}
+                  {/* Step 3: Registration Progress */}
                   {registrationStep === 3 && (
-                    <div className="text-center py-4">
-                      <div className="mb-6 flex justify-center">
-                        <div className="bg-green-100 rounded-full p-4">
-                          <CheckCircle2 className="h-10 w-10 text-green-600" />
-                        </div>
-                      </div>
-                      <h3 className="text-xl font-medium mb-2">Registration Complete!</h3>
-                      <p className="mb-6 text-gray-600">
-                        Your care team is being assigned. You will be notified shortly.
-                      </p>
-                      <Button onClick={goToDashboard} className="w-full">
-                        Go to Dashboard
-                      </Button>
+                    <div className="pt-4">
+                      <h1 className="text-2xl font-bold text-center mb-6">
+                        Registration Status
+                      </h1>
+                      <RegistrationProgressReport 
+                        onCheckAgain={() => {
+                          // Refresh status
+                          toast({
+                            title: "Refreshing",
+                            description: "Checking your registration status...",
+                          });
+                        }} 
+                      />
                     </div>
                   )}
                 </>

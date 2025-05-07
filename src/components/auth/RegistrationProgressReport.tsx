@@ -141,7 +141,7 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className={`h-5 w-5 ${registrationStatus.registration_status === 'payment_pending' ? 'text-gray-300' : 'text-green-500'}`} />
+              <CheckCircle2 className={`h-5 w-5 ${registrationStatus.registration_status !== 'payment_pending' ? 'text-green-500' : 'text-gray-300'}`} />
               <span>Payment Completed</span>
             </div>
             <span className="text-sm text-muted-foreground">

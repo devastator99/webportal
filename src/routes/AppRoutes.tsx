@@ -1,3 +1,4 @@
+
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +16,7 @@ import VerifyCodePage from '@/pages/VerifyCodePage';
 import { ForgotPasswordRouteWrapper } from '@/pages/ForgotPasswordRouteWrapper';
 import VideosPage from '@/pages/VideosPage';
 import NewPrescriptionPage from '@/pages/NewPrescriptionPage';
+import { RegistrationStatusChecker } from '@/components/auth/RegistrationStatusChecker';
 
 // Lazy loaded components
 const ChatPage = lazy(() => import('@/pages/ChatPage'));
@@ -33,6 +35,8 @@ export const AppRoutes = () => {
         {/* Public Routes */}
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth/*" element={<Auth />} />
+        <Route path="/auth/login" element={<Auth />} />
+        <Route path="/auth/register" element={<Auth />} />
         <Route path="/verify-code" element={<VerifyCodePage />} />
         <Route path="/forgot-password" element={<ForgotPasswordRouteWrapper />} />
         <Route path="/update-password" element={<UpdatePassword />} />
@@ -112,7 +116,9 @@ export const AppRoutes = () => {
           path="/patient-habits"
           element={
             <RoleProtectedRoute allowedRoles={['patient']}>
-              <PatientHabitsPage />
+              <RegistrationStatusChecker>
+                <PatientHabitsPage />
+              </RegistrationStatusChecker>
             </RoleProtectedRoute>
           }
         />
@@ -141,7 +147,9 @@ export const AppRoutes = () => {
           path="/prescriptions"
           element={
             <ProtectedRoute>
-              <PatientPrescriptionsRoute />
+              <RegistrationStatusChecker>
+                <PatientPrescriptionsRoute />
+              </RegistrationStatusChecker>
             </ProtectedRoute>
           }
         />
@@ -159,7 +167,9 @@ export const AppRoutes = () => {
           path="/patient-profile"
           element={
             <RoleProtectedRoute allowedRoles={['patient']}>
-              <PatientProfilePage />
+              <RegistrationStatusChecker>
+                <PatientProfilePage />
+              </RegistrationStatusChecker>
             </RoleProtectedRoute>
           }
         />

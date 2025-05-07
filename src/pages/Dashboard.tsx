@@ -16,6 +16,7 @@ import { PatientAppLayout } from "@/layouts/PatientAppLayout";
 import { DoctorAppLayout } from "@/layouts/DoctorAppLayout";
 import { AdminAppLayout } from "@/layouts/AdminAppLayout";
 import { AppLayout } from "@/layouts/AppLayout";
+import { RegistrationStatusChecker } from "@/components/auth/RegistrationStatusChecker";
 
 const Dashboard = () => {
   const { user, userRole, isLoading, signOut } = useAuth();
@@ -80,7 +81,9 @@ const Dashboard = () => {
         console.log("[Dashboard] Rendering patient dashboard");
         return (
           <PatientAppLayout>
-            <PatientDashboard />
+            <RegistrationStatusChecker>
+              <PatientDashboard />
+            </RegistrationStatusChecker>
           </PatientAppLayout>
         );
       case "nutritionist":
