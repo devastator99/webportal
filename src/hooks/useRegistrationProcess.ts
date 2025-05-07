@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { UserRegistrationStatus, RegistrationTask } from '@/types/registration';
 
 interface RegistrationOptions {
   registrationFee?: number;
@@ -170,12 +171,15 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
         return null;
       }
       
+      // Make sure we parse the data as UserRegistrationStatus
+      const regData = data as unknown as UserRegistrationStatus;
+      
       setRegistrationProgress({
-        status: data?.registration_status || 'payment_pending',
-        tasks: data?.tasks || []
+        status: regData.registration_status || 'payment_pending',
+        tasks: regData.tasks || []
       });
       
-      return data;
+      return regData;
     } catch (err) {
       console.error('Error fetching registration progress:', err);
       return null;

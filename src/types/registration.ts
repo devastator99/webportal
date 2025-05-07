@@ -37,3 +37,9 @@ export interface RegistrationTask {
   result_payload?: any;
   error_details?: any;
 }
+
+export interface UserRegistrationStatus {
+  registration_status: 'payment_pending' | 'payment_complete' | 'care_team_assigned' | 'fully_registered';
+  registration_completed_at: string | null;
+  tasks: RegistrationTask[];
+}
