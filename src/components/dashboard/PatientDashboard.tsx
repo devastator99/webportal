@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -13,9 +14,11 @@ import { PatientCuratedHealthTips } from "./patient/PatientCuratedHealthTips";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardSkeleton } from "./DashboardSkeleton";
-import { Calendar, UserRound } from "lucide-react";
+import { Calendar, UserRound, CheckCircle2, Clock } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePatientHabits } from "@/hooks/usePatientHabits";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { UserRegistrationStatus } from "@/types/registration";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
@@ -25,9 +28,47 @@ export const PatientDashboard = () => {
 
   const [careTeamRoomId, setCareTeamRoomId] = useState<string | null>(null);
   const [isLoadingRoom, setIsLoadingRoom] = useState(true);
+  const [registrationStatus, setRegistrationStatus] = useState<UserRegistrationStatus | null>(null);
+  const [isRegistrationComplete, setIsRegistrationComplete] = useState(true);
   
   // Get habit summary data using the usePatientHabits hook
   const { summaryData, percentages, habitSummary, isLoading: isLoadingSummary } = usePatientHabits();
+
+  // Check registration status
+  useEffect(() => {
+    const checkRegistrationStatus = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const { data, error } = await supabase.rpc('get_user_registration_status', {
+          p_user_id: user.id
+        });
+        
+        if (error) {
+          console.error("Error getting registration status:", error);
+          return;
+        }
+        
+        const regStatus = data as unknown as UserRegistrationStatus;
+        setRegistrationStatus(regStatus);
+        setIsRegistrationComplete(regStatus?.registration_status === 'fully_registered');
+        
+        console.log("Registration status:", regStatus);
+        
+        // If registration is not complete, show toast notification
+        if (regStatus?.registration_status !== 'fully_registered') {
+          toast({
+            title: "Registration in progress",
+            description: "Your account setup is still in process. Some features may be limited.",
+          });
+        }
+      } catch (err) {
+        console.error("Error checking registration status:", err);
+      }
+    };
+    
+    checkRegistrationStatus();
+  }, [user?.id, toast]);
 
   useEffect(() => {
     const fetchRoomId = async () => {
@@ -143,7 +184,86 @@ export const PatientDashboard = () => {
   if (isLoading) {
     return <DashboardSkeleton />;
   }
+  
+  // If registration is not complete, show a simplified dashboard
+  if (!isRegistrationComplete && registrationStatus) {
+    return (
+      <ResponsiveContainer fluid withPadding className="space-y-6">
+        <div className="flex items-center gap-4 mb-4">
+          <Avatar className="h-12 w-12 bg-[#E5DEFF]">
+            <AvatarFallback className="text-[#9b87f5] font-medium">
+              {patientData?.profile?.first_name?.charAt(0)}{patientData?.profile?.last_name?.charAt(0)}
+            </AvatarFallback>
+          </Avatar>
+          <div>
+            <h1 className="text-2xl font-semibold">Welcome, {patientData?.profile?.first_name}</h1>
+            <p className="text-muted-foreground">Your account setup is in progress</p>
+          </div>
+        </div>
 
+        <Card className="bg-white">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="h-5 w-5 text-[#9b87f5]" />
+              Registration Status
+            </CardTitle>
+            <CardDescription>Your account is being set up</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Alert className="bg-[#E5DEFF]/20 border-[#9b87f5]/30">
+              <AlertDescription>
+                Your account is currently being set up. This includes assigning your care team and creating your communication channels. This process should be completed shortly.
+              </AlertDescription>
+            </Alert>
+            
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className={`h-5 w-5 ${registrationStatus.registration_status === 'payment_pending' ? 'text-gray-300' : 'text-green-500'}`} />
+                  <span>Payment Completed</span>
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {registrationStatus.registration_status !== 'payment_pending' ? 'Completed' : 'Pending'}
+                </span>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className={`h-5 w-5 ${['care_team_assigned', 'fully_registered'].includes(registrationStatus.registration_status) ? 'text-green-500' : 'text-gray-300'}`} />
+                  <span>Care Team Assignment</span>
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {['care_team_assigned', 'fully_registered'].includes(registrationStatus.registration_status) ? 'Completed' : 'In Progress'}
+                </span>
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className={`h-5 w-5 ${registrationStatus.registration_status === 'fully_registered' ? 'text-green-500' : 'text-gray-300'}`} />
+                  <span>Account Setup Complete</span>
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {registrationStatus.registration_status === 'fully_registered' ? 'Completed' : 'In Progress'}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+          <CardFooter>
+            <Button 
+              onClick={() => window.location.reload()}
+              className="w-full"
+            >
+              Check Status Again
+            </Button>
+          </CardFooter>
+        </Card>
+
+        <PatientCuratedHealthTips />
+      </ResponsiveContainer>
+    );
+  }
+
+  // Regular dashboard for completed registration
   return (
     <ResponsiveContainer fluid withPadding className="space-y-6">
       {isMobile ? (

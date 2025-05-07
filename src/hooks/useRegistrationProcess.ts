@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -24,12 +24,23 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
     status: 'payment_pending' | 'payment_complete' | 'care_team_assigned' | 'fully_registered';
     tasks: { id: string; task_type: string; status: string }[];
   } | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   const defaultOptions = {
     registrationFee: options.registrationFee || 500,
     currency: options.currency || 'INR',
     redirectUrl: options.redirectUrl || '/dashboard'
   };
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, []);
 
   // Create a Razorpay order
   const createOrder = async () => {
@@ -130,6 +141,9 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
       if (data?.tasks) {
         // Update registration status
         await fetchRegistrationProgress();
+        
+        // Start polling for registration status changes
+        startPollingRegistrationStatus();
       }
       
       toast({
@@ -152,6 +166,48 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  // Start polling for registration status changes
+  const startPollingRegistrationStatus = () => {
+    if (isPolling) return;
+    
+    setIsPolling(true);
+    
+    // Clear any existing interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+    
+    // Poll every 5 seconds
+    pollingIntervalRef.current = setInterval(async () => {
+      const status = await fetchRegistrationProgress();
+      
+      // If registration is complete, stop polling
+      if (status?.registration_status === 'fully_registered') {
+        stopPollingRegistrationStatus();
+        
+        // Show toast notification
+        toast({
+          title: 'Registration Complete',
+          description: 'Your account setup is complete. You can now access all features.',
+        });
+        
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+          navigate(defaultOptions.redirectUrl);
+        }, 3000);
+      }
+    }, 5000);
+  };
+  
+  // Stop polling
+  const stopPollingRegistrationStatus = () => {
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    setIsPolling(false);
   };
   
   // Fetch registration progress
@@ -228,9 +284,12 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
     completeRegistration,
     fetchRegistrationProgress,
     triggerTaskProcessing,
+    startPollingRegistrationStatus,
+    stopPollingRegistrationStatus,
     isLoading,
     orderId,
     error,
-    registrationProgress
+    registrationProgress,
+    isPolling
   };
 }

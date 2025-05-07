@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -10,6 +9,8 @@ import { RegistrationPayment } from "@/components/auth/RegistrationPayment";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { UserRegistrationStatus } from "@/types/registration";
 
 const Auth = () => {
   const { user, userRole, isLoading } = useAuth();
@@ -20,6 +21,7 @@ const Auth = () => {
   const [registrationStep, setRegistrationStep] = useState(1);
   const [registeredUser, setRegisteredUser] = useState<any>(null);
   const [isRegistrationFlow, setIsRegistrationFlow] = useState(false);
+  const [isCheckingRegistration, setIsCheckingRegistration] = useState(false);
   
   const isRegistration = location.pathname.includes('/register');
 
@@ -39,38 +41,95 @@ const Auth = () => {
     }
   }, []);
 
-  // Redirect based on user role with a slight delay to ensure auth state is updated
+  // Function to check user's registration status from the database
+  const checkRegistrationStatus = async (userId: string) => {
+    setIsCheckingRegistration(true);
+    try {
+      console.log("Checking registration status for user:", userId);
+      
+      const { data, error } = await supabase.rpc('get_user_registration_status', {
+        p_user_id: userId
+      });
+      
+      if (error) {
+        console.error("Error getting registration status:", error);
+        return null;
+      }
+      
+      console.log("Registration status from database:", data);
+      return data as unknown as UserRegistrationStatus;
+    } catch (err) {
+      console.error("Error checking registration status:", err);
+      return null;
+    } finally {
+      setIsCheckingRegistration(false);
+    }
+  };
+
+  // Redirect based on user role with proper registration status check
   useEffect(() => {
     if (!isLoading && user) {
       console.log("Auth page detected logged in user. Registration step:", registrationStep, 
                   "isRegistrationFlow:", isRegistrationFlow);
       
-      // If we're in the middle of registration flow, don't redirect
+      // If we're in the middle of registration flow on this page, don't redirect
       if (isRegistrationFlow && registrationStep < 3) {
         console.log("Staying on registration page for payment flow, step:", registrationStep);
         return;
       }
       
-      // For completed registration or non-registration flows, redirect to dashboard
-      if (userRole && (!isRegistrationFlow || registrationStep === 3)) {
-        const redirectTimer = setTimeout(() => {
-          console.log("Redirecting to dashboard as", userRole);
-          navigate("/dashboard", { replace: true });
+      // For patient role, check registration status before redirecting
+      if (userRole === 'patient') {
+        const checkStatus = async () => {
+          const registrationStatus = await checkRegistrationStatus(user.id);
           
-          // Clean up localStorage
-          if (isRegistrationFlow) {
-            localStorage.removeItem('registration_payment_pending');
-            localStorage.removeItem('registration_payment_complete');
+          // If registration is not fully completed, keep in registration flow
+          if (registrationStatus && 
+              registrationStatus.registration_status !== 'fully_registered') {
+            console.log("Patient registration not complete, status:", registrationStatus.registration_status);
+            
+            // Update local state based on database status
+            if (registrationStatus.registration_status === 'payment_pending') {
+              setIsRegistrationFlow(true);
+              setRegistrationStep(2);
+              localStorage.setItem('registration_payment_pending', 'true');
+              localStorage.setItem('registration_payment_complete', 'false');
+            } else if (['payment_complete', 'care_team_assigned'].includes(registrationStatus.registration_status)) {
+              setIsRegistrationFlow(true);
+              setRegistrationStep(3);
+              localStorage.setItem('registration_payment_pending', 'false');
+              localStorage.setItem('registration_payment_complete', 'true');
+            }
+            return;
           }
-        }, 100);
+          
+          // Registration is complete, navigate to dashboard
+          console.log("Registration is complete, redirecting to dashboard");
+          localStorage.removeItem('registration_payment_pending');
+          localStorage.removeItem('registration_payment_complete');
+          navigate("/dashboard", { replace: true });
+        };
         
-        return () => clearTimeout(redirectTimer);
+        checkStatus();
+        return;
+      }
+      
+      // For non-patient roles, redirect immediately
+      if (userRole && (!isRegistrationFlow || registrationStep === 3)) {
+        console.log("Redirecting to dashboard as", userRole);
+        navigate("/dashboard", { replace: true });
+        
+        // Clean up localStorage
+        if (isRegistrationFlow) {
+          localStorage.removeItem('registration_payment_pending');
+          localStorage.removeItem('registration_payment_complete');
+        }
       }
     }
   }, [user, userRole, isLoading, navigate, registrationStep, isRegistrationFlow]);
 
   // Show loading state
-  if (isLoading) {
+  if (isLoading || isCheckingRegistration) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center pt-16 md:pt-20">
         <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
@@ -138,6 +197,8 @@ const Auth = () => {
   const handlePaymentComplete = () => {
     console.log("Payment completed, moving to final step");
     setRegistrationStep(3);
+    localStorage.setItem('registration_payment_pending', 'false');
+    localStorage.setItem('registration_payment_complete', 'true');
     toast({
       title: "Registration complete",
       description: "Your account has been set up successfully",
@@ -214,7 +275,7 @@ const Auth = () => {
             </div>
             <h3 className="text-xl font-medium mb-2">Registration Complete!</h3>
             <p className="mb-6 text-gray-600">
-              Your care team is being assigned. You will be redirected to your dashboard now.
+              Your care team is being assigned. You will be redirected to your dashboard once the setup is complete.
             </p>
             <Button 
               onClick={() => navigate('/dashboard')}
