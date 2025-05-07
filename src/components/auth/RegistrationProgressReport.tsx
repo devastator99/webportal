@@ -151,11 +151,11 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
           
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <CheckCircle2 className={`h-5 w-5 ${['care_team_assigned', 'fully_registered'].includes(registrationStatus.registration_status as RegistrationStatus) ? 'text-green-500' : 'text-gray-300'}`} />
+              <CheckCircle2 className={`h-5 w-5 ${registrationStatus.registration_status === 'care_team_assigned' || registrationStatus.registration_status === 'fully_registered' ? 'text-green-500' : 'text-gray-300'}`} />
               <span>Care Team Assignment</span>
             </div>
             <span className="text-sm text-muted-foreground">
-              {['care_team_assigned', 'fully_registered'].includes(registrationStatus.registration_status as RegistrationStatus) ? 'Completed' : 'In Progress'}
+              {registrationStatus.registration_status === 'care_team_assigned' || registrationStatus.registration_status === 'fully_registered' ? 'Completed' : 'In Progress'}
             </span>
           </div>
           
@@ -200,4 +200,3 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
     </Card>
   );
 };
-
