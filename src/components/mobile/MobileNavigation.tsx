@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, FileText, Activity, Home, Video, UserRound, MoreHorizontal, LogOut } from 'lucide-react';
@@ -199,14 +198,14 @@ export const MobileNavigation: React.FC = () => {
       <ModernTabBar 
         items={navbarItems.map(item => ({
           label: item.label,
-          icon: (props: any) => {
+          icon: (props) => {
+            // Correctly handle both function icons and component icons
             if (typeof item.icon === 'function') {
               return item.icon(props);
-            } else if (item.icon) {
-              const IconComponent = item.icon;
-              return <IconComponent {...props} />;
             }
-            return null;
+            // For component icons, create an element with the icon component
+            const IconComponent = item.icon;
+            return <IconComponent {...props} />;
           },
           onClick: item.action,
           active: item.active,
@@ -254,7 +253,7 @@ export const MobileNavigation: React.FC = () => {
                   >
                     {typeof item.icon === 'function' ? 
                       item.icon({ className: "h-6 w-6 mb-2" }) : 
-                      <item.icon className="h-6 w-6 mb-2" />
+                      React.createElement(item.icon, { className: "h-6 w-6 mb-2" })
                     }
                     <span className="text-xs text-center">{item.label}</span>
                   </button>
