@@ -13,18 +13,19 @@ export interface RegistrationProgress {
   registration_completed: boolean;
   created_at: string;
   updated_at: string;
-  registration_status?: RegistrationStatus;
+  registration_status?: string;
 }
 
+// Define registration status as a type
 export type RegistrationStatus = 'payment_pending' | 'payment_complete' | 'care_team_assigned' | 'fully_registered';
 
-// Adding an enum for type-safe comparisons
-export enum RegistrationStatus {
-  PAYMENT_PENDING = 'payment_pending',
-  PAYMENT_COMPLETE = 'payment_complete',
-  CARE_TEAM_ASSIGNED = 'care_team_assigned',
-  FULLY_REGISTERED = 'fully_registered'
-}
+// Define constants for type-safe comparisons
+export const RegistrationStatusValues = {
+  PAYMENT_PENDING: 'payment_pending' as RegistrationStatus,
+  PAYMENT_COMPLETE: 'payment_complete' as RegistrationStatus,
+  CARE_TEAM_ASSIGNED: 'care_team_assigned' as RegistrationStatus,
+  FULLY_REGISTERED: 'fully_registered' as RegistrationStatus
+};
 
 export interface DefaultCareTeam {
   id: string;

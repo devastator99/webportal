@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { UserRegistrationStatus, RegistrationTask } from '@/types/registration';
+import { UserRegistrationStatus, RegistrationTask, RegistrationStatusValues } from '@/types/registration';
 
 interface RegistrationOptions {
   registrationFee?: number;
@@ -184,7 +184,7 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
       const status = await fetchRegistrationProgress();
       
       // If registration is complete, stop polling
-      if (status?.registration_status === 'fully_registered') {
+      if (status?.registration_status === RegistrationStatusValues.FULLY_REGISTERED) {
         stopPollingRegistrationStatus();
         
         // Show toast notification
