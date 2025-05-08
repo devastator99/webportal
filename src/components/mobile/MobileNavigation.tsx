@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MessageCircle, FileText, Activity, Home, Video, UserRound, MoreHorizontal, LogOut } from 'lucide-react';
@@ -205,7 +206,7 @@ export const MobileNavigation: React.FC = () => {
             }
             // For component icons, create an element with the icon component
             const IconComponent = item.icon;
-            return <IconComponent {...props} />;
+            return React.createElement(IconComponent, props);
           },
           onClick: item.action,
           active: item.active,
