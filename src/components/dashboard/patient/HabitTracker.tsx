@@ -112,7 +112,7 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
         </div>
         <Button
           onClick={() => setAddHabitDialogOpen(true)} 
-          className="bg-[#9b87f5]/90 hover:bg-[#7E69AB] text-sm px-3 py-1.5 h-auto"
+          className="bg-[#9b87f5] hover:bg-[#7E69AB] text-white px-6 py-2 h-auto rounded-lg"
           size="sm"
         >
           <Plus className="mr-1 h-4 w-4" />

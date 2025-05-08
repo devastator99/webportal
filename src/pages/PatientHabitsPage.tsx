@@ -45,16 +45,16 @@ const PatientHabitsPage = () => {
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full grid grid-cols-2 mb-4 sm:mb-6 glass-card border border-[#9b87f5]/20">
+            <TabsList className="w-full grid grid-cols-2 mb-4 sm:mb-6 bg-white rounded-lg shadow-sm border border-[#9b87f5]/10">
               <TabsTrigger 
                 value="habits" 
-                className="text-base py-2.5 data-[state=active]:bg-[#9b87f5]/20 data-[state=active]:text-[#7E69AB] font-medium"
+                className="text-base py-3 data-[state=active]:bg-[#9b87f5]/20 data-[state=active]:text-[#7E69AB] font-medium rounded-md"
               >
                 Habits
               </TabsTrigger>
               <TabsTrigger 
                 value="progress" 
-                className="text-base py-2.5 data-[state=active]:bg-[#9b87f5]/20 data-[state=active]:text-[#7E69AB] font-medium"
+                className="text-base py-3 data-[state=active]:bg-[#9b87f5]/20 data-[state=active]:text-[#7E69AB] font-medium rounded-md"
               >
                 Progress
               </TabsTrigger>
@@ -69,7 +69,7 @@ const PatientHabitsPage = () => {
             </TabsContent>
             
             <TabsContent value="progress">
-              <Card className="p-4 sm:p-6 glass-card-soft shadow-sm border border-[#9b87f5]/10">
+              <Card className="p-4 sm:p-6 shadow-sm border border-[#9b87f5]/10 bg-white rounded-lg">
                 <HabitsProgressCharts />
               </Card>
             </TabsContent>

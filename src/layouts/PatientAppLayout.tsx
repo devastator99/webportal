@@ -40,7 +40,7 @@ export function PatientAppLayout({
                     {description && <p className="text-muted-foreground">{description}</p>}
                   </div>
                 )}
-                <div className={`w-full ${isMobileOrTablet ? 'pb-28' : ''}`}>
+                <div className={`w-full ${isMobileOrTablet ? 'pb-32' : ''}`}>
                   {children}
                 </div>
               </div>

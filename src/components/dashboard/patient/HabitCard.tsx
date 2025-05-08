@@ -96,7 +96,7 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onComplete, complet
     <div className="flex items-center justify-between mt-4">
       <div className="flex items-center gap-2">
         {getHabitIcon()}
-        <span className="text-lg font-medium text-amber-800">{habit.description}</span>
+        <span className="text-lg font-medium text-[#8B5000]">{habit.description}</span>
       </div>
       <div
         className={cn(
@@ -137,7 +137,7 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onComplete, complet
       <div className="p-4">
         <div className="flex items-center mb-4">
           {getHabitIcon()}
-          <span className="ml-2 text-xl font-medium text-amber-800">{habit.description}</span>
+          <span className="ml-2 text-xl font-medium text-[#8B5000]">{habit.description}</span>
         </div>
         
         <div className="flex items-center justify-center bg-gray-100 rounded-lg p-1 mb-4">
@@ -150,8 +150,8 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onComplete, complet
             )}
             onClick={() => setView('daily')}
           >
-            <Calendar className="h-4 w-4 text-amber-800" />
-            <span className="text-amber-800">Daily</span>
+            <Calendar className="h-4 w-4 text-[#8B5000]" />
+            <span className="text-[#8B5000]">Daily</span>
           </Button>
           <Button
             variant="ghost" 
@@ -162,8 +162,8 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onComplete, complet
             )}
             onClick={() => setView('weekly')}
           >
-            <Calendar className="h-4 w-4 text-amber-800" />
-            <span className="text-amber-800">Weekly</span>
+            <Calendar className="h-4 w-4 text-[#8B5000]" />
+            <span className="text-[#8B5000]">Weekly</span>
           </Button>
           <Button
             variant="ghost"
@@ -174,8 +174,8 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onComplete, complet
             )}
             onClick={() => setView('overall')}
           >
-            <Calendar className="h-4 w-4 text-amber-800" />
-            <span className="text-amber-800">Overall</span>
+            <Calendar className="h-4 w-4 text-[#8B5000]" />
+            <span className="text-[#8B5000]">Overall</span>
           </Button>
         </div>
         

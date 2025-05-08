@@ -160,3 +160,45 @@ nav .items-center {
     margin-bottom: 4rem;
   }
 }
+
+/* Custom styles for habit tracking components */
+.glass-card {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.glass-card-soft {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+}
+
+/* AnubhootiHealth theme colors */
+.bg-anubhooti-purple {
+  background-color: #7E69AB;
+}
+
+.text-anubhooti-purple {
+  color: #7E69AB;
+}
+
+.bg-anubhooti-light-purple {
+  background-color: rgba(155, 135, 245, 0.2);
+}
+
+.border-anubhooti-purple {
+  border-color: #7E69AB;
+}
+
+/* Mobile navigation fixes */
+.fixed-mobile-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: white;
+  padding-bottom: env(safe-area-inset-bottom, 1rem);
+  border-top: 1px solid rgba(155, 135, 245, 0.1);
+}
