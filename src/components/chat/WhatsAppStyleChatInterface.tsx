@@ -23,9 +23,10 @@ import { useBreakpoint } from "@/hooks/use-responsive";
 
 interface WhatsAppStyleChatInterfaceProps {
   patientRoomId?: string | null;
+  fullScreen?: boolean;
 }
 
-export const WhatsAppStyleChatInterface = ({ patientRoomId }: WhatsAppStyleChatInterfaceProps) => {
+export const WhatsAppStyleChatInterface = ({ patientRoomId, fullScreen = false }: WhatsAppStyleChatInterfaceProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();

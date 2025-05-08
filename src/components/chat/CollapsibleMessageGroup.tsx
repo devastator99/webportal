@@ -44,7 +44,7 @@ export const CollapsibleMessageGroup = ({
   
   return (
     <div className="message-group">
-      <div className="flex justify-center mb-2">
+      <div className="flex justify-start mb-2">
         <Button
           variant="ghost"
           size="sm"

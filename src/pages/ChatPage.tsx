@@ -1,3 +1,4 @@
+
 import { useAuth, UserRoleEnum } from "@/contexts/AuthContext";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
@@ -13,7 +14,7 @@ import { PatientPageLayout } from "@/components/layout/PatientPageLayout";
 import { PatientAppLayout } from "@/layouts/PatientAppLayout";
 import { Button } from "@/components/ui/button";
 
-// Add this interface at the top of the file
+// Interface for WhatsAppStyleChatInterface props
 interface WhatsAppStyleChatInterfaceProps {
   patientRoomId?: string | null;
   fullScreen?: boolean;

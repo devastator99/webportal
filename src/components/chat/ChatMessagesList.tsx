@@ -32,8 +32,8 @@ interface ChatMessagesListProps {
   useRoomMessages?: boolean;
   selectedUserId?: string;
   offlineMode?: boolean;
-  fullScreen?: boolean;  // Add the fullScreen prop
-  leftAligned?: boolean; // Add the leftAligned prop
+  fullScreen?: boolean;
+  leftAligned?: boolean;
 }
 
 const PAGE_SIZE = 100;
@@ -45,8 +45,8 @@ export const ChatMessagesList = ({
   useRoomMessages = false,
   selectedUserId,
   offlineMode = false,
-  fullScreen = false,    // Add default value
-  leftAligned = false    // Add default value
+  fullScreen = false,
+  leftAligned = false
 }: ChatMessagesListProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
@@ -260,26 +260,44 @@ export const ChatMessagesList = ({
                         const isCurrentUser = message.sender_id === user?.id;
                         const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
                         
+                        // Define sender role-based styles
+                        const getSenderRoleColor = (role: string) => {
+                          switch(role?.toLowerCase()) {
+                            case 'doctor': return 'text-blue-600';
+                            case 'nutritionist': return 'text-green-600';
+                            case 'patient': return 'text-orange-600';
+                            default: return '';
+                          }
+                        };
+                        
+                        // Avatar background and text colors
+                        const getAvatarColors = (role: string) => {
+                          switch(role?.toLowerCase()) {
+                            case 'doctor': return 'bg-blue-100 text-blue-800';
+                            case 'nutritionist': return 'bg-green-100 text-green-800';
+                            case 'patient': return 'bg-orange-100 text-orange-800';
+                            default: return 'bg-gray-100 text-gray-800';
+                          }
+                        };
+                        
+                        const senderRoleColor = getSenderRoleColor(message.sender_role);
+                        const avatarColors = getAvatarColors(message.sender_role);
+                        
                         return (
                           <div 
                             key={message.id} 
                             id={`message-${message.id}`}
-                            className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} my-2`}
+                            className={`flex ${leftAligned || !isCurrentUser ? 'justify-start' : 'justify-end'} my-2`}
                           >
                             <div className="flex items-start gap-2 max-w-[75%]">
-                              {!isCurrentUser && !message.is_system_message && (
+                              {(!isCurrentUser || leftAligned) && !message.is_system_message && (
                                 <Avatar className="h-8 w-8">
                                   {isAi ? (
                                     <AvatarFallback className="bg-purple-100 text-purple-800">
                                       AI
                                     </AvatarFallback>
                                   ) : (
-                                    <AvatarFallback className={
-                                      message.sender_role === 'doctor' ? 'bg-blue-100 text-blue-800' :
-                                      message.sender_role === 'nutritionist' ? 'bg-green-100 text-green-800' :
-                                      message.sender_role === 'patient' ? 'bg-orange-100 text-orange-800' :
-                                      'bg-gray-100 text-gray-800'
-                                    }>
+                                    <AvatarFallback className={avatarColors}>
                                       {message.sender_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
                                     </AvatarFallback>
                                   )}
@@ -287,9 +305,11 @@ export const ChatMessagesList = ({
                               )}
                               
                               <div>
-                                {!isCurrentUser && !message.is_system_message && (
+                                {(!isCurrentUser || leftAligned) && !message.is_system_message && (
                                   <div className="text-xs font-medium mb-1">
-                                    {isAi ? 'AI Assistant' : message.sender_name}
+                                    <span className={senderRoleColor}>
+                                      {isAi ? 'AI Assistant' : message.sender_name}
+                                    </span>
                                     {message.sender_role && (
                                       <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1">
                                         {message.sender_role}
@@ -302,7 +322,7 @@ export const ChatMessagesList = ({
                                   className={`p-3 rounded-lg text-sm shadow-sm ${
                                     message.is_system_message 
                                       ? 'bg-muted/70 text-muted-foreground text-xs italic' 
-                                      : isCurrentUser
+                                      : isCurrentUser && !leftAligned
                                         ? 'bg-[#9b87f5]/90 text-white' 
                                         : isAi
                                           ? 'bg-purple-50/80 dark:bg-purple-900/10'
