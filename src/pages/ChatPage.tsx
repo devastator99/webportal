@@ -27,7 +27,7 @@ interface WhatsAppStyleChatInterfaceProps {
   fullScreen?: boolean;
 }
 
-const ChatPage = () => {
+export const ChatPage = () => {
   const { user, userRole, isLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
