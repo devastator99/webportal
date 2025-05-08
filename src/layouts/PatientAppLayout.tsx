@@ -5,6 +5,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { PatientSidebar } from "@/components/dashboard/patient/PatientSidebar";
 import { MobileNavigation } from "@/components/mobile/MobileNavigation";
 import { useIsMobile, useIsMobileOrIPad } from "@/hooks/use-mobile";
+import '@/components/ui/sidebar-variables.css';
 
 interface PatientAppLayoutProps {
   children: ReactNode;

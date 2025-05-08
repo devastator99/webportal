@@ -1,3 +1,4 @@
+
 import { Home, MessageCircle, FileText, Activity, Video, UserRound, Menu } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +18,7 @@ import {
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import '@/components/ui/sidebar-variables.css';
 
 export function PatientSidebar() {
   const location = useLocation();
@@ -27,7 +29,7 @@ export function PatientSidebar() {
   
   if (!user) return null;
 
-  // Define menu items with correct routes for patients
+  // Define menu items with correct routes for patients - same as in MobileNavigation
   const menuItems = [
     {
       title: "Dashboard",
@@ -61,6 +63,27 @@ export function PatientSidebar() {
     }
   ];
 
+  // Function to check if a path is active, including handling nested routes
+  const isPathActive = (path: string): boolean => {
+    if (path === '/videos' && location.pathname === '/videos') {
+      return true;
+    }
+
+    // For prescriptions path, match any route that includes /prescriptions/
+    if (path.includes('/prescriptions') && location.pathname.includes('/prescriptions')) {
+      return true;
+    }
+    
+    // For user profile, match both /patient-profile and /notifications
+    if (path === '/patient-profile' && 
+        (location.pathname === '/patient-profile' || location.pathname === '/notifications')) {
+      return true;
+    }
+    
+    // Default exact matching for other routes
+    return location.pathname === path;
+  };
+
   // Sidebar content that will be used in both mobile and desktop
   const SidebarMenuContent = ({ showHeading = true }) => (
     <>
@@ -74,14 +97,14 @@ export function PatientSidebar() {
           <SidebarMenuItem key={item.title}>
             <SidebarMenuButton
               asChild
-              isActive={location.pathname === item.path || location.pathname.startsWith(`${item.path}/`)}
+              isActive={isPathActive(item.path)}
               tooltip={item.title}
             >
               <Link
                 to={item.path}
                 className={cn(
                   "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors",
-                  (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
+                  isPathActive(item.path)
                     ? "bg-[#9b87f5] text-white"
                     : "text-[#7E69AB] hover:bg-[#E5DEFF]"
                 )}
@@ -138,7 +161,7 @@ export function PatientSidebar() {
     );
   }
 
-  // Desktop sidebar - set a fixed width using CSS variables for consistency
+  // Desktop sidebar - use CSS variables for consistent sizing
   return (
     <Sidebar 
       className="min-h-screen bg-white/10 backdrop-blur-lg border-r border-white/20"

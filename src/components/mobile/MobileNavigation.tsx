@@ -46,7 +46,7 @@ export const MobileNavigation: React.FC = () => {
   // Define all available navigation items
   const allPatientNavItems = [
     {
-      label: 'Dashboard',
+      label: "Dashboard",
       icon: Home,
       action: () => navigate('/dashboard'),
       active: isPathActive('/dashboard'),
@@ -54,7 +54,7 @@ export const MobileNavigation: React.FC = () => {
       priority: 'high'
     },
     {
-      label: 'Chat',
+      label: "Chat",
       icon: MessageCircle,
       action: () => navigate('/chat'),
       active: isPathActive('/chat'),
@@ -62,7 +62,7 @@ export const MobileNavigation: React.FC = () => {
       priority: 'high'
     },
     {
-      label: 'Prescription',
+      label: "Prescription",
       icon: FileText,
       action: () => navigate('/prescriptions'),
       active: isPathActive('/prescriptions'),
@@ -70,7 +70,7 @@ export const MobileNavigation: React.FC = () => {
       priority: 'medium'
     },
     {
-      label: 'Habits',
+      label: "Habits",
       icon: Activity,
       action: () => navigate('/patient-habits'),
       active: isPathActive('/patient-habits'),
@@ -78,7 +78,7 @@ export const MobileNavigation: React.FC = () => {
       priority: 'medium'
     },
     {
-      label: 'Videos',
+      label: "Videos",
       icon: Video,
       action: () => navigate('/videos'),
       active: isPathActive('/videos'),
@@ -86,7 +86,7 @@ export const MobileNavigation: React.FC = () => {
       priority: 'low'
     },
     {
-      label: 'Profile',
+      label: "Profile",
       icon: UserRound,
       action: () => navigate('/patient-profile'),
       active: isPathActive('/patient-profile'),
@@ -94,7 +94,7 @@ export const MobileNavigation: React.FC = () => {
       priority: 'low'
     },
     {
-      label: 'Sign Out',
+      label: "Sign Out",
       icon: () => <SignOutButton onlyIcon variant="ghost" />,
       action: () => {}, // Action handled by SignOutButton
       active: false,
