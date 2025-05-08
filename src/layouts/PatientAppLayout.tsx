@@ -36,11 +36,11 @@ export function PatientAppLayout({
               <div className={`w-full ${isMobile ? "pt-16" : "pt-20"} ${fullWidth ? 'px-0' : 'px-4 md:px-6'} pb-8`}>
                 {showHeader && title && (
                   <div className={`mb-6 w-full ${fullWidth ? 'px-4 md:px-6' : ''}`}>
-                    <h1 className="text-2xl font-bold">{title}</h1>
+                    <h1 className="text-2xl font-bold text-[#7E69AB]">{title}</h1>
                     {description && <p className="text-muted-foreground">{description}</p>}
                   </div>
                 )}
-                <div className="w-full">
+                <div className={`w-full ${isMobileOrTablet ? 'pb-20' : ''}`}>
                   {children}
                 </div>
               </div>

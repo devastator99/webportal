@@ -133,11 +133,11 @@ const PatientPrescriptionsRoute = () => {
   };
   
   return getLayout(
-    <div className="w-full max-w-[1200px] mx-auto px-4 pb-16">
+    <div className="w-full max-w-[1200px] mx-auto px-4 pb-28">
       {/* Action buttons at the top for both desktop view and mobile doctor view */}
       {((!isMobileOrTablet && viewMode === "view") || (isMobileOrTablet && userRole === "doctor" && viewMode === "view")) && canWritePrescription && (
         <div className="flex justify-between items-center mb-6 print:hidden">
-          <h2 className="text-xl font-semibold">
+          <h2 className="text-xl font-semibold text-[#7E69AB]">
             {patientInfo 
               ? `${patientInfo.first_name} ${patientInfo.last_name}'s Prescriptions` 
               : 'Patient Prescriptions'}
@@ -164,7 +164,7 @@ const PatientPrescriptionsRoute = () => {
           {renderMobileActions()}
         </>
       ) : (
-        <div className="mt-4">
+        <div className="mt-4 pb-16">
           <div className="mb-6">
             <Button 
               variant="outline" 

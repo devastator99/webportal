@@ -48,7 +48,7 @@ export const MedicationsTab = ({ patientId }: MedicationsTabProps) => {
 
   return (
     <div className="w-full">
-      <h2 className="text-2xl font-medium text-amber-700 mb-2">Prescribed Medications</h2>
+      <h2 className="text-2xl font-medium text-[#7E69AB] mb-2">Prescribed Medications</h2>
       <p className="text-gray-500 mb-6">
         Updated by {doctorName} on {prescriptionDate}
       </p>
@@ -57,7 +57,7 @@ export const MedicationsTab = ({ patientId }: MedicationsTabProps) => {
         <div className="border border-gray-100 rounded-lg overflow-hidden shadow-sm">
           <div className="p-4 flex flex-col md:flex-row justify-between md:items-center gap-2">
             <div>
-              <h3 className="text-lg font-medium text-amber-700">Lisinopril 10mg</h3>
+              <h3 className="text-lg font-medium text-[#9b87f5]">Lisinopril 10mg</h3>
               <p className="text-gray-500">For blood pressure management</p>
             </div>
             <div className="md:text-right">
@@ -70,7 +70,7 @@ export const MedicationsTab = ({ patientId }: MedicationsTabProps) => {
         <div className="border border-gray-100 rounded-lg overflow-hidden shadow-sm">
           <div className="p-4 flex flex-col md:flex-row justify-between md:items-center gap-2">
             <div>
-              <h3 className="text-lg font-medium text-amber-700">Vitamin D3 1000 IU</h3>
+              <h3 className="text-lg font-medium text-[#9b87f5]">Vitamin D3 1000 IU</h3>
               <p className="text-gray-500">Supplement</p>
             </div>
             <div className="md:text-right">

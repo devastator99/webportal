@@ -55,7 +55,7 @@ export const PrescriptionTabsViewer = ({ patientId, className }: PrescriptionTab
           tabletSize="xl" 
           desktopSize="2xl" 
           weight="semibold" 
-          className="text-amber-700"
+          className="text-[#7E69AB]"
         >
           {userRole === 'patient' ? 'Your Prescriptions' : 'Patient Prescriptions'}
         </ResponsiveText>
@@ -75,33 +75,33 @@ export const PrescriptionTabsViewer = ({ patientId, className }: PrescriptionTab
           <TabsList className="grid grid-cols-4 w-full mb-4 sm:mb-6 bg-gray-50/80 shadow-sm border-0 rounded-lg overflow-hidden glass-card-soft">
             <TabsTrigger 
               value="medications" 
-              className="flex items-center gap-1.5 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-600 data-[state=active]:bg-white/80 text-xs sm:text-sm"
+              className="flex items-center gap-1.5 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-[#9b87f5] data-[state=active]:bg-white/80 text-xs sm:text-sm"
             >
-              <Pill className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600" />
+              <Pill className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#9b87f5]" />
               <span className="hidden sm:inline text-sm font-medium">Medications</span>
               <span className="sm:hidden text-xs font-medium">Meds</span>
             </TabsTrigger>
             <TabsTrigger 
               value="diet" 
-              className="flex items-center gap-1.5 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-600 data-[state=active]:bg-white/80 text-xs sm:text-sm"
+              className="flex items-center gap-1.5 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-[#9b87f5] data-[state=active]:bg-white/80 text-xs sm:text-sm"
             >
-              <Utensils className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600" />
+              <Utensils className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#9b87f5]" />
               <span className="hidden sm:inline text-sm font-medium">Diet Plan</span>
               <span className="sm:hidden text-xs font-medium">Diet</span>
             </TabsTrigger>
             <TabsTrigger 
               value="exercise" 
-              className="flex items-center gap-1.5 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-600 data-[state=active]:bg-white/80 text-xs sm:text-sm"
+              className="flex items-center gap-1.5 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-[#9b87f5] data-[state=active]:bg-white/80 text-xs sm:text-sm"
             >
-              <Dumbbell className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600" />
+              <Dumbbell className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#9b87f5]" />
               <span className="hidden sm:inline text-sm font-medium">Exercise</span>
               <span className="sm:hidden text-xs font-medium">Exer</span>
             </TabsTrigger>
             <TabsTrigger 
               value="mental" 
-              className="flex items-center gap-1.5 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-amber-600 data-[state=active]:bg-white/80 text-xs sm:text-sm"
+              className="flex items-center gap-1.5 py-2 rounded-none border-b-2 border-transparent data-[state=active]:border-[#9b87f5] data-[state=active]:bg-white/80 text-xs sm:text-sm"
             >
-              <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-amber-600" />
+              <Brain className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#9b87f5]" />
               <span className="hidden sm:inline text-sm font-medium">Mental Health</span>
               <span className="sm:hidden text-xs font-medium">Mental</span>
             </TabsTrigger>
