@@ -54,7 +54,7 @@ export const MedicationsTab = ({ patientId }: MedicationsTabProps) => {
       </p>
 
       <div className="space-y-4">
-        <div className="border border-gray-100 rounded-lg overflow-hidden shadow-sm">
+        <div className="border border-[#9b87f5]/10 rounded-lg overflow-hidden shadow-sm">
           <div className="p-4 flex flex-col md:flex-row justify-between md:items-center gap-2">
             <div>
               <h3 className="text-lg font-medium text-[#9b87f5]">Lisinopril 10mg</h3>
@@ -67,7 +67,7 @@ export const MedicationsTab = ({ patientId }: MedicationsTabProps) => {
           </div>
         </div>
 
-        <div className="border border-gray-100 rounded-lg overflow-hidden shadow-sm">
+        <div className="border border-[#9b87f5]/10 rounded-lg overflow-hidden shadow-sm">
           <div className="p-4 flex flex-col md:flex-row justify-between md:items-center gap-2">
             <div>
               <h3 className="text-lg font-medium text-[#9b87f5]">Vitamin D3 1000 IU</h3>

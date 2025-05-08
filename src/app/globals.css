@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -146,4 +147,16 @@ button[class*="border-[#9b87f5]"] {
 nav .items-center {
   z-index: 101;
   position: relative;
+}
+
+/* Ensure proper spacing for mobile navigation at bottom */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 1rem);
+}
+
+/* Add bottom margin to main content area when mobile navigation is present */
+@media (max-width: 768px) {
+  .has-mobile-nav {
+    margin-bottom: 4rem;
+  }
 }

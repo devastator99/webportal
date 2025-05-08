@@ -99,7 +99,7 @@ export const HabitTracker: React.FC<HabitTrackerProps> = ({
             tabletSize="2xl" 
             desktopSize="3xl" 
             weight="semibold" 
-            className="text-amber-700"
+            className="text-[#7E69AB]"
           >
             Habit Tracker
           </ResponsiveText>

@@ -41,20 +41,20 @@ const PatientHabitsPage = () => {
       <ContentContainer>
         {isLoading ? (
           <div className="flex justify-center p-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Loader2 className="h-8 w-8 animate-spin text-[#7E69AB]" />
           </div>
         ) : (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="w-full grid grid-cols-2 mb-4 sm:mb-6 glass-card">
+            <TabsList className="w-full grid grid-cols-2 mb-4 sm:mb-6 glass-card border border-[#9b87f5]/20">
               <TabsTrigger 
                 value="habits" 
-                className="text-base py-2.5"
+                className="text-base py-2.5 data-[state=active]:bg-[#9b87f5]/20 data-[state=active]:text-[#7E69AB] font-medium"
               >
                 Habits
               </TabsTrigger>
               <TabsTrigger 
                 value="progress" 
-                className="text-base py-2.5"
+                className="text-base py-2.5 data-[state=active]:bg-[#9b87f5]/20 data-[state=active]:text-[#7E69AB] font-medium"
               >
                 Progress
               </TabsTrigger>
@@ -69,7 +69,7 @@ const PatientHabitsPage = () => {
             </TabsContent>
             
             <TabsContent value="progress">
-              <Card className="p-4 sm:p-6 glass-card-soft shadow-sm">
+              <Card className="p-4 sm:p-6 glass-card-soft shadow-sm border border-[#9b87f5]/10">
                 <HabitsProgressCharts />
               </Card>
             </TabsContent>
