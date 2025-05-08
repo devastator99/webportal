@@ -6,11 +6,13 @@ import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, MessageCircle } from "lucide-react";
+import { Loader2, MessageCircle, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile, useIsMobileOrIPad } from "@/hooks/use-mobile";
 import { MobileNavigation } from "@/components/mobile/MobileNavigation";
 import { PatientPageLayout } from "@/components/layout/PatientPageLayout";
+import { PatientAppLayout } from "@/layouts/PatientAppLayout";
+import { Button } from "@/components/ui/button";
 
 const ChatPage = () => {
   const { user, userRole, isLoading } = useAuth();
@@ -79,6 +81,11 @@ const ChatPage = () => {
     }
   }, [user, userRole, toast, isPatient]);
 
+  // Function to go back to dashboard
+  const handleBackToDashboard = () => {
+    navigate('/dashboard');
+  };
+
   if (isLoading || loadingRoom) {
     return (
       <div className="container pt-24 animate-fade-in">
@@ -95,20 +102,45 @@ const ChatPage = () => {
 
   if (!user) return null;
   
-  // For patient users, use the PatientPageLayout
+  // For patient users, use the PatientAppLayout with fullScreenChat mode
   if (isPatient) {
     return (
-      <PatientPageLayout showHeader={false}>
-        <div className="flex items-center gap-2 mb-0.5">
-          <MessageCircle className="h-5 w-5 text-[#7E69AB]" />
-          <h1 className="text-lg font-bold">Care Team Chat</h1>
-        </div>
-        <Separator className="mb-1" />
-        
-        <div className="h-[calc(100vh-240px)] chat-container">
-          <WhatsAppStyleChatInterface patientRoomId={patientRoomId} />
-        </div>
-      </PatientPageLayout>
+      <PatientAppLayout fullScreenChat={isMobileOrTablet} showHeader={false}>
+        {isMobileOrTablet ? (
+          <div className="flex flex-col h-screen">
+            <div className="chat-fullscreen-header">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="mr-2 p-0 h-8 w-8" 
+                onClick={handleBackToDashboard}
+              >
+                <ArrowLeft className="h-5 w-5 text-[#7E69AB]" />
+              </Button>
+              <div className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5 text-[#7E69AB]" />
+                <h1 className="text-lg font-bold">Care Team Chat</h1>
+              </div>
+            </div>
+            
+            <div className="chat-fullscreen-messages">
+              <WhatsAppStyleChatInterface patientRoomId={patientRoomId} fullScreen={true} />
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center gap-2 mb-0.5">
+              <MessageCircle className="h-5 w-5 text-[#7E69AB]" />
+              <h1 className="text-lg font-bold">Care Team Chat</h1>
+            </div>
+            <Separator className="mb-1" />
+            
+            <div className="h-[calc(100vh-240px)] chat-container">
+              <WhatsAppStyleChatInterface patientRoomId={patientRoomId} />
+            </div>
+          </>
+        )}
+      </PatientAppLayout>
     );
   }
 

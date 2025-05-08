@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -201,4 +200,84 @@ nav .items-center {
   background: white;
   padding-bottom: env(safe-area-inset-bottom, 1rem);
   border-top: 1px solid rgba(155, 135, 245, 0.1);
+}
+
+/* Full-screen chat mode styles */
+.chat-fullscreen-main {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  background: white;
+  overflow: hidden;
+}
+
+.chat-fullscreen-content {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  padding: 0;
+}
+
+.chat-fullscreen-header {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid rgba(155, 135, 245, 0.1);
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.chat-fullscreen-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem 0;
+}
+
+.chat-fullscreen-input {
+  padding: 0.75rem;
+  border-top: 1px solid rgba(155, 135, 245, 0.1);
+  background: white;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+
+/* Left-aligned messages styles */
+.chat-message-left {
+  text-align: left;
+  margin-right: auto;
+}
+
+.chat-message-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.chat-message-bubble {
+  max-width: 85%;
+  margin-bottom: 0.25rem;
+  border-radius: 1rem;
+  padding: 0.75rem 1rem;
+  position: relative;
+}
+
+.chat-message-sent {
+  margin-left: auto;
+  background-color: #9b87f5;
+  color: white;
+  border-top-right-radius: 0;
+}
+
+.chat-message-received {
+  margin-right: auto;
+  background-color: #f1f5f9;
+  color: #334155;
+  border-top-left-radius: 0;
 }

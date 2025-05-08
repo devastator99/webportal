@@ -1,6 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MessageSquare, Users, WifiOff } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -13,6 +12,7 @@ import { useOnlineStatus } from "@/utils/networkStatus";
 import { saveOfflineMessage, getUnsyncedMessages, markMessageAsSynced, deleteOfflineMessage } from "@/utils/offlineStorage";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { PatientCuratedHealthTips } from "@/components/dashboard/patient/PatientCuratedHealthTips";
+import { cn } from "@/lib/utils";
 
 type UserProfile = {
   id: string;
@@ -35,6 +35,7 @@ interface ChatInterfaceProps {
   whatsAppStyle?: boolean;
   includeAiBot?: boolean;
   includeCareTeamMessages?: boolean;
+  fullScreen?: boolean; // New prop for full-screen mode
 }
 
 interface LocalMessage {
@@ -57,7 +58,8 @@ export const ChatInterface = ({
   showGroupChat = true,
   whatsAppStyle = false,
   includeAiBot = false,
-  includeCareTeamMessages = false
+  includeCareTeamMessages = false,
+  fullScreen = false // Default to false
 }: ChatInterfaceProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();
@@ -426,6 +428,44 @@ export const ChatInterface = ({
     }
   };
 
+  // If in full-screen mode, we'll use a different layout
+  if (fullScreen) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex-1 overflow-y-auto chat-message-container">
+          <ChatMessagesList
+            careTeamMembers={careTeamGroup?.members}
+            useRoomMessages={isGroupChat}
+            roomId={careTeamGroup?.id}
+            selectedUserId={!isGroupChat ? selectedUserId : undefined}
+            localMessages={localMessages}
+            offlineMode={!isOnline}
+            fullScreen={true}
+            leftAligned={true}
+          />
+        </div>
+        
+        <div className="chat-fullscreen-input">
+          <ChatInput
+            value={newMessage}
+            onChange={setNewMessage}
+            onSend={handleSendMessage}
+            disabled={userRole === 'doctor' ? !selectedUserId : !careTeamGroup}
+            placeholder={
+              userRole === 'doctor' 
+                ? "Message to patient..." 
+                : isOnline 
+                  ? "Message your care team..." 
+                  : "Message your care team (offline)..."
+            }
+            offlineMode={!isOnline}
+            fullScreen={true}
+          />
+        </div>
+      </div>
+    );
+  }
+
   if (showWhatsAppStyle) {
     return (
       <div className="h-full flex flex-col md:flex-row">
@@ -504,8 +544,8 @@ export const ChatInterface = ({
 
   return (
     <>
-      <Card className="h-full flex flex-col">
-        <CardHeader>
+      <Card className={cn("h-full flex flex-col", fullScreen && "border-0 shadow-none rounded-none")}>
+        <CardHeader className={fullScreen ? "p-2" : undefined}>
           <CardTitle className="flex items-center gap-2">
             {userRole === 'doctor' ? <MessageSquare className="h-5 w-5" /> : <Users className="h-5 w-5" />}
             {getHeaderTitle()}
@@ -526,6 +566,7 @@ export const ChatInterface = ({
               localMessages={localMessages}
               offlineMode={!isOnline}
               useRoomMessages={false}
+              leftAligned={true}
             />
           ) : (
             <ChatMessagesList
@@ -535,6 +576,7 @@ export const ChatInterface = ({
               selectedUserId={!isGroupChat ? selectedUserId : undefined}
               localMessages={localMessages}
               offlineMode={!isOnline}
+              leftAligned={true}
             />
           )}
           <ChatInput
@@ -553,7 +595,7 @@ export const ChatInterface = ({
           />
         </CardContent>
       </Card>
-      {userRole === "patient" && (
+      {userRole === "patient" && !fullScreen && (
         <div>
           <PatientCuratedHealthTips />
         </div>

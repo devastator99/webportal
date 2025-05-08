@@ -13,6 +13,7 @@ interface PatientAppLayoutProps {
   title?: string;
   description?: string;
   fullWidth?: boolean;
+  fullScreenChat?: boolean; // New prop for full-screen chat mode
 }
 
 export function PatientAppLayout({
@@ -21,33 +22,39 @@ export function PatientAppLayout({
   title,
   description,
   fullWidth = false,
+  fullScreenChat = false, // Initialize with default value
 }: PatientAppLayoutProps) {
   const isMobile = useIsMobile();
   const isMobileOrTablet = useIsMobileOrIPad();
+
+  // Apply special classes for full-screen chat mode on mobile
+  const mainContentClasses = fullScreenChat && isMobileOrTablet 
+    ? "chat-fullscreen-content" 
+    : `w-full ${isMobile ? "pt-16" : "pt-20"} ${fullWidth ? 'px-0' : 'px-4 md:px-6'} pb-8`;
 
   return (
     <AppLayout>
       <SidebarProvider>
         <div className="flex min-h-screen w-full">
-          <PatientSidebar />
+          {!fullScreenChat && <PatientSidebar />}
           
-          <main className="flex-1 w-full overflow-x-hidden">
+          <main className={`flex-1 w-full overflow-x-hidden ${fullScreenChat ? 'chat-fullscreen-main' : ''}`}>
             <div className="w-full h-full">
-              <div className={`w-full ${isMobile ? "pt-16" : "pt-20"} ${fullWidth ? 'px-0' : 'px-4 md:px-6'} pb-8`}>
-                {showHeader && title && (
+              <div className={mainContentClasses}>
+                {showHeader && title && !fullScreenChat && (
                   <div className={`mb-6 w-full ${fullWidth ? 'px-4 md:px-6' : ''}`}>
                     <h1 className="text-2xl font-bold text-[#7E69AB]">{title}</h1>
                     {description && <p className="text-muted-foreground">{description}</p>}
                   </div>
                 )}
-                <div className={`w-full ${isMobileOrTablet ? 'pb-32' : ''}`}>
+                <div className={`w-full ${isMobileOrTablet && !fullScreenChat ? 'pb-32' : ''}`}>
                   {children}
                 </div>
               </div>
             </div>
           </main>
           
-          {isMobileOrTablet && <MobileNavigation />}
+          {isMobileOrTablet && !fullScreenChat && <MobileNavigation />}
         </div>
       </SidebarProvider>
     </AppLayout>

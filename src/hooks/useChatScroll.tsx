@@ -7,6 +7,7 @@ interface UseChatScrollOptions {
   loadingMore: boolean;
   isNewMessage?: boolean;
   messagesToShow?: number;
+  fullScreen?: boolean; // Added fullScreen option
 }
 
 export function useChatScroll({ 
@@ -14,7 +15,8 @@ export function useChatScroll({
   loadingMessages, 
   loadingMore,
   isNewMessage = false,
-  messagesToShow = 0
+  messagesToShow = 0,
+  fullScreen = false // Default to false
 }: UseChatScrollOptions) {
   const endRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,7 +53,7 @@ export function useChatScroll({
     };
   }, [hasScrolledUp]);
 
-  // Handle auto-scrolling - optimized for mobile
+  // Handle auto-scrolling - optimized for mobile and full-screen mode
   useEffect(() => {
     // Only auto-scroll in these conditions:
     // 1. When user is already near bottom
@@ -60,17 +62,22 @@ export function useChatScroll({
     // 4. Not during loading more (older) messages
     if ((shouldAutoScroll || isNewMessage) && !loadingMessages && !loadingMore) {
       requestAnimationFrame(() => {
-        endRef.current?.scrollIntoView({ behavior: 'smooth' });
+        if (fullScreen) {
+          // For full-screen mode, use a more aggressive scroll behavior
+          endRef.current?.scrollIntoView({ behavior: 'auto' });
+        } else {
+          endRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }
       });
     }
-  }, [messages, loadingMessages, loadingMore, shouldAutoScroll, isNewMessage, messagesToShow]);
+  }, [messages, loadingMessages, loadingMore, shouldAutoScroll, isNewMessage, messagesToShow, fullScreen]);
 
   const scrollToBottom = () => {
     if (endRef.current) {
       // Use requestAnimationFrame for smoother scrolling
       requestAnimationFrame(() => {
         endRef.current?.scrollIntoView({ 
-          behavior: 'smooth',
+          behavior: fullScreen ? 'auto' : 'smooth',
           block: 'end',
           inline: 'nearest'
         });
