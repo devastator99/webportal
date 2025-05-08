@@ -23,36 +23,23 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onComplete, complet
   const getHabitIcon = () => {
     switch (habit.type) {
       case 'food':
-        return <Apple className="h-6 w-6 text-red-500" />;
+        return <Apple className="h-6 w-6 text-[#7E69AB]" />;
       case 'exercise':
-        return <Activity className="h-6 w-6 text-green-500" />;
+        return <Activity className="h-6 w-6 text-[#7E69AB]" />;
       case 'sleep':
-        return <Moon className="h-6 w-6 text-indigo-500" />;
+        return <Moon className="h-6 w-6 text-[#7E69AB]" />;
       case 'mindfulness':
-        return <Brain className="h-6 w-6 text-purple-500" />;
+        return <Brain className="h-6 w-6 text-[#7E69AB]" />;
       case 'water':
-        return <Droplet className="h-6 w-6 text-blue-500" />;
+        return <Droplet className="h-6 w-6 text-[#7E69AB]" />;
       default:
-        return <Activity className="h-6 w-6 text-[#9b87f5]" />;
+        return <Activity className="h-6 w-6 text-[#7E69AB]" />;
     }
   };
 
-  // Get background color based on habit type
+  // Get background color based on habit type - updated to use consistent purple theme
   const getCardBgColor = () => {
-    switch (habit.type) {
-      case 'food':
-        return 'bg-red-50';
-      case 'exercise':
-        return 'bg-green-50';
-      case 'sleep':
-        return 'bg-blue-50';
-      case 'mindfulness':
-        return 'bg-purple-50';
-      case 'water':
-        return 'bg-blue-50';
-      default:
-        return 'bg-gray-50';
-    }
+    return 'bg-[#9b87f5]/10';
   };
 
   // Generate days of the week
@@ -72,7 +59,7 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onComplete, complet
           className={cn(
             "flex flex-col items-center justify-center rounded-full p-2 cursor-pointer transition-colors",
             isToday ? "border-2 border-[#9b87f5]" : "border border-gray-200",
-            weeklyProgress[i] ? "bg-green-500 text-white" : "bg-white"
+            weeklyProgress[i] ? "bg-[#9b87f5] text-white" : "bg-white"
           )}
           onClick={() => {
             setSelectedDay(i);
@@ -96,12 +83,12 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onComplete, complet
     <div className="flex items-center justify-between mt-4">
       <div className="flex items-center gap-2">
         {getHabitIcon()}
-        <span className="text-lg font-medium text-[#8B5000]">{habit.description}</span>
+        <span className="text-lg font-medium text-[#7E69AB]">{habit.description}</span>
       </div>
       <div
         className={cn(
           "w-8 h-8 rounded-full border cursor-pointer transition-all flex items-center justify-center",
-          completed ? "bg-green-500 border-green-600" : "border-gray-300"
+          completed ? "bg-[#9b87f5] border-[#7E69AB]" : "border-gray-300"
         )}
         onClick={() => {
           if (habit.id) {
@@ -137,10 +124,10 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onComplete, complet
       <div className="p-4">
         <div className="flex items-center mb-4">
           {getHabitIcon()}
-          <span className="ml-2 text-xl font-medium text-[#8B5000]">{habit.description}</span>
+          <span className="ml-2 text-xl font-medium text-[#7E69AB]">{habit.description}</span>
         </div>
         
-        <div className="flex items-center justify-center bg-gray-100 rounded-lg p-1 mb-4">
+        <div className="flex items-center justify-center bg-white/80 rounded-lg p-1 mb-4">
           <Button
             variant="ghost"
             size="sm"
@@ -150,8 +137,8 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onComplete, complet
             )}
             onClick={() => setView('daily')}
           >
-            <Calendar className="h-4 w-4 text-[#8B5000]" />
-            <span className="text-[#8B5000]">Daily</span>
+            <Calendar className="h-4 w-4 text-[#7E69AB]" />
+            <span className="text-[#7E69AB]">Daily</span>
           </Button>
           <Button
             variant="ghost" 
@@ -162,8 +149,8 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onComplete, complet
             )}
             onClick={() => setView('weekly')}
           >
-            <Calendar className="h-4 w-4 text-[#8B5000]" />
-            <span className="text-[#8B5000]">Weekly</span>
+            <Calendar className="h-4 w-4 text-[#7E69AB]" />
+            <span className="text-[#7E69AB]">Weekly</span>
           </Button>
           <Button
             variant="ghost"
@@ -174,8 +161,8 @@ export const HabitCard: React.FC<HabitCardProps> = ({ habit, onComplete, complet
             )}
             onClick={() => setView('overall')}
           >
-            <Calendar className="h-4 w-4 text-[#8B5000]" />
-            <span className="text-[#8B5000]">Overall</span>
+            <Calendar className="h-4 w-4 text-[#7E69AB]" />
+            <span className="text-[#7E69AB]">Overall</span>
           </Button>
         </div>
         
