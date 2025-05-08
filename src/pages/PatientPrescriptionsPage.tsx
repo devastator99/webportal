@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -217,7 +218,7 @@ const PatientPrescriptionsPage: React.FC = () => {
           </CardHeader>
         </Card>
       ) : (
-        <div className="w-full">
+        <div className="w-full mb-24">
           <Tabs defaultValue="list" className="w-full">
             <TabsList className={`mb-4 ${isSmallScreen ? 'w-full grid grid-cols-2' : ''}`}>
               <TabsTrigger value="list" className={isSmallScreen ? 'w-full' : ''}>List View</TabsTrigger>

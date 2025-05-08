@@ -150,21 +150,20 @@ const PatientPrescriptionsRoute = () => {
               <Pen className="h-4 w-4 mr-2" />
               Write Prescription
             </Button>
-            {/* Removed the Download PDF button from here as it's duplicated elsewhere */}
           </div>
         </div>
       )}
       
       {viewMode === "view" ? (
         <>
-          <div id="prescription-content">
+          <div id="prescription-content" className="mb-24">
             <PrescriptionTabsViewer patientId={effectivePatientId} />
           </div>
           {/* Only show mobile action buttons for patient role */}
           {renderMobileActions()}
         </>
       ) : (
-        <div className="mt-4 pb-16">
+        <div className="mt-4 pb-28">
           <div className="mb-6">
             <Button 
               variant="outline" 
