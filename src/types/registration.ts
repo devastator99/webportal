@@ -18,6 +18,14 @@ export interface RegistrationProgress {
 
 export type RegistrationStatus = 'payment_pending' | 'payment_complete' | 'care_team_assigned' | 'fully_registered';
 
+// Adding an enum for type-safe comparisons
+export enum RegistrationStatus {
+  PAYMENT_PENDING = 'payment_pending',
+  PAYMENT_COMPLETE = 'payment_complete',
+  CARE_TEAM_ASSIGNED = 'care_team_assigned',
+  FULLY_REGISTERED = 'fully_registered'
+}
+
 export interface DefaultCareTeam {
   id: string;
   default_doctor_id: string;

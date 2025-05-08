@@ -95,7 +95,7 @@ export const MobileNavigation: React.FC = () => {
     },
     {
       label: 'Sign Out',
-      icon: LogOut => <SignOutButton onlyIcon variant="ghost" />, // Replace with SignOutButton
+      icon: () => <SignOutButton onlyIcon variant="ghost" />,
       action: () => {}, // Action handled by SignOutButton
       active: false,
       disabled: false,
@@ -138,7 +138,7 @@ export const MobileNavigation: React.FC = () => {
     },
     {
       label: 'Sign Out',
-      icon: LogOut => <SignOutButton onlyIcon variant="ghost" />, // Replace with SignOutButton
+      icon: () => <SignOutButton onlyIcon variant="ghost" />,
       action: () => {}, // Action handled by SignOutButton
       active: false,
       disabled: false,
@@ -199,7 +199,10 @@ export const MobileNavigation: React.FC = () => {
       <ModernTabBar 
         items={navbarItems.map(item => ({
           label: item.label,
-          icon: typeof item.icon === 'function' ? item.icon : item.icon,
+          icon: typeof item.icon === 'function' ? item.icon : (props) => {
+            const IconComponent = item.icon;
+            return <IconComponent {...props} />;
+          },
           onClick: item.action,
           active: item.active,
           disabled: item.disabled
@@ -245,7 +248,7 @@ export const MobileNavigation: React.FC = () => {
                     disabled={item.disabled}
                   >
                     {typeof item.icon === 'function' ? 
-                      item.icon() : 
+                      item.icon({}) : 
                       <item.icon className="h-6 w-6 mb-2" />
                     }
                     <span className="text-xs text-center">{item.label}</span>
