@@ -1114,6 +1114,7 @@ export type Database = {
           patient_id: string
           payment_id: string | null
           razorpay_order_id: string | null
+          razorpay_payment_id: string | null
           status: string
           updated_at: string
           whatsapp_sent: boolean | null
@@ -1130,6 +1131,7 @@ export type Database = {
           patient_id: string
           payment_id?: string | null
           razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           status?: string
           updated_at?: string
           whatsapp_sent?: boolean | null
@@ -1146,6 +1148,7 @@ export type Database = {
           patient_id?: string
           payment_id?: string | null
           razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
           status?: string
           updated_at?: string
           whatsapp_sent?: boolean | null

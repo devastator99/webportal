@@ -199,12 +199,13 @@ export const MobileNavigation: React.FC = () => {
       <ModernTabBar 
         items={navbarItems.map(item => ({
           label: item.label,
-          icon: typeof item.icon === 'function' 
-            ? item.icon 
-            : (props: any) => {
-                const IconComponent = item.icon;
-                return <IconComponent {...props} />;
-              },
+          icon: (props: any) => {
+            if (typeof item.icon === 'function') {
+              const IconComponent = item.icon;
+              return <IconComponent {...props} />;
+            }
+            return null;
+          },
           onClick: item.action,
           active: item.active,
           disabled: item.disabled
@@ -250,7 +251,7 @@ export const MobileNavigation: React.FC = () => {
                     disabled={item.disabled}
                   >
                     {typeof item.icon === 'function' ? 
-                      item.icon({}) : 
+                      React.createElement(item.icon as React.ComponentType, { className: "h-6 w-6 mb-2" }) : 
                       <item.icon className="h-6 w-6 mb-2" />
                     }
                     <span className="text-xs text-center">{item.label}</span>
