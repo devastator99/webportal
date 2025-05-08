@@ -57,7 +57,7 @@ export const ModernTabBar: React.FC<ModernTabBarProps> = ({ items, className }) 
       "fixed bottom-0 left-0 right-0 z-40 mx-auto px-4 pb-1 animate-fade-up",
       className
     )}>
-      <div className="relative flex items-center justify-around max-w-md mx-auto rounded-full p-1.5 glass-nav shadow-lg">
+      <div className="relative flex items-center justify-around max-w-md mx-auto rounded-full p-1.5 bg-[#F1F0FB] shadow-lg">
         {/* Animated indicator */}
         <div 
           ref={indicatorRef}
@@ -73,7 +73,7 @@ export const ModernTabBar: React.FC<ModernTabBarProps> = ({ items, className }) 
               "relative flex flex-col items-center justify-center py-2 px-4 rounded-full transition-all duration-300 z-10",
               item.active 
                 ? "text-[#7E69AB] scale-105" 
-                : "text-gray-500 hover:text-[#7E69AB]/80",
+                : "text-[#403E43] hover:text-[#7E69AB]/80",
               item.disabled && "opacity-50 pointer-events-none"
             )}
             onClick={handleItemClick(index, item.onClick)}

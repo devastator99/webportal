@@ -77,7 +77,7 @@ export function DoctorSidebar() {
                   "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors",
                   (location.pathname === item.path || location.pathname.startsWith(`${item.path}/`))
                     ? "bg-[#9b87f5] text-white"
-                    : "text-[#7E69AB] hover:bg-[#E5DEFF]"
+                    : "text-[#403E43] hover:bg-[#E5DEFF] hover:text-[#7E69AB]"
                 )}
               >
                 <item.icon className="h-5 w-5" />
@@ -105,7 +105,7 @@ export function DoctorSidebar() {
               </SheetTrigger>
               <SheetContent 
                 side="left" 
-                className="w-64 p-0 bg-white/10 backdrop-blur-lg border-r border-white/20"
+                className="w-64 p-0 bg-[#F1F0FB] border-r border-[#9b87f5]/20"
               >
                 <div className="h-full overflow-y-auto pt-4">
                   <SidebarGroupContent>

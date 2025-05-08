@@ -106,7 +106,7 @@ export function PatientSidebar() {
                   "flex items-center gap-3 px-4 py-2 rounded-lg transition-colors",
                   isPathActive(item.path)
                     ? "bg-[#9b87f5] text-white"
-                    : "text-[#7E69AB] hover:bg-[#E5DEFF]"
+                    : "text-[#403E43] hover:bg-[#E5DEFF] hover:text-[#7E69AB]"
                 )}
               >
                 <item.icon className="h-5 w-5" />
@@ -121,7 +121,7 @@ export function PatientSidebar() {
           <div className="px-4 py-2">
             <SignOutButton 
               variant="ghost" 
-              className="w-full justify-start text-[#7E69AB] hover:bg-[#E5DEFF] hover:text-[#7E69AB]" 
+              className="w-full justify-start text-[#403E43] hover:bg-[#E5DEFF] hover:text-[#7E69AB]" 
             />
           </div>
         </SidebarMenuItem>
@@ -144,7 +144,7 @@ export function PatientSidebar() {
               </SheetTrigger>
               <SheetContent 
                 side="left" 
-                className="w-[var(--sidebar-width-mobile)] p-0 bg-white/10 backdrop-blur-lg border-r border-white/20"
+                className="w-[var(--sidebar-width-mobile)] p-0 bg-[#F1F0FB] border-r border-[#9b87f5]/20"
               >
                 <div className="h-full overflow-y-auto pt-4">
                   <SidebarGroupContent>
