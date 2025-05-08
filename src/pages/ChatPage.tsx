@@ -1,4 +1,3 @@
-
 import { useAuth, UserRoleEnum } from "@/contexts/AuthContext";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
@@ -13,6 +12,12 @@ import { MobileNavigation } from "@/components/mobile/MobileNavigation";
 import { PatientPageLayout } from "@/components/layout/PatientPageLayout";
 import { PatientAppLayout } from "@/layouts/PatientAppLayout";
 import { Button } from "@/components/ui/button";
+
+// Add this interface at the top of the file
+interface WhatsAppStyleChatInterfaceProps {
+  patientRoomId?: string | null;
+  fullScreen?: boolean;
+}
 
 const ChatPage = () => {
   const { user, userRole, isLoading } = useAuth();

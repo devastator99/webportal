@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +32,8 @@ interface ChatMessagesListProps {
   useRoomMessages?: boolean;
   selectedUserId?: string;
   offlineMode?: boolean;
+  fullScreen?: boolean;  // Add the fullScreen prop
+  leftAligned?: boolean; // Add the leftAligned prop
 }
 
 const PAGE_SIZE = 100;
@@ -41,7 +44,9 @@ export const ChatMessagesList = ({
   careTeamMembers = [],
   useRoomMessages = false,
   selectedUserId,
-  offlineMode = false
+  offlineMode = false,
+  fullScreen = false,    // Add default value
+  leftAligned = false    // Add default value
 }: ChatMessagesListProps) => {
   const { user, userRole } = useAuth();
   const { toast } = useToast();

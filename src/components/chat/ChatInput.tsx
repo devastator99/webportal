@@ -19,6 +19,7 @@ interface ChatInputProps {
   selectedFile?: File | null;
   onClearFile?: () => void;
   uploadProgress?: number;
+  fullScreen?: boolean; // Add the fullScreen prop
 }
 
 export const ChatInput = ({ 
@@ -33,7 +34,8 @@ export const ChatInput = ({
   onFileSelect,
   selectedFile,
   onClearFile,
-  uploadProgress = 0
+  uploadProgress = 0,
+  fullScreen = false // Add default value
 }: ChatInputProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
