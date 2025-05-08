@@ -201,6 +201,8 @@ export const MobileNavigation: React.FC = () => {
           label: item.label,
           icon: (props: any) => {
             if (typeof item.icon === 'function') {
+              return item.icon(props);
+            } else if (item.icon) {
               const IconComponent = item.icon;
               return <IconComponent {...props} />;
             }
@@ -251,7 +253,7 @@ export const MobileNavigation: React.FC = () => {
                     disabled={item.disabled}
                   >
                     {typeof item.icon === 'function' ? 
-                      React.createElement(item.icon as React.ComponentType, { className: "h-6 w-6 mb-2" }) : 
+                      item.icon({ className: "h-6 w-6 mb-2" }) : 
                       <item.icon className="h-6 w-6 mb-2" />
                     }
                     <span className="text-xs text-center">{item.label}</span>
