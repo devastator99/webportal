@@ -23,6 +23,7 @@ export function useChatScroll({
   const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [hasScrolledUp, setHasScrolledUp] = useState(false);
+  const [lastScrollTop, setLastScrollTop] = useState(0);
 
   // Handle scroll position detection
   useEffect(() => {
@@ -39,6 +40,22 @@ export function useChatScroll({
       if (!isNearBottom && !hasScrolledUp) {
         setHasScrolledUp(true);
       }
+
+      // Handle header visibility on mobile
+      if (fullScreen) {
+        const header = document.querySelector('.chat-fullscreen-header');
+        if (header) {
+          // Scrolling down - hide header
+          if (scrollTop > lastScrollTop && scrollTop > 50) {
+            header.classList.add('hidden');
+          } 
+          // Scrolling up - show header
+          else if (scrollTop < lastScrollTop) {
+            header.classList.remove('hidden');
+          }
+          setLastScrollTop(scrollTop <= 0 ? 0 : scrollTop);
+        }
+      }
     };
 
     const container = containerRef.current;
@@ -51,7 +68,7 @@ export function useChatScroll({
         container.removeEventListener('scroll', handleScroll);
       }
     };
-  }, [hasScrolledUp]);
+  }, [hasScrolledUp, fullScreen, lastScrollTop]);
 
   // Handle auto-scrolling - optimized for mobile and full-screen mode
   useEffect(() => {
@@ -65,6 +82,12 @@ export function useChatScroll({
         if (fullScreen) {
           // For full-screen mode, use a more aggressive scroll behavior
           endRef.current?.scrollIntoView({ behavior: 'auto' });
+          
+          // Also show the header if it was hidden
+          const header = document.querySelector('.chat-fullscreen-header');
+          if (header) {
+            header.classList.remove('hidden');
+          }
         } else {
           endRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
@@ -84,6 +107,14 @@ export function useChatScroll({
         setShouldAutoScroll(true);
         setShowScrollButton(false);
         setHasScrolledUp(false);
+        
+        // Show header when manually scrolling to bottom
+        if (fullScreen) {
+          const header = document.querySelector('.chat-fullscreen-header');
+          if (header) {
+            header.classList.remove('hidden');
+          }
+        }
       });
     }
   };

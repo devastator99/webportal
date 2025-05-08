@@ -1,136 +1,132 @@
+import { useEffect, useState } from "react";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { AuthProvider } from "./contexts/AuthContext";
+import { LandingPage } from "./pages/LandingPage";
+import { SignInPage } from "./pages/SignInPage";
+import { SignUpPage } from "./pages/SignUpPage";
+import { DashboardPage } from "./pages/DashboardPage";
+import { ProfilePage } from "./pages/ProfilePage";
+import { ChatPage } from "./pages/ChatPage";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { GuestRoute } from "./components/auth/GuestRoute";
+import { VerifyEmailPage } from "./pages/VerifyEmailPage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+import { TermsOfServicePage } from "./pages/TermsOfServicePage";
+import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage";
+import { ContactPage } from "./pages/ContactPage";
+import { AboutUsPage } from "./pages/AboutUsPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
+import { useIsMobile } from "./hooks/use-mobile";
+import { MobileNavigation } from "./components/mobile/MobileNavigation";
+import { SiteHeader } from "./components/layout/SiteHeader";
+import { SiteFooter } from "./components/layout/SiteFooter";
+import { ScrollToTop } from "./components/utils/ScrollToTop";
+import { AppLayout } from "./layouts/AppLayout";
+import { PatientAppLayout } from "./layouts/PatientAppLayout";
+import { DoctorDashboard } from "./components/dashboard/doctor/DoctorDashboard";
+import { NutritionistDashboard } from "./components/dashboard/nutritionist/NutritionistDashboard";
+import { PatientDashboard } from "./components/dashboard/patient/PatientDashboard";
+import { ErrorBoundary } from "./components/common/ErrorBoundary";
+import { useAuth } from "./contexts/AuthContext";
+import { UserRoleEnum } from "./contexts/AuthContext";
 
-import './App.css';
-import './styles/glass.css';
-import './styles/ai-chat.css';
-import './components/ui/sidebar-variables.css';
-import { BrowserRouter as Router, useNavigate, useLocation } from 'react-router-dom';
-import { Toaster } from 'sonner';
-import { ThemeProvider } from './components/ui/theme-provider';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { ResponsiveProvider } from './contexts/ResponsiveContext';
-import { Navbar } from './components/Navbar';
-import { AppRoutes } from './routes/AppRoutes';
-import { useEffect } from 'react';
-import { MobileStatusBar } from './components/mobile/MobileStatusBar';
-import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { AuthDebugMonitor } from './components/auth/AuthDebugMonitor';
-import { SidebarProvider } from './components/ui/sidebar';
+import "./styles/globals.css";
+import "./styles/chat-header.css"; // Add this import
 
-// Password reset redirect function
-function PasswordResetRedirect() {
-  const navigate = useNavigate();
+function AppRouter() {
+  const { toast } = useToast();
+  const isMobile = useIsMobile();
+  const { user, userRole, isLoading } = useAuth();
   const location = useLocation();
-  
+
   useEffect(() => {
-    const hash = location.hash;
-    const searchParams = new URLSearchParams(location.search);
-    
-    const isRecoveryInHash = hash && hash.includes('type=recovery');
-    const isRecoveryInQuery = searchParams.get('type') === 'recovery';
-    
-    if (isRecoveryInHash || isRecoveryInQuery) {
-      console.log('Detected password reset parameters, redirecting to /update-password');
-      
-      let params = new URLSearchParams();
-      
-      searchParams.forEach((value, key) => {
-        params.append(key, value);
-      });
-      
-      if (hash) {
-        const hashParams = new URLSearchParams(hash.replace(/^#/, ''));
-        hashParams.forEach((value, key) => {
-          if (!params.has(key)) {
-            params.append(key, value);
-          }
-        });
+    if (isLoading) return;
+
+    if (user && location.pathname === "/") {
+      switch (userRole) {
+        case UserRoleEnum.PATIENT:
+          return;
+        case UserRoleEnum.DOCTOR:
+          return;
+        case UserRoleEnum.NUTRITIONIST:
+          return;
+        default:
+          toast({
+            title: "Error",
+            description: "No user role assigned",
+            variant: "destructive",
+          });
+          break;
       }
-      
-      navigate(`/update-password?${params.toString()}`, { replace: true });
     }
-  }, [location, navigate]);
-  
-  return null;
-}
+  }, [user, userRole, isLoading, location, toast]);
 
-// Custom component to conditionally show the correct navbar based on route
-function ConditionalNavbar() {
-  const location = useLocation();
-  const isLandingPage = location.pathname === '/';
-  
-  // We'll now render navbar from individual pages instead
-  // to avoid duplication and allow passing props
-  if (isLandingPage) {
-    return null; // The LandingPage component will render LandingNavbar
-  }
-  
-  return <Navbar />;
-}
-
-// SessionManager to handle browser events for authentication
-function SessionManager() {
-  const { user, signOut } = useAuth();
-  
-  useEffect(() => {
-    // No need for handling beforeunload as we're doing it in AuthService
-    
-    // Handle page visibility changes for session validation
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && user) {
-        console.log('Tab became visible, checking session validity');
-        // We could add additional session validation here if needed
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [user, signOut]);
-
-  return null; // This is just a behavior component, no rendering
-}
-
-// Main App component
-function App() {
-  // IMPORTANT: Don't define hooks outside of the component body
-  // These are moved inside the component function
-  
   return (
-    <ThemeProvider defaultTheme="light" storageKey="theme">
-      <ResponsiveProvider>
-        <div className="app-container">
-          <MobileStatusBar />
-          <Router>
-            <PasswordResetRedirect />
-            <AuthProvider>
-              <SessionManager />
-              <ConditionalNavbar />
-              <ErrorBoundary fallback={
-                <div className="container mx-auto p-4 mt-24 text-center">
-                  <h2 className="text-xl font-semibold mb-4">Something went wrong</h2>
-                  <p>We're sorry, but there was an error loading this page.</p>
-                  <button 
-                    onClick={() => window.location.reload()}
-                    className="mt-4 px-4 py-2 bg-[#9b87f5] text-white rounded-md hover:bg-[#7E69AB]"
-                  >
-                    Reload Page
-                  </button>
-                </div>
-              }>
-                <div className="mobile-content pt-0 min-h-[calc(100vh-70px)]">
-                  <AppRoutes />
-                </div>
+    <>
+      <ScrollToTop />
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/sign-in" element={<GuestRoute><SignInPage /></GuestRoute>} />
+        <Route path="/sign-up" element={<GuestRoute><SignUpPage /></GuestRoute>} />
+        <Route path="/verify-email" element={<VerifyEmailPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/about-us" element={<AboutUsPage />} />
+
+        {/* Protected routes */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <ErrorBoundary>
+                <DashboardPage />
               </ErrorBoundary>
-              
-              <AuthDebugMonitor />
-              <Toaster position="top-center" />
-            </AuthProvider>
-          </Router>
-        </div>
-      </ResponsiveProvider>
-    </ThemeProvider>
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<PatientDashboard />} />
+          <Route path="doctor" element={<DoctorDashboard />} />
+          <Route path="nutritionist" element={<NutritionistDashboard />} />
+          <Route path="patient" element={<PatientDashboard />} />
+        </Route>
+
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute>
+              <ChatPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Not Found Route */}
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+      {isMobile && <MobileNavigation />}
+    </>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRouter />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 

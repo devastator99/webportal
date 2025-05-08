@@ -6,13 +6,20 @@ import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, MessageCircle, ArrowLeft } from "lucide-react";
+import { Loader2, MessageCircle, ArrowLeft, MoreHorizontal } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useIsMobile, useIsMobileOrIPad } from "@/hooks/use-mobile";
 import { MobileNavigation } from "@/components/mobile/MobileNavigation";
 import { PatientPageLayout } from "@/components/layout/PatientPageLayout";
 import { PatientAppLayout } from "@/layouts/PatientAppLayout";
 import { Button } from "@/components/ui/button";
+import { SignOutButton } from "@/components/auth/SignOutButton";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 
 // Interface for WhatsAppStyleChatInterface props
 interface WhatsAppStyleChatInterfaceProps {
@@ -92,6 +99,13 @@ const ChatPage = () => {
     navigate('/dashboard');
   };
 
+  const generateChatPDF = () => {
+    toast({
+      title: "Export Chat",
+      description: "Coming soon - Export chat as PDF will be available in a future update.",
+    });
+  };
+
   if (isLoading || loadingRoom) {
     return (
       <div className="container pt-24 animate-fade-in">
@@ -114,22 +128,39 @@ const ChatPage = () => {
       <PatientAppLayout fullScreenChat={isMobileOrTablet} showHeader={false}>
         {isMobileOrTablet ? (
           <div className="flex flex-col h-screen">
-            <div className="chat-fullscreen-header">
+            <div className="chat-fullscreen-header h-10 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800/50 flex items-center justify-between px-2 fixed top-0 left-0 right-0 z-10 shadow-sm">
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="mr-2 p-0 h-8 w-8" 
+                className="mr-2 p-0 h-8 w-8 rounded-full" 
                 onClick={handleBackToDashboard}
               >
                 <ArrowLeft className="h-5 w-5 text-[#7E69AB]" />
               </Button>
-              <div className="flex items-center gap-2">
-                <MessageCircle className="h-5 w-5 text-[#7E69AB]" />
-                <h1 className="text-lg font-bold">Care Team Chat</h1>
+              
+              <div className="flex items-center gap-1">
+                <MessageCircle className="h-4 w-4 text-[#7E69AB]" />
+                <span className="text-sm font-medium">Care Team</span>
               </div>
+              
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="p-0 h-8 w-8 rounded-full">
+                    <MoreHorizontal className="h-5 w-5 text-[#7E69AB]" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={generateChatPDF}>
+                    Export Chat
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="text-red-500">
+                    <SignOutButton variant="ghost" size="sm" className="p-0 h-auto w-full flex justify-start" />
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
             
-            <div className="chat-fullscreen-messages">
+            <div className="chat-fullscreen-messages mt-10">
               <WhatsAppStyleChatInterface patientRoomId={patientRoomId} fullScreen={true} />
             </div>
           </div>
