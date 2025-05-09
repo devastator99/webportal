@@ -76,7 +76,7 @@ export const LandingPage = () => {
     };
   }, []);
   
-  // Open auth modal with specific view
+  // Open auth modal with specific view - this function will be passed to both buttons
   const openAuthModal = (view: 'login' | 'register') => {
     setAuthModalView(view);
     setIsAuthModalOpen(true);
@@ -91,7 +91,7 @@ export const LandingPage = () => {
         <TestimonialsSection />
         <OfferingsSection />
         <ComingSoonSection />
-        <JourneySection />
+        <JourneySection openAuthModal={openAuthModal} />
         <CallToAction openAuthModal={openAuthModal} />
       </main>
       <Footer />
