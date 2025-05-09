@@ -43,7 +43,7 @@ describe('Patient Authentication', () => {
   });
 
   it('renders login form correctly', () => {
-    render(
+    renderWithProviders(
       <BrowserRouter>
         <AuthForm 
           type="login" 
@@ -60,7 +60,7 @@ describe('Patient Authentication', () => {
   });
 
   it('handles patient login with ram.naresh@example.com', async () => {
-    render(
+    renderWithProviders(
       <BrowserRouter>
         <AuthForm type="login" onSubmit={mockHandleLogin} error={null} loading={false} />
       </BrowserRouter>
@@ -91,7 +91,7 @@ describe('Patient Authentication', () => {
       setError: vi.fn(),
     }));
 
-    render(
+    renderWithProviders(
       <BrowserRouter>
         <AuthForm type="login" onSubmit={mockHandleLogin} error={null} loading={true} />
       </BrowserRouter>
@@ -103,7 +103,7 @@ describe('Patient Authentication', () => {
   it('displays error message when login fails', () => {
     const errorMessage = 'Invalid email or password';
     
-    render(
+    renderWithProviders(
       <BrowserRouter>
         <AuthForm type="login" onSubmit={mockHandleLogin} error={errorMessage} loading={false} />
       </BrowserRouter>
@@ -113,7 +113,7 @@ describe('Patient Authentication', () => {
   });
 
   it('validates email format', async () => {
-    render(
+    renderWithProviders(
       <BrowserRouter>
         <AuthForm type="login" onSubmit={mockHandleLogin} error={null} loading={false} />
       </BrowserRouter>
@@ -129,7 +129,7 @@ describe('Patient Authentication', () => {
   });
 
   it('prevents submission with empty fields', async () => {
-    render(
+    renderWithProviders(
       <BrowserRouter>
         <AuthForm type="login" onSubmit={mockHandleLogin} error={null} loading={false} />
       </BrowserRouter>

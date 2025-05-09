@@ -47,13 +47,6 @@ export function renderWithProviders(ui: React.ReactElement) {
   );
 }
 
-// Import and re-export testing-library utilities correctly
-import * as testingLibrary from '@testing-library/react';
-
-// Create explicit exports for the specific utilities we need
-export const screen = testingLibrary.screen;
-export const waitFor = testingLibrary.waitFor;
-export const fireEvent = testingLibrary.fireEvent;
-
-// Re-export everything else from testing-library
+// Import directly from testing-library instead of using dynamic imports
+export { screen, waitFor, fireEvent } from '@testing-library/react';
 export * from '@testing-library/react';
