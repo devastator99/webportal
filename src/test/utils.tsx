@@ -47,6 +47,13 @@ export function renderWithProviders(ui: React.ReactElement) {
   );
 }
 
-// Import directly from testing-library instead of using dynamic imports
-export { screen, waitFor, fireEvent } from '@testing-library/react';
+// Import from @testing-library/react explicitly
+import { screen as rtlScreen, waitFor as rtlWaitFor, fireEvent as rtlFireEvent } from '@testing-library/react';
+
+// Export with the correct names
+export const screen = rtlScreen;
+export const waitFor = rtlWaitFor;
+export const fireEvent = rtlFireEvent;
+
+// Re-export everything else
 export * from '@testing-library/react';
