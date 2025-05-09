@@ -47,13 +47,13 @@ export function renderWithProviders(ui: React.ReactElement) {
   );
 }
 
-// Import from @testing-library/react explicitly
-import { screen as rtlScreen, waitFor as rtlWaitFor, fireEvent as rtlFireEvent } from '@testing-library/react';
+// Import testing library components directly with proper names
+import * as testingLibrary from '@testing-library/react';
 
-// Export with the correct names
-export const screen = rtlScreen;
-export const waitFor = rtlWaitFor;
-export const fireEvent = rtlFireEvent;
+// Export them correctly 
+export const screen = testingLibrary.screen;
+export const waitFor = testingLibrary.waitFor;
+export const fireEvent = testingLibrary.fireEvent;
 
 // Re-export everything else
 export * from '@testing-library/react';
