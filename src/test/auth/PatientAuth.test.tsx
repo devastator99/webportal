@@ -1,6 +1,6 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@/test/utils';
+import { renderWithProviders, screen, fireEvent, waitFor } from '@/test/utils';
 import { BrowserRouter } from 'react-router-dom';
 import { AuthForm } from '@/components/auth/AuthForm';
 import { useAuthHandlers } from '@/hooks/useAuthHandlers';

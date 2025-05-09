@@ -1,4 +1,3 @@
-
 import * as React from "react"
 import * as RechartsPrimitive from "recharts"
 
@@ -102,12 +101,13 @@ ${colorConfig
 const ChartTooltip = RechartsPrimitive.Tooltip
 
 // Define a proper type for the payload including all necessary properties
-interface EnhancedPayload extends Omit<RechartsPrimitive.TooltipPayload, 'payload'> {
+interface EnhancedPayload {
   dataKey?: string;
   name?: string;
   value?: any;
   payload?: any;
   color?: string;
+  fill?: string;
 }
 
 const ChartTooltipContent = React.forwardRef<
