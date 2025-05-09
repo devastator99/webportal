@@ -1,8 +1,6 @@
-
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { renderWithProviders, screen, waitFor } from '@/test/utils';
 import userEvent from '@testing-library/user-event';
-import { renderWithProviders } from '@/test/utils';
 import Auth from '../Auth';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthError } from '@supabase/supabase-js';
@@ -173,4 +171,3 @@ describe('Auth Component', () => {
     });
   });
 });
-

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { render } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
@@ -47,4 +47,6 @@ export function renderWithProviders(ui: React.ReactElement) {
   );
 }
 
+// Export all testing-library/react utilities
+export { screen, waitFor, fireEvent } from '@testing-library/react';
 export * from '@testing-library/react';
