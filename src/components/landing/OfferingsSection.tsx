@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -12,6 +13,10 @@ interface OfferingProps {
   image: string;
   description: string;
   features: string[];
+}
+
+interface OfferingsSectionProps {
+  openAuthModal: (view: 'login' | 'register') => void;
 }
 
 const offerings: OfferingProps[] = [
@@ -126,7 +131,7 @@ export const OfferingCard = ({ title, image, description, features, className }:
   );
 };
 
-export const OfferingsSection = () => {
+export const OfferingsSection = ({ openAuthModal }: OfferingsSectionProps) => {
   return (
     <section
       id="offerings"
@@ -195,6 +200,7 @@ export const OfferingsSection = () => {
               className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 
               text-white px-10 py-7 rounded-full text-lg font-medium transition-all duration-300 shadow-lg"
               size="lg"
+              onClick={() => openAuthModal('register')}
             >
               Start Your Journey
               <ArrowRight className="ml-3 h-5 w-5" />

@@ -1,0 +1,119 @@
+
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { Check, X } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from '@/hooks/use-toast';
+
+export const Verify: React.FC = () => {
+  const [verifying, setVerifying] = useState(true);
+  const [verified, setVerified] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  useEffect(() => {
+    const handleVerification = async () => {
+      try {
+        // Get token and type from URL
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get("token");
+        const type = params.get("type");
+        
+        if (!token || !type) {
+          setError("Missing verification parameters");
+          setVerifying(false);
+          return;
+        }
+        
+        // Verify the token
+        let result;
+        if (type === "signup") {
+          result = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: "signup",
+          });
+        } else if (type === "recovery") {
+          result = await supabase.auth.verifyOtp({
+            token_hash: token,
+            type: "recovery",
+          });
+        }
+        
+        if (result?.error) {
+          throw new Error(result.error.message);
+        }
+        
+        setVerified(true);
+        toast({
+          title: "Verification successful",
+          description: type === "signup" 
+            ? "Your email has been verified" 
+            : "Your password has been reset",
+        });
+        
+        // Redirect after successful verification
+        setTimeout(() => {
+          if (type === "signup") {
+            navigate("/dashboard");
+          } else if (type === "recovery") {
+            navigate("/update-password");
+          }
+        }, 2000);
+        
+      } catch (err: any) {
+        console.error("Verification error:", err);
+        setError(err.message || "Failed to verify email");
+      } finally {
+        setVerifying(false);
+      }
+    };
+    
+    handleVerification();
+  }, [navigate]);
+  
+  return (
+    <div className="flex justify-center items-center min-h-screen bg-gray-50 p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-2xl">Email Verification</CardTitle>
+          <CardDescription>
+            {verifying 
+              ? "Verifying your email address..." 
+              : verified
+                ? "Your email has been verified!"
+                : "Failed to verify email"}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center space-y-4 py-4">
+          {verifying ? (
+            <div className="w-16 h-16 border-4 border-t-blue-500 border-b-blue-500 rounded-full animate-spin" />
+          ) : verified ? (
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+              <Check className="w-8 h-8 text-green-600" />
+            </div>
+          ) : (
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center">
+              <X className="w-8 h-8 text-red-600" />
+            </div>
+          )}
+          
+          {!verifying && !verified && (
+            <p className="text-red-500 text-center">{error}</p>
+          )}
+        </CardContent>
+        <CardFooter className="flex justify-center">
+          {!verifying && (
+            <Button onClick={() => navigate("/")}>
+              Return Home
+            </Button>
+          )}
+        </CardFooter>
+      </Card>
+    </div>
+  );
+};
+
+export default Verify;

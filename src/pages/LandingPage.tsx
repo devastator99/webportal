@@ -89,7 +89,7 @@ export const LandingPage = () => {
         <HeroSection openAuthModal={openAuthModal} />
         <BenefitsSection />
         <TestimonialsSection />
-        <OfferingsSection />
+        <OfferingsSection openAuthModal={openAuthModal} />
         <ComingSoonSection />
         <JourneySection openAuthModal={openAuthModal} />
         <CallToAction openAuthModal={openAuthModal} />
