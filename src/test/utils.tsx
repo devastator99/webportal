@@ -47,13 +47,13 @@ export function renderWithProviders(ui: React.ReactElement) {
   );
 }
 
-// Import testing library components directly with proper names
-import * as testingLibrary from '@testing-library/react';
+// Import specific functions directly from testing library
+import { screen } from '@testing-library/react';
+import { waitFor } from '@testing-library/react';
+import { fireEvent } from '@testing-library/react';
 
-// Export them correctly 
-export const screen = testingLibrary.screen;
-export const waitFor = testingLibrary.waitFor;
-export const fireEvent = testingLibrary.fireEvent;
+// Export them directly
+export { screen, waitFor, fireEvent };
 
 // Re-export everything else
 export * from '@testing-library/react';
