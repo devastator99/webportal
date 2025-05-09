@@ -47,10 +47,10 @@ export function renderWithProviders(ui: React.ReactElement) {
   );
 }
 
-// Import specific functions directly from testing library
-import { screen } from '@testing-library/react';
-import { waitFor } from '@testing-library/react';
-import { fireEvent } from '@testing-library/react';
+// Import testing-library functions from appropriate packages
+import { screen } from '@testing-library/dom';
+import { waitFor } from '@testing-library/dom';
+import { fireEvent } from '@testing-library/dom';
 
 // Export them directly
 export { screen, waitFor, fireEvent };
