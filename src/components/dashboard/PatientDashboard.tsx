@@ -11,7 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from "@/components/ui/button";
 import { HealthTrackingCards } from "./patient/HealthTrackingCards";
 import { PatientCuratedHealthTips } from "./patient/PatientCuratedHealthTips";
-import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
+import { RecentCareTeamMessages } from "@/components/chat/RecentCareTeamMessages";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardSkeleton } from "./DashboardSkeleton";
 import { Calendar, UserRound, CheckCircle2, Clock } from "lucide-react";
@@ -324,16 +324,16 @@ export const PatientDashboard = () => {
               Care Team Chat
             </CardTitle>
             <CardDescription>
-              Connect with your healthcare team
+              Recent messages from your healthcare team
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0 h-[500px] lg:h-[600px]">
+          <CardContent className="p-0 h-[300px]">
             {isLoadingRoom ? (
               <div className="flex justify-center items-center h-full">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9b87f5]"></div>
               </div>
             ) : (
-              <WhatsAppStyleChatInterface patientRoomId={careTeamRoomId} />
+              <RecentCareTeamMessages patientRoomId={careTeamRoomId} messageLimit={4} />
             )}
           </CardContent>
         </Card>
