@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -327,13 +326,13 @@ export const PatientDashboard = () => {
               Recent messages from your healthcare team
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-0 h-[300px]">
+          <CardContent className="p-0 h-[400px]">
             {isLoadingRoom ? (
               <div className="flex justify-center items-center h-full">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9b87f5]"></div>
               </div>
             ) : (
-              <RecentCareTeamMessages patientRoomId={careTeamRoomId} messageLimit={4} />
+              <RecentCareTeamMessages patientRoomId={careTeamRoomId} messageLimit={6} />
             )}
           </CardContent>
         </Card>

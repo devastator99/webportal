@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -6,6 +5,7 @@ import { ChatMessage } from "@/components/chat/ChatMessage";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface RecentCareTeamMessagesProps {
   patientRoomId: string | null;
@@ -134,20 +134,22 @@ export const RecentCareTeamMessages = ({
   }
 
   return (
-    <div className="flex flex-col h-full">
-      <div className={cn(
-        "flex-1 bg-[#f0f2f5] dark:bg-slate-900 overflow-y-auto p-4 space-y-4",
-        "rounded-md"
-      )}>
-        {messages.map((msg) => (
-          <ChatMessage
-            key={msg.id}
-            message={msg}
-            isCurrentUser={msg.sender.id === user?.id}
-            showAvatar={true}
-          />
-        ))}
-      </div>
+    <div className="flex flex-col h-full w-full">
+      <ScrollArea className="w-full h-full" invisibleScrollbar={true} maxHeight="100%">
+        <div className={cn(
+          "bg-[#f0f2f5] dark:bg-slate-900 p-4 space-y-4",
+          "rounded-md"
+        )}>
+          {messages.map((msg) => (
+            <ChatMessage
+              key={msg.id}
+              message={msg}
+              isCurrentUser={msg.sender.id === user?.id}
+              showAvatar={true}
+            />
+          ))}
+        </div>
+      </ScrollArea>
     </div>
   );
 };
