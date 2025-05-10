@@ -15,6 +15,7 @@ import { CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { RegistrationProgressReport } from "@/components/auth/RegistrationProgressReport";
 import '@/styles/glass.css';
+import { cleanupAuthState } from "@/utils/authUtils";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -35,9 +36,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  // Check if there's any pending registration process on open
+  // Reset view to initialView whenever modal is opened
   useEffect(() => {
-    if (isOpen && view === "register") {
+    if (isOpen) {
+      setView(initialView);
+      
+      // Check if there's any pending registration process
       const paymentPending = localStorage.getItem('registration_payment_pending') === 'true';
       const paymentComplete = localStorage.getItem('registration_payment_complete') === 'true';
       
@@ -49,7 +53,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setRegistrationStep(1);
       }
     }
-  }, [isOpen, view]);
+  }, [isOpen, initialView]);
 
   // Form submission handler
   const handleFormSubmit = async (
@@ -134,6 +138,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setRegistrationStep(1);
     setRegisteredUser(null);
     setError(null);
+    setView("login"); // Always reset to login view when closing
     
     // Clean up localStorage if modal is closed during registration
     if (view === "register" && registrationStep < 3) {
@@ -248,19 +253,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 </>
               )}
               
-              {/* Show toggle link only during login/register steps */}
-              {(view === "login" || (view === "register" && registrationStep === 1)) && (
-                <div className="mt-6 text-center pb-4">
-                  <button
-                    onClick={toggleView}
-                    className="text-sm font-medium text-purple-600 hover:text-purple-500"
-                  >
-                    {view === "login"
-                      ? "Don't have an account? Register now"
-                      : "Already have an account? Sign in"}
-                  </button>
-                </div>
-              )}
+              {/* Always show toggle link for better UX */}
+              <div className="mt-6 text-center pb-4">
+                <button
+                  onClick={toggleView}
+                  className="text-sm font-medium text-purple-600 hover:text-purple-500"
+                >
+                  {view === "login"
+                    ? "Don't have an account? Register now"
+                    : "Already have an account? Sign in"}
+                </button>
+              </div>
             </motion.div>
           </ScrollArea>
         </div>
