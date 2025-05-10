@@ -3,6 +3,13 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { MobileAppMockup } from '../ui/MobileAppMockup';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 interface JourneySectionProps {
   openAuthModal?: (view: 'login' | 'register') => void;
@@ -134,6 +141,69 @@ export const JourneySection: React.FC<JourneySectionProps> = ({ openAuthModal })
               />
             </div>
           </div>
+        </div>
+        
+        {/* Screenshots Carousel */}
+        <div className="mt-24 mb-16">
+          <h3 className="text-3xl md:text-4xl font-bold mb-10 text-center">Coming Soon to AnubhootiHealth</h3>
+          
+          <Carousel className="w-full max-w-4xl mx-auto">
+            <CarouselContent>
+              {/* First Screenshot */}
+              <CarouselItem className="basis-full md:basis-full lg:basis-full">
+                <div className="p-1">
+                  <div className="overflow-hidden rounded-xl">
+                    <img 
+                      src="/lovable-uploads/ee47a2b7-4f50-4fa8-8582-7bd0ded82f95.png"
+                      alt="AnubhootiHealth Coming Soon"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              </CarouselItem>
+              
+              {/* Second Screenshot */}
+              <CarouselItem className="basis-full md:basis-full lg:basis-full">
+                <div className="p-1">
+                  <div className="overflow-hidden rounded-xl">
+                    <img 
+                      src="/lovable-uploads/42084d5a-5f21-4427-89b7-0842bb3b2bd1.png"
+                      alt="AnubhootiHealth Coming Soon"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              </CarouselItem>
+              
+              {/* Third Screenshot */}
+              <CarouselItem className="basis-full md:basis-full lg:basis-full">
+                <div className="p-1">
+                  <div className="overflow-hidden rounded-xl">
+                    <img 
+                      src="/lovable-uploads/d397bdf6-e16c-49c4-89ea-d32e89cdcf9e.png"
+                      alt="AnubhootiHealth Coming Soon"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              </CarouselItem>
+              
+              {/* Fourth Screenshot */}
+              <CarouselItem className="basis-full md:basis-full lg:basis-full">
+                <div className="p-1">
+                  <div className="overflow-hidden rounded-xl">
+                    <img 
+                      src="/lovable-uploads/987432ff-c332-45b9-8d10-e97cca210f3b.png"
+                      alt="AnubhootiHealth Company Info"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </div>
+              </CarouselItem>
+            </CarouselContent>
+            <CarouselPrevious className="left-2 md:-left-12" />
+            <CarouselNext className="right-2 md:-right-12" />
+          </Carousel>
         </div>
         
         {/* CTA button */}
