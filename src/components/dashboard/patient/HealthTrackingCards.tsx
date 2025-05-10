@@ -1,19 +1,57 @@
 
 import React from 'react';
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, GlassCard } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Activity, Utensils, Moon, Brain } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface HealthTrackingCardProps {
   title: string;
   value: string;
   percentage: number;
   icon: React.ReactNode;
+  variant: 'activity' | 'nutrition' | 'sleep' | 'mindfulness';
 }
 
-const HealthTrackingCard = ({ title, value, percentage, icon }: HealthTrackingCardProps) => {
+const HealthTrackingCard = ({ title, value, percentage, icon, variant }: HealthTrackingCardProps) => {
+  // Define variant-specific styling
+  const variantStyles = {
+    activity: {
+      borderClass: "border-l-4 border-[#9b87f5]",
+      shadowClass: "shadow-md hover:shadow-lg",
+      glassClass: "glass-purple",
+      hoverClass: "hover:-translate-y-1 transition-all duration-300"
+    },
+    nutrition: {
+      borderClass: "border-l-4 border-green-500",
+      shadowClass: "shadow-md hover:shadow-lg",
+      glassClass: "glass-green",
+      hoverClass: "hover:-translate-y-1 transition-all duration-300"
+    },
+    sleep: {
+      borderClass: "border-l-4 border-blue-500",
+      shadowClass: "shadow-md hover:shadow-lg",
+      glassClass: "glass-blue",
+      hoverClass: "hover:-translate-y-1 transition-all duration-300"
+    },
+    mindfulness: {
+      borderClass: "border-l-4 border-amber-500",
+      shadowClass: "shadow-md hover:shadow-lg",
+      glassClass: "glass-amber",
+      hoverClass: "hover:-translate-y-1 transition-all duration-300"
+    }
+  };
+
   return (
-    <Card className="shadow-sm hover:shadow-md transition-all duration-200">
+    <GlassCard 
+      className={cn(
+        "w-full", 
+        variantStyles[variant].borderClass, 
+        variantStyles[variant].shadowClass,
+        variantStyles[variant].glassClass,
+        variantStyles[variant].hoverClass
+      )}
+    >
       <CardContent className="p-4">
         <div className="flex justify-between items-center mb-4">
           <div className="flex items-center gap-2">
@@ -29,7 +67,7 @@ const HealthTrackingCard = ({ title, value, percentage, icon }: HealthTrackingCa
           </p>
         </div>
       </CardContent>
-    </Card>
+    </GlassCard>
   );
 };
 
@@ -78,27 +116,31 @@ export const HealthTrackingCards = ({ habitSummary }: HealthTrackingCardsProps) 
         value={getHabitValue('physical')} 
         percentage={getHabitPercentage('physical')}
         icon={<Activity className="h-4 w-4 text-[#9b87f5]" />} 
+        variant="activity"
       />
       
       <HealthTrackingCard 
         title="Nutrition" 
         value={getHabitValue('nutrition')} 
         percentage={getHabitPercentage('nutrition')}
-        icon={<Utensils className="h-4 w-4 text-[#9b87f5]" />} 
+        icon={<Utensils className="h-4 w-4 text-green-500" />} 
+        variant="nutrition"
       />
       
       <HealthTrackingCard 
         title="Sleep" 
         value={getHabitValue('sleep')} 
         percentage={getHabitPercentage('sleep')}
-        icon={<Moon className="h-4 w-4 text-[#9b87f5]" />} 
+        icon={<Moon className="h-4 w-4 text-blue-500" />} 
+        variant="sleep"
       />
       
       <HealthTrackingCard 
         title="Mindfulness" 
         value={getHabitValue('mindfulness')} 
         percentage={getHabitPercentage('mindfulness')}
-        icon={<Brain className="h-4 w-4 text-[#9b87f5]" />} 
+        icon={<Brain className="h-4 w-4 text-amber-500" />} 
+        variant="mindfulness"
       />
     </div>
   );
