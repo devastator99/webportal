@@ -19,7 +19,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ openAuthModal }) => {
   
   const handleStartClick = () => {
     if (openAuthModal) {
-      openAuthModal('register');
+      openAuthModal('login'); // Changed from 'register' to 'login'
     } else {
       navigate('/auth');
     }

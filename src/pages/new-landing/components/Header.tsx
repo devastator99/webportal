@@ -36,7 +36,7 @@ export const Header: React.FC = () => {
   }, []);
 
   const handleStart = () => {
-    navigate('/auth');
+    navigate('/auth'); // This navigates to auth page which should default to login
   };
 
   const menuLinks = [

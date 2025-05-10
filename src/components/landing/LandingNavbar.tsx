@@ -38,7 +38,7 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ openAuthModal }) =
     if (user) {
       navigate('/dashboard');
     } else if (openAuthModal) {
-      openAuthModal('register');
+      openAuthModal('login'); // Changed from 'register' to 'login'
     } else {
       navigate('/auth');
     }

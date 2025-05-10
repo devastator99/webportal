@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import '@/styles/glass.css';
@@ -9,7 +10,7 @@ interface CallToActionProps {
 export const CallToAction: React.FC<CallToActionProps> = ({ openAuthModal }) => {
   const handleStartClick = () => {
     if (openAuthModal) {
-      openAuthModal('register');
+      openAuthModal('login'); // Changed from 'register' to 'login'
     }
   };
   

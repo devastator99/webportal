@@ -8,7 +8,7 @@ export const Hero: React.FC = () => {
   const navigate = useNavigate();
 
   const handleGetStarted = () => {
-    navigate('/auth');
+    navigate('/auth'); // This navigates to the auth page which should default to login
   };
 
   return (
