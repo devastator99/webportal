@@ -3,13 +3,9 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { MobileAppMockup } from '../ui/MobileAppMockup';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
+import { motion, useAnimation } from 'framer-motion';
+import { useInView } from 'framer-motion';
+import { useRef, useEffect } from 'react';
 
 interface JourneySectionProps {
   openAuthModal?: (view: 'login' | 'register') => void;
@@ -21,6 +17,18 @@ export const JourneySection: React.FC<JourneySectionProps> = ({ openAuthModal })
       openAuthModal('register');
     }
   };
+  
+  // Animation references
+  const frameRef = useRef(null);
+  const isInView = useInView(frameRef, { once: true, margin: "-100px" });
+  const controls = useAnimation();
+  
+  // Trigger animation when section comes into view
+  useEffect(() => {
+    if (isInView) {
+      controls.start("visible");
+    }
+  }, [isInView, controls]);
   
   return (
     <section className="py-16 bg-black text-white relative overflow-hidden">
@@ -143,67 +151,102 @@ export const JourneySection: React.FC<JourneySectionProps> = ({ openAuthModal })
           </div>
         </div>
         
-        {/* Screenshots Carousel */}
+        {/* Framer Motion Animation Showcase */}
         <div className="mt-24 mb-16">
           <h3 className="text-3xl md:text-4xl font-bold mb-10 text-center">Coming Soon to AnubhootiHealth</h3>
           
-          <Carousel className="w-full max-w-4xl mx-auto">
-            <CarouselContent>
-              {/* First Screenshot */}
-              <CarouselItem className="basis-full md:basis-full lg:basis-full">
-                <div className="p-1">
-                  <div className="overflow-hidden rounded-xl">
-                    <img 
-                      src="/lovable-uploads/ee47a2b7-4f50-4fa8-8582-7bd0ded82f95.png"
-                      alt="AnubhootiHealth Coming Soon"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              </CarouselItem>
-              
-              {/* Second Screenshot */}
-              <CarouselItem className="basis-full md:basis-full lg:basis-full">
-                <div className="p-1">
-                  <div className="overflow-hidden rounded-xl">
-                    <img 
-                      src="/lovable-uploads/42084d5a-5f21-4427-89b7-0842bb3b2bd1.png"
-                      alt="AnubhootiHealth Coming Soon"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              </CarouselItem>
-              
-              {/* Third Screenshot */}
-              <CarouselItem className="basis-full md:basis-full lg:basis-full">
-                <div className="p-1">
-                  <div className="overflow-hidden rounded-xl">
-                    <img 
-                      src="/lovable-uploads/d397bdf6-e16c-49c4-89ea-d32e89cdcf9e.png"
-                      alt="AnubhootiHealth Coming Soon"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              </CarouselItem>
-              
-              {/* Fourth Screenshot */}
-              <CarouselItem className="basis-full md:basis-full lg:basis-full">
-                <div className="p-1">
-                  <div className="overflow-hidden rounded-xl">
-                    <img 
-                      src="/lovable-uploads/987432ff-c332-45b9-8d10-e97cca210f3b.png"
-                      alt="AnubhootiHealth Company Info"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </div>
-              </CarouselItem>
-            </CarouselContent>
-            <CarouselPrevious className="left-2 md:-left-12" />
-            <CarouselNext className="right-2 md:-right-12" />
-          </Carousel>
+          {/* Animation Frame Container */}
+          <div ref={frameRef} className="relative max-w-4xl mx-auto h-[500px] md:h-[600px]">
+            {/* Image 1 */}
+            <motion.div
+              className="absolute w-full h-full"
+              initial={{ opacity: 0 }}
+              animate={controls}
+              variants={{
+                visible: {
+                  opacity: 1,
+                  transition: { duration: 0.8, delay: 0 }
+                }
+              }}
+            >
+              <img 
+                src="/lovable-uploads/ee47a2b7-4f50-4fa8-8582-7bd0ded82f95.png"
+                alt="AnubhootiHealth Feature"
+                className="w-full h-full object-contain rounded-xl"
+              />
+            </motion.div>
+            
+            {/* Image 2 */}
+            <motion.div
+              className="absolute w-full h-full"
+              initial={{ opacity: 0 }}
+              animate={controls}
+              variants={{
+                visible: {
+                  opacity: [0, 1, 1, 0],
+                  transition: { 
+                    times: [0, 0.3, 0.7, 1],
+                    duration: 4, 
+                    delay: 2,
+                    ease: "easeInOut"
+                  }
+                }
+              }}
+            >
+              <img 
+                src="/lovable-uploads/42084d5a-5f21-4427-89b7-0842bb3b2bd1.png"
+                alt="AnubhootiHealth Feature"
+                className="w-full h-full object-contain rounded-xl"
+              />
+            </motion.div>
+            
+            {/* Image 3 */}
+            <motion.div
+              className="absolute w-full h-full"
+              initial={{ opacity: 0 }}
+              animate={controls}
+              variants={{
+                visible: {
+                  opacity: [0, 1, 1, 0],
+                  transition: { 
+                    times: [0, 0.3, 0.7, 1],
+                    duration: 4, 
+                    delay: 6,
+                    ease: "easeInOut"
+                  }
+                }
+              }}
+            >
+              <img 
+                src="/lovable-uploads/d397bdf6-e16c-49c4-89ea-d32e89cdcf9e.png"
+                alt="AnubhootiHealth Feature"
+                className="w-full h-full object-contain rounded-xl"
+              />
+            </motion.div>
+            
+            {/* Image 4 - Final image that stays */}
+            <motion.div
+              className="absolute w-full h-full"
+              initial={{ opacity: 0 }}
+              animate={controls}
+              variants={{
+                visible: {
+                  opacity: [0, 1],
+                  transition: { 
+                    duration: 1, 
+                    delay: 10,
+                    ease: "easeIn"
+                  }
+                }
+              }}
+            >
+              <img 
+                src="/lovable-uploads/987432ff-c332-45b9-8d10-e97cca210f3b.png"
+                alt="AnubhootiHealth Company Info"
+                className="w-full h-full object-contain rounded-xl"
+              />
+            </motion.div>
+          </div>
         </div>
         
         {/* CTA button */}
