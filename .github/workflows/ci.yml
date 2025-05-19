@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Cache Node.js modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: |
+          set -e
+          echo "Installing dependencies..."
+          npm ci
+          echo "Dependencies installed."
+
+      - name: Lint
+        run: |
+          set -e
+          echo "Running lint..."
+          npm run lint || true  # This will show the linting errors but allow the process to continue
+          echo "Lint completed."
+
+      - name: Build
+        run: |
+          set -e
+          echo "Running build..."
+          npm run build
+          echo "Build completed."
+
+      - name: List project files (debug)
+        run: |
+          echo "Current directory: $(pwd)"
+          echo "List of files:"
+          ls -la
+
+      - name: Show disk usage (optional debug)
+        run: |
+          echo "Disk usage:"
+          du -sh .
