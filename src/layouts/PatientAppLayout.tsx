@@ -30,7 +30,7 @@ export function PatientAppLayout({
   // Apply special classes for full-screen chat mode on mobile
   const mainContentClasses = fullScreenChat && isMobileOrTablet 
     ? "chat-fullscreen-content" 
-    : `w-full ${isMobile ? "pt-16" : "pt-20"} ${fullWidth ? 'px-0' : 'px-4 md:px-6'} pb-8`;
+    : `w-full ${isMobile ? "pt-4" : "pt-4"} ${fullWidth ? 'px-0' : 'px-4 md:px-6'} pb-8`;
 
   return (
     <AppLayout>

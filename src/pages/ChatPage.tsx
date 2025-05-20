@@ -1,4 +1,3 @@
-
 import { useAuth, UserRoleEnum } from "@/contexts/AuthContext";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
@@ -108,8 +107,8 @@ export const ChatPage = () => {
 
   if (isLoading || loadingRoom) {
     return (
-      <div className="container pt-24 animate-fade-in">
-        <div className="mx-auto flex flex-col items-center justify-center space-y-4">
+      <div className="container flex items-center justify-center h-screen">
+        <div className="flex flex-col items-center justify-center space-y-4">
           <Loader2 className="h-8 w-8 animate-spin rounded-full border-primary border-t-transparent" />
           <p className="text-muted-foreground text-sm">
             Loading chat...
@@ -127,7 +126,7 @@ export const ChatPage = () => {
     return (
       <PatientAppLayout fullScreenChat={isMobileOrTablet} showHeader={false}>
         {isMobileOrTablet ? (
-          <div className="flex flex-col h-screen">
+          <div className="flex flex-col h-screen w-full">
             <div className="chat-fullscreen-header h-10 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800/50 flex items-center justify-between px-2 fixed top-0 left-0 right-0 z-10 shadow-sm">
               <Button 
                 variant="ghost" 
@@ -160,22 +159,22 @@ export const ChatPage = () => {
               </DropdownMenu>
             </div>
             
-            <div className="chat-fullscreen-messages mt-10">
+            <div className="chat-fullscreen-messages mt-10 flex-grow">
               <WhatsAppStyleChatInterface patientRoomId={patientRoomId} fullScreen={true} />
             </div>
           </div>
         ) : (
-          <>
+          <div className="flex flex-col h-full w-full">
             <div className="flex items-center gap-2 mb-0.5">
               <MessageCircle className="h-5 w-5 text-[#7E69AB]" />
               <h1 className="text-lg font-bold">Care Team Chat</h1>
             </div>
             <Separator className="mb-1" />
             
-            <div className="h-[calc(100vh-240px)] chat-container">
+            <div className="h-[calc(100vh-155px)] chat-container">
               <WhatsAppStyleChatInterface patientRoomId={patientRoomId} />
             </div>
-          </>
+          </div>
         )}
       </PatientAppLayout>
     );
@@ -183,15 +182,15 @@ export const ChatPage = () => {
 
   // For non-patient users, use original layout
   return (
-    <div className={`container ${isMobile ? "pt-12 pb-20 px-0" : "pt-16 pb-8 px-2"}`}>
+    <div className="flex flex-col h-screen w-full">
       <ErrorBoundary>
-        <div className="flex items-center gap-2 mb-0.5 px-1">
+        <div className="flex items-center gap-2 mb-0.5 px-4 pt-4">
           <MessageCircle className="h-5 w-5 text-[#7E69AB]" />
           <h1 className="text-lg font-bold">Care Team Chat</h1>
         </div>
         <Separator className="mb-1" />
         
-        <div className="h-[calc(100vh-260px)] chat-container">
+        <div className="h-[calc(100vh-110px)] chat-container px-4">
           <WhatsAppStyleChatInterface patientRoomId={isPatient ? patientRoomId : undefined} />
         </div>
       </ErrorBoundary>

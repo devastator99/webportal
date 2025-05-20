@@ -900,7 +900,7 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId, fullScreen = false }
                                               )}
                                             </div>
                                           )}
-                                          <div className={`p-3 rounded-lg message-bubble ${messageClass}`}>
+                                          <div className={`p-3  min-w-24 rounded-lg message-bubble ${messageClass}`}>
                                             {message.message.startsWith('[FILE]') ? (
                                               <div>
                                                 <div className="flex items-center gap-2 text-xs">

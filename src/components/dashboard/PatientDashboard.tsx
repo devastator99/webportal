@@ -266,7 +266,7 @@ export const PatientDashboard = () => {
   return (
     <ResponsiveContainer fluid withPadding className="space-y-6">
       {isMobile ? (
-        <div className="h-16"></div> // Spacer for mobile header
+        <div className="h-4"></div> // Spacer for mobile header
       ) : (
         <div className="flex items-center gap-4 mb-4">
           <Avatar className="h-12 w-12 bg-[#E5DEFF]">

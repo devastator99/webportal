@@ -48,13 +48,13 @@ const PatientHabitsPage = () => {
             <TabsList className="w-full grid grid-cols-2 mb-4 sm:mb-6 bg-white rounded-lg shadow-sm border border-[#9b87f5]/10">
               <TabsTrigger 
                 value="habits" 
-                className="text-base py-3 data-[state=active]:bg-[#9b87f5]/20 data-[state=active]:text-[#7E69AB] font-medium rounded-md"
+                className="text-base py-1 mb-5 data-[state=active]:bg-[#9b87f5]/20 data-[state=active]:text-[#7E69AB] font-medium rounded-md"
               >
                 Habits
               </TabsTrigger>
               <TabsTrigger 
                 value="progress" 
-                className="text-base py-3 data-[state=active]:bg-[#9b87f5]/20 data-[state=active]:text-[#7E69AB] font-medium rounded-md"
+                className="text-base py-1 mb-5 data-[state=active]:bg-[#9b87f5]/20 data-[state=active]:text-[#7E69AB] font-medium rounded-md"
               >
                 Progress
               </TabsTrigger>

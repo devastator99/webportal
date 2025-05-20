@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Battery, Signal, Wifi } from 'lucide-react';
 
@@ -31,7 +30,7 @@ export const MobileStatusBar: React.FC = () => {
   return (
     <div className="status-bar">
       <div className="status-bar-time">{currentTime}</div>
-      <div className="status-bar-icons">
+      <div className="status-bar-icons flex items-center gap-1">
         <Signal className="h-3 w-3" />
         <Wifi className="h-3 w-3" />
         <Battery className="h-3 w-3" />

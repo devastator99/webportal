@@ -1,4 +1,3 @@
-
 import { format } from "date-fns";
 import { Check, CheckCheck, Clock, Bot, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -71,7 +70,7 @@ export const ChatMessage = ({
     >
       <div
         className={cn(
-          "max-w-[75%] px-3 py-2 rounded-lg shadow-sm transition-all duration-200 message-bubble",
+          "max-w-[75%] min-w-24 px-3 py-2 rounded-lg shadow-sm transition-all duration-200 message-bubble relative",
           getBubbleClass(),
           isSystemMessage && "mx-auto text-center",
           isAiBot && !isCurrentUser && !isSystemMessage && "hover:shadow-md"
@@ -106,13 +105,13 @@ export const ChatMessage = ({
         )}
         
         <p className={cn(
-          "text-sm whitespace-pre-wrap",
-          isAiBot && !isCurrentUser && "leading-relaxed"
+          "text-sm whitespace-pre-wrap mb-4",
+          isAiBot && !isCurrentUser && "leading-relaxed text-white"
         )}>
           {message.message}
         </p>
         
-        <div className="flex items-center justify-end gap-1 mt-1 message-time">
+        <div className="flex items-center justify-end gap-1 message-time absolute bottom-1 right-2">
           <span className="text-xs opacity-70">{formattedTime}</span>
           
           {isCurrentUser && (
