@@ -48,5 +48,18 @@
   
   .glassmorphism-dark {
     background: rgba(0, 0, 0, 0.35);
+    padding: 1rem !important;
+  }
+  
+  .glass-nav.scrolled {
+    background: rgba(0, 0, 0, 0.85);
+  }
+}
+
+/* Additional responsive adjustments */
+@media (max-width: 480px) {
+  .glass, .glass-dark, .glass-nav, .glassmorphism-dark {
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
   }
 }

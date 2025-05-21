@@ -30,11 +30,13 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ openAuthModal }) =
   
   const handleLogoClick = useCallback(() => {
     resetInactivityTimer();
+    setMobileMenuOpen(false);
     navigate('/');
   }, [navigate, resetInactivityTimer]);
   
   const handleStartClick = useCallback(() => {
     resetInactivityTimer();
+    setMobileMenuOpen(false);
     // If signing out, don't navigate to prevent conflicts
     if (isSigningOut) return;
     
@@ -70,7 +72,7 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ openAuthModal }) =
           </button>
           
           <div 
-            className="text-xl sm:text-2xl font-bold text-white cursor-pointer" 
+            className="text-xl sm:text-2xl font-bold text-white cursor-pointer line-clamp-1" 
             onClick={handleLogoClick}
           >
             AnubhootiHealth
