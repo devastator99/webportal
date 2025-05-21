@@ -7,6 +7,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { Loader2, Users } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { CollapsibleMessageGroup } from "./CollapsibleMessageGroup";
+import { groupMessagesByDate, normalizeDateString } from "@/utils/dateUtils";
 
 interface RecentCareTeamMessagesProps {
   patientRoomId: string | null;
@@ -229,6 +231,10 @@ export const RecentCareTeamMessages = ({
     );
   }
 
+  // Group messages by date
+  const messageGroups = groupMessagesByDate(messages);
+  const sortedDateKeys = Object.keys(messageGroups).sort();
+  
   // Display room details and members below the heading
   return (
     <div className="flex flex-col h-full w-full">
@@ -269,15 +275,29 @@ export const RecentCareTeamMessages = ({
           "bg-[#f0f2f5] dark:bg-slate-900 p-4 space-y-4",
           "rounded-md"
         )}>
-          {messages.map((msg) => (
-            <ChatMessage
-              key={msg.id}
-              message={msg}
-              isCurrentUser={msg.sender.id === user?.id}
-              showAvatar={true}
-              onMessageDelete={handleMessageDelete}
-            />
-          ))}
+          {sortedDateKeys.map((dateString, index) => {
+            const isLatestGroup = index === sortedDateKeys.length - 1;
+            return (
+              <CollapsibleMessageGroup 
+                key={dateString} 
+                date={dateString}
+                messages={messageGroups[dateString]}
+                isLatestGroup={isLatestGroup}
+              >
+                <div className="space-y-4">
+                  {messageGroups[dateString].map((msg) => (
+                    <ChatMessage
+                      key={msg.id}
+                      message={msg}
+                      isCurrentUser={msg.sender.id === user?.id}
+                      showAvatar={true}
+                      onMessageDelete={handleMessageDelete}
+                    />
+                  ))}
+                </div>
+              </CollapsibleMessageGroup>
+            );
+          })}
         </div>
       </ScrollArea>
     </div>
