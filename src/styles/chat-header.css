@@ -81,6 +81,21 @@
   background-color: rgba(0,0,0,0.05);
 }
 
+/* Team member compact display */
+.care-team-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.care-team-compact-member {
+  display: flex;
+  align-items: center;
+  padding: 2px 4px;
+  border-radius: 16px;
+  background-color: rgba(0,0,0,0.03);
+}
+
 /* Mobile optimizations */
 @media (max-width: 640px) {
   .care-team-avatar {
@@ -97,6 +112,10 @@
   .care-team-members-list {
     max-height: 200px;
     overflow-y: auto;
+  }
+  
+  .care-team-compact-member {
+    padding: 1px 3px;
   }
 }
 

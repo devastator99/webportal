@@ -74,7 +74,7 @@ export const CareTeamRoomChat = ({
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const PAGE_SIZE = 500; // Maintaining the 500 message limit
   const [displayedMemberNames, setDisplayedMemberNames] = useState<string>("");
-  const [showTeamMembers, setShowTeamMembers] = useState(false);
+  const [showTeamDetails, setShowTeamDetails] = useState(false);
 
   // Only fetch room details if they weren't provided as props
   const { data: fetchedRoomDetails } = useQuery({
@@ -107,57 +107,25 @@ export const CareTeamRoomChat = ({
           }
         }
         
-        // Fetch team members for the room - fixed approach to avoid relation error
-        const { data: membersData, error: membersError } = await supabase
-          .from('room_members')
-          .select('id, user_id, role')
-          .eq('room_id', selectedRoomId);
-          
-        let fetchedMembers: TeamMember[] = [];
-        
-        if (!membersError && membersData && Array.isArray(membersData)) {
-          // For each member, we need to fetch their profile data separately
-          const memberPromises = membersData.map(async (member) => {
-            if (member.user_id === '00000000-0000-0000-0000-000000000000') {
-              // Handle AI bot special case
-              return {
-                id: member.user_id,
-                first_name: 'AI',
-                last_name: 'Assistant',
-                role: 'aibot'
-              };
-            }
-            
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .select('first_name, last_name')
-              .eq('id', member.user_id)
-              .single();
-              
-            if (!profileError && profileData) {
-              return {
-                id: member.user_id,
-                first_name: profileData.first_name || '',
-                last_name: profileData.last_name || '',
-                role: member.role || 'unknown'
-              };
-            }
-            
-            return null;
-          });
-          
-          const resolvedMembers = await Promise.all(memberPromises);
-          fetchedMembers = resolvedMembers.filter((m): m is TeamMember => m !== null);
-          setTeamMembers(fetchedMembers);
-        }
-        
-        const { count, error: countError } = await supabase
+        // Get member count
+        const { count: memberCount, error: countError } = await supabase
           .from('room_members')
           .select('*', { count: 'exact', head: true })
           .eq('room_id', selectedRoomId);
-          
-        if (countError) {
-          console.error("Error fetching member count:", countError);
+
+        // Use the proper RPC call to get care team members
+        const { data: careTeamMembers, error: careTeamError } = await supabase.rpc(
+          'get_patient_care_team_members',
+          { p_patient_id: roomData.patient_id }
+        );
+        
+        let fetchedMembers: TeamMember[] = [];
+        
+        if (!careTeamError && careTeamMembers) {
+          fetchedMembers = careTeamMembers;
+          setTeamMembers(fetchedMembers);
+        } else {
+          console.error("Error fetching care team members:", careTeamError);
         }
         
         return {
@@ -166,7 +134,7 @@ export const CareTeamRoomChat = ({
           room_description: roomData.description,
           patient_id: roomData.patient_id,
           patient_name: patientName,
-          member_count: count || 0,
+          member_count: memberCount || 0,
           last_message: '',
           last_message_time: roomData.created_at,
           team_members: fetchedMembers
@@ -192,54 +160,18 @@ export const CareTeamRoomChat = ({
   // If we have room details but no team members, fetch them
   useEffect(() => {
     const fetchTeamMembers = async () => {
-      if (selectedRoomId && roomDetails && !teamMembers.length) {
+      if (selectedRoomId && roomDetails?.patient_id && !teamMembers.length) {
         try {
-          // Improved approach to fetch room members
-          const { data: membersData, error: membersError } = await supabase
-            .from('room_members')
-            .select('id, user_id, role')
-            .eq('room_id', selectedRoomId);
+          // Use the proper RPC call to get care team members
+          const { data: careTeamMembers, error: careTeamError } = await supabase.rpc(
+            'get_patient_care_team_members',
+            { p_patient_id: roomDetails.patient_id }
+          );
           
-          if (membersError) {
-            console.error("Error fetching room members:", membersError);
-            return;
-          }
-          
-          if (membersData && Array.isArray(membersData)) {
-            // For each member, fetch their profile data
-            const fetchedMembers: TeamMember[] = [];
-            
-            for (const member of membersData) {
-              if (member.user_id === '00000000-0000-0000-0000-000000000000') {
-                // Handle AI bot special case
-                fetchedMembers.push({
-                  id: member.user_id,
-                  first_name: 'AI',
-                  last_name: 'Assistant',
-                  role: 'aibot'
-                });
-                continue;
-              }
-              
-              const { data: profileData, error: profileError } = await supabase
-                .from('profiles')
-                .select('first_name, last_name')
-                .eq('id', member.user_id)
-                .single();
-              
-              if (!profileError && profileData) {
-                fetchedMembers.push({
-                  id: member.user_id,
-                  first_name: profileData.first_name || '',
-                  last_name: profileData.last_name || '',
-                  role: member.role || 'unknown'
-                });
-              }
-            }
-            
-            if (fetchedMembers.length > 0) {
-              setTeamMembers(fetchedMembers);
-            }
+          if (!careTeamError && careTeamMembers && Array.isArray(careTeamMembers)) {
+            setTeamMembers(careTeamMembers);
+          } else {
+            console.error("Error fetching care team members:", careTeamError);
           }
         } catch (err) {
           console.error("Error fetching team members:", err);
@@ -587,52 +519,47 @@ export const CareTeamRoomChat = ({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Chat Header */}
-      <div className="p-2 bg-muted/40 border-b flex items-center">
-        {isMobileView && onBack && (
-          <Button variant="ghost" size="icon" onClick={onBack} className="mr-1.5">
-            <ArrowDown className="rotate-90 h-4 w-4" />
-          </Button>
-        )}
-        
-        <Users className="h-4 w-4 mr-1.5 text-primary" />
-        
-        <div className="flex-1">
-          <div className="font-medium line-clamp-1 text-sm">
-            {roomDetails?.room_name || "Care Team Chat"}
-          </div>
-          
-          <div className="text-xs text-muted-foreground flex items-center gap-1">
-            <User className="h-3 w-3 mr-0.5" />
-            <span className="truncate max-w-[120px]">{roomDetails?.patient_name || "Patient"}</span> • 
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="px-1 h-5 text-xs" 
-              onClick={() => setShowTeamMembers(!showTeamMembers)}
-            >
-              {teamMembers.length} members
+      {/* Chat Header with Care Team Members directly visible */}
+      <div className="p-2 bg-muted/40 border-b flex flex-col">
+        <div className="flex items-center">
+          {isMobileView && onBack && (
+            <Button variant="ghost" size="icon" onClick={onBack} className="mr-1.5">
+              <ArrowDown className="rotate-90 h-4 w-4" />
             </Button>
+          )}
+          
+          <Users className="h-4 w-4 mr-1.5 text-primary" />
+          
+          <div className="flex-1">
+            <div className="font-medium line-clamp-1 text-sm">
+              {roomDetails?.room_name || "Care Team Chat"}
+            </div>
+            
+            <div className="text-xs text-muted-foreground flex items-center gap-1">
+              <User className="h-3 w-3 mr-0.5" />
+              <span className="truncate max-w-[120px]">{roomDetails?.patient_name || "Patient"}</span> • 
+              <span className="text-xs">
+                {teamMembers.length} members
+              </span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-5 px-1 text-xs ml-1" 
+                onClick={() => setShowTeamDetails(!showTeamDetails)}
+              >
+                {showTeamDetails ? "Less info" : "More info"}
+              </Button>
+            </div>
           </div>
+        </div>
+        
+        {/* Always show team members in compact form */}
+        <div className="mt-2 pl-1">
+          <CareTeamMembersList members={teamMembers} compact={!showTeamDetails} />
         </div>
       </div>
       
       <div className="flex-1 bg-[#f0f2f5] dark:bg-slate-900 overflow-hidden relative flex flex-col">
-        {showTeamMembers && (
-          <div className="p-3 bg-white dark:bg-gray-900 border-b">
-            <CareTeamMembersList members={teamMembers} />
-            <div className="flex justify-end mt-2">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowTeamMembers(false)}
-              >
-                Close
-              </Button>
-            </div>
-          </div>
-        )}
-        
         <ScrollArea className="h-full flex flex-col" viewportRef={containerRef}>
           <div className="p-4 space-y-6 flex-grow flex flex-col">
             {/* Load More button at the top for older messages */}
