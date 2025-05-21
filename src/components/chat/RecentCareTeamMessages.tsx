@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,9 +19,10 @@ export const RecentCareTeamMessages = ({
 }: RecentCareTeamMessagesProps) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<any[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["recent_room_messages", patientRoomId],
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["recent_room_messages", patientRoomId, refreshTrigger],
     queryFn: async () => {
       if (!patientRoomId) return [];
       
@@ -100,6 +102,11 @@ export const RecentCareTeamMessages = ({
     }
   }, [data]);
 
+  const handleMessageDelete = () => {
+    // Trigger a refetch after message deletion
+    refetch();
+  };
+
   if (!patientRoomId) {
     return (
       <div className="flex justify-center items-center h-full text-muted-foreground">
@@ -146,6 +153,7 @@ export const RecentCareTeamMessages = ({
               message={msg}
               isCurrentUser={msg.sender.id === user?.id}
               showAvatar={true}
+              onMessageDelete={handleMessageDelete}
             />
           ))}
         </div>

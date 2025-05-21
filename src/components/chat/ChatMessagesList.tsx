@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -58,6 +57,7 @@ export const ChatMessagesList = ({
   const [page, setPage] = useState(1);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [newMessageAdded, setNewMessageAdded] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const { 
     endRef, 
@@ -133,7 +133,7 @@ export const ChatMessagesList = ({
       setIsLoading(false);
       setMessages([]);
     }
-  }, [roomId, useRoomMessages]);
+  }, [roomId, useRoomMessages, refreshTrigger]);
 
   // Listen for new real-time messages
   useEffect(() => {
@@ -179,6 +179,12 @@ export const ChatMessagesList = ({
       }
     }
   }, [localMessages, messages]);
+
+  // Add message delete handler
+  const handleMessageDelete = () => {
+    // Trigger a refresh of messages
+    setRefreshTrigger(prev => prev + 1);
+  };
 
   // The messages are now loaded in newest-first order; reverse before rendering
   const allMessages = [...messages]
@@ -319,30 +325,26 @@ export const ChatMessagesList = ({
                                   </div>
                                 )}
                                 
-                                <div
-                                  className={`p-3 rounded-lg text-sm shadow-sm ${
-                                    message.is_system_message 
-                                      ? 'bg-muted/70 text-muted-foreground text-xs italic' 
-                                      : isCurrentUser && !leftAligned
-                                        ? 'bg-[#9b87f5]/90 text-white' 
-                                        : isAi
-                                          ? 'bg-purple-50/80 dark:bg-purple-900/10'
-                                          : 'bg-neutral-100/80 dark:bg-neutral-800/50'
-                                  }`}
-                                >
-                                  <p className="whitespace-pre-wrap">
-                                    {message.message}
-                                  </p>
-                                  <div className="text-[10px] opacity-70 mt-1 text-right">
-                                    {new Date(message.created_at).toLocaleTimeString([], {
-                                      hour: '2-digit',
-                                      minute: '2-digit'
-                                    })}
-                                    {isCurrentUser && (
-                                      <span className="ml-1">✓</span>
-                                    )}
-                                  </div>
-                                </div>
+                                <ChatMessage 
+                                  message={{
+                                    id: message.id,
+                                    message: message.message,
+                                    created_at: message.created_at,
+                                    read: false,
+                                    sender: {
+                                      id: message.sender_id,
+                                      first_name: message.sender_name?.split(' ')[0] || '',
+                                      last_name: message.sender_name?.split(' ').slice(1).join(' ') || '',
+                                      role: message.sender_role
+                                    },
+                                    is_system_message: message.is_system_message,
+                                    is_ai_message: message.is_ai_message
+                                  }}
+                                  isCurrentUser={isCurrentUser}
+                                  showAvatar={false}
+                                  offlineMode={offlineMode}
+                                  onMessageDelete={handleMessageDelete}
+                                />
                               </div>
                             </div>
                           </div>
