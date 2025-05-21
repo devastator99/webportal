@@ -25,13 +25,12 @@ export const DeleteMessageDialog = ({ messageId, isOpen, setIsOpen, onDeleteSucc
 
   const handleDelete = async () => {
     try {
-      // Use type assertion to fix the type error with the RPC call
       const { data, error } = await supabase.rpc(
-        'delete_room_message' as any, // Using type assertion to bypass TypeScript's strict checking
+        'delete_room_message', 
         {
           p_message_id: messageId,
         }
-      ); 
+      ) as { data: boolean | null; error: Error | null };
 
       if (error) {
         throw error;

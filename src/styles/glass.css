@@ -31,10 +31,22 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
+.glassmorphism-dark {
+  background: rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
 /* Mobile responsive glass */
 @media (max-width: 640px) {
-  .glass, .glass-dark, .glass-nav {
+  .glass, .glass-dark, .glass-nav, .glassmorphism-dark {
     backdrop-filter: blur(7px);
     -webkit-backdrop-filter: blur(7px);
+  }
+  
+  .glassmorphism-dark {
+    background: rgba(0, 0, 0, 0.35);
   }
 }
