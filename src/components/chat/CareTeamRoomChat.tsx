@@ -27,7 +27,7 @@ interface RoomMessage {
   is_system_message: boolean;
   is_ai_message: boolean;
   created_at: string;
-  read_by: string[] | null; // Added the missing property
+  read_by: string[] | null; // Fixed: Added the missing property
   file_url?: string;
   message_type?: 'text' | 'image' | 'file' | 'pdf';
 }
@@ -196,7 +196,9 @@ export const CareTeamRoomChat = ({
             is_system_message: msg.is_system_message || false,
             is_ai_message: msg.is_ai_message || false,
             created_at: msg.created_at,
-            read_by: readByArray
+            read_by: readByArray,
+            file_url: msg.file_url,
+            message_type: msg.message_type
           });
         }
         
@@ -536,4 +538,3 @@ export const CareTeamRoomChat = ({
     </div>
   );
 };
-
