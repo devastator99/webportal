@@ -13,7 +13,7 @@ interface PatientAppLayoutProps {
   title?: string;
   description?: string;
   fullWidth?: boolean;
-  fullScreenChat?: boolean; // New prop for full-screen chat mode
+  fullScreenChat?: boolean;
 }
 
 export function PatientAppLayout({
@@ -22,7 +22,7 @@ export function PatientAppLayout({
   title,
   description,
   fullWidth = false,
-  fullScreenChat = false, // Initialize with default value
+  fullScreenChat = false,
 }: PatientAppLayoutProps) {
   const isMobile = useIsMobile();
   const isMobileOrTablet = useIsMobileOrIPad();

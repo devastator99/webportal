@@ -19,7 +19,7 @@ interface ChatInputProps {
   selectedFile?: File | null;
   onClearFile?: () => void;
   uploadProgress?: number;
-  fullScreen?: boolean; // Add the fullScreen prop
+  fullScreen?: boolean;
 }
 
 export const ChatInput = ({ 
@@ -35,7 +35,7 @@ export const ChatInput = ({
   selectedFile,
   onClearFile,
   uploadProgress = 0,
-  fullScreen = false // Add default value
+  fullScreen = false
 }: ChatInputProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -57,7 +57,8 @@ export const ChatInput = ({
 
   const adjustTextareaHeight = (textarea: HTMLTextAreaElement) => {
     textarea.style.height = "inherit";
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
+    // Increase max height to allow more typing space - from 120px to 160px
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`;
   };
   
   const triggerFileUpload = () => {
@@ -140,12 +141,12 @@ export const ChatInput = ({
             placeholder={placeholder}
             disabled={disabled || isLoading}
             className={cn(
-              "min-h-[40px] max-h-[120px] pr-10 py-2.5 resize-none overflow-y-auto",
+              "min-h-[50px] max-h-[160px] pr-10 py-3 resize-none overflow-y-auto", // Increased min-height and max-height
               isFocused && "border-primary ring-2 ring-primary/20"
             )}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            rows={1}
+            rows={2} // Increased from 1 to 2 for more initial space
           />
           
           <Button
