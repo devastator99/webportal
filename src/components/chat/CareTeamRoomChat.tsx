@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -127,7 +128,7 @@ export const CareTeamRoomChat = ({
           .from('room_messages')
           .select('id, sender_id, message, is_system_message, is_ai_message, created_at, read_by')
           .eq('room_id', selectedRoomId)
-          .order('created_at', { ascending: true })
+          .order('created_at', { ascending: false }) // Get newest messages first
           .limit(100);
           
         if (error) {
