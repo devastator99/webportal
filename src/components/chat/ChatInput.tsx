@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useEffect } from "react";
-import { Send, PaperclipIcon, Loader2 } from "lucide-react";
+import { Send, PaperclipIcon, Loader2, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -14,6 +14,8 @@ interface ChatInputProps {
   placeholder?: string;
   onAttachmentUpload?: (file: File) => void;
   allowAttachments?: boolean;
+  offlineMode?: boolean;
+  fullScreen?: boolean;
 }
 
 export const ChatInput = ({
@@ -24,7 +26,9 @@ export const ChatInput = ({
   isLoading = false,
   placeholder = "Type a message...",
   onAttachmentUpload,
-  allowAttachments = false
+  allowAttachments = false,
+  offlineMode = false,
+  fullScreen = false
 }: ChatInputProps) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [textareaHeight, setTextareaHeight] = useState<number>(44); // Default height
@@ -59,6 +63,15 @@ export const ChatInput = ({
   return (
     <div className="chat-input-container">
       <div className="flex items-end gap-2 relative">
+        {offlineMode && (
+          <div className="absolute top-0 left-0 w-full flex items-center justify-center -mt-6">
+            <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">
+              <WifiOff className="h-3 w-3" />
+              <span>Offline Mode</span>
+            </div>
+          </div>
+        )}
+        
         {allowAttachments && (
           <div className="relative">
             <input
@@ -111,7 +124,8 @@ export const ChatInput = ({
               "hover:bg-primary hover:text-primary-foreground",
               "transition-all duration-200",
               value.trim() && !disabled && !isLoading ? "text-primary" : "text-muted-foreground",
-              isMobile ? "h-10 w-10 bottom-0.5 right-0.5" : "h-8 w-8 bottom-1 right-1"
+              isMobile ? "h-10 w-10 bottom-0.5 right-0.5" : "h-8 w-8 bottom-1 right-1",
+              fullScreen && "bottom-2 right-2"
             )}
             aria-label="Send message"
           >

@@ -1,10 +1,10 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Send, ArrowDown, Brain, User, Users, Sparkles, ArrowUpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -16,19 +16,7 @@ import { useChatScroll } from "@/hooks/useChatScroll";
 import { groupMessagesByDate, safeParseISO } from "@/utils/dateUtils";
 import { ChatInput } from "./ChatInput";
 import { cn } from "@/lib/utils";
-
-// Define interfaces for message data
-interface RoomMessage {
-  id: string;
-  sender_id: string;
-  sender_name: string;
-  sender_role: string;
-  message: string;
-  is_system_message: boolean;
-  is_ai_message: boolean;
-  created_at: string;
-  read_by: string[] | null;
-}
+import { RoomMessage, TeamMember } from "@/types/chat";
 
 // Define a type for the raw message data from the database
 interface RawRoomMessage {
@@ -46,13 +34,6 @@ interface RawRoomMessage {
 interface MessagesData {
   messages: RoomMessage[];
   hasMore: boolean;
-}
-
-interface TeamMember {
-  id: string;
-  first_name: string;
-  last_name: string;
-  role: string;
 }
 
 interface CareTeamRoom {
@@ -126,14 +107,24 @@ export const CareTeamRoomChat = ({
         
         // Fetch team members for the room
         const { data: members, error: membersError } = await supabase
-          .rpc('get_room_members', { p_room_id: selectedRoomId });
+          .from('room_members')
+          .select(`
+            id,
+            user_id,
+            role,
+            profiles:user_id (
+              first_name,
+              last_name
+            )
+          `)
+          .eq('room_id', selectedRoomId);
           
         let fetchedMembers: TeamMember[] = [];
         if (!membersError && members && Array.isArray(members)) {
           fetchedMembers = members.map(member => ({
             id: member.user_id,
-            first_name: member.first_name || '',
-            last_name: member.last_name || '',
+            first_name: member.profiles?.first_name || '',
+            last_name: member.profiles?.last_name || '',
             role: member.role || 'unknown'
           }));
           setTeamMembers(fetchedMembers);
@@ -183,13 +174,23 @@ export const CareTeamRoomChat = ({
       if (selectedRoomId && roomDetails && !teamMembers.length) {
         try {
           const { data: members, error: membersError } = await supabase
-            .rpc('get_room_members', { p_room_id: selectedRoomId });
+            .from('room_members')
+            .select(`
+              id,
+              user_id,
+              role,
+              profiles:user_id (
+                first_name,
+                last_name
+              )
+            `)
+            .eq('room_id', selectedRoomId);
             
           if (!membersError && members && Array.isArray(members)) {
             const fetchedMembers = members.map(member => ({
               id: member.user_id,
-              first_name: member.first_name || '',
-              last_name: member.last_name || '',
+              first_name: member.profiles?.first_name || '',
+              last_name: member.profiles?.last_name || '',
               role: member.role || 'unknown'
             }));
             setTeamMembers(fetchedMembers);

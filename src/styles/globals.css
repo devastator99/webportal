@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -226,6 +225,6 @@
   [data-sonner-toaster][data-position="bottom-right"],
   [data-sonner-toaster][data-position="bottom-left"],
   [data-sonner-toaster][data-position="bottom-center"] {
-    bottom: 60px;
+    bottom: 80px;
   }
 }
