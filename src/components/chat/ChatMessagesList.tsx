@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,6 +32,7 @@ interface Message {
     size?: number;
     type?: string;
   } | null;
+  read_by?: any; // Added read_by to fix type issues
 }
 
 interface ChatMessagesListProps {
@@ -105,25 +105,31 @@ export const ChatMessagesList = ({
 
       console.log(`Received ${data?.length || 0} messages from server for page ${pageNum}`);
       
-      // Sort messages from newest to oldest
-      const latestPage = Array.isArray(data) 
-        ? [...data].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        : [];
-
+      // Make sure data is an array
+      if (!Array.isArray(data)) {
+        console.warn("Received non-array data from server:", data);
+        if (!isLoadingMore) setIsLoading(false);
+        return;
+      }
+      
+      // Since the function returns messages in DESC order (newest first)
+      // we need to keep this order for proper pagination
+      const latestMessages = [...data];
+      console.log("First message date:", latestMessages[0]?.created_at);
+      console.log("Last message date:", latestMessages[latestMessages.length - 1]?.created_at);
+      
       if (isLoadingMore) {
         setMessages(prev => {
-          // Append older messages--nothing duplicated
+          // Avoid duplicates when adding older messages
           const existingIds = new Set(prev.map(m => m.id));
-          const nonDuped = latestPage.filter(
-            m => !existingIds.has(m.id)
-          );
+          const nonDuped = latestMessages.filter(m => !existingIds.has(m.id));
           console.log(`Adding ${nonDuped.length} older messages`);
-          // Append older ones to existing (newest first order maintained)
+          // Keep newest first order when adding older messages to the end
           return [...prev, ...nonDuped];
         });
       } else {
-        console.log(`Setting ${latestPage.length} new messages`);
-        setMessages(latestPage);
+        console.log(`Setting ${latestMessages.length} new messages`);
+        setMessages(latestMessages);
       }
 
       setHasMoreMessages(Array.isArray(data) && data.length === PAGE_SIZE);
