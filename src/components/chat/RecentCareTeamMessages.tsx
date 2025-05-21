@@ -53,9 +53,18 @@ export const RecentCareTeamMessages = ({
         console.log("Retrieved room details:", room);
         
         try {
-          // Use RPC call to avoid recursion issues in policy
+          // Use direct select instead of RPC for better type safety
           const { data: members, error: membersError } = await supabase
-            .rpc('get_room_members_safe', { p_room_id: patientRoomId });
+            .from('room_members')
+            .select(`
+              user_id,
+              role,
+              profiles:user_id (
+                first_name,
+                last_name
+              )
+            `)
+            .eq('room_id', patientRoomId);
             
           if (membersError) {
             console.error("Error fetching room members:", membersError);
@@ -77,8 +86,8 @@ export const RecentCareTeamMessages = ({
             
             return {
               id: member.user_id,
-              first_name: member.first_name || 'Unknown',
-              last_name: member.last_name || '',
+              first_name: member.profiles?.first_name || 'Unknown',
+              last_name: member.profiles?.last_name || '',
               role: member.role || 'unknown'
             };
           });
@@ -89,7 +98,7 @@ export const RecentCareTeamMessages = ({
           };
         } catch (error) {
           console.error("Error processing room members:", error);
-          // Fallback method if RPC fails
+          // Fallback method if join query fails
           const { data: members, error: membersError } = await supabase
             .from('room_members')
             .select('user_id, role')
@@ -561,4 +570,3 @@ export const RecentCareTeamMessages = ({
     </div>
   );
 };
-

@@ -41,4 +41,3 @@ export async function getAIResponse(formattedMessages: any[]) {
     throw error;
   }
 }
-
