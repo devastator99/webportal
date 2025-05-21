@@ -25,12 +25,14 @@ export const DeleteMessageDialog = ({ messageId, isOpen, setIsOpen, onDeleteSucc
 
   const handleDelete = async () => {
     try {
-      // Use type assertion with 'as any' to bypass TypeScript's type checking
+      // Cast the entire function call to any type first to bypass TypeScript's type checking
       // since delete_room_message is not in the generated TypeScript definitions
-      const { data, error } = await (supabase as any).rpc(
+      const response: any = await supabase.rpc(
         'delete_room_message',
         { p_message_id: messageId }
       );
+      
+      const { data, error } = response;
 
       if (error) {
         throw error;
