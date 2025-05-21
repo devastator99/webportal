@@ -643,6 +643,14 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId, fullScreen = false }
     }
   };
 
+  // New function to format message text with italic styling
+  const formatMessageText = (text: string): string => {
+    if (!text) return '';
+    
+    // Format text between *asterisks* to be italic using HTML
+    return text.replace(/\*(.*?)\*/g, '<em>$1</em>');
+  };
+
   return (
     <div className="h-full flex overflow-hidden rounded-md border-none shadow-none">
       {showSidebar && (
@@ -956,7 +964,12 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId, fullScreen = false }
                                                     </button>
                                                   </div>
                                                 )}
-                                                <p className="text-sm whitespace-pre-wrap">{message.message}</p>
+                                                <p 
+                                                  className="text-sm whitespace-pre-wrap"
+                                                  dangerouslySetInnerHTML={{ 
+                                                    __html: formatMessageText(message.message) 
+                                                  }}
+                                                ></p>
                                                 <p className="text-[10px] opacity-70 mt-1 message-time">
                                                   {formatChatMessageTime(message.created_at)}
                                                 </p>
