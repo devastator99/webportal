@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Send, ArrowDown, Brain, User, Users, Sparkles } from "lucide-react";
+import { Loader2, Send, ArrowDown, Brain, User, Users, Sparkles, ArrowUpCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -60,6 +60,9 @@ export const CareTeamRoomChat = ({
   const [loadingMore, setLoadingMore] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [isAiTyping, setIsAiTyping] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const PAGE_SIZE = 100;
 
   const { data: roomDetails } = useQuery({
     queryKey: ["care_team_room", selectedRoomId],
@@ -118,113 +121,154 @@ export const CareTeamRoomChat = ({
     enabled: !!selectedRoomId && !!user?.id
   });
 
-  const { data: messagesData, isLoading: messagesQueryLoading } = useQuery({
-    queryKey: ["room_messages", selectedRoomId],
-    queryFn: async () => {
-      if (!selectedRoomId) return [];
+  const fetchMessages = async (roomId: string, pageNum: number, isLoadingMore = false) => {
+    if (!roomId) return [];
+    
+    try {
+      if (!isLoadingMore) setMessagesLoading(true);
       
-      try {
-        const { data: messageData, error } = await supabase
-          .from('room_messages')
-          .select('id, sender_id, message, is_system_message, is_ai_message, created_at, read_by')
-          .eq('room_id', selectedRoomId)
-          .order('created_at', { ascending: false }) // Get newest messages first
-          .limit(100);
-          
-        if (error) {
-          console.error("Error fetching messages:", error);
-          throw error;
-        }
+      console.log(`Fetching messages for room: ${roomId}, page: ${pageNum}, pageSize: ${PAGE_SIZE}`);
+      
+      const { data: messageData, error } = await supabase
+        .from('room_messages')
+        .select('id, sender_id, message, is_system_message, is_ai_message, created_at, read_by')
+        .eq('room_id', roomId)
+        .order('created_at', { ascending: false }) // Get newest messages first
+        .range((pageNum - 1) * PAGE_SIZE, pageNum * PAGE_SIZE - 1);
         
-        const formattedMessages: RoomMessage[] = [];
-        
-        for (const msg of messageData) {
-          let senderName = 'Unknown';
-          let senderRole = 'unknown';
-          
-          if (msg.sender_id === '00000000-0000-0000-0000-000000000000') {
-            senderName = 'AI Assistant';
-            senderRole = 'aibot';
-          } else {
-            const { data: senderData, error: senderError } = await supabase
-              .from('profiles')
-              .select('first_name, last_name')
-              .eq('id', msg.sender_id)
-              .single();
-              
-            if (!senderError && senderData) {
-              senderName = `${senderData.first_name || ''} ${senderData.last_name || ''}`.trim();
-            }
-            
-            const { data: roleData, error: roleError } = await supabase
-              .from('user_roles')
-              .select('role')
-              .eq('user_id', msg.sender_id)
-              .single();
-              
-            if (!roleError && roleData) {
-              senderRole = roleData.role;
-            }
-          }
-          
-          let readByArray: string[] = [];
-          
-          if (msg.read_by) {
-            if (Array.isArray(msg.read_by)) {
-              readByArray = msg.read_by.map(item => String(item));
-            } else if (typeof msg.read_by === 'object') {
-              try {
-                const parsedArray = Array.isArray(msg.read_by) ? msg.read_by : [];
-                readByArray = parsedArray.map(item => String(item));
-              } catch (e) {
-                console.warn("Could not parse read_by field:", e);
-              }
-            }
-          }
-          
-          formattedMessages.push({
-            id: msg.id,
-            sender_id: msg.sender_id,
-            sender_name: senderName,
-            sender_role: senderRole,
-            message: msg.message,
-            is_system_message: msg.is_system_message || false,
-            is_ai_message: msg.is_ai_message || false,
-            created_at: msg.created_at,
-            read_by: readByArray
-          });
-        }
-        
-        if (messageData.length > 0 && user?.id) {
-          for (const msg of messageData) {
-            let currentReadBy: string[] = [];
-            
-            if (msg.read_by && Array.isArray(msg.read_by)) {
-              currentReadBy = msg.read_by.map(item => String(item));
-            }
-            
-            if (user.id && !currentReadBy.includes(user.id)) {
-              const updatedReadBy = [...currentReadBy, user.id];
-              
-              await supabase
-                .from('room_messages')
-                .update({ read_by: updatedReadBy })
-                .eq('id', msg.id);
-            }
-          }
-        }
-        
-        return formattedMessages;
-      } catch (error) {
-        console.error("Error in messages query:", error);
-        return [];
+      if (error) {
+        console.error("Error fetching messages:", error);
+        throw error;
       }
+      
+      const formattedMessages: RoomMessage[] = [];
+      
+      for (const msg of messageData || []) {
+        let senderName = 'Unknown';
+        let senderRole = 'unknown';
+        
+        if (msg.sender_id === '00000000-0000-0000-0000-000000000000') {
+          senderName = 'AI Assistant';
+          senderRole = 'aibot';
+        } else {
+          const { data: senderData, error: senderError } = await supabase
+            .from('profiles')
+            .select('first_name, last_name')
+            .eq('id', msg.sender_id)
+            .single();
+            
+          if (!senderError && senderData) {
+            senderName = `${senderData.first_name || ''} ${senderData.last_name || ''}`.trim();
+          }
+          
+          const { data: roleData, error: roleError } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', msg.sender_id)
+            .single();
+            
+          if (!roleError && roleData) {
+            senderRole = roleData.role;
+          }
+        }
+        
+        let readByArray: string[] = [];
+        
+        if (msg.read_by) {
+          if (Array.isArray(msg.read_by)) {
+            readByArray = msg.read_by.map(item => String(item));
+          } else if (typeof msg.read_by === 'object') {
+            try {
+              const parsedArray = Array.isArray(msg.read_by) ? msg.read_by : [];
+              readByArray = parsedArray.map(item => String(item));
+            } catch (e) {
+              console.warn("Could not parse read_by field:", e);
+            }
+          }
+        }
+        
+        formattedMessages.push({
+          id: msg.id,
+          sender_id: msg.sender_id,
+          sender_name: senderName,
+          sender_role: senderRole,
+          message: msg.message,
+          is_system_message: msg.is_system_message || false,
+          is_ai_message: msg.is_ai_message || false,
+          created_at: msg.created_at,
+          read_by: readByArray
+        });
+      }
+      
+      if (messageData && messageData.length > 0 && user?.id) {
+        for (const msg of messageData) {
+          let currentReadBy: string[] = [];
+          
+          if (msg.read_by && Array.isArray(msg.read_by)) {
+            currentReadBy = msg.read_by.map(item => String(item));
+          }
+          
+          if (user.id && !currentReadBy.includes(user.id)) {
+            const updatedReadBy = [...currentReadBy, user.id];
+            
+            await supabase
+              .from('room_messages')
+              .update({ read_by: updatedReadBy })
+              .eq('id', msg.id);
+          }
+        }
+      }
+      
+      return {
+        messages: formattedMessages,
+        hasMore: Array.isArray(messageData) && messageData.length === PAGE_SIZE
+      };
+    } catch (error) {
+      console.error("Error in fetchMessages:", error);
+      return { messages: [], hasMore: false };
+    } finally {
+      if (!isLoadingMore) setMessagesLoading(false);
+      setLoadingMore(false);
+    }
+  };
+
+  const { data: messagesData, isLoading: messagesQueryLoading, refetch } = useQuery({
+    queryKey: ["room_messages", selectedRoomId, page],
+    queryFn: async () => {
+      if (!selectedRoomId) return { messages: [], hasMore: false };
+      return fetchMessages(selectedRoomId, 1, false);
     },
     enabled: !!selectedRoomId,
     refetchInterval: 5000
   });
 
-  const messages: RoomMessage[] = Array.isArray(messagesData) ? messagesData : [];
+  const messages: RoomMessage[] = messagesData?.messages || [];
+  
+  const handleLoadMore = async () => {
+    if (!selectedRoomId || loadingMore || !hasMoreMessages) return;
+    
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    setPage(nextPage);
+    
+    const result = await fetchMessages(selectedRoomId, nextPage, true);
+    
+    if (result.messages.length > 0) {
+      const newMessages = [...messages, ...result.messages];
+      
+      // Update the cached data
+      queryClient.setQueryData(["room_messages", selectedRoomId, page], {
+        messages: newMessages,
+        hasMore: result.hasMore
+      });
+      
+      setHasMoreMessages(result.hasMore);
+    } else {
+      setHasMoreMessages(false);
+    }
+    
+    setLoadingMore(false);
+  };
 
   const { 
     endRef, 
@@ -261,7 +305,8 @@ export const CareTeamRoomChat = ({
       
       setMessage("");
       
-      queryClient.invalidateQueries({ queryKey: ["room_messages", selectedRoomId] });
+      // Refetch to get the latest messages
+      refetch();
       
       // Check if the message includes an AI command
       const hasAiCommand = message.toLowerCase().includes('@ai') || message.toLowerCase().includes('@assistant');
@@ -282,7 +327,7 @@ export const CareTeamRoomChat = ({
           }
           
           setTimeout(() => {
-            queryClient.invalidateQueries({ queryKey: ["room_messages", selectedRoomId] });
+            refetch();
             setIsAiTyping(false);
           }, 1000);
         } catch (aiErr) {
@@ -339,8 +384,12 @@ export const CareTeamRoomChat = ({
     });
   };
 
-  // Group messages by date - now messages are sorted for display
+  // Group messages by date - messages are sorted for display (newest first)
   const messageGroups = groupMessagesByDate(messages);
+
+  useEffect(() => {
+    setHasMoreMessages(messagesData?.hasMore || false);
+  }, [messagesData]);
 
   if (!selectedRoomId) {
     return (
@@ -379,6 +428,22 @@ export const CareTeamRoomChat = ({
       <div className="flex-1 bg-[#f0f2f5] dark:bg-slate-900 overflow-hidden relative">
         <ScrollArea className="h-full" viewportRef={containerRef}>
           <div className="p-4 space-y-6">
+            {/* Load More button at the top for older messages */}
+            {hasMoreMessages && (
+              <div className="flex justify-center mb-4 mt-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLoadMore}
+                  disabled={loadingMore}
+                  className="rounded-full"
+                >
+                  {loadingMore ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <ArrowUpCircle className="w-4 h-4 mr-2" />}
+                  Load older messages
+                </Button>
+              </div>
+            )}
+            
             {messagesQueryLoading ? (
               <div className="flex justify-center pt-4">
                 <Loader2 className="h-6 w-6 animate-spin text-primary" />
