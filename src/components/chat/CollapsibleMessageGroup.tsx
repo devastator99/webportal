@@ -1,76 +1,85 @@
 
-import React, { useState, useEffect } from 'react';
-import { format, isToday, isYesterday } from 'date-fns';
-import { ChevronDown, ChevronRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ReactNode, useState } from "react";
+import { ChevronDown, ChevronRight, CalendarDays } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { format } from "date-fns";
+import { RoomMessage } from "@/types/chat";
 
 interface CollapsibleMessageGroupProps {
   date: string;
-  children: React.ReactNode;
+  messages: RoomMessage[];
+  children: ReactNode;
   isLatestGroup?: boolean;
-  messages: any[];
 }
 
-export const CollapsibleMessageGroup = ({ 
-  date, 
-  children, 
-  isLatestGroup = false,
-  messages 
+export const CollapsibleMessageGroup = ({
+  date,
+  messages,
+  children,
+  isLatestGroup = false
 }: CollapsibleMessageGroupProps) => {
-  const [isCollapsed, setIsCollapsed] = useState(!isLatestGroup);
-  
-  // Use effect to handle auto-expand for latest group
-  useEffect(() => {
-    if (isLatestGroup) {
-      setIsCollapsed(false);
-      console.log(`Auto-expanding latest message group: ${date}`);
-    }
-  }, [isLatestGroup, date]);
-  
-  const getFormattedDate = () => {
-    try {
-      const dateObj = new Date(date);
-      
-      if (isToday(dateObj)) {
-        return "Today";
-      } else if (isYesterday(dateObj)) {
-        return "Yesterday";
-      } else {
-        return format(dateObj, 'MMMM d, yyyy');
-      }
-    } catch (error) {
-      console.error("Error formatting date:", error, "for date string:", date);
-      return date;
-    }
-  };
-  
-  const formattedDate = getFormattedDate();
-  
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   const toggleCollapse = () => {
-    setIsCollapsed(prev => !prev);
-    console.log(`Toggled message group ${date} (${formattedDate}) - collapsed: ${!isCollapsed}`);
+    if (isLatestGroup) return; // Don't allow collapsing the latest group
+    setIsCollapsed(!isCollapsed);
   };
-  
+
+  // Format the date header
+  let dateHeader = date;
+  try {
+    const dateObj = new Date(date);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (dateObj.toDateString() === today.toDateString()) {
+      dateHeader = "Today";
+    } else if (dateObj.toDateString() === yesterday.toDateString()) {
+      dateHeader = "Yesterday";
+    } else {
+      dateHeader = format(dateObj, "EEEE, MMMM d, yyyy");
+    }
+  } catch (e) {
+    console.error("Error formatting date:", e);
+  }
+
   return (
-    <div className="message-group">
-      <div className="flex justify-start mb-2">
+    <div className="message-date-group w-full">
+      <div className="message-date-divider">
         <Button
           variant="ghost"
           size="sm"
+          className={cn(
+            "px-2 py-0.5 h-auto text-xs font-normal rounded-full",
+            "flex items-center gap-1 text-muted-foreground",
+            isLatestGroup ? "cursor-default" : "cursor-pointer"
+          )}
           onClick={toggleCollapse}
-          className="h-6 text-xs text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted/50 rounded-full px-3 flex items-center gap-1 shadow-sm"
         >
-          {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-          <span>{formattedDate}</span>
-          <span className="text-[10px] opacity-70">({messages.length})</span>
+          <CalendarDays className="h-3 w-3 mr-1" />
+          {dateHeader}
+          {!isLatestGroup && (
+            <>
+              {isCollapsed ? (
+                <ChevronRight className="h-3 w-3" />
+              ) : (
+                <ChevronDown className="h-3 w-3" />
+              )}
+            </>
+          )}
         </Button>
       </div>
-      
-      {!isCollapsed && (
-        <div className="space-y-2 mb-4">
-          {children}
-        </div>
-      )}
+
+      <div
+        className={cn(
+          "transition-all duration-300 w-full",
+          isCollapsed ? "h-0 overflow-hidden opacity-0" : "opacity-100"
+        )}
+      >
+        {children}
+      </div>
     </div>
   );
 };

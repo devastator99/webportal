@@ -48,6 +48,13 @@ interface MessagesData {
   hasMore: boolean;
 }
 
+interface TeamMember {
+  id: string;
+  first_name: string;
+  last_name: string;
+  role: string;
+}
+
 interface CareTeamRoom {
   room_id: string;
   room_name: string;
@@ -57,6 +64,7 @@ interface CareTeamRoom {
   member_count: number;
   last_message: string;
   last_message_time: string;
+  team_members?: TeamMember[];
 }
 
 interface CareTeamRoomChatProps {
@@ -82,6 +90,7 @@ export const CareTeamRoomChat = ({
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const PAGE_SIZE = 500; // Maintaining the 500 message limit
 
   // Only fetch room details if they weren't provided as props
@@ -115,6 +124,21 @@ export const CareTeamRoomChat = ({
           }
         }
         
+        // Fetch team members for the room
+        const { data: members, error: membersError } = await supabase
+          .rpc('get_room_members', { p_room_id: selectedRoomId });
+          
+        let fetchedMembers: TeamMember[] = [];
+        if (!membersError && members && Array.isArray(members)) {
+          fetchedMembers = members.map(member => ({
+            id: member.user_id,
+            first_name: member.first_name || '',
+            last_name: member.last_name || '',
+            role: member.role || 'unknown'
+          }));
+          setTeamMembers(fetchedMembers);
+        }
+        
         const { count, error: countError } = await supabase
           .from('room_members')
           .select('*', { count: 'exact', head: true })
@@ -132,7 +156,8 @@ export const CareTeamRoomChat = ({
           patient_name: patientName,
           member_count: count || 0,
           last_message: '',
-          last_message_time: roomData.created_at
+          last_message_time: roomData.created_at,
+          team_members: fetchedMembers
         } as CareTeamRoom;
       } catch (error) {
         console.error("Error in room details query:", error);
@@ -144,6 +169,39 @@ export const CareTeamRoomChat = ({
 
   // Use provided room details from props or fetch them if not provided
   const roomDetails = propRoomDetails || fetchedRoomDetails;
+
+  // When room details change, update team members
+  useEffect(() => {
+    if (roomDetails?.team_members) {
+      setTeamMembers(roomDetails.team_members);
+    }
+  }, [roomDetails]);
+
+  // If we have room details but no team members, fetch them
+  useEffect(() => {
+    const fetchTeamMembers = async () => {
+      if (selectedRoomId && roomDetails && !teamMembers.length) {
+        try {
+          const { data: members, error: membersError } = await supabase
+            .rpc('get_room_members', { p_room_id: selectedRoomId });
+            
+          if (!membersError && members && Array.isArray(members)) {
+            const fetchedMembers = members.map(member => ({
+              id: member.user_id,
+              first_name: member.first_name || '',
+              last_name: member.last_name || '',
+              role: member.role || 'unknown'
+            }));
+            setTeamMembers(fetchedMembers);
+          }
+        } catch (err) {
+          console.error("Error fetching team members:", err);
+        }
+      }
+    };
+    
+    fetchTeamMembers();
+  }, [selectedRoomId, roomDetails, teamMembers.length]);
 
   const fetchMessages = async (roomId: string, pageNum: number, isLoadingMore = false) => {
     if (!roomId) return { messages: [], hasMore: false };
@@ -289,18 +347,51 @@ export const CareTeamRoomChat = ({
     isNewMessage: true
   });
 
+  // Determine if this is a patient chat
+  const isPatientUser = user?.role === 'patient';
+
+  // Function to trigger AI response
+  const triggerAiResponse = async (userMessage: string) => {
+    // Only trigger AI in patient chats
+    if (!isPatientUser || !selectedRoomId) return;
+    
+    setIsAiTyping(true);
+    
+    try {
+      const { data: aiResponse, error: aiError } = await supabase.functions.invoke(
+        'care-team-ai-chat',
+        {
+          body: { roomId: selectedRoomId, message: userMessage }
+        }
+      );
+      
+      if (aiError) {
+        console.error("AI chat error:", aiError);
+      }
+      
+      setTimeout(() => {
+        refetch();
+        setIsAiTyping(false);
+      }, 1000);
+    } catch (aiErr) {
+      console.error("Error invoking AI chat:", aiErr);
+      setIsAiTyping(false);
+    }
+  };
+
   const handleSendMessage = async () => {
     if (!message.trim() || !selectedRoomId || !user?.id) return;
     
     try {
       setIsLoading(true);
+      const messageToSend = message.trim();
       
       const { data, error } = await supabase
         .from('room_messages')
         .insert({
           room_id: selectedRoomId,
           sender_id: user.id,
-          message: message.trim(),
+          message: messageToSend,
           is_system_message: false,
           is_ai_message: false,
           read_by: [user.id]
@@ -315,32 +406,12 @@ export const CareTeamRoomChat = ({
       // Refetch to get the latest messages
       refetch();
       
-      // Check if the message includes an AI command
-      const hasAiCommand = message.toLowerCase().includes('@ai') || message.toLowerCase().includes('@assistant');
+      // Check if the message includes an AI command or if this is a patient user
+      const hasAiCommand = messageToSend.toLowerCase().includes('@ai') || messageToSend.toLowerCase().includes('@assistant');
       
-      if (hasAiCommand) {
-        setIsAiTyping(true);
-        
-        try {
-          const { data: aiResponse, error: aiError } = await supabase.functions.invoke(
-            'care-team-ai-chat',
-            {
-              body: { roomId: selectedRoomId, message: message.trim() }
-            }
-          );
-          
-          if (aiError) {
-            console.error("AI chat error:", aiError);
-          }
-          
-          setTimeout(() => {
-            refetch();
-            setIsAiTyping(false);
-          }, 1000);
-        } catch (aiErr) {
-          console.error("Error invoking AI chat:", aiErr);
-          setIsAiTyping(false);
-        }
+      // For patients, always trigger AI response unless they're explicitly messaging another human
+      if (hasAiCommand || (isPatientUser && !messageToSend.toLowerCase().includes('@doctor') && !messageToSend.toLowerCase().includes('@nutritionist'))) {
+        triggerAiResponse(messageToSend);
       }
     } catch (error) {
       console.error("Error sending message:", error);
@@ -408,6 +479,27 @@ export const CareTeamRoomChat = ({
     return text;
   };
 
+  // Format member names for display in header
+  const formatMemberNames = () => {
+    if (!teamMembers || teamMembers.length === 0) {
+      return "No team members";
+    }
+    
+    // Only show up to 3 members in the header
+    const displayMembers = teamMembers.slice(0, 3);
+    const displayNames = displayMembers.map(member => 
+      `${member.first_name} ${member.last_name.charAt(0)}.`
+    ).join(", ");
+    
+    // If there are more members, show a count
+    const extraMembers = teamMembers.length - 3;
+    if (extraMembers > 0) {
+      return `${displayNames} +${extraMembers} more`;
+    }
+    
+    return displayNames;
+  };
+
   // Group messages by date - messages are sorted newest-first from DB, but displayed oldest-first
   const sortedMessages = [...messages].reverse();
   const messageGroups = groupMessagesByDate(sortedMessages);
@@ -447,6 +539,11 @@ export const CareTeamRoomChat = ({
             <Badge variant="outline" className="text-xs h-4 ml-0.5">
               {roomDetails?.member_count || 0}
             </Badge>
+            {teamMembers.length > 0 && (
+              <span className="ml-1 hidden sm:inline truncate">
+                • {formatMemberNames()}
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -516,7 +613,7 @@ export const CareTeamRoomChat = ({
                                     )}
                                     id={`message-${msg.id}`}
                                   >
-                                    <div className="flex gap-2 max-w-[80%] w-full">
+                                    <div className="flex gap-2 max-w-[75%] w-full">
                                       {!isSelf && !isSystem && (
                                         <Avatar className={cn("h-8 w-8 flex-shrink-0", isAI && "ring-2 ring-purple-200 ring-offset-1")}>
                                           <AvatarFallback className={getAvatarColorClass(msg.sender_role)}>
@@ -525,7 +622,10 @@ export const CareTeamRoomChat = ({
                                         </Avatar>
                                       )}
                                       
-                                      <div className="w-full">
+                                      <div className={cn(
+                                        "w-full",
+                                        isPdfMessage ? "max-w-full" : ""
+                                      )}>
                                         {!isSelf && !isSystem && (
                                           <div className={cn(
                                             "text-xs font-medium mb-1 flex items-center",
@@ -550,8 +650,7 @@ export const CareTeamRoomChat = ({
                                                   ? "bg-purple-50/80 dark:bg-purple-900/10"
                                                   : "bg-neutral-100/80 dark:bg-neutral-800/50",
                                             isAI && !isSelf && !isSystem && "border border-purple-100 dark:border-purple-900/30",
-                                            isPdfMessage && "pdf-message w-full",
-                                            isPdfMessage && !isSelf ? "max-w-full" : "",
+                                            isPdfMessage && "pdf-message",
                                           )}
                                         >
                                           {isAI && (
@@ -630,7 +729,7 @@ export const CareTeamRoomChat = ({
           onSend={handleSendMessage}
           disabled={isLoading || !selectedRoomId || isAiTyping}
           isLoading={isLoading || isAiTyping}
-          placeholder="Type a message... (Use @AI to ask the AI assistant)"
+          placeholder={isPatientUser ? "Ask a question or type a message..." : "Type a message... (Use @AI to ask the AI assistant)"}
         />
       </div>
     </div>

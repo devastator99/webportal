@@ -89,14 +89,15 @@
 
 /* PDF Message Styles */
 .pdf-message-container {
-  margin-bottom: 8px;
+  display: flex;
   width: 100%;
+  margin-bottom: 8px;
 }
 
 .pdf-message {
+  width: 100%;
   border-radius: 8px;
   position: relative;
-  width: 100%;
 }
 
 .pdf-message-content {
@@ -166,6 +167,7 @@
   flex-direction: column;
   justify-content: flex-end;
   min-height: 100%;
+  width: 100%;
 }
 
 /* Fix chat message flow */
@@ -192,8 +194,38 @@
   margin-bottom: 16px;
 }
 
-/* Fix PDF message width */
-.pdf-message-container .message-bubble {
+/* Make PDF message width consistent */
+.pdf-message-container {
   width: 100%;
-  max-width: 100%;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.pdf-message-container.justify-end {
+  justify-content: flex-end;
+}
+
+.pdf-message-container .message-bubble {
+  max-width: 75%;
+}
+
+/* Mobile optimization for chat input */
+@media (max-width: 640px) {
+  .chat-input-container textarea {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+  
+  .chat-input-container .send-button {
+    width: 44px;
+    height: 44px;
+  }
+}
+
+/* Toast notifications - ensure they don't cover the chat input on mobile */
+@media (max-width: 640px) {
+  [data-sonner-toaster][data-position="bottom-right"],
+  [data-sonner-toaster][data-position="bottom-left"],
+  [data-sonner-toaster][data-position="bottom-center"] {
+    bottom: 60px;
+  }
 }
