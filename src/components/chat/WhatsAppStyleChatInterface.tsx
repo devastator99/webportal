@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,7 +12,7 @@ import { groupMessagesByDate, safeParseISO } from "@/utils/dateUtils";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { CollapsibleMessageGroup } from "./CollapsibleMessageGroup";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
-import { fmt } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
 interface WhatsAppStyleChatInterfaceProps {
   patientRoomId?: string | null;
