@@ -104,10 +104,10 @@ export const ResponsiveChatFooter = ({
         sticky && 'sticky bottom-0',
         withBorder && 'border-t',
         isSmallScreen || isMobile 
-          ? 'py-2 px-0 pb-32' // Increased bottom padding from 28 to 32 for more space
+          ? 'py-2 px-0 pb-16' // Reduced padding to avoid extra space at bottom
           : isTablet || isMediumScreen 
-            ? 'py-3 px-2 pb-32' // Increased bottom padding from 28 to 32
-            : 'py-4 px-4 pb-6', // Increased padding from 4 to 6 at bottom
+            ? 'py-3 px-2 pb-16' // Reduced padding
+            : 'py-4 px-4 pb-6',
         className
       )}
     >

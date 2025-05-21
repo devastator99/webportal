@@ -391,8 +391,26 @@ export const CareTeamRoomChat = ({
     });
   };
 
-  // Group messages by date - messages are sorted for display (newest first)
-  const messageGroups = groupMessagesByDate(messages);
+  // Process special messages like PDF notifications
+  const processMessageContent = (text: string) => {
+    if (!text) return text;
+    
+    // Check for PDF generation message
+    if (text.includes("PDF has been generated") || 
+        text.includes("prescription as a PDF") || 
+        text.includes("ready for download")) {
+      return `<div class="pdf-message">
+        <span class="pdf-icon">📄</span>
+        <span>${text}</span>
+      </div>`;
+    }
+    
+    return text;
+  };
+
+  // Group messages by date - messages are sorted newest-first from DB, but displayed oldest-first
+  const sortedMessages = [...messages].reverse();
+  const messageGroups = groupMessagesByDate(sortedMessages);
   
   useEffect(() => {
     setHasMoreMessages(hasMore);
@@ -435,7 +453,7 @@ export const CareTeamRoomChat = ({
       
       <div className="flex-1 bg-[#f0f2f5] dark:bg-slate-900 overflow-hidden relative flex flex-col">
         <ScrollArea className="h-full flex flex-col" viewportRef={containerRef}>
-          <div className="p-4 space-y-6 flex-grow flex flex-col justify-end">
+          <div className="p-4 space-y-6 flex-grow flex flex-col">
             {/* Load More button at the top for older messages */}
             {hasMoreMessages && (
               <div className="flex justify-center mb-4 mt-2">
@@ -481,6 +499,9 @@ export const CareTeamRoomChat = ({
                               const isSelf = msg.sender_id === user?.id;
                               const isAI = msg.is_ai_message;
                               const isSystem = msg.is_system_message;
+                              const isPdfMessage = msg.message.includes("PDF has been generated") || 
+                                                   msg.message.includes("prescription as a PDF") || 
+                                                   msg.message.includes("ready for download");
                               
                               return (
                                 <div
@@ -489,6 +510,7 @@ export const CareTeamRoomChat = ({
                                     "flex message-item my-2",
                                     isSelf ? "justify-end" : "justify-start",
                                     !isSystem && isAI && !isSelf && "ai-message-container",
+                                    isPdfMessage && "pdf-message-container",
                                     "bubble-in"
                                   )}
                                   id={`message-${msg.id}`}
@@ -526,7 +548,8 @@ export const CareTeamRoomChat = ({
                                               : isAI
                                                 ? "bg-purple-50/80 dark:bg-purple-900/10"
                                                 : "bg-neutral-100/80 dark:bg-neutral-800/50",
-                                          isAI && !isSelf && !isSystem && "border border-purple-100 dark:border-purple-900/30"
+                                          isAI && !isSelf && !isSystem && "border border-purple-100 dark:border-purple-900/30",
+                                          isPdfMessage && "pdf-message"
                                         )}
                                       >
                                         {isAI && (
@@ -535,12 +558,15 @@ export const CareTeamRoomChat = ({
                                         
                                         <div 
                                           className={cn(
-                                            isAI && !isSelf && "leading-relaxed"
+                                            isAI && !isSelf && "leading-relaxed",
+                                            isPdfMessage && "pdf-message-content"
                                           )}
                                           dangerouslySetInnerHTML={{ 
-                                            __html: isSelf 
-                                              ? formatMessageWithAiHighlight(msg.message) 
-                                              : msg.message 
+                                            __html: isPdfMessage 
+                                              ? processMessageContent(msg.message) 
+                                              : isSelf 
+                                                ? formatMessageWithAiHighlight(msg.message) 
+                                                : msg.message 
                                           }}
                                         />
                                       
@@ -586,7 +612,7 @@ export const CareTeamRoomChat = ({
           <Button
             size="icon"
             variant="secondary"
-            className="absolute bottom-4 right-4 h-8 w-8 rounded-full shadow-md"
+            className="absolute bottom-20 right-4 h-8 w-8 rounded-full shadow-md"
             onClick={scrollToBottom}
           >
             <ArrowDown className="h-4 w-4" />
