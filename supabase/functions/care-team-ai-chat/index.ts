@@ -17,6 +17,8 @@ async function getOpenAIResponse(conversation: any[], systemPrompt: string) {
       return null;
     }
 
+    console.log("Sending request to OpenAI...");
+    
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -41,6 +43,7 @@ async function getOpenAIResponse(conversation: any[], systemPrompt: string) {
     }
 
     const data = await response.json();
+    console.log("Received OpenAI response");
     return data.choices[0].message.content;
   } catch (error) {
     console.error("Error calling OpenAI:", error);
@@ -55,6 +58,8 @@ serve(async (req: Request) => {
   }
   
   try {
+    console.log("Received request to care-team-ai-chat");
+    
     const { roomId, message } = await req.json();
     
     if (!roomId || !message) {

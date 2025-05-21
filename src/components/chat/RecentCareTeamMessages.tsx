@@ -26,6 +26,7 @@ export const RecentCareTeamMessages = ({
   const [messages, setMessages] = useState<any[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [roomDetails, setRoomDetails] = useState<any>(null);
+  const [processingAiResponse, setProcessingAiResponse] = useState(false);
 
   // First, fetch the room details to display information about the care team
   const { data: roomData, isLoading: loadingRoomDetails } = useQuery({
@@ -187,6 +188,7 @@ export const RecentCareTeamMessages = ({
   const [isNewMessage, setIsNewMessage] = useState(false);
   const previousMessagesCount = useRef(0);
   const [userHasScrolled, setUserHasScrolled] = useState(false);
+  const lastPatientMessageRef = useRef<string | null>(null);
 
   // Setup scroll management with improved configuration
   const {
@@ -258,18 +260,19 @@ export const RecentCareTeamMessages = ({
 
   // Function to trigger AI response to a patient message
   const triggerAiResponse = async (patientMessage: string, patientId: string) => {
-    if (!patientMessage.trim() || !patientId) return;
+    if (!patientMessage.trim() || !patientId || processingAiResponse) return;
     
     try {
+      setProcessingAiResponse(true);
       console.log("Triggering AI response to patient message:", patientMessage);
       
-      // Call the edge function to get AI response
-      const { data: aiResponse, error } = await supabase.functions.invoke('doctor-ai-assistant', {
+      // Call the edge function to send AI response
+      const { data: aiResponse, error } = await supabase.functions.invoke('send-ai-care-team-message', {
         body: { 
-          messages: [{ role: "user", content: patientMessage }],
-          preferredLanguage: 'en',
-          patientId: patientId,
-          isCareTeamChat: true
+          patient_id: patientId,
+          message: `AI response to: ${patientMessage}`,
+          message_type: 'care_team',
+          auto_respond: true
         },
       });
       
@@ -278,51 +281,48 @@ export const RecentCareTeamMessages = ({
         return;
       }
       
-      if (aiResponse && aiResponse.response) {
-        // Send the AI message to the care team room
-        const AI_BOT_ID = '00000000-0000-0000-0000-000000000000';
-        
-        await supabase.from('room_messages').insert({
-          room_id: patientRoomId,
-          sender_id: AI_BOT_ID,
-          message: aiResponse.response,
-          is_ai_message: true
-        });
-        
-        // Trigger a refetch to show the new message
-        setTimeout(() => {
-          setRefreshTrigger(prev => prev + 1);
-        }, 500);
-      }
+      console.log("AI response sent successfully:", aiResponse);
+      
+      // Trigger a refetch to show the new message
+      setTimeout(() => {
+        setRefreshTrigger(prev => prev + 1);
+        setProcessingAiResponse(false);
+      }, 500);
     } catch (error) {
       console.error("Error processing AI response:", error);
+      setProcessingAiResponse(false);
     }
   };
 
   // Watch for new patient messages to trigger AI responses
   useEffect(() => {
-    if (!user || user.role !== 'patient' || !messages.length || !patientRoomId) return;
+    if (!user || !messages.length || !patientRoomId || !roomData?.patient_id) return;
     
     // Get the latest message
     const latestMessage = messages[messages.length - 1];
     
     // Only trigger AI response if:
-    // 1. Latest message is from the current user (patient)
+    // 1. Latest message is from a patient
     // 2. It's not a system or AI message already
     // 3. There's content to respond to
+    // 4. It's not the same as the last message we processed
     if (
       latestMessage && 
-      latestMessage.sender.id === user.id &&
+      latestMessage.sender.role === 'patient' &&
       !latestMessage.is_system_message && 
       !latestMessage.is_ai_message &&
-      latestMessage.message.trim()
+      latestMessage.message.trim() &&
+      latestMessage.message !== lastPatientMessageRef.current
     ) {
+      lastPatientMessageRef.current = latestMessage.message;
+      console.log("Detected new patient message, triggering AI response:", latestMessage.message);
+      
       // Give a small delay before triggering AI response to feel more natural
       setTimeout(() => {
-        triggerAiResponse(latestMessage.message, user.id);
+        triggerAiResponse(latestMessage.message, roomData.patient_id);
       }, 1000);
     }
-  }, [messages, user, patientRoomId]);
+  }, [messages, user, patientRoomId, roomData]);
 
   if (!patientRoomId) {
     return (

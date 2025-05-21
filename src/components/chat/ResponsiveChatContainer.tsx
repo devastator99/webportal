@@ -3,6 +3,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { useBreakpoint, useResponsiveLayout } from '@/hooks/use-responsive';
 import { useResponsive } from '@/contexts/ResponsiveContext';
+import { useMobileChatStyles } from '@/hooks/use-mobile-chat-styles';
 
 interface ResponsiveChatContainerProps {
   children: React.ReactNode;
@@ -22,6 +23,7 @@ export const ResponsiveChatContainer = ({
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
   const { isTablet, isMobile } = useResponsive();
   const { padding } = useResponsiveLayout();
+  const styles = useMobileChatStyles();
   
   return (
     <div
@@ -35,13 +37,7 @@ export const ResponsiveChatContainer = ({
               ? 'min-h-[calc(100vh-180px)]'
               : 'min-h-[calc(100vh-160px)]'
         ),
-        withPadding && (
-          isSmallScreen || isMobile 
-            ? 'px-1' // Reduced horizontal padding for mobile
-            : isTablet || isMediumScreen 
-              ? 'px-2'
-              : 'px-4'
-        ),
+        withPadding && styles.container.padding,
         className
       )}
     >
@@ -63,6 +59,7 @@ export const ResponsiveChatHeader = ({
 }) => {
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
   const { isTablet, isMobile } = useResponsive();
+  const styles = useMobileChatStyles();
   
   return (
     <div
@@ -96,6 +93,7 @@ export const ResponsiveChatFooter = ({
 }) => {
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
   const { isTablet, isMobile } = useResponsive();
+  const styles = useMobileChatStyles();
   
   return (
     <div
@@ -104,7 +102,7 @@ export const ResponsiveChatFooter = ({
         sticky && 'sticky bottom-0',
         withBorder && 'border-t',
         isSmallScreen || isMobile 
-          ? 'py-2 px-1 pb-16' // Reduced horizontal padding, increased bottom padding for mobile
+          ? 'py-1.5 px-1 pb-16' // Reduced horizontal padding, increased bottom padding for mobile
           : isTablet || isMediumScreen 
             ? 'py-2 px-2 pb-16' // Reduced padding
             : 'py-4 px-4 pb-6',
@@ -127,6 +125,7 @@ export const ResponsiveChatBody = ({
 }) => {
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
   const { isTablet, isMobile } = useResponsive();
+  const styles = useMobileChatStyles();
   
   return (
     <div

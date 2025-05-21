@@ -23,7 +23,7 @@ export async function getAIResponse(formattedMessages: any[]) {
     }
 
     const data = await response.json();
-    console.log("OpenAI response:", JSON.stringify(data.choices[0].message.content).substring(0, 100) + "...");
+    console.log("OpenAI response received:", JSON.stringify(data.choices[0].message.content).substring(0, 100) + "...");
     return data;
   } catch (error) {
     console.error("Error in OpenAI request:", error);

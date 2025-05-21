@@ -6,6 +6,7 @@ import { PatientSidebar } from "@/components/dashboard/patient/PatientSidebar";
 import { MobileNavigation } from "@/components/mobile/MobileNavigation";
 import { useIsMobile, useIsMobileOrIPad } from "@/hooks/use-mobile";
 import { useResponsive } from "@/contexts/ResponsiveContext"; 
+import { useMobileChatStyles } from "@/hooks/use-mobile-chat-styles";
 import '@/components/ui/sidebar-variables.css';
 
 interface PatientAppLayoutProps {
@@ -28,6 +29,7 @@ export function PatientAppLayout({
   const isMobile = useIsMobile();
   const isMobileOrTablet = useIsMobileOrIPad();
   const { isTablet, isMobile: responsiveIsMobile } = useResponsive();
+  const styles = useMobileChatStyles();
 
   // Apply special classes for full-screen chat mode on mobile
   const mainContentClasses = fullScreenChat && isMobileOrTablet 

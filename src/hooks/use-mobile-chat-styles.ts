@@ -22,6 +22,10 @@ export function useMobileChatStyles() {
     text: {
       fontSize: isMobile || isSmallScreen ? "text-sm" : "text-base",
       timestampSize: isMobile || isSmallScreen ? "text-[10px]" : "text-xs",
+    },
+    inputArea: {
+      padding: isMobile || isSmallScreen ? "p-1.5" : "p-3",
+      gap: isMobile || isSmallScreen ? "gap-1" : "gap-2",
     }
   };
 }

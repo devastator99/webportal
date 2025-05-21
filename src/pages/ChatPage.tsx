@@ -14,6 +14,7 @@ import { PatientPageLayout } from "@/components/layout/PatientPageLayout";
 import { PatientAppLayout } from "@/layouts/PatientAppLayout";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { useMobileChatStyles } from "@/hooks/use-mobile-chat-styles";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +31,7 @@ export const ChatPage = () => {
   const isMobile = useIsMobile();
   const isMobileOrTablet = useIsMobileOrIPad();
   const isPatient = userRole === UserRoleEnum.PATIENT;
+  const styles = useMobileChatStyles();
 
   useEffect(() => {
     if (!isLoading && !user) {
