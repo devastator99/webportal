@@ -36,22 +36,6 @@ export const CareTeamMembersList: React.FC<CareTeamMembersListProps> = ({ member
     }
   };
 
-  // Get role badge style
-  const getRoleBadgeClass = (role: string) => {
-    switch (role.toLowerCase()) {
-      case 'doctor':
-        return 'bg-blue-50 text-blue-700';
-      case 'nutritionist':
-        return 'bg-green-50 text-green-700';
-      case 'patient':
-        return 'bg-orange-50 text-orange-700';
-      case 'aibot':
-        return 'bg-purple-50 text-purple-700';
-      default:
-        return 'bg-gray-50 text-gray-700';
-    }
-  };
-
   return (
     <div className="space-y-2 mt-3">
       <div className="flex items-center gap-2">
@@ -72,7 +56,7 @@ export const CareTeamMembersList: React.FC<CareTeamMembersListProps> = ({ member
             </div>
             <div className="flex-1">
               <div className="font-medium">{member.first_name} {member.last_name}</div>
-              <div className="inline-flex px-2 py-0.5 text-xs rounded-full whitespace-nowrap"
+              <div className="text-xs px-2 py-0.5 rounded-full inline-flex"
                 style={{ backgroundColor: 'rgba(0,0,0,0.05)' }}>
                 {member.role}
               </div>
