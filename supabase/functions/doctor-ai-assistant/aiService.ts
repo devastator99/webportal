@@ -3,6 +3,17 @@ export async function getAIResponse(formattedMessages: any[]) {
   console.log("Sending request to OpenAI API with", formattedMessages.length, "messages");
   
   try {
+    // Check if the messages array includes a care team chat prompt
+    const isCareTeamChat = formattedMessages.some(msg => 
+      msg.role === "system" && 
+      msg.content.includes("care team chat")
+    );
+    
+    // Adjust temperature based on context - slightly more creative in care team chats
+    const temperature = isCareTeamChat ? 0.8 : 0.7;
+    
+    console.log(`Using ${isCareTeamChat ? 'care team' : 'standard'} response mode with temperature ${temperature}`);
+    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -12,7 +23,7 @@ export async function getAIResponse(formattedMessages: any[]) {
       body: JSON.stringify({
         model: 'gpt-4o', // Using a more advanced model for better medical document analysis
         messages: formattedMessages,
-        temperature: 0.7,
+        temperature: temperature,
       }),
     });
 
@@ -30,3 +41,4 @@ export async function getAIResponse(formattedMessages: any[]) {
     throw error;
   }
 }
+

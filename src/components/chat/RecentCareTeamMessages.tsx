@@ -36,6 +36,8 @@ export const RecentCareTeamMessages = ({
       if (!patientRoomId) return null;
       
       try {
+        console.log("Fetching room details for room ID:", patientRoomId);
+        
         // Get room details
         const { data: room, error: roomError } = await supabase
           .from('chat_rooms')
@@ -48,20 +50,22 @@ export const RecentCareTeamMessages = ({
           return null;
         }
         
-        // Get room members
-        const { data: members, error: membersError } = await supabase
-          .from('room_members')
-          .select('user_id, role')
-          .eq('room_id', patientRoomId);
-          
-        if (membersError) {
-          console.error("Error fetching room members:", membersError);
-          return { ...room, members: [] };
-        }
+        console.log("Retrieved room details:", room);
         
-        // Get member profiles
-        const memberDetails = await Promise.all(
-          members.map(async (member) => {
+        try {
+          // Use RPC call to avoid recursion issues in policy
+          const { data: members, error: membersError } = await supabase
+            .rpc('get_room_members_safe', { p_room_id: patientRoomId });
+            
+          if (membersError) {
+            console.error("Error fetching room members:", membersError);
+            return { ...room, members: [] };
+          }
+          
+          console.log("Retrieved room members:", members);
+          
+          // Process member details directly from the response
+          const memberDetails = members.map((member: any) => {
             if (member.user_id === '00000000-0000-0000-0000-000000000000') {
               return {
                 id: member.user_id,
@@ -71,25 +75,63 @@ export const RecentCareTeamMessages = ({
               };
             }
             
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('first_name, last_name')
-              .eq('id', member.user_id)
-              .single();
-              
             return {
               id: member.user_id,
-              first_name: profile?.first_name || 'Unknown',
-              last_name: profile?.last_name || '',
+              first_name: member.first_name || 'Unknown',
+              last_name: member.last_name || '',
               role: member.role || 'unknown'
             };
-          })
-        );
-        
-        return {
-          ...room,
-          members: memberDetails.filter(Boolean)
-        };
+          });
+          
+          return {
+            ...room,
+            members: memberDetails.filter(Boolean)
+          };
+        } catch (error) {
+          console.error("Error processing room members:", error);
+          // Fallback method if RPC fails
+          const { data: members, error: membersError } = await supabase
+            .from('room_members')
+            .select('user_id, role')
+            .eq('room_id', patientRoomId);
+            
+          if (membersError) {
+            console.error("Error fetching room members (fallback):", membersError);
+            return { ...room, members: [] };
+          }
+          
+          // Get member profiles
+          const memberDetails = await Promise.all(
+            members.map(async (member) => {
+              if (member.user_id === '00000000-0000-0000-0000-000000000000') {
+                return {
+                  id: member.user_id,
+                  first_name: 'AI',
+                  last_name: 'Assistant',
+                  role: 'aibot'
+                };
+              }
+              
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('first_name, last_name')
+                .eq('id', member.user_id)
+                .single();
+                
+              return {
+                id: member.user_id,
+                first_name: profile?.first_name || 'Unknown',
+                last_name: profile?.last_name || '',
+                role: member.role || 'unknown'
+              };
+            })
+          );
+          
+          return {
+            ...room,
+            members: memberDetails.filter(Boolean)
+          };
+        }
       } catch (error) {
         console.error("Error fetching room details:", error);
         return null;
@@ -189,8 +231,9 @@ export const RecentCareTeamMessages = ({
   const [isNewMessage, setIsNewMessage] = useState(false);
   const previousMessagesCount = useRef(0);
   const [userHasScrolled, setUserHasScrolled] = useState(false);
-  const lastPatientMessageRef = useRef<string | null>(null);
   const lastProcessedMessageId = useRef<string | null>(null);
+  const patientIdRef = useRef<string | null>(null);
+  const aiResponseTimeout = useRef<number | null>(null);
 
   // Setup scroll management with improved configuration
   const {
@@ -244,7 +287,13 @@ export const RecentCareTeamMessages = ({
 
   useEffect(() => {
     if (roomData) {
+      console.log("Room details set:", roomData);
       setRoomDetails(roomData);
+      // Store patient ID from room details
+      if (roomData.patient_id) {
+        patientIdRef.current = roomData.patient_id;
+        console.log("Patient ID stored:", patientIdRef.current);
+      }
     }
   }, [roomData]);
 
@@ -261,9 +310,23 @@ export const RecentCareTeamMessages = ({
 
   // Function to trigger AI response to a patient message
   const triggerAiResponse = async (patientMessage: string, messageId: string, patientId: string) => {
-    if (!patientMessage.trim() || !patientId || processingAiResponse || lastProcessedMessageId.current === messageId) return;
+    if (!patientMessage.trim() || !patientId || processingAiResponse) {
+      console.log("Skipping AI response - preconditions not met:", {
+        messageEmpty: !patientMessage.trim(),
+        patientIdMissing: !patientId,
+        alreadyProcessing: processingAiResponse
+      });
+      return;
+    }
+    
+    // Check if we've already processed this message
+    if (lastProcessedMessageId.current === messageId) {
+      console.log("Skipping AI response - message already processed:", messageId);
+      return;
+    }
     
     try {
+      console.log("Starting AI response process for message:", messageId);
       setProcessingAiResponse(true);
       lastProcessedMessageId.current = messageId;
       console.log("Triggering AI response to patient message:", patientMessage);
@@ -319,10 +382,31 @@ export const RecentCareTeamMessages = ({
 
   // Watch for new patient messages to trigger AI responses
   useEffect(() => {
-    if (!user || !messages.length || !patientRoomId || !roomData?.patient_id) return;
+    // Clear any pending timeout
+    if (aiResponseTimeout.current) {
+      clearTimeout(aiResponseTimeout.current);
+      aiResponseTimeout.current = null;
+    }
+    
+    if (!messages.length || !patientRoomId || !patientIdRef.current) {
+      console.log("Skipping AI response check - missing data:", {
+        messagesLength: messages.length,
+        patientRoomId,
+        patientId: patientIdRef.current
+      });
+      return;
+    }
     
     // Get the latest message
     const latestMessage = messages[messages.length - 1];
+    
+    console.log("Latest message for AI check:", {
+      id: latestMessage?.id,
+      sender: latestMessage?.sender?.role,
+      isAi: latestMessage?.is_ai_message,
+      isSystem: latestMessage?.is_system_message,
+      content: latestMessage?.message?.substring(0, 30) + "..."
+    });
     
     // Only trigger AI response if:
     // 1. Latest message is from a patient
@@ -340,11 +424,20 @@ export const RecentCareTeamMessages = ({
       console.log("Detected new patient message, triggering AI response:", latestMessage.message);
       
       // Give a small delay before triggering AI response to feel more natural
-      setTimeout(() => {
-        triggerAiResponse(latestMessage.message, latestMessage.id, roomData.patient_id);
+      aiResponseTimeout.current = window.setTimeout(() => {
+        triggerAiResponse(latestMessage.message, latestMessage.id, patientIdRef.current as string);
       }, 1000);
+    } else {
+      console.log("No need for AI response on latest message");
     }
-  }, [messages, user, patientRoomId, roomData]);
+    
+    // Cleanup function to clear timeout if component unmounts
+    return () => {
+      if (aiResponseTimeout.current) {
+        clearTimeout(aiResponseTimeout.current);
+      }
+    };
+  }, [messages, patientRoomId]);
 
   if (!patientRoomId) {
     return (
@@ -468,3 +561,4 @@ export const RecentCareTeamMessages = ({
     </div>
   );
 };
+
