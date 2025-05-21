@@ -16,6 +16,7 @@ import { groupMessagesByDate, safeParseISO } from "@/utils/dateUtils";
 import { ChatInput } from "./ChatInput";
 import { cn } from "@/lib/utils";
 import { RoomMessage, TeamMember } from "@/types/chat";
+import { CareTeamMembersList } from "./CareTeamMembersList";
 
 // Define a type for the raw message data from the database
 interface RawRoomMessage {
@@ -73,6 +74,7 @@ export const CareTeamRoomChat = ({
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const PAGE_SIZE = 500; // Maintaining the 500 message limit
   const [displayedMemberNames, setDisplayedMemberNames] = useState<string>("");
+  const [showTeamMembers, setShowTeamMembers] = useState(false);
 
   // Only fetch room details if they weren't provided as props
   const { data: fetchedRoomDetails } = useQuery({
@@ -585,6 +587,7 @@ export const CareTeamRoomChat = ({
 
   return (
     <div className="flex flex-col h-full">
+      {/* Chat Header */}
       <div className="p-2 bg-muted/40 border-b flex items-center">
         {isMobileView && onBack && (
           <Button variant="ghost" size="icon" onClick={onBack} className="mr-1.5">
@@ -602,17 +605,34 @@ export const CareTeamRoomChat = ({
           <div className="text-xs text-muted-foreground flex items-center gap-1">
             <User className="h-3 w-3 mr-0.5" />
             <span className="truncate max-w-[120px]">{roomDetails?.patient_name || "Patient"}</span> • 
-            <Badge variant="outline" className="text-xs h-4 ml-0.5">
-              {teamMembers.length || 0}
-            </Badge>
-            <span className="ml-1 truncate">
-              • {displayedMemberNames}
-            </span>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="px-1 h-5 text-xs" 
+              onClick={() => setShowTeamMembers(!showTeamMembers)}
+            >
+              {teamMembers.length} members
+            </Button>
           </div>
         </div>
       </div>
       
       <div className="flex-1 bg-[#f0f2f5] dark:bg-slate-900 overflow-hidden relative flex flex-col">
+        {showTeamMembers && (
+          <div className="p-3 bg-white dark:bg-gray-900 border-b">
+            <CareTeamMembersList members={teamMembers} />
+            <div className="flex justify-end mt-2">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowTeamMembers(false)}
+              >
+                Close
+              </Button>
+            </div>
+          </div>
+        )}
+        
         <ScrollArea className="h-full flex flex-col" viewportRef={containerRef}>
           <div className="p-4 space-y-6 flex-grow flex flex-col">
             {/* Load More button at the top for older messages */}
