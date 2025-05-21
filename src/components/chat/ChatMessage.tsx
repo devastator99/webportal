@@ -1,7 +1,7 @@
 
 import { format } from "date-fns";
-import { Check, CheckCheck, Clock, Bot, Sparkles, Trash2, FileText } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Check, CheckCheck, Clock, Bot, Sparkles, Trash2, FileText, Download, Paperclip, Image } from "lucide-react";
+import { cn, isImageFile, formatFileSize } from "@/lib/utils";
 import { useState } from "react";
 import { 
   ContextMenu,
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/context-menu";
 import { DeleteMessageDialog } from "./DeleteMessageDialog";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface ChatMessageProps {
   message: {
@@ -27,6 +28,12 @@ export interface ChatMessageProps {
     synced?: boolean | string;
     is_ai_message?: boolean;
     is_system_message?: boolean;
+    attachment?: {
+      filename: string;
+      url: string;
+      size?: number;
+      type?: string;
+    } | null;
   };
   isCurrentUser: boolean;
   showAvatar?: boolean;
@@ -34,6 +41,7 @@ export interface ChatMessageProps {
   isLocal?: boolean;
   onPdfDownload?: () => void;
   onMessageDelete?: () => void;
+  onAttachmentDownload?: (url: string, filename: string) => void;
 }
 
 export const ChatMessage = ({ 
@@ -43,9 +51,11 @@ export const ChatMessage = ({
   offlineMode = false,
   isLocal = false,
   onPdfDownload,
-  onMessageDelete
+  onMessageDelete,
+  onAttachmentDownload
 }: ChatMessageProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
   const { toast } = useToast();
 
   let formattedTime = '';
@@ -70,12 +80,55 @@ export const ChatMessage = ({
   
   const isSystemMessage = message.is_system_message;
   
+  const hasAttachment = !!message.attachment;
+  const isImageAttachment = hasAttachment && isImageFile(message.attachment?.filename || '');
+  
   // Only allow message deletion if it's your own message and not a system or AI message
   const canDelete = isCurrentUser && !isSystemMessage && !isAiBot;
 
   const handleDeleteSuccess = () => {
     if (onMessageDelete) {
       onMessageDelete();
+    }
+  };
+  
+  const handleDownloadAttachment = async () => {
+    if (!message.attachment?.url) return;
+    
+    try {
+      setIsDownloading(true);
+      
+      if (onAttachmentDownload) {
+        onAttachmentDownload(message.attachment.url, message.attachment.filename);
+      } else {
+        // Default download handler
+        const response = await fetch(message.attachment.url);
+        if (!response.ok) throw new Error('Failed to fetch file');
+        
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = message.attachment.filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+      }
+      
+      toast({
+        title: "Download started",
+        description: `Downloading ${message.attachment.filename}`,
+      });
+    } catch (error) {
+      console.error("Error downloading attachment:", error);
+      toast({
+        title: "Download failed",
+        description: "Could not download the attachment",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -133,6 +186,58 @@ export const ChatMessage = ({
       )}>
         {message.message}
       </p>
+      
+      {hasAttachment && (
+        <div className={cn(
+          "rounded-md p-2 mb-3 flex items-center gap-2",
+          "border",
+          isCurrentUser ? "border-white/20" : "border-gray-200 dark:border-gray-700",
+          "attachment-container"
+        )}>
+          {isImageAttachment ? (
+            <div className="w-full">
+              <div className="text-xs mb-1 flex items-center">
+                <Paperclip className="h-3 w-3 mr-1" />
+                <span className="truncate max-w-[150px]">{message.attachment.filename}</span>
+              </div>
+              <img 
+                src={message.attachment.url}
+                alt={message.attachment.filename}
+                className="max-h-48 w-auto rounded object-contain mb-1"
+                loading="lazy"
+              />
+              <button
+                className="text-xs flex items-center gap-1 hover:underline"
+                onClick={handleDownloadAttachment}
+                disabled={isDownloading}
+              >
+                <Download className="h-3 w-3" />
+                {message.attachment.size && formatFileSize(message.attachment.size)}
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
+                <FileText className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium truncate">{message.attachment.filename}</p>
+                {message.attachment.size && (
+                  <p className="text-xs text-muted-foreground">{formatFileSize(message.attachment.size)}</p>
+                )}
+              </div>
+              <button
+                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md flex-shrink-0"
+                onClick={handleDownloadAttachment}
+                disabled={isDownloading}
+                aria-label="Download attachment"
+              >
+                <Download className="h-4 w-4" />
+              </button>
+            </>
+          )}
+        </div>
+      )}
       
       <div className="flex items-center justify-end gap-1 message-time absolute bottom-1 right-2">
         {canDelete && (

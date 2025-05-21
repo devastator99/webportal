@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -7,7 +8,7 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-// Updated: Setting page size back to a larger value for more messages
+// Set the page size to load enough messages
 const DEFAULT_PAGE_SIZE = 100;
 
 serve(async (req: Request) => {
@@ -176,6 +177,7 @@ serve(async (req: Request) => {
         console.log("Looking for messages from specific user:", specificUserId);
         
         // Get both direct messages and care team messages where this user is the sender
+        // We need to order by created_at DESC for newest-first
         const { data: specificMessages, error: specificError } = await supabaseClient
           .from('chat_messages')
           .select(`
@@ -188,7 +190,7 @@ serve(async (req: Request) => {
             receiver:receiver_id (id, first_name, last_name)
           `)
           .eq('sender_id', specificUserId)
-          .order('created_at', { ascending: true })
+          .order('created_at', { ascending: false })  // Changed to DESC for newest first
           .limit(perPage)
           .offset(offset);
           
@@ -218,16 +220,34 @@ serve(async (req: Request) => {
         }
         
         console.log(`Retrieved ${patientMessages?.length || 0} patient messages`);
-        messagesQuery = { data: patientMessages, error: null };
+        
+        // Sort messages by created_at in descending order (newest first)
+        const sortedMessages = patientMessages?.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        
+        messagesQuery = { data: sortedMessages, error: null };
       } else {
         // Use the standard get_care_team_messages RPC function for all messages
         console.log(`Fetching care team messages with offset: ${offset}, limit: ${perPage}`);
-        messagesQuery = await supabaseClient.rpc('get_care_team_messages', {
+        const { data, error } = await supabaseClient.rpc('get_care_team_messages', {
           p_user_id: user_id,
           p_patient_id: patientId,
           p_offset: offset,
           p_limit: perPage
         });
+        
+        if (error) {
+          console.error("Error in care team messages RPC:", error);
+          throw error;
+        }
+        
+        // Sort messages by created_at in descending order (newest first)
+        const sortedMessages = data?.sort((a, b) => 
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        
+        messagesQuery = { data: sortedMessages, error: null };
       }
       
       const { data: messages, error: messagesError } = messagesQuery;

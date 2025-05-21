@@ -26,6 +26,12 @@ interface Message {
   is_system_message: boolean;
   is_ai_message: boolean;
   created_at: string;
+  attachment?: {
+    filename: string;
+    url: string;
+    size?: number;
+    type?: string;
+  } | null;
 }
 
 interface ChatMessagesListProps {
@@ -98,19 +104,19 @@ export const ChatMessagesList = ({
 
       console.log(`Received ${data?.length || 0} messages from server for page ${pageNum}`);
       
-      // Messages are sorted ASC from SQL, so reverse for DESC
-      const latestPage = Array.isArray(data) ? [...data].reverse() : [];
+      // Messages are sorted DESC from SQL, so we keep newest first
+      const latestPage = Array.isArray(data) ? data : [];
 
       if (isLoadingMore) {
         setMessages(prev => {
-          // Prepend older messages--nothing duplicated
+          // Append older messages--nothing duplicated
           const existingIds = new Set(prev.map(m => m.id));
           const nonDuped = latestPage.filter(
             m => !existingIds.has(m.id)
           );
-          console.log(`Adding ${nonDuped.length} older messages to the beginning`);
-          // Prepend older ones at start
-          return [...nonDuped, ...prev];
+          console.log(`Adding ${nonDuped.length} older messages`);
+          // Append older ones to existing (newest first order maintained)
+          return [...prev, ...nonDuped];
         });
       } else {
         console.log(`Setting ${latestPage.length} new messages`);
@@ -159,7 +165,8 @@ export const ChatMessagesList = ({
         }, 
         (payload) => {
           if (!messages.some(m => m.id === payload.new.id)) {
-            fetchMessages(roomId, 1, false); // Always reload most recent page
+            // When a new message comes in, fetch the newest page again
+            fetchMessages(roomId, 1, false);
             setNewMessageAdded(true);
           }
         }
@@ -178,12 +185,11 @@ export const ChatMessagesList = ({
         m => !messages.some(serverMsg => serverMsg.id === m.id)
       );
       if (newLocalMessages.length > 0) {
+        // For local messages, prepend them (keeping newest first order)
         const updatedMessages = [
-          ...messages,
-          ...newLocalMessages
-        ].sort((a, b) => 
-          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-        );
+          ...newLocalMessages,
+          ...messages
+        ];
         setMessages(updatedMessages);
         setNewMessageAdded(true);
       }
@@ -197,10 +203,9 @@ export const ChatMessagesList = ({
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // The messages are now loaded in newest-first order; reverse before rendering
-  const allMessages = [...messages]
-    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-
+  // The messages are now loaded in newest-first order
+  const allMessages = [...messages];
+  
   console.log(`Rendering ${allMessages.length} messages in total`);
   
   const messageGroups = groupMessagesByDate(allMessages);
@@ -212,7 +217,7 @@ export const ChatMessagesList = ({
     setLoadingMore(true);
     const nextPage = page + 1;
     setPage(nextPage);
-    await fetchMessages(roomId, nextPage, true); // Prepend older messages
+    await fetchMessages(roomId, nextPage, true); // Append older messages
   };
 
   if (isLoading) {
@@ -246,28 +251,13 @@ export const ChatMessagesList = ({
         data-testid="messages-scroll-area"
         viewportRef={containerRef}
       >
-        {/* Load more messages button at the top */}
-        {hasMoreMessages && (
-          <div className="flex justify-center my-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-              className="rounded-full"
-            >
-              {loadingMore ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <ArrowUpCircle className="w-4 h-4 mr-2" />}
-              Load more messages
-            </Button>
-          </div>
-        )}
-
+        {/* Reverse the messages display order for UI rendering (newest at bottom) */}
         <div className="space-y-6 message-groups" data-testid="message-groups-container">
           {Object.keys(messageGroups).length > 0 ? (
             Object.entries(messageGroups)
-              .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+              .sort(([dateA], [dateB]) => dateB.localeCompare(dateA)) // Newest date groups first
               .map(([dateString, dayMessages], index, array) => {
-                const isLatestGroup = index === array.length - 1;
+                const isLatestGroup = index === 0; // First group is now latest
                 return (
                   <CollapsibleMessageGroup 
                     key={dateString} 
@@ -276,7 +266,7 @@ export const ChatMessagesList = ({
                     isLatestGroup={isLatestGroup}
                   >
                     {dayMessages
-                      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) // Newest first within each group
                       .map((message) => {
                         const isCurrentUser = message.sender_id === user?.id;
                         const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
@@ -352,7 +342,8 @@ export const ChatMessagesList = ({
                                       role: message.sender_role
                                     },
                                     is_system_message: message.is_system_message,
-                                    is_ai_message: message.is_ai_message
+                                    is_ai_message: message.is_ai_message,
+                                    attachment: message.attachment
                                   }}
                                   isCurrentUser={isCurrentUser}
                                   showAvatar={false}
@@ -370,6 +361,22 @@ export const ChatMessagesList = ({
           ) : (
             <div className="text-center text-muted-foreground">
               No messages to display
+            </div>
+          )}
+          
+          {/* Load more button at the bottom for older messages */}
+          {hasMoreMessages && (
+            <div className="flex justify-center mt-4 mb-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="rounded-full"
+              >
+                {loadingMore ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <ArrowUpCircle className="w-4 h-4 mr-2" />}
+                Load older messages
+              </Button>
             </div>
           )}
         </div>
