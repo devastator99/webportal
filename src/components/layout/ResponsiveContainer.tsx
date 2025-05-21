@@ -2,7 +2,6 @@
 import React from 'react';
 import { useResponsive } from '@/contexts/ResponsiveContext';
 import { cn } from '@/lib/utils';
-import { useBreakpoint } from '@/hooks/use-responsive';
 
 interface ResponsiveContainerProps {
   children: React.ReactNode;
@@ -10,7 +9,6 @@ interface ResponsiveContainerProps {
   as?: React.ElementType;
   fluid?: boolean;
   withPadding?: boolean;
-  compact?: boolean;
 }
 
 export const ResponsiveContainer = ({
@@ -19,10 +17,8 @@ export const ResponsiveContainer = ({
   as: Component = 'div',
   fluid = false,
   withPadding = true,
-  compact = false,
 }: ResponsiveContainerProps) => {
   const { isMobile, isTablet } = useResponsive();
-  const { isSmallScreen } = useBreakpoint();
   
   return (
     <Component
@@ -30,11 +26,11 @@ export const ResponsiveContainer = ({
         'w-full mx-auto transition-all duration-200',
         !fluid && 'container',
         withPadding && (
-          isSmallScreen || isMobile
-            ? compact ? 'px-1' : 'px-2' 
+          isMobile 
+            ? 'px-4' 
             : isTablet 
-              ? compact ? 'px-3' : 'px-4' 
-              : compact ? 'px-4' : 'px-6'
+              ? 'px-6' 
+              : 'px-8'
         ),
         className
       )}

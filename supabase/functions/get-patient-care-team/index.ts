@@ -39,21 +39,6 @@ serve(async (req: Request) => {
       }
     );
 
-    // Use the RPC function to get care team members
-    const { data: careTeamMembers, error: rpcError } = await supabaseClient.rpc(
-      'get_patient_care_team_members',
-      { p_patient_id: patient_id }
-    );
-
-    if (!rpcError && careTeamMembers && careTeamMembers.length > 0) {
-      // RPC successful, return the results
-      return new Response(
-        JSON.stringify(careTeamMembers),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-    
-    // Fall back to the original implementation if RPC fails
     const careTeam: UserProfile[] = [];
 
     // Get doctor from patient_assignments table

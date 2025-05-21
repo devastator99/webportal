@@ -28,8 +28,8 @@ const ScrollArea = React.forwardRef<
         overflowY: invisibleScrollbar ? "auto" : undefined,
       }}
       className={cn(
-        "h-full w-full rounded-[inherit] improved-scroll",
-        invisibleScrollbar && "scrollbar-hide"
+        "h-full w-full rounded-[inherit]",
+        invisibleScrollbar && "invisible-scroll scrollbar-hide"
       )}
     >
       {children}

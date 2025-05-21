@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -8,8 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-// Set the page size to load enough messages
-const DEFAULT_PAGE_SIZE = 100;
+// Updated: Set reduced page size
+const DEFAULT_PAGE_SIZE = 30;
 
 serve(async (req: Request) => {
   // Handle CORS preflight requests
@@ -27,7 +26,7 @@ serve(async (req: Request) => {
       include_care_team_messages = false,
       is_patient = false,
       page = 1, 
-      per_page = DEFAULT_PAGE_SIZE 
+      per_page = DEFAULT_PAGE_SIZE // Changed default from 100 to 30
     } = await req.json();
     
     if (!user_id) {
@@ -58,9 +57,7 @@ serve(async (req: Request) => {
       is_group_chat, 
       include_care_team_messages,
       is_patient,
-      care_team_members: care_team_members?.length || 0,
-      page: pageNumber,
-      perPage: perPage
+      care_team_members: care_team_members?.length || 0
     });
     
     // Look up user by email if provided (e.g., prakash@test.com)
@@ -177,7 +174,6 @@ serve(async (req: Request) => {
         console.log("Looking for messages from specific user:", specificUserId);
         
         // Get both direct messages and care team messages where this user is the sender
-        // We need to order by created_at DESC for newest-first
         const { data: specificMessages, error: specificError } = await supabaseClient
           .from('chat_messages')
           .select(`
@@ -190,7 +186,7 @@ serve(async (req: Request) => {
             receiver:receiver_id (id, first_name, last_name)
           `)
           .eq('sender_id', specificUserId)
-          .order('created_at', { ascending: false })  // Changed to DESC for newest first
+          .order('created_at', { ascending: true })
           .limit(perPage)
           .offset(offset);
           
@@ -204,8 +200,7 @@ serve(async (req: Request) => {
         // Special handling for patients to ensure they always see their messages
         console.log("Using patient-specific query to ensure all messages are retrieved");
         
-        // Get all messages where the patient is either sender or receiver - explicitly log pagination details
-        console.log(`Fetching patient messages with offset: ${offset}, limit: ${perPage}`);
+        // Get all messages where the patient is either sender or receiver
         const { data: patientMessages, error: patientError } = await supabaseClient
           .rpc('get_care_team_messages', {
             p_user_id: user_id,
@@ -219,35 +214,15 @@ serve(async (req: Request) => {
           throw patientError;
         }
         
-        console.log(`Retrieved ${patientMessages?.length || 0} patient messages`);
-        
-        // Sort messages by created_at in descending order (newest first)
-        const sortedMessages = patientMessages?.sort((a, b) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-        
-        messagesQuery = { data: sortedMessages, error: null };
+        messagesQuery = { data: patientMessages, error: null };
       } else {
         // Use the standard get_care_team_messages RPC function for all messages
-        console.log(`Fetching care team messages with offset: ${offset}, limit: ${perPage}`);
-        const { data, error } = await supabaseClient.rpc('get_care_team_messages', {
+        messagesQuery = await supabaseClient.rpc('get_care_team_messages', {
           p_user_id: user_id,
           p_patient_id: patientId,
           p_offset: offset,
           p_limit: perPage
         });
-        
-        if (error) {
-          console.error("Error in care team messages RPC:", error);
-          throw error;
-        }
-        
-        // Sort messages by created_at in descending order (newest first)
-        const sortedMessages = data?.sort((a, b) => 
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-        );
-        
-        messagesQuery = { data: sortedMessages, error: null };
       }
       
       const { data: messages, error: messagesError } = messagesQuery;
@@ -257,7 +232,7 @@ serve(async (req: Request) => {
         throw messagesError;
       }
       
-      console.log(`Retrieved ${messages?.length || 0} messages total`);
+      console.log(`Retrieved ${messages?.length || 0} messages`);
       
       // Mark any unread messages as read if the current user is the recipient
       if (messages && messages.length > 0) {
@@ -294,8 +269,7 @@ serve(async (req: Request) => {
           messages: messages || [],
           hasMore: messages && messages.length === perPage,
           page: pageNumber,
-          perPage,
-          timestamp: new Date().toISOString() // Add timestamp for debugging
+          perPage
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

@@ -1,4 +1,3 @@
-
 import { useEffect } from "react";
 import { UsersProvider } from "@/components/chat/UsersProvider";
 import { ChatInterface } from "@/components/chat/ChatInterface";

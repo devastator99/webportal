@@ -1,142 +1,236 @@
 
-import React, { useState, useRef, useEffect } from "react";
-import { Send, PaperclipIcon, Loader2, WifiOff } from "lucide-react";
+import { useState, useRef, ChangeEvent } from "react";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Paperclip, Send, X, Loader2, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Progress } from "@/components/ui/progress";
 
 interface ChatInputProps {
   value: string;
   onChange: (value: string) => void;
   onSend: () => void;
+  placeholder?: string;
   disabled?: boolean;
   isLoading?: boolean;
-  placeholder?: string;
-  onAttachmentUpload?: (file: File) => void;
-  allowAttachments?: boolean;
   offlineMode?: boolean;
+  className?: string;
+  onFileSelect?: (file: File) => void;
+  selectedFile?: File | null;
+  onClearFile?: () => void;
+  uploadProgress?: number;
   fullScreen?: boolean;
 }
 
-export const ChatInput = ({
-  value,
-  onChange,
+// Character limit constant
+const CHARACTER_LIMIT = 1000;
+
+export const ChatInput = ({ 
+  value, 
+  onChange, 
   onSend,
+  placeholder = "Type a message...", 
   disabled = false,
   isLoading = false,
-  placeholder = "Type a message...",
-  onAttachmentUpload,
-  allowAttachments = false,
   offlineMode = false,
+  className,
+  onFileSelect,
+  selectedFile,
+  onClearFile,
+  uploadProgress = 0,
   fullScreen = false
 }: ChatInputProps) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [textareaHeight, setTextareaHeight] = useState<number>(44); // Default height
-  const isMobile = useIsMobile();
-
-  // Handle textarea height adjustment
-  useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "0";
-      const scrollHeight = Math.min(textareaRef.current.scrollHeight, 120); // Limit height to 120px
-      setTextareaHeight(scrollHeight);
-      textareaRef.current.style.height = `${scrollHeight}px`;
-    }
-  }, [value]);
+  const [isFocused, setIsFocused] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (value.trim() && !disabled && !isLoading) {
+      if (!disabled && !isLoading && (value.trim() || selectedFile) && !validationError) {
         onSend();
       }
     }
   };
+  
+  const validateMessage = (message: string): boolean => {
+    // Check message length
+    if (message.length > CHARACTER_LIMIT) {
+      setValidationError(`Message is too long. Maximum ${CHARACTER_LIMIT} characters allowed.`);
+      return false;
+    }
+    
+    // Check for excessive special characters (more than 30% of the message)
+    const specialChars = message.replace(/[a-zA-Z0-9\s]/g, '');
+    const specialCharPercentage = message.length ? (specialChars.length / message.length) * 100 : 0;
+    
+    // Check for repeating characters (same character repeated more than 5 times)
+    const hasRepeatingChars = /(.)\1{5,}/.test(message);
+    
+    // Check for very long words (longer than 30 characters without spaces)
+    const hasVeryLongWords = message.split(/\s+/).some(word => word.length > 30);
+    
+    if (specialCharPercentage > 30) {
+      setValidationError("Message contains too many special characters");
+      return false;
+    } else if (hasRepeatingChars) {
+      setValidationError("Message contains excessive repeating characters");
+      return false;
+    } else if (hasVeryLongWords) {
+      setValidationError("Message contains unusually long words");
+      return false;
+    } else {
+      setValidationError(null);
+      return true;
+    }
+  };
+  
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    validateMessage(newValue);
+    onChange(newValue);
+    adjustTextareaHeight(e.target);
+  };
 
-  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0 && onAttachmentUpload) {
-      onAttachmentUpload(e.target.files[0]);
-      e.target.value = ""; // Reset input value
+  const adjustTextareaHeight = (textarea: HTMLTextAreaElement) => {
+    textarea.style.height = "inherit";
+    // Increased max height from 160px to 200px for more typing space
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+  };
+  
+  const triggerFileUpload = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+  
+  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && onFileSelect) {
+      onFileSelect(e.target.files[0]);
+    }
+  };
+  
+  const handleClearFile = () => {
+    if (onClearFile) {
+      onClearFile();
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
+  // Calculate character count and percentage
+  const characterCount = value.length;
+  const characterPercentage = Math.min((characterCount / CHARACTER_LIMIT) * 100, 100);
+
   return (
-    <div className="chat-input-container">
-      <div className="flex items-end gap-2 relative">
-        {offlineMode && (
-          <div className="absolute top-0 left-0 w-full flex items-center justify-center -mt-6">
-            <div className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded-full">
-              <WifiOff className="h-3 w-3" />
-              <span>Offline Mode</span>
-            </div>
-          </div>
+    <div className={cn(
+      "flex flex-col gap-2 transition-all duration-300 mb-safe pb-6",
+      className
+    )}>
+      {selectedFile && (
+        <div className="flex items-center gap-2 p-2 bg-muted/40 rounded-lg">
+          <FileText className="h-4 w-4 flex-shrink-0" />
+          <span className="text-sm truncate flex-1">{selectedFile.name}</span>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-6 w-6 rounded-full" 
+            onClick={handleClearFile}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
+      
+      {uploadProgress > 0 && uploadProgress < 100 && (
+        <Progress value={uploadProgress} className="h-1" />
+      )}
+      
+      <div className="flex items-end gap-2">
+        {onFileSelect && (
+          <>
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              className="hidden" 
+              onChange={handleFileChange} 
+              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "rounded-full h-9 w-9 flex-shrink-0",
+                isFocused && "text-primary"
+              )}
+              onClick={triggerFileUpload}
+              disabled={disabled || isLoading}
+            >
+              <Paperclip className="h-5 w-5" />
+            </Button>
+          </>
         )}
         
-        {allowAttachments && (
-          <div className="relative">
-            <input
-              type="file"
-              id="attachment"
-              className="hidden"
-              onChange={handleAttachmentChange}
-              accept="image/*,.pdf,.doc,.docx,.txt"
-              disabled={disabled}
-            />
-            <label
-              htmlFor="attachment"
-              className={cn(
-                "flex items-center justify-center h-10 w-10 rounded-full cursor-pointer",
-                "bg-muted hover:bg-muted/80 transition-colors",
-                disabled && "opacity-50 cursor-not-allowed"
-              )}
-            >
-              <PaperclipIcon className="h-4 w-4" />
-            </label>
-          </div>
-        )}
-
         <div className="relative flex-1">
-          <textarea
+          <Textarea 
             ref={textareaRef}
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={handleChange}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            disabled={disabled}
-            style={{ height: `${textareaHeight}px` }}
+            disabled={disabled || isLoading}
+            maxLength={CHARACTER_LIMIT + 1} // Add buffer of 1 for UX
             className={cn(
-              "w-full resize-none rounded-2xl py-3 px-4 focus-visible:ring-1 focus-visible:ring-offset-0",
-              "bg-muted text-foreground placeholder:text-muted-foreground",
-              "border-none focus-visible:outline-none focus-visible:ring-primary",
-              "transition-all duration-200 ease-in-out",
-              "pr-12", // Make space for the send button
-              isMobile ? "text-base" : "text-sm"
+              "min-h-[60px] max-h-[200px] pr-10 py-3 resize-none overflow-y-auto", 
+              isFocused && "border-primary ring-2 ring-primary/20",
+              validationError && "border-red-500 focus:border-red-500",
+              characterPercentage > 90 && !validationError && "border-amber-500 focus:border-amber-500"
             )}
+            onFocus={() => setIsFocused(true)}
+            onBlur={() => setIsFocused(false)}
+            rows={3}
           />
+          
+          {validationError ? (
+            <p className="text-xs text-red-500 mt-1">{validationError}</p>
+          ) : (
+            <p className={cn(
+              "text-xs mt-1 text-right",
+              characterPercentage > 90 ? "text-amber-600" : "text-muted-foreground"
+            )}>
+              {characterCount}/{CHARACTER_LIMIT}
+            </p>
+          )}
+          
           <Button
             type="button"
             size="icon"
             variant="ghost"
-            onClick={onSend}
-            disabled={!value.trim() || disabled || isLoading}
             className={cn(
-              "absolute bottom-1 right-1 h-8 w-8 rounded-full",
-              "hover:bg-primary hover:text-primary-foreground",
-              "transition-all duration-200",
-              value.trim() && !disabled && !isLoading ? "text-primary" : "text-muted-foreground",
-              isMobile ? "h-10 w-10 bottom-0.5 right-0.5" : "h-8 w-8 bottom-1 right-1",
-              fullScreen && "bottom-2 right-2"
+              "absolute bottom-1 right-1 rounded-full h-8 w-8",
+              (value.trim() || selectedFile) && !validationError ? "text-primary bg-primary/10" : "text-muted-foreground",
+              isLoading && "pointer-events-none"
             )}
-            aria-label="Send message"
+            onClick={onSend}
+            disabled={disabled || isLoading || (!value.trim() && !selectedFile) || !!validationError}
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              <Send className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
+              <Send className="h-4 w-4" />
             )}
           </Button>
         </div>
       </div>
+      
+      {offlineMode && (
+        <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+          You're offline. Messages will be sent when you reconnect.
+        </p>
+      )}
     </div>
   );
 };

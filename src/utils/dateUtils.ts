@@ -55,12 +55,7 @@ export function formatChatMessageTime(timestamp: string) {
 
 // Normalize a date to YYYY-MM-DD format without time component
 export function normalizeDateString(date: Date): string {
-  try {
-    return format(date, 'yyyy-MM-dd');
-  } catch (error) {
-    console.error(`Error normalizing date: ${date}`, error);
-    return format(new Date(), 'yyyy-MM-dd'); // Fallback to today
-  }
+  return format(date, 'yyyy-MM-dd');
 }
 
 // Check if a date is today, with additional safety and logging
@@ -84,18 +79,19 @@ export function isToday(dateObj: Date): boolean {
   }
 }
 
-// Group messages by date for display in chat
+// Group messages by date for display in chat, with simplified handling (no "today"/"yesterday" groups)
 export function groupMessagesByDate(messages: any[]) {
   const groups: Record<string, any[]> = {};
   if (!messages || !messages.length) return groups;
 
-  // Handle each message
-  messages.forEach(message => {
+  // First sort messages by date ascending (oldest first)
+  const sortedMessages = sortByDate(messages, 'created_at', true);
+
+  sortedMessages.forEach(message => {
     try {
       const date = safeParseISO(message.created_at);
       // Use consistent date format for grouping: 'yyyy-MM-dd'
       const dateKey = normalizeDateString(date);
-      
       if (!groups[dateKey]) {
         groups[dateKey] = [];
       }

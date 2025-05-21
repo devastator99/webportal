@@ -1,4 +1,3 @@
-
 import { useAuth, UserRoleEnum } from "@/contexts/AuthContext";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
@@ -14,13 +13,18 @@ import { PatientPageLayout } from "@/components/layout/PatientPageLayout";
 import { PatientAppLayout } from "@/layouts/PatientAppLayout";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/auth/SignOutButton";
-import { useMobileChatStyles } from "@/hooks/use-mobile-chat-styles";
 import { 
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+
+// Interface for WhatsAppStyleChatInterface props
+interface WhatsAppStyleChatInterfaceProps {
+  patientRoomId?: string | null;
+  fullScreen?: boolean;
+}
 
 export const ChatPage = () => {
   const { user, userRole, isLoading } = useAuth();
@@ -31,7 +35,6 @@ export const ChatPage = () => {
   const isMobile = useIsMobile();
   const isMobileOrTablet = useIsMobileOrIPad();
   const isPatient = userRole === UserRoleEnum.PATIENT;
-  const styles = useMobileChatStyles();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -124,25 +127,25 @@ export const ChatPage = () => {
       <PatientAppLayout fullScreenChat={isMobileOrTablet} showHeader={false}>
         {isMobileOrTablet ? (
           <div className="flex flex-col h-screen w-full">
-            <div className="chat-fullscreen-header h-12 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800/50 flex items-center justify-between px-2 fixed top-0 left-0 right-0 z-10 shadow-sm">
+            <div className="chat-fullscreen-header h-10 bg-white/90 dark:bg-neutral-900/90 backdrop-blur-sm border-b border-neutral-100 dark:border-neutral-800/50 flex items-center justify-between px-2 fixed top-0 left-0 right-0 z-10 shadow-sm">
               <Button 
                 variant="ghost" 
                 size="sm" 
-                className="mr-2 p-0 h-10 w-10 rounded-full" 
+                className="mr-2 p-0 h-8 w-8 rounded-full" 
                 onClick={handleBackToDashboard}
               >
-                <ArrowLeft className="h-6 w-6 text-[#7E69AB]" />
+                <ArrowLeft className="h-5 w-5 text-[#7E69AB]" />
               </Button>
               
               <div className="flex items-center gap-1">
-                <MessageCircle className="h-5 w-5 text-[#7E69AB]" />
-                <span className="text-base font-medium">Care Team</span>
+                <MessageCircle className="h-4 w-4 text-[#7E69AB]" />
+                <span className="text-sm font-medium">Care Team</span>
               </div>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="p-0 h-10 w-10 rounded-full">
-                    <MoreHorizontal className="h-6 w-6 text-[#7E69AB]" />
+                  <Button variant="ghost" size="sm" className="p-0 h-8 w-8 rounded-full">
+                    <MoreHorizontal className="h-5 w-5 text-[#7E69AB]" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
@@ -156,7 +159,7 @@ export const ChatPage = () => {
               </DropdownMenu>
             </div>
             
-            <div className="chat-fullscreen-messages mt-12 flex-grow improved-scroll">
+            <div className="chat-fullscreen-messages mt-10 flex-grow">
               <WhatsAppStyleChatInterface patientRoomId={patientRoomId} fullScreen={true} />
             </div>
           </div>
@@ -187,7 +190,7 @@ export const ChatPage = () => {
         </div>
         <Separator className="mb-1" />
         
-        <div className="h-[calc(100vh-110px)] chat-container px-4 improved-scroll">
+        <div className="h-[calc(100vh-110px)] chat-container px-4">
           <WhatsAppStyleChatInterface patientRoomId={isPatient ? patientRoomId : undefined} />
         </div>
       </ErrorBoundary>

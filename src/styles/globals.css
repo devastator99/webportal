@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,23 +7,20 @@
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-
-    --primary: 271 81% 56%;
+    --primary: 283 26% 54%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
 
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
@@ -32,7 +28,9 @@
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --ring: 215 20.2% 65.1%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 283 26% 54%;
 
     --radius: 0.5rem;
   }
@@ -41,31 +39,30 @@
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
 
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-
-    --primary: 271 81% 56%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 283 26% 54%;
+    --primary-foreground: 210 40% 98%;
 
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
 
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
 
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 85.7% 97.3%;
+    --destructive-foreground: 210 40% 98%;
 
-    --ring: 217.2 32.6% 17.5%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 283 26% 54%;
   }
 }
 
@@ -73,164 +70,238 @@
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* Softer text for mobile */
+  h1, h2, h3, h4, h5, h6 {
+    @apply tracking-tight;
+  }
+  
+  @media (max-width: 640px) {
+    h1 { @apply text-2xl; }
+    h2 { @apply text-xl; }
+    h3 { @apply text-lg; }
+    h4 { @apply text-base; }
+  }
 }
 
-.chat-input-container {
-  @apply flex flex-col gap-2;
+@layer utilities {
+  .no-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari, Opera */
+  }
+  
+  /* Updated invisible-scroll class for ScrollArea component */
+  .invisible-scroll {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto !important;
+    overscroll-behavior-y: contain;
+  }
+  
+  .invisible-scroll::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+    width: 0 !important;
+    height: 0 !important;
+  }
+  
+  /* Fix for scrollbar hiding */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Subtle shadow for elements */
+  .shadow-subtle {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.02);
+  }
+  
+  /* Soft gradient backgrounds */
+  .bg-soft-purple {
+    background: linear-gradient(135deg, rgba(229,222,255,0.6) 0%, rgba(248,245,255,0.6) 100%);
+  }
+  
+  .bg-soft-amber {
+    background: linear-gradient(135deg, rgba(254,240,215,0.6) 0%, rgba(252,247,236,0.6) 100%);
+  }
+  
+  .bg-soft-blue {
+    background: linear-gradient(135deg, rgba(224,236,255,0.6) 0%, rgba(245,248,255,0.6) 100%);
+  }
+
+  /* Mobile scrolling optimizations */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+  }
+  
+  .overscroll-contain {
+    overscroll-behavior: contain;
+  }
+  
+  /* Enhanced form styling for better mobile experience */
+  .mobile-form-container {
+    max-height: 85vh;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding-right: 1rem;
+    padding-bottom: 2rem;
+  }
+  
+  /* Enhanced registration form specific styles */
+  .registration-form-container {
+    max-height: 70vh;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    padding-right: 0.5rem;
+    padding-bottom: 2rem;
+  }
 }
 
+/* Chat styling */
 .message-bubble {
   position: relative;
+  max-width: 100%;
+  word-wrap: break-word;
 }
 
-/* PDF Message Styles */
-.pdf-message-container {
-  display: flex;
-  width: 100%;
-  margin-bottom: 8px;
+.message-bubble.current-user {
+  background-color: #e6f2ff;
 }
 
-.pdf-message {
-  width: 100%;
-  border-radius: 8px;
-  position: relative;
+.message-bubble.ai-message {
+  background-color: #f0f0f5;
 }
 
-.pdf-message-content {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
+.message-bubble.doctor-message {
+  background-color: #e6f7ff;
 }
 
-.pdf-icon {
-  font-size: 1.2rem;
-  margin-right: 6px;
+.message-bubble.nutritionist-message {
+  background-color: #f0fff4;
 }
 
-.ai-command-highlight {
-  @apply bg-indigo-100 dark:bg-indigo-900/30 px-1 py-0.5 rounded-sm font-mono text-xs text-indigo-800 dark:text-indigo-300;
+.message-bubble.system-message {
+  background-color: #f5f5f5;
+  font-style: italic;
+}
+
+.doctor-avatar {
+  background-color: #e6f7ff;
+  color: #0077b6;
+}
+
+.nutritionist-avatar {
+  background-color: #f0fff4;
+  color: #2f855a;
+}
+
+.patient-avatar {
+  background-color: #f3e8ff;
+  color: #7e22ce;
+}
+
+.ai-avatar {
+  background-color: #f0f0f5;
+  color: #5a5a8e;
 }
 
 .bubble-in {
-  animation: bubble-in 0.3s ease-out forwards;
+  animation: bubbleIn 0.3s ease-out;
 }
 
-@keyframes bubble-in {
-  0% {
+@keyframes bubbleIn {
+  from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(10px);
   }
-  100% {
+  to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-.ai-typing-dot {
-  width: 6px;
-  height: 6px;
-  background-color: currentColor;
-  border-radius: 50%;
+.highlight-message {
+  animation: highlightPulse 2s ease-in-out;
+}
+
+@keyframes highlightPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(126, 105, 171, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(126, 105, 171, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(126, 105, 171, 0);
+  }
+}
+
+.ai-typing {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background-color: #f0f0f5;
   display: inline-block;
-  margin: 0 2px;
-  opacity: 0.6;
-  animation: dot-pulse 1.5s infinite ease-in-out;
+  margin: 4px 0;
 }
 
+.ai-typing-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #5a5a8e;
+  margin-right: 4px;
+  animation: typingAnimation 1.5s infinite ease-in-out;
+}
+
+.ai-typing-dot:nth-child(1) {
+  animation-delay: 0s;
+}
 .ai-typing-dot:nth-child(2) {
-  animation-delay: 0.2s;
+  animation-delay: 0.5s;
 }
-
 .ai-typing-dot:nth-child(3) {
-  animation-delay: 0.4s;
+  animation-delay: 1s;
 }
 
-@keyframes dot-pulse {
-  0%, 100% {
-    transform: scale(0.8);
-    opacity: 0.4;
+@keyframes typingAnimation {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
   }
   50% {
-    transform: scale(1.2);
-    opacity: 0.8;
+    transform: scale(1.5);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0.7;
   }
 }
 
-/* Ensure messages stack from bottom up */
-.message-groups {
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  min-height: 100%;
-  width: 100%;
+.message-time {
+  position: absolute;
+  bottom: 3px;
+  right: 6px;
 }
 
-/* Fix chat message flow */
-.message-item {
-  width: 100%;
-  margin-bottom: 8px;
-}
-
-/* Ensure message container takes full width */
-.message-container {
-  width: 100%;
-  display: flex;
-}
-
-/* Chat message grouping */
-.chat-message-groups {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.chat-message-date-group {
-  width: 100%;
-  margin-bottom: 16px;
-}
-
-/* Make PDF message width consistent */
-.pdf-message-container {
-  width: 100%;
-  display: flex;
-  justify-content: flex-start;
-}
-
-.pdf-message-container.justify-end {
-  justify-content: flex-end;
-}
-
-.pdf-message-container .message-bubble {
-  max-width: 75%;
-}
-
-/* Mobile optimization for chat input */
-@media (max-width: 640px) {
-  .chat-input-container textarea {
-    font-size: 16px; /* Prevents iOS zoom on focus */
-  }
-  
-  .chat-input-container .send-button {
-    width: 44px;
-    height: 44px;
-  }
-  
-  /* Make member names display better on small screens */
-  .text-xs.text-muted-foreground span.truncate {
-    max-width: 80px;
-  }
-}
-
-/* Toast notifications - ensure they don't cover the chat input on mobile */
-@media (max-width: 640px) {
-  [data-sonner-toaster][data-position="bottom-right"],
-  [data-sonner-toaster][data-position="bottom-left"],
-  [data-sonner-toaster][data-position="bottom-center"] {
-    bottom: 80px !important; /* Add !important to ensure it overrides any inline styles */
-  }
+/* Chat message time element appearance */
+.chat-header {
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }

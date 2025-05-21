@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { patient_id, message, title, message_type = 'health_plan', auto_respond = false } = await req.json()
+    const { patient_id, message, title, message_type = 'health_plan' } = await req.json()
     
     if (!patient_id || !message) {
       return new Response(JSON.stringify({ error: 'Missing required fields: patient_id, message' }), {
@@ -65,15 +65,12 @@ Deno.serve(async (req) => {
     
     const messageContent = title ? `**${title}**\n\n${message}` : message
     
-    // Add responsive message formatting to ensure proper display on mobile
-    const formattedMessage = messageContent.replace(/\n\n/g, '\n').trim()
-    
     const { data: messageData, error: messageError } = await supabaseAdmin
       .from('room_messages')
       .insert({
         room_id: roomId,
         sender_id: AI_BOT_ID,
-        message: formattedMessage,
+        message: messageContent,
         message_type: message_type,
         is_ai_message: true
       })
@@ -87,16 +84,10 @@ Deno.serve(async (req) => {
       })
     }
     
-    // If auto_respond is true, the function was called to respond to a patient message
-    // We don't need to do anything else special here, but this flag helps for logging purposes
-    const isAutoResponse = auto_respond ? 'Yes' : 'No'
-    console.log(`Message sent successfully. Auto-response: ${isAutoResponse}`)
-    
     return new Response(JSON.stringify({ 
       success: true, 
       message_id: messageData?.[0]?.id,
-      room_id: roomId,
-      is_auto_response: auto_respond
+      room_id: roomId 
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

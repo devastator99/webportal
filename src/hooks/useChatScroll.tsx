@@ -7,8 +7,7 @@ interface UseChatScrollOptions {
   loadingMore: boolean;
   isNewMessage?: boolean;
   messagesToShow?: number;
-  fullScreen?: boolean;
-  scrollThreshold?: number;
+  fullScreen?: boolean; // Added fullScreen option
 }
 
 export function useChatScroll({ 
@@ -17,8 +16,7 @@ export function useChatScroll({
   loadingMore,
   isNewMessage = false,
   messagesToShow = 0,
-  fullScreen = false,
-  scrollThreshold = 150
+  fullScreen = false // Default to false
 }: UseChatScrollOptions) {
   const endRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -26,164 +24,98 @@ export function useChatScroll({
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [hasScrolledUp, setHasScrolledUp] = useState(false);
   const [lastScrollTop, setLastScrollTop] = useState(0);
-  const [isScrolling, setIsScrolling] = useState(false);
-  const scrollTimerRef = useRef<number | null>(null);
-  const userInitiatedScrollRef = useRef(false);
-  const initialRenderRef = useRef(true);
 
-  // Improved scroll handler with better position detection
-  const handleScroll = () => {
-    if (!containerRef.current) return;
-    
-    // Mark that user has interacted with scroll
-    userInitiatedScrollRef.current = true;
-    
-    const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-    
-    // More accurate "near bottom" detection with configurable threshold
-    const isNearBottom = scrollHeight - scrollTop - clientHeight < scrollThreshold;
-    
-    setShouldAutoScroll(isNearBottom);
-    setShowScrollButton(!isNearBottom);
-    
-    // Only track scroll-up state when user has actually interacted
-    if (!isNearBottom && !hasScrolledUp && userInitiatedScrollRef.current) {
-      setHasScrolledUp(true);
-    }
-    
-    // If user has scrolled to bottom, reset hasScrolledUp
-    if (isNearBottom && hasScrolledUp) {
-      setHasScrolledUp(false);
-    }
-
-    // Enhanced scrolling state tracking with debounce
-    setIsScrolling(true);
-    if (scrollTimerRef.current !== null) {
-      window.clearTimeout(scrollTimerRef.current);
-    }
-    
-    scrollTimerRef.current = window.setTimeout(() => {
-      setIsScrolling(false);
-      scrollTimerRef.current = null;
-    }, 200);
-
-    // Handle header visibility on mobile
-    if (fullScreen) {
-      const header = document.querySelector('.chat-fullscreen-header');
-      if (header) {
-        // Show/hide header based on scroll direction
-        if (scrollTop > lastScrollTop && scrollTop > 50) {
-          header.classList.add('hidden');
-        } 
-        else if (scrollTop < lastScrollTop) {
-          header.classList.remove('hidden');
-        }
-        setLastScrollTop(scrollTop <= 0 ? 0 : scrollTop);
-      }
-    }
-  };
-
-  // Initialize scroll listener
+  // Handle scroll position detection
   useEffect(() => {
+    const handleScroll = () => {
+      if (!containerRef.current) return;
+      
+      const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+      // Consider "near bottom" to be within 100px of the bottom for faster detection on mobile
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      
+      setShouldAutoScroll(isNearBottom);
+      setShowScrollButton(!isNearBottom);
+      
+      if (!isNearBottom && !hasScrolledUp) {
+        setHasScrolledUp(true);
+      }
+
+      // Handle header visibility on mobile
+      if (fullScreen) {
+        const header = document.querySelector('.chat-fullscreen-header');
+        if (header) {
+          // Scrolling down - hide header
+          if (scrollTop > lastScrollTop && scrollTop > 50) {
+            header.classList.add('hidden');
+          } 
+          // Scrolling up - show header
+          else if (scrollTop < lastScrollTop) {
+            header.classList.remove('hidden');
+          }
+          setLastScrollTop(scrollTop <= 0 ? 0 : scrollTop);
+        }
+      }
+    };
+
     const container = containerRef.current;
     if (container) {
-      container.addEventListener('scroll', handleScroll, { passive: true });
+      container.addEventListener('scroll', handleScroll);
     }
 
     return () => {
       if (container) {
         container.removeEventListener('scroll', handleScroll);
       }
-      if (scrollTimerRef.current !== null) {
-        window.clearTimeout(scrollTimerRef.current);
-      }
     };
-  }, [hasScrolledUp, fullScreen, lastScrollTop, scrollThreshold]);
+  }, [hasScrolledUp, fullScreen, lastScrollTop]);
 
-  // Handle initial render to prevent unwanted auto-scrolling
+  // Handle auto-scrolling - optimized for mobile and full-screen mode
   useEffect(() => {
-    if (initialRenderRef.current && !loadingMessages && messages.length > 0) {
-      scrollToBottom();
-      initialRenderRef.current = false;
-    }
-  }, [loadingMessages, messages.length]);
-
-  // Handle auto-scrolling with optimizations - completely rewritten for better control
-  useEffect(() => {
-    // Don't auto scroll if:
-    // 1. User has scrolled up manually
-    // 2. We're still loading messages
-    // 3. We're loading more messages
-    // 4. User is currently scrolling
-    
-    // Do auto scroll if:
-    // 1. We have new messages AND user hasn't manually scrolled up
-    // 2. We should auto scroll (we're near the bottom) AND we're not loading or scrolling
-    
-    const shouldScrollNow = (
-      (!hasScrolledUp && isNewMessage) || 
-      (shouldAutoScroll && !loadingMessages && !loadingMore && !isScrolling)
-    );
-    
-    if (shouldScrollNow) {
-      const scrollToEndSmooth = () => {
-        if (endRef.current) {
-          // Use appropriate scroll behavior based on context
-          // Use 'auto' for new messages to prevent animation issues
-          const behavior = isNewMessage ? 'auto' : 'smooth';
-          endRef.current.scrollIntoView({ 
-            behavior, 
-            block: 'end'
-          });
+    // Only auto-scroll in these conditions:
+    // 1. When user is already near bottom
+    // 2. When a new message is added (not when loading older messages)
+    // 3. Not during initial loading of messages
+    // 4. Not during loading more (older) messages
+    if ((shouldAutoScroll || isNewMessage) && !loadingMessages && !loadingMore) {
+      requestAnimationFrame(() => {
+        if (fullScreen) {
+          // For full-screen mode, use a more aggressive scroll behavior
+          endRef.current?.scrollIntoView({ behavior: 'auto' });
           
-          // Reset flags after scrolling
-          if (isNewMessage) {
-            setHasScrolledUp(false);
+          // Also show the header if it was hidden
+          const header = document.querySelector('.chat-fullscreen-header');
+          if (header) {
+            header.classList.remove('hidden');
           }
-          
-          if (fullScreen) {
-            const header = document.querySelector('.chat-fullscreen-header');
-            if (header) {
-              header.classList.remove('hidden');
-            }
-          }
+        } else {
+          endRef.current?.scrollIntoView({ behavior: 'smooth' });
         }
-      };
-      
-      // Small delay to ensure DOM is ready
-      const scrollTimer = setTimeout(() => {
-        scrollToEndSmooth();
-      }, 50);
-      
-      return () => clearTimeout(scrollTimer);
+      });
     }
-  }, [messages, loadingMessages, loadingMore, shouldAutoScroll, isNewMessage, messagesToShow, fullScreen, isScrolling, hasScrolledUp]);
+  }, [messages, loadingMessages, loadingMore, shouldAutoScroll, isNewMessage, messagesToShow, fullScreen]);
 
   const scrollToBottom = () => {
     if (endRef.current) {
-      // Reset user initiated scroll flag when explicit scroll to bottom occurs
-      userInitiatedScrollRef.current = false;
-      
-      // Use small timeout to ensure DOM is ready
-      setTimeout(() => {
-        if (endRef.current) {
-          endRef.current.scrollIntoView({ 
-            behavior: 'auto', // Always use 'auto' for manual scrolling to avoid issues
-            block: 'end',
-            inline: 'nearest'
-          });
-          setShouldAutoScroll(true);
-          setShowScrollButton(false);
-          setHasScrolledUp(false);
-          
-          if (fullScreen) {
-            const header = document.querySelector('.chat-fullscreen-header');
-            if (header) {
-              header.classList.remove('hidden');
-            }
+      // Use requestAnimationFrame for smoother scrolling
+      requestAnimationFrame(() => {
+        endRef.current?.scrollIntoView({ 
+          behavior: fullScreen ? 'auto' : 'smooth',
+          block: 'end',
+          inline: 'nearest'
+        });
+        setShouldAutoScroll(true);
+        setShowScrollButton(false);
+        setHasScrolledUp(false);
+        
+        // Show header when manually scrolling to bottom
+        if (fullScreen) {
+          const header = document.querySelector('.chat-fullscreen-header');
+          if (header) {
+            header.classList.remove('hidden');
           }
         }
-      }, 10);
+      });
     }
   };
 
@@ -192,7 +124,6 @@ export function useChatScroll({
     containerRef,
     showScrollButton,
     scrollToBottom,
-    hasScrolledUp,
-    isScrolling
+    hasScrolledUp
   };
 }

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import React from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,54 +10,52 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { Loader2, Trash2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DeleteMessageDialogProps {
   messageId: string;
   isOpen: boolean;
   setIsOpen: (open: boolean) => void;
-  onDeleteSuccess?: () => void;
+  onDeleteSuccess: () => void;
 }
 
 export const DeleteMessageDialog = ({ messageId, isOpen, setIsOpen, onDeleteSuccess }: DeleteMessageDialogProps) => {
-  const [isDeleting, setIsDeleting] = useState(false);
   const { toast } = useToast();
 
   const handleDelete = async () => {
-    if (!messageId) return;
-    
     try {
-      setIsDeleting(true);
-      
-      // Call the delete_room_message function via a regular DELETE operation
-      // instead of an RPC call to avoid type issues
-      const { error } = await supabase
-        .from('room_messages')
-        .delete()
-        .eq('id', messageId);
-      
-      if (error) throw error;
-      
-      toast({
-        title: "Message deleted",
-        description: "The message has been permanently removed",
-      });
-      
-      if (onDeleteSuccess) {
+      // Using a direct function call since delete_room_message is not in the rpc type definitions
+      // This avoids the TypeScript error while still making the RPC call
+      const { data, error } = await supabase.rpc('delete_room_message', {
+        p_message_id: messageId,
+      } as any); // Using type assertion to bypass TypeScript validation
+
+      if (error) {
+        throw error;
+      }
+
+      if (data) {
+        toast({
+          title: "Message deleted",
+          description: "Your message has been deleted successfully.",
+        });
         onDeleteSuccess();
+      } else {
+        toast({
+          title: "Failed to delete message",
+          description: "The message could not be deleted.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       console.error("Error deleting message:", error);
       toast({
         title: "Error",
-        description: "Could not delete message. Please try again.",
+        description: error.message || "An error occurred while deleting the message.",
         variant: "destructive",
       });
     } finally {
-      setIsDeleting(false);
       setIsOpen(false);
     }
   };
@@ -72,27 +70,12 @@ export const DeleteMessageDialog = ({ messageId, isOpen, setIsOpen, onDeleteSucc
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            asChild
-            onClick={(e) => {
-              e.preventDefault();
-              handleDelete();
-            }}
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction 
+            onClick={handleDelete}
+            className="bg-red-600 hover:bg-red-700 text-white"
           >
-            <Button variant="destructive" disabled={isDeleting}>
-              {isDeleting ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete
-                </>
-              )}
-            </Button>
+            Delete
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

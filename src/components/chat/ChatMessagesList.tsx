@@ -12,10 +12,10 @@ import { sortByDate, groupMessagesByDate, normalizeDateString } from "@/utils/da
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useChatScroll } from "@/hooks/useChatScroll";
-import { ChatMessage, ChatMessageProps } from "./ChatMessage";
+import { ChatMessage } from "./ChatMessage"; // Added this missing import
 
-// Increase the page size to load more older messages at once
-const PAGE_SIZE = 500;
+// Updated: reduced page size from 100 to 30
+const PAGE_SIZE = 30;
 
 interface Message {
   id: string;
@@ -26,13 +26,6 @@ interface Message {
   is_system_message: boolean;
   is_ai_message: boolean;
   created_at: string;
-  attachment?: {
-    filename: string;
-    url: string;
-    size?: number;
-    type?: string;
-  } | null;
-  read_by?: any;
 }
 
 interface ChatMessagesListProps {
@@ -66,98 +59,58 @@ export const ChatMessagesList = ({
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [newMessageAdded, setNewMessageAdded] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [initialScrollComplete, setInitialScrollComplete] = useState(false);
 
   const { 
     endRef, 
     containerRef, 
     showScrollButton, 
     scrollToBottom,
-    hasScrolledUp,
-    isScrolling
+    hasScrolledUp
   } = useChatScroll({
     messages: [...messages, ...localMessages],
     loadingMessages: isLoading,
     loadingMore,
     isNewMessage: newMessageAdded,
-    messagesToShow: messages.length,
-    fullScreen,
-    scrollThreshold: 200 // Make it easier to trigger scroll button
+    messagesToShow: messages.length
   });
 
-  // Helper to fetch messages with improved error handling
+  // Helper to fetch messages (with DESC order for pagination)
   const fetchMessages = async (roomId: string, pageNum: number, isLoadingMore = false) => {
     if (!roomId) return;
     try {
       if (!isLoadingMore) setIsLoading(true);
       setRoomError(null);
-      
-      console.log(`Fetching messages for room: ${roomId}, page: ${pageNum}, pageSize: ${PAGE_SIZE}`);
-      
-      // Get messages from the database in descending order (newest first)
+      // Pull messages in DESC order for most-recent pagination
       const { data, error } = await supabase.rpc('get_room_messages_with_role', {
         p_room_id: roomId,
         p_limit: PAGE_SIZE,
         p_offset: (pageNum - 1) * PAGE_SIZE,
         p_user_role: userRole || 'patient'
       });
-      
       if (error) {
         setRoomError(`Failed to load messages: ${error.message}`);
-        console.error("Error loading messages:", error);
         throw error;
       }
 
-      console.log(`Received ${data?.length || 0} messages from server for page ${pageNum}`);
-      
-      // Make sure data is an array
-      if (!Array.isArray(data)) {
-        console.warn("Received non-array data from server:", data);
-        if (!isLoadingMore) setIsLoading(false);
-        return;
-      }
-      
-      // Process messages - reverse the order for display (oldest first)
-      const processedMessages = [...data].reverse(); // Reverse to get oldest first for display
-      
+      // Messages are sorted ASC from SQL, so reverse for DESC
+      const latestPage = Array.isArray(data) ? [...data].reverse() : [];
+
       if (isLoadingMore) {
-        // Preserve scroll position when loading older messages
-        const scrollContainer = containerRef.current;
-        const oldScrollHeight = scrollContainer?.scrollHeight || 0;
-        const oldScrollTop = scrollContainer?.scrollTop || 0;
-        
         setMessages(prev => {
-          // Avoid duplicates when adding older messages
+          // Prepend older messages--nothing duplicated
           const existingIds = new Set(prev.map(m => m.id));
-          const nonDuped = processedMessages.filter(m => !existingIds.has(m.id));
-          console.log(`Adding ${nonDuped.length} older messages at beginning`);
-          // Add older messages at the beginning
+          const nonDuped = latestPage.filter(
+            m => !existingIds.has(m.id)
+          );
+          // Prepend older ones at start
           return [...nonDuped, ...prev];
         });
-        
-        // After new messages are rendered, restore scroll position
-        setTimeout(() => {
-          if (scrollContainer) {
-            const newScrollHeight = scrollContainer.scrollHeight;
-            const heightDifference = newScrollHeight - oldScrollHeight;
-            scrollContainer.scrollTop = oldScrollTop + heightDifference;
-          }
-        }, 100);
       } else {
-        console.log(`Setting ${processedMessages.length} new messages in chronological order`);
-        setMessages(processedMessages);
+        setMessages(latestPage);
       }
 
       setHasMoreMessages(Array.isArray(data) && data.length === PAGE_SIZE);
       setNewMessageAdded(false);
-      
-      // After setting messages, scroll to bottom for new messages
-      if (!isLoadingMore && !hasScrolledUp && !initialScrollComplete) {
-        setTimeout(() => {
-          scrollToBottom();
-          setInitialScrollComplete(true);
-        }, 100);
-      }
     } catch (error) {
       if (!isLoadingMore) setIsLoading(false);
       toast({
@@ -165,7 +118,6 @@ export const ChatMessagesList = ({
         description: "Please try again later",
         variant: "destructive"
       });
-      console.error("Error in fetchMessages:", error);
     } finally {
       if (!isLoadingMore) setIsLoading(false);
       setLoadingMore(false);
@@ -177,7 +129,6 @@ export const ChatMessagesList = ({
     if (roomId && useRoomMessages) {
       setIsLoading(true);
       setPage(1);
-      setInitialScrollComplete(false);
       fetchMessages(roomId, 1, false);
     } else {
       setIsLoading(false);
@@ -199,13 +150,8 @@ export const ChatMessagesList = ({
         }, 
         (payload) => {
           if (!messages.some(m => m.id === payload.new.id)) {
-            // When a new message comes in, fetch the newest page again to ensure we have the latest messages
-            fetchMessages(roomId, 1, false);
+            fetchMessages(roomId, 1, false); // Always reload most recent page
             setNewMessageAdded(true);
-            // Only auto-scroll if user hasn't scrolled up
-            if (!hasScrolledUp) {
-              scrollToBottom(); 
-            }
           }
         }
       )
@@ -214,7 +160,7 @@ export const ChatMessagesList = ({
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line
-  }, [roomId, messages, hasScrolledUp]);
+  }, [roomId, messages]);
 
   // Merge local messages (optimistic, not in server)
   useEffect(() => {
@@ -223,41 +169,40 @@ export const ChatMessagesList = ({
         m => !messages.some(serverMsg => serverMsg.id === m.id)
       );
       if (newLocalMessages.length > 0) {
-        // Add local messages at the end (newest)
         const updatedMessages = [
           ...messages,
           ...newLocalMessages
-        ];
+        ].sort((a, b) => 
+          new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        );
         setMessages(updatedMessages);
         setNewMessageAdded(true);
-        scrollToBottom(); // Auto-scroll for new local messages
       }
     }
   }, [localMessages, messages]);
 
   // Add message delete handler
   const handleMessageDelete = () => {
-    console.log("Message deleted, refreshing messages");
     // Trigger a refresh of messages
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Using all messages in chronological order
-  const allMessages = messages;
-  
-  // Group messages by date
+  // The messages are now loaded in newest-first order; reverse before rendering
+  const allMessages = [...messages]
+    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
   const messageGroups = groupMessagesByDate(allMessages);
 
-  // Load more handler: loads older messages
+  // Load more handler: loads the next oldest page
   const handleLoadMore = async () => {
     if (!roomId || loadingMore || !hasMoreMessages) return;
     setLoadingMore(true);
     const nextPage = page + 1;
     setPage(nextPage);
-    await fetchMessages(roomId, nextPage, true); // Fetch older messages
+    await fetchMessages(roomId, nextPage, true); // Prepend older messages
   };
 
-  if (isLoading && messages.length === 0) {
+  if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center p-4">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -273,7 +218,7 @@ export const ChatMessagesList = ({
     );
   }
 
-  if (roomId && !allMessages.length && !isLoading) {
+  if (roomId && !allMessages.length) {
     return (
       <div className="flex flex-1 items-center justify-center p-4 text-muted-foreground">
         No messages yet. Start the conversation!
@@ -287,11 +232,10 @@ export const ChatMessagesList = ({
         className="flex-1 p-4"
         data-testid="messages-scroll-area"
         viewportRef={containerRef}
-        invisibleScrollbar={true} // Always use invisible scrollbar
       >
-        {/* Load more button at the top for older messages */}
+        {/* Load more messages button at the top */}
         {hasMoreMessages && (
-          <div className="flex justify-center mb-4 mt-2">
+          <div className="flex justify-center my-2">
             <Button
               variant="outline"
               size="sm"
@@ -300,25 +244,17 @@ export const ChatMessagesList = ({
               className="rounded-full"
             >
               {loadingMore ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <ArrowUpCircle className="w-4 h-4 mr-2" />}
-              Load older messages
+              Load more messages
             </Button>
           </div>
         )}
-        
-        {/* Display loading spinner when loading more messages */}
-        {loadingMore && (
-          <div className="flex justify-center mb-4">
-            <Loader2 className="w-4 h-4 animate-spin text-primary" />
-          </div>
-        )}
-        
-        {/* Display messages in chronological order (oldest to newest) */}
-        <div className="space-y-6 message-groups w-full" data-testid="message-groups-container">
+
+        <div className="space-y-6 message-groups" data-testid="message-groups-container">
           {Object.keys(messageGroups).length > 0 ? (
             Object.entries(messageGroups)
-              .sort(([dateA], [dateB]) => dateA.localeCompare(dateB)) // Oldest date groups first
+              .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
               .map(([dateString, dayMessages], index, array) => {
-                const isLatestGroup = index === array.length - 1; // Last group is latest
+                const isLatestGroup = index === array.length - 1;
                 return (
                   <CollapsibleMessageGroup 
                     key={dateString} 
@@ -326,97 +262,95 @@ export const ChatMessagesList = ({
                     messages={dayMessages}
                     isLatestGroup={isLatestGroup}
                   >
-                    <div className="chat-message-groups">
-                      {dayMessages
-                        .map((message) => {
-                          const isCurrentUser = message.sender_id === user?.id;
-                          const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
-                          
-                          // Define sender role-based styles
-                          const getSenderRoleColor = (role: string) => {
-                            switch(role?.toLowerCase()) {
-                              case 'doctor': return 'text-blue-600';
-                              case 'nutritionist': return 'text-green-600';
-                              case 'patient': return 'text-orange-600';
-                              default: return '';
-                            }
-                          };
-                          
-                          // Avatar background and text colors
-                          const getAvatarColors = (role: string) => {
-                            switch(role?.toLowerCase()) {
-                              case 'doctor': return 'bg-blue-100 text-blue-800';
-                              case 'nutritionist': return 'bg-green-100 text-green-800';
-                              case 'patient': return 'bg-orange-100 text-orange-800';
-                              default: return 'bg-gray-100 text-gray-800';
-                            }
-                          };
-                          
-                          const senderRoleColor = getSenderRoleColor(message.sender_role);
-                          const avatarColors = getAvatarColors(message.sender_role);
-                          
-                          return (
-                            <div 
-                              key={message.id} 
-                              id={`message-${message.id}`}
-                              className={`flex ${leftAligned || !isCurrentUser ? 'justify-start' : 'justify-end'} my-2 w-full`}
-                            >
-                              <div className="flex items-start gap-2 max-w-[75%] w-full">
+                    {dayMessages
+                      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                      .map((message) => {
+                        const isCurrentUser = message.sender_id === user?.id;
+                        const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
+                        
+                        // Define sender role-based styles
+                        const getSenderRoleColor = (role: string) => {
+                          switch(role?.toLowerCase()) {
+                            case 'doctor': return 'text-blue-600';
+                            case 'nutritionist': return 'text-green-600';
+                            case 'patient': return 'text-orange-600';
+                            default: return '';
+                          }
+                        };
+                        
+                        // Avatar background and text colors
+                        const getAvatarColors = (role: string) => {
+                          switch(role?.toLowerCase()) {
+                            case 'doctor': return 'bg-blue-100 text-blue-800';
+                            case 'nutritionist': return 'bg-green-100 text-green-800';
+                            case 'patient': return 'bg-orange-100 text-orange-800';
+                            default: return 'bg-gray-100 text-gray-800';
+                          }
+                        };
+                        
+                        const senderRoleColor = getSenderRoleColor(message.sender_role);
+                        const avatarColors = getAvatarColors(message.sender_role);
+                        
+                        return (
+                          <div 
+                            key={message.id} 
+                            id={`message-${message.id}`}
+                            className={`flex ${leftAligned || !isCurrentUser ? 'justify-start' : 'justify-end'} my-2`}
+                          >
+                            <div className="flex items-start gap-2 max-w-[75%]">
+                              {(!isCurrentUser || leftAligned) && !message.is_system_message && (
+                                <Avatar className="h-8 w-8">
+                                  {isAi ? (
+                                    <AvatarFallback className="bg-purple-100 text-purple-800">
+                                      AI
+                                    </AvatarFallback>
+                                  ) : (
+                                    <AvatarFallback className={avatarColors}>
+                                      {message.sender_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
+                                    </AvatarFallback>
+                                  )}
+                                </Avatar>
+                              )}
+                              
+                              <div>
                                 {(!isCurrentUser || leftAligned) && !message.is_system_message && (
-                                  <Avatar className="h-8 w-8 flex-shrink-0">
-                                    {isAi ? (
-                                      <AvatarFallback className="bg-purple-100 text-purple-800">
-                                        AI
-                                      </AvatarFallback>
-                                    ) : (
-                                      <AvatarFallback className={avatarColors}>
-                                        {message.sender_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
-                                      </AvatarFallback>
+                                  <div className="text-xs font-medium mb-1">
+                                    <span className={senderRoleColor}>
+                                      {isAi ? 'AI Assistant' : message.sender_name}
+                                    </span>
+                                    {message.sender_role && (
+                                      <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1">
+                                        {message.sender_role}
+                                      </Badge>
                                     )}
-                                  </Avatar>
+                                  </div>
                                 )}
                                 
-                                <div className="w-full">
-                                  {(!isCurrentUser || leftAligned) && !message.is_system_message && (
-                                    <div className="text-xs font-medium mb-1">
-                                      <span className={senderRoleColor}>
-                                        {isAi ? 'AI Assistant' : message.sender_name}
-                                      </span>
-                                      {message.sender_role && (
-                                        <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1">
-                                          {message.sender_role}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  )}
-                                  
-                                  <ChatMessage 
-                                    message={{
-                                      id: message.id,
-                                      message: message.message,
-                                      created_at: message.created_at,
-                                      read: false,
-                                      sender: {
-                                        id: message.sender_id,
-                                        first_name: message.sender_name?.split(' ')[0] || '',
-                                        last_name: message.sender_name?.split(' ').slice(1).join(' ') || '',
-                                        role: message.sender_role
-                                      },
-                                      is_system_message: message.is_system_message,
-                                      is_ai_message: message.is_ai_message,
-                                      attachment: message.attachment
-                                    }}
-                                    isCurrentUser={isCurrentUser}
-                                    showAvatar={false}
-                                    offlineMode={offlineMode}
-                                    onMessageDelete={handleMessageDelete}
-                                  />
-                                </div>
+                                <ChatMessage 
+                                  message={{
+                                    id: message.id,
+                                    message: message.message,
+                                    created_at: message.created_at,
+                                    read: false,
+                                    sender: {
+                                      id: message.sender_id,
+                                      first_name: message.sender_name?.split(' ')[0] || '',
+                                      last_name: message.sender_name?.split(' ').slice(1).join(' ') || '',
+                                      role: message.sender_role
+                                    },
+                                    is_system_message: message.is_system_message,
+                                    is_ai_message: message.is_ai_message
+                                  }}
+                                  isCurrentUser={isCurrentUser}
+                                  showAvatar={false}
+                                  offlineMode={offlineMode}
+                                  onMessageDelete={handleMessageDelete}
+                                />
                               </div>
                             </div>
-                          );
-                        })}
-                    </div>
+                          </div>
+                        );
+                      })}
                   </CollapsibleMessageGroup>
                 );
               })
@@ -427,15 +361,14 @@ export const ChatMessagesList = ({
           )}
         </div>
         
-        {/* Floating scroll-to-bottom button */}
         {showScrollButton && (
           <Button
             size="icon"
             variant="secondary"
-            className="fixed bottom-24 right-4 h-10 w-10 rounded-full shadow-md z-10"
+            className="fixed bottom-24 right-4 h-8 w-8 rounded-full shadow-md z-10"
             onClick={scrollToBottom}
           >
-            <ChevronDown className="h-5 w-5" />
+            <ChevronDown className="h-4 w-4" />
           </Button>
         )}
         

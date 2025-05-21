@@ -242,7 +242,6 @@ export const ChatInterface = ({
           title: "Message sent",
         });
         
-        // Always trigger AI response regardless of whether "@ai" is mentioned
         if (includeAiBot) {
           try {
             const { data: careTeamMembers } = await supabase.rpc('get_patient_care_team_members', {
@@ -364,23 +363,21 @@ export const ChatInterface = ({
 
         await Promise.all(sendPromises);
         
-        // Always trigger AI response regardless of whether "@ai" is mentioned
         if (careTeamGroup.members.some(member => 
           member.role === 'aibot' || member.id === AI_BOT_ID
         )) {
           try {
-            // Slight delay before AI response for more natural conversation feel
-            setTimeout(async () => {
-              const { data: aiResponse } = await supabase.functions.invoke('doctor-ai-assistant', {
-                body: { 
-                  messages: [{ role: "user", content: newMessage }],
-                  preferredLanguage: 'en',
-                  patientId: user.id,
-                  isCareTeamChat: true
-                },
-              });
-              
-              if (aiResponse && aiResponse.response) {
+            const { data: aiResponse } = await supabase.functions.invoke('doctor-ai-assistant', {
+              body: { 
+                messages: [{ role: "user", content: newMessage }],
+                preferredLanguage: 'en',
+                patientId: user.id,
+                isCareTeamChat: true
+              },
+            });
+            
+            if (aiResponse && aiResponse.response) {
+              setTimeout(async () => {
                 const aiMessage: LocalMessage = {
                   id: uuidv4(),
                   message: aiResponse.response,
@@ -409,8 +406,8 @@ export const ChatInterface = ({
                   });
                 
                 await Promise.all(aiSendPromises);
-              }
-            }, 1500);
+              }, 1500);
+            }
           } catch (error) {
             console.error("Error getting AI response:", error);
           }

@@ -1,81 +1,67 @@
 
-import { ReactNode, useState } from "react";
-import { ChevronDown, ChevronRight, CalendarDays } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { format } from "date-fns";
-import { RoomMessage } from "@/types/chat";
+import React, { useState } from 'react';
+import { format, isToday, isYesterday } from 'date-fns';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface CollapsibleMessageGroupProps {
   date: string;
-  messages: RoomMessage[];
-  children: ReactNode;
+  children: React.ReactNode;
   isLatestGroup?: boolean;
+  messages: any[];
 }
 
-export const CollapsibleMessageGroup = ({
-  date,
-  messages,
-  children,
-  isLatestGroup = false
+export const CollapsibleMessageGroup = ({ 
+  date, 
+  children, 
+  isLatestGroup = false,
+  messages 
 }: CollapsibleMessageGroupProps) => {
-  // Initialize all groups as collapsed, including the latest group
-  const [isCollapsed, setIsCollapsed] = useState(true);
-
-  const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed);
-  };
-
-  // Format the date header
-  let dateHeader = date;
-  try {
-    const dateObj = new Date(date);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    if (dateObj.toDateString() === today.toDateString()) {
-      dateHeader = "Today";
-    } else if (dateObj.toDateString() === yesterday.toDateString()) {
-      dateHeader = "Yesterday";
-    } else {
-      dateHeader = format(dateObj, "EEEE, MMMM d, yyyy");
+  const [isCollapsed, setIsCollapsed] = useState(!isLatestGroup);
+  
+  const getFormattedDate = () => {
+    try {
+      const dateObj = new Date(date);
+      
+      if (isToday(dateObj)) {
+        return "Today";
+      } else if (isYesterday(dateObj)) {
+        return "Yesterday";
+      } else {
+        return format(dateObj, 'MMMM d, yyyy');
+      }
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return date;
     }
-  } catch (e) {
-    console.error("Error formatting date:", e);
-  }
-
+  };
+  
+  const formattedDate = getFormattedDate();
+  
+  const toggleCollapse = () => {
+    setIsCollapsed(prev => !prev);
+  };
+  
   return (
-    <div className="message-date-group w-full">
-      <div className="message-date-divider">
+    <div className="message-group">
+      <div className="flex justify-start mb-2">
         <Button
           variant="ghost"
           size="sm"
-          className={cn(
-            "px-2 py-0.5 h-auto text-xs font-normal rounded-full",
-            "flex items-center gap-1 text-muted-foreground",
-            "cursor-pointer"
-          )}
           onClick={toggleCollapse}
+          className="h-6 text-xs text-muted-foreground hover:text-foreground bg-muted/30 hover:bg-muted/50 rounded-full px-3 flex items-center gap-1 shadow-sm"
         >
-          <CalendarDays className="h-3 w-3 mr-1" />
-          {dateHeader}
-          {isCollapsed ? (
-            <ChevronRight className="h-3 w-3" />
-          ) : (
-            <ChevronDown className="h-3 w-3" />
-          )}
+          {isCollapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          <span>{formattedDate}</span>
+          <span className="text-[10px] opacity-70">({messages.length})</span>
         </Button>
       </div>
-
-      <div
-        className={cn(
-          "transition-all duration-300 w-full",
-          isCollapsed ? "h-0 overflow-hidden opacity-0" : "opacity-100"
-        )}
-      >
-        {children}
-      </div>
+      
+      {!isCollapsed && (
+        <div className="space-y-2 mb-4">
+          {children}
+        </div>
+      )}
     </div>
   );
 };
