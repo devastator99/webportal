@@ -40,6 +40,7 @@ export const CollapsibleMessageGroup = ({
   
   const toggleCollapse = () => {
     setIsCollapsed(prev => !prev);
+    console.log(`Toggled message group ${date} - collapsed: ${!isCollapsed}`);
   };
   
   return (

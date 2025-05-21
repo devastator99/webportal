@@ -146,6 +146,8 @@ export const CareTeamRoomChat = ({
         throw error;
       }
       
+      console.log("Retrieved messages count:", messageData?.length || 0);
+      
       const formattedMessages: RoomMessage[] = [];
       
       for (const msg of messageData || []) {
@@ -224,9 +226,12 @@ export const CareTeamRoomChat = ({
         }
       }
       
+      console.log("Messages formatted and returned, count:", formattedMessages.length);
+      console.log("Has more:", messageData?.length === PAGE_SIZE);
+      
       return {
         messages: formattedMessages,
-        hasMore: Array.isArray(messageData) && messageData.length === PAGE_SIZE
+        hasMore: messageData?.length === PAGE_SIZE
       };
     } catch (error) {
       console.error("Error in fetchMessages:", error);
@@ -254,6 +259,7 @@ export const CareTeamRoomChat = ({
   const handleLoadMore = async () => {
     if (!selectedRoomId || loadingMore || !hasMoreMessages) return;
     
+    console.log("Loading more messages...");
     setLoadingMore(true);
     const nextPage = page + 1;
     setPage(nextPage);
@@ -270,8 +276,10 @@ export const CareTeamRoomChat = ({
       });
       
       setHasMoreMessages(result.hasMore);
+      console.log("More messages loaded, new total:", newMessages.length);
     } else {
       setHasMoreMessages(false);
+      console.log("No more messages to load.");
     }
     
     setLoadingMore(false);
@@ -396,6 +404,7 @@ export const CareTeamRoomChat = ({
 
   useEffect(() => {
     setHasMoreMessages(hasMore);
+    console.log("Updated hasMoreMessages state:", hasMore);
   }, [hasMore]);
 
   if (!selectedRoomId) {
@@ -463,7 +472,7 @@ export const CareTeamRoomChat = ({
               <ErrorBoundary>
                 {Object.entries(messageGroups)
                   .sort(([dateA], [dateB]) => dateB.localeCompare(dateA)) // Sort by date, newest first
-                  .map(([day, dayMessages], index) => {
+                  .map(([day, dayMessages], index, array) => {
                     const isLatestGroup = index === 0; // First group is latest
                     
                     return (
@@ -604,4 +613,3 @@ export const CareTeamRoomChat = ({
     </div>
   );
 };
-
