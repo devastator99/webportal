@@ -18,6 +18,7 @@ import { groupMessagesByDate, safeParseISO } from "@/utils/dateUtils";
 import { ChatInput } from "./ChatInput";
 import { cn } from "@/lib/utils";
 
+// Define interfaces for message data
 interface RoomMessage {
   id: string;
   sender_id: string;
@@ -28,6 +29,19 @@ interface RoomMessage {
   is_ai_message: boolean;
   created_at: string;
   read_by: string[] | null;
+}
+
+// Define a type for the raw message data from the database
+interface RawRoomMessage {
+  id: string;
+  sender_id: string;
+  sender_name: string;
+  sender_role: string;
+  message: string;
+  is_system_message: boolean;
+  is_ai_message: boolean;
+  created_at: string;
+  read_by: any; // This can be array, jsonb or null from the database
 }
 
 interface MessagesData {
@@ -155,19 +169,21 @@ export const CareTeamRoomChat = ({
       const formattedMessages: RoomMessage[] = [];
       
       for (const msg of messageData || []) {
-        let senderName = msg.sender_name || 'Unknown';
-        let senderRole = msg.sender_role || 'unknown';
+        // Safely typecast the message from database
+        const dbMessage = msg as RawRoomMessage;
+        let senderName = dbMessage.sender_name || 'Unknown';
+        let senderRole = dbMessage.sender_role || 'unknown';
         
         // Properly handle read_by field - ensure it's always an array
         let readByArray: string[] = [];
         
-        if (msg.read_by) {
-          if (Array.isArray(msg.read_by)) {
-            readByArray = msg.read_by.map(item => String(item));
-          } else if (typeof msg.read_by === 'object') {
+        if (dbMessage.read_by) {
+          if (Array.isArray(dbMessage.read_by)) {
+            readByArray = dbMessage.read_by.map(item => String(item));
+          } else if (typeof dbMessage.read_by === 'object') {
             try {
               // Handle JSONB array from database
-              const parsedArray = Array.isArray(msg.read_by) ? msg.read_by : [];
+              const parsedArray = Array.isArray(dbMessage.read_by) ? dbMessage.read_by : [];
               readByArray = parsedArray.map(item => String(item));
             } catch (e) {
               console.warn("Could not parse read_by field:", e);
@@ -176,14 +192,14 @@ export const CareTeamRoomChat = ({
         }
         
         formattedMessages.push({
-          id: msg.id,
-          sender_id: msg.sender_id,
+          id: dbMessage.id,
+          sender_id: dbMessage.sender_id,
           sender_name: senderName,
           sender_role: senderRole,
-          message: msg.message,
-          is_system_message: msg.is_system_message || false,
-          is_ai_message: msg.is_ai_message || false,
-          created_at: msg.created_at,
+          message: dbMessage.message,
+          is_system_message: dbMessage.is_system_message || false,
+          is_ai_message: dbMessage.is_ai_message || false,
+          created_at: dbMessage.created_at,
           read_by: readByArray
         });
       }
