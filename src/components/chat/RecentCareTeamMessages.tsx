@@ -27,6 +27,8 @@ export const RecentCareTeamMessages = ({
       if (!patientRoomId) return [];
       
       try {
+        console.log(`Fetching room messages for room: ${patientRoomId}, limit: ${messageLimit}`);
+        
         const { data: messageData, error } = await supabase
           .from('room_messages')
           .select('id, sender_id, message, is_system_message, is_ai_message, created_at, read_by')
@@ -37,6 +39,12 @@ export const RecentCareTeamMessages = ({
         if (error) {
           console.error("Error fetching messages:", error);
           throw error;
+        }
+        
+        console.log(`Retrieved ${messageData?.length || 0} room messages, newest first`);
+        if (messageData && messageData.length > 0) {
+          console.log(`First message date: ${new Date(messageData[0]?.created_at).toISOString()}`);
+          console.log(`Last message date: ${new Date(messageData[messageData.length - 1]?.created_at).toISOString()}`);
         }
         
         const formattedMessages = [];
@@ -86,8 +94,8 @@ export const RecentCareTeamMessages = ({
           });
         }
         
-        // Important: No longer reversing the array since we want to preserve the newest-first order
-        // that comes from the database
+        console.log(`Formatted ${formattedMessages.length} messages, preserving newest-first order from database`);
+        
         return formattedMessages;
       } catch (error) {
         console.error("Error in messages query:", error);
@@ -142,6 +150,8 @@ export const RecentCareTeamMessages = ({
     );
   }
 
+  // Messages come from the database in newest-first order
+  // Display them newest-first for the RecentCareTeamMessages component
   return (
     <div className="flex flex-col h-full w-full">
       <ScrollArea className="w-full h-full" invisibleScrollbar={true} maxHeight="100%">

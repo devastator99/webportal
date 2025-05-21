@@ -113,9 +113,7 @@ export const ChatMessagesList = ({
         return;
       }
       
-      // Important: We're keeping the order exactly as received from database
-      // Messages are already returned in descending order (newest first)
-      // No sorting needed
+      // Important: Keep newest-first order as received from database
       const latestMessages = [...data];
       
       if (latestMessages.length > 0) {
@@ -297,7 +295,7 @@ export const ChatMessagesList = ({
                     isLatestGroup={isLatestGroup}
                   >
                     {dayMessages
-                      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) // Newest first within each group
+                      // No need to re-sort within the group, maintain database order (newest first)
                       .map((message) => {
                         const isCurrentUser = message.sender_id === user?.id;
                         const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
