@@ -12,6 +12,7 @@ import { sortByDate, groupMessagesByDate, normalizeDateString } from "@/utils/da
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useChatScroll } from "@/hooks/useChatScroll";
+import { ChatMessage } from "./ChatMessage"; // Added this missing import
 
 // Updated: reduced page size from 100 to 30
 const PAGE_SIZE = 30;
