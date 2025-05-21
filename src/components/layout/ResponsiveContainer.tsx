@@ -9,6 +9,7 @@ interface ResponsiveContainerProps {
   as?: React.ElementType;
   fluid?: boolean;
   withPadding?: boolean;
+  maxWidth?: string; // Added option for custom max width
 }
 
 export const ResponsiveContainer = ({
@@ -17,6 +18,7 @@ export const ResponsiveContainer = ({
   as: Component = 'div',
   fluid = false,
   withPadding = true,
+  maxWidth,
 }: ResponsiveContainerProps) => {
   const { isMobile, isTablet } = useResponsive();
   
@@ -25,6 +27,7 @@ export const ResponsiveContainer = ({
       className={cn(
         'w-full mx-auto transition-all duration-200',
         !fluid && 'container',
+        maxWidth && `max-w-[${maxWidth}]`,
         withPadding && (
           isMobile 
             ? 'px-4' 

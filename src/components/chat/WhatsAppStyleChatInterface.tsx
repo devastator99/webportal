@@ -196,8 +196,8 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId, fullScreen = false }
       setRoomError(null);
       const { data, error } = await supabase.rpc('get_room_messages_with_role', {
         p_room_id: roomId,
-        p_limit: 100,
-        p_offset: (pageNum - 1) * 100,
+        p_limit: null, // Setting to null to get all messages
+        p_offset: 0,
         p_user_role: userRole || 'patient'
       });
       if (error) {
@@ -208,12 +208,11 @@ export const WhatsAppStyleChatInterface = ({ patientRoomId, fullScreen = false }
       const sortedData = Array.isArray(data)
         ? [...data].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
         : [];
-      if (isLoadingMore) {
-        setLocalMessages(prev => [...sortedData, ...prev]);
-      } else {
-        setLocalMessages(sortedData);
-      }
-      setHasMoreMessages(Array.isArray(data) && data.length === 100);
+      
+      setLocalMessages(sortedData);
+      
+      // Since we're getting all messages, there are no more to paginate
+      setHasMoreMessages(false);
       setNewMessageAdded(false);
     } catch (error) {
       console.error("Error fetching messages:", error);

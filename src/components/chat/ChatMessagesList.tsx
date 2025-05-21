@@ -12,10 +12,10 @@ import { sortByDate, groupMessagesByDate, normalizeDateString } from "@/utils/da
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useChatScroll } from "@/hooks/useChatScroll";
-import { ChatMessage } from "./ChatMessage"; // Added this missing import
+import { ChatMessage } from "./ChatMessage";
 
-// Updated: reduced page size from 100 to 30
-const PAGE_SIZE = 30;
+// Updated: removed page size limit
+const PAGE_SIZE = null; // Using null to get all messages
 
 interface Message {
   id: string;
@@ -80,11 +80,11 @@ export const ChatMessagesList = ({
     try {
       if (!isLoadingMore) setIsLoading(true);
       setRoomError(null);
-      // Pull messages in DESC order for most-recent pagination
+      // Pull messages using RPC function but without a limit
       const { data, error } = await supabase.rpc('get_room_messages_with_role', {
         p_room_id: roomId,
-        p_limit: PAGE_SIZE,
-        p_offset: (pageNum - 1) * PAGE_SIZE,
+        p_limit: null, // Setting to null to get all messages
+        p_offset: 0,
         p_user_role: userRole || 'patient'
       });
       if (error) {
@@ -92,24 +92,13 @@ export const ChatMessagesList = ({
         throw error;
       }
 
-      // Messages are sorted ASC from SQL, so reverse for DESC
-      const latestPage = Array.isArray(data) ? [...data].reverse() : [];
+      // Messages are sorted ASC from SQL
+      const latestMessages = Array.isArray(data) ? data : [];
 
-      if (isLoadingMore) {
-        setMessages(prev => {
-          // Prepend older messages--nothing duplicated
-          const existingIds = new Set(prev.map(m => m.id));
-          const nonDuped = latestPage.filter(
-            m => !existingIds.has(m.id)
-          );
-          // Prepend older ones at start
-          return [...nonDuped, ...prev];
-        });
-      } else {
-        setMessages(latestPage);
-      }
-
-      setHasMoreMessages(Array.isArray(data) && data.length === PAGE_SIZE);
+      setMessages(latestMessages);
+      
+      // Since we're getting all messages, there are no more to paginate
+      setHasMoreMessages(false);
       setNewMessageAdded(false);
     } catch (error) {
       if (!isLoadingMore) setIsLoading(false);
@@ -150,7 +139,7 @@ export const ChatMessagesList = ({
         }, 
         (payload) => {
           if (!messages.some(m => m.id === payload.new.id)) {
-            fetchMessages(roomId, 1, false); // Always reload most recent page
+            fetchMessages(roomId, 1, false); // Always reload messages
             setNewMessageAdded(true);
           }
         }
@@ -187,19 +176,20 @@ export const ChatMessagesList = ({
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // The messages are now loaded in newest-first order; reverse before rendering
+  // The messages are now loaded; sort before rendering
   const allMessages = [...messages]
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
   const messageGroups = groupMessagesByDate(allMessages);
 
-  // Load more handler: loads the next oldest page
+  // Load more handler: removed since we now get all messages at once
   const handleLoadMore = async () => {
-    if (!roomId || loadingMore || !hasMoreMessages) return;
-    setLoadingMore(true);
-    const nextPage = page + 1;
-    setPage(nextPage);
-    await fetchMessages(roomId, nextPage, true); // Prepend older messages
+    // This function is kept for backward compatibility but no longer does anything
+    // since we're loading all messages at once
+    toast({
+      title: "All messages loaded",
+      description: "All messages are already displayed",
+    });
   };
 
   if (isLoading) {
@@ -233,7 +223,7 @@ export const ChatMessagesList = ({
         data-testid="messages-scroll-area"
         viewportRef={containerRef}
       >
-        {/* Load more messages button at the top */}
+        {/* Load more messages button at the top - keeping but disabling since we load all messages now */}
         {hasMoreMessages && (
           <div className="flex justify-center my-2">
             <Button

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -123,12 +124,15 @@ export const CareTeamRoomChat = ({
       if (!selectedRoomId) return [];
       
       try {
-        const { data: messageData, error } = await supabase
-          .from('room_messages')
-          .select('id, sender_id, message, is_system_message, is_ai_message, created_at, read_by')
-          .eq('room_id', selectedRoomId)
-          .order('created_at', { ascending: true })
-          .limit(100);
+        // Removed limit parameter to get all messages
+        const { data: messageData, error } = await supabase.rpc(
+          'get_room_messages_with_role', 
+          {
+            p_room_id: selectedRoomId,
+            p_limit: null, // Setting to null to get all messages
+            p_offset: 0
+          }
+        );
           
         if (error) {
           console.error("Error fetching messages:", error);
