@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -104,8 +105,10 @@ export const ChatMessagesList = ({
 
       console.log(`Received ${data?.length || 0} messages from server for page ${pageNum}`);
       
-      // Messages are sorted DESC from SQL, so we keep newest first
-      const latestPage = Array.isArray(data) ? data : [];
+      // Sort messages from newest to oldest
+      const latestPage = Array.isArray(data) 
+        ? [...data].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        : [];
 
       if (isLoadingMore) {
         setMessages(prev => {
@@ -251,7 +254,23 @@ export const ChatMessagesList = ({
         data-testid="messages-scroll-area"
         viewportRef={containerRef}
       >
-        {/* Reverse the messages display order for UI rendering (newest at bottom) */}
+        {/* Load more button at the top for older messages */}
+        {hasMoreMessages && (
+          <div className="flex justify-center mb-4 mt-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              className="rounded-full"
+            >
+              {loadingMore ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <ArrowUpCircle className="w-4 h-4 mr-2" />}
+              Load older messages
+            </Button>
+          </div>
+        )}
+        
+        {/* Display messages from newest to oldest */}
         <div className="space-y-6 message-groups" data-testid="message-groups-container">
           {Object.keys(messageGroups).length > 0 ? (
             Object.entries(messageGroups)
@@ -361,22 +380,6 @@ export const ChatMessagesList = ({
           ) : (
             <div className="text-center text-muted-foreground">
               No messages to display
-            </div>
-          )}
-          
-          {/* Load more button at the bottom for older messages */}
-          {hasMoreMessages && (
-            <div className="flex justify-center mt-4 mb-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-                className="rounded-full"
-              >
-                {loadingMore ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <ArrowUpCircle className="w-4 h-4 mr-2" />}
-                Load older messages
-              </Button>
             </div>
           )}
         </div>

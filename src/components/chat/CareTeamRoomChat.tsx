@@ -338,6 +338,7 @@ export const CareTeamRoomChat = ({
     });
   };
 
+  // Group messages by date - now messages are sorted for display
   const messageGroups = groupMessagesByDate(messages);
 
   if (!selectedRoomId) {
@@ -388,9 +389,9 @@ export const CareTeamRoomChat = ({
             ) : (
               <ErrorBoundary>
                 {Object.entries(messageGroups)
-                  .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
-                  .map(([day, dayMessages], index, array) => {
-                    const isLatestGroup = index === array.length - 1;
+                  .sort(([dateA], [dateB]) => dateB.localeCompare(dateA)) // Sort by date, newest first
+                  .map(([day, dayMessages], index) => {
+                    const isLatestGroup = index === 0; // First group is latest
                     
                     return (
                       <CollapsibleMessageGroup 
@@ -400,7 +401,7 @@ export const CareTeamRoomChat = ({
                         isLatestGroup={isLatestGroup}
                       >
                         {dayMessages
-                          .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) // Sort by time, newest first
                           .map((msg) => {
                             const isSelf = msg.sender_id === user?.id;
                             const isAI = msg.is_ai_message;
