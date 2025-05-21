@@ -14,6 +14,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useChatScroll } from "@/hooks/useChatScroll";
 
+// Updated: reduced page size from 100 to 30
+const PAGE_SIZE = 30;
+
 interface Message {
   id: string;
   sender_id: string;
@@ -35,8 +38,6 @@ interface ChatMessagesListProps {
   fullScreen?: boolean;
   leftAligned?: boolean;
 }
-
-const PAGE_SIZE = 100;
 
 export const ChatMessagesList = ({ 
   roomId, 

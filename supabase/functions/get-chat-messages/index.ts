@@ -7,6 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
+// Updated: Set reduced page size
+const DEFAULT_PAGE_SIZE = 30;
+
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -23,7 +26,7 @@ serve(async (req: Request) => {
       include_care_team_messages = false,
       is_patient = false,
       page = 1, 
-      per_page = 100 // Increased from 50 to 100
+      per_page = DEFAULT_PAGE_SIZE // Changed default from 100 to 30
     } = await req.json();
     
     if (!user_id) {

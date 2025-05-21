@@ -22,6 +22,9 @@ interface ChatInputProps {
   fullScreen?: boolean;
 }
 
+// Character limit constant
+const CHARACTER_LIMIT = 1000;
+
 export const ChatInput = ({ 
   value, 
   onChange, 
@@ -52,6 +55,12 @@ export const ChatInput = ({
   };
   
   const validateMessage = (message: string): boolean => {
+    // Check message length
+    if (message.length > CHARACTER_LIMIT) {
+      setValidationError(`Message is too long. Maximum ${CHARACTER_LIMIT} characters allowed.`);
+      return false;
+    }
+    
     // Check for excessive special characters (more than 30% of the message)
     const specialChars = message.replace(/[a-zA-Z0-9\s]/g, '');
     const specialCharPercentage = message.length ? (specialChars.length / message.length) * 100 : 0;
@@ -111,6 +120,10 @@ export const ChatInput = ({
     }
   };
 
+  // Calculate character count and percentage
+  const characterCount = value.length;
+  const characterPercentage = Math.min((characterCount / CHARACTER_LIMIT) * 100, 100);
+
   return (
     <div className={cn(
       "flex flex-col gap-2 transition-all duration-300 mb-safe pb-6",
@@ -169,18 +182,27 @@ export const ChatInput = ({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             disabled={disabled || isLoading}
+            maxLength={CHARACTER_LIMIT + 1} // Add buffer of 1 for UX
             className={cn(
-              "min-h-[60px] max-h-[200px] pr-10 py-3 resize-none overflow-y-auto", // Increased min-height from 50px to 60px and max-height from 160px to 200px
+              "min-h-[60px] max-h-[200px] pr-10 py-3 resize-none overflow-y-auto", 
               isFocused && "border-primary ring-2 ring-primary/20",
-              validationError && "border-red-500 focus:border-red-500"
+              validationError && "border-red-500 focus:border-red-500",
+              characterPercentage > 90 && !validationError && "border-amber-500 focus:border-amber-500"
             )}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            rows={3} // Increased from 2 to 3 rows for more initial space
+            rows={3}
           />
           
-          {validationError && (
+          {validationError ? (
             <p className="text-xs text-red-500 mt-1">{validationError}</p>
+          ) : (
+            <p className={cn(
+              "text-xs mt-1 text-right",
+              characterPercentage > 90 ? "text-amber-600" : "text-muted-foreground"
+            )}>
+              {characterCount}/{CHARACTER_LIMIT}
+            </p>
           )}
           
           <Button

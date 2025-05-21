@@ -8,6 +8,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
+// Character limit constant - must match the client-side limit
+const CHARACTER_LIMIT = 1000;
+
 serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -20,6 +23,14 @@ serve(async (req: Request) => {
     if (!sender_id || !receiver_id || !message) {
       return new Response(
         JSON.stringify({ error: "Sender ID, receiver ID, and message are required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate message length
+    if (message.length > CHARACTER_LIMIT) {
+      return new Response(
+        JSON.stringify({ error: `Message exceeds character limit of ${CHARACTER_LIMIT}` }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
