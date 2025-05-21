@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -254,6 +255,74 @@ export const RecentCareTeamMessages = ({
     // Trigger a refetch after message deletion
     refetch();
   };
+
+  // Function to trigger AI response to a patient message
+  const triggerAiResponse = async (patientMessage: string, patientId: string) => {
+    if (!patientMessage.trim() || !patientId) return;
+    
+    try {
+      console.log("Triggering AI response to patient message:", patientMessage);
+      
+      // Call the edge function to get AI response
+      const { data: aiResponse, error } = await supabase.functions.invoke('doctor-ai-assistant', {
+        body: { 
+          messages: [{ role: "user", content: patientMessage }],
+          preferredLanguage: 'en',
+          patientId: patientId,
+          isCareTeamChat: true
+        },
+      });
+      
+      if (error) {
+        console.error("Error getting AI response:", error);
+        return;
+      }
+      
+      if (aiResponse && aiResponse.response) {
+        // Send the AI message to the care team room
+        const AI_BOT_ID = '00000000-0000-0000-0000-000000000000';
+        
+        await supabase.from('room_messages').insert({
+          room_id: patientRoomId,
+          sender_id: AI_BOT_ID,
+          message: aiResponse.response,
+          is_ai_message: true
+        });
+        
+        // Trigger a refetch to show the new message
+        setTimeout(() => {
+          setRefreshTrigger(prev => prev + 1);
+        }, 500);
+      }
+    } catch (error) {
+      console.error("Error processing AI response:", error);
+    }
+  };
+
+  // Watch for new patient messages to trigger AI responses
+  useEffect(() => {
+    if (!user || user.role !== 'patient' || !messages.length || !patientRoomId) return;
+    
+    // Get the latest message
+    const latestMessage = messages[messages.length - 1];
+    
+    // Only trigger AI response if:
+    // 1. Latest message is from the current user (patient)
+    // 2. It's not a system or AI message already
+    // 3. There's content to respond to
+    if (
+      latestMessage && 
+      latestMessage.sender.id === user.id &&
+      !latestMessage.is_system_message && 
+      !latestMessage.is_ai_message &&
+      latestMessage.message.trim()
+    ) {
+      // Give a small delay before triggering AI response to feel more natural
+      setTimeout(() => {
+        triggerAiResponse(latestMessage.message, user.id);
+      }, 1000);
+    }
+  }, [messages, user, patientRoomId]);
 
   if (!patientRoomId) {
     return (

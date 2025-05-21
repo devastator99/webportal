@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { patient_id, message, title, message_type = 'health_plan' } = await req.json()
+    const { patient_id, message, title, message_type = 'health_plan', auto_respond = false } = await req.json()
     
     if (!patient_id || !message) {
       return new Response(JSON.stringify({ error: 'Missing required fields: patient_id, message' }), {
@@ -84,10 +84,16 @@ Deno.serve(async (req) => {
       })
     }
     
+    // If auto_respond is true, the function was called to respond to a patient message
+    // We don't need to do anything else special here, but this flag helps for logging purposes
+    const isAutoResponse = auto_respond ? 'Yes' : 'No'
+    console.log(`Message sent successfully. Auto-response: ${isAutoResponse}`)
+    
     return new Response(JSON.stringify({ 
       success: true, 
       message_id: messageData?.[0]?.id,
-      room_id: roomId 
+      room_id: roomId,
+      is_auto_response: auto_respond
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
