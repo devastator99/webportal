@@ -1,3 +1,4 @@
+
 import { useAuth, UserRoleEnum } from "@/contexts/AuthContext";
 import { WhatsAppStyleChatInterface } from "@/components/chat/WhatsAppStyleChatInterface";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";

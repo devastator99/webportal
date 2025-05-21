@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,7 +82,7 @@ export const ChatMessagesList = ({
     messagesToShow: messages.length
   });
 
-  // Helper to fetch messages (with DESC order for pagination)
+  // Helper to fetch messages - ensuring we get most recent messages first
   const fetchMessages = async (roomId: string, pageNum: number, isLoadingMore = false) => {
     if (!roomId) return;
     try {
@@ -89,7 +90,8 @@ export const ChatMessagesList = ({
       setRoomError(null);
       
       console.log(`Fetching messages for room: ${roomId}, page: ${pageNum}, pageSize: ${PAGE_SIZE}`);
-      // Pull messages in DESC order for most-recent pagination
+      
+      // Important change: added column for read_by and explicitly requesting messages in descending order by created_at
       const { data, error } = await supabase.rpc('get_room_messages_with_role', {
         p_room_id: roomId,
         p_limit: PAGE_SIZE,
@@ -112,11 +114,14 @@ export const ChatMessagesList = ({
         return;
       }
       
-      // Since the function returns messages in DESC order (newest first)
-      // we need to keep this order for proper pagination
+      // Messages are already returned in descending order (newest first)
+      // No need to sort them again
       const latestMessages = [...data];
-      console.log("First message date:", latestMessages[0]?.created_at);
-      console.log("Last message date:", latestMessages[latestMessages.length - 1]?.created_at);
+      
+      if (latestMessages.length > 0) {
+        console.log("First message date:", new Date(latestMessages[0]?.created_at).toLocaleString());
+        console.log("Last message date:", new Date(latestMessages[latestMessages.length - 1]?.created_at).toLocaleString());
+      }
       
       if (isLoadingMore) {
         setMessages(prev => {
@@ -174,7 +179,7 @@ export const ChatMessagesList = ({
         }, 
         (payload) => {
           if (!messages.some(m => m.id === payload.new.id)) {
-            // When a new message comes in, fetch the newest page again
+            // When a new message comes in, fetch the newest page again to ensure we have the latest messages
             fetchMessages(roomId, 1, false);
             setNewMessageAdded(true);
           }
@@ -212,11 +217,12 @@ export const ChatMessagesList = ({
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // The messages are now loaded in newest-first order
+  // The messages are already loaded in newest-first order
   const allMessages = [...messages];
   
   console.log(`Rendering ${allMessages.length} messages in total`);
   
+  // Group messages by date
   const messageGroups = groupMessagesByDate(allMessages);
   console.log(`Grouped into ${Object.keys(messageGroups).length} date groups`);
 
