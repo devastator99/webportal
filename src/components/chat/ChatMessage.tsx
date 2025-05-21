@@ -141,151 +141,153 @@ export const ChatMessage = ({
     return "bg-white dark:bg-gray-800";
   };
   
-  // Wrap message in context menu if the user can delete it
+  // Added wrapper to ensure all messages are part of the chat flow
   const MessageContent = (
-    <div
-      className={cn(
-        "max-w-[75%] min-w-24 px-3 py-2 rounded-lg shadow-sm transition-all duration-200 message-bubble relative",
-        getBubbleClass(),
-        isSystemMessage && "mx-auto text-center",
-        isAiBot && !isCurrentUser && !isSystemMessage && "hover:shadow-md",
-        "group" // Always add group class for hover effects
-      )}
-    >
-      {showAvatar && !isCurrentUser && (
-        <span className="text-xs font-medium text-blue-600 dark:text-blue-400 block mb-1">
-          {senderFullName}
-          {message.sender.role && message.sender.role !== "patient" && (
-            <span className="ml-1 text-xs text-blue-500/80 dark:text-blue-300/80">
-              ({message.sender.role})
-            </span>
-          )}
-        </span>
-      )}
-      
-      {isPdfMessage && onPdfDownload && (
-        <button
-          onClick={onPdfDownload}
-          className="flex items-center gap-1 text-blue-600 dark:text-blue-400 mb-2 hover:underline"
-          aria-label="Download Prescription"
-        >
-          <span>Download Prescription</span>
-        </button>
-      )}
-      
-      {isAiBot && !isCurrentUser && (
-        <div className="flex items-center gap-1 mb-1 text-purple-700 dark:text-purple-400">
-          <Sparkles className="h-3 w-3" />
-          <span className="text-xs font-medium">AI Assistant</span>
-        </div>
-      )}
-      
-      <p className={cn(
-        "text-sm whitespace-pre-wrap mb-4",
-        isAiBot && !isCurrentUser && "leading-relaxed"
-      )}>
-        {message.message}
-      </p>
-      
-      {hasAttachment && (
-        <div className={cn(
-          "rounded-md p-2 mb-3 flex items-center gap-2",
-          "border",
-          isCurrentUser ? "border-white/20" : "border-gray-200 dark:border-gray-700",
-          "attachment-container"
-        )}>
-          {isImageAttachment ? (
-            <div className="w-full">
-              <div className="text-xs mb-1 flex items-center">
-                <Paperclip className="h-3 w-3 mr-1" />
-                <span className="truncate max-w-[150px]">{message.attachment.filename}</span>
-              </div>
-              <img 
-                src={message.attachment.url}
-                alt={message.attachment.filename}
-                className="max-h-48 w-auto rounded object-contain mb-1"
-                loading="lazy"
-              />
-              <button
-                className="text-xs flex items-center gap-1 hover:underline"
-                onClick={handleDownloadAttachment}
-                disabled={isDownloading}
-              >
-                <Download className="h-3 w-3" />
-                {message.attachment.size && formatFileSize(message.attachment.size)}
-              </button>
-            </div>
-          ) : (
-            <>
-              <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
-                <FileText className="h-6 w-6 text-gray-500 dark:text-gray-400" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium truncate">{message.attachment.filename}</p>
-                {message.attachment.size && (
-                  <p className="text-xs text-muted-foreground">{formatFileSize(message.attachment.size)}</p>
-                )}
-              </div>
-              <button
-                className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md flex-shrink-0"
-                onClick={handleDownloadAttachment}
-                disabled={isDownloading}
-                aria-label="Download attachment"
-              >
-                <Download className="h-4 w-4" />
-              </button>
-            </>
-          )}
-        </div>
-      )}
-      
-      <div className="flex items-center justify-end gap-1 message-time absolute bottom-1 right-2">
-        {canDelete && (
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsDeleteDialogOpen(true);
-            }}
-            className="text-red-500 hover:text-red-600 transition-colors mr-1 flex items-center"
-            aria-label="Delete message"
+    <div className="message-container w-full">
+      <div
+        className={cn(
+          "max-w-[75%] min-w-24 px-3 py-2 rounded-lg shadow-sm transition-all duration-200 message-bubble relative",
+          getBubbleClass(),
+          isSystemMessage && "mx-auto text-center",
+          isAiBot && !isCurrentUser && !isSystemMessage && "hover:shadow-md",
+          isPdfMessage && "w-full max-w-full", // Ensure PDF messages take full width
+          "group" // Always add group class for hover effects
+        )}
+      >
+        {showAvatar && !isCurrentUser && (
+          <span className="text-xs font-medium text-blue-600 dark:text-blue-400 block mb-1">
+            {senderFullName}
+            {message.sender.role && message.sender.role !== "patient" && (
+              <span className="ml-1 text-xs text-blue-500/80 dark:text-blue-300/80">
+                ({message.sender.role})
+              </span>
+            )}
+          </span>
+        )}
+        
+        {isPdfMessage && onPdfDownload && (
+          <button
+            onClick={onPdfDownload}
+            className="flex items-center gap-1 text-blue-600 dark:text-blue-400 mb-2 hover:underline w-full"
+            aria-label="Download Prescription"
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            <FileText className="h-4 w-4 mr-1" />
+            <span>Download Prescription</span>
           </button>
         )}
         
-        <span className="text-xs opacity-70">{formattedTime}</span>
+        {isAiBot && !isCurrentUser && (
+          <div className="flex items-center gap-1 mb-1 text-purple-700 dark:text-purple-400">
+            <Sparkles className="h-3 w-3" />
+            <span className="text-xs font-medium">AI Assistant</span>
+          </div>
+        )}
         
-        {isCurrentUser && (
-          <>
-            {offlineMode || !message.synced ? (
-              <Clock className="h-3 w-3 opacity-70" />
-            ) : isAiBot ? (
-              <Check className="h-3 w-3 text-blue-500" />
-            ) : isNutritionist ? (
-              <CheckCheck className="h-3 w-3 text-blue-500" />
-            ) : message.read ? (
-              <CheckCheck className="h-3 w-3 opacity-70 text-blue-400" />
+        <p className={cn(
+          "text-sm whitespace-pre-wrap mb-4",
+          isAiBot && !isCurrentUser && "leading-relaxed"
+        )}>
+          {message.message}
+        </p>
+        
+        {hasAttachment && (
+          <div className={cn(
+            "rounded-md p-2 mb-3 flex items-center gap-2",
+            "border",
+            isCurrentUser ? "border-white/20" : "border-gray-200 dark:border-gray-700",
+            "attachment-container"
+          )}>
+            {isImageAttachment ? (
+              <div className="w-full">
+                <div className="text-xs mb-1 flex items-center">
+                  <Paperclip className="h-3 w-3 mr-1" />
+                  <span className="truncate max-w-[150px]">{message.attachment.filename}</span>
+                </div>
+                <img 
+                  src={message.attachment.url}
+                  alt={message.attachment.filename}
+                  className="max-h-48 w-auto rounded object-contain mb-1"
+                  loading="lazy"
+                />
+                <button
+                  className="text-xs flex items-center gap-1 hover:underline"
+                  onClick={handleDownloadAttachment}
+                  disabled={isDownloading}
+                >
+                  <Download className="h-3 w-3" />
+                  {message.attachment.size && formatFileSize(message.attachment.size)}
+                </button>
+              </div>
             ) : (
-              <Check className="h-3 w-3 opacity-70" />
+              <>
+                <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-md">
+                  <FileText className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium truncate">{message.attachment.filename}</p>
+                  {message.attachment.size && (
+                    <p className="text-xs text-muted-foreground">{formatFileSize(message.attachment.size)}</p>
+                  )}
+                </div>
+                <button
+                  className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-md flex-shrink-0"
+                  onClick={handleDownloadAttachment}
+                  disabled={isDownloading}
+                  aria-label="Download attachment"
+                >
+                  <Download className="h-4 w-4" />
+                </button>
+              </>
             )}
-          </>
+          </div>
         )}
         
-        {!isCurrentUser && isAiBot && (
-          <Bot className="h-3 w-3 text-purple-500 ml-1" />
-        )}
-        
-        {!isCurrentUser && isNutritionist && (
-          <CheckCheck className="h-3 w-3 text-blue-500 ml-1" />
-        )}
+        <div className="flex items-center justify-end gap-1 message-time absolute bottom-1 right-2">
+          {canDelete && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsDeleteDialogOpen(true);
+              }}
+              className="text-red-500 hover:text-red-600 transition-colors mr-1 flex items-center"
+              aria-label="Delete message"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+          
+          <span className="text-xs opacity-70">{formattedTime}</span>
+          
+          {isCurrentUser && (
+            <>
+              {offlineMode || !message.synced ? (
+                <Clock className="h-3 w-3 opacity-70" />
+              ) : isAiBot ? (
+                <Check className="h-3 w-3 text-blue-500" />
+              ) : isNutritionist ? (
+                <CheckCheck className="h-3 w-3 text-blue-500" />
+              ) : message.read ? (
+                <CheckCheck className="h-3 w-3 opacity-70 text-blue-400" />
+              ) : (
+                <Check className="h-3 w-3 opacity-70" />
+              )}
+            </>
+          )}
+          
+          {!isCurrentUser && isAiBot && (
+            <Bot className="h-3 w-3 text-purple-500 ml-1" />
+          )}
+          
+          {!isCurrentUser && isNutritionist && (
+            <CheckCheck className="h-3 w-3 text-blue-500 ml-1" />
+          )}
+        </div>
       </div>
     </div>
   );
   
   return (
-    <div
-      className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} transition-opacity bubble-in mb-2`}
-    >
+    <div className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} transition-opacity bubble-in mb-2 w-full message-item`}>
       {canDelete ? (
         <ContextMenu>
           <ContextMenuTrigger>{MessageContent}</ContextMenuTrigger>

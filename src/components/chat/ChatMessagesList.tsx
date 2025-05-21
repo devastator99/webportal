@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -294,7 +295,7 @@ export const ChatMessagesList = ({
         )}
         
         {/* Display messages in chronological order (oldest to newest) */}
-        <div className="space-y-6 message-groups" data-testid="message-groups-container">
+        <div className="space-y-6 message-groups w-full" data-testid="message-groups-container">
           {Object.keys(messageGroups).length > 0 ? (
             Object.entries(messageGroups)
               .sort(([dateA], [dateB]) => dateA.localeCompare(dateB)) // Oldest date groups first
@@ -307,95 +308,97 @@ export const ChatMessagesList = ({
                     messages={dayMessages}
                     isLatestGroup={isLatestGroup}
                   >
-                    {dayMessages
-                      .map((message) => {
-                        const isCurrentUser = message.sender_id === user?.id;
-                        const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
-                        
-                        // Define sender role-based styles
-                        const getSenderRoleColor = (role: string) => {
-                          switch(role?.toLowerCase()) {
-                            case 'doctor': return 'text-blue-600';
-                            case 'nutritionist': return 'text-green-600';
-                            case 'patient': return 'text-orange-600';
-                            default: return '';
-                          }
-                        };
-                        
-                        // Avatar background and text colors
-                        const getAvatarColors = (role: string) => {
-                          switch(role?.toLowerCase()) {
-                            case 'doctor': return 'bg-blue-100 text-blue-800';
-                            case 'nutritionist': return 'bg-green-100 text-green-800';
-                            case 'patient': return 'bg-orange-100 text-orange-800';
-                            default: return 'bg-gray-100 text-gray-800';
-                          }
-                        };
-                        
-                        const senderRoleColor = getSenderRoleColor(message.sender_role);
-                        const avatarColors = getAvatarColors(message.sender_role);
-                        
-                        return (
-                          <div 
-                            key={message.id} 
-                            id={`message-${message.id}`}
-                            className={`flex ${leftAligned || !isCurrentUser ? 'justify-start' : 'justify-end'} my-2`}
-                          >
-                            <div className="flex items-start gap-2 max-w-[75%]">
-                              {(!isCurrentUser || leftAligned) && !message.is_system_message && (
-                                <Avatar className="h-8 w-8">
-                                  {isAi ? (
-                                    <AvatarFallback className="bg-purple-100 text-purple-800">
-                                      AI
-                                    </AvatarFallback>
-                                  ) : (
-                                    <AvatarFallback className={avatarColors}>
-                                      {message.sender_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
-                                    </AvatarFallback>
-                                  )}
-                                </Avatar>
-                              )}
-                              
-                              <div>
+                    <div className="chat-message-groups">
+                      {dayMessages
+                        .map((message) => {
+                          const isCurrentUser = message.sender_id === user?.id;
+                          const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';
+                          
+                          // Define sender role-based styles
+                          const getSenderRoleColor = (role: string) => {
+                            switch(role?.toLowerCase()) {
+                              case 'doctor': return 'text-blue-600';
+                              case 'nutritionist': return 'text-green-600';
+                              case 'patient': return 'text-orange-600';
+                              default: return '';
+                            }
+                          };
+                          
+                          // Avatar background and text colors
+                          const getAvatarColors = (role: string) => {
+                            switch(role?.toLowerCase()) {
+                              case 'doctor': return 'bg-blue-100 text-blue-800';
+                              case 'nutritionist': return 'bg-green-100 text-green-800';
+                              case 'patient': return 'bg-orange-100 text-orange-800';
+                              default: return 'bg-gray-100 text-gray-800';
+                            }
+                          };
+                          
+                          const senderRoleColor = getSenderRoleColor(message.sender_role);
+                          const avatarColors = getAvatarColors(message.sender_role);
+                          
+                          return (
+                            <div 
+                              key={message.id} 
+                              id={`message-${message.id}`}
+                              className={`flex ${leftAligned || !isCurrentUser ? 'justify-start' : 'justify-end'} my-2 w-full`}
+                            >
+                              <div className="flex items-start gap-2 max-w-[75%] w-full">
                                 {(!isCurrentUser || leftAligned) && !message.is_system_message && (
-                                  <div className="text-xs font-medium mb-1">
-                                    <span className={senderRoleColor}>
-                                      {isAi ? 'AI Assistant' : message.sender_name}
-                                    </span>
-                                    {message.sender_role && (
-                                      <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1">
-                                        {message.sender_role}
-                                      </Badge>
+                                  <Avatar className="h-8 w-8 flex-shrink-0">
+                                    {isAi ? (
+                                      <AvatarFallback className="bg-purple-100 text-purple-800">
+                                        AI
+                                      </AvatarFallback>
+                                    ) : (
+                                      <AvatarFallback className={avatarColors}>
+                                        {message.sender_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
+                                      </AvatarFallback>
                                     )}
-                                  </div>
+                                  </Avatar>
                                 )}
                                 
-                                <ChatMessage 
-                                  message={{
-                                    id: message.id,
-                                    message: message.message,
-                                    created_at: message.created_at,
-                                    read: false,
-                                    sender: {
-                                      id: message.sender_id,
-                                      first_name: message.sender_name?.split(' ')[0] || '',
-                                      last_name: message.sender_name?.split(' ').slice(1).join(' ') || '',
-                                      role: message.sender_role
-                                    },
-                                    is_system_message: message.is_system_message,
-                                    is_ai_message: message.is_ai_message,
-                                    attachment: message.attachment
-                                  }}
-                                  isCurrentUser={isCurrentUser}
-                                  showAvatar={false}
-                                  offlineMode={offlineMode}
-                                  onMessageDelete={handleMessageDelete}
-                                />
+                                <div className="w-full">
+                                  {(!isCurrentUser || leftAligned) && !message.is_system_message && (
+                                    <div className="text-xs font-medium mb-1">
+                                      <span className={senderRoleColor}>
+                                        {isAi ? 'AI Assistant' : message.sender_name}
+                                      </span>
+                                      {message.sender_role && (
+                                        <Badge variant="outline" className="ml-1 text-[10px] py-0 px-1">
+                                          {message.sender_role}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  )}
+                                  
+                                  <ChatMessage 
+                                    message={{
+                                      id: message.id,
+                                      message: message.message,
+                                      created_at: message.created_at,
+                                      read: false,
+                                      sender: {
+                                        id: message.sender_id,
+                                        first_name: message.sender_name?.split(' ')[0] || '',
+                                        last_name: message.sender_name?.split(' ').slice(1).join(' ') || '',
+                                        role: message.sender_role
+                                      },
+                                      is_system_message: message.is_system_message,
+                                      is_ai_message: message.is_ai_message,
+                                      attachment: message.attachment
+                                    }}
+                                    isCurrentUser={isCurrentUser}
+                                    showAvatar={false}
+                                    offlineMode={offlineMode}
+                                    onMessageDelete={handleMessageDelete}
+                                  />
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                    </div>
                   </CollapsibleMessageGroup>
                 );
               })

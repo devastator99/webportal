@@ -90,17 +90,20 @@
 /* PDF Message Styles */
 .pdf-message-container {
   margin-bottom: 8px;
+  width: 100%;
 }
 
 .pdf-message {
   border-radius: 8px;
   position: relative;
+  width: 100%;
 }
 
 .pdf-message-content {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 100%;
 }
 
 .pdf-icon {
@@ -163,4 +166,34 @@
   flex-direction: column;
   justify-content: flex-end;
   min-height: 100%;
+}
+
+/* Fix chat message flow */
+.message-item {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+/* Ensure message container takes full width */
+.message-container {
+  width: 100%;
+  display: flex;
+}
+
+/* Chat message grouping */
+.chat-message-groups {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-message-date-group {
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+/* Fix PDF message width */
+.pdf-message-container .message-bubble {
+  width: 100%;
+  max-width: 100%;
 }

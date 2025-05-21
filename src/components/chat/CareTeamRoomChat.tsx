@@ -399,7 +399,7 @@ export const CareTeamRoomChat = ({
     if (text.includes("PDF has been generated") || 
         text.includes("prescription as a PDF") || 
         text.includes("ready for download")) {
-      return `<div class="pdf-message">
+      return `<div class="pdf-message-content w-full">
         <span class="pdf-icon">📄</span>
         <span>${text}</span>
       </div>`;
@@ -480,7 +480,7 @@ export const CareTeamRoomChat = ({
               </div>
             ) : (
               <ErrorBoundary>
-                <div className="message-groups">
+                <div className="message-groups w-full">
                   {Object.entries(messageGroups)
                     .sort(([dateA], [dateB]) => dateA.localeCompare(dateB)) // Sort oldest dates first
                     .map(([day, dayMessages], index, array) => {
@@ -493,92 +493,95 @@ export const CareTeamRoomChat = ({
                           messages={dayMessages}
                           isLatestGroup={isLatestGroup}
                         >
-                          {dayMessages
-                            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) // Sort within group by time, oldest first
-                            .map((msg) => {
-                              const isSelf = msg.sender_id === user?.id;
-                              const isAI = msg.is_ai_message;
-                              const isSystem = msg.is_system_message;
-                              const isPdfMessage = msg.message.includes("PDF has been generated") || 
-                                                   msg.message.includes("prescription as a PDF") || 
-                                                   msg.message.includes("ready for download");
-                              
-                              return (
-                                <div
-                                  key={msg.id}
-                                  className={cn(
-                                    "flex message-item my-2",
-                                    isSelf ? "justify-end" : "justify-start",
-                                    !isSystem && isAI && !isSelf && "ai-message-container",
-                                    isPdfMessage && "pdf-message-container",
-                                    "bubble-in"
-                                  )}
-                                  id={`message-${msg.id}`}
-                                >
-                                  <div className="flex gap-2 max-w-[80%]">
-                                    {!isSelf && !isSystem && (
-                                      <Avatar className={cn("h-8 w-8 flex-shrink-0", isAI && "ring-2 ring-purple-200 ring-offset-1")}>
-                                        <AvatarFallback className={getAvatarColorClass(msg.sender_role)}>
-                                          {isAI ? <Sparkles className="h-4 w-4" /> : getInitials(msg.sender_name)}
-                                        </AvatarFallback>
-                                      </Avatar>
+                          <div className="chat-message-date-group w-full">
+                            {dayMessages
+                              .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) // Sort within group by time, oldest first
+                              .map((msg) => {
+                                const isSelf = msg.sender_id === user?.id;
+                                const isAI = msg.is_ai_message;
+                                const isSystem = msg.is_system_message;
+                                const isPdfMessage = msg.message.includes("PDF has been generated") || 
+                                                    msg.message.includes("prescription as a PDF") || 
+                                                    msg.message.includes("ready for download");
+                                
+                                return (
+                                  <div
+                                    key={msg.id}
+                                    className={cn(
+                                      "flex message-item my-2 w-full",
+                                      isSelf ? "justify-end" : "justify-start",
+                                      !isSystem && isAI && !isSelf && "ai-message-container",
+                                      isPdfMessage && "pdf-message-container w-full",
+                                      "bubble-in"
                                     )}
-                                    
-                                    <div>
+                                    id={`message-${msg.id}`}
+                                  >
+                                    <div className="flex gap-2 max-w-[80%] w-full">
                                       {!isSelf && !isSystem && (
-                                        <div className={cn(
-                                          "text-xs font-medium mb-1 flex items-center",
-                                          isAI && "text-purple-700 dark:text-purple-400"
-                                        )}>
-                                          {isAI && <Sparkles className="h-3 w-3 mr-1" />}
-                                          {msg.sender_name}
-                                          <span className="text-xs text-muted-foreground ml-1">
-                                            {msg.sender_role}
-                                          </span>
-                                        </div>
+                                        <Avatar className={cn("h-8 w-8 flex-shrink-0", isAI && "ring-2 ring-purple-200 ring-offset-1")}>
+                                          <AvatarFallback className={getAvatarColorClass(msg.sender_role)}>
+                                            {isAI ? <Sparkles className="h-4 w-4" /> : getInitials(msg.sender_name)}
+                                          </AvatarFallback>
+                                        </Avatar>
                                       )}
                                       
-                                      <div
-                                        className={cn(
-                                          "rounded-lg p-3 text-sm shadow-sm relative",
-                                          isSystem 
-                                            ? "bg-blue-100/70 dark:bg-blue-900/20 text-center mx-auto" 
-                                            : isSelf
-                                              ? "bg-[#9b87f5]/90 text-white" 
-                                              : isAI
-                                                ? "bg-purple-50/80 dark:bg-purple-900/10"
-                                                : "bg-neutral-100/80 dark:bg-neutral-800/50",
-                                          isAI && !isSelf && !isSystem && "border border-purple-100 dark:border-purple-900/30",
-                                          isPdfMessage && "pdf-message"
-                                        )}
-                                      >
-                                        {isAI && (
-                                          <Sparkles className="h-3 w-3 absolute top-2 right-2 text-purple-500" />
+                                      <div className="w-full">
+                                        {!isSelf && !isSystem && (
+                                          <div className={cn(
+                                            "text-xs font-medium mb-1 flex items-center",
+                                            isAI && "text-purple-700 dark:text-purple-400"
+                                          )}>
+                                            {isAI && <Sparkles className="h-3 w-3 mr-1" />}
+                                            {msg.sender_name}
+                                            <span className="text-xs text-muted-foreground ml-1">
+                                              {msg.sender_role}
+                                            </span>
+                                          </div>
                                         )}
                                         
-                                        <div 
+                                        <div
                                           className={cn(
-                                            isAI && !isSelf && "leading-relaxed",
-                                            isPdfMessage && "pdf-message-content"
+                                            "rounded-lg p-3 text-sm shadow-sm relative",
+                                            isSystem 
+                                              ? "bg-blue-100/70 dark:bg-blue-900/20 text-center mx-auto" 
+                                              : isSelf
+                                                ? "bg-[#9b87f5]/90 text-white" 
+                                                : isAI
+                                                  ? "bg-purple-50/80 dark:bg-purple-900/10"
+                                                  : "bg-neutral-100/80 dark:bg-neutral-800/50",
+                                            isAI && !isSelf && !isSystem && "border border-purple-100 dark:border-purple-900/30",
+                                            isPdfMessage && "pdf-message w-full",
+                                            isPdfMessage && !isSelf ? "max-w-full" : "",
                                           )}
-                                          dangerouslySetInnerHTML={{ 
-                                            __html: isPdfMessage 
-                                              ? processMessageContent(msg.message) 
-                                              : isSelf 
-                                                ? formatMessageWithAiHighlight(msg.message) 
-                                                : msg.message 
-                                          }}
-                                        />
-                                      
-                                        <div className="text-xs opacity-70 mt-1">
-                                          {format(safeParseISO(msg.created_at), 'h:mm a')}
+                                        >
+                                          {isAI && (
+                                            <Sparkles className="h-3 w-3 absolute top-2 right-2 text-purple-500" />
+                                          )}
+                                          
+                                          <div 
+                                            className={cn(
+                                              isAI && !isSelf && "leading-relaxed",
+                                              isPdfMessage && "pdf-message-content"
+                                            )}
+                                            dangerouslySetInnerHTML={{ 
+                                              __html: isPdfMessage 
+                                                ? processMessageContent(msg.message) 
+                                                : isSelf 
+                                                  ? formatMessageWithAiHighlight(msg.message) 
+                                                  : msg.message 
+                                            }}
+                                          />
+                                        
+                                          <div className="text-xs opacity-70 mt-1">
+                                            {format(safeParseISO(msg.created_at), 'h:mm a')}
+                                          </div>
                                         </div>
                                       </div>
                                     </div>
                                   </div>
-                                </div>
-                              );
-                            })}
+                                );
+                              })}
+                          </div>
                         </CollapsibleMessageGroup>
                       );
                     })}
