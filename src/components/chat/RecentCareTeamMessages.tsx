@@ -186,39 +186,70 @@ export const RecentCareTeamMessages = ({
   // Track if there are new messages since the last data fetch
   const [isNewMessage, setIsNewMessage] = useState(false);
   const previousMessagesCount = useRef(0);
+  const [userHasScrolled, setUserHasScrolled] = useState(false);
 
-  // Setup scroll management with useChatScroll hook
+  // Setup scroll management with improved configuration
   const {
     containerRef,
     endRef,
     showScrollButton,
     scrollToBottom,
-    hasScrolledUp
+    hasScrolledUp,
+    isScrolling
   } = useChatScroll({
     messages,
     loadingMessages: isLoading,
     loadingMore: false,
-    isNewMessage
+    isNewMessage,
+    // Increase the scroll threshold to prevent accidental triggering
+    scrollThreshold: 200
   });
+
+  // Add scroll event listener to detect when user manually scrolls
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const handleScroll = () => {
+      setUserHasScrolled(true);
+    };
+    
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   useEffect(() => {
     if (data) {
       // Check if there are new messages
       if (data.length > previousMessagesCount.current) {
         setIsNewMessage(true);
+        // Only auto-scroll if user hasn't manually scrolled up
+        if (!userHasScrolled || !hasScrolledUp) {
+          setTimeout(() => {
+            scrollToBottom();
+          }, 100);
+        }
       } else {
         setIsNewMessage(false);
       }
       previousMessagesCount.current = data.length;
       setMessages(data);
     }
-  }, [data]);
+  }, [data, hasScrolledUp, userHasScrolled]);
 
   useEffect(() => {
     if (roomData) {
       setRoomDetails(roomData);
     }
   }, [roomData]);
+
+  // Reset userHasScrolled state when scrolling to bottom manually
+  const handleScrollToBottom = () => {
+    scrollToBottom();
+    setUserHasScrolled(false);
+  };
 
   const handleMessageDelete = () => {
     // Trigger a refetch after message deletion
@@ -297,8 +328,13 @@ export const RecentCareTeamMessages = ({
         </div>
       )}
       
-      <div ref={containerRef} className="relative w-full h-full">
-        <ScrollArea className="w-full h-full" invisibleScrollbar={true} maxHeight="100%" viewportRef={containerRef}>
+      <div className="relative w-full h-full overflow-hidden">
+        <ScrollArea 
+          className="w-full h-full" 
+          invisibleScrollbar={true} 
+          maxHeight="100%" 
+          viewportRef={containerRef}
+        >
           <div className={cn(
             "bg-[#f0f2f5] dark:bg-slate-900 p-4 space-y-4",
             "rounded-md"
@@ -332,8 +368,8 @@ export const RecentCareTeamMessages = ({
         
         {showScrollButton && hasScrolledUp && (
           <Button
-            onClick={scrollToBottom}
-            className="absolute bottom-4 right-4 h-10 w-10 rounded-full shadow-lg p-0 bg-primary/90 hover:bg-primary"
+            onClick={handleScrollToBottom}
+            className="absolute bottom-4 right-4 h-10 w-10 rounded-full shadow-lg p-0 bg-primary/90 hover:bg-primary z-10"
             size="icon"
           >
             <ArrowDown className="h-5 w-5" />
