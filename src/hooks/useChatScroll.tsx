@@ -28,20 +28,25 @@ export function useChatScroll({
   const [lastScrollTop, setLastScrollTop] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimerRef = useRef<number | null>(null);
+  const userInitiatedScrollRef = useRef(false);
 
   // Improved scroll handler with better position detection
   const handleScroll = () => {
     if (!containerRef.current) return;
     
+    // Mark that user has interacted with scroll
+    userInitiatedScrollRef.current = true;
+    
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
+    
     // More accurate "near bottom" detection with configurable threshold
     const isNearBottom = scrollHeight - scrollTop - clientHeight < scrollThreshold;
     
     setShouldAutoScroll(isNearBottom);
     setShowScrollButton(!isNearBottom);
     
-    // Track if user has scrolled up from bottom
-    if (!isNearBottom && !hasScrolledUp) {
+    // Only track scroll-up state when user has actually interacted
+    if (!isNearBottom && !hasScrolledUp && userInitiatedScrollRef.current) {
       setHasScrolledUp(true);
     }
 
@@ -91,6 +96,7 @@ export function useChatScroll({
 
   // Handle auto-scrolling with optimizations
   useEffect(() => {
+    // Only auto-scroll if we should AND not in the middle of user-initiated scrolling
     if ((shouldAutoScroll || isNewMessage) && !loadingMessages && !loadingMore && !isScrolling) {
       const scrollToEndSmooth = () => {
         if (endRef.current) {
@@ -117,6 +123,9 @@ export function useChatScroll({
 
   const scrollToBottom = () => {
     if (endRef.current) {
+      // Reset user initiated scroll flag when explicit scroll to bottom occurs
+      userInitiatedScrollRef.current = false;
+      
       // Use requestAnimationFrame for smoother scrolling
       requestAnimationFrame(() => {
         endRef.current?.scrollIntoView({ 

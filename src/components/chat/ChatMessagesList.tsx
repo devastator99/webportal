@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -125,6 +124,7 @@ export const ChatMessagesList = ({
         // Preserve scroll position when loading older messages
         const scrollContainer = containerRef.current;
         const oldScrollHeight = scrollContainer?.scrollHeight || 0;
+        const oldScrollTop = scrollContainer?.scrollTop || 0;
         
         setMessages(prev => {
           // Avoid duplicates when adding older messages
@@ -140,9 +140,9 @@ export const ChatMessagesList = ({
           if (scrollContainer) {
             const newScrollHeight = scrollContainer.scrollHeight;
             const heightDifference = newScrollHeight - oldScrollHeight;
-            scrollContainer.scrollTop = scrollContainer.scrollTop + heightDifference;
+            scrollContainer.scrollTop = oldScrollTop + heightDifference;
           }
-        }, 10);
+        }, 100);
       } else {
         console.log(`Setting ${processedMessages.length} new messages in chronological order`);
         setMessages(processedMessages);
@@ -287,7 +287,7 @@ export const ChatMessagesList = ({
         className="flex-1 p-4"
         data-testid="messages-scroll-area"
         viewportRef={containerRef}
-        invisibleScrollbar={fullScreen} // Use invisible scrollbar on mobile
+        invisibleScrollbar={true} // Always use invisible scrollbar
       >
         {/* Load more button at the top for older messages */}
         {hasMoreMessages && (
