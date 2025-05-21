@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,6 +19,14 @@ export const CollapsibleMessageGroup = ({
 }: CollapsibleMessageGroupProps) => {
   const [isCollapsed, setIsCollapsed] = useState(!isLatestGroup);
   
+  // Use effect to handle auto-expand for latest group
+  useEffect(() => {
+    if (isLatestGroup) {
+      setIsCollapsed(false);
+      console.log(`Auto-expanding latest message group: ${date}`);
+    }
+  }, [isLatestGroup, date]);
+  
   const getFormattedDate = () => {
     try {
       const dateObj = new Date(date);
@@ -31,7 +39,7 @@ export const CollapsibleMessageGroup = ({
         return format(dateObj, 'MMMM d, yyyy');
       }
     } catch (error) {
-      console.error("Error formatting date:", error);
+      console.error("Error formatting date:", error, "for date string:", date);
       return date;
     }
   };
@@ -40,7 +48,7 @@ export const CollapsibleMessageGroup = ({
   
   const toggleCollapse = () => {
     setIsCollapsed(prev => !prev);
-    console.log(`Toggled message group ${date} - collapsed: ${!isCollapsed}`);
+    console.log(`Toggled message group ${date} (${formattedDate}) - collapsed: ${!isCollapsed}`);
   };
   
   return (

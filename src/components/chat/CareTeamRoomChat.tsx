@@ -134,12 +134,16 @@ export const CareTeamRoomChat = ({
       
       console.log(`Fetching messages for room: ${roomId}, page: ${pageNum}, pageSize: ${PAGE_SIZE}`);
       
-      const { data: messageData, error } = await supabase
-        .from('room_messages')
-        .select('id, sender_id, message, is_system_message, is_ai_message, created_at, read_by')
-        .eq('room_id', roomId)
-        .order('created_at', { ascending: false }) // Get newest messages first
-        .range((pageNum - 1) * PAGE_SIZE, pageNum * PAGE_SIZE - 1);
+      // Messages are already sorted by created_at DESC (newest first) from the database
+      const { data: messageData, error } = await supabase.rpc(
+        'get_room_messages_with_role',
+        {
+          p_room_id: roomId,
+          p_limit: PAGE_SIZE,
+          p_offset: (pageNum - 1) * PAGE_SIZE,
+          p_user_role: user?.role || 'patient'
+        }
+      );
         
       if (error) {
         console.error("Error fetching messages:", error);
@@ -151,33 +155,8 @@ export const CareTeamRoomChat = ({
       const formattedMessages: RoomMessage[] = [];
       
       for (const msg of messageData || []) {
-        let senderName = 'Unknown';
-        let senderRole = 'unknown';
-        
-        if (msg.sender_id === '00000000-0000-0000-0000-000000000000') {
-          senderName = 'AI Assistant';
-          senderRole = 'aibot';
-        } else {
-          const { data: senderData, error: senderError } = await supabase
-            .from('profiles')
-            .select('first_name, last_name')
-            .eq('id', msg.sender_id)
-            .single();
-            
-          if (!senderError && senderData) {
-            senderName = `${senderData.first_name || ''} ${senderData.last_name || ''}`.trim();
-          }
-          
-          const { data: roleData, error: roleError } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', msg.sender_id)
-            .single();
-            
-          if (!roleError && roleData) {
-            senderRole = roleData.role;
-          }
-        }
+        let senderName = msg.sender_name || 'Unknown';
+        let senderRole = msg.sender_role || 'unknown';
         
         let readByArray: string[] = [];
         
@@ -207,24 +186,7 @@ export const CareTeamRoomChat = ({
         });
       }
       
-      if (messageData && messageData.length > 0 && user?.id) {
-        for (const msg of messageData) {
-          let currentReadBy: string[] = [];
-          
-          if (msg.read_by && Array.isArray(msg.read_by)) {
-            currentReadBy = msg.read_by.map(item => String(item));
-          }
-          
-          if (user.id && !currentReadBy.includes(user.id)) {
-            const updatedReadBy = [...currentReadBy, user.id];
-            
-            await supabase
-              .from('room_messages')
-              .update({ read_by: updatedReadBy })
-              .eq('id', msg.id);
-          }
-        }
-      }
+      // No need to sort messages again since they are already sorted by created_at DESC from the database
       
       console.log("Messages formatted and returned, count:", formattedMessages.length);
       console.log("Has more:", messageData?.length === PAGE_SIZE);
@@ -401,7 +363,7 @@ export const CareTeamRoomChat = ({
 
   // Group messages by date - messages are sorted for display (newest first)
   const messageGroups = groupMessagesByDate(messages);
-
+  
   useEffect(() => {
     setHasMoreMessages(hasMore);
     console.log("Updated hasMoreMessages state:", hasMore);
