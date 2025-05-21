@@ -1,14 +1,16 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { ChatMessage } from "@/components/chat/ChatMessage";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
-import { Loader2, Users } from "lucide-react";
+import { Loader2, Users, ArrowDown } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CollapsibleMessageGroup } from "./CollapsibleMessageGroup";
-import { groupMessagesByDate, normalizeDateString } from "@/utils/dateUtils";
+import { groupMessagesByDate } from "@/utils/dateUtils";
+import { useChatScroll } from "@/hooks/useChatScroll";
+import { Button } from "@/components/ui/button";
 
 interface RecentCareTeamMessagesProps {
   patientRoomId: string | null;
@@ -181,8 +183,33 @@ export const RecentCareTeamMessages = ({
     refetchInterval: 10000 // Refetch every 10 seconds to show new messages
   });
 
+  // Track if there are new messages since the last data fetch
+  const [isNewMessage, setIsNewMessage] = useState(false);
+  const previousMessagesCount = useRef(0);
+
+  // Setup scroll management with useChatScroll hook
+  const {
+    containerRef,
+    endRef,
+    showScrollButton,
+    scrollToBottom,
+    hasScrolledUp
+  } = useChatScroll({
+    messages,
+    loadingMessages: isLoading,
+    loadingMore: false,
+    isNewMessage
+  });
+
   useEffect(() => {
     if (data) {
+      // Check if there are new messages
+      if (data.length > previousMessagesCount.current) {
+        setIsNewMessage(true);
+      } else {
+        setIsNewMessage(false);
+      }
+      previousMessagesCount.current = data.length;
       setMessages(data);
     }
   }, [data]);
@@ -270,36 +297,49 @@ export const RecentCareTeamMessages = ({
         </div>
       )}
       
-      <ScrollArea className="w-full h-full" invisibleScrollbar={true} maxHeight="100%">
-        <div className={cn(
-          "bg-[#f0f2f5] dark:bg-slate-900 p-4 space-y-4",
-          "rounded-md"
-        )}>
-          {sortedDateKeys.map((dateString, index) => {
-            const isLatestGroup = index === sortedDateKeys.length - 1;
-            return (
-              <CollapsibleMessageGroup 
-                key={dateString} 
-                date={dateString}
-                messages={messageGroups[dateString]}
-                isLatestGroup={isLatestGroup}
-              >
-                <div className="space-y-4">
-                  {messageGroups[dateString].map((msg) => (
-                    <ChatMessage
-                      key={msg.id}
-                      message={msg}
-                      isCurrentUser={msg.sender.id === user?.id}
-                      showAvatar={true}
-                      onMessageDelete={handleMessageDelete}
-                    />
-                  ))}
-                </div>
-              </CollapsibleMessageGroup>
-            );
-          })}
-        </div>
-      </ScrollArea>
+      <div ref={containerRef} className="relative w-full h-full">
+        <ScrollArea className="w-full h-full" invisibleScrollbar={true} maxHeight="100%" viewportRef={containerRef}>
+          <div className={cn(
+            "bg-[#f0f2f5] dark:bg-slate-900 p-4 space-y-4",
+            "rounded-md"
+          )}>
+            {sortedDateKeys.map((dateString, index) => {
+              const isLatestGroup = index === sortedDateKeys.length - 1;
+              return (
+                <CollapsibleMessageGroup 
+                  key={dateString} 
+                  date={dateString}
+                  messages={messageGroups[dateString]}
+                  isLatestGroup={isLatestGroup}
+                >
+                  <div className="space-y-4">
+                    {messageGroups[dateString].map((msg) => (
+                      <ChatMessage
+                        key={msg.id}
+                        message={msg}
+                        isCurrentUser={msg.sender.id === user?.id}
+                        showAvatar={true}
+                        onMessageDelete={handleMessageDelete}
+                      />
+                    ))}
+                  </div>
+                </CollapsibleMessageGroup>
+              );
+            })}
+            <div ref={endRef} />
+          </div>
+        </ScrollArea>
+        
+        {showScrollButton && hasScrolledUp && (
+          <Button
+            onClick={scrollToBottom}
+            className="absolute bottom-4 right-4 h-10 w-10 rounded-full shadow-lg p-0 bg-primary/90 hover:bg-primary"
+            size="icon"
+          >
+            <ArrowDown className="h-5 w-5" />
+          </Button>
+        )}
+      </div>
     </div>
   );
 };
