@@ -2,7 +2,7 @@
 import { useState, useRef, ChangeEvent } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Paperclip, Send, X, Loader2, FileText } from "lucide-react";
+import { Paperclip, Send, X, Loader2, FileText, FileIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Progress } from "@/components/ui/progress";
 
@@ -25,6 +25,20 @@ interface ChatInputProps {
 // Character limit constant
 const CHARACTER_LIMIT = 1000;
 
+// Valid file types
+const VALID_FILE_TYPES = [
+  "image/jpeg", 
+  "image/png", 
+  "image/gif", 
+  "application/pdf", 
+  "text/plain", 
+  "application/msword", 
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/csv"
+];
+
 export const ChatInput = ({ 
   value, 
   onChange, 
@@ -44,6 +58,7 @@ export const ChatInput = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isFocused, setIsFocused] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -107,16 +122,43 @@ export const ChatInput = ({
   
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0] && onFileSelect) {
-      onFileSelect(e.target.files[0]);
+      const file = e.target.files[0];
+      
+      // Validate file type
+      if (!VALID_FILE_TYPES.includes(file.type)) {
+        setFileError("Invalid file type. Please select an image, PDF, or document file.");
+        return;
+      }
+      
+      // Validate file size (10MB max)
+      if (file.size > 10 * 1024 * 1024) {
+        setFileError("File is too large. Maximum size is 10MB.");
+        return;
+      }
+      
+      setFileError(null);
+      onFileSelect(file);
     }
   };
   
   const handleClearFile = () => {
     if (onClearFile) {
       onClearFile();
+      setFileError(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+    }
+  };
+
+  // Get file icon based on file type
+  const getFileIcon = (file: File) => {
+    if (file.type.startsWith('image/')) {
+      return <FileText className="h-4 w-4 flex-shrink-0" />;
+    } else if (file.type === 'application/pdf') {
+      return <FileIcon className="h-4 w-4 flex-shrink-0 text-red-500" />;
+    } else {
+      return <FileText className="h-4 w-4 flex-shrink-0" />;
     }
   };
 
@@ -131,7 +173,7 @@ export const ChatInput = ({
     )}>
       {selectedFile && (
         <div className="flex items-center gap-2 p-2 bg-muted/40 rounded-lg">
-          <FileText className="h-4 w-4 flex-shrink-0" />
+          {getFileIcon(selectedFile)}
           <span className="text-sm truncate flex-1">{selectedFile.name}</span>
           <Button 
             variant="ghost" 
@@ -142,6 +184,10 @@ export const ChatInput = ({
             <X className="h-3 w-3" />
           </Button>
         </div>
+      )}
+      
+      {fileError && (
+        <div className="text-xs text-red-500 px-2">{fileError}</div>
       )}
       
       {uploadProgress > 0 && uploadProgress < 100 && (
@@ -168,6 +214,7 @@ export const ChatInput = ({
               )}
               onClick={triggerFileUpload}
               disabled={disabled || isLoading}
+              title="Attach file (images, PDFs, documents)"
             >
               <Paperclip className="h-5 w-5" />
             </Button>
@@ -211,11 +258,11 @@ export const ChatInput = ({
             variant="ghost"
             className={cn(
               "absolute bottom-1 right-1 rounded-full h-8 w-8",
-              (value.trim() || selectedFile) && !validationError ? "text-primary bg-primary/10" : "text-muted-foreground",
+              (value.trim() || selectedFile) && !validationError && !fileError ? "text-primary bg-primary/10" : "text-muted-foreground",
               isLoading && "pointer-events-none"
             )}
             onClick={onSend}
-            disabled={disabled || isLoading || (!value.trim() && !selectedFile) || !!validationError}
+            disabled={disabled || isLoading || ((!value.trim() && !selectedFile) || !!validationError || !!fileError)}
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />

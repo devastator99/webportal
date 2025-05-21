@@ -1,6 +1,6 @@
 
 import { format } from "date-fns";
-import { Check, CheckCheck, Clock, Bot, Sparkles, Trash2 } from "lucide-react";
+import { Check, CheckCheck, Clock, Bot, Sparkles, Trash2, FileIcon, FileText, Image } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { 
@@ -27,6 +27,8 @@ interface ChatMessageProps {
     synced?: boolean | string;
     is_ai_message?: boolean;
     is_system_message?: boolean;
+    file_url?: string;
+    message_type?: 'text' | 'image' | 'file' | 'pdf';
   };
   isCurrentUser: boolean;
   showAvatar?: boolean;
@@ -34,6 +36,7 @@ interface ChatMessageProps {
   isLocal?: boolean;
   onPdfDownload?: () => void;
   onMessageDelete?: () => void;
+  onFileOpen?: (url: string, type: string) => void;
 }
 
 export const ChatMessage = ({ 
@@ -43,7 +46,8 @@ export const ChatMessage = ({
   offlineMode = false,
   isLocal = false,
   onPdfDownload,
-  onMessageDelete
+  onMessageDelete,
+  onFileOpen
 }: ChatMessageProps) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const { toast } = useToast();
@@ -70,12 +74,26 @@ export const ChatMessage = ({
   
   const isSystemMessage = message.is_system_message;
   
+  // Check if message has attached file
+  const hasFile = !!message.file_url;
+  const isPdf = message.message_type === 'pdf' || 
+                (hasFile && message.file_url?.toLowerCase().endsWith('.pdf'));
+  const isImage = message.message_type === 'image' || 
+                 (hasFile && /\.(jpg|jpeg|png|gif|webp)$/i.test(message.file_url || ''));
+  
   // Only allow message deletion if it's your own message and not a system or AI message
   const canDelete = isCurrentUser && !isSystemMessage && !isAiBot;
 
   const handleDeleteSuccess = () => {
     if (onMessageDelete) {
       onMessageDelete();
+    }
+  };
+
+  const handleFileClick = () => {
+    if (hasFile && onFileOpen && message.file_url) {
+      const fileType = isPdf ? 'pdf' : isImage ? 'image' : 'file';
+      onFileOpen(message.file_url, fileType);
     }
   };
 
@@ -86,6 +104,17 @@ export const ChatMessage = ({
     if (isDoctor) return "doctor-message";
     if (isNutritionist) return "nutritionist-message";
     return "";
+  };
+  
+  // Get the appropriate file icon
+  const getFileIcon = () => {
+    if (isPdf) {
+      return <FileIcon className="h-4 w-4 text-red-500" />;
+    } else if (isImage) {
+      return <Image className="h-4 w-4 text-blue-500" />;
+    } else {
+      return <FileText className="h-4 w-4 text-gray-500" />;
+    }
   };
   
   // Wrap message in context menu if the user can delete it
@@ -132,6 +161,22 @@ export const ChatMessage = ({
       )}>
         {message.message}
       </p>
+      
+      {/* Render file attachment if present */}
+      {hasFile && (
+        <div 
+          className={cn(
+            "mb-4 p-2 rounded bg-background/50 flex items-center gap-2 cursor-pointer hover:bg-background/80 transition-colors",
+            isPdf && "border border-red-200"
+          )}
+          onClick={handleFileClick}
+        >
+          {getFileIcon()}
+          <span className="text-xs truncate">
+            {message.file_url?.split('/').pop() || 'Attachment'}
+          </span>
+        </div>
+      )}
       
       <div className="flex items-center justify-end gap-1 message-time absolute bottom-1 right-2">
         {canDelete && (
