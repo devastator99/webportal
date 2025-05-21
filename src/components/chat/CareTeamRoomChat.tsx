@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +27,7 @@ interface RoomMessage {
   is_system_message: boolean;
   is_ai_message: boolean;
   created_at: string;
-  read_by: string[] | null;  // Added this property to fix build errors
+  read_by: string[] | null;
 }
 
 interface MessagesData {
@@ -157,6 +158,7 @@ export const CareTeamRoomChat = ({
         let senderName = msg.sender_name || 'Unknown';
         let senderRole = msg.sender_role || 'unknown';
         
+        // Properly handle read_by field - ensure it's always an array
         let readByArray: string[] = [];
         
         if (msg.read_by) {
@@ -164,6 +166,7 @@ export const CareTeamRoomChat = ({
             readByArray = msg.read_by.map(item => String(item));
           } else if (typeof msg.read_by === 'object') {
             try {
+              // Handle JSONB array from database
               const parsedArray = Array.isArray(msg.read_by) ? msg.read_by : [];
               readByArray = parsedArray.map(item => String(item));
             } catch (e) {
