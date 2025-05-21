@@ -219,6 +219,11 @@
     width: 44px;
     height: 44px;
   }
+  
+  /* Make member names display better on small screens */
+  .text-xs.text-muted-foreground span.truncate {
+    max-width: 80px;
+  }
 }
 
 /* Toast notifications - ensure they don't cover the chat input on mobile */

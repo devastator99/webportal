@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,6 +72,7 @@ export const CareTeamRoomChat = ({
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const PAGE_SIZE = 500; // Maintaining the 500 message limit
+  const [displayedMemberNames, setDisplayedMemberNames] = useState<string>("");
 
   // Only fetch room details if they weren't provided as props
   const { data: fetchedRoomDetails } = useQuery({
@@ -247,6 +247,27 @@ export const CareTeamRoomChat = ({
     
     fetchTeamMembers();
   }, [selectedRoomId, roomDetails, teamMembers.length]);
+
+  // Generate formatted display names whenever team members change
+  useEffect(() => {
+    if (teamMembers.length > 0) {
+      // Filter out AI Assistant for display purposes (but keep it in the teamMembers array)
+      const humanMembers = teamMembers.filter(member => member.id !== '00000000-0000-0000-0000-000000000000');
+      
+      // Format names - show first name and last initial
+      const formattedNames = humanMembers.map(member => 
+        `${member.first_name} ${member.last_name ? member.last_name.charAt(0) + '.' : ''} (${member.role})`
+      );
+      
+      if (formattedNames.length > 0) {
+        setDisplayedMemberNames(formattedNames.join(', '));
+      } else {
+        setDisplayedMemberNames("No team members");
+      }
+    } else {
+      setDisplayedMemberNames("Loading team members...");
+    }
+  }, [teamMembers]);
 
   const fetchMessages = async (roomId: string, pageNum: number, isLoadingMore = false) => {
     if (!roomId) return { messages: [], hasMore: false };
@@ -582,13 +603,11 @@ export const CareTeamRoomChat = ({
             <User className="h-3 w-3 mr-0.5" />
             <span className="truncate max-w-[120px]">{roomDetails?.patient_name || "Patient"}</span> • 
             <Badge variant="outline" className="text-xs h-4 ml-0.5">
-              {roomDetails?.member_count || 0}
+              {teamMembers.length || 0}
             </Badge>
-            {teamMembers.length > 0 && (
-              <span className="ml-1 hidden sm:inline truncate">
-                • {formatMemberNames()}
-              </span>
-            )}
+            <span className="ml-1 truncate">
+              • {displayedMemberNames}
+            </span>
           </div>
         </div>
       </div>
