@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -340,13 +339,12 @@ export const RecentCareTeamMessages = ({
             "rounded-md"
           )}>
             {sortedDateKeys.map((dateString, index) => {
-              const isLatestGroup = index === sortedDateKeys.length - 1;
               return (
                 <CollapsibleMessageGroup 
                   key={dateString} 
                   date={dateString}
                   messages={messageGroups[dateString]}
-                  isLatestGroup={isLatestGroup}
+                  isLatestGroup={index === sortedDateKeys.length - 1}
                 >
                   <div className="space-y-4">
                     {messageGroups[dateString].map((msg) => (

@@ -19,10 +19,10 @@ export const CollapsibleMessageGroup = ({
   children,
   isLatestGroup = false
 }: CollapsibleMessageGroupProps) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // Initialize all groups as collapsed, including the latest group
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   const toggleCollapse = () => {
-    if (isLatestGroup) return; // Don't allow collapsing the latest group
     setIsCollapsed(!isCollapsed);
   };
 
@@ -54,20 +54,16 @@ export const CollapsibleMessageGroup = ({
           className={cn(
             "px-2 py-0.5 h-auto text-xs font-normal rounded-full",
             "flex items-center gap-1 text-muted-foreground",
-            isLatestGroup ? "cursor-default" : "cursor-pointer"
+            "cursor-pointer"
           )}
           onClick={toggleCollapse}
         >
           <CalendarDays className="h-3 w-3 mr-1" />
           {dateHeader}
-          {!isLatestGroup && (
-            <>
-              {isCollapsed ? (
-                <ChevronRight className="h-3 w-3" />
-              ) : (
-                <ChevronDown className="h-3 w-3" />
-              )}
-            </>
+          {isCollapsed ? (
+            <ChevronRight className="h-3 w-3" />
+          ) : (
+            <ChevronDown className="h-3 w-3" />
           )}
         </Button>
       </div>
