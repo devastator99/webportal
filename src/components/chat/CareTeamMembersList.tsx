@@ -12,10 +12,6 @@ export const CareTeamMembersList: React.FC<CareTeamMembersListProps> = ({
   members,
   compact = false
 }) => {
-  if (!members || members.length === 0) {
-    return <div className="text-muted-foreground text-sm">No team members</div>;
-  }
-
   // Get the initials from a name
   const getInitials = (firstName: string, lastName: string) => {
     const firstInitial = firstName?.charAt(0) || '';
@@ -40,13 +36,20 @@ export const CareTeamMembersList: React.FC<CareTeamMembersListProps> = ({
     }
   };
 
+  // Safely handle empty members array
+  const membersList = Array.isArray(members) ? members : [];
+
+  if (membersList.length === 0) {
+    return <div className="text-muted-foreground text-sm italic px-1">Loading team members...</div>;
+  }
+
   return (
     <div className={cn("space-y-2", compact ? "" : "mt-3")}>
       {!compact && (
         <div className="flex items-center gap-2">
           <div className="text-sm font-medium">Care Team Members</div>
           <div className="px-2 py-0.5 text-xs rounded-full bg-gray-100 dark:bg-gray-800">
-            {members.length} members
+            {membersList.length} members
           </div>
         </div>
       )}
@@ -55,7 +58,7 @@ export const CareTeamMembersList: React.FC<CareTeamMembersListProps> = ({
         "space-y-3", 
         compact && "flex flex-wrap items-center gap-2"
       )}>
-        {members.map((member) => (
+        {membersList.map((member) => (
           <div 
             key={member.id} 
             className={cn(

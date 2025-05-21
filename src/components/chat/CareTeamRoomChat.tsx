@@ -113,19 +113,84 @@ export const CareTeamRoomChat = ({
           .select('*', { count: 'exact', head: true })
           .eq('room_id', selectedRoomId);
 
-        // Use the proper RPC call to get care team members
+        // Properly fetch care team members with RPC call
         const { data: careTeamMembers, error: careTeamError } = await supabase.rpc(
-          'get_patient_care_team_members',
-          { p_patient_id: roomData.patient_id }
+          'get_chat_room_members',
+          { p_room_id: selectedRoomId }
         );
         
         let fetchedMembers: TeamMember[] = [];
         
-        if (!careTeamError && careTeamMembers) {
+        if (!careTeamError && careTeamMembers && Array.isArray(careTeamMembers)) {
           fetchedMembers = careTeamMembers;
           setTeamMembers(fetchedMembers);
+          console.log("Team members fetched:", fetchedMembers.length);
         } else {
           console.error("Error fetching care team members:", careTeamError);
+          // Fallback to direct query if RPC fails
+          try {
+            const { data: directMembers, error: memberError } = await supabase
+              .from('room_members')
+              .select('user_id, role')
+              .eq('room_id', selectedRoomId);
+              
+            if (!memberError && directMembers && directMembers.length > 0) {
+              // For each user ID, fetch profile details
+              const memberDetails = await Promise.all(
+                directMembers.map(async (member) => {
+                  // Special case for AI Assistant
+                  if (member.user_id === '00000000-0000-0000-0000-000000000000') {
+                    return {
+                      id: member.user_id,
+                      first_name: 'AI',
+                      last_name: 'Assistant',
+                      role: 'aibot'
+                    };
+                  }
+                  
+                  const { data: profile, error: profileError } = await supabase
+                    .from('profiles')
+                    .select('first_name, last_name')
+                    .eq('id', member.user_id)
+                    .single();
+                    
+                  if (!profileError && profile) {
+                    return {
+                      id: member.user_id,
+                      first_name: profile.first_name || 'Unknown',
+                      last_name: profile.last_name || '',
+                      role: member.role || 'unknown'
+                    };
+                  } else {
+                    return null;
+                  }
+                })
+              );
+              
+              const validMembers = memberDetails.filter(Boolean) as TeamMember[];
+            
+              if (validMembers.length > 0) {
+                console.log("Setting team members from room_members:", validMembers.length);
+                setTeamMembers(validMembers);
+              }
+            } else if (roomDetails?.patient_id) {
+              // If no room members found or error, try the get_patient_care_team_members RPC
+              console.log("Falling back to get_patient_care_team_members");
+              const { data: careTeamMembers, error: careTeamError } = await supabase.rpc(
+                'get_patient_care_team_members',
+                { p_patient_id: roomDetails.patient_id }
+              );
+              
+              if (!careTeamError && careTeamMembers && Array.isArray(careTeamMembers)) {
+                console.log("Setting team members from care_team RPC:", careTeamMembers.length);
+                setTeamMembers(careTeamMembers);
+              } else {
+                console.error("Error fetching care team members:", careTeamError);
+              }
+            }
+          } catch (err) {
+            console.error("Error fetching team members:", err);
+          }
         }
         
         return {
@@ -152,7 +217,7 @@ export const CareTeamRoomChat = ({
 
   // When room details change, update team members
   useEffect(() => {
-    if (roomDetails?.team_members) {
+    if (roomDetails?.team_members && roomDetails.team_members.length > 0) {
       setTeamMembers(roomDetails.team_members);
     }
   }, [roomDetails]);
@@ -160,18 +225,69 @@ export const CareTeamRoomChat = ({
   // If we have room details but no team members, fetch them
   useEffect(() => {
     const fetchTeamMembers = async () => {
-      if (selectedRoomId && roomDetails?.patient_id && !teamMembers.length) {
+      if (selectedRoomId && (!teamMembers.length || teamMembers.length < 2)) {
         try {
-          // Use the proper RPC call to get care team members
-          const { data: careTeamMembers, error: careTeamError } = await supabase.rpc(
-            'get_patient_care_team_members',
-            { p_patient_id: roomDetails.patient_id }
-          );
+          console.log("Fetching team members for room:", selectedRoomId);
           
-          if (!careTeamError && careTeamMembers && Array.isArray(careTeamMembers)) {
-            setTeamMembers(careTeamMembers);
-          } else {
-            console.error("Error fetching care team members:", careTeamError);
+          // First try room members
+          const { data: roomMembers, error: roomMembersError } = await supabase
+            .from('room_members')
+            .select('user_id, role')
+            .eq('room_id', selectedRoomId);
+          
+          if (!roomMembersError && roomMembers && roomMembers.length > 0) {
+            // For each user ID, fetch profile details
+            const memberDetails = await Promise.all(
+              roomMembers.map(async (member) => {
+                // Special case for AI Assistant
+                if (member.user_id === '00000000-0000-0000-0000-000000000000') {
+                  return {
+                    id: member.user_id,
+                    first_name: 'AI',
+                    last_name: 'Assistant',
+                    role: 'aibot'
+                  };
+                }
+                
+                const { data: profile, error: profileError } = await supabase
+                  .from('profiles')
+                  .select('first_name, last_name')
+                  .eq('id', member.user_id)
+                  .single();
+                  
+                if (!profileError && profile) {
+                  return {
+                    id: member.user_id,
+                    first_name: profile.first_name || 'Unknown',
+                    last_name: profile.last_name || '',
+                    role: member.role || 'unknown'
+                  };
+                } else {
+                  return null;
+                }
+              })
+            );
+            
+            const validMembers = memberDetails.filter(Boolean) as TeamMember[];
+            
+            if (validMembers.length > 0) {
+              console.log("Setting team members from room_members:", validMembers.length);
+              setTeamMembers(validMembers);
+            }
+          } else if (roomDetails?.patient_id) {
+            // If no room members found or error, try the get_patient_care_team_members RPC
+            console.log("Falling back to get_patient_care_team_members");
+            const { data: careTeamMembers, error: careTeamError } = await supabase.rpc(
+              'get_patient_care_team_members',
+              { p_patient_id: roomDetails.patient_id }
+            );
+            
+            if (!careTeamError && careTeamMembers && Array.isArray(careTeamMembers)) {
+              console.log("Setting team members from care_team RPC:", careTeamMembers.length);
+              setTeamMembers(careTeamMembers);
+            } else {
+              console.error("Error fetching care team members:", careTeamError);
+            }
           }
         } catch (err) {
           console.error("Error fetching team members:", err);
