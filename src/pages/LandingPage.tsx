@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -24,6 +24,7 @@ export const LandingPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSmallScreen, isMediumScreen } = useBreakpoint();
+  const mainRef = useRef<HTMLDivElement>(null);
   
   // Parse URL search params to detect if we should open auth modal
   useEffect(() => {
@@ -54,7 +55,9 @@ export const LandingPage = () => {
   
   // Intersection Observer for animated elements
   useEffect(() => {
-    const animatedElements = document.querySelectorAll('[data-animate]');
+    if (!mainRef.current) return;
+    
+    const animatedElements = mainRef.current.querySelectorAll('[data-animate]');
     
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
@@ -65,7 +68,7 @@ export const LandingPage = () => {
       });
     }, {
       threshold: 0.1,
-      rootMargin: '0px 0px -100px 0px'
+      rootMargin: '0px 0px -50px 0px'
     });
     
     animatedElements.forEach(element => {
@@ -79,7 +82,7 @@ export const LandingPage = () => {
     };
   }, []);
   
-  // Open auth modal with specific view - this function will be passed to both buttons
+  // Open auth modal with specific view
   const openAuthModal = (view: 'login' | 'register') => {
     setAuthModalView(view);
     setIsAuthModalOpen(true);
@@ -88,7 +91,7 @@ export const LandingPage = () => {
   return (
     <div className="w-full flex flex-col min-h-screen overflow-x-hidden">
       <Header openAuthModal={openAuthModal} />
-      <main className="flex-grow">
+      <main ref={mainRef} className="flex-grow pt-16 md:pt-20">
         <HeroSection openAuthModal={openAuthModal} />
         <ResponsiveContainer>
           <BenefitsSection />

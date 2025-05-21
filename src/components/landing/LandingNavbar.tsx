@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import '@/styles/glass.css';
 import { useBreakpoint } from '@/hooks/use-responsive-layout';
+import { Menu, X } from 'lucide-react';
 
 interface LandingNavbarProps {
   openAuthModal?: (view: 'login' | 'register') => void;
@@ -46,6 +47,10 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ openAuthModal }) =
     }
   }, [user, isSigningOut, navigate, resetInactivityTimer, openAuthModal]);
 
+  const toggleMobileMenu = () => {
+    setMobileMenuOpen(!mobileMenuOpen);
+  };
+
   return (
     <motion.nav 
       initial={{ y: -20, opacity: 0 }}
@@ -55,13 +60,13 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ openAuthModal }) =
     >
       <div className="max-w-6xl mx-auto flex justify-between items-center px-4 py-3">
         <div className="flex items-center gap-4">
-          {/* Mobile menu button, only shown on mobile */}
+          {/* Mobile menu button */}
           <button 
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
-            className="md:hidden text-white"
+            onClick={toggleMobileMenu} 
+            className="md:hidden text-white p-1 rounded-md focus:outline-none"
             aria-label="Toggle menu"
           >
-            ≡
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
           
           <div 
@@ -72,13 +77,25 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ openAuthModal }) =
           </div>
         </div>
         
-        <div>
+        {/* Desktop navigation */}
+        <div className="hidden md:flex items-center space-x-4">
           <button
             onClick={handleStartClick}
-            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full px-4 sm:px-6 py-2 text-sm sm:text-base font-medium hover:shadow-lg transition-all duration-300"
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full px-6 py-2 text-base font-medium hover:shadow-lg transition-all duration-300"
             disabled={isSigningOut}
           >
             {user ? "Dashboard" : "Start Today"}
+          </button>
+        </div>
+
+        {/* Mobile navigation button */}
+        <div className="md:hidden">
+          <button
+            onClick={handleStartClick}
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full px-4 py-1.5 text-sm font-medium hover:shadow-lg transition-all duration-300"
+            disabled={isSigningOut}
+          >
+            {user ? "Dashboard" : "Start"}
           </button>
         </div>
       </div>
@@ -91,13 +108,15 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ openAuthModal }) =
           exit={{ opacity: 0, height: 0 }}
           className="md:hidden glass-nav pb-4 px-4"
         >
-          <button
-            onClick={handleStartClick}
-            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full w-full py-2 font-medium hover:shadow-lg transition-all duration-300 mt-2"
-            disabled={isSigningOut}
-          >
-            {user ? "Dashboard" : "Start Today"}
-          </button>
+          <div className="flex flex-col space-y-3 pt-2">
+            <button
+              onClick={handleStartClick}
+              className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full w-full py-2 font-medium hover:shadow-lg transition-all duration-300"
+              disabled={isSigningOut}
+            >
+              {user ? "Dashboard" : "Start Today"}
+            </button>
+          </div>
         </motion.div>
       )}
     </motion.nav>
