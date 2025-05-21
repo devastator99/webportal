@@ -1,8 +1,9 @@
 
 -- Update the get_room_messages_with_role function to correctly handle message ordering
+-- and increase message limit from 100 to 200
 CREATE OR REPLACE FUNCTION public.get_room_messages_with_role(
   p_room_id UUID,
-  p_limit INTEGER DEFAULT 100,
+  p_limit INTEGER DEFAULT 200,
   p_offset INTEGER DEFAULT 0,
   p_user_role TEXT DEFAULT 'patient'
 )
@@ -81,3 +82,4 @@ $$;
 
 -- Grant execute permission on the function
 GRANT EXECUTE ON FUNCTION public.get_room_messages_with_role TO authenticated;
+

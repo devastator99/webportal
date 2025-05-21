@@ -15,7 +15,7 @@ interface RecentCareTeamMessagesProps {
 
 export const RecentCareTeamMessages = ({ 
   patientRoomId, 
-  messageLimit = 4 
+  messageLimit = 8  // Increased from 4 to 8 to see more recent messages
 }: RecentCareTeamMessagesProps) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<any[]>([]);

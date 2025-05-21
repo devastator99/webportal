@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,8 +14,8 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { ChatMessage, ChatMessageProps } from "./ChatMessage";
 
-// Set page size to 100 for more history
-const PAGE_SIZE = 100;
+// Set page size to 200 for more message history
+const PAGE_SIZE = 200;
 
 interface Message {
   id: string;
