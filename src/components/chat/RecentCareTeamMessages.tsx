@@ -11,6 +11,7 @@ import { CollapsibleMessageGroup } from "./CollapsibleMessageGroup";
 import { groupMessagesByDate } from "@/utils/dateUtils";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface RecentCareTeamMessagesProps {
   patientRoomId: string | null;
@@ -22,6 +23,7 @@ export const RecentCareTeamMessages = ({
   messageLimit = 500
 }: RecentCareTeamMessagesProps) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<any[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [roomDetails, setRoomDetails] = useState<any>(null);
@@ -180,7 +182,7 @@ export const RecentCareTeamMessages = ({
       }
     },
     enabled: !!patientRoomId,
-    refetchInterval: 10000 // Refetch every 10 seconds to show new messages
+    refetchInterval: 5000 // Refetch every 5 seconds to show new messages
   });
 
   // Track if there are new messages since the last data fetch
@@ -188,6 +190,7 @@ export const RecentCareTeamMessages = ({
   const previousMessagesCount = useRef(0);
   const [userHasScrolled, setUserHasScrolled] = useState(false);
   const lastPatientMessageRef = useRef<string | null>(null);
+  const lastProcessedMessageId = useRef<string | null>(null);
 
   // Setup scroll management with improved configuration
   const {
@@ -202,7 +205,6 @@ export const RecentCareTeamMessages = ({
     loadingMessages: isLoading,
     loadingMore: false,
     isNewMessage,
-    // Increase the scroll threshold to prevent accidental triggering
     scrollThreshold: 200
   });
 
@@ -258,37 +260,59 @@ export const RecentCareTeamMessages = ({
   };
 
   // Function to trigger AI response to a patient message
-  const triggerAiResponse = async (patientMessage: string, patientId: string) => {
-    if (!patientMessage.trim() || !patientId || processingAiResponse) return;
+  const triggerAiResponse = async (patientMessage: string, messageId: string, patientId: string) => {
+    if (!patientMessage.trim() || !patientId || processingAiResponse || lastProcessedMessageId.current === messageId) return;
     
     try {
       setProcessingAiResponse(true);
+      lastProcessedMessageId.current = messageId;
       console.log("Triggering AI response to patient message:", patientMessage);
       
-      // Call the edge function to send AI response
-      const { data: aiResponse, error } = await supabase.functions.invoke('send-ai-care-team-message', {
+      // Call the doctor-ai-assistant endpoint directly
+      const { data: aiResponse, error } = await supabase.functions.invoke('doctor-ai-assistant', {
         body: { 
-          patient_id: patientId,
-          message: `AI response to: ${patientMessage}`,
-          message_type: 'care_team',
-          auto_respond: true
+          messages: [{ role: 'user', content: patientMessage }],
+          patientId: patientId,
+          isCareTeamChat: true
         },
       });
       
       if (error) {
         console.error("Error getting AI response:", error);
+        toast({
+          title: "AI Assistant Error",
+          description: "Failed to get AI response. Please try again.",
+          variant: "destructive"
+        });
         return;
       }
       
-      console.log("AI response sent successfully:", aiResponse);
+      console.log("AI response received:", aiResponse);
+
+      // Now send this response to the chat room
+      const { data: sentMessage, error: sendError } = await supabase.functions.invoke('send-ai-care-team-message', {
+        body: { 
+          patient_id: patientId,
+          message: aiResponse.response,
+          message_type: 'care_team',
+          auto_respond: true
+        },
+      });
+      
+      if (sendError) {
+        console.error("Error sending AI message:", sendError);
+        return;
+      }
+      
+      console.log("AI response sent successfully:", sentMessage);
       
       // Trigger a refetch to show the new message
       setTimeout(() => {
         setRefreshTrigger(prev => prev + 1);
-        setProcessingAiResponse(false);
       }, 500);
     } catch (error) {
       console.error("Error processing AI response:", error);
+    } finally {
       setProcessingAiResponse(false);
     }
   };
@@ -311,14 +335,13 @@ export const RecentCareTeamMessages = ({
       !latestMessage.is_system_message && 
       !latestMessage.is_ai_message &&
       latestMessage.message.trim() &&
-      latestMessage.message !== lastPatientMessageRef.current
+      lastProcessedMessageId.current !== latestMessage.id
     ) {
-      lastPatientMessageRef.current = latestMessage.message;
       console.log("Detected new patient message, triggering AI response:", latestMessage.message);
       
       // Give a small delay before triggering AI response to feel more natural
       setTimeout(() => {
-        triggerAiResponse(latestMessage.message, roomData.patient_id);
+        triggerAiResponse(latestMessage.message, latestMessage.id, roomData.patient_id);
       }, 1000);
     }
   }, [messages, user, patientRoomId, roomData]);
