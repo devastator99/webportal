@@ -75,8 +75,7 @@ export const CareTeamRoomChat = ({
   const [isTeamMembersLoading, setIsTeamMembersLoading] = useState(true);
   const PAGE_SIZE = 500; // Maintaining the 500 message limit
   const [displayedMemberNames, setDisplayedMemberNames] = useState<string>("");
-  const [showTeamDetails, setShowTeamDetails] = useState(false);
-
+  
   // Only fetch room details if they weren't provided as props
   const { data: fetchedRoomDetails } = useQuery({
     queryKey: ["care_team_room", selectedRoomId],
@@ -704,21 +703,13 @@ export const CareTeamRoomChat = ({
               <span className="text-xs">
                 {teamMembers.length} members
               </span>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-5 px-1 text-xs ml-1" 
-                onClick={() => setShowTeamDetails(!showTeamDetails)}
-              >
-                {showTeamDetails ? "Less info" : "More info"}
-              </Button>
             </div>
           </div>
         </div>
         
         {/* Always show team members in compact form */}
         <div className="mt-2 pl-1">
-          <CareTeamMembersList members={teamMembers} compact={!showTeamDetails} isLoading={isTeamMembersLoading} />
+          <CareTeamMembersList members={teamMembers} compact={true} isLoading={isTeamMembersLoading} />
         </div>
       </div>
       
