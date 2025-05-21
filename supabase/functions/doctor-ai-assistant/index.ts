@@ -42,6 +42,7 @@ serve(async (req) => {
     // Log for debugging
     console.log(`Processing message: "${lastUserMessage}" for patient ID: ${patientId}`);
     console.log("Patient context:", JSON.stringify(patientContext));
+    console.log("Is care team chat:", isCareTeamChat);
     
     // Check if this is a PDF request and handle accordingly
     if (requestType === 'pdf_request') {
