@@ -298,10 +298,17 @@ export const CareTeamRoomChat = ({
               const fallbackTeam: TeamMember[] = [];
               
               if (user) {
+                // Fix: Get user profile data from profiles table
+                const { data: userProfile, error: profileError } = await supabase
+                  .from('profiles')
+                  .select('first_name, last_name')
+                  .eq('id', user.id)
+                  .single();
+                
                 fallbackTeam.push({
                   id: user.id,
-                  first_name: user.first_name || 'User',
-                  last_name: user.last_name || '',
+                  first_name: userProfile?.first_name || 'User',
+                  last_name: userProfile?.last_name || '',
                   role: user.role || 'unknown'
                 });
               }
