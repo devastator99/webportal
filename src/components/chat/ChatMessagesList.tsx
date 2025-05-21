@@ -14,7 +14,7 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { ChatMessage, ChatMessageProps } from "./ChatMessage";
 
-// Set page size to 200 for more message history
+// Increase page size to show more message history
 const PAGE_SIZE = 200;
 
 interface Message {
@@ -32,7 +32,7 @@ interface Message {
     size?: number;
     type?: string;
   } | null;
-  read_by?: any; // Added read_by to fix type issues
+  read_by?: any;
 }
 
 interface ChatMessagesListProps {
@@ -81,7 +81,7 @@ export const ChatMessagesList = ({
     messagesToShow: messages.length
   });
 
-  // Helper to fetch messages - ensuring we get most recent messages first
+  // Helper to fetch messages - ensuring we get proper chronological order for display
   const fetchMessages = async (roomId: string, pageNum: number, isLoadingMore = false) => {
     if (!roomId) return;
     try {
@@ -90,7 +90,7 @@ export const ChatMessagesList = ({
       
       console.log(`Fetching messages for room: ${roomId}, page: ${pageNum}, pageSize: ${PAGE_SIZE}`);
       
-      // Important change: added column for read_by and explicitly requesting messages in descending order by created_at
+      // Get messages from the database in descending order (newest first)
       const { data, error } = await supabase.rpc('get_room_messages_with_role', {
         p_room_id: roomId,
         p_limit: PAGE_SIZE,
@@ -113,30 +113,36 @@ export const ChatMessagesList = ({
         return;
       }
       
-      // Important: Keep newest-first order as received from database
-      const latestMessages = [...data];
-      
-      if (latestMessages.length > 0) {
-        console.log("First message date:", new Date(latestMessages[0]?.created_at).toLocaleString());
-        console.log("Last message date:", new Date(latestMessages[latestMessages.length - 1]?.created_at).toLocaleString());
+      // Keep track of newest and oldest message timestamps for debugging
+      if (data.length > 0) {
+        console.log("First message date:", new Date(data[0]?.created_at).toLocaleString());
+        console.log("Last message date:", new Date(data[data.length - 1]?.created_at).toLocaleString());
       }
+      
+      // Process messages - reverse the order for display (oldest first)
+      const processedMessages = [...data].reverse(); // Reverse to get oldest first for display
       
       if (isLoadingMore) {
         setMessages(prev => {
           // Avoid duplicates when adding older messages
           const existingIds = new Set(prev.map(m => m.id));
-          const nonDuped = latestMessages.filter(m => !existingIds.has(m.id));
-          console.log(`Adding ${nonDuped.length} older messages`);
-          // Keep newest first order when adding older messages to the end
-          return [...prev, ...nonDuped];
+          const nonDuped = processedMessages.filter(m => !existingIds.has(m.id));
+          console.log(`Adding ${nonDuped.length} older messages at beginning`);
+          // Add older messages at the beginning
+          return [...nonDuped, ...prev];
         });
       } else {
-        console.log(`Setting ${latestMessages.length} new messages`);
-        setMessages(latestMessages);
+        console.log(`Setting ${processedMessages.length} new messages in chronological order`);
+        setMessages(processedMessages);
       }
 
       setHasMoreMessages(Array.isArray(data) && data.length === PAGE_SIZE);
       setNewMessageAdded(false);
+      
+      // After setting messages, scroll to bottom for new messages
+      if (!isLoadingMore && !hasScrolledUp) {
+        setTimeout(() => scrollToBottom(), 100);
+      }
     } catch (error) {
       if (!isLoadingMore) setIsLoading(false);
       toast({
@@ -180,6 +186,7 @@ export const ChatMessagesList = ({
             // When a new message comes in, fetch the newest page again to ensure we have the latest messages
             fetchMessages(roomId, 1, false);
             setNewMessageAdded(true);
+            scrollToBottom(); // Auto-scroll to bottom for new messages
           }
         }
       )
@@ -197,13 +204,14 @@ export const ChatMessagesList = ({
         m => !messages.some(serverMsg => serverMsg.id === m.id)
       );
       if (newLocalMessages.length > 0) {
-        // For local messages, prepend them (keeping newest first order)
+        // Add local messages at the end (newest)
         const updatedMessages = [
-          ...newLocalMessages,
-          ...messages
+          ...messages,
+          ...newLocalMessages
         ];
         setMessages(updatedMessages);
         setNewMessageAdded(true);
+        scrollToBottom(); // Auto-scroll for new local messages
       }
     }
   }, [localMessages, messages]);
@@ -215,8 +223,8 @@ export const ChatMessagesList = ({
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // The messages are already loaded in newest-first order
-  const allMessages = [...messages];
+  // Using all messages in chronological order
+  const allMessages = messages;
   
   console.log(`Rendering ${allMessages.length} messages in total`);
   
@@ -224,13 +232,13 @@ export const ChatMessagesList = ({
   const messageGroups = groupMessagesByDate(allMessages);
   console.log(`Grouped into ${Object.keys(messageGroups).length} date groups`);
 
-  // Load more handler: loads the next oldest page
+  // Load more handler: loads older messages
   const handleLoadMore = async () => {
     if (!roomId || loadingMore || !hasMoreMessages) return;
     setLoadingMore(true);
     const nextPage = page + 1;
     setPage(nextPage);
-    await fetchMessages(roomId, nextPage, true); // Append older messages
+    await fetchMessages(roomId, nextPage, true); // Fetch older messages
   };
 
   if (isLoading) {
@@ -280,13 +288,13 @@ export const ChatMessagesList = ({
           </div>
         )}
         
-        {/* Display messages from newest to oldest */}
+        {/* Display messages in chronological order (oldest to newest) */}
         <div className="space-y-6 message-groups" data-testid="message-groups-container">
           {Object.keys(messageGroups).length > 0 ? (
             Object.entries(messageGroups)
-              .sort(([dateA], [dateB]) => dateB.localeCompare(dateA)) // Newest date groups first
+              .sort(([dateA], [dateB]) => dateA.localeCompare(dateB)) // Oldest date groups first
               .map(([dateString, dayMessages], index, array) => {
-                const isLatestGroup = index === 0; // First group is now latest
+                const isLatestGroup = index === array.length - 1; // Last group is latest
                 return (
                   <CollapsibleMessageGroup 
                     key={dateString} 
@@ -295,7 +303,6 @@ export const ChatMessagesList = ({
                     isLatestGroup={isLatestGroup}
                   >
                     {dayMessages
-                      // No need to re-sort within the group, maintain database order (newest first)
                       .map((message) => {
                         const isCurrentUser = message.sender_id === user?.id;
                         const isAi = message.is_ai_message || message.sender_id === '00000000-0000-0000-0000-000000000000';

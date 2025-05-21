@@ -15,7 +15,7 @@ interface RecentCareTeamMessagesProps {
 
 export const RecentCareTeamMessages = ({ 
   patientRoomId, 
-  messageLimit = 8  // Increased from 4 to 8 to see more recent messages
+  messageLimit = 20  // Adjusted limit for recent messages display
 }: RecentCareTeamMessagesProps) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<any[]>([]);
@@ -33,7 +33,7 @@ export const RecentCareTeamMessages = ({
           .from('room_messages')
           .select('id, sender_id, message, is_system_message, is_ai_message, created_at, read_by')
           .eq('room_id', patientRoomId)
-          .order('created_at', { ascending: false })
+          .order('created_at', { ascending: false })  // Get newest first from database
           .limit(messageLimit);
           
         if (error) {
@@ -94,9 +94,10 @@ export const RecentCareTeamMessages = ({
           });
         }
         
-        console.log(`Formatted ${formattedMessages.length} messages, preserving newest-first order from database`);
+        console.log(`Formatted ${formattedMessages.length} messages, reversing to show oldest first`);
         
-        return formattedMessages;
+        // IMPORTANT: Reverse the array to display oldest messages first (top to bottom)
+        return formattedMessages.reverse();
       } catch (error) {
         console.error("Error in messages query:", error);
         return [];
@@ -150,8 +151,7 @@ export const RecentCareTeamMessages = ({
     );
   }
 
-  // Messages come from the database in newest-first order
-  // Display them newest-first for the RecentCareTeamMessages component
+  // Now display messages in chronological order (oldest at top, newest at bottom)
   return (
     <div className="flex flex-col h-full w-full">
       <ScrollArea className="w-full h-full" invisibleScrollbar={true} maxHeight="100%">
