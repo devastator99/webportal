@@ -40,25 +40,54 @@ export const ChatInput = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isFocused, setIsFocused] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!disabled && !isLoading && (value.trim() || selectedFile)) {
+      if (!disabled && !isLoading && (value.trim() || selectedFile) && !validationError) {
         onSend();
       }
     }
   };
   
+  const validateMessage = (message: string): boolean => {
+    // Check for excessive special characters (more than 30% of the message)
+    const specialChars = message.replace(/[a-zA-Z0-9\s]/g, '');
+    const specialCharPercentage = message.length ? (specialChars.length / message.length) * 100 : 0;
+    
+    // Check for repeating characters (same character repeated more than 5 times)
+    const hasRepeatingChars = /(.)\1{5,}/.test(message);
+    
+    // Check for very long words (longer than 30 characters without spaces)
+    const hasVeryLongWords = message.split(/\s+/).some(word => word.length > 30);
+    
+    if (specialCharPercentage > 30) {
+      setValidationError("Message contains too many special characters");
+      return false;
+    } else if (hasRepeatingChars) {
+      setValidationError("Message contains excessive repeating characters");
+      return false;
+    } else if (hasVeryLongWords) {
+      setValidationError("Message contains unusually long words");
+      return false;
+    } else {
+      setValidationError(null);
+      return true;
+    }
+  };
+  
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    onChange(e.target.value);
+    const newValue = e.target.value;
+    validateMessage(newValue);
+    onChange(newValue);
     adjustTextareaHeight(e.target);
   };
 
   const adjustTextareaHeight = (textarea: HTMLTextAreaElement) => {
     textarea.style.height = "inherit";
-    // Increase max height to allow more typing space - from 120px to 160px
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`;
+    // Increased max height from 160px to 200px for more typing space
+    textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
   };
   
   const triggerFileUpload = () => {
@@ -141,13 +170,18 @@ export const ChatInput = ({
             placeholder={placeholder}
             disabled={disabled || isLoading}
             className={cn(
-              "min-h-[50px] max-h-[160px] pr-10 py-3 resize-none overflow-y-auto", // Increased min-height and max-height
-              isFocused && "border-primary ring-2 ring-primary/20"
+              "min-h-[60px] max-h-[200px] pr-10 py-3 resize-none overflow-y-auto", // Increased min-height from 50px to 60px and max-height from 160px to 200px
+              isFocused && "border-primary ring-2 ring-primary/20",
+              validationError && "border-red-500 focus:border-red-500"
             )}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setIsFocused(false)}
-            rows={2} // Increased from 1 to 2 for more initial space
+            rows={3} // Increased from 2 to 3 rows for more initial space
           />
+          
+          {validationError && (
+            <p className="text-xs text-red-500 mt-1">{validationError}</p>
+          )}
           
           <Button
             type="button"
@@ -155,11 +189,11 @@ export const ChatInput = ({
             variant="ghost"
             className={cn(
               "absolute bottom-1 right-1 rounded-full h-8 w-8",
-              value.trim() || selectedFile ? "text-primary bg-primary/10" : "text-muted-foreground",
+              (value.trim() || selectedFile) && !validationError ? "text-primary bg-primary/10" : "text-muted-foreground",
               isLoading && "pointer-events-none"
             )}
             onClick={onSend}
-            disabled={disabled || isLoading || (!value.trim() && !selectedFile)}
+            disabled={disabled || isLoading || (!value.trim() && !selectedFile) || !!validationError}
           >
             {isLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
