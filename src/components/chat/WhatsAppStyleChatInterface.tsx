@@ -1,9 +1,11 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChatInput } from "./ChatInput";
 import { RecentCareTeamMessages } from "./RecentCareTeamMessages";
 import { CareTeamRoomsSelector } from "./CareTeamRoomsSelector";
 import { CareTeamRoomChat } from "./CareTeamRoomChat";
+import { ResponsiveChatContainer } from "./ResponsiveChatContainer";
 
 interface WhatsAppStyleChatInterfaceProps {
   patientRoomId?: string | null;
@@ -28,8 +30,6 @@ export const WhatsAppStyleChatInterface = ({
   }, [patientRoomId]);
   
   console.log("WhatsAppStyleChatInterface rendering with patientRoomId:", patientRoomId, "selectedRoom:", selectedRoom);
-  
-  // No message limit passed here - good!
   
   return (
     <div className="flex h-full">

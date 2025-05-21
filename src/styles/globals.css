@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -199,6 +200,19 @@
   font-style: italic;
 }
 
+/* Message container - ensure messages stack bottom-up */
+.chat-messages-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  height: 100%;
+}
+
+.chat-message-scroll-area {
+  display: flex;
+  flex-direction: column-reverse;
+}
+
 .doctor-avatar {
   background-color: #e6f7ff;
   color: #0077b6;
@@ -304,4 +318,19 @@
   background-color: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+}
+
+/* New: Ensure chat container displays messages properly */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Ensure messages grow from bottom up */
+.message-groups {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-height: 100%;
 }

@@ -427,9 +427,9 @@ export const CareTeamRoomChat = ({
         </div>
       </div>
       
-      <div className="flex-1 bg-[#f0f2f5] dark:bg-slate-900 overflow-hidden relative">
-        <ScrollArea className="h-full" viewportRef={containerRef}>
-          <div className="p-4 space-y-6">
+      <div className="flex-1 bg-[#f0f2f5] dark:bg-slate-900 overflow-hidden relative flex flex-col">
+        <ScrollArea className="h-full flex flex-col" viewportRef={containerRef}>
+          <div className="p-4 space-y-6 flex-grow flex flex-col justify-end">
             {/* Load More button at the top for older messages */}
             {hasMoreMessages && (
               <div className="flex justify-center mb-4 mt-2">
@@ -456,104 +456,106 @@ export const CareTeamRoomChat = ({
               </div>
             ) : (
               <ErrorBoundary>
-                {Object.entries(messageGroups)
-                  .sort(([dateA], [dateB]) => dateB.localeCompare(dateA)) // Sort by date, newest first
-                  .map(([day, dayMessages], index, array) => {
-                    const isLatestGroup = index === 0; // First group is latest
-                    
-                    return (
-                      <CollapsibleMessageGroup 
-                        key={day} 
-                        date={day}
-                        messages={dayMessages}
-                        isLatestGroup={isLatestGroup}
-                      >
-                        {dayMessages
-                          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) // Sort by time, newest first within group
-                          .map((msg) => {
-                            const isSelf = msg.sender_id === user?.id;
-                            const isAI = msg.is_ai_message;
-                            const isSystem = msg.is_system_message;
-                            
-                            return (
-                              <div
-                                key={msg.id}
-                                className={cn(
-                                  "flex message-item my-2",
-                                  isSelf ? "justify-end" : "justify-start",
-                                  !isSystem && isAI && !isSelf && "ai-message-container",
-                                  "bubble-in"
-                                )}
-                                id={`message-${msg.id}`}
-                              >
-                                <div className="flex gap-2 max-w-[80%]">
-                                  {!isSelf && !isSystem && (
-                                    <Avatar className={cn("h-8 w-8 flex-shrink-0", isAI && "ring-2 ring-purple-200 ring-offset-1")}>
-                                      <AvatarFallback className={getAvatarColorClass(msg.sender_role)}>
-                                        {isAI ? <Sparkles className="h-4 w-4" /> : getInitials(msg.sender_name)}
-                                      </AvatarFallback>
-                                    </Avatar>
+                <div className="message-groups">
+                  {Object.entries(messageGroups)
+                    .sort(([dateA], [dateB]) => dateA.localeCompare(dateB)) // Sort oldest dates first
+                    .map(([day, dayMessages], index, array) => {
+                      const isLatestGroup = index === array.length - 1; // Last group is latest
+                      
+                      return (
+                        <CollapsibleMessageGroup 
+                          key={day} 
+                          date={day}
+                          messages={dayMessages}
+                          isLatestGroup={isLatestGroup}
+                        >
+                          {dayMessages
+                            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) // Sort within group by time, oldest first
+                            .map((msg) => {
+                              const isSelf = msg.sender_id === user?.id;
+                              const isAI = msg.is_ai_message;
+                              const isSystem = msg.is_system_message;
+                              
+                              return (
+                                <div
+                                  key={msg.id}
+                                  className={cn(
+                                    "flex message-item my-2",
+                                    isSelf ? "justify-end" : "justify-start",
+                                    !isSystem && isAI && !isSelf && "ai-message-container",
+                                    "bubble-in"
                                   )}
-                                  
-                                  <div>
+                                  id={`message-${msg.id}`}
+                                >
+                                  <div className="flex gap-2 max-w-[80%]">
                                     {!isSelf && !isSystem && (
-                                      <div className={cn(
-                                        "text-xs font-medium mb-1 flex items-center",
-                                        isAI && "text-purple-700 dark:text-purple-400"
-                                      )}>
-                                        {isAI && <Sparkles className="h-3 w-3 mr-1" />}
-                                        {msg.sender_name}
-                                        <span className="text-xs text-muted-foreground ml-1">
-                                          {msg.sender_role}
-                                        </span>
-                                      </div>
+                                      <Avatar className={cn("h-8 w-8 flex-shrink-0", isAI && "ring-2 ring-purple-200 ring-offset-1")}>
+                                        <AvatarFallback className={getAvatarColorClass(msg.sender_role)}>
+                                          {isAI ? <Sparkles className="h-4 w-4" /> : getInitials(msg.sender_name)}
+                                        </AvatarFallback>
+                                      </Avatar>
                                     )}
                                     
-                                    <div
-                                      className={cn(
-                                        "rounded-lg p-3 text-sm shadow-sm relative",
-                                        isSystem 
-                                          ? "bg-blue-100/70 dark:bg-blue-900/20 text-center mx-auto" 
-                                          : isSelf
-                                            ? "bg-[#9b87f5]/90 text-white" 
-                                            : isAI
-                                              ? "bg-purple-50/80 dark:bg-purple-900/10"
-                                              : "bg-neutral-100/80 dark:bg-neutral-800/50",
-                                        isAI && !isSelf && !isSystem && "border border-purple-100 dark:border-purple-900/30"
-                                      )}
-                                    >
-                                      {isAI && (
-                                        <Sparkles className="h-3 w-3 absolute top-2 right-2 text-purple-500" />
+                                    <div>
+                                      {!isSelf && !isSystem && (
+                                        <div className={cn(
+                                          "text-xs font-medium mb-1 flex items-center",
+                                          isAI && "text-purple-700 dark:text-purple-400"
+                                        )}>
+                                          {isAI && <Sparkles className="h-3 w-3 mr-1" />}
+                                          {msg.sender_name}
+                                          <span className="text-xs text-muted-foreground ml-1">
+                                            {msg.sender_role}
+                                          </span>
+                                        </div>
                                       )}
                                       
-                                      <div 
+                                      <div
                                         className={cn(
-                                          isAI && !isSelf && "leading-relaxed"
+                                          "rounded-lg p-3 text-sm shadow-sm relative",
+                                          isSystem 
+                                            ? "bg-blue-100/70 dark:bg-blue-900/20 text-center mx-auto" 
+                                            : isSelf
+                                              ? "bg-[#9b87f5]/90 text-white" 
+                                              : isAI
+                                                ? "bg-purple-50/80 dark:bg-purple-900/10"
+                                                : "bg-neutral-100/80 dark:bg-neutral-800/50",
+                                          isAI && !isSelf && !isSystem && "border border-purple-100 dark:border-purple-900/30"
                                         )}
-                                        dangerouslySetInnerHTML={{ 
-                                          __html: isSelf 
-                                            ? formatMessageWithAiHighlight(msg.message) 
-                                            : msg.message 
-                                        }}
-                                      />
+                                      >
+                                        {isAI && (
+                                          <Sparkles className="h-3 w-3 absolute top-2 right-2 text-purple-500" />
+                                        )}
+                                        
+                                        <div 
+                                          className={cn(
+                                            isAI && !isSelf && "leading-relaxed"
+                                          )}
+                                          dangerouslySetInnerHTML={{ 
+                                            __html: isSelf 
+                                              ? formatMessageWithAiHighlight(msg.message) 
+                                              : msg.message 
+                                          }}
+                                        />
                                       
-                                      <div className="text-xs opacity-70 mt-1">
-                                        {format(safeParseISO(msg.created_at), 'h:mm a')}
+                                        <div className="text-xs opacity-70 mt-1">
+                                          {format(safeParseISO(msg.created_at), 'h:mm a')}
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
                                 </div>
-                              </div>
-                            );
-                          })}
-                      </CollapsibleMessageGroup>
-                    );
-                  })}
+                              );
+                            })}
+                        </CollapsibleMessageGroup>
+                      );
+                    })}
+                </div>
               </ErrorBoundary>
             )}
             
             {isAiTyping && (
-              <div className="ai-typing ml-10">
+              <div className="ai-typing ml-10 mt-auto">
                 <div className="flex items-center gap-2">
                   <Avatar className="h-6 w-6">
                     <AvatarFallback className="bg-purple-100 text-purple-800">
