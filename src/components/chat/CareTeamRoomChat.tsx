@@ -30,6 +30,11 @@ interface RoomMessage {
   read_by: string[] | null;
 }
 
+interface MessagesData {
+  messages: RoomMessage[];
+  hasMore: boolean;
+}
+
 interface CareTeamRoom {
   room_id: string;
   room_name: string;
@@ -122,7 +127,7 @@ export const CareTeamRoomChat = ({
   });
 
   const fetchMessages = async (roomId: string, pageNum: number, isLoadingMore = false) => {
-    if (!roomId) return [];
+    if (!roomId) return { messages: [], hasMore: false };
     
     try {
       if (!isLoadingMore) setMessagesLoading(true);
@@ -232,7 +237,7 @@ export const CareTeamRoomChat = ({
     }
   };
 
-  const { data: messagesData, isLoading: messagesQueryLoading, refetch } = useQuery({
+  const { data: messagesData, isLoading: messagesQueryLoading, refetch } = useQuery<MessagesData>({
     queryKey: ["room_messages", selectedRoomId, page],
     queryFn: async () => {
       if (!selectedRoomId) return { messages: [], hasMore: false };
@@ -242,7 +247,9 @@ export const CareTeamRoomChat = ({
     refetchInterval: 5000
   });
 
+  // Fix: Ensure messagesData is properly typed and provide default values
   const messages: RoomMessage[] = messagesData?.messages || [];
+  const hasMore = messagesData?.hasMore || false;
   
   const handleLoadMore = async () => {
     if (!selectedRoomId || loadingMore || !hasMoreMessages) return;
@@ -388,8 +395,8 @@ export const CareTeamRoomChat = ({
   const messageGroups = groupMessagesByDate(messages);
 
   useEffect(() => {
-    setHasMoreMessages(messagesData?.hasMore || false);
-  }, [messagesData]);
+    setHasMoreMessages(hasMore);
+  }, [hasMore]);
 
   if (!selectedRoomId) {
     return (
@@ -597,3 +604,4 @@ export const CareTeamRoomChat = ({
     </div>
   );
 };
+
