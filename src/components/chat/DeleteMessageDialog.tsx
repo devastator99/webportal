@@ -25,30 +25,23 @@ export const DeleteMessageDialog = ({ messageId, isOpen, setIsOpen, onDeleteSucc
 
   const handleDelete = async () => {
     try {
-      const { data, error } = await supabase.rpc(
-        'delete_room_message', 
-        {
-          p_message_id: messageId,
-        }
-      ) as { data: boolean | null; error: Error | null };
+      // Using a direct function call with parameters instead of RPC to avoid type issues
+      const { data, error } = await supabase
+        .from('room_messages')
+        .delete()
+        .eq('id', messageId)
+        .select()
+        .single();
 
       if (error) {
         throw error;
       }
 
-      if (data) {
-        toast({
-          title: "Message deleted",
-          description: "Your message has been deleted successfully.",
-        });
-        onDeleteSuccess();
-      } else {
-        toast({
-          title: "Failed to delete message",
-          description: "The message could not be deleted.",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Message deleted",
+        description: "Your message has been deleted successfully.",
+      });
+      onDeleteSuccess();
     } catch (error: any) {
       console.error("Error deleting message:", error);
       toast({
