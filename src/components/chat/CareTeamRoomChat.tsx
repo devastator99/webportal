@@ -72,6 +72,7 @@ export const CareTeamRoomChat = ({
   const [page, setPage] = useState(1);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [isTeamMembersLoading, setIsTeamMembersLoading] = useState(true);
   const PAGE_SIZE = 500; // Maintaining the 500 message limit
   const [displayedMemberNames, setDisplayedMemberNames] = useState<string>("");
   const [showTeamDetails, setShowTeamDetails] = useState(false);
@@ -218,7 +219,9 @@ export const CareTeamRoomChat = ({
   // When room details change, update team members
   useEffect(() => {
     if (roomDetails?.team_members && roomDetails.team_members.length > 0) {
+      console.log("Setting team members from roomDetails:", roomDetails.team_members.length);
       setTeamMembers(roomDetails.team_members);
+      setIsTeamMembersLoading(false);
     }
   }, [roomDetails]);
 
@@ -226,6 +229,7 @@ export const CareTeamRoomChat = ({
   useEffect(() => {
     const fetchTeamMembers = async () => {
       if (selectedRoomId && (!teamMembers.length || teamMembers.length < 2)) {
+        setIsTeamMembersLoading(true);
         try {
           console.log("Fetching team members for room:", selectedRoomId);
           
@@ -236,6 +240,7 @@ export const CareTeamRoomChat = ({
             .eq('room_id', selectedRoomId);
           
           if (!roomMembersError && roomMembers && roomMembers.length > 0) {
+            console.log("Found room members:", roomMembers.length);
             // For each user ID, fetch profile details
             const memberDetails = await Promise.all(
               roomMembers.map(async (member) => {
@@ -273,10 +278,11 @@ export const CareTeamRoomChat = ({
             if (validMembers.length > 0) {
               console.log("Setting team members from room_members:", validMembers.length);
               setTeamMembers(validMembers);
+              setIsTeamMembersLoading(false);
             }
           } else if (roomDetails?.patient_id) {
             // If no room members found or error, try the get_patient_care_team_members RPC
-            console.log("Falling back to get_patient_care_team_members");
+            console.log("Falling back to get_patient_care_team_members with patient ID:", roomDetails.patient_id);
             const { data: careTeamMembers, error: careTeamError } = await supabase.rpc(
               'get_patient_care_team_members',
               { p_patient_id: roomDetails.patient_id }
@@ -285,18 +291,49 @@ export const CareTeamRoomChat = ({
             if (!careTeamError && careTeamMembers && Array.isArray(careTeamMembers)) {
               console.log("Setting team members from care_team RPC:", careTeamMembers.length);
               setTeamMembers(careTeamMembers);
+              setIsTeamMembersLoading(false);
             } else {
               console.error("Error fetching care team members:", careTeamError);
+              // Last resort: Add at least the current user and AI bot
+              const fallbackTeam: TeamMember[] = [];
+              
+              if (user) {
+                fallbackTeam.push({
+                  id: user.id,
+                  first_name: user.first_name || 'User',
+                  last_name: user.last_name || '',
+                  role: user.role || 'unknown'
+                });
+              }
+              
+              // Add AI bot
+              fallbackTeam.push({
+                id: '00000000-0000-0000-0000-000000000000',
+                first_name: 'AI',
+                last_name: 'Assistant',
+                role: 'aibot'
+              });
+              
+              console.log("Using fallback team members:", fallbackTeam.length);
+              setTeamMembers(fallbackTeam);
+              setIsTeamMembersLoading(false);
             }
+          } else {
+            // If all else fails, just mark loading as complete
+            setIsTeamMembersLoading(false);
           }
         } catch (err) {
           console.error("Error fetching team members:", err);
+          setIsTeamMembersLoading(false);
         }
+      } else if (teamMembers.length > 0) {
+        // We already have team members, no need to load
+        setIsTeamMembersLoading(false);
       }
     };
     
     fetchTeamMembers();
-  }, [selectedRoomId, roomDetails, teamMembers.length]);
+  }, [selectedRoomId, roomDetails, teamMembers.length, user]);
 
   // Generate formatted display names whenever team members change
   useEffect(() => {
@@ -314,10 +351,13 @@ export const CareTeamRoomChat = ({
       } else {
         setDisplayedMemberNames("No team members");
       }
-    } else {
-      setDisplayedMemberNames("Loading team members...");
+      
+      // We found members so reset loading
+      setIsTeamMembersLoading(false);
+    } else if (!isTeamMembersLoading) {
+      setDisplayedMemberNames("No team members found");
     }
-  }, [teamMembers]);
+  }, [teamMembers, isTeamMembersLoading]);
 
   const fetchMessages = async (roomId: string, pageNum: number, isLoadingMore = false) => {
     if (!roomId) return { messages: [], hasMore: false };
@@ -671,7 +711,7 @@ export const CareTeamRoomChat = ({
         
         {/* Always show team members in compact form */}
         <div className="mt-2 pl-1">
-          <CareTeamMembersList members={teamMembers} compact={!showTeamDetails} />
+          <CareTeamMembersList members={teamMembers} compact={!showTeamDetails} isLoading={isTeamMembersLoading} />
         </div>
       </div>
       

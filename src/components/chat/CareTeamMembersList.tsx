@@ -2,15 +2,18 @@
 import React from "react";
 import { TeamMember } from "@/types/chat";
 import { cn } from "@/lib/utils";
+import { Loader2 } from "lucide-react";
 
 interface CareTeamMembersListProps {
   members: TeamMember[];
   compact?: boolean;
+  isLoading?: boolean;
 }
 
 export const CareTeamMembersList: React.FC<CareTeamMembersListProps> = ({ 
   members,
-  compact = false
+  compact = false,
+  isLoading = false
 }) => {
   // Get the initials from a name
   const getInitials = (firstName: string, lastName: string) => {
@@ -39,8 +42,18 @@ export const CareTeamMembersList: React.FC<CareTeamMembersListProps> = ({
   // Safely handle empty members array
   const membersList = Array.isArray(members) ? members : [];
 
+  // Show appropriate message or spinner when empty
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground text-sm px-1">
+        <Loader2 className="h-3 w-3 animate-spin" />
+        <span>Loading team members...</span>
+      </div>
+    );
+  }
+
   if (membersList.length === 0) {
-    return <div className="text-muted-foreground text-sm italic px-1">Loading team members...</div>;
+    return <div className="text-muted-foreground text-sm italic px-1">No team members found</div>;
   }
 
   return (
@@ -60,7 +73,7 @@ export const CareTeamMembersList: React.FC<CareTeamMembersListProps> = ({
       )}>
         {membersList.map((member) => (
           <div 
-            key={member.id} 
+            key={member.id || `${member.first_name}-${member.last_name}-${member.role}`} 
             className={cn(
               compact ? "flex items-center gap-1.5" : "flex items-center gap-3"
             )}
