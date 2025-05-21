@@ -25,10 +25,11 @@ export const DeleteMessageDialog = ({ messageId, isOpen, setIsOpen, onDeleteSucc
 
   const handleDelete = async () => {
     try {
-      // Make an RPC call to the delete_room_message function
+      // Make an RPC call to the delete_room_message function with explicit type casting
+      // since it's not in the generated types
       const { data, error } = await supabase.rpc('delete_room_message', {
         p_message_id: messageId,
-      } as any); // Using type assertion as delete_room_message is not in the generated types
+      } as any);
 
       if (error) {
         throw error;

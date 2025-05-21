@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,7 +27,7 @@ interface RoomMessage {
   is_system_message: boolean;
   is_ai_message: boolean;
   created_at: string;
-  read_by: string[] | null;
+  read_by: string[] | null; // Added the missing read_by property
 }
 
 interface CareTeamRoom {
@@ -533,3 +534,4 @@ export const CareTeamRoomChat = ({
     </div>
   );
 };
+
