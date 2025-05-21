@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -63,12 +63,14 @@ interface CareTeamRoomChatProps {
   selectedRoomId: string | null;
   onBack?: () => void;
   isMobileView?: boolean;
+  roomDetails?: CareTeamRoom | null;
 }
 
 export const CareTeamRoomChat = ({ 
   selectedRoomId, 
   onBack, 
-  isMobileView = false 
+  isMobileView = false,
+  roomDetails: propRoomDetails
 }: CareTeamRoomChatProps) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -80,12 +82,13 @@ export const CareTeamRoomChat = ({
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
-  const PAGE_SIZE = 500; // Increased from 100 to match ChatMessagesList for consistency
+  const PAGE_SIZE = 500; // Maintaining the 500 message limit
 
-  const { data: roomDetails } = useQuery({
+  // Only fetch room details if they weren't provided as props
+  const { data: fetchedRoomDetails } = useQuery({
     queryKey: ["care_team_room", selectedRoomId],
     queryFn: async () => {
-      if (!selectedRoomId || !user?.id) return null;
+      if (!selectedRoomId || !user?.id || propRoomDetails) return null;
       
       try {
         const { data: roomData, error: roomError } = await supabase
@@ -136,8 +139,11 @@ export const CareTeamRoomChat = ({
         return null;
       }
     },
-    enabled: !!selectedRoomId && !!user?.id
+    enabled: !!selectedRoomId && !!user?.id && !propRoomDetails
   });
+
+  // Use provided room details from props or fetch them if not provided
+  const roomDetails = propRoomDetails || fetchedRoomDetails;
 
   const fetchMessages = async (roomId: string, pageNum: number, isLoadingMore = false) => {
     if (!roomId) return { messages: [], hasMore: false };
