@@ -12,10 +12,10 @@ import { sortByDate, groupMessagesByDate, normalizeDateString } from "@/utils/da
 import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useChatScroll } from "@/hooks/useChatScroll";
-import { ChatMessage } from "./ChatMessage"; // Added this missing import
+import { ChatMessage, ChatMessageProps } from "./ChatMessage";
 
-// Updated: reduced page size from 100 to 30
-const PAGE_SIZE = 30;
+// Set page size to 100 for more history
+const PAGE_SIZE = 100;
 
 interface Message {
   id: string;
@@ -80,6 +80,8 @@ export const ChatMessagesList = ({
     try {
       if (!isLoadingMore) setIsLoading(true);
       setRoomError(null);
+      
+      console.log(`Fetching messages for room: ${roomId}, page: ${pageNum}, pageSize: ${PAGE_SIZE}`);
       // Pull messages in DESC order for most-recent pagination
       const { data, error } = await supabase.rpc('get_room_messages_with_role', {
         p_room_id: roomId,
@@ -87,11 +89,15 @@ export const ChatMessagesList = ({
         p_offset: (pageNum - 1) * PAGE_SIZE,
         p_user_role: userRole || 'patient'
       });
+      
       if (error) {
         setRoomError(`Failed to load messages: ${error.message}`);
+        console.error("Error loading messages:", error);
         throw error;
       }
 
+      console.log(`Received ${data?.length || 0} messages from server for page ${pageNum}`);
+      
       // Messages are sorted ASC from SQL, so reverse for DESC
       const latestPage = Array.isArray(data) ? [...data].reverse() : [];
 
@@ -102,10 +108,12 @@ export const ChatMessagesList = ({
           const nonDuped = latestPage.filter(
             m => !existingIds.has(m.id)
           );
+          console.log(`Adding ${nonDuped.length} older messages to the beginning`);
           // Prepend older ones at start
           return [...nonDuped, ...prev];
         });
       } else {
+        console.log(`Setting ${latestPage.length} new messages`);
         setMessages(latestPage);
       }
 
@@ -118,6 +126,7 @@ export const ChatMessagesList = ({
         description: "Please try again later",
         variant: "destructive"
       });
+      console.error("Error in fetchMessages:", error);
     } finally {
       if (!isLoadingMore) setIsLoading(false);
       setLoadingMore(false);
@@ -183,6 +192,7 @@ export const ChatMessagesList = ({
 
   // Add message delete handler
   const handleMessageDelete = () => {
+    console.log("Message deleted, refreshing messages");
     // Trigger a refresh of messages
     setRefreshTrigger(prev => prev + 1);
   };
@@ -191,7 +201,10 @@ export const ChatMessagesList = ({
   const allMessages = [...messages]
     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
 
+  console.log(`Rendering ${allMessages.length} messages in total`);
+  
   const messageGroups = groupMessagesByDate(allMessages);
+  console.log(`Grouped into ${Object.keys(messageGroups).length} date groups`);
 
   // Load more handler: loads the next oldest page
   const handleLoadMore = async () => {

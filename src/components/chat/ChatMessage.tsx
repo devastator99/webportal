@@ -1,6 +1,6 @@
 
 import { format } from "date-fns";
-import { Check, CheckCheck, Clock, Bot, Sparkles, Trash2 } from "lucide-react";
+import { Check, CheckCheck, Clock, Bot, Sparkles, Trash2, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { 
@@ -12,7 +12,7 @@ import {
 import { DeleteMessageDialog } from "./DeleteMessageDialog";
 import { useToast } from "@/hooks/use-toast";
 
-interface ChatMessageProps {
+export interface ChatMessageProps {
   message: {
     id: string;
     message: string;

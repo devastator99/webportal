@@ -7,8 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 };
 
-// Updated: Set reduced page size
-const DEFAULT_PAGE_SIZE = 30;
+// Updated: Setting page size back to a larger value for more messages
+const DEFAULT_PAGE_SIZE = 100;
 
 serve(async (req: Request) => {
   // Handle CORS preflight requests
@@ -26,7 +26,7 @@ serve(async (req: Request) => {
       include_care_team_messages = false,
       is_patient = false,
       page = 1, 
-      per_page = DEFAULT_PAGE_SIZE // Changed default from 100 to 30
+      per_page = DEFAULT_PAGE_SIZE 
     } = await req.json();
     
     if (!user_id) {
@@ -57,7 +57,9 @@ serve(async (req: Request) => {
       is_group_chat, 
       include_care_team_messages,
       is_patient,
-      care_team_members: care_team_members?.length || 0
+      care_team_members: care_team_members?.length || 0,
+      page: pageNumber,
+      perPage: perPage
     });
     
     // Look up user by email if provided (e.g., prakash@test.com)
@@ -200,7 +202,8 @@ serve(async (req: Request) => {
         // Special handling for patients to ensure they always see their messages
         console.log("Using patient-specific query to ensure all messages are retrieved");
         
-        // Get all messages where the patient is either sender or receiver
+        // Get all messages where the patient is either sender or receiver - explicitly log pagination details
+        console.log(`Fetching patient messages with offset: ${offset}, limit: ${perPage}`);
         const { data: patientMessages, error: patientError } = await supabaseClient
           .rpc('get_care_team_messages', {
             p_user_id: user_id,
@@ -214,9 +217,11 @@ serve(async (req: Request) => {
           throw patientError;
         }
         
+        console.log(`Retrieved ${patientMessages?.length || 0} patient messages`);
         messagesQuery = { data: patientMessages, error: null };
       } else {
         // Use the standard get_care_team_messages RPC function for all messages
+        console.log(`Fetching care team messages with offset: ${offset}, limit: ${perPage}`);
         messagesQuery = await supabaseClient.rpc('get_care_team_messages', {
           p_user_id: user_id,
           p_patient_id: patientId,
@@ -232,7 +237,7 @@ serve(async (req: Request) => {
         throw messagesError;
       }
       
-      console.log(`Retrieved ${messages?.length || 0} messages`);
+      console.log(`Retrieved ${messages?.length || 0} messages total`);
       
       // Mark any unread messages as read if the current user is the recipient
       if (messages && messages.length > 0) {
@@ -269,7 +274,8 @@ serve(async (req: Request) => {
           messages: messages || [],
           hasMore: messages && messages.length === perPage,
           page: pageNumber,
-          perPage
+          perPage,
+          timestamp: new Date().toISOString() // Add timestamp for debugging
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
