@@ -49,4 +49,3 @@ $$;
 
 -- Grant execute permission on the function
 GRANT EXECUTE ON FUNCTION public.delete_room_message TO authenticated;
-
