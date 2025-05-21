@@ -65,12 +65,15 @@ Deno.serve(async (req) => {
     
     const messageContent = title ? `**${title}**\n\n${message}` : message
     
+    // Add responsive message formatting to ensure proper display on mobile
+    const formattedMessage = messageContent.replace(/\n\n/g, '\n').trim()
+    
     const { data: messageData, error: messageError } = await supabaseAdmin
       .from('room_messages')
       .insert({
         room_id: roomId,
         sender_id: AI_BOT_ID,
-        message: messageContent,
+        message: formattedMessage,
         message_type: message_type,
         is_ai_message: true
       })

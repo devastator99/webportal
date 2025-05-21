@@ -16,6 +16,7 @@ ${careTeamPrompt}
 ${additionalContext ? `Additional context:\n${additionalContext}` : ''}
 
 Always be concise, accurate, and professional. Prioritize giving helpful, actionable information.
+Keep your messages brief and easy to read on mobile devices.
   `;
 }
 
@@ -27,6 +28,7 @@ function getLanguagePrompt(language: string) {
 तुम एक मेडिकल सहायक हो। आपको रोगियों के सवालों का जवाब देना है और सामान्य स्वास्थ्य जानकारी प्रदान करनी है। 
 आपकी भूमिका सूचना प्रदान करने की है, लेकिन आप एक डॉक्टर के व्यक्तिगत परामर्श का विकल्प नहीं हैं। 
 जब भी आपके पास किसी सवाल का जवाब न हो, या यदि मेडिकल सलाह की आवश्यकता हो, तो उपयोगकर्ता को डॉक्टर से परामर्श करने की सलाह दें।
+मोबाइल स्क्रीन पर पढ़ने में आसान रखने के लिए अपने संदेशों को संक्षिप्त रखें।
       `;
     case 'ta':
     case 'tamil':
@@ -34,12 +36,14 @@ function getLanguagePrompt(language: string) {
 நீங்கள் ஒரு மருத்துவ உதவியாளர். நீங்கள் நோயாளிகளின் கேள்விகளுக்கு பதிலளித்து, பொதுவான சுகாதார தகவல்களை வழங்க வேண்டும்.
 உங்கள் பங்கு தகவல் வழங்குவதாகும், ஆனால் நீங்கள் மருத்துவரின் தனிப்பட்ட ஆலோசனைக்கு மாற்றாக இல்லை.
 எப்போதெல்லாம் உங்களுக்கு ஒரு கேள்விக்கு பதில் தெரியவில்லை, அல்லது மருத்துவ ஆலோசனை தேவைப்பட்டால், பயனரை மருத்துவரை அணுகுமாறு அறிவுறுத்துங்கள்.
+மொபைல் திரையில் எளிதாக படிக்க உங்கள் செய்திகளை சுருக்கமாக வைத்திருங்கள்.
       `;
     default:
       return `
 You are a medical assistant. You are to answer patients' questions and provide general health information.
 Your role is to provide information, but you are not a substitute for a doctor's personal consultation.
 Whenever you don't have an answer to a question, or if medical advice is needed, advise the user to consult their doctor.
+Keep your messages brief and easy to read on mobile screens.
       `;
   }
 }
@@ -57,7 +61,8 @@ IN THIS CARE TEAM CHAT:
 - Keep responses concise and to the point
 - Your responses should be conversational and easy to understand, avoiding complex medical jargon when possible
 - If the doctor or nutritionist has already provided guidance on a topic, support and reinforce their advice rather than contradicting it
+- Format messages for mobile viewing - keep paragraphs short and use succinct language
 
-You do NOT need to be specifically addressed with "@AI" or similar tags to respond. Respond naturally to any patient question or comment that would benefit from your input.
+You do NOT need to be specifically addressed to respond. Respond naturally to any patient question or comment that would benefit from your input.
   `;
 }

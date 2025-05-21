@@ -11,6 +11,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import html2pdf from 'html2pdf.js';
+import { useResponsive } from "@/contexts/ResponsiveContext";
+import { useBreakpoint } from "@/hooks/use-responsive";
 
 interface Message {
   role: 'user' | 'assistant';
@@ -57,6 +59,8 @@ export const CareTeamAIChat = () => {
   const [isPdfAvailable, setIsPdfAvailable] = useState(false);
   const [suggestedPdfType, setSuggestedPdfType] = useState<string | null>(null);
   const [pdfData, setPdfData] = useState<any>(null);
+  const { isMobile, isTablet } = useResponsive();
+  const { isSmallScreen } = useBreakpoint();
 
   useEffect(() => {
     if (messages.length === 0 && user?.id) {
@@ -269,7 +273,7 @@ export const CareTeamAIChat = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-10rem)] bg-background border rounded-lg overflow-hidden">
-      <div className="p-4 border-b bg-muted/50 flex items-center justify-between">
+      <div className="p-3 border-b bg-muted/50 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Brain className="h-5 w-5 text-primary" />
           <h2 className="font-semibold">AI Care Assistant</h2>
@@ -289,14 +293,14 @@ export const CareTeamAIChat = () => {
             ref={scrollViewportRef}
             className="h-full overflow-auto"
           >
-            <div className="p-4 space-y-4">
+            <div className="p-2 space-y-3">
               {messages.map((message, i) => (
                 <div 
                   key={i} 
                   className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div 
-                    className={`max-w-[80%] p-3 rounded-lg ${
+                    className={`${isMobile || isSmallScreen ? 'max-w-[90%]' : 'max-w-[80%]'} p-3 rounded-lg ${
                       message.role === 'user' 
                         ? 'bg-primary text-primary-foreground' 
                         : 'bg-muted'
@@ -332,7 +336,7 @@ export const CareTeamAIChat = () => {
         )}
       </div>
       
-      <div className="p-4 border-t bg-background">
+      <div className="p-3 border-t bg-background">
         <div className="flex gap-2">
           <Textarea
             placeholder="Type your message..."
@@ -350,14 +354,14 @@ export const CareTeamAIChat = () => {
             {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
           </Button>
         </div>
-        <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
+        <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
           <CheckCircle className="h-3 w-3" />
           <span>Your data is processed securely and confidentially</span>
         </div>
       </div>
       
       {isPdfAvailable && (
-        <div className="flex justify-center my-4">
+        <div className="flex justify-center my-3">
           <Button
             variant="outline"
             size="sm"

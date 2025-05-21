@@ -5,6 +5,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { PatientSidebar } from "@/components/dashboard/patient/PatientSidebar";
 import { MobileNavigation } from "@/components/mobile/MobileNavigation";
 import { useIsMobile, useIsMobileOrIPad } from "@/hooks/use-mobile";
+import { useResponsive } from "@/contexts/ResponsiveContext"; 
 import '@/components/ui/sidebar-variables.css';
 
 interface PatientAppLayoutProps {
@@ -26,11 +27,12 @@ export function PatientAppLayout({
 }: PatientAppLayoutProps) {
   const isMobile = useIsMobile();
   const isMobileOrTablet = useIsMobileOrIPad();
+  const { isTablet, isMobile: responsiveIsMobile } = useResponsive();
 
   // Apply special classes for full-screen chat mode on mobile
   const mainContentClasses = fullScreenChat && isMobileOrTablet 
     ? "chat-fullscreen-content" 
-    : `w-full ${isMobile ? "pt-4" : "pt-4"} ${fullWidth ? 'px-0' : 'px-4 md:px-6'} pb-8`;
+    : `w-full ${isMobile ? "pt-2" : "pt-4"} ${fullWidth || isMobile ? 'px-0' : 'px-4 md:px-6'} pb-8`;
 
   return (
     <AppLayout>
@@ -42,7 +44,7 @@ export function PatientAppLayout({
             <div className="w-full h-full">
               <div className={mainContentClasses}>
                 {showHeader && title && !fullScreenChat && (
-                  <div className={`mb-6 w-full ${fullWidth ? 'px-4 md:px-6' : ''}`}>
+                  <div className={`mb-4 w-full ${fullWidth ? 'px-2 md:px-6' : ''}`}>
                     <h1 className="text-2xl font-bold text-[#7E69AB]">{title}</h1>
                     {description && <p className="text-muted-foreground">{description}</p>}
                   </div>
