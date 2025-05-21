@@ -176,7 +176,7 @@ export const CareTeamRoomChat = ({
               }
             } else if (roomDetails?.patient_id) {
               // If no room members found or error, try the get_patient_care_team_members RPC
-              console.log("Falling back to get_patient_care_team_members with patient ID:", roomDetails.patient_id);
+              console.log("Falling back to get_patient_care_team_members");
               const { data: careTeamMembers, error: careTeamError } = await supabase.rpc(
                 'get_patient_care_team_members',
                 { p_patient_id: roomDetails.patient_id }

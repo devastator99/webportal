@@ -42,19 +42,6 @@ BEGIN
     
   UNION ALL
   
-  -- Include the patient themselves
-  SELECT
-    p.id,
-    p.first_name,
-    p.last_name,
-    'patient'::TEXT as role
-  FROM
-    profiles p
-  WHERE
-    p.id = p_patient_id
-    
-  UNION ALL
-  
   -- Always include AI Bot as part of care team
   SELECT 
     '00000000-0000-0000-0000-000000000000'::UUID as id,
