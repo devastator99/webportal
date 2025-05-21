@@ -15,8 +15,8 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { ChatMessage, ChatMessageProps } from "./ChatMessage";
 
-// Remove the message limit to show all available messages
-const PAGE_SIZE = 500; // Increased from 200
+// Increase the page size to load more older messages at once
+const PAGE_SIZE = 500;
 
 interface Message {
   id: string;
@@ -67,22 +67,26 @@ export const ChatMessagesList = ({
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
   const [newMessageAdded, setNewMessageAdded] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [initialScrollComplete, setInitialScrollComplete] = useState(false);
 
   const { 
     endRef, 
     containerRef, 
     showScrollButton, 
     scrollToBottom,
-    hasScrolledUp
+    hasScrolledUp,
+    isScrolling
   } = useChatScroll({
     messages: [...messages, ...localMessages],
     loadingMessages: isLoading,
     loadingMore,
     isNewMessage: newMessageAdded,
-    messagesToShow: messages.length
+    messagesToShow: messages.length,
+    fullScreen,
+    scrollThreshold: 200 // Make it easier to trigger scroll button
   });
 
-  // Helper to fetch messages - ensuring we get proper chronological order for display
+  // Helper to fetch messages with improved error handling
   const fetchMessages = async (roomId: string, pageNum: number, isLoadingMore = false) => {
     if (!roomId) return;
     try {
@@ -114,21 +118,14 @@ export const ChatMessagesList = ({
         return;
       }
       
-      // Keep track of newest and oldest message timestamps for debugging
-      if (data.length > 0) {
-        console.log("First message date:", new Date(data[0]?.created_at).toLocaleString());
-        console.log("Last message date:", new Date(data[data.length - 1]?.created_at).toLocaleString());
-        console.log("Total messages returned:", data.length);
-        
-        if (data.length === PAGE_SIZE) {
-          console.log("Possible message limit reached. Consider pagination or increasing limit if needed.");
-        }
-      }
-      
       // Process messages - reverse the order for display (oldest first)
       const processedMessages = [...data].reverse(); // Reverse to get oldest first for display
       
       if (isLoadingMore) {
+        // Preserve scroll position when loading older messages
+        const scrollContainer = containerRef.current;
+        const oldScrollHeight = scrollContainer?.scrollHeight || 0;
+        
         setMessages(prev => {
           // Avoid duplicates when adding older messages
           const existingIds = new Set(prev.map(m => m.id));
@@ -137,6 +134,15 @@ export const ChatMessagesList = ({
           // Add older messages at the beginning
           return [...nonDuped, ...prev];
         });
+        
+        // After new messages are rendered, restore scroll position
+        setTimeout(() => {
+          if (scrollContainer) {
+            const newScrollHeight = scrollContainer.scrollHeight;
+            const heightDifference = newScrollHeight - oldScrollHeight;
+            scrollContainer.scrollTop = scrollContainer.scrollTop + heightDifference;
+          }
+        }, 10);
       } else {
         console.log(`Setting ${processedMessages.length} new messages in chronological order`);
         setMessages(processedMessages);
@@ -146,8 +152,11 @@ export const ChatMessagesList = ({
       setNewMessageAdded(false);
       
       // After setting messages, scroll to bottom for new messages
-      if (!isLoadingMore && !hasScrolledUp) {
-        setTimeout(() => scrollToBottom(), 100);
+      if (!isLoadingMore && !hasScrolledUp && !initialScrollComplete) {
+        setTimeout(() => {
+          scrollToBottom();
+          setInitialScrollComplete(true);
+        }, 100);
       }
     } catch (error) {
       if (!isLoadingMore) setIsLoading(false);
@@ -168,6 +177,7 @@ export const ChatMessagesList = ({
     if (roomId && useRoomMessages) {
       setIsLoading(true);
       setPage(1);
+      setInitialScrollComplete(false);
       fetchMessages(roomId, 1, false);
     } else {
       setIsLoading(false);
@@ -192,7 +202,10 @@ export const ChatMessagesList = ({
             // When a new message comes in, fetch the newest page again to ensure we have the latest messages
             fetchMessages(roomId, 1, false);
             setNewMessageAdded(true);
-            scrollToBottom(); // Auto-scroll to bottom for new messages
+            // Only auto-scroll if user hasn't scrolled up
+            if (!hasScrolledUp) {
+              scrollToBottom(); 
+            }
           }
         }
       )
@@ -201,7 +214,7 @@ export const ChatMessagesList = ({
       supabase.removeChannel(channel);
     };
     // eslint-disable-next-line
-  }, [roomId, messages]);
+  }, [roomId, messages, hasScrolledUp]);
 
   // Merge local messages (optimistic, not in server)
   useEffect(() => {
@@ -232,11 +245,8 @@ export const ChatMessagesList = ({
   // Using all messages in chronological order
   const allMessages = messages;
   
-  console.log(`Rendering ${allMessages.length} messages in total`);
-  
   // Group messages by date
   const messageGroups = groupMessagesByDate(allMessages);
-  console.log(`Grouped into ${Object.keys(messageGroups).length} date groups`);
 
   // Load more handler: loads older messages
   const handleLoadMore = async () => {
@@ -247,7 +257,7 @@ export const ChatMessagesList = ({
     await fetchMessages(roomId, nextPage, true); // Fetch older messages
   };
 
-  if (isLoading) {
+  if (isLoading && messages.length === 0) {
     return (
       <div className="flex flex-1 items-center justify-center p-4">
         <Loader2 className="w-6 h-6 animate-spin text-primary" />
@@ -263,7 +273,7 @@ export const ChatMessagesList = ({
     );
   }
 
-  if (roomId && !allMessages.length) {
+  if (roomId && !allMessages.length && !isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center p-4 text-muted-foreground">
         No messages yet. Start the conversation!
@@ -277,6 +287,7 @@ export const ChatMessagesList = ({
         className="flex-1 p-4"
         data-testid="messages-scroll-area"
         viewportRef={containerRef}
+        invisibleScrollbar={fullScreen} // Use invisible scrollbar on mobile
       >
         {/* Load more button at the top for older messages */}
         {hasMoreMessages && (
@@ -291,6 +302,13 @@ export const ChatMessagesList = ({
               {loadingMore ? <Loader2 className="animate-spin h-4 w-4 mr-2" /> : <ArrowUpCircle className="w-4 h-4 mr-2" />}
               Load older messages
             </Button>
+          </div>
+        )}
+        
+        {/* Display loading spinner when loading more messages */}
+        {loadingMore && (
+          <div className="flex justify-center mb-4">
+            <Loader2 className="w-4 h-4 animate-spin text-primary" />
           </div>
         )}
         
@@ -409,14 +427,15 @@ export const ChatMessagesList = ({
           )}
         </div>
         
+        {/* Floating scroll-to-bottom button */}
         {showScrollButton && (
           <Button
             size="icon"
             variant="secondary"
-            className="fixed bottom-24 right-4 h-8 w-8 rounded-full shadow-md z-10"
+            className="fixed bottom-24 right-4 h-10 w-10 rounded-full shadow-md z-10"
             onClick={scrollToBottom}
           >
-            <ChevronDown className="h-4 w-4" />
+            <ChevronDown className="h-5 w-5" />
           </Button>
         )}
         

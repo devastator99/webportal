@@ -29,7 +29,7 @@ const ScrollArea = React.forwardRef<
       }}
       className={cn(
         "h-full w-full rounded-[inherit]",
-        invisibleScrollbar && "invisible-scroll scrollbar-hide"
+        invisibleScrollbar && "scrollbar-hide"
       )}
     >
       {children}
