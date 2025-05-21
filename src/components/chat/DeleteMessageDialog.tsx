@@ -48,7 +48,7 @@ export const DeleteMessageDialog = ({ messageId, isOpen, setIsOpen, onDeleteSucc
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error deleting message:", error);
       toast({
         title: "Error",

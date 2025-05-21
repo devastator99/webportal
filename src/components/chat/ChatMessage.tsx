@@ -80,12 +80,12 @@ export const ChatMessage = ({
   };
 
   const getBubbleClass = () => {
-    if (isSystemMessage) return "system-message";
-    if (isCurrentUser) return "current-user";
-    if (isAiBot) return "ai-message";
-    if (isDoctor) return "doctor-message";
-    if (isNutritionist) return "nutritionist-message";
-    return "";
+    if (isSystemMessage) return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-100";
+    if (isCurrentUser) return "bg-purple-500 text-white dark:bg-purple-600";
+    if (isAiBot) return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200";
+    if (isDoctor) return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-100";
+    if (isNutritionist) return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-100";
+    return "bg-white dark:bg-gray-800";
   };
   
   // Wrap message in context menu if the user can delete it
@@ -95,7 +95,8 @@ export const ChatMessage = ({
         "max-w-[75%] min-w-24 px-3 py-2 rounded-lg shadow-sm transition-all duration-200 message-bubble relative",
         getBubbleClass(),
         isSystemMessage && "mx-auto text-center",
-        isAiBot && !isCurrentUser && !isSystemMessage && "hover:shadow-md"
+        isAiBot && !isCurrentUser && !isSystemMessage && "hover:shadow-md",
+        "group" // Always add group class for hover effects
       )}
     >
       {showAvatar && !isCurrentUser && (
@@ -128,7 +129,7 @@ export const ChatMessage = ({
       
       <p className={cn(
         "text-sm whitespace-pre-wrap mb-4",
-        isAiBot && !isCurrentUser && "leading-relaxed text-white"
+        isAiBot && !isCurrentUser && "leading-relaxed"
       )}>
         {message.message}
       </p>
@@ -140,9 +141,10 @@ export const ChatMessage = ({
               e.stopPropagation();
               setIsDeleteDialogOpen(true);
             }}
-            className="opacity-0 group-hover:opacity-70 hover:opacity-100 transition-opacity mr-2"
+            className="text-red-500 hover:text-red-600 transition-colors mr-1 flex items-center"
+            aria-label="Delete message"
           >
-            <Trash2 className="h-3 w-3 text-red-500" />
+            <Trash2 className="h-3.5 w-3.5" />
           </button>
         )}
         
@@ -177,14 +179,14 @@ export const ChatMessage = ({
   
   return (
     <div
-      className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} group transition-opacity bubble-in`}
+      className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} transition-opacity bubble-in mb-2`}
     >
       {canDelete ? (
         <ContextMenu>
           <ContextMenuTrigger>{MessageContent}</ContextMenuTrigger>
           <ContextMenuContent>
             <ContextMenuItem 
-              className="text-red-600 flex gap-2"
+              className="text-red-600 flex gap-2 cursor-pointer"
               onClick={() => setIsDeleteDialogOpen(true)}
             >
               <Trash2 className="h-4 w-4" />
