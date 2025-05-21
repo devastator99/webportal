@@ -86,7 +86,9 @@ export const RecentCareTeamMessages = ({
           });
         }
         
-        return formattedMessages.reverse();
+        // Important: No longer reversing the array since we want to preserve the newest-first order
+        // that comes from the database
+        return formattedMessages;
       } catch (error) {
         console.error("Error in messages query:", error);
         return [];

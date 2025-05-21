@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -205,6 +204,7 @@ export const CareTeamRoomChat = ({
       }
       
       // No need to sort messages again since they are already sorted by created_at DESC from the database
+      // Important: removed any manual sorting here
       
       console.log("Messages formatted and returned, count:", formattedMessages.length);
       console.log("Has more:", messageData?.length === PAGE_SIZE);
@@ -463,7 +463,7 @@ export const CareTeamRoomChat = ({
                         isLatestGroup={isLatestGroup}
                       >
                         {dayMessages
-                          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) // Sort by time, newest first
+                          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) // Sort by time, newest first within group
                           .map((msg) => {
                             const isSelf = msg.sender_id === user?.id;
                             const isAI = msg.is_ai_message;

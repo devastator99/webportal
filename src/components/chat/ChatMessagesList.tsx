@@ -113,8 +113,9 @@ export const ChatMessagesList = ({
         return;
       }
       
+      // Important: We're keeping the order exactly as received from database
       // Messages are already returned in descending order (newest first)
-      // No need to sort them again
+      // No sorting needed
       const latestMessages = [...data];
       
       if (latestMessages.length > 0) {
