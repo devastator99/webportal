@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,7 +14,7 @@ interface RecentCareTeamMessagesProps {
 
 export const RecentCareTeamMessages = ({ 
   patientRoomId, 
-  messageLimit = 20  // Adjusted limit for recent messages display
+  messageLimit = 100  // Keeping this value as requested
 }: RecentCareTeamMessagesProps) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<any[]>([]);

@@ -14,8 +14,8 @@ import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { ChatMessage, ChatMessageProps } from "./ChatMessage";
 
-// Increase page size to show more message history
-const PAGE_SIZE = 200;
+// Remove the message limit to show all available messages
+const PAGE_SIZE = 500; // Increased from 200
 
 interface Message {
   id: string;
@@ -117,6 +117,11 @@ export const ChatMessagesList = ({
       if (data.length > 0) {
         console.log("First message date:", new Date(data[0]?.created_at).toLocaleString());
         console.log("Last message date:", new Date(data[data.length - 1]?.created_at).toLocaleString());
+        console.log("Total messages returned:", data.length);
+        
+        if (data.length === PAGE_SIZE) {
+          console.log("Possible message limit reached. Consider pagination or increasing limit if needed.");
+        }
       }
       
       // Process messages - reverse the order for display (oldest first)

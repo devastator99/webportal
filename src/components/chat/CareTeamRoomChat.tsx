@@ -80,7 +80,7 @@ export const CareTeamRoomChat = ({
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMoreMessages, setHasMoreMessages] = useState(true);
-  const PAGE_SIZE = 100;
+  const PAGE_SIZE = 500; // Increased from 100 to match ChatMessagesList for consistency
 
   const { data: roomDetails } = useQuery({
     queryKey: ["care_team_room", selectedRoomId],
@@ -164,6 +164,12 @@ export const CareTeamRoomChat = ({
       }
       
       console.log("Retrieved messages count:", messageData?.length || 0);
+      
+      if (messageData && messageData.length > 0) {
+        console.log("First message date:", new Date(messageData[0]?.created_at).toLocaleString());
+        console.log("Last message date:", new Date(messageData[messageData.length - 1]?.created_at).toLocaleString());
+        console.log("Total messages returned:", messageData.length);
+      }
       
       const formattedMessages: RoomMessage[] = [];
       

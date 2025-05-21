@@ -1,9 +1,8 @@
 
--- Update the get_room_messages_with_role function to have an increased default limit
--- and properly document the ordering
+-- Update the get_room_messages_with_role function to properly document the ordering
 CREATE OR REPLACE FUNCTION public.get_room_messages_with_role(
   p_room_id UUID,
-  p_limit INTEGER DEFAULT 500,  -- Increased the default limit from 200 to 500
+  p_limit INTEGER DEFAULT 500,  -- Using 500 as default limit
   p_offset INTEGER DEFAULT 0,
   p_user_role TEXT DEFAULT 'patient'
 )
