@@ -27,7 +27,7 @@ interface RoomMessage {
   is_system_message: boolean;
   is_ai_message: boolean;
   created_at: string;
-  read_by: string[] | null; // Fixed: Added the missing property
+  read_by: string[] | null;
   file_url?: string;
   message_type?: 'text' | 'image' | 'file' | 'pdf';
 }

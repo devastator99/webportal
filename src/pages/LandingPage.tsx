@@ -13,6 +13,8 @@ import { CallToAction } from '@/components/landing/CallToAction';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { ResponsiveContainer } from '@/components/layout/ResponsiveContainer';
+import { useBreakpoint } from '@/hooks/use-responsive-layout';
 import '../styles/landingPage.css';
 
 export const LandingPage = () => {
@@ -21,6 +23,7 @@ export const LandingPage = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { isSmallScreen, isMediumScreen } = useBreakpoint();
   
   // Parse URL search params to detect if we should open auth modal
   useEffect(() => {
@@ -83,15 +86,21 @@ export const LandingPage = () => {
   };
   
   return (
-    <div className="w-full flex flex-col">
+    <div className="w-full flex flex-col min-h-screen overflow-x-hidden">
       <Header openAuthModal={openAuthModal} />
       <main className="flex-grow">
         <HeroSection openAuthModal={openAuthModal} />
-        <BenefitsSection />
+        <ResponsiveContainer>
+          <BenefitsSection />
+        </ResponsiveContainer>
         <TestimonialsSection />
-        <OfferingsSection openAuthModal={openAuthModal} />
+        <ResponsiveContainer>
+          <OfferingsSection openAuthModal={openAuthModal} />
+        </ResponsiveContainer>
         <ComingSoonSection />
-        <JourneySection openAuthModal={openAuthModal} />
+        <ResponsiveContainer>
+          <JourneySection openAuthModal={openAuthModal} />
+        </ResponsiveContainer>
         <CallToAction openAuthModal={openAuthModal} />
       </main>
       <Footer />

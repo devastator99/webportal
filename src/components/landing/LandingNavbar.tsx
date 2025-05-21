@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { motion } from 'framer-motion';
 import '@/styles/glass.css';
+import { useBreakpoint } from '@/hooks/use-responsive-layout';
 
 interface LandingNavbarProps {
   openAuthModal?: (view: 'login' | 'register') => void;
@@ -14,6 +15,7 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ openAuthModal }) =
   const { user, resetInactivityTimer, isSigningOut } = useAuth();
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { isSmallScreen } = useBreakpoint();
   
   // Check scroll position and update navbar transparency
   useEffect(() => {
@@ -38,7 +40,7 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ openAuthModal }) =
     if (user) {
       navigate('/dashboard');
     } else if (openAuthModal) {
-      openAuthModal('login'); // Changed from 'register' to 'login'
+      openAuthModal('login');
     } else {
       navigate('/auth');
     }
@@ -57,6 +59,7 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ openAuthModal }) =
           <button 
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)} 
             className="md:hidden text-white"
+            aria-label="Toggle menu"
           >
             ≡
           </button>
@@ -72,7 +75,7 @@ export const LandingNavbar: React.FC<LandingNavbarProps> = ({ openAuthModal }) =
         <div>
           <button
             onClick={handleStartClick}
-            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full px-6 py-2 font-medium hover:shadow-lg transition-all duration-300"
+            className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full px-4 sm:px-6 py-2 text-sm sm:text-base font-medium hover:shadow-lg transition-all duration-300"
             disabled={isSigningOut}
           >
             {user ? "Dashboard" : "Start Today"}

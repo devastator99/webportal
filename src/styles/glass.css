@@ -1,106 +1,86 @@
 
-/* Glass effect styling */
-.glass-card {
-  background: rgba(255, 255, 255, 0.7);
+/* Glass Effects */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.1);
 }
 
-.glass-card-dark {
-  background: rgba(30, 30, 35, 0.7);
+.glass-nav {
+  background-color: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.glass-nav.scrolled {
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* Glass card/dialog effects */
+.glass-card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.glassmorphism {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.1);
+}
+
+.glassmorphism-dark {
+  background-color: rgba(0, 0, 0, 0.2);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 24px 0 rgba(0, 0, 0, 0.2);
 }
 
-/* Specialized glass for different colors */
-.glass-purple {
-  background: rgba(155, 135, 245, 0.1);
-  border: 1px solid rgba(155, 135, 245, 0.2);
+.glassmorphism-navbar {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-.glass-blue {
-  background: rgba(37, 99, 235, 0.1);
-  border: 1px solid rgba(37, 99, 235, 0.2);
-}
-
-.glass-green {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-}
-
-.glass-amber {
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.2);
-}
-
-/* New softer glass styles */
-.glass-card-soft {
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.03);
-  transition: all 0.3s ease;
-}
-
-.glass-card-soft:hover {
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.06);
-  background: rgba(255, 255, 255, 0.7);
-}
-
-.glass-card-subtle {
-  background: rgba(250, 250, 252, 0.6);
-  backdrop-filter: blur(5px);
-  -webkit-backdrop-filter: blur(5px);
-  border: 1px solid rgba(240, 240, 250, 0.4);
-}
-
-.glass-card-warm {
-  background: rgba(255, 253, 250, 0.7);
-  border: 1px solid rgba(245, 158, 11, 0.1);
-}
-
-/* Hover effects */
-.glass-hover {
-  transition: all 0.3s ease;
-}
-
-.glass-hover:hover {
-  background: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
-}
-
-.glass-hover-dark:hover {
-  background: rgba(30, 30, 35, 0.8);
-  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.3);
-  transform: translateY(-2px);
-}
-
-/* Auth-specific glass styling */
-.auth-glass {
-  background: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05);
-}
-
-/* Registration form mobile optimizations */
-.registration-scroll-area {
-  -webkit-overflow-scrolling: touch;
-  scroll-behavior: smooth;
-  overscroll-behavior-y: contain;
-}
-
+/* Dialog glass effects */
 .glass-dialog {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+}
+
+.glass-dialog-overlay {
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+/* Mobile-specific glass effects */
+@media (max-width: 768px) {
+  .glass-nav,
+  .glassmorphism-navbar {
+    background-color: rgba(0, 0, 0, 0.3); /* Slightly darker on mobile for better contrast */
+  }
+  
+  .glassmorphism-dark {
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 1rem;
+  }
+  
+  .glass-card,
+  .glass-dialog {
+    background: rgba(255, 255, 255, 0.8); /* Slightly more opaque on mobile */
+  }
 }
