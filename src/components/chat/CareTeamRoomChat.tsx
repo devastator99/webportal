@@ -105,28 +105,47 @@ export const CareTeamRoomChat = ({
           }
         }
         
-        // Fetch team members for the room
-        const { data: members, error: membersError } = await supabase
+        // Fetch team members for the room - fixed approach to avoid relation error
+        const { data: membersData, error: membersError } = await supabase
           .from('room_members')
-          .select(`
-            id,
-            user_id,
-            role,
-            profiles:user_id (
-              first_name,
-              last_name
-            )
-          `)
+          .select('id, user_id, role')
           .eq('room_id', selectedRoomId);
           
         let fetchedMembers: TeamMember[] = [];
-        if (!membersError && members && Array.isArray(members)) {
-          fetchedMembers = members.map(member => ({
-            id: member.user_id,
-            first_name: member.profiles?.first_name || '',
-            last_name: member.profiles?.last_name || '',
-            role: member.role || 'unknown'
-          }));
+        
+        if (!membersError && membersData && Array.isArray(membersData)) {
+          // For each member, we need to fetch their profile data separately
+          const memberPromises = membersData.map(async (member) => {
+            if (member.user_id === '00000000-0000-0000-0000-000000000000') {
+              // Handle AI bot special case
+              return {
+                id: member.user_id,
+                first_name: 'AI',
+                last_name: 'Assistant',
+                role: 'aibot'
+              };
+            }
+            
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('first_name, last_name')
+              .eq('id', member.user_id)
+              .single();
+              
+            if (!profileError && profileData) {
+              return {
+                id: member.user_id,
+                first_name: profileData.first_name || '',
+                last_name: profileData.last_name || '',
+                role: member.role || 'unknown'
+              };
+            }
+            
+            return null;
+          });
+          
+          const resolvedMembers = await Promise.all(memberPromises);
+          fetchedMembers = resolvedMembers.filter((m): m is TeamMember => m !== null);
           setTeamMembers(fetchedMembers);
         }
         
@@ -173,27 +192,52 @@ export const CareTeamRoomChat = ({
     const fetchTeamMembers = async () => {
       if (selectedRoomId && roomDetails && !teamMembers.length) {
         try {
-          const { data: members, error: membersError } = await supabase
+          // Improved approach to fetch room members
+          const { data: membersData, error: membersError } = await supabase
             .from('room_members')
-            .select(`
-              id,
-              user_id,
-              role,
-              profiles:user_id (
-                first_name,
-                last_name
-              )
-            `)
+            .select('id, user_id, role')
             .eq('room_id', selectedRoomId);
+          
+          if (membersError) {
+            console.error("Error fetching room members:", membersError);
+            return;
+          }
+          
+          if (membersData && Array.isArray(membersData)) {
+            // For each member, fetch their profile data
+            const fetchedMembers: TeamMember[] = [];
             
-          if (!membersError && members && Array.isArray(members)) {
-            const fetchedMembers = members.map(member => ({
-              id: member.user_id,
-              first_name: member.profiles?.first_name || '',
-              last_name: member.profiles?.last_name || '',
-              role: member.role || 'unknown'
-            }));
-            setTeamMembers(fetchedMembers);
+            for (const member of membersData) {
+              if (member.user_id === '00000000-0000-0000-0000-000000000000') {
+                // Handle AI bot special case
+                fetchedMembers.push({
+                  id: member.user_id,
+                  first_name: 'AI',
+                  last_name: 'Assistant',
+                  role: 'aibot'
+                });
+                continue;
+              }
+              
+              const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .select('first_name, last_name')
+                .eq('id', member.user_id)
+                .single();
+              
+              if (!profileError && profileData) {
+                fetchedMembers.push({
+                  id: member.user_id,
+                  first_name: profileData.first_name || '',
+                  last_name: profileData.last_name || '',
+                  role: member.role || 'unknown'
+                });
+              }
+            }
+            
+            if (fetchedMembers.length > 0) {
+              setTeamMembers(fetchedMembers);
+            }
           }
         } catch (err) {
           console.error("Error fetching team members:", err);
@@ -731,6 +775,9 @@ export const CareTeamRoomChat = ({
           disabled={isLoading || !selectedRoomId || isAiTyping}
           isLoading={isLoading || isAiTyping}
           placeholder={isPatientUser ? "Ask a question or type a message..." : "Type a message... (Use @AI to ask the AI assistant)"}
+          allowAttachments={false}
+          offlineMode={false}
+          fullScreen={false}
         />
       </div>
     </div>
