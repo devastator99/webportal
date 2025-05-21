@@ -1,42 +1,32 @@
 
--- Function to allow users to delete their own room messages using security definer
--- to avoid infinite recursion in RLS policies
+-- Function to safely delete a room message with proper RLS checks
 CREATE OR REPLACE FUNCTION public.delete_room_message(p_message_id UUID)
 RETURNS BOOLEAN
-LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
+LANGUAGE plpgsql
 AS $$
 DECLARE
   v_sender_id UUID;
-  v_is_system_message BOOLEAN;
-  v_is_ai_message BOOLEAN;
+  v_room_id UUID;
 BEGIN
-  -- Get the message sender_id and check if it's a system or AI message
-  SELECT 
-    sender_id, 
-    is_system_message,
-    is_ai_message 
-  INTO 
-    v_sender_id, 
-    v_is_system_message,
-    v_is_ai_message
+  -- Get the message details
+  SELECT sender_id, room_id INTO v_sender_id, v_room_id
   FROM room_messages
   WHERE id = p_message_id;
   
-  -- Message not found
+  -- If no message found
   IF v_sender_id IS NULL THEN
-    RETURN FALSE;
+    RAISE EXCEPTION 'Message not found';
   END IF;
   
-  -- If it's a system message or AI message, don't allow deletion
-  IF v_is_system_message OR v_is_ai_message THEN
-    RAISE EXCEPTION 'System and AI messages cannot be deleted';
-  END IF;
-  
-  -- Verify the requesting user is the sender of the message
-  IF v_sender_id <> auth.uid() THEN
-    RAISE EXCEPTION 'Access denied: You can only delete your own messages';
+  -- Check if user is the sender of the message or has admin privileges
+  IF auth.uid() <> v_sender_id AND NOT EXISTS (
+    SELECT 1 FROM user_roles 
+    WHERE user_id = auth.uid() 
+    AND role = 'administrator'
+  ) THEN
+    RAISE EXCEPTION 'Not authorized to delete this message';
   END IF;
   
   -- Delete the message
@@ -47,5 +37,5 @@ BEGIN
 END;
 $$;
 
--- Grant execute permission on the function
+-- Grant execute permissions
 GRANT EXECUTE ON FUNCTION public.delete_room_message TO authenticated;

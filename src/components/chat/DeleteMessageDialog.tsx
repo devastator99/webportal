@@ -25,13 +25,12 @@ export const DeleteMessageDialog = ({ messageId, isOpen, setIsOpen, onDeleteSucc
 
   const handleDelete = async () => {
     try {
-      // Using a direct function call with parameters instead of RPC to avoid type issues
-      const { data, error } = await supabase
-        .from('room_messages')
-        .delete()
-        .eq('id', messageId)
-        .select()
-        .single();
+      const { data, error } = await supabase.rpc(
+        'delete_room_message', 
+        {
+          p_message_id: messageId
+        }
+      );
 
       if (error) {
         throw error;
