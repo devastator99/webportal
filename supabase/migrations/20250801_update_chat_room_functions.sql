@@ -62,7 +62,8 @@ RETURNS TABLE (
   is_system_message BOOLEAN,
   is_ai_message BOOLEAN,
   sender_name TEXT,
-  sender_role TEXT
+  sender_role TEXT,
+  read_by JSONB
 ) LANGUAGE plpgsql SECURITY DEFINER
 AS $$
 BEGIN
@@ -90,7 +91,8 @@ BEGIN
         (SELECT role FROM user_roles WHERE user_id = rm.sender_id LIMIT 1)::TEXT,
         'member'
       )
-    END AS sender_role
+    END AS sender_role,
+    rm.read_by
   FROM room_messages rm
   LEFT JOIN profiles p ON rm.sender_id = p.id
   WHERE rm.room_id = p_room_id
@@ -107,7 +109,7 @@ GRANT EXECUTE ON FUNCTION public.get_room_messages TO service_role;
 
 -- Updated function to handle room messages with roles (no message limit)
 CREATE OR REPLACE FUNCTION public.get_room_messages_with_role(p_room_id UUID, p_limit INT DEFAULT NULL, p_offset INT DEFAULT 0, p_user_role TEXT DEFAULT 'patient'::TEXT)
-RETURNS TABLE(id UUID, sender_id UUID, sender_name TEXT, sender_role TEXT, message TEXT, is_system_message BOOLEAN, is_ai_message BOOLEAN, created_at TIMESTAMPTZ)
+RETURNS TABLE(id UUID, sender_id UUID, sender_name TEXT, sender_role TEXT, message TEXT, is_system_message BOOLEAN, is_ai_message BOOLEAN, created_at TIMESTAMPTZ, read_by JSONB)
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path TO 'public'
@@ -150,7 +152,8 @@ BEGIN
     rm.message,
     rm.is_system_message,
     rm.is_ai_message,
-    rm.created_at
+    rm.created_at,
+    rm.read_by
   FROM room_messages rm
   LEFT JOIN profiles p ON rm.sender_id = p.id
   LEFT JOIN room_members rmem ON rm.sender_id = rmem.user_id AND rmem.room_id = p_room_id
@@ -175,3 +178,50 @@ $$;
 GRANT EXECUTE ON FUNCTION public.get_room_messages_with_role TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_room_messages_with_role TO anon;
 GRANT EXECUTE ON FUNCTION public.get_room_messages_with_role TO service_role;
+
+-- Add the delete_room_message function to fix build error
+CREATE OR REPLACE FUNCTION public.delete_room_message(p_message_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  v_sender_id UUID;
+  v_is_admin BOOLEAN;
+BEGIN
+  -- Get the message sender ID
+  SELECT sender_id INTO v_sender_id
+  FROM room_messages
+  WHERE id = p_message_id;
+  
+  -- Check if message exists
+  IF v_sender_id IS NULL THEN
+    RAISE EXCEPTION 'Message not found';
+  END IF;
+  
+  -- Check if user is the sender or an admin in the room
+  SELECT EXISTS (
+    SELECT 1 FROM room_members
+    WHERE user_id = auth.uid() AND room_id = (
+      SELECT room_id FROM room_messages WHERE id = p_message_id
+    ) AND is_admin = true
+  ) INTO v_is_admin;
+  
+  -- Only allow deletion if user is sender or admin
+  IF auth.uid() <> v_sender_id AND NOT v_is_admin THEN
+    RAISE EXCEPTION 'Access denied: You can only delete your own messages or as a room admin';
+  END IF;
+  
+  -- Delete the message
+  DELETE FROM room_messages
+  WHERE id = p_message_id;
+  
+  RETURN FOUND;
+END;
+$$;
+
+-- Grant execute permission
+GRANT EXECUTE ON FUNCTION public.delete_room_message TO authenticated;
+GRANT EXECUTE ON FUNCTION public.delete_room_message TO anon;
+GRANT EXECUTE ON FUNCTION public.delete_room_message TO service_role;

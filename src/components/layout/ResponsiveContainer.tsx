@@ -22,12 +22,13 @@ export const ResponsiveContainer = ({
 }: ResponsiveContainerProps) => {
   const { isMobile, isTablet } = useResponsive();
   
+  const style = maxWidth ? { maxWidth } : {};
+  
   return (
     <Component
       className={cn(
         'w-full mx-auto transition-all duration-200',
         !fluid && 'container',
-        maxWidth && `max-w-[${maxWidth}]`,
         withPadding && (
           isMobile 
             ? 'px-4' 
@@ -37,6 +38,7 @@ export const ResponsiveContainer = ({
         ),
         className
       )}
+      style={style}
     >
       {children}
     </Component>
