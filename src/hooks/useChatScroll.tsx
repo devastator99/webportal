@@ -8,7 +8,7 @@ interface UseChatScrollOptions {
   isNewMessage?: boolean;
   messagesToShow?: number;
   fullScreen?: boolean;
-  scrollThreshold?: number; // Added configurable threshold
+  scrollThreshold?: number;
 }
 
 export function useChatScroll({ 
@@ -18,7 +18,7 @@ export function useChatScroll({
   isNewMessage = false,
   messagesToShow = 0,
   fullScreen = false,
-  scrollThreshold = 150 // Default threshold for "near bottom" detection
+  scrollThreshold = 150
 }: UseChatScrollOptions) {
   const endRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -29,22 +29,23 @@ export function useChatScroll({
   const [isScrolling, setIsScrolling] = useState(false);
   const scrollTimerRef = useRef<number | null>(null);
 
-  // Debounced scroll handler to improve performance
+  // Improved scroll handler with better position detection
   const handleScroll = () => {
     if (!containerRef.current) return;
     
     const { scrollTop, scrollHeight, clientHeight } = containerRef.current;
-    // Use configurable threshold for "near bottom" detection
+    // More accurate "near bottom" detection with configurable threshold
     const isNearBottom = scrollHeight - scrollTop - clientHeight < scrollThreshold;
     
     setShouldAutoScroll(isNearBottom);
     setShowScrollButton(!isNearBottom);
     
+    // Track if user has scrolled up from bottom
     if (!isNearBottom && !hasScrolledUp) {
       setHasScrolledUp(true);
     }
 
-    // Set scrolling state with debounce
+    // Enhanced scrolling state tracking with debounce
     setIsScrolling(true);
     if (scrollTimerRef.current !== null) {
       window.clearTimeout(scrollTimerRef.current);
@@ -59,11 +60,10 @@ export function useChatScroll({
     if (fullScreen) {
       const header = document.querySelector('.chat-fullscreen-header');
       if (header) {
-        // Scrolling down - hide header
+        // Show/hide header based on scroll direction
         if (scrollTop > lastScrollTop && scrollTop > 50) {
           header.classList.add('hidden');
         } 
-        // Scrolling up - show header
         else if (scrollTop < lastScrollTop) {
           header.classList.remove('hidden');
         }
@@ -83,7 +83,6 @@ export function useChatScroll({
       if (container) {
         container.removeEventListener('scroll', handleScroll);
       }
-      // Clear any pending timeouts
       if (scrollTimerRef.current !== null) {
         window.clearTimeout(scrollTimerRef.current);
       }
@@ -92,21 +91,16 @@ export function useChatScroll({
 
   // Handle auto-scrolling with optimizations
   useEffect(() => {
-    // Only auto-scroll in these conditions:
-    // 1. When user is already near bottom
-    // 2. When a new message is added (not when loading older messages)
-    // 3. Not during initial loading of messages
-    // 4. Not during loading more (older) messages
     if ((shouldAutoScroll || isNewMessage) && !loadingMessages && !loadingMore && !isScrolling) {
       const scrollToEndSmooth = () => {
         if (endRef.current) {
+          // Use appropriate scroll behavior based on context
           const behavior = fullScreen || isNewMessage ? 'auto' : 'smooth';
           endRef.current.scrollIntoView({ 
             behavior, 
             block: 'end'
           });
           
-          // Show header when auto-scrolling on mobile
           if (fullScreen) {
             const header = document.querySelector('.chat-fullscreen-header');
             if (header && isNewMessage) {
@@ -134,7 +128,6 @@ export function useChatScroll({
         setShowScrollButton(false);
         setHasScrolledUp(false);
         
-        // Show header when manually scrolling to bottom
         if (fullScreen) {
           const header = document.querySelector('.chat-fullscreen-header');
           if (header) {

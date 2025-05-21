@@ -76,7 +76,7 @@
   }
 }
 
-/* Custom utility for hiding scrollbars while allowing scrolling */
+/* Enhanced scrollbar utilities */
 @layer utilities {
   .scrollbar-hide {
     -ms-overflow-style: none;  /* IE and Edge */
@@ -91,6 +91,7 @@
   .improved-scroll {
     -webkit-overflow-scrolling: touch;
     scroll-behavior: smooth;
+    overscroll-behavior-y: contain;
   }
 }
 
