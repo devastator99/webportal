@@ -1,209 +1,167 @@
 
-import { format } from "date-fns";
-import { Check, CheckCheck, Clock, Bot, Sparkles, Trash2 } from "lucide-react";
-import { cn } from "@/lib/utils";
-import { useState } from "react";
-import { 
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuTrigger 
-} from "@/components/ui/context-menu";
+import React, { useState } from "react";
+import { Avatar } from "@/components/ui/avatar";
+import { cn, fmt } from "@/lib/utils";
+import { MoreHorizontal, FileText, Download } from "lucide-react";
 import { DeleteMessageDialog } from "./DeleteMessageDialog";
-import { useToast } from "@/hooks/use-toast";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { formatDistanceToNow } from "date-fns";
+
+interface Sender {
+  id: string;
+  first_name?: string;
+  last_name?: string;
+  role?: string;
+}
+
+interface Message {
+  id: string;
+  message: string;
+  created_at: string;
+  read?: boolean;
+  sender: Sender;
+  is_system_message?: boolean;
+  is_ai_message?: boolean;
+  attachment_url?: string | null;
+}
 
 interface ChatMessageProps {
-  message: {
-    id: string;
-    message: string;
-    created_at: string;
-    read: boolean;
-    sender: {
-      id: string;
-      first_name: string;
-      last_name: string;
-      role?: string;
-    };
-    synced?: boolean | string;
-    is_ai_message?: boolean;
-    is_system_message?: boolean;
-  };
+  message: Message;
   isCurrentUser: boolean;
   showAvatar?: boolean;
-  offlineMode?: boolean;
-  isLocal?: boolean;
-  onPdfDownload?: () => void;
   onMessageDelete?: () => void;
+  onPdfDownload?: () => void;
+  onAttachmentDownload?: (path: string) => void;
 }
 
-export const ChatMessage = ({ 
-  message, 
-  isCurrentUser, 
+export const ChatMessage: React.FC<ChatMessageProps> = ({
+  message,
+  isCurrentUser,
   showAvatar = false,
-  offlineMode = false,
-  isLocal = false,
+  onMessageDelete,
   onPdfDownload,
-  onMessageDelete
-}: ChatMessageProps) => {
+  onAttachmentDownload
+}) => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const { toast } = useToast();
-
-  let formattedTime = '';
-  try {
-    const messageTime = new Date(message.created_at);
-    formattedTime = format(messageTime, "h:mm a");
-  } catch (error) {
-    console.error("Error formatting message time:", error);
-    formattedTime = 'Unknown time';
-  }
-
-  const senderFullName = `${message.sender.first_name || ''} ${message.sender.last_name || ''}`.trim() || 'Unknown';
   
-  const isAiBot = message.is_ai_message || message.sender.role === 'aibot' || message.sender.id === '00000000-0000-0000-0000-000000000000';
+  const senderName = message.sender.first_name 
+    ? `${message.sender.first_name} ${message.sender.last_name || ''}`.trim()
+    : 'Unknown User';
   
-  const isNutritionist = message.sender.role === 'nutritionist';
-  const isDoctor = message.sender.role === 'doctor';
+  const senderRole = message.sender.role || '';
+  const isAi = message.is_ai_message || message.sender.role === 'aibot';
+  const isSystem = message.is_system_message || false;
+  const hasAttachment = !!message.attachment_url;
   
-  const isPdfMessage = message.message.includes("PDF has been generated") || 
-                      message.message.includes("prescription as a PDF") ||
-                      message.message.includes("ready for download");
+  const timeAgo = formatDistanceToNow(new Date(message.created_at), { addSuffix: true });
   
-  const isSystemMessage = message.is_system_message;
-  
-  // Only allow message deletion if it's your own message and not a system or AI message
-  const canDelete = isCurrentUser && !isSystemMessage && !isAiBot;
-
-  const handleDeleteSuccess = () => {
-    if (onMessageDelete) {
-      onMessageDelete();
-    }
-  };
-
-  const getBubbleClass = () => {
-    if (isSystemMessage) return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-100";
-    if (isCurrentUser) return "bg-purple-500 text-white dark:bg-purple-600";
-    if (isAiBot) return "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-200";
-    if (isDoctor) return "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-100";
-    if (isNutritionist) return "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-100";
-    return "bg-white dark:bg-gray-800";
+  const handleDeleteMessage = () => {
+    setIsDeleteDialogOpen(true);
   };
   
-  // Wrap message in context menu if the user can delete it
-  const MessageContent = (
-    <div
-      className={cn(
-        "max-w-[75%] min-w-24 px-3 py-2 rounded-lg shadow-sm transition-all duration-200 message-bubble relative",
-        getBubbleClass(),
-        isSystemMessage && "mx-auto text-center",
-        isAiBot && !isCurrentUser && !isSystemMessage && "hover:shadow-md",
-        "group" // Always add group class for hover effects
-      )}
-    >
-      {showAvatar && !isCurrentUser && (
-        <span className="text-xs font-medium text-blue-600 dark:text-blue-400 block mb-1">
-          {senderFullName}
-          {message.sender.role && message.sender.role !== "patient" && (
-            <span className="ml-1 text-xs text-blue-500/80 dark:text-blue-300/80">
-              ({message.sender.role})
-            </span>
-          )}
-        </span>
-      )}
-      
-      {isPdfMessage && onPdfDownload && (
-        <button
-          onClick={onPdfDownload}
-          className="flex items-center gap-1 text-blue-600 dark:text-blue-400 mb-2 hover:underline"
-          aria-label="Download Prescription"
-        >
-          <span>Download Prescription</span>
-        </button>
-      )}
-      
-      {isAiBot && !isCurrentUser && (
-        <div className="flex items-center gap-1 mb-1 text-purple-700 dark:text-purple-400">
-          <Sparkles className="h-3 w-3" />
-          <span className="text-xs font-medium">AI Assistant</span>
-        </div>
-      )}
-      
-      <p className={cn(
-        "text-sm whitespace-pre-wrap mb-4",
-        isAiBot && !isCurrentUser && "leading-relaxed"
-      )}>
-        {message.message}
-      </p>
-      
-      <div className="flex items-center justify-end gap-1 message-time absolute bottom-1 right-2">
-        {canDelete && (
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsDeleteDialogOpen(true);
-            }}
-            className="text-red-500 hover:text-red-600 transition-colors mr-1 flex items-center"
-            aria-label="Delete message"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </button>
-        )}
-        
-        <span className="text-xs opacity-70">{formattedTime}</span>
-        
-        {isCurrentUser && (
-          <>
-            {offlineMode || !message.synced ? (
-              <Clock className="h-3 w-3 opacity-70" />
-            ) : isAiBot ? (
-              <Check className="h-3 w-3 text-blue-500" />
-            ) : isNutritionist ? (
-              <CheckCheck className="h-3 w-3 text-blue-500" />
-            ) : message.read ? (
-              <CheckCheck className="h-3 w-3 opacity-70 text-blue-400" />
-            ) : (
-              <Check className="h-3 w-3 opacity-70" />
-            )}
-          </>
-        )}
-        
-        {!isCurrentUser && isAiBot && (
-          <Bot className="h-3 w-3 text-purple-500 ml-1" />
-        )}
-        
-        {!isCurrentUser && isNutritionist && (
-          <CheckCheck className="h-3 w-3 text-blue-500 ml-1" />
-        )}
-      </div>
-    </div>
-  );
+  const getAttachmentFilename = (url: string) => {
+    if (!url) return 'attachment';
+    return url.split('/').pop() || 'attachment';
+  };
   
   return (
-    <div
-      className={`flex ${isCurrentUser ? "justify-end" : "justify-start"} transition-opacity bubble-in mb-2`}
-    >
-      {canDelete ? (
-        <ContextMenu>
-          <ContextMenuTrigger>{MessageContent}</ContextMenuTrigger>
-          <ContextMenuContent>
-            <ContextMenuItem 
-              className="text-red-600 flex gap-2 cursor-pointer"
-              onClick={() => setIsDeleteDialogOpen(true)}
-            >
-              <Trash2 className="h-4 w-4" />
-              Delete Message
-            </ContextMenuItem>
-          </ContextMenuContent>
-        </ContextMenu>
-      ) : (
-        MessageContent
-      )}
+    <>
+      <div
+        className={cn(
+          "flex mb-4",
+          isCurrentUser ? "justify-end" : "justify-start"
+        )}
+      >
+        <div className={cn("flex", isCurrentUser ? "flex-row-reverse" : "flex-row")}>
+          {showAvatar && !isCurrentUser && (
+            <div className="flex-shrink-0 mr-2">
+              <Avatar className="h-8 w-8 border">
+                <div className="bg-gradient-to-br from-blue-500 to-purple-600 text-white h-full w-full flex items-center justify-center">
+                  {senderName.charAt(0)}
+                </div>
+              </Avatar>
+            </div>
+          )}
+          
+          <div className={cn("flex flex-col max-w-[80%]", isCurrentUser ? "items-end" : "items-start")}>
+            {!isCurrentUser && (
+              <div className="text-xs text-muted-foreground mb-1">
+                <span className="font-medium">{senderName}</span>
+                {senderRole && (
+                  <span className="ml-1 text-xs opacity-75">({senderRole})</span>
+                )}
+              </div>
+            )}
+            
+            <div className={cn(
+              "rounded-lg py-2 px-3",
+              isCurrentUser 
+                ? "bg-primary text-primary-foreground" 
+                : isAi 
+                  ? "bg-secondary/40 border border-secondary/20 text-secondary-foreground" 
+                  : isSystem 
+                    ? "bg-muted text-muted-foreground italic" 
+                    : "bg-background border dark:bg-slate-800 dark:border-slate-700",
+              "relative flex flex-col"
+            )}>
+              <div className="message-content break-words">{message.message}</div>
+              
+              {hasAttachment && (
+                <div className="mt-2 flex items-center gap-2 p-2 bg-background/50 dark:bg-slate-800/50 rounded-md">
+                  <FileText className="h-4 w-4 flex-shrink-0" />
+                  <span className="text-xs truncate flex-1">{getAttachmentFilename(message.attachment_url!)}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-6 w-6 rounded-full flex-shrink-0"
+                    onClick={() => onAttachmentDownload?.(message.attachment_url!)}
+                  >
+                    <Download className="h-3 w-3" />
+                  </Button>
+                </div>
+              )}
+              
+              <div className="text-xs opacity-50 self-end mt-1">
+                {timeAgo}
+              </div>
+            </div>
+          </div>
+          
+          {isCurrentUser && (
+            <div className="flex-shrink-0 ml-2">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-8 w-8 p-0 rounded-full" size="icon">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={handleDeleteMessage}>
+                    Delete Message
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          )}
+        </div>
+      </div>
       
-      <DeleteMessageDialog 
-        messageId={message.id}
-        isOpen={isDeleteDialogOpen}
-        setIsOpen={setIsDeleteDialogOpen}
-        onDeleteSuccess={handleDeleteSuccess}
-      />
-    </div>
+      {isDeleteDialogOpen && (
+        <DeleteMessageDialog
+          messageId={message.id}
+          isOpen={isDeleteDialogOpen}
+          setIsOpen={setIsDeleteDialogOpen}
+          onDeleteSuccess={() => {
+            if (onMessageDelete) onMessageDelete();
+          }}
+        />
+      )}
+    </>
   );
-}
+};

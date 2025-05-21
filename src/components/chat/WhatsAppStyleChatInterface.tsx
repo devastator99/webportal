@@ -12,7 +12,7 @@ import { groupMessagesByDate, safeParseISO } from "@/utils/dateUtils";
 import { useChatScroll } from "@/hooks/useChatScroll";
 import { CollapsibleMessageGroup } from "./CollapsibleMessageGroup";
 import { ErrorBoundary } from "@/components/common/ErrorBoundary";
-import { cn } from "@/lib/utils";
+import { cn, fmt } from "@/lib/utils";
 
 interface WhatsAppStyleChatInterfaceProps {
   patientRoomId?: string | null;
@@ -29,6 +29,8 @@ export const WhatsAppStyleChatInterface: React.FC<WhatsAppStyleChatInterfaceProp
   const [message, setMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isAiTyping, setIsAiTyping] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const { 
     data: messagesData, 
@@ -123,12 +125,46 @@ export const WhatsAppStyleChatInterface: React.FC<WhatsAppStyleChatInterfaceProp
     isNewMessage: true
   });
 
+  const handleFileSelect = (file: File) => {
+    setSelectedFile(file);
+  };
+
+  const handleClearFile = () => {
+    setSelectedFile(null);
+    setUploadProgress(0);
+  };
+
   const handleSendMessage = async () => {
-    if (!message.trim() || !patientRoomId || !user) return;
+    if ((!message.trim() && !selectedFile) || !patientRoomId || !user) return;
     
     try {
       setIsLoading(true);
       
+      let fileUrl = null;
+      
+      // Upload file if selected
+      if (selectedFile) {
+        const fileExt = selectedFile.name.split('.').pop();
+        const filePath = `${patientRoomId}/${user.id}_${Date.now()}.${fileExt}`;
+        
+        // Upload to Supabase Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('chat_attachments')
+          .upload(filePath, selectedFile, {
+            onUploadProgress: (progress) => {
+              const percent = Math.round((progress.loaded / progress.total) * 100);
+              setUploadProgress(percent);
+            }
+          });
+          
+        if (uploadError) throw uploadError;
+        
+        if (uploadData) {
+          fileUrl = filePath;
+        }
+      }
+      
+      // Insert message with file URL if applicable
       const { error } = await supabase
         .from('room_messages')
         .insert({
@@ -136,12 +172,15 @@ export const WhatsAppStyleChatInterface: React.FC<WhatsAppStyleChatInterfaceProp
           sender_id: user.id,
           message: message.trim(),
           is_system_message: false,
-          read_by: [user.id]
+          read_by: [user.id],
+          attachment_url: fileUrl
         });
       
       if (error) throw error;
       
       setMessage('');
+      setSelectedFile(null);
+      setUploadProgress(0);
       
       // Refresh messages
       queryClient.invalidateQueries({ queryKey: ["room_messages", patientRoomId] });
@@ -196,6 +235,38 @@ export const WhatsAppStyleChatInterface: React.FC<WhatsAppStyleChatInterfaceProp
     });
   };
 
+  const handleDownloadAttachment = async (attachmentPath: string) => {
+    if (!attachmentPath) return;
+    
+    try {
+      // Get signed URL for download
+      const { data: urlData, error: urlError } = await supabase.functions.invoke(
+        'get-medical-report-url',
+        { body: { filePath: attachmentPath } }
+      );
+      
+      if (urlError) throw urlError;
+      
+      if (urlData?.signedUrl) {
+        // Create a temporary link to trigger download
+        const link = document.createElement('a');
+        link.href = urlData.signedUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (err) {
+      console.error('Error downloading attachment:', err);
+      toast({
+        title: 'Error downloading attachment',
+        description: 'Please try again',
+        variant: 'destructive'
+      });
+    }
+  };
+
   if (!patientRoomId) {
     return (
       <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
@@ -208,7 +279,7 @@ export const WhatsAppStyleChatInterface: React.FC<WhatsAppStyleChatInterfaceProp
   const messageGroups = groupMessagesByDate(messages);
 
   return (
-    <div className={`flex flex-col ${fullScreen ? 'h-[calc(100vh-20px)]' : 'h-full'}`}>
+    <div className={cn(`flex flex-col ${fullScreen ? 'h-[calc(100vh-20px)]' : 'h-full'}`)}>
       <ScrollArea 
         className="flex-1 bg-[#f0f2f5] dark:bg-slate-900 px-2 pt-2 pb-16" 
         viewportRef={containerRef}
@@ -245,6 +316,7 @@ export const WhatsAppStyleChatInterface: React.FC<WhatsAppStyleChatInterfaceProp
                           showAvatar={true}
                           onPdfDownload={handleDownloadPDF}
                           onMessageDelete={handleMessageDelete}
+                          onAttachmentDownload={handleDownloadAttachment}
                         />
                       ))}
                     </CollapsibleMessageGroup>
@@ -275,6 +347,10 @@ export const WhatsAppStyleChatInterface: React.FC<WhatsAppStyleChatInterfaceProp
           disabled={isLoading || !patientRoomId || isAiTyping}
           isLoading={isLoading || isAiTyping}
           placeholder="Type a message... (Use @AI to ask the AI assistant)"
+          onFileSelect={handleFileSelect}
+          selectedFile={selectedFile}
+          onClearFile={handleClearFile}
+          uploadProgress={uploadProgress}
         />
       </div>
     </div>
