@@ -7,9 +7,7 @@ export const ComingSoonSection = () => {
   return <section className="bg-gray-50 py-16 md:py-24">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto text-center">
-          <div className="inline-flex items-center justify-center p-2 bg-indigo-100 rounded-full mb-6">
-            
-          </div>
+          
           
           
           
