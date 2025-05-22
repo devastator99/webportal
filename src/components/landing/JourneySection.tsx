@@ -1,14 +1,11 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { MobileAppMockup } from '../ui/MobileAppMockup';
 import { useResponsive } from '@/contexts/ResponsiveContext';
-
 interface JourneySectionProps {
   openAuthModal?: (view: 'login' | 'register') => void;
 }
-
 export const JourneySection: React.FC<JourneySectionProps> = ({
   openAuthModal
 }) => {
@@ -16,13 +13,11 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
     isMobile,
     isTablet
   } = useResponsive();
-  
   const handleStartJourneyClick = () => {
     if (openAuthModal) {
       openAuthModal('register');
     }
   };
-  
   return <section className="py-12 md:py-16 lg:py-20 bg-black text-white relative overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
         <div className="text-center mb-8 md:mb-12">
@@ -127,7 +122,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           {/* Section 3: Science image - now moved to right side of divider */}
           <div className="md:col-start-2 md:col-end-3 md:row-start-3 flex justify-center md:justify-start">
             <div className="relative max-w-[80%] sm:max-w-[70%] md:max-w-none">
-              <img className="rounded-xl sm:rounded-2xl shadow-lg" src="/lovable-uploads/5989b36b-4d21-46b9-9fee-38c13b8afdf3.png" alt="Science-backed transformation" />
+              
             </div>
           </div>
           
