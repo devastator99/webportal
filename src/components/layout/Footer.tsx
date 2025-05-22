@@ -90,12 +90,7 @@ Integrative Health Services Pvt. Ltd.</span>
         </div>
         
         <div className="border-t border-white/10 mt-12 pt-8 text-center">
-          <div className="relative w-20 h-20 mx-auto mb-6 animate-[spin_20s_linear_infinite]">
-            <div className="absolute inset-0 rounded-full border-2 border-dashed border-indigo-400/30"></div>
-            <div className="absolute inset-[15%] flex items-center justify-center bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full">
-              <span className="text-xs font-medium">COMING<br />SOON</span>
-            </div>
-          </div>
+          
           <p className="text-indigo-200/80 text-sm">© {new Date().getFullYear()} Anubhooti Health. All rights reserved.</p>
         </div>
       </div>
