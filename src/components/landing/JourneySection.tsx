@@ -86,13 +86,13 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           </div>
           
           {/* Section 2: Track What Matters */}
-          <div className="md:col-start-2 md:col-end-3 md:row-start-2 flex flex-col items-center md:items-start relative">
-            <div className="md:max-w-md md:ml-auto md:-mt-6">
-              <p className="text-lg text-white/80 mb-4">
+          <div className="md:col-start-2 md:col-end-3 md:row-start-2 flex flex-col items-center md:items-start relative py-2 md:py-0">
+            <div className="md:max-w-md md:ml-auto md:-mt-3">
+              <p className="text-lg text-white/80 mb-2">
                 Habit tracker with deep insights<br />
                 to turn effort into real change.
               </p>
-              <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6">
+              <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
                 Track What Matters, Change What Counts
               </h3>
             </div>
