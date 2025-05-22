@@ -1,13 +1,10 @@
-
 import React from 'react';
 import { Logo } from '../ui/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, ArrowRight } from 'lucide-react';
-
 export const Footer = () => {
-  return (
-    <footer className="relative bg-gradient-to-br from-purple-900 via-indigo-900 to-black text-white py-16 overflow-hidden">
+  return <footer className="relative bg-gradient-to-br from-purple-900 via-indigo-900 to-black text-white py-16 overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[800px] h-[800px] bg-purple-700 opacity-20 rounded-full blur-3xl" />
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-indigo-700 opacity-20 rounded-full blur-2xl" />
@@ -46,47 +43,7 @@ export const Footer = () => {
           </div>
           
           {/* Quick Links */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-blue-300">Quick Links</h3>
-            <ul className="space-y-3">
-              <li>
-                <a href="#benefits" className="flex items-center group text-indigo-200 hover:text-white transition-colors text-sm">
-                  <ArrowRight size={14} className="mr-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  Benefits
-                </a>
-              </li>
-              <li>
-                <a href="#offerings" className="flex items-center group text-indigo-200 hover:text-white transition-colors text-sm">
-                  <ArrowRight size={14} className="mr-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  Our Services
-                </a>
-              </li>
-              <li>
-                <a href="#testimonials" className="flex items-center group text-indigo-200 hover:text-white transition-colors text-sm">
-                  <ArrowRight size={14} className="mr-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  Testimonials
-                </a>
-              </li>
-              <li>
-                <a href="#" className="flex items-center group text-indigo-200 hover:text-white transition-colors text-sm">
-                  <ArrowRight size={14} className="mr-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  About Us
-                </a>
-              </li>
-              <li>
-                <a href="#" className="flex items-center group text-indigo-200 hover:text-white transition-colors text-sm">
-                  <ArrowRight size={14} className="mr-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  Blog
-                </a>
-              </li>
-              <li>
-                <a href="#" className="flex items-center group text-indigo-200 hover:text-white transition-colors text-sm">
-                  <ArrowRight size={14} className="mr-2 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  Contact
-                </a>
-              </li>
-            </ul>
-          </div>
+          
           
           {/* Contact */}
           <div>
@@ -120,11 +77,7 @@ Integrative Health Services Pvt. Ltd.</span>
             </p>
             <div className="flex flex-col space-y-2">
               <div className="relative">
-                <Input 
-                  type="email" 
-                  placeholder="Your email address" 
-                  className="bg-white/10 border-white/20 text-white placeholder:text-indigo-200/70 pr-12" 
-                />
+                <Input type="email" placeholder="Your email address" className="bg-white/10 border-white/20 text-white placeholder:text-indigo-200/70 pr-12" />
                 <Button className="absolute right-0 inset-y-0 px-3 bg-transparent hover:bg-transparent">
                   <ArrowRight size={18} className="text-indigo-300" />
                 </Button>
@@ -140,12 +93,11 @@ Integrative Health Services Pvt. Ltd.</span>
           <div className="relative w-20 h-20 mx-auto mb-6 animate-[spin_20s_linear_infinite]">
             <div className="absolute inset-0 rounded-full border-2 border-dashed border-indigo-400/30"></div>
             <div className="absolute inset-[15%] flex items-center justify-center bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full">
-              <span className="text-xs font-medium">COMING<br/>SOON</span>
+              <span className="text-xs font-medium">COMING<br />SOON</span>
             </div>
           </div>
           <p className="text-indigo-200/80 text-sm">© {new Date().getFullYear()} Anubhooti Health. All rights reserved.</p>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
