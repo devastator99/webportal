@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -95,6 +94,15 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
               <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
                 Track What Matters, Change What Counts
               </h3>
+            </div>
+            
+            {/* Added image below the content */}
+            <div className="w-full mt-4 md:mt-6">
+              <img 
+                src="/lovable-uploads/72294fef-845b-4724-8b80-eac027068410.png" 
+                alt="Holistic Science-Backed Transformation" 
+                className="w-full max-w-md mx-auto md:mx-0 rounded-lg shadow-lg"
+              />
             </div>
           </div>
           
