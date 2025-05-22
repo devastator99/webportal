@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +16,7 @@ import { groupMessagesByDate, safeParseISO } from "@/utils/dateUtils";
 import { ChatInput } from "./ChatInput";
 import { cn } from "@/lib/utils";
 
+// Updated interface to include all properties used in the component
 interface RoomMessage {
   id: string;
   sender_id: string;
@@ -29,6 +29,18 @@ interface RoomMessage {
   read_by: string[] | null;
   file_url?: string;
   message_type?: 'text' | 'image' | 'file' | 'pdf';
+}
+
+interface DatabaseMessage {
+  id: string;
+  sender_id: string;
+  message: string;
+  is_system_message?: boolean;
+  is_ai_message?: boolean;
+  created_at: string;
+  read_by?: any;  // Could be array or string or null
+  file_url?: string;
+  message_type?: string;
 }
 
 interface CareTeamRoom {
@@ -142,7 +154,7 @@ export const CareTeamRoomChat = ({
         
         const formattedMessages: RoomMessage[] = [];
         
-        for (const msg of messageData) {
+        for (const msg of messageData as DatabaseMessage[]) {
           let senderName = 'Unknown';
           let senderRole = 'unknown';
           
@@ -179,6 +191,7 @@ export const CareTeamRoomChat = ({
               readByArray = msg.read_by.map(item => String(item));
             } else if (typeof msg.read_by === 'object') {
               try {
+                // If it's a JSON object but should be an array
                 const parsedArray = Array.isArray(msg.read_by) ? msg.read_by : [];
                 readByArray = parsedArray.map(item => String(item));
               } catch (e) {
@@ -198,13 +211,13 @@ export const CareTeamRoomChat = ({
             is_ai_message: msg.is_ai_message || false,
             created_at: msg.created_at,
             read_by: readByArray,
-            file_url: msg.file_url || undefined,
-            message_type: msg.message_type || 'text'
+            file_url: msg.file_url,
+            message_type: (msg.message_type as 'text' | 'image' | 'file' | 'pdf') || 'text'
           });
         }
         
         if (messageData.length > 0 && user?.id) {
-          for (const msg of messageData) {
+          for (const msg of messageData as DatabaseMessage[]) {
             let currentReadBy: string[] = [];
             
             if (msg.read_by && Array.isArray(msg.read_by)) {
@@ -539,4 +552,3 @@ export const CareTeamRoomChat = ({
     </div>
   );
 };
-
