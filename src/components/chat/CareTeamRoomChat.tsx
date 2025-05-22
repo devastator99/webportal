@@ -26,9 +26,9 @@ interface RoomMessage {
   is_system_message: boolean;
   is_ai_message: boolean;
   created_at: string;
-  read_by: string[] | null;  // Added this missing property
-  file_url?: string;         // Added this missing property
-  message_type?: 'text' | 'image' | 'file' | 'pdf';  // Added this missing property
+  read_by: string[] | null;
+  file_url?: string;
+  message_type?: 'text' | 'image' | 'file' | 'pdf';
 }
 
 interface CareTeamRoom {
@@ -171,6 +171,7 @@ export const CareTeamRoomChat = ({
             }
           }
           
+          // Process read_by array from database
           let readByArray: string[] = [];
           
           if (msg.read_by) {
@@ -186,6 +187,7 @@ export const CareTeamRoomChat = ({
             }
           }
           
+          // Make sure all fields are properly assigned to match the RoomMessage interface
           formattedMessages.push({
             id: msg.id,
             sender_id: msg.sender_id,
@@ -196,8 +198,8 @@ export const CareTeamRoomChat = ({
             is_ai_message: msg.is_ai_message || false,
             created_at: msg.created_at,
             read_by: readByArray,
-            file_url: msg.file_url,
-            message_type: msg.message_type
+            file_url: msg.file_url || undefined,
+            message_type: msg.message_type || 'text'
           });
         }
         
@@ -240,7 +242,7 @@ export const CareTeamRoomChat = ({
   } = useChatScroll({
     messages,
     loadingMessages: messagesQueryLoading,
-    loadingMore: loadingMore,
+    loadingMore,
     isNewMessage: true
   });
 
@@ -537,3 +539,4 @@ export const CareTeamRoomChat = ({
     </div>
   );
 };
+
