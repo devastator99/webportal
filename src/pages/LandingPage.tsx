@@ -98,8 +98,6 @@ export const LandingPage = () => {
           <BenefitsSection />
         </ResponsiveContainer>
         
-        <TestimonialsSection />
-        
         <ResponsiveContainer>
           <OfferingsSection openAuthModal={openAuthModal} />
         </ResponsiveContainer>
@@ -111,6 +109,8 @@ export const LandingPage = () => {
         </ResponsiveContainer>
         
         <CallToAction openAuthModal={openAuthModal} />
+        
+        <TestimonialsSection />
       </main>
       <Footer />
       
