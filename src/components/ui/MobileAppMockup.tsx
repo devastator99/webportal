@@ -5,16 +5,16 @@ import { useResponsive } from '@/contexts/ResponsiveContext';
 export const MobileAppMockup = () => {
   const { isMobile, isTablet } = useResponsive();
 
-  // Determine appropriate sizes based on viewport
+  // Updated sizing to be more compact
   const getMockupSize = () => {
-    if (isMobile) return { width: '100%', height: 'auto' };
-    if (isTablet) return { width: '80%', height: 'auto' };
-    return { width: '100%', height: 'auto' };
+    if (isMobile) return { width: '80%', height: 'auto' };  // Reduced from 100%
+    if (isTablet) return { width: '65%', height: 'auto' };  // Reduced from 80%
+    return { width: '75%', height: 'auto' };  // Reduced from 100%
   };
 
   return (
-    <div className="relative" style={getMockupSize()}>
-      <div className="bg-black rounded-3xl overflow-hidden shadow-xl border-8 border-gray-900 aspect-[9/19] relative">
+    <div className="relative w-full flex justify-center" style={getMockupSize()}>
+      <div className="bg-black rounded-3xl overflow-hidden shadow-xl border-8 border-gray-900 aspect-[9/19] relative max-w-[280px]">
         <div className="absolute top-0 left-0 w-full h-6 bg-black flex items-center justify-center">
           <div className="w-16 h-4 bg-gray-900 rounded-b-xl"></div>
         </div>
@@ -77,8 +77,8 @@ export const MobileAppMockup = () => {
           </div>
         </div>
       </div>
-      {/* Health stats floating card */}
-      <div className="absolute -bottom-4 -right-4 sm:-bottom-6 sm:-right-6 bg-white rounded-lg shadow-lg p-2 sm:p-3 text-xs">
+      {/* Health stats floating card - adjusted positioning */}
+      <div className="absolute -bottom-4 -right-2 sm:-bottom-5 sm:-right-3 bg-white rounded-lg shadow-lg p-2 sm:p-3 text-xs">
         <div className="font-medium text-gray-800">Health Stats</div>
         <div className="flex items-center mt-1">
           <div className="w-1 h-4 bg-green-500 rounded mr-1"></div>
