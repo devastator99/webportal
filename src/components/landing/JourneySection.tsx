@@ -115,10 +115,10 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           {/* Section 3: Science */}
           <div className="md:col-start-1 md:col-end-2 md:row-start-3 flex flex-col items-center md:items-end">
             <div className="md:max-w-md md:ml-auto md:-mt-6">
-              <p className="text-lg text-white/80 mb-4">
+              <p className="text-lg text-white/80 mb-4 md:text-right">
                 From band-aids to breakthroughs.
               </p>
-              <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6">
+              <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6 md:text-right">
                 Holistic, Science-Backed Transformation
               </h3>
             </div>
