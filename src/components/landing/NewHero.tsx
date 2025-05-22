@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { MobileAppMockup } from '../ui/MobileAppMockup';
@@ -34,11 +33,77 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ openAuthModal }) => {
         background: 'linear-gradient(135deg, #4a2f80 0%, #6b46c1 100%)',
       }}
     >
-      {/* Animated circles background - improved for mobile */}
+      {/* Redesigned background with floating elements */}
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-32 sm:w-48 md:w-64 h-32 sm:h-48 md:h-64 bg-purple-500 rounded-full opacity-20 blur-3xl animate-pulse-slow"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-40 sm:w-60 md:w-80 h-40 sm:h-60 md:h-80 bg-indigo-500 rounded-full opacity-20 blur-3xl animate-float-slow"></div>
-        <div className="absolute top-3/4 left-3/4 w-24 sm:w-36 md:w-48 h-24 sm:h-36 md:h-48 bg-teal-500 rounded-full opacity-10 blur-3xl animate-float"></div>
+        {/* Large purple gradient circle in the background */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] rounded-full bg-purple-800 opacity-40 blur-3xl"></div>
+        
+        {/* Floating elements/icons */}
+        <div className="absolute top-[20%] left-[15%] w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 border-2 rounded-2xl overflow-hidden animate-float">
+          <div className="w-full h-full bg-purple-700 relative flex items-center justify-center">
+            <div className="w-3/4 h-3/4 rounded-full border-[6px] border-blue-400 relative">
+              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-1/3 bg-blue-400 rounded-t-full"></div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="absolute top-[40%] right-[15%] w-28 h-28 sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-2xl border-2 overflow-hidden animate-float-slow">
+          <div className="w-full h-full flex items-center justify-center">
+            <img 
+              src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" 
+              alt="Doctor illustration" 
+              className="w-full h-full object-contain" 
+            />
+          </div>
+        </div>
+        
+        <div className="absolute bottom-[30%] right-[25%] w-20 h-20 sm:w-24 sm:h-24 border-2 rounded-2xl overflow-hidden animate-float" style={{ animationDelay: '0.5s' }}>
+          <div className="w-full h-full flex items-center justify-center">
+            <img 
+              src="/lovable-uploads/5989b36b-4d21-46b9-9fee-38c13b8afdf3.png" 
+              alt="Health activity illustration" 
+              className="w-full h-full object-contain p-1" 
+            />
+          </div>
+        </div>
+        
+        <div className="absolute top-[35%] left-[30%] w-20 h-20 sm:w-24 sm:h-24 border-2 rounded-2xl overflow-hidden animate-float-slow" style={{ animationDelay: '0.7s' }}>
+          <div className="w-full h-full bg-purple-700 flex items-center justify-center">
+            <div className="w-4/5 h-4/5 relative">
+              <div className="absolute inset-0 bg-red-500 rounded-full overflow-hidden">
+                <div className="absolute top-0 left-1/4 w-1/2 h-1/4 bg-green-500 rounded-full"></div>
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 h-1/3 bg-yellow-400 rounded-md transform rotate-6"></div>
+            </div>
+          </div>
+        </div>
+        
+        {/* Calendar element at bottom */}
+        <div className="absolute bottom-0 left-[5%] w-48 h-16 sm:w-56 sm:h-20 overflow-hidden rounded-t-lg border-2 border-b-0">
+          <div className="w-full h-full bg-cyan-500 grid grid-cols-5 text-center">
+            {['25', '26', '27', '28', '29'].map((day, i) => (
+              <div key={i} className="flex flex-col items-center justify-center text-white">
+                {i % 2 === 1 && <span className="text-xs">★</span>}
+                <span className="font-bold">{day}</span>
+                <span className="text-xs">{['Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i]}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Bottom mobile app menu bar */}
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-64 h-12 sm:w-72 sm:h-14 bg-black rounded-t-xl flex items-center px-4">
+          <div className="mr-auto text-white">
+            <div className="flex items-center">
+              <div className="w-6 h-1 bg-white rounded-full mx-1"></div>
+              <div className="w-6 h-1 bg-white rounded-full mx-1"></div>
+              <div className="w-6 h-1 bg-white rounded-full mx-1"></div>
+            </div>
+          </div>
+          <div className="ml-auto text-white font-semibold">
+            AnubhootiHealth
+          </div>
+        </div>
       </div>
       
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
