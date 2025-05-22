@@ -1,26 +1,24 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import '@/styles/glass.css';
 import { useBreakpoint } from '@/hooks/use-responsive-layout';
-
 interface CallToActionProps {
   openAuthModal?: (view: 'login' | 'register') => void;
 }
-
-export const CallToAction: React.FC<CallToActionProps> = ({ openAuthModal }) => {
-  const { isSmallScreen } = useBreakpoint();
-  
+export const CallToAction: React.FC<CallToActionProps> = ({
+  openAuthModal
+}) => {
+  const {
+    isSmallScreen
+  } = useBreakpoint();
   const handleStartClick = () => {
     if (openAuthModal) {
       openAuthModal('login');
     }
   };
-  
-  return (
-    <section className="py-10 md:py-16 lg:py-20 bg-black text-white relative overflow-hidden">
+  return <section className="py-10 md:py-16 lg:py-20 bg-black text-white relative overflow-hidden">
       {/* Glassmorphism overlay */}
-      <div className="absolute inset-0 bg-purple-900/10 backdrop-blur-sm"></div>
+      
       
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
         <div className="max-w-4xl mx-auto text-center">
@@ -30,16 +28,11 @@ export const CallToAction: React.FC<CallToActionProps> = ({ openAuthModal }) => 
               Join AnubhootiHealth and discover a personalized approach to your health and wellbeing, 
               combining modern medicine with time-tested healing traditions.
             </p>
-            <Button
-              size={isSmallScreen ? "default" : "lg"}
-              onClick={handleStartClick}
-              className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white text-base md:text-lg px-6 md:px-8 py-2 md:py-6 w-full sm:w-auto"
-            >
+            <Button size={isSmallScreen ? "default" : "lg"} onClick={handleStartClick} className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 text-white text-base md:text-lg px-6 md:px-8 py-2 md:py-6 w-full sm:w-auto">
               Get Started Now
             </Button>
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
