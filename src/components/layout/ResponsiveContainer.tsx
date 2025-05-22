@@ -36,10 +36,10 @@ export const ResponsiveContainer = ({
         !fluid && 'container',
         withPadding && (
           isMobile 
-            ? 'px-4 py-10' 
+            ? 'px-4 py-6' 
             : isTablet 
-              ? 'px-6 py-12' 
-              : 'px-8 py-16'
+              ? 'px-6 py-8' 
+              : 'px-8 py-10'
         ),
         className
       )}
