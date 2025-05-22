@@ -26,9 +26,9 @@ interface RoomMessage {
   is_system_message: boolean;
   is_ai_message: boolean;
   created_at: string;
-  read_by: string[] | null;
-  file_url?: string;
-  message_type?: 'text' | 'image' | 'file' | 'pdf';
+  read_by: string[] | null;  // Added this missing property
+  file_url?: string;         // Added this missing property
+  message_type?: 'text' | 'image' | 'file' | 'pdf';  // Added this missing property
 }
 
 interface CareTeamRoom {
@@ -240,7 +240,7 @@ export const CareTeamRoomChat = ({
   } = useChatScroll({
     messages,
     loadingMessages: messagesQueryLoading,
-    loadingMore,
+    loadingMore: loadingMore,
     isNewMessage: true
   });
 
