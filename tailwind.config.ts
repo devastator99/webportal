@@ -39,6 +39,8 @@ export default {
         'slide-out': 'slideOut 0.3s ease-out forwards',
         'scale-in': 'scaleIn 0.2s ease-out forwards',
         'scale-out': 'scaleOut 0.2s ease-out forwards',
+        'spin': 'spin 20s linear infinite',
+        'spin-reverse': 'spin 15s linear infinite reverse',
       },
       keyframes: {
         fadeUp: {
@@ -60,6 +62,10 @@ export default {
         scaleOut: {
           from: { transform: 'scale(1)', opacity: '1' },
           to: { transform: 'scale(0.95)', opacity: '0' },
+        },
+        spin: {
+          from: { transform: 'rotate(0deg)' },
+          to: { transform: 'rotate(360deg)' },
         },
       },
     },
