@@ -1,25 +1,24 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { MobileAppMockup } from '../ui/MobileAppMockup';
 import { useResponsive } from '@/contexts/ResponsiveContext';
-
 interface JourneySectionProps {
   openAuthModal?: (view: 'login' | 'register') => void;
 }
-
-export const JourneySection: React.FC<JourneySectionProps> = ({ openAuthModal }) => {
-  const { isMobile, isTablet } = useResponsive();
-  
+export const JourneySection: React.FC<JourneySectionProps> = ({
+  openAuthModal
+}) => {
+  const {
+    isMobile,
+    isTablet
+  } = useResponsive();
   const handleStartJourneyClick = () => {
     if (openAuthModal) {
       openAuthModal('register');
     }
   };
-  
-  return (
-    <section className="py-16 md:py-20 lg:py-24 bg-black text-white relative overflow-hidden">
+  return <section className="py-16 md:py-20 lg:py-24 bg-black text-white relative overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
         <div className="text-center mb-12 md:mb-16">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">Your Journey at AnubhootiHealth</h2>
@@ -53,43 +52,29 @@ export const JourneySection: React.FC<JourneySectionProps> = ({ openAuthModal })
           {/* Timeline indicator 1 - desktop only */}
           <div className="hidden md:flex absolute left-1/2 top-24 transform -translate-x-1/2 z-20">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
-              <img 
-                src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" 
-                alt="Avatar" 
-                className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover"
-              />
+              <img src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" alt="Avatar" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" />
             </div>
           </div>
           
           {/* Mobile timeline indicator 1 */}
           <div className="flex md:hidden justify-center my-6">
             <div className="w-12 h-12 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
-              <img 
-                src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" 
-                alt="Avatar" 
-                className="w-8 h-8 rounded-full object-cover"
-              />
+              <img src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
             </div>
           </div>
           
           {/* Section 2: Calendar tracking - responsive layout reversal on mobile */}
           <div className="md:col-start-1 md:col-end-2 md:row-start-2 flex justify-center md:justify-end">
             <div className="relative max-w-[80%] sm:max-w-[70%] md:max-w-none">
-              <img 
-                className="rounded-xl sm:rounded-2xl shadow-lg"
-                src="/lovable-uploads/90f15a11-74d0-46f1-8b5f-38cb0b2595d4.png" 
-                alt="Person with tracking app" 
-              />
+              <img className="rounded-xl sm:rounded-2xl shadow-lg" src="/lovable-uploads/90f15a11-74d0-46f1-8b5f-38cb0b2595d4.png" alt="Person with tracking app" />
               <div className="absolute -bottom-4 -right-4 sm:-bottom-8 sm:-right-8 bg-cyan-400 rounded-lg sm:rounded-xl p-2 text-black">
                 <div className="flex space-x-1 text-xs">
-                  {[24, 25, 26, 27, 28, 29].map((day, i) => (
-                    <div key={i} className={`flex flex-col items-center text-center p-1 ${i === 2 ? 'bg-white rounded-md' : ''}`}>
+                  {[24, 25, 26, 27, 28, 29].map((day, i) => <div key={i} className={`flex flex-col items-center text-center p-1 ${i === 2 ? 'bg-white rounded-md' : ''}`}>
                       <div className="text-[8px] sm:text-[10px]">{day}</div>
                       <div className="text-[6px] sm:text-[8px]">
                         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i]}
                       </div>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
               </div>
             </div>
@@ -111,22 +96,14 @@ export const JourneySection: React.FC<JourneySectionProps> = ({ openAuthModal })
           {/* Timeline indicator 2 - desktop only */}
           <div className="hidden md:flex absolute left-1/2 top-[45%] transform -translate-x-1/2 z-20">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
-              <img 
-                src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" 
-                alt="Avatar" 
-                className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover"
-              />
+              <img src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" alt="Avatar" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" />
             </div>
           </div>
           
           {/* Mobile timeline indicator 2 */}
           <div className="flex md:hidden justify-center my-6">
             <div className="w-12 h-12 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
-              <img 
-                src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" 
-                alt="Avatar" 
-                className="w-8 h-8 rounded-full object-cover"
-              />
+              <img src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
             </div>
           </div>
           
@@ -144,47 +121,31 @@ export const JourneySection: React.FC<JourneySectionProps> = ({ openAuthModal })
           
           {/* Section 3: Science image */}
           <div className="md:col-start-2 md:col-end-3 md:row-start-3 flex justify-center md:justify-start">
-            <img 
-              className="rounded-xl sm:rounded-2xl shadow-lg max-w-[80%] sm:max-w-[70%] md:max-w-none"
-              src="/lovable-uploads/5f247b72-d914-4715-b86f-3c4be3b90ea8.png" 
-              alt="Medical research" 
-            />
+            
           </div>
           
           {/* Timeline indicator 3 - desktop only */}
           <div className="hidden md:flex absolute left-1/2 top-[75%] transform -translate-x-1/2 z-20">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
-              <img 
-                src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" 
-                alt="Avatar" 
-                className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover"
-              />
+              <img src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" alt="Avatar" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" />
             </div>
           </div>
           
           {/* Mobile timeline indicator 3 */}
           <div className="flex md:hidden justify-center my-6">
             <div className="w-12 h-12 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
-              <img 
-                src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" 
-                alt="Avatar" 
-                className="w-8 h-8 rounded-full object-cover"
-              />
+              <img src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
             </div>
           </div>
         </div>
         
         {/* CTA button */}
         <div className="text-center mt-12 md:mt-16">
-          <Button
-            onClick={handleStartJourneyClick}
-            className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 sm:px-8 py-4 sm:py-6 rounded-full text-base sm:text-lg"
-          >
+          <Button onClick={handleStartJourneyClick} className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 sm:px-8 py-4 sm:py-6 rounded-full text-base sm:text-lg">
             Start Your Journey
             <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
