@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { MobileAppMockup } from '../ui/MobileAppMockup';
 import { useResponsive } from '@/contexts/ResponsiveContext';
+
 interface JourneySectionProps {
   openAuthModal?: (view: 'login' | 'register') => void;
 }
+
 export const JourneySection: React.FC<JourneySectionProps> = ({
   openAuthModal
 }) => {
@@ -14,19 +16,21 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
     isMobile,
     isTablet
   } = useResponsive();
+  
   const handleStartJourneyClick = () => {
     if (openAuthModal) {
       openAuthModal('register');
     }
   };
-  return <section className="py-16 md:py-20 lg:py-24 bg-black text-white relative overflow-hidden">
+  
+  return <section className="py-12 md:py-16 lg:py-20 bg-black text-white relative overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
-        <div className="text-center mb-12 md:mb-16">
+        <div className="text-center mb-8 md:mb-12">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">Your Journey at AnubhootiHealth</h2>
         </div>
         
         {/* Journey timeline - adaptive for mobile */}
-        <div className="space-y-16 md:space-y-0 md:grid md:grid-cols-2 md:gap-16 relative">
+        <div className="space-y-12 md:space-y-0 md:grid md:grid-cols-2 md:gap-16 relative">
           {/* Center vertical line - only visible on desktop */}
           <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-white transform -translate-x-1/2"></div>
           
@@ -58,7 +62,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           </div>
           
           {/* Mobile timeline indicator 1 */}
-          <div className="flex md:hidden justify-center my-6">
+          <div className="flex md:hidden justify-center my-4">
             <div className="w-12 h-12 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
               <img src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
             </div>
@@ -102,7 +106,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           </div>
           
           {/* Mobile timeline indicator 2 */}
-          <div className="flex md:hidden justify-center my-6">
+          <div className="flex md:hidden justify-center my-4">
             <div className="w-12 h-12 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
               <img src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
             </div>
@@ -133,7 +137,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           </div>
           
           {/* Mobile timeline indicator 3 */}
-          <div className="flex md:hidden justify-center my-6">
+          <div className="flex md:hidden justify-center my-4">
             <div className="w-12 h-12 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
               <img src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
             </div>
@@ -141,7 +145,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
         </div>
         
         {/* CTA button */}
-        <div className="text-center mt-12 md:mt-16">
+        <div className="text-center mt-8 md:mt-12">
           <Button onClick={handleStartJourneyClick} className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white px-6 sm:px-8 py-4 sm:py-6 rounded-full text-base sm:text-lg">
             Start Your Journey
             <ArrowRight className="ml-2 h-4 w-4 sm:h-5 sm:w-5" />

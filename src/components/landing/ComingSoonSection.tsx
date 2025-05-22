@@ -1,22 +1,15 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { BellRing } from "lucide-react";
+
 export const ComingSoonSection = () => {
-  return <section className="bg-gray-50 py-16 md:py-24">
+  return <section className="bg-gray-50 py-10 md:py-16">
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto text-center">
-          
-          
-          
-          
-          <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-            
-            
-          </div>
-          
-          <div className="grid md:grid-cols-3 gap-6 mt-16">
+          <div className="grid md:grid-cols-3 gap-6">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
               <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center mb-4">
                 <span className="text-purple-600 font-medium">1</span>

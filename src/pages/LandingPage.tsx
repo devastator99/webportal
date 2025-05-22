@@ -94,23 +94,33 @@ export const LandingPage = () => {
       <main ref={mainRef} className="flex-grow pt-16 md:pt-20">
         <HeroSection openAuthModal={openAuthModal} />
         
-        <ResponsiveContainer>
-          <BenefitsSection />
-        </ResponsiveContainer>
+        <div className="mt-0">
+          <ResponsiveContainer withPadding={false}>
+            <BenefitsSection />
+          </ResponsiveContainer>
+        </div>
         
-        <ResponsiveContainer>
-          <OfferingsSection openAuthModal={openAuthModal} />
-        </ResponsiveContainer>
+        <div className="mt-0">
+          <ResponsiveContainer withPadding={false}>
+            <OfferingsSection openAuthModal={openAuthModal} />
+          </ResponsiveContainer>
+        </div>
         
-        <ComingSoonSection />
+        <div className="mt-0">
+          <ComingSoonSection />
+        </div>
         
-        <ResponsiveContainer>
+        <div className="mt-0">
           <JourneySection openAuthModal={openAuthModal} />
-        </ResponsiveContainer>
+        </div>
         
-        <TestimonialsSection />
+        <div className="mt-0">
+          <TestimonialsSection />
+        </div>
         
-        <CallToAction openAuthModal={openAuthModal} />
+        <div className="mt-0">
+          <CallToAction openAuthModal={openAuthModal} />
+        </div>
       </main>
       <Footer />
       
