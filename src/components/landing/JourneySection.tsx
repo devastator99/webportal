@@ -124,9 +124,11 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
             </div>
           </div>
           
-          {/* Section 3: Science image */}
+          {/* Section 3: Science image - now moved to right side of divider */}
           <div className="md:col-start-2 md:col-end-3 md:row-start-3 flex justify-center md:justify-start">
-            
+            <div className="relative max-w-[80%] sm:max-w-[70%] md:max-w-none">
+              <img className="rounded-xl sm:rounded-2xl shadow-lg" src="/lovable-uploads/5989b36b-4d21-46b9-9fee-38c13b8afdf3.png" alt="Science-backed transformation" />
+            </div>
           </div>
           
           {/* Timeline indicator 3 - desktop only */}
