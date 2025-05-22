@@ -14,6 +14,7 @@ import { useChatScroll } from "@/hooks/useChatScroll";
 import { groupMessagesByDate, safeParseISO } from "@/utils/dateUtils";
 import { ChatInput } from "./ChatInput";
 import { cn } from "@/lib/utils";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface RoomMessage {
   id: string;
