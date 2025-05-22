@@ -1,5 +1,5 @@
 
-/* Landing page specific styles - first section */
+/* Landing page specific styles */
 @import './glass.css';
 
 /* ========== Globals ========== */
@@ -164,16 +164,35 @@
   position: relative;
   overflow: hidden;
   padding-top: 80px;
-  min-height: 90vh;
+  min-height: 85vh;
+}
+
+@media (min-width: 768px) {
+  .hero-section {
+    min-height: 90vh;
+    padding-top: 100px;
+  }
 }
 
 .hero-container {
   position: relative;
   z-index: 10;
-  padding: 40px 16px;
+  padding: 20px 16px;
   max-width: 1200px;
   margin: 0 auto;
   color: white;
+}
+
+@media (min-width: 640px) {
+  .hero-container {
+    padding: 40px 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-container {
+    padding: 60px 32px;
+  }
 }
 
 /* ========== App Mockup ========== */
@@ -202,13 +221,36 @@
 }
 
 .section-heading {
-  font-size: 32px;
+  font-size: 24px;
   font-weight: bold;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   line-height: 1.2;
   background: linear-gradient(to right, #7e22ce, #4c1d95);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+@media (min-width: 640px) {
+  .section-dark,
+  .section-light {
+    padding: 60px 24px;
+  }
+  
+  .section-heading {
+    font-size: 32px;
+    margin-bottom: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .section-dark,
+  .section-light {
+    padding: 80px 32px;
+  }
+  
+  .section-heading {
+    font-size: 42px;
+  }
 }
 
 /* ========== Services Grid ========== */
@@ -219,6 +261,19 @@
   margin-top: 32px;
 }
 
+@media (min-width: 640px) {
+  .services-grid {
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .services-grid {
+    gap: 24px;
+  }
+}
+
 /* ========== Offerings Grid ========== */
 .offerings-grid {
   display: grid;
@@ -227,13 +282,27 @@
   margin-top: 32px;
 }
 
+@media (min-width: 640px) {
+  .offerings-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .offerings-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+}
+
 /* ========== Action Button ========== */
 .action-button {
   display: inline-block;
   background: linear-gradient(to right, #9b87f5, #00C2FF);
   color: white;
   font-weight: bold;
-  padding: 10px 24px;
+  padding: 10px 20px;
   border-radius: 50px;
   border: none;
   cursor: pointer;
@@ -247,6 +316,14 @@
 .action-button:hover {
   box-shadow: 0 0 20px rgba(155, 135, 245, 0.6);
   transform: translateY(-2px);
+}
+
+@media (min-width: 640px) {
+  .action-button {
+    padding: 12px 24px;
+    font-size: 18px;
+    width: auto;
+  }
 }
 
 /* AI chat specific styles */
@@ -331,50 +408,19 @@
 }
 
 /* ========== Media Queries ========== */
-@media (min-width: 640px) {
-  .hero-section {
-    padding-top: 100px;
-  }
-  
-  .hero-container {
-    padding: 60px 24px;
-  }
-  
-  .section-heading {
-    font-size: 36px;
-  }
-  
-  .action-button {
-    padding: 12px 32px;
-    font-size: 18px;
-    width: auto;
-  }
-  
-  .offerings-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-  }
-  
-  .app-mockup {
-    padding: 24px;
-    max-width: 340px;
-  }
+/* Already organized throughout the file */
+
+/* ========== Glass Navigation ========== */
+.glass-nav {
+  background-color: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
-@media (min-width: 1024px) {
-  .section-heading {
-    font-size: 42px;
-  }
-  
-  .services-grid {
-    gap: 24px;
-  }
-  
-  .offerings-grid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-  
-  .hero-container {
-    padding: 80px 32px;
-  }
+.glass-nav.scrolled {
+  background-color: rgba(0, 0, 0, 0.6);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }

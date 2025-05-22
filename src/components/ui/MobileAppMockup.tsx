@@ -1,161 +1,93 @@
 
-import { Heart, Calendar, Activity, MessageCircle, User } from "lucide-react";
+import React from 'react';
+import { useResponsive } from '@/contexts/ResponsiveContext';
 
 export const MobileAppMockup = () => {
+  const { isMobile, isTablet } = useResponsive();
+
+  // Determine appropriate sizes based on viewport
+  const getMockupSize = () => {
+    if (isMobile) return { width: '100%', height: 'auto' };
+    if (isTablet) return { width: '80%', height: 'auto' };
+    return { width: '100%', height: 'auto' };
+  };
+
   return (
-    <div className="relative">
-      {/* Phone mockup container - reduced width from w-56 md:w-72 to w-44 md:w-56 */}
-      <div className="w-44 md:w-56 h-auto bg-gray-900 rounded-[2.5rem] border-8 border-gray-800 p-2 shadow-2xl overflow-hidden relative z-10 animate-float">
-        {/* Screen */}
-        <div className="w-full h-full bg-white rounded-[2rem] overflow-hidden">
-          {/* Status bar */}
-          <div className="bg-purple-600 text-white p-3 pt-5 pb-2">
-            <div className="flex justify-between items-center">
-              <div className="text-[9px] opacity-80">9:41 AM</div>
-              <div className="w-20 h-3 bg-black rounded-full absolute top-1.5 left-1/2 transform -translate-x-1/2"></div>
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 rounded-full border border-white opacity-80"></div>
-                <div className="w-2 h-2 rounded-full border border-white opacity-80"></div>
-                <div className="w-2 h-2 rounded-full border border-white opacity-80"></div>
-              </div>
-            </div>
-            <h2 className="text-sm font-bold mt-3">AnubhootiHealth</h2>
-            <div className="flex justify-between mt-2">
-              <div className="text-[9px] opacity-90">Hi, Rakesh!</div>
-              <div className="flex items-center space-x-1">
-                <Heart size={8} />
-                <span className="text-[8px]">98 bpm</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Calendar strip */}
-          <div className="flex justify-between px-3 py-1.5 bg-purple-50">
-            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => (
-              <div
-                key={i}
-                className={`flex flex-col items-center ${
-                  i === 5
-                    ? "bg-purple-100 text-purple-700 rounded-full w-4 h-8 flex items-center justify-center"
-                    : ""
-                }`}
-              >
-                <div className="text-[6px] font-medium">{day}</div>
-                <div className="text-[8px] font-bold">{24 + i}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Main content */}
-          <div className="p-2">
-            {/* Stats section */}
-            <div className="bg-gray-50 rounded-xl p-1.5 shadow-sm mb-2">
-              <div className="flex justify-between">
-                <div className="text-[8px] font-medium text-gray-500">
-                  Today's Stats
-                </div>
-                <div className="text-[8px] text-purple-600">View All</div>
-              </div>
-              <div className="flex justify-around mt-1.5">
-                <div className="flex flex-col items-center">
-                  <div className="w-5 h-5 rounded-full bg-teal-100 flex items-center justify-center">
-                    <Activity size={10} className="text-teal-600" />
-                  </div>
-                  <div className="text-[7px] mt-1">3,200</div>
-                  <div className="text-[6px] text-gray-500">Steps</div>
-                </div>
-                <div className="flex flex-col items-center">
-                  <div className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center">
-                    <Heart size={10} className="text-purple-600" />
-                  </div>
-                  <div className="text-[7px] mt-1">80 bpm</div>
-                  <div className="text-[6px] text-gray-500">Avg Rate</div>
-                </div>
-                <div className="flex flex-col items-center">
-                  <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Calendar size={10} className="text-blue-600" />
-                  </div>
-                  <div className="text-[7px] mt-1">1 of 4</div>
-                  <div className="text-[6px] text-gray-500">Tasks</div>
-                </div>
-              </div>
-            </div>
-
-            {/* AI Chat preview */}
-            <div className="bg-gray-50 rounded-xl p-1.5 shadow-sm mb-2">
-              <div className="flex justify-between items-center mb-1">
-                <div className="text-[8px] font-medium text-gray-500">
-                  AI Health Assistant
-                </div>
-                <div className="bg-green-100 text-green-800 text-[6px] px-1.5 py-0.5 rounded-full">
-                  ONLINE
-                </div>
-              </div>
-
-              <div className="flex space-x-1.5 items-end mb-1">
-                <div className="w-4 h-4 rounded-full bg-purple-100 flex items-center justify-center">
-                  <MessageCircle size={8} className="text-purple-600" />
-                </div>
-                <div className="bg-purple-100 text-gray-800 text-[7px] p-1 rounded-lg rounded-bl-none max-w-[80%]">
-                  Good morning Rakesh! How are you feeling today?
-                </div>
-              </div>
-
-              <div className="flex flex-row-reverse space-x-reverse space-x-1.5 items-end">
-                <div className="w-4 h-4 rounded-full bg-gray-200 flex items-center justify-center">
-                  <User size={8} className="text-gray-600" />
-                </div>
-                <div className="bg-gray-200 text-gray-800 text-[7px] p-1 rounded-lg rounded-br-none max-w-[80%]">
-                  I'm feeling better today! My sugar levels are down.
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="grid grid-cols-2 gap-1.5">
-              <div className="bg-teal-50 p-1.5 rounded-xl">
-                <div className="text-[7px] font-medium text-teal-800 mb-0.5">
-                  Diabetes Control
-                </div>
-                <div className="text-[6px] text-teal-600">
-                  Track your progress
-                </div>
-              </div>
-              <div className="bg-purple-50 p-1.5 rounded-xl">
-                <div className="text-[7px] font-medium text-purple-800 mb-0.5">
-                  Health Journal
-                </div>
-                <div className="text-[6px] text-purple-600">
-                  Log your updates
-                </div>
-              </div>
+    <div className="relative" style={getMockupSize()}>
+      <div className="bg-black rounded-3xl overflow-hidden shadow-xl border-8 border-gray-900 aspect-[9/19] relative">
+        <div className="absolute top-0 left-0 w-full h-6 bg-black flex items-center justify-center">
+          <div className="w-16 h-4 bg-gray-900 rounded-b-xl"></div>
+        </div>
+        <div className="app-screen h-full bg-gradient-to-b from-gray-900 to-gray-800 flex flex-col overflow-hidden">
+          <div className="status-bar h-7 bg-black flex justify-between items-center px-4 text-xs text-white">
+            <span>9:41</span>
+            <div className="flex space-x-1.5">
+              <span>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
+                  <path fillRule="evenodd" d="M1.371 8.143c5.858-5.857 15.356-5.857 21.213 0a.75.75 0 0 1 0 1.061l-.53.53a.75.75 0 0 1-1.06 0c-4.98-4.979-13.053-4.979-18.032 0a.75.75 0 0 1-1.06 0l-.53-.53a.75.75 0 0 1 0-1.06zm3.182 3.182c4.1-4.1 10.749-4.1 14.85 0a.75.75 0 0 1 0 1.061l-.53.53a.75.75 0 0 1-1.062 0 8.25 8.25 0 0 0-11.667 0 .75.75 0 0 1-1.06 0l-.53-.53a.75.75 0 0 1 0-1.06zm3.204 3.182a6 6 0 0 1 8.486 0 .75.75 0 0 1 0 1.061l-.53.53a.75.75 0 0 1-1.061 0 3.75 3.75 0 0 0-5.304 0 .75.75 0 0 1-1.06 0l-.53-.53a.75.75 0 0 1 0-1.06z" clipRule="evenodd" />
+                </svg>
+              </span>
+              <span>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
+                  <path d="M18.375 2.25c-1.035 0-1.875.84-1.875 1.875v15.75c0 1.035.84 1.875 1.875 1.875h.75c1.035 0 1.875-.84 1.875-1.875V4.125c0-1.036-.84-1.875-1.875-1.875h-.75ZM9.75 8.625c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v9.375c0 1.035-.84 1.875-1.875 1.875h-.75a1.875 1.875 0 0 1-1.875-1.875V8.625ZM3 13.125c0-1.036.84-1.875 1.875-1.875h.75c1.036 0 1.875.84 1.875 1.875v4.875c0 1.035-.84 1.875-1.875 1.875h-.75A1.875 1.875 0 0 1 3 18v-4.875Z" />
+                </svg>
+              </span>
+              <span>
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3">
+                  <path fillRule="evenodd" d="M3.75 6.75a3 3 0 0 0-3 3v6a3 3 0 0 0 3 3h15a3 3 0 0 0 3-3v-.037c.856-.174 1.5-.93 1.5-1.838v-2.25c0-.907-.644-1.664-1.5-1.837V9.75a3 3 0 0 0-3-3h-15Zm15 1.5a1.5 1.5 0 0 1 1.5 1.5v6a1.5 1.5 0 0 1-1.5 1.5h-15a1.5 1.5 0 0 1-1.5-1.5v-6a1.5 1.5 0 0 1 1.5-1.5h15Z" clipRule="evenodd" />
+                </svg>
+              </span>
             </div>
           </div>
 
-          {/* Navigation bar */}
-          <div className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-1 flex justify-around">
-            <div className="flex flex-col items-center">
-              <MessageCircle size={10} className="text-purple-600" />
-              <div className="text-[6px] text-gray-500">Chat</div>
+          <div className="chat-ui flex-1 bg-gray-900 flex flex-col">
+            <div className="chat-header bg-purple-900 p-2 flex items-center">
+              <div className="w-8 h-8 rounded-full bg-white overflow-hidden mr-3">
+                <img src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" alt="Avatar" className="w-full h-full object-cover" />
+              </div>
+              <div className="text-left">
+                <div className="text-white text-xs font-medium">Anubhooti Health</div>
+                <div className="text-purple-200 text-[10px]">Online</div>
+              </div>
             </div>
-            <div className="flex flex-col items-center">
-              <Calendar size={10} className="text-gray-400" />
-              <div className="text-[6px] text-gray-500">Plans</div>
+            <div className="messages-area flex-1 p-3 overflow-hidden">
+              <div className="message received bg-purple-800 text-white text-xs p-2 rounded-lg mb-2 max-w-[70%] ml-1">
+                Hello! How are you feeling today?
+              </div>
+              <div className="message sent bg-purple-600 text-white text-xs p-2 rounded-lg mb-2 max-w-[70%] ml-auto mr-1">
+                I've been having headaches lately.
+              </div>
+              <div className="message received bg-purple-800 text-white text-xs p-2 rounded-lg mb-2 max-w-[70%] ml-1">
+                I see. Let me ask you a few questions to understand better.
+              </div>
+              <div className="typing-indicator flex space-x-1 ml-1">
+                <div className="dot w-2 h-2 rounded-full bg-purple-400 animate-bounce"></div>
+                <div className="dot w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                <div className="dot w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+              </div>
             </div>
-            <div className="flex flex-col items-center">
-              <Activity size={10} className="text-gray-400" />
-              <div className="text-[6px] text-gray-500">Habits</div>
-            </div>
-            <div className="flex flex-col items-center">
-              <User size={10} className="text-gray-400" />
-              <div className="text-[6px] text-gray-500">Profile</div>
+            <div className="input-area p-2 bg-gray-800 flex items-center">
+              <div className="flex-1 bg-gray-700 rounded-full px-3 py-1 text-xs text-gray-400">Type a message...</div>
+              <button className="ml-2 w-6 h-6 rounded-full bg-purple-600 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-3 h-3 text-white">
+                  <path d="M3.478 2.404a.75.75 0 0 0-.926.941l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.986.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.404Z" />
+                </svg>
+              </button>
             </div>
           </div>
         </div>
-
-        {/* Decorative elements - scaled down */}
-        <div className="absolute -top-6 -left-6 w-16 h-16 bg-teal-400 rounded-full opacity-20 blur-xl animate-float-slow"></div>
-        <div className="absolute -bottom-8 -right-8 w-20 h-20 bg-purple-500 rounded-full opacity-20 blur-xl animate-float"></div>
+      </div>
+      {/* Health stats floating card */}
+      <div className="absolute -bottom-4 -right-4 sm:-bottom-6 sm:-right-6 bg-white rounded-lg shadow-lg p-2 sm:p-3 text-xs">
+        <div className="font-medium text-gray-800">Health Stats</div>
+        <div className="flex items-center mt-1">
+          <div className="w-1 h-4 bg-green-500 rounded mr-1"></div>
+          <div className="text-gray-600">Sleep: 7.5h</div>
+        </div>
+        <div className="flex items-center mt-1">
+          <div className="w-1 h-4 bg-purple-500 rounded mr-1"></div>
+          <div className="text-gray-600">Steps: 8,542</div>
+        </div>
       </div>
     </div>
   );

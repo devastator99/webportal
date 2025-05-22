@@ -9,7 +9,8 @@ interface ResponsiveContainerProps {
   as?: React.ElementType;
   fluid?: boolean;
   withPadding?: boolean;
-  maxWidth?: string; // Added option for custom max width
+  maxWidth?: string;
+  minHeight?: string;
 }
 
 export const ResponsiveContainer = ({
@@ -19,10 +20,14 @@ export const ResponsiveContainer = ({
   fluid = false,
   withPadding = true,
   maxWidth,
+  minHeight,
 }: ResponsiveContainerProps) => {
   const { isMobile, isTablet } = useResponsive();
   
-  const style = maxWidth ? { maxWidth } : {};
+  const style = {
+    ...(maxWidth ? { maxWidth } : {}),
+    ...(minHeight ? { minHeight } : {})
+  };
   
   return (
     <Component
@@ -31,10 +36,10 @@ export const ResponsiveContainer = ({
         !fluid && 'container',
         withPadding && (
           isMobile 
-            ? 'px-4' 
+            ? 'px-4 py-10' 
             : isTablet 
-              ? 'px-6' 
-              : 'px-8'
+              ? 'px-6 py-12' 
+              : 'px-8 py-16'
         ),
         className
       )}

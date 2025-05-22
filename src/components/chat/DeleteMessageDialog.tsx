@@ -56,15 +56,15 @@ export const DeleteMessageDialog = ({ messageId, isOpen, setIsOpen, onDeleteSucc
 
   return (
     <AlertDialog open={isOpen} onOpenChange={setIsOpen}>
-      <AlertDialogContent>
+      <AlertDialogContent className="max-w-[95%] sm:max-w-lg rounded-lg">
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Message</AlertDialogTitle>
           <AlertDialogDescription>
             Are you sure you want to delete this message? This action cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+        <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+          <AlertDialogCancel className="sm:mt-0">Cancel</AlertDialogCancel>
           <AlertDialogAction 
             onClick={handleDelete}
             className="bg-red-600 hover:bg-red-700 text-white"
