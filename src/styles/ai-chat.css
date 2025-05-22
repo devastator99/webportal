@@ -117,9 +117,9 @@
 
 /* Bubble animations */
 .bubble-in {
-  animation: bubble-in 0.3s ease-out forwards;
+  animation: bubble-in 0.3s ease-out forwards !important;
   transform-origin: bottom left;
-  opacity: 0;
+  opacity: 1 !important; /* Changed from opacity: 0 to ensure messages are visible by default */
 }
 
 .sent.bubble-in {
@@ -133,7 +133,7 @@
   }
   100% {
     transform: scale(1);
-    opacity: 1;
+    opacity: 1 !important; /* Added !important */
   }
 }
 
@@ -143,4 +143,9 @@
   border-radius: 0.25rem;
   padding: 0 0.25rem;
   font-family: monospace;
+}
+
+/* Ensure messages are always visible, even if animations fail */
+.message-item, .bubble-in {
+  opacity: 1 !important;
 }

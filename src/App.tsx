@@ -8,6 +8,7 @@ import { ThemeProvider } from "./contexts/ThemeProvider";
 
 import "./styles/globals.css";
 import "./styles/chat-header.css";
+import "./styles/ai-chat.css"; // Add the missing CSS import
 
 // Create a QueryClient with optimized settings
 const queryClient = new QueryClient({

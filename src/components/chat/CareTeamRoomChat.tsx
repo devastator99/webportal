@@ -397,7 +397,7 @@ export const CareTeamRoomChat = ({
       </div>
       
       <div className="flex-1 bg-[#f0f2f5] dark:bg-slate-900 overflow-hidden relative">
-        <ScrollArea className="h-full" viewportRef={containerRef}>
+        <ScrollArea className="h-full" viewportRef={containerRef} invisibleScrollbar={false}>
           <div className="p-4 space-y-6">
             {messagesQueryLoading ? (
               <div className="flex justify-center pt-4">
@@ -438,6 +438,7 @@ export const CareTeamRoomChat = ({
                                   "bubble-in"
                                 )}
                                 id={`message-${msg.id}`}
+                                style={{ opacity: 1 }} /* Add inline style to ensure visibility */
                               >
                                 <div className="flex gap-2 max-w-[80%]">
                                   {!isSelf && !isSystem && (
