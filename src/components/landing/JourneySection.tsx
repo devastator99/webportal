@@ -1,11 +1,14 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { MobileAppMockup } from '../ui/MobileAppMockup';
 import { useResponsive } from '@/contexts/ResponsiveContext';
+
 interface JourneySectionProps {
   openAuthModal?: (view: 'login' | 'register') => void;
 }
+
 export const JourneySection: React.FC<JourneySectionProps> = ({
   openAuthModal
 }) => {
@@ -13,11 +16,13 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
     isMobile,
     isTablet
   } = useResponsive();
+  
   const handleStartJourneyClick = () => {
     if (openAuthModal) {
       openAuthModal('register');
     }
   };
+  
   return <section className="py-12 md:py-16 lg:py-20 bg-black text-white relative overflow-hidden">
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
         <div className="text-center mb-8 md:mb-12">
