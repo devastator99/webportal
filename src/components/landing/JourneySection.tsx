@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -31,7 +32,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           
           {/* Section 1: Doctor + AI */}
           <div className="flex flex-col items-center md:items-end relative">
-            <div className="md:max-w-md">
+            <div className="md:max-w-md md:ml-auto md:-mt-6">
               <p className="text-lg text-white/80 mb-4">
                 Doctor, dietitian, psychologist & AI—<br />
                 all in one seamless conversation.
@@ -82,7 +83,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           
           {/* Section 2: Track What Matters */}
           <div className="md:col-start-2 md:col-end-3 md:row-start-2 flex flex-col items-center md:items-start relative">
-            <div className="md:max-w-md">
+            <div className="md:max-w-md md:ml-auto md:-mt-6">
               <p className="text-lg text-white/80 mb-4">
                 Habit tracker with deep insights<br />
                 to turn effort into real change.
@@ -109,7 +110,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           
           {/* Section 3: Science */}
           <div className="md:col-start-1 md:col-end-2 md:row-start-3 flex flex-col items-center md:items-end">
-            <div className="md:max-w-md">
+            <div className="md:max-w-md md:ml-auto md:-mt-6">
               <p className="text-lg text-white/80 mb-4">
                 From band-aids to breakthroughs.
               </p>
