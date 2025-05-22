@@ -11,9 +11,7 @@ export const ComingSoonSection = () => {
             
           </div>
           
-          <p className="text-lg text-gray-600 mb-8">
-            We're continuously working to enhance your experience. Subscribe to be notified when we launch new features.
-          </p>
+          
           
           <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
             <Input type="email" placeholder="Enter your email" className="flex-grow" />
