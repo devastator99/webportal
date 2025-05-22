@@ -108,9 +108,9 @@ export const LandingPage = () => {
           <JourneySection openAuthModal={openAuthModal} />
         </ResponsiveContainer>
         
-        <CallToAction openAuthModal={openAuthModal} />
-        
         <TestimonialsSection />
+        
+        <CallToAction openAuthModal={openAuthModal} />
       </main>
       <Footer />
       
