@@ -15,9 +15,7 @@ export const ComingSoonSection = () => {
           
           <div className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
             
-            <Button className="bg-indigo-600 hover:bg-indigo-700">
-              Notify Me
-            </Button>
+            
           </div>
           
           <div className="grid md:grid-cols-3 gap-6 mt-16">
