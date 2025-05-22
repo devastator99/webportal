@@ -1,19 +1,9 @@
 import { Logo } from '../ui/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Facebook, 
-  Twitter, 
-  Instagram, 
-  Linkedin, 
-  Mail,
-  Phone,
-  MapPin
-} from 'lucide-react';
-
+import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
 export const Footer = () => {
-  return (
-    <footer className="bg-gray-900 text-white pt-16 pb-8">
+  return <footer className="bg-gray-900 text-white pt-16 pb-8">
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
@@ -81,9 +71,8 @@ export const Footer = () => {
             <ul className="space-y-3">
               <li className="flex items-start space-x-3 text-sm">
                 <MapPin size={16} className="text-purple-400 mt-1 flex-shrink-0" />
-                <span className="text-gray-400">
-                  123 Wellness Street, Healthville, HW 12345
-                </span>
+                <span className="text-gray-400">A Unit Of Swami Vivekananda
+Integrative Health Services Pvt. Ltd.</span>
               </li>
               <li className="flex items-center space-x-3 text-sm">
                 <Phone size={16} className="text-purple-400 flex-shrink-0" />
@@ -107,11 +96,7 @@ export const Footer = () => {
               Subscribe to our newsletter for the latest updates and health tips.
             </p>
             <div className="flex flex-col space-y-2">
-              <Input
-                type="email"
-                placeholder="Your email address"
-                className="bg-gray-800 border-gray-700 text-white"
-              />
+              <Input type="email" placeholder="Your email address" className="bg-gray-800 border-gray-700 text-white" />
               <Button className="w-full">
                 Subscribe
               </Button>
@@ -123,6 +108,5 @@ export const Footer = () => {
           <p>© {new Date().getFullYear()} Anubhooti Health. All rights reserved.</p>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
