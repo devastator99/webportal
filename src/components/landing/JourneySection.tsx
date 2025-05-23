@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -29,6 +30,13 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           {/* Center vertical line - only visible on desktop */}
           <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-px bg-white transform -translate-x-1/2"></div>
           
+          {/* Timeline indicator 1 - desktop only - MOVED TO TOP */}
+          <div className="hidden md:flex absolute left-1/2 top-0 transform -translate-x-1/2 z-20">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
+              <img alt="Indian woman profile" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" src="/lovable-uploads/ac9a591b-754c-4692-a8da-d7ef58837b8c.jpg" />
+            </div>
+          </div>
+          
           {/* Section 1: Doctor + AI */}
           <div className="flex flex-col items-center md:items-end relative">
             <div className="md:max-w-md md:ml-auto md:-mt-6 my-[124px]">
@@ -46,13 +54,6 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           <div className="flex justify-center md:justify-start">
             <div className="w-3/4 sm:w-2/3 md:w-auto my-[30px]">
               <MobileAppMockup />
-            </div>
-          </div>
-          
-          {/* Timeline indicator 1 - desktop only */}
-          <div className="hidden md:flex absolute left-1/2 top-24 transform -translate-x-1/2 z-20">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
-              <img alt="Indian woman profile" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" src="/lovable-uploads/ac9a591b-754c-4692-a8da-d7ef58837b8c.jpg" />
             </div>
           </div>
           
