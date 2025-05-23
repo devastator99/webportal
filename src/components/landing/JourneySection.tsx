@@ -51,15 +51,17 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
               <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6">
                 Personalized Care, Powered by People & AI
               </h3>
-              
-              {/* Updated image */}
-              <div className="mt-4 mb-6">
-                <img 
-                  src="/lovable-uploads/31bbe578-403c-4164-88f9-1e31f6881121.png" 
-                  alt="Woman enjoying healthy salad with chat interface" 
-                  className="rounded-lg shadow-lg w-full max-w-sm mx-auto md:mx-0"
-                />
-              </div>
+            </div>
+          </div>
+          
+          {/* New div for the image - added below the content div */}
+          <div className="flex flex-col items-center md:items-end relative">
+            <div className="md:max-w-md md:ml-auto">
+              <img 
+                src="/lovable-uploads/31bbe578-403c-4164-88f9-1e31f6881121.png" 
+                alt="Woman enjoying healthy salad with chat interface" 
+                className="rounded-lg shadow-lg w-full max-w-sm mx-auto md:mx-0"
+              />
             </div>
           </div>
           
