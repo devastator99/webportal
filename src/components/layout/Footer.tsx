@@ -5,11 +5,19 @@ import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'luc
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
-export const Footer = () => {
+interface FooterProps {
+  openAuthModal?: (view: 'login' | 'register') => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ openAuthModal }) => {
   const navigate = useNavigate();
   
   const handleGetStarted = () => {
-    navigate('/auth'); // Navigate to auth page when button is clicked
+    if (openAuthModal) {
+      openAuthModal('register');
+    } else {
+      navigate('/auth'); // Fallback if openAuthModal is not provided
+    }
   };
   
   return <footer className="relative bg-gradient-to-br from-purple-950 via-indigo-950 to-black text-white py-10 overflow-hidden">

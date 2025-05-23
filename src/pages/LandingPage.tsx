@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Header } from '@/components/layout/Header';
@@ -116,7 +117,7 @@ export const LandingPage = () => {
           <TestimonialsSection />
         </div>
       </main>
-      <Footer />
+      <Footer openAuthModal={openAuthModal} />
       
       {/* Auth Modal */}
       <AuthModal 
