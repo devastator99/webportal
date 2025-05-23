@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Logo } from '../ui/Logo';
 import { Button } from '@/components/ui/button';
@@ -67,15 +66,7 @@ export const Footer = () => {
           </div>
           
           {/* Quick Links */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-blue-300">Quick Links</h3>
-            <ul className="space-y-2">
-              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Home</a></li>
-              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">About Us</a></li>
-              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Services</a></li>
-              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Testimonials</a></li>
-            </ul>
-          </div>
+          
           
           {/* Contact - Modified to be right-aligned */}
           <div className="md:ml-auto text-right">
@@ -98,14 +89,7 @@ Integrative Health Services Pvt. Ltd.</span>
           </div>
           
           {/* Legal */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-blue-300">Legal</h3>
-            <ul className="space-y-2">
-              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Cookie Policy</a></li>
-            </ul>
-          </div>
+          
         </div>
         
         <div className="border-t border-white/10 mt-12 pt-8 text-center">
