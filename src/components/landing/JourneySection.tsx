@@ -123,18 +123,6 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
             </div>
           </div>
           
-          {/* Section 3: Science */}
-          <div className="md:col-start-1 md:col-end-2 md:row-start-3 flex flex-col items-center md:items-end">
-            
-          </div>
-          
-          {/* Section 3: Science image - now moved to right side of divider */}
-          <div className="md:col-start-2 md:col-end-3 md:row-start-3 flex justify-center md:justify-start">
-            <div className="relative max-w-[80%] sm:max-w-[70%] md:max-w-none">
-              
-            </div>
-          </div>
-          
           {/* Timeline indicator 3 - desktop only */}
           <div className="hidden md:flex absolute left-1/2 top-[75%] transform -translate-x-1/2 z-20">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
@@ -143,6 +131,46 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           </div>
           
           {/* Mobile timeline indicator 3 */}
+          <div className="flex md:hidden justify-center my-4">
+            <div className="w-12 h-12 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
+              <img src="/lovable-uploads/7d10a697-4563-40b0-801b-377284ce6c97.png" alt="Indian woman profile" className="w-8 h-8 rounded-full object-cover" />
+            </div>
+          </div>
+          
+          {/* NEW SECTION: Science-backed research image (left side) */}
+          <div className="md:col-start-1 md:col-end-2 md:row-start-4 flex flex-col items-center md:items-end relative py-2 md:py-0">
+            <div className="md:max-w-md w-full md:mr-8 my-[60px]">
+              <div className="relative w-full h-full">
+                <img 
+                  src="/lovable-uploads/16f843b1-c8e8-4503-b2c2-b7c1c8f65f24.png" 
+                  alt="Medical research microscope" 
+                  className="rounded-lg shadow-lg w-full md:max-w-[90%] mx-auto md:mx-0 md:ml-auto object-cover"
+                />
+              </div>
+            </div>
+          </div>
+          
+          {/* NEW SECTION: Holistic transformation text (right side) */}
+          <div className="md:col-start-2 md:col-end-3 md:row-start-4 flex flex-col items-center md:items-start relative py-2 md:py-0">
+            <div className="md:max-w-md w-full md:ml-8 my-[60px]">
+              <div className="relative w-full h-full">
+                <img 
+                  src="/lovable-uploads/c314e1b4-ccbe-4fe1-b581-18ea02f3ee1f.png" 
+                  alt="Holistic Science-Backed Transformation" 
+                  className="rounded-lg shadow-lg w-full md:max-w-[90%] mx-auto md:mx-0 object-contain"
+                />
+              </div>
+            </div>
+          </div>
+          
+          {/* Timeline indicator 4 - desktop only */}
+          <div className="hidden md:flex absolute left-1/2 bottom-0 transform -translate-x-1/2 z-20">
+            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
+              <img alt="Indian woman profile" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" src="/lovable-uploads/5e474ac6-d872-427b-8bf1-d428b66bafa3.jpg" />
+            </div>
+          </div>
+          
+          {/* Mobile timeline indicator 4 */}
           <div className="flex md:hidden justify-center my-4">
             <div className="w-12 h-12 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
               <img src="/lovable-uploads/7d10a697-4563-40b0-801b-377284ce6c97.png" alt="Indian woman profile" className="w-8 h-8 rounded-full object-cover" />
