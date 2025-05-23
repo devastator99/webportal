@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -69,7 +68,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           {/* New placeholder divs opposite to mobile app mockup */}
           <div className="hidden md:flex flex-col items-center md:items-end justify-center h-full">
             <div className="bg-gray-800/50 rounded-lg p-6 w-full max-w-md h-[200px] mb-4 flex items-center justify-center border border-gray-700">
-              <p className="text-gray-400 text-center">Placeholder Content</p>
+              <img src="/lovable-uploads/db68319f-f13b-49ea-b9e2-bec967f25077.png" alt="One Chat, Full Care" className="w-full h-auto object-contain" />
             </div>
             <div className="bg-gray-800/50 rounded-lg p-6 w-full max-w-md h-[200px] flex items-center justify-center border border-gray-700">
               <p className="text-gray-400 text-center">Placeholder Content</p>
