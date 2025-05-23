@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { MobileAppMockup } from '../ui/MobileAppMockup';
 import { useResponsive } from '@/contexts/ResponsiveContext';
+
 interface JourneySectionProps {
   openAuthModal?: (view: 'login' | 'register') => void;
 }
+
 export const JourneySection: React.FC<JourneySectionProps> = ({
   openAuthModal
 }) => {
@@ -14,11 +16,13 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
     isMobile,
     isTablet
   } = useResponsive();
+  
   const handleStartJourneyClick = () => {
     if (openAuthModal) {
       openAuthModal('register');
     }
   };
+  
   return <section className="py-12 lg:py-20 bg-black text-white relative overflow-hidden md:py-[10px]">
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
         <div className="text-center mb-8 md:mb-12">
@@ -48,11 +52,11 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
                 Personalized Care, Powered by People & AI
               </h3>
               
-              {/* Added image below heading */}
+              {/* Updated image */}
               <div className="mt-4 mb-6">
                 <img 
-                  src="/lovable-uploads/47e5188a-3472-444b-8783-f43ddc4f1c6b.png" 
-                  alt="Personalized care illustration" 
+                  src="/lovable-uploads/31bbe578-403c-4164-88f9-1e31f6881121.png" 
+                  alt="Woman enjoying healthy salad with chat interface" 
                   className="rounded-lg shadow-lg w-full max-w-sm mx-auto md:mx-0"
                 />
               </div>
