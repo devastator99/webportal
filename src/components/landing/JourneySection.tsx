@@ -66,7 +66,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           {/* Section 2: Calendar tracking - responsive layout reversal on mobile */}
           <div className="md:col-start-1 md:col-end-2 md:row-start-2 flex justify-center md:justify-end">
             <div className="relative max-w-[80%] sm:max-w-[70%] md:max-w-none">
-              <img className="rounded-xl sm:rounded-2xl shadow-lg" src="/lovable-uploads/90f15a11-74d0-46f1-8b5f-38cb0b2595d4.png" alt="Person with tracking app" />
+              
               <div className="absolute -bottom-4 -right-4 sm:-bottom-8 sm:-right-8 bg-cyan-400 rounded-lg sm:rounded-xl p-2 text-black">
                 <div className="flex space-x-1 text-xs">
                   {[24, 25, 26, 27, 28, 29].map((day, i) => <div key={i} className={`flex flex-col items-center text-center p-1 ${i === 2 ? 'bg-white rounded-md' : ''}`}>
