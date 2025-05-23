@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 
 interface FooterProps {
-  openAuthModal?: (view: 'login' | 'register') => void;
+  openAuthModal?: (view?: 'login' | 'register') => void;
 }
 
 export const Footer: React.FC<FooterProps> = ({ openAuthModal }) => {
@@ -14,7 +14,7 @@ export const Footer: React.FC<FooterProps> = ({ openAuthModal }) => {
   
   const handleGetStarted = () => {
     if (openAuthModal) {
-      openAuthModal('register');
+      openAuthModal(); // Call without specifying a view to use default (login)
     } else {
       navigate('/auth'); // Fallback if openAuthModal is not provided
     }

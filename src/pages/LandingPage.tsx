@@ -81,9 +81,13 @@ export const LandingPage = () => {
     };
   }, []);
   
-  // Open auth modal with specific view
-  const openAuthModal = (view: 'login' | 'register') => {
-    setAuthModalView(view);
+  // Open auth modal with specific view or default to login
+  const openAuthModal = (view?: 'login' | 'register') => {
+    if (view) {
+      setAuthModalView(view);
+    } else {
+      setAuthModalView('login'); // Default to login if no view is specified
+    }
     setIsAuthModalOpen(true);
   };
   
