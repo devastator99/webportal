@@ -77,21 +77,21 @@ export const Footer = () => {
             </ul>
           </div>
           
-          {/* Contact */}
-          <div>
+          {/* Contact - Modified to be right-aligned */}
+          <div className="md:ml-auto text-right">
             <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-blue-300">Contact Us</h3>
             <ul className="space-y-3">
-              <li className="flex items-start space-x-3 text-sm">
-                <MapPin size={16} className="text-indigo-300 mt-1 flex-shrink-0" />
+              <li className="flex items-start space-x-3 text-sm justify-end">
                 <span className="text-indigo-200">A Unit Of Swami Vivekananda
 Integrative Health Services Pvt. Ltd.</span>
+                <MapPin size={16} className="text-indigo-300 mt-1 flex-shrink-0" />
               </li>
               
-              <li className="flex items-center space-x-3 text-sm">
-                <Mail size={16} className="text-indigo-300 flex-shrink-0" />
+              <li className="flex items-center space-x-3 text-sm justify-end">
                 <a href="mailto:info@anubhootihealth.com" className="text-indigo-200 hover:text-white transition-colors">
                   info@anubhootihealth.com
                 </a>
+                <Mail size={16} className="text-indigo-300 flex-shrink-0" />
               </li>
               
             </ul>
