@@ -28,13 +28,38 @@ export const Footer = () => {
       <div className="container mx-auto px-4 relative z-10 max-w-7xl">
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 justify-between">
-          {/* Company Info */}
-          <div className="space-y-4">
-            <Logo className="text-white" theme="dark" />
+          {/* Contact Us - Moved to the left */}
+          <div className="text-left">
+            <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-blue-300">Contact Us</h3>
+            <ul className="space-y-3">
+              <li className="flex items-start space-x-3 text-sm">
+                <MapPin size={16} className="text-indigo-300 mt-1 flex-shrink-0" />
+                <span className="text-indigo-200">A Unit Of Swami Vivekananda Integrative Health Services Pvt. Ltd.</span>
+              </li>
+              
+              <li className="flex items-center space-x-3 text-sm">
+                <Mail size={16} className="text-indigo-300 flex-shrink-0" />
+                <a href="mailto:info@anubhootihealth.com" className="text-indigo-200 hover:text-white transition-colors">
+                  info@anubhootihealth.com
+                </a>
+              </li>
+              
+              <li className="flex items-center space-x-3 text-sm">
+                <Phone size={16} className="text-indigo-300 flex-shrink-0" />
+                <a href="tel:+919876543210" className="text-indigo-200 hover:text-white transition-colors">
+                  +91 987-654-3210
+                </a>
+              </li>
+            </ul>
+          </div>
+          
+          {/* Company Info - Moved to the right */}
+          <div className="space-y-4 md:ml-auto md:text-right">
+            <Logo className="text-white md:ml-auto" theme="dark" />
             <p className="text-indigo-200 mt-4 text-sm">
               Integrating traditional wisdom with cutting-edge technology for holistic healthcare solutions.
             </p>
-            <div className="flex space-x-4 mt-6">
+            <div className="flex space-x-4 mt-6 md:justify-end">
               <a href="#" className="text-indigo-200 hover:text-white transition-colors p-2 bg-white/10 rounded-full">
                 <Facebook size={18} />
               </a>
@@ -48,31 +73,6 @@ export const Footer = () => {
                 <Linkedin size={18} />
               </a>
             </div>
-          </div>
-          
-          {/* Contact */}
-          <div className="md:ml-auto text-left md:text-right">
-            <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-blue-300">Contact Us</h3>
-            <ul className="space-y-3">
-              <li className="flex items-start md:justify-end space-x-3 text-sm">
-                <MapPin size={16} className="text-indigo-300 mt-1 flex-shrink-0" />
-                <span className="text-indigo-200">A Unit Of Swami Vivekananda Integrative Health Services Pvt. Ltd.</span>
-              </li>
-              
-              <li className="flex items-center md:justify-end space-x-3 text-sm">
-                <Mail size={16} className="text-indigo-300 flex-shrink-0" />
-                <a href="mailto:info@anubhootihealth.com" className="text-indigo-200 hover:text-white transition-colors">
-                  info@anubhootihealth.com
-                </a>
-              </li>
-              
-              <li className="flex items-center md:justify-end space-x-3 text-sm">
-                <Phone size={16} className="text-indigo-300 flex-shrink-0" />
-                <a href="tel:+919876543210" className="text-indigo-200 hover:text-white transition-colors">
-                  +91 987-654-3210
-                </a>
-              </li>
-            </ul>
           </div>
         </div>
         
