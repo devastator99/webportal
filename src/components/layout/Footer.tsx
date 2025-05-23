@@ -1,10 +1,8 @@
-
 import React from 'react';
 import { Logo } from '../ui/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, ArrowRight } from 'lucide-react';
-
 export const Footer = () => {
   return <footer className="relative bg-gradient-to-br from-purple-900 via-indigo-900 to-black text-white py-16 overflow-hidden">
       {/* Animated Background Elements */}
@@ -37,11 +35,7 @@ export const Footer = () => {
             Subscribe to our newsletter for latest updates, health tips and special offers
           </p>
           <div className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
-            <Input 
-              type="email" 
-              placeholder="Enter your email" 
-              className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
-            />
+            <Input type="email" placeholder="Enter your email" className="bg-white/10 border-white/20 text-white placeholder:text-white/50" />
             <Button className="bg-white text-indigo-900 hover:bg-indigo-100 whitespace-nowrap">
               Subscribe <ArrowRight size={16} className="ml-1" />
             </Button>
@@ -98,12 +92,7 @@ Integrative Health Services Pvt. Ltd.</span>
                   info@anubhootihealth.com
                 </a>
               </li>
-              <li className="flex items-center space-x-3 text-sm">
-                <Phone size={16} className="text-indigo-300 flex-shrink-0" />
-                <a href="tel:+911234567890" className="text-indigo-200 hover:text-white transition-colors">
-                  +91 (123) 456-7890
-                </a>
-              </li>
+              
             </ul>
           </div>
           
