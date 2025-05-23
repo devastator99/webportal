@@ -65,26 +65,10 @@ Integrative Health Services Pvt. Ltd.</span>
           </div>
           
           {/* Newsletter */}
-          <div>
-            <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-blue-300">Newsletter</h3>
-            <p className="text-indigo-200 mb-4 text-sm">
-              Subscribe to our newsletter for the latest updates and health tips.
-            </p>
-            <div className="flex flex-col space-y-2">
-              <div className="relative">
-                <Input type="email" placeholder="Your email address" className="bg-white/10 border-white/20 text-white placeholder:text-indigo-200/70 pr-12" />
-                <Button className="absolute right-0 inset-y-0 px-3 bg-transparent hover:bg-transparent">
-                  <ArrowRight size={18} className="text-indigo-300" />
-                </Button>
-              </div>
-              <Button className="w-full bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600">
-                Subscribe
-              </Button>
-            </div>
-          </div>
+          
         </div>
         
-        <div className="border-t border-white/10 mt-12 pt-8 text-center">
+        <div className="border-t border-white/10 mt-12 pt-8 text-center my-[8px] py-0">
           
           <p className="text-indigo-200/80 text-sm">© {new Date().getFullYear()} Anubhooti Health. All rights reserved.</p>
         </div>
