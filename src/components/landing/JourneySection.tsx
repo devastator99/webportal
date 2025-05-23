@@ -58,7 +58,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           
           {/* Section 1: App mockup */}
           <div className="flex justify-center md:justify-start">
-            <div className="w-3/4 sm:w-2/3 md:w-auto my-[30px]">
+            <div className="w-3/4 sm:w-2/3 md:w-auto my-0">
               <MobileAppMockup />
             </div>
           </div>
@@ -76,16 +76,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
               {/* Added new image to this div */}
               <img alt="Woman eating healthy salad with chat interface" className="rounded-lg shadow-lg w-full object-cover" src="/lovable-uploads/ec9a47d5-3b80-4ed5-80e9-73f8c4c8cf85.png" />
               
-              <div className="absolute -bottom-4 -right-4 sm:-bottom-8 sm:-right-8 bg-cyan-400 rounded-lg sm:rounded-xl p-2 text-black">
-                <div className="flex space-x-1 text-xs">
-                  {[24, 25, 26, 27, 28, 29].map((day, i) => <div key={i} className={`flex flex-col items-center text-center p-1 ${i === 2 ? 'bg-white rounded-md' : ''}`}>
-                      <div className="text-[8px] sm:text-[10px]">{day}</div>
-                      <div className="text-[6px] sm:text-[8px]">
-                        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][i]}
-                      </div>
-                    </div>)}
-                </div>
-              </div>
+              
             </div>
           </div>
           
