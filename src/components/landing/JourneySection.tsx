@@ -102,7 +102,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           
           {/* SWAPPED: Section 3 - Track What Matters - moved to left side */}
           <div className="md:col-start-1 md:col-end-2 md:row-start-3 flex flex-col items-center md:items-end relative">
-            <div className="md:max-w-md md:ml-auto my-16 md:my-16">
+            <div className="md:max-w-md md:ml-auto my-16 md:my-[100px]">
               <p className="text-lg text-white/80 mb-4">
                 Habit tracker with deep insights<br />
                 to turn effort into real change.
