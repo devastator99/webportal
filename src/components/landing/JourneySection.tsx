@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -46,6 +47,15 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
               <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-6">
                 Personalized Care, Powered by People & AI
               </h3>
+              
+              {/* Added image below heading */}
+              <div className="mt-4 mb-6">
+                <img 
+                  src="/lovable-uploads/47e5188a-3472-444b-8783-f43ddc4f1c6b.png" 
+                  alt="Personalized care illustration" 
+                  className="rounded-lg shadow-lg w-full max-w-sm mx-auto md:mx-0"
+                />
+              </div>
             </div>
           </div>
           
