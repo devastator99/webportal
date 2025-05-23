@@ -82,6 +82,12 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           {/* Section 2: Calendar tracking - responsive layout reversal on mobile */}
           <div className="md:col-start-1 md:col-end-2 md:row-start-2 flex justify-center md:justify-end">
             <div className="relative max-w-[80%] sm:max-w-[70%] md:max-w-none">
+              {/* Added new image to this div */}
+              <img 
+                src="/lovable-uploads/1824e1a4-7e83-4d8f-a857-24ea2e9bf41d.png" 
+                alt="Woman eating healthy salad with chat interface" 
+                className="rounded-lg shadow-lg w-full object-cover"
+              />
               
               <div className="absolute -bottom-4 -right-4 sm:-bottom-8 sm:-right-8 bg-cyan-400 rounded-lg sm:rounded-xl p-2 text-black">
                 <div className="flex space-x-1 text-xs">
