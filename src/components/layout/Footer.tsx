@@ -27,6 +27,26 @@ export const Footer = () => {
       </div>
       
       <div className="container mx-auto px-4 relative z-10">
+        {/* Added the selected div from CallToAction.tsx */}
+        <div className="max-w-5xl mx-auto text-center mb-10">
+          <h2 className="text-2xl md:text-3xl font-bold mb-4">
+            Join our community of health-minded individuals
+          </h2>
+          <p className="text-lg text-indigo-200 mb-6">
+            Subscribe to our newsletter for latest updates, health tips and special offers
+          </p>
+          <div className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto">
+            <Input 
+              type="email" 
+              placeholder="Enter your email" 
+              className="bg-white/10 border-white/20 text-white placeholder:text-white/50"
+            />
+            <Button className="bg-white text-indigo-900 hover:bg-indigo-100 whitespace-nowrap">
+              Subscribe <ArrowRight size={16} className="ml-1" />
+            </Button>
+          </div>
+        </div>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
