@@ -2,6 +2,7 @@
 import React from 'react';
 import { Logo } from '../ui/Logo';
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
+
 export const Footer = () => {
   return <footer className="relative bg-gradient-to-br from-purple-900 via-indigo-900 to-black text-white py-16 overflow-hidden">
       {/* Animated Background Elements */}
@@ -51,30 +52,50 @@ export const Footer = () => {
           </div>
           
           {/* Quick Links */}
-          
+          <div>
+            <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-blue-300">Quick Links</h3>
+            <ul className="space-y-2">
+              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Home</a></li>
+              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Services</a></li>
+              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">About Us</a></li>
+              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Testimonials</a></li>
+            </ul>
+          </div>
           
           {/* Contact - Modified to be right-aligned */}
-          <div className="md:ml-auto text-center">
+          <div className="md:ml-auto text-center md:text-left">
             <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-blue-300">Contact Us</h3>
             <ul className="space-y-3">
-              <li className="flex items-start space-x-3 text-sm justify-center">
-                <span className="text-indigo-200">A Unit Of Swami Vivekananda
-Integrative Health Services Pvt. Ltd.</span>
+              <li className="flex items-start space-x-3 text-sm justify-center md:justify-start">
                 <MapPin size={16} className="text-indigo-300 mt-1 flex-shrink-0" />
+                <span className="text-indigo-200">A Unit Of Swami Vivekananda Integrative Health Services Pvt. Ltd.</span>
               </li>
               
-              <li className="flex items-center space-x-3 text-sm justify-center">
+              <li className="flex items-center space-x-3 text-sm justify-center md:justify-start">
+                <Mail size={16} className="text-indigo-300 flex-shrink-0" />
                 <a href="mailto:info@anubhootihealth.com" className="text-indigo-200 hover:text-white transition-colors">
                   info@anubhootihealth.com
                 </a>
-                <Mail size={16} className="text-indigo-300 flex-shrink-0" />
               </li>
               
+              <li className="flex items-center space-x-3 text-sm justify-center md:justify-start">
+                <Phone size={16} className="text-indigo-300 flex-shrink-0" />
+                <a href="tel:+919876543210" className="text-indigo-200 hover:text-white transition-colors">
+                  +91 987-654-3210
+                </a>
+              </li>
             </ul>
           </div>
           
           {/* Legal */}
-          
+          <div>
+            <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-blue-300">Legal</h3>
+            <ul className="space-y-2">
+              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Privacy Policy</a></li>
+              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Terms of Service</a></li>
+              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Cookie Policy</a></li>
+            </ul>
+          </div>
         </div>
         
         <div className="border-t border-white/10 mt-12 pt-8 text-center">
