@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { ResponsiveContainer } from "@/components/layout/ResponsiveContainer";
-import { ResponsiveGrid } from "@/components/layout/ResponsiveGrid";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { usePatientHabits } from "@/hooks/usePatientHabits";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { UserRegistrationStatus } from "@/types/registration";
+import "@/styles/mobile-responsive.css";
 
 export const PatientDashboard = () => {
   const { user } = useAuth();
@@ -187,61 +188,63 @@ export const PatientDashboard = () => {
   // If registration is not complete, show a simplified dashboard
   if (!isRegistrationComplete && registrationStatus) {
     return (
-      <ResponsiveContainer fluid withPadding className="space-y-6">
-        <div className="flex items-center gap-4 mb-4">
-          <Avatar className="h-12 w-12 bg-[#E5DEFF]">
-            <AvatarFallback className="text-[#9b87f5] font-medium">
-              {patientData?.profile?.first_name?.charAt(0)}{patientData?.profile?.last_name?.charAt(0)}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <h1 className="text-2xl font-semibold">Welcome, {patientData?.profile?.first_name}</h1>
-            <p className="text-muted-foreground">Your account setup is in progress</p>
+      <div className="mobile-container mobile-content-spacing">
+        <div className="mobile-header">
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10 bg-[#E5DEFF]">
+              <AvatarFallback className="text-[#9b87f5] font-medium text-sm">
+                {patientData?.profile?.first_name?.charAt(0)}{patientData?.profile?.last_name?.charAt(0)}
+              </AvatarFallback>
+            </Avatar>
+            <div>
+              <h1 className="text-lg font-semibold">Welcome, {patientData?.profile?.first_name}</h1>
+              <p className="text-sm text-muted-foreground">Your account setup is in progress</p>
+            </div>
           </div>
         </div>
 
-        <Card className="bg-white">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="h-5 w-5 text-[#9b87f5]" />
+        <Card className="mobile-card">
+          <CardHeader className="mobile-card-header">
+            <CardTitle className="mobile-card-title flex items-center gap-2">
+              <Clock className="h-4 w-4 text-[#9b87f5]" />
               Registration Status
             </CardTitle>
-            <CardDescription>Your account is being set up</CardDescription>
+            <CardDescription className="mobile-text-scale">Your account is being set up</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             <Alert className="bg-[#E5DEFF]/20 border-[#9b87f5]/30">
-              <AlertDescription>
+              <AlertDescription className="mobile-text-scale">
                 Your account is currently being set up. This includes assigning your care team and creating your communication channels. This process should be completed shortly.
               </AlertDescription>
             </Alert>
             
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className={`h-5 w-5 ${registrationStatus.registration_status === 'payment_pending' ? 'text-gray-300' : 'text-green-500'}`} />
-                  <span>Payment Completed</span>
+                  <CheckCircle2 className={`h-4 w-4 ${registrationStatus.registration_status === 'payment_pending' ? 'text-gray-300' : 'text-green-500'}`} />
+                  <span className="mobile-text-scale">Payment Completed</span>
                 </div>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {registrationStatus.registration_status !== 'payment_pending' ? 'Completed' : 'Pending'}
                 </span>
               </div>
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className={`h-5 w-5 ${['care_team_assigned', 'fully_registered'].includes(registrationStatus.registration_status) ? 'text-green-500' : 'text-gray-300'}`} />
-                  <span>Care Team Assignment</span>
+                  <CheckCircle2 className={`h-4 w-4 ${['care_team_assigned', 'fully_registered'].includes(registrationStatus.registration_status) ? 'text-green-500' : 'text-gray-300'}`} />
+                  <span className="mobile-text-scale">Care Team Assignment</span>
                 </div>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {['care_team_assigned', 'fully_registered'].includes(registrationStatus.registration_status) ? 'Completed' : 'In Progress'}
                 </span>
               </div>
               
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <CheckCircle2 className={`h-5 w-5 ${registrationStatus.registration_status === 'fully_registered' ? 'text-green-500' : 'text-gray-300'}`} />
-                  <span>Account Setup Complete</span>
+                  <CheckCircle2 className={`h-4 w-4 ${registrationStatus.registration_status === 'fully_registered' ? 'text-green-500' : 'text-gray-300'}`} />
+                  <span className="mobile-text-scale">Account Setup Complete</span>
                 </div>
-                <span className="text-sm text-muted-foreground">
+                <span className="text-xs text-muted-foreground">
                   {registrationStatus.registration_status === 'fully_registered' ? 'Completed' : 'In Progress'}
                 </span>
               </div>
@@ -250,7 +253,7 @@ export const PatientDashboard = () => {
           <CardFooter>
             <Button 
               onClick={() => window.location.reload()}
-              className="w-full"
+              className="mobile-button"
             >
               Check Status Again
             </Button>
@@ -258,46 +261,46 @@ export const PatientDashboard = () => {
         </Card>
 
         <PatientCuratedHealthTips />
-      </ResponsiveContainer>
+      </div>
     );
   }
 
   // Regular dashboard for completed registration
   return (
-    <ResponsiveContainer fluid withPadding className="space-y-6">
-      {isMobile ? (
-        <div className="h-4"></div> // Spacer for mobile header
-      ) : (
-        <div className="flex items-center gap-4 mb-4">
-          <Avatar className="h-12 w-12 bg-[#E5DEFF]">
-            <AvatarFallback className="text-[#9b87f5] font-medium">
+    <div className="mobile-container mobile-content-spacing">
+      {/* Mobile optimized header */}
+      <div className="mobile-header">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10 bg-[#E5DEFF]">
+            <AvatarFallback className="text-[#9b87f5] font-medium text-sm">
               {patientData?.profile?.first_name?.charAt(0)}{patientData?.profile?.last_name?.charAt(0)}
             </AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-2xl font-semibold">Welcome, {patientData?.profile?.first_name}</h1>
-            <p className="text-muted-foreground">Keep track of your health journey</p>
+            <h1 className="text-lg font-semibold">Welcome, {patientData?.profile?.first_name}</h1>
+            <p className="text-sm text-muted-foreground">Keep track of your health journey</p>
           </div>
         </div>
-      )}
+      </div>
 
-      <div className="w-full">
+      {/* Health tracking cards with mobile grid */}
+      <div className="mb-4">
         <HealthTrackingCards habitSummary={habitSummary} />
       </div>
 
-      {/* Updated grid layout to ensure the two cards take full row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Mobile optimized grid layout */}
+      <div className="mobile-grid mb-4">
         {patientData?.nextAppointment && (
-          <Card className="bg-[#E5DEFF]/20">
-            <CardContent className="p-4">
+          <Card className="mobile-card bg-[#E5DEFF]/20">
+            <CardContent className="p-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-[#E5DEFF] p-2 rounded-full">
-                    <Calendar className="h-5 w-5 text-[#9b87f5]" />
+                <div className="flex items-center gap-2">
+                  <div className="bg-[#E5DEFF] p-1.5 rounded-full">
+                    <Calendar className="h-4 w-4 text-[#9b87f5]" />
                   </div>
                   <div>
-                    <h3 className="font-medium text-sm mb-2">Next Appointment</h3>
-                    <p className="text-xs text-muted-foreground">
+                    <h3 className="mobile-card-title mb-1">Next Appointment</h3>
+                    <p className="text-xs text-muted-foreground mb-1">
                       {new Date(patientData.nextAppointment.scheduled_at).toLocaleDateString()} at {new Date(patientData.nextAppointment.scheduled_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </p>
                     <p className="text-xs">
@@ -305,38 +308,40 @@ export const PatientDashboard = () => {
                     </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="text-[#9b87f5]">
+                <Button variant="ghost" size="sm" className="text-[#9b87f5] text-xs">
                   View Details
                 </Button>
               </div>
             </CardContent>
           </Card>
         )}
-        <PatientCuratedHealthTips />
+        
+        <div className="mobile-card">
+          <PatientCuratedHealthTips />
+        </div>
       </div>
 
-      <div className="w-full">
-        <Card className="h-full">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserRound className="h-5 w-5" />
-              Care Team Chat
-            </CardTitle>
-            <CardDescription>
-              Recent messages from your healthcare team
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0 h-[400px]">
-            {isLoadingRoom ? (
-              <div className="flex justify-center items-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9b87f5]"></div>
-              </div>
-            ) : (
-              <RecentCareTeamMessages patientRoomId={careTeamRoomId} messageLimit={6} />
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </ResponsiveContainer>
+      {/* Care team chat with mobile optimization */}
+      <Card className="mobile-card">
+        <CardHeader className="mobile-card-header">
+          <CardTitle className="mobile-card-title flex items-center gap-2">
+            <UserRound className="h-4 w-4" />
+            Care Team Chat
+          </CardTitle>
+          <CardDescription className="mobile-text-scale">
+            Recent messages from your healthcare team
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0 h-[300px]">
+          {isLoadingRoom ? (
+            <div className="flex justify-center items-center h-full">
+              <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-[#9b87f5]"></div>
+            </div>
+          ) : (
+            <RecentCareTeamMessages patientRoomId={careTeamRoomId} messageLimit={4} />
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };

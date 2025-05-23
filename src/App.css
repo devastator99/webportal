@@ -27,6 +27,90 @@
   }
 }
 
+/* Enhanced mobile responsive styles */
+@media screen and (max-width: 639px) {
+  .app-container {
+    max-width: 100%;
+    border-radius: 0;
+    margin: 0;
+    height: 100vh;
+  }
+  
+  .mobile-content {
+    padding-left: 8px;
+    padding-right: 8px;
+    padding-top: 8px;
+    padding-bottom: 120px;
+  }
+  
+  /* Optimize touch targets for mobile */
+  button, 
+  a, 
+  input, 
+  select, 
+  textarea {
+    min-height: 44px; /* Apple's recommended minimum */
+  }
+  
+  /* Mobile text optimization */
+  .text-2xl {
+    font-size: 1.25rem;
+  }
+  
+  .text-xl {
+    font-size: 1.125rem;
+  }
+  
+  .text-lg {
+    font-size: 1rem;
+  }
+  
+  /* Mobile spacing optimization */
+  .space-y-6 > * + * {
+    margin-top: 0.75rem;
+  }
+  
+  .space-y-4 > * + * {
+    margin-top: 0.5rem;
+  }
+  
+  /* Mobile card optimization */
+  .card {
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 12px;
+  }
+  
+  /* Mobile grid improvements */
+  .grid {
+    gap: 0.75rem;
+  }
+  
+  /* Mobile dashboard specific */
+  .container {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+/* Tablet improvements */
+@media screen and (min-width: 640px) and (max-width: 1023px) {
+  .mobile-content {
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-bottom: 100px;
+  }
+  
+  .grid {
+    gap: 1rem;
+  }
+  
+  .card {
+    padding: 16px;
+    border-radius: 16px;
+  }
+}
+
 /* iPad and desktop styles */
 @media screen and (min-width: 430px) {
   body {
@@ -353,7 +437,7 @@
   gap: 4px;
 }
 
-/* Navigation bar */
+/* Navigation bar improvements */
 .mobile-nav {
   position: fixed;
   bottom: 0;
@@ -364,14 +448,16 @@
   display: flex;
   justify-content: space-around;
   align-items: center;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
   z-index: 40;
   width: 100%;
   max-width: 430px;
   margin: 0 auto;
+  border-top: 1px solid #e2e8f0;
   
   @media screen and (min-width: 768px) {
     max-width: 100%;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -380,34 +466,36 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: 11px;
   color: #64748b;
   transition: color 0.2s ease;
-  width: 60px;  /* Set fixed width */
-  padding: 8px 0;  /* Add padding */
+  width: 60px;
+  padding: 8px 4px;
+  border-radius: 8px;
 }
 
 .mobile-nav-item.active {
   color: #9b87f5;
+  background-color: #E5DEFF;
 }
 
 .mobile-nav-icon {
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
-/* Responsive content area */
+/* Enhanced responsive content area */
 .mobile-content {
-  padding: 16px;
-  padding-top: 85px;
-  padding-bottom: calc(var(--bottom-nav-height) + 16px);
+  padding: 12px;
+  padding-top: 80px;
+  padding-bottom: calc(var(--bottom-nav-height) + 20px);
   overflow-y: auto;
   height: calc(100vh - 24px);
   -webkit-overflow-scrolling: touch;
   
-  @media screen and (min-width: 768px) {
-    padding: 24px;
-    padding-top: 90px;
-    padding-bottom: calc(var(--bottom-nav-height) + 24px);
+  @media screen and (min-width: 640px) {
+    padding: 20px;
+    padding-top: 85px;
+    padding-bottom: calc(var(--bottom-nav-height) + 25px);
   }
   
   @media screen and (min-width: 1025px) {
@@ -417,24 +505,27 @@
   }
 }
 
-/* Responsive card styling */
+/* Enhanced responsive card styling */
 .mobile-card {
   background-color: #ffffff;
-  border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #f1f5f9;
   
-  @media screen and (min-width: 768px) {
-    padding: 20px;
-    border-radius: 20px;
-    margin-bottom: 20px;
+  @media screen and (min-width: 640px) {
+    padding: 16px;
+    border-radius: 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
   
   @media screen and (min-width: 1025px) {
-    padding: 24px;
-    border-radius: 24px;
-    margin-bottom: 24px;
+    padding: 20px;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   }
 }
 

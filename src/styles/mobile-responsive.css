@@ -1,0 +1,120 @@
+
+/* Mobile-first responsive utilities */
+.mobile-container {
+  width: 100%;
+  max-width: 100%;
+  padding: 0.75rem;
+  margin: 0 auto;
+}
+
+.mobile-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.mobile-card {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 0.75rem;
+}
+
+.mobile-header {
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.mobile-content-spacing {
+  padding-bottom: 120px; /* Space for mobile navigation */
+}
+
+/* Improved responsive breakpoints */
+@media (min-width: 640px) {
+  .mobile-container {
+    padding: 1rem;
+  }
+  
+  .mobile-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .mobile-card {
+    padding: 1rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .mobile-container {
+    padding: 1.5rem;
+  }
+  
+  .mobile-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+  
+  .mobile-content-spacing {
+    padding-bottom: 100px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .mobile-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .mobile-content-spacing {
+    padding-bottom: 32px;
+  }
+}
+
+/* Text scaling for mobile */
+.mobile-text-scale {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+@media (min-width: 640px) {
+  .mobile-text-scale {
+    font-size: 1rem;
+    line-height: 1.5rem;
+  }
+}
+
+/* Card content optimization */
+.mobile-card-header {
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.mobile-card-title {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+@media (min-width: 640px) {
+  .mobile-card-title {
+    font-size: 1.125rem;
+  }
+}
+
+/* Button spacing for mobile */
+.mobile-button {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  margin-top: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .mobile-button {
+    width: auto;
+    padding: 0.5rem 1rem;
+  }
+}

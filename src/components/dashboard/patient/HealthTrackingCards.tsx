@@ -1,97 +1,21 @@
 
-import React from 'react';
-import { Card, CardContent, GlassCard } from "@/components/ui/card";
+import React from "react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Activity, Utensils, Moon, Brain } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Activity, Heart, Moon, Brain } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
-interface HealthTrackingCardProps {
-  title: string;
-  value: string;
-  percentage: number;
-  icon: React.ReactNode;
-  variant: 'activity' | 'nutrition' | 'sleep' | 'mindfulness';
+interface HabitSummary {
+  habit_type: string;
+  avg_value: number;
 }
 
-const HealthTrackingCard = ({ title, value, percentage, icon, variant }: HealthTrackingCardProps) => {
-  // Define variant-specific styling
-  const variantStyles = {
-    activity: {
-      borderClass: "border-l-4 border-[#9b87f5]",
-      shadowClass: "shadow-md hover:shadow-lg",
-      glassClass: "glass-purple",
-      hoverClass: "hover:-translate-y-1 transition-all duration-300"
-    },
-    nutrition: {
-      borderClass: "border-l-4 border-green-500",
-      shadowClass: "shadow-md hover:shadow-lg",
-      glassClass: "glass-green",
-      hoverClass: "hover:-translate-y-1 transition-all duration-300"
-    },
-    sleep: {
-      borderClass: "border-l-4 border-blue-500",
-      shadowClass: "shadow-md hover:shadow-lg",
-      glassClass: "glass-blue",
-      hoverClass: "hover:-translate-y-1 transition-all duration-300"
-    },
-    mindfulness: {
-      borderClass: "border-l-4 border-amber-500",
-      shadowClass: "shadow-md hover:shadow-lg",
-      glassClass: "glass-amber",
-      hoverClass: "hover:-translate-y-1 transition-all duration-300"
-    }
-  };
-
-  return (
-    <GlassCard 
-      className={cn(
-        "w-full", 
-        variantStyles[variant].borderClass, 
-        variantStyles[variant].shadowClass,
-        variantStyles[variant].glassClass,
-        variantStyles[variant].hoverClass
-      )}
-    >
-      <CardContent className="p-4">
-        <div className="flex justify-between items-center mb-4">
-          <div className="flex items-center gap-2">
-            <h3 className="font-medium">{title}</h3>
-            {icon}
-          </div>
-          <span className="text-sm font-medium">{value}</span>
-        </div>
-        <div className="space-y-2">
-          <Progress value={percentage} className="h-2" />
-          <p className="text-xs text-muted-foreground">
-            {percentage}% of daily goal
-          </p>
-        </div>
-      </CardContent>
-    </GlassCard>
-  );
-};
-
 interface HealthTrackingCardsProps {
-  habitSummary: any[] | null;
+  habitSummary?: HabitSummary[];
 }
 
 export const HealthTrackingCards = ({ habitSummary }: HealthTrackingCardsProps) => {
-  // Utility functions to calculate percentages and format values
-  const getHabitPercentage = (habitType: string): number => {
-    if (!habitSummary) return 0;
-    
-    const habit = habitSummary.find(h => h.habit_type === habitType);
-    if (!habit) return 0;
-    
-    const targetValues: Record<string, number> = {
-      physical: 60, // 60 minutes per day
-      nutrition: 8, // score out of 10
-      sleep: 8, // 8 hours
-      mindfulness: 20 // 20 minutes
-    };
-    
-    return Math.min(100, Math.round((habit.avg_value / targetValues[habitType]) * 100));
-  };
+  const isMobile = useIsMobile();
 
   const getHabitValue = (habitType: string): string => {
     if (!habitSummary) return "0";
@@ -101,47 +25,84 @@ export const HealthTrackingCards = ({ habitSummary }: HealthTrackingCardsProps) 
     
     const units: Record<string, string> = {
       physical: "min",
-      nutrition: "/10",
+      nutrition: "/10", 
       sleep: "hrs",
       mindfulness: "min"
     };
     
-    return `${habit?.avg_value || 0}${units[habitType]}`;
+    return `${habit.avg_value}${units[habitType]}`;
   };
 
+  const getHabitPercentage = (habitType: string): number => {
+    if (!habitSummary) return 0;
+    
+    const habit = habitSummary.find(h => h.habit_type === habitType);
+    if (!habit) return 0;
+    
+    const targetValues: Record<string, number> = {
+      physical: 60,
+      nutrition: 8,
+      sleep: 8,
+      mindfulness: 20
+    };
+    
+    return Math.min(100, Math.round((habit.avg_value / targetValues[habitType]) * 100));
+  };
+
+  const habits = [
+    {
+      name: "Physical Activity",
+      type: "physical",
+      icon: Activity,
+      color: "text-green-500"
+    },
+    {
+      name: "Nutrition",
+      type: "nutrition", 
+      icon: Heart,
+      color: "text-red-500"
+    },
+    {
+      name: "Sleep",
+      type: "sleep",
+      icon: Moon,
+      color: "text-blue-500"
+    },
+    {
+      name: "Mindfulness",
+      type: "mindfulness",
+      icon: Brain,
+      color: "text-purple-500"
+    }
+  ];
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <HealthTrackingCard 
-        title="Physical Activity" 
-        value={getHabitValue('physical')} 
-        percentage={getHabitPercentage('physical')}
-        icon={<Activity className="h-4 w-4 text-[#9b87f5]" />} 
-        variant="activity"
-      />
-      
-      <HealthTrackingCard 
-        title="Nutrition" 
-        value={getHabitValue('nutrition')} 
-        percentage={getHabitPercentage('nutrition')}
-        icon={<Utensils className="h-4 w-4 text-green-500" />} 
-        variant="nutrition"
-      />
-      
-      <HealthTrackingCard 
-        title="Sleep" 
-        value={getHabitValue('sleep')} 
-        percentage={getHabitPercentage('sleep')}
-        icon={<Moon className="h-4 w-4 text-blue-500" />} 
-        variant="sleep"
-      />
-      
-      <HealthTrackingCard 
-        title="Mindfulness" 
-        value={getHabitValue('mindfulness')} 
-        percentage={getHabitPercentage('mindfulness')}
-        icon={<Brain className="h-4 w-4 text-amber-500" />} 
-        variant="mindfulness"
-      />
+    <div className={`grid gap-3 ${isMobile ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'}`}>
+      {habits.map((habit) => {
+        const Icon = habit.icon;
+        const value = getHabitValue(habit.type);
+        const percentage = getHabitPercentage(habit.type);
+        
+        return (
+          <Card key={habit.type} className={`${isMobile ? 'p-3' : 'p-4'} shadow-sm hover:shadow-md transition-all duration-200`}>
+            <CardContent className="p-0">
+              <div className="flex justify-between items-center mb-3">
+                <div className="flex items-center gap-2">
+                  <Icon className={`h-4 w-4 ${habit.color}`} />
+                  <h3 className={`font-medium ${isMobile ? 'text-xs' : 'text-sm'}`}>{habit.name}</h3>
+                </div>
+                <span className={`font-semibold ${isMobile ? 'text-sm' : 'text-base'}`}>{value}</span>
+              </div>
+              <div className="space-y-2">
+                <Progress value={percentage} className="h-2" />
+                <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
+                  {percentage}% of goal
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 };
