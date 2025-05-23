@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Header } from '@/components/layout/Header';
@@ -9,7 +8,6 @@ import { OfferingsSection } from '@/components/landing/OfferingsSection';
 import { JourneySection } from '@/components/landing/JourneySection';
 import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
 import { ComingSoonSection } from '@/components/landing/ComingSoonSection';
-import { CallToAction } from '@/components/landing/CallToAction';
 import { AuthModal } from '@/components/auth/AuthModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -116,10 +114,6 @@ export const LandingPage = () => {
         
         <div className="mt-0">
           <TestimonialsSection />
-        </div>
-        
-        <div className="mt-0">
-          <CallToAction openAuthModal={openAuthModal} />
         </div>
       </main>
       <Footer />

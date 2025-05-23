@@ -2,14 +2,23 @@
 import React from 'react';
 import { Logo } from '../ui/Logo';
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 export const Footer = () => {
-  return <footer className="relative bg-gradient-to-br from-purple-900 via-indigo-900 to-black text-white py-16 overflow-hidden">
-      {/* Animated Background Elements */}
-      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[800px] h-[800px] bg-purple-700 opacity-20 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-indigo-700 opacity-20 rounded-full blur-2xl" />
+  const navigate = useNavigate();
+
+  const handleGetStarted = () => {
+    navigate('/auth'); // Navigate to auth page when button is clicked
+  };
+
+  return (
+    <footer className="relative bg-gradient-to-br from-purple-950 via-indigo-950 to-black text-white py-16 overflow-hidden">
+      {/* Enhanced Animated Background Elements */}
+      <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[800px] h-[800px] bg-purple-600 opacity-10 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-indigo-600 opacity-10 rounded-full blur-3xl" />
       
-      {/* Glassmorphism container from CallToAction component */}
+      {/* Glassmorphism container */}
       <div className="glassmorphism-container absolute inset-0 overflow-hidden">
         <div className="glassmorphism-circle opacity-20 bg-gradient-to-br from-purple-400 to-indigo-400 top-1/4 -left-[10%]"></div>
         <div className="glassmorphism-circle opacity-20 bg-gradient-to-br from-blue-400 to-indigo-400 bottom-1/4 -right-[10%]"></div>
@@ -24,11 +33,30 @@ export const Footer = () => {
         </div>
       </div>
       
-      {/* Container from CallToAction.tsx */}
-      <div className="container mx-auto px-4 relative z-10 max-w-7xl">
+      {/* Call To Action Section - Merged into the top of footer */}
+      <div className="container mx-auto px-4 relative z-10 max-w-7xl mb-16">
+        <div className="max-w-3xl mx-auto text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-blue-300">
+            Ready to begin your journey towards holistic health?
+          </h2>
+          <p className="text-lg md:text-xl text-indigo-200 mb-8">
+            Start transforming your health today with our integrated care approach that combines modern medicine and traditional wisdom.
+          </p>
+          <Button 
+            onClick={handleGetStarted} 
+            className="bg-white text-indigo-900 hover:bg-indigo-100 font-medium px-8 py-6 rounded-full text-lg"
+          >
+            Get Started
+          </Button>
+        </div>
         
+        <div className="border-t border-white/20 pt-12"></div>
+      </div>
+      
+      {/* Footer Content */}
+      <div className="container mx-auto px-4 relative z-10 max-w-7xl">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 justify-between">
-          {/* Contact Us - Moved to the left */}
+          {/* Contact Us */}
           <div className="text-left">
             <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-blue-300">Contact Us</h3>
             <ul className="space-y-3">
@@ -53,7 +81,7 @@ export const Footer = () => {
             </ul>
           </div>
           
-          {/* Company Info - Moved to the right */}
+          {/* Company Info */}
           <div className="space-y-4 md:ml-auto md:text-right">
             <Logo className="text-white md:ml-auto" theme="dark" />
             <p className="text-indigo-200 mt-4 text-sm">
@@ -80,5 +108,6 @@ export const Footer = () => {
           <p className="text-indigo-200/80 text-sm">© {new Date().getFullYear()} Anubhooti Health. All rights reserved.</p>
         </div>
       </div>
-    </footer>;
+    </footer>
+  );
 };
