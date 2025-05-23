@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -52,14 +53,14 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           {/* Timeline indicator 1 - desktop only */}
           <div className="hidden md:flex absolute left-1/2 top-24 transform -translate-x-1/2 z-20">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
-              <img src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" alt="Avatar" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" />
+              <img src="/lovable-uploads/7d10a697-4563-40b0-801b-377284ce6c97.png" alt="Indian woman profile" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" />
             </div>
           </div>
           
           {/* Mobile timeline indicator 1 */}
           <div className="flex md:hidden justify-center my-4">
             <div className="w-12 h-12 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
-              <img src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+              <img src="/lovable-uploads/7d10a697-4563-40b0-801b-377284ce6c97.png" alt="Indian woman profile" className="w-8 h-8 rounded-full object-cover" />
             </div>
           </div>
           
@@ -101,14 +102,14 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           {/* Timeline indicator 2 - desktop only */}
           <div className="hidden md:flex absolute left-1/2 top-[45%] transform -translate-x-1/2 z-20">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
-              <img src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" alt="Avatar" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" />
+              <img src="/lovable-uploads/7d10a697-4563-40b0-801b-377284ce6c97.png" alt="Indian woman profile" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" />
             </div>
           </div>
           
           {/* Mobile timeline indicator 2 */}
           <div className="flex md:hidden justify-center my-4">
             <div className="w-12 h-12 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
-              <img src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+              <img src="/lovable-uploads/7d10a697-4563-40b0-801b-377284ce6c97.png" alt="Indian woman profile" className="w-8 h-8 rounded-full object-cover" />
             </div>
           </div>
           
@@ -127,14 +128,14 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           {/* Timeline indicator 3 - desktop only */}
           <div className="hidden md:flex absolute left-1/2 top-[75%] transform -translate-x-1/2 z-20">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
-              <img src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" alt="Avatar" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" />
+              <img src="/lovable-uploads/7d10a697-4563-40b0-801b-377284ce6c97.png" alt="Indian woman profile" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" />
             </div>
           </div>
           
           {/* Mobile timeline indicator 3 */}
           <div className="flex md:hidden justify-center my-4">
             <div className="w-12 h-12 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
-              <img src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" alt="Avatar" className="w-8 h-8 rounded-full object-cover" />
+              <img src="/lovable-uploads/7d10a697-4563-40b0-801b-377284ce6c97.png" alt="Indian woman profile" className="w-8 h-8 rounded-full object-cover" />
             </div>
           </div>
         </div>
