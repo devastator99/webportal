@@ -1,13 +1,21 @@
+
 import React from 'react';
 import { Logo } from '../ui/Logo';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin, ArrowRight } from 'lucide-react';
+
 export const Footer = () => {
   return <footer className="relative bg-gradient-to-br from-purple-900 via-indigo-900 to-black text-white py-16 overflow-hidden">
       {/* Animated Background Elements */}
       <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[800px] h-[800px] bg-purple-700 opacity-20 rounded-full blur-3xl" />
       <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-indigo-700 opacity-20 rounded-full blur-2xl" />
+      
+      {/* Glassmorphism container from CallToAction component */}
+      <div className="glassmorphism-container absolute inset-0 overflow-hidden">
+        <div className="glassmorphism-circle opacity-20 bg-gradient-to-br from-purple-400 to-indigo-400 top-1/4 -left-[10%]"></div>
+        <div className="glassmorphism-circle opacity-20 bg-gradient-to-br from-blue-400 to-indigo-400 bottom-1/4 -right-[10%]"></div>
+      </div>
       
       {/* Rotating Circle Animation */}
       <div className="absolute top-0 right-0 -mt-20 -mr-20">
