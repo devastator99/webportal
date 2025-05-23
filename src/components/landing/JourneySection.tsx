@@ -31,7 +31,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           
           {/* Section 1: Doctor + AI */}
           <div className="flex flex-col items-center md:items-end relative">
-            <div className="md:max-w-md md:ml-auto md:-mt-6">
+            <div className="md:max-w-md md:ml-auto md:-mt-6 my-[124px]">
               <p className="text-lg text-white/80 mb-4">
                 Doctor, dietitian, psychologist & AI—<br />
                 all in one seamless conversation.
@@ -44,7 +44,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           
           {/* Section 1: App mockup */}
           <div className="flex justify-center md:justify-start">
-            <div className="w-3/4 sm:w-2/3 md:w-auto">
+            <div className="w-3/4 sm:w-2/3 md:w-auto my-[30px]">
               <MobileAppMockup />
             </div>
           </div>

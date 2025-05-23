@@ -1,19 +1,27 @@
-
 import React from 'react';
 import { useResponsive } from '@/contexts/ResponsiveContext';
-
 export const MobileAppMockup = () => {
-  const { isMobile, isTablet } = useResponsive();
+  const {
+    isMobile,
+    isTablet
+  } = useResponsive();
 
   // Updated sizing to be more compact
   const getMockupSize = () => {
-    if (isMobile) return { width: '80%', height: 'auto' };  // Reduced from 100%
-    if (isTablet) return { width: '65%', height: 'auto' };  // Reduced from 80%
-    return { width: '75%', height: 'auto' };  // Reduced from 100%
+    if (isMobile) return {
+      width: '80%',
+      height: 'auto'
+    }; // Reduced from 100%
+    if (isTablet) return {
+      width: '65%',
+      height: 'auto'
+    }; // Reduced from 80%
+    return {
+      width: '75%',
+      height: 'auto'
+    }; // Reduced from 100%
   };
-
-  return (
-    <div className="relative w-full flex justify-center" style={getMockupSize()}>
+  return <div className="relative w-full flex justify-center" style={getMockupSize()}>
       <div className="bg-black rounded-3xl overflow-hidden shadow-xl border-8 border-gray-900 aspect-[9/19] relative max-w-[280px]">
         <div className="absolute top-0 left-0 w-full h-6 bg-black flex items-center justify-center">
           <div className="w-16 h-4 bg-gray-900 rounded-b-xl"></div>
@@ -50,7 +58,7 @@ export const MobileAppMockup = () => {
                 <div className="text-purple-200 text-[10px]">Online</div>
               </div>
             </div>
-            <div className="messages-area flex-1 p-3 overflow-hidden">
+            <div className="messages-area flex-1 p-3 overflow-hidden my-[10px]">
               <div className="message received bg-purple-800 text-white text-xs p-2 rounded-lg mb-2 max-w-[70%] ml-1">
                 Hello! How are you feeling today?
               </div>
@@ -62,8 +70,12 @@ export const MobileAppMockup = () => {
               </div>
               <div className="typing-indicator flex space-x-1 ml-1">
                 <div className="dot w-2 h-2 rounded-full bg-purple-400 animate-bounce"></div>
-                <div className="dot w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                <div className="dot w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{ animationDelay: '0.4s' }}></div>
+                <div className="dot w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{
+                animationDelay: '0.2s'
+              }}></div>
+                <div className="dot w-2 h-2 rounded-full bg-purple-400 animate-bounce" style={{
+                animationDelay: '0.4s'
+              }}></div>
               </div>
             </div>
             <div className="input-area p-2 bg-gray-800 flex items-center">
@@ -89,6 +101,5 @@ export const MobileAppMockup = () => {
           <div className="text-gray-600">Steps: 8,542</div>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 };
