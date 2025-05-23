@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -121,7 +120,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
               <img alt="Woman eating healthy salad with chat interface" className="rounded-lg shadow-lg w-full object-cover mb-4" src="/lovable-uploads/ec9a47d5-3b80-4ed5-80e9-73f8c4c8cf85.png" />
               
               {/* Added image below the content */}
-              <img src="/lovable-uploads/72294fef-845b-4724-8b80-eac027068410.png" alt="Holistic Science-Backed Transformation" className="w-full rounded-lg shadow-lg object-fill" />
+              
             </div>
           </div>
           
