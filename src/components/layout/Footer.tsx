@@ -1,19 +1,14 @@
-
 import React from 'react';
 import { Logo } from '../ui/Logo';
 import { Facebook, Twitter, Instagram, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-
 export const Footer = () => {
   const navigate = useNavigate();
-
   const handleGetStarted = () => {
     navigate('/auth'); // Navigate to auth page when button is clicked
   };
-
-  return (
-    <footer className="relative bg-gradient-to-br from-purple-950 via-indigo-950 to-black text-white py-16 overflow-hidden">
+  return <footer className="relative bg-gradient-to-br from-purple-950 via-indigo-950 to-black text-white py-16 overflow-hidden">
       {/* Enhanced Animated Background Elements */}
       <div className="absolute top-0 left-1/2 transform -translate-x-1/2 w-[800px] h-[800px] bg-purple-600 opacity-10 rounded-full blur-3xl" />
       <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-indigo-600 opacity-10 rounded-full blur-3xl" />
@@ -42,15 +37,12 @@ export const Footer = () => {
           <p className="text-lg md:text-xl text-indigo-200 mb-8">
             Start transforming your health today with our integrated care approach that combines modern medicine and traditional wisdom.
           </p>
-          <Button 
-            onClick={handleGetStarted} 
-            className="bg-white text-indigo-900 hover:bg-indigo-100 font-medium px-8 py-6 rounded-full text-lg"
-          >
+          <Button onClick={handleGetStarted} className="bg-white text-indigo-900 hover:bg-indigo-100 font-medium px-8 py-6 rounded-full text-lg">
             Get Started
           </Button>
         </div>
         
-        <div className="border-t border-white/20 pt-12"></div>
+        
       </div>
       
       {/* Footer Content */}
@@ -108,6 +100,5 @@ export const Footer = () => {
           <p className="text-indigo-200/80 text-sm">© {new Date().getFullYear()} Anubhooti Health. All rights reserved.</p>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 };
