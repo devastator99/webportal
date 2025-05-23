@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -71,9 +70,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
             <div className="bg-gray-800/50 rounded-lg p-6 w-full max-w-md h-[200px] mb-4 flex items-center justify-center border border-gray-700">
               <img src="/lovable-uploads/db68319f-f13b-49ea-b9e2-bec967f25077.png" alt="One Chat, Full Care" className="w-full h-auto object-contain" />
             </div>
-            <div className="bg-gray-800/50 rounded-lg p-6 w-full max-w-md h-[200px] flex items-center justify-center border border-gray-700">
-              <p className="text-gray-400 text-center">Placeholder Content</p>
-            </div>
+            
           </div>
           
           {/* Mobile timeline indicator 1 */}
@@ -141,11 +138,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           <div className="md:col-start-1 md:col-end-2 md:row-start-4 flex flex-col items-center md:items-end relative py-2 md:py-0">
             <div className="md:max-w-md w-full md:mr-8 my-[60px]">
               <div className="relative w-full h-full">
-                <img 
-                  src="/lovable-uploads/16f843b1-c8e8-4503-b2c2-b7c1c8f65f24.png" 
-                  alt="Medical research microscope" 
-                  className="rounded-lg shadow-lg w-full md:max-w-[90%] mx-auto md:mx-0 md:ml-auto object-cover"
-                />
+                <img src="/lovable-uploads/16f843b1-c8e8-4503-b2c2-b7c1c8f65f24.png" alt="Medical research microscope" className="rounded-lg shadow-lg w-full md:max-w-[90%] mx-auto md:mx-0 md:ml-auto object-cover" />
               </div>
             </div>
           </div>
@@ -154,11 +147,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           <div className="md:col-start-2 md:col-end-3 md:row-start-4 flex flex-col items-center md:items-start relative py-2 md:py-0">
             <div className="md:max-w-md w-full md:ml-8 my-[60px]">
               <div className="relative w-full h-full">
-                <img 
-                  src="/lovable-uploads/c314e1b4-ccbe-4fe1-b581-18ea02f3ee1f.png" 
-                  alt="Holistic Science-Backed Transformation" 
-                  className="rounded-lg shadow-lg w-full md:max-w-[90%] mx-auto md:mx-0 object-contain"
-                />
+                <img src="/lovable-uploads/c314e1b4-ccbe-4fe1-b581-18ea02f3ee1f.png" alt="Holistic Science-Backed Transformation" className="rounded-lg shadow-lg w-full md:max-w-[90%] mx-auto md:mx-0 object-contain" />
               </div>
             </div>
           </div>
