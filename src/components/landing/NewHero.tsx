@@ -29,7 +29,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ openAuthModal }) => {
   
   return (
     <section 
-      className="relative min-h-[75vh] sm:min-h-screen flex items-center pt-12 sm:pt-16 md:pt-20 overflow-hidden"
+      className="relative min-h-[70vh] sm:min-h-[90vh] flex items-center pt-12 sm:pt-16 md:pt-20 overflow-hidden"
       style={{
         background: 'linear-gradient(135deg, #4a2f80 0%, #6b46c1 100%)',
       }}
@@ -142,43 +142,43 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ openAuthModal }) => {
             className={`w-full md:w-1/2 flex justify-center ${isLoaded ? 'animate-fade-up' : 'opacity-0'}`}
             style={{ animationDelay: '0.4s' }}
           >
-            <div className="w-[60%] sm:w-[50%] md:w-[65%] lg:w-[55%] max-w-[300px]">
+            <div className="w-[55%] sm:w-[45%] md:w-[60%] lg:w-[50%] max-w-[280px]">
               {/* Mobile app mockup with reduced height */}
               <div className="relative bg-black rounded-3xl overflow-hidden border-4 border-[#333] shadow-2xl w-full">
                 {/* Header - reduced padding */}
-                <div className="p-2 sm:p-4 text-white">
-                  <h3 className="text-center font-bold text-sm sm:text-base">AnubhootiHealth</h3>
-                  <p className="text-xs sm:text-sm opacity-80 mt-1">Integrative Medicine solutions</p>
-                  <h2 className="text-xl sm:text-3xl font-bold mt-1 sm:mt-2">Hi, Rakesh!</h2>
+                <div className="p-1.5 sm:p-3 text-white">
+                  <h3 className="text-center font-bold text-xs sm:text-sm">AnubhootiHealth</h3>
+                  <p className="text-xs opacity-80 mt-0.5 sm:mt-1">Integrative Medicine solutions</p>
+                  <h2 className="text-lg sm:text-2xl font-bold mt-0.5 sm:mt-1.5">Hi, Rakesh!</h2>
                 </div>
                 
                 {/* Calendar row - reduced padding */}
-                <div className="bg-[#00b5e2] text-white p-1 sm:p-3 flex justify-between items-center rounded-lg mx-2 sm:mx-3">
-                  <div className="bg-white text-center p-0.5 sm:p-1 rounded-md flex flex-col items-center min-w-[25px] sm:min-w-[36px]">
-                    <span className="text-[0.5rem] sm:text-xs text-black">★</span>
-                    <span className="text-xs sm:text-lg font-bold text-black">24</span>
-                    <span className="text-[0.5rem] sm:text-xs text-black">Mon</span>
+                <div className="bg-[#00b5e2] text-white p-0.5 sm:p-2 flex justify-between items-center rounded-lg mx-1.5 sm:mx-3">
+                  <div className="bg-white text-center p-0.5 rounded-md flex flex-col items-center min-w-[20px] sm:min-w-[32px]">
+                    <span className="text-[0.4rem] sm:text-xs text-black">★</span>
+                    <span className="text-xs sm:text-base font-bold text-black">24</span>
+                    <span className="text-[0.4rem] sm:text-xs text-black">Mon</span>
                   </div>
                   
                   {['Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
                     <div key={day} className="text-center flex flex-col items-center">
-                      {index === 1 || index === 3 ? <span className="text-[0.5rem] sm:text-xs">★</span> : <span className="text-[0.5rem] sm:text-xs opacity-0">·</span>}
-                      <span className="text-xs sm:text-sm font-medium">{25 + index}</span>
-                      <span className="text-[0.5rem] sm:text-xs">{day}</span>
+                      {index === 1 || index === 3 ? <span className="text-[0.4rem] sm:text-xs">★</span> : <span className="text-[0.4rem] sm:text-xs opacity-0">·</span>}
+                      <span className="text-[0.4rem] sm:text-xs font-medium">{25 + index}</span>
+                      <span className="text-[0.4rem] sm:text-[0.4rem]">{day}</span>
                     </div>
                   ))}
                 </div>
                 
                 {/* Progress section - reduced margins */}
-                <div className="flex justify-between items-center my-2 sm:my-6 px-2 sm:px-6">
+                <div className="flex justify-between items-center my-1 sm:my-3 px-2 sm:px-4">
                   <div className="flex flex-col items-center">
-                    <div className="w-10 h-10 sm:w-16 sm:h-16 rounded-full border-2 sm:border-4 border-[#8860f5] bg-transparent relative">
-                      <div className="absolute inset-0 border-2 sm:border-4 border-[#4cd770] rounded-full border-t-transparent border-r-transparent rotate-45"></div>
+                    <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-full border-2 border-[#8860f5] bg-transparent relative">
+                      <div className="absolute inset-0 border-2 border-[#4cd770] rounded-full border-t-transparent border-r-transparent rotate-45"></div>
                     </div>
-                    <div className="bg-[#4a7fff] h-1 sm:h-2 w-full mt-1 sm:mt-2 rounded-full"></div>
+                    <div className="bg-[#4a7fff] h-0.5 sm:h-1 w-full mt-0.5 sm:mt-1 rounded-full"></div>
                   </div>
                   
-                  <div className="w-12 sm:w-20 h-16 sm:h-24">
+                  <div className="w-10 sm:w-16 h-14 sm:h-20">
                     <img 
                       src="/lovable-uploads/e42732ca-e658-4992-8a2d-863555e56873.png" 
                       alt="Doctor avatar" 
@@ -188,20 +188,20 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ openAuthModal }) => {
                 </div>
                 
                 {/* Features section - reduced padding and spacing */}
-                <div className="py-2 sm:py-4 px-1 sm:px-3 space-y-2 sm:space-y-4">
-                  <div className="flex items-center space-x-2 sm:space-x-4">
-                    <div className="w-6 h-6 sm:w-12 sm:h-12">
+                <div className="py-1 sm:py-2 px-1 sm:px-3 space-y-1 sm:space-y-2">
+                  <div className="flex items-center space-x-1 sm:space-x-2">
+                    <div className="w-5 h-5 sm:w-8 sm:h-8">
                       <img 
                         src="/lovable-uploads/90f15a11-74d0-46f1-8b5f-38cb0b2595d4.png" 
                         alt="AI badge" 
                         className="w-full h-full object-contain"
                       />
                     </div>
-                    <p className="text-white text-xs sm:text-sm">AI Backed</p>
+                    <p className="text-white text-[0.5rem] sm:text-xs">AI Backed</p>
                   </div>
                   
                   <div className="flex justify-between items-center">
-                    <div className="w-10 h-10 sm:w-16 sm:h-16">
+                    <div className="w-8 h-8 sm:w-12 sm:h-12">
                       <img 
                         src="/lovable-uploads/e2178f5b-75e8-47aa-909a-2340b57758dd.png" 
                         alt="Activity" 
@@ -213,21 +213,21 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ openAuthModal }) => {
                         <img 
                           src="/lovable-uploads/85c51479-e739-41cb-92db-1f9331c6e677.png" 
                           alt="Anubhooti Logo" 
-                          className="w-4 h-4 sm:w-6 sm:h-6 object-contain"
+                          className="w-3 h-3 sm:w-5 sm:h-5 object-contain"
                         />
-                        <span className="text-white text-xs sm:text-sm">AnubhootiHealth</span>
+                        <span className="text-white text-[0.5rem] sm:text-xs">AnubhootiHealth</span>
                       </div>
-                      <div className="bg-[#4a7fff] text-white px-3 sm:px-6 py-1.5 sm:py-3 rounded-full mt-1 sm:mt-2 w-full max-w-[110px] sm:max-w-[160px]"></div>
+                      <div className="bg-[#4a7fff] text-white px-2 sm:px-4 py-1 sm:py-2 rounded-full mt-0.5 sm:mt-1 w-full max-w-[100px] sm:max-w-[140px]"></div>
                     </div>
                   </div>
                   
                   {/* Chat section - reduced spacing */}
-                  <div className="flex flex-col items-end space-y-1 sm:space-y-2">
-                    <div className="bg-gray-200 text-transparent px-3 sm:px-6 py-1.5 sm:py-3 rounded-2xl w-full max-w-[120px] sm:max-w-[180px]">...</div>
+                  <div className="flex flex-col items-end space-y-0.5 sm:space-y-1">
+                    <div className="bg-gray-200 text-transparent px-2 sm:px-4 py-1 sm:py-2 rounded-2xl w-full max-w-[100px] sm:max-w-[150px]">...</div>
                     <div className="flex items-center space-x-1">
-                      <div className="bg-gray-400 text-transparent px-3 sm:px-6 py-1.5 sm:py-3 rounded-2xl flex-1">...</div>
-                      <div className="bg-teal-400 text-white p-1 sm:p-1.5 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-2.5 h-2.5 sm:w-4 sm:h-4">
+                      <div className="bg-gray-400 text-transparent px-2 sm:px-4 py-1 sm:py-2 rounded-2xl flex-1">...</div>
+                      <div className="bg-teal-400 text-white p-0.5 sm:p-1 rounded-full">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-2 h-2 sm:w-3 sm:h-3">
                           <path d="M5.055 7.06C3.805 6.347 2.25 7.25 2.25 8.69v8.122c0 1.44 1.555 2.343 2.805 1.628L12 14.471v2.34c0 1.44 1.555 2.343 2.805 1.628l7.108-4.061c1.26-.72 1.26-2.536 0-3.256l-7.108-4.061C13.555 6.346 12 7.249 12 8.689v2.34L5.055 7.06z" />
                         </svg>
                       </div>
@@ -240,13 +240,13 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ openAuthModal }) => {
         </div>
       </div>
       
-      {/* Wave shape at bottom - responsive */}
+      {/* Wave shape at bottom - reduced height */}
       <div className="absolute bottom-0 left-0 right-0">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 100" preserveAspectRatio="none" className="w-full h-[40px] md:h-[100px]">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 80" preserveAspectRatio="none" className="w-full h-[30px] md:h-[80px]">
           <path 
             fill="#ffffff" 
             fillOpacity="1" 
-            d="M0,64L120,69.3C240,75,480,85,720,80C960,75,1200,53,1320,42.7L1440,32L1440,100L1320,100C1200,100,960,100,720,100C480,100,240,100,120,100L0,100Z">
+            d="M0,64L120,69.3C240,75,480,85,720,80C960,75,1200,53,1320,42.7L1440,32L1440,80L1320,80C1200,80,960,80,720,80C480,80,240,80,120,80L0,80Z">
           </path>
         </svg>
       </div>
