@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -82,18 +83,8 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
             </div>
           </div>
           
-          {/* Section 2: Calendar tracking - responsive layout reversal on mobile */}
-          <div className="md:col-start-1 md:col-end-2 md:row-start-3 flex justify-center md:justify-end">
-            <div className="relative max-w-[80%] sm:max-w-[70%] md:max-w-none">
-              {/* Added new image to this div */}
-              <img alt="Woman eating healthy salad with chat interface" className="rounded-lg shadow-lg w-full object-cover" src="/lovable-uploads/ec9a47d5-3b80-4ed5-80e9-73f8c4c8cf85.png" />
-              
-              
-            </div>
-          </div>
-          
-          {/* Section 2: Track What Matters */}
-          <div className="md:col-start-2 md:col-end-3 md:row-start-3 flex flex-col items-center md:items-start relative py-2 md:py-0">
+          {/* SWAPPED: Section 2 - Track What Matters - moved to left side */}
+          <div className="md:col-start-1 md:col-end-2 md:row-start-3 flex flex-col items-center md:items-end relative py-2 md:py-0">
             <div className="md:max-w-md md:ml-auto md:-mt-3 my-[60px]">
               <p className="text-lg text-white/80 mb-2">
                 Habit tracker with deep insights<br />
@@ -103,8 +94,16 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
                 Track What Matters, Change What Counts
               </h3>
             </div>
+          </div>
+          
+          {/* SWAPPED: Section 2 - Calendar tracking image - moved to right side */}
+          <div className="md:col-start-2 md:col-end-3 md:row-start-3 flex justify-center md:justify-start">
+            <div className="relative max-w-[80%] sm:max-w-[70%] md:max-w-none">
+              {/* Added new image to this div */}
+              <img alt="Woman eating healthy salad with chat interface" className="rounded-lg shadow-lg w-full object-cover" src="/lovable-uploads/ec9a47d5-3b80-4ed5-80e9-73f8c4c8cf85.png" />
+            </div>
             
-            {/* Added image below the content */}
+            {/* Added image below the content - moved from left to right side */}
             <div className="w-full mt-4 md:mt-6">
               <img src="/lovable-uploads/72294fef-845b-4724-8b80-eac027068410.png" alt="Holistic Science-Backed Transformation" className="w-full max-w-md mx-auto md:mx-0 rounded-lg shadow-lg object-fill" />
             </div>
