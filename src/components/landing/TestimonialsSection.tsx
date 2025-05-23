@@ -148,7 +148,7 @@ export const TestimonialsSection = () => {
             label: "Diabetes Reversal",
             value: "87%",
             description: "Success rate in reducing medication"
-          }].map((stat, i) => <div key={i} className="text-center p-6 px-0 py-0">
+          }].map((stat, i) => <div key={i} className="text-center p-6 px-0 py-[10px]">
                 <div className="text-4xl font-bold mb-2 text-purple-700">{stat.value}</div>
                 <div className="text-lg font-semibold mb-2 text-gray-900">{stat.label}</div>
                 <div className="text-gray-600 text-sm">{stat.description}</div>
