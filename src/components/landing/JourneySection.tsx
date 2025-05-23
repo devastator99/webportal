@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -51,14 +50,10 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           </div>
           
           {/* Section 1: One Chat, Full Care image - opposite to App mockup */}
-          <div className="flex flex-col items-center md:items-start relative">
+          <div className="flex flex-col items-center md:items-start relative my-[90px]">
             <div className="md:max-w-md md:ml-0 md:-mt-6 my-[60px]">
               <div className="bg-black p-4 rounded-lg shadow-lg">
-                <img 
-                  src="/lovable-uploads/cf8699d0-a562-4744-bbe1-af769d854f0a.png" 
-                  alt="One Chat, Full Care" 
-                  className="w-full rounded-lg shadow-inner"
-                />
+                <img alt="One Chat, Full Care" className="w-full rounded-lg shadow-inner" src="/lovable-uploads/c9b90fb3-4128-4609-95e2-034a337fd747.png" />
               </div>
             </div>
           </div>
