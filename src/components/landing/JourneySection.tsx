@@ -82,7 +82,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           
           {/* Section 2: Track What Matters */}
           <div className="md:col-start-2 md:col-end-3 md:row-start-2 flex flex-col items-center md:items-start relative py-2 md:py-0">
-            <div className="md:max-w-md md:ml-auto md:-mt-3">
+            <div className="md:max-w-md md:ml-auto md:-mt-3 my-[60px]">
               <p className="text-lg text-white/80 mb-2">
                 Habit tracker with deep insights<br />
                 to turn effort into real change.
@@ -94,7 +94,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
             
             {/* Added image below the content */}
             <div className="w-full mt-4 md:mt-6">
-              <img src="/lovable-uploads/72294fef-845b-4724-8b80-eac027068410.png" alt="Holistic Science-Backed Transformation" className="w-full max-w-md mx-auto md:mx-0 rounded-lg shadow-lg" />
+              <img src="/lovable-uploads/72294fef-845b-4724-8b80-eac027068410.png" alt="Holistic Science-Backed Transformation" className="w-full max-w-md mx-auto md:mx-0 rounded-lg shadow-lg object-fill" />
             </div>
           </div>
           
