@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -53,7 +52,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           {/* Timeline indicator 1 - desktop only */}
           <div className="hidden md:flex absolute left-1/2 top-24 transform -translate-x-1/2 z-20">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
-              <img src="/lovable-uploads/7d10a697-4563-40b0-801b-377284ce6c97.png" alt="Indian woman profile" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" />
+              <img alt="Indian woman profile" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" src="/lovable-uploads/ac9a591b-754c-4692-a8da-d7ef58837b8c.jpg" />
             </div>
           </div>
           
@@ -102,7 +101,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           {/* Timeline indicator 2 - desktop only */}
           <div className="hidden md:flex absolute left-1/2 top-[45%] transform -translate-x-1/2 z-20">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
-              <img src="/lovable-uploads/7d10a697-4563-40b0-801b-377284ce6c97.png" alt="Indian woman profile" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" />
+              <img alt="Indian woman profile" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" src="/lovable-uploads/cd8fcd05-d0d1-4455-9e84-f8ce57d78a94.jpg" />
             </div>
           </div>
           
@@ -128,7 +127,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           {/* Timeline indicator 3 - desktop only */}
           <div className="hidden md:flex absolute left-1/2 top-[75%] transform -translate-x-1/2 z-20">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-purple-500 border-4 border-white flex items-center justify-center">
-              <img src="/lovable-uploads/7d10a697-4563-40b0-801b-377284ce6c97.png" alt="Indian woman profile" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" />
+              <img alt="Indian woman profile" className="w-8 h-8 sm:w-12 sm:h-12 rounded-full object-cover" src="/lovable-uploads/5e474ac6-d872-427b-8bf1-d428b66bafa3.jpg" />
             </div>
           </div>
           
