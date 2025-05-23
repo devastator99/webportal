@@ -1,14 +1,11 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { MobileAppMockup } from '../ui/MobileAppMockup';
 import { useResponsive } from '@/contexts/ResponsiveContext';
-
 interface JourneySectionProps {
   openAuthModal?: (view: 'login' | 'register') => void;
 }
-
 export const JourneySection: React.FC<JourneySectionProps> = ({
   openAuthModal
 }) => {
@@ -16,13 +13,11 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
     isMobile,
     isTablet
   } = useResponsive();
-  
   const handleStartJourneyClick = () => {
     if (openAuthModal) {
       openAuthModal('register');
     }
   };
-  
   return <section className="py-12 lg:py-20 bg-black text-white relative overflow-hidden md:py-[10px]">
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
         <div className="text-center mb-8 md:mb-12">
@@ -57,11 +52,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           {/* New div for the image - added below the content div */}
           <div className="flex flex-col items-center md:items-end relative">
             <div className="md:max-w-md md:ml-auto">
-              <img 
-                src="/lovable-uploads/31bbe578-403c-4164-88f9-1e31f6881121.png" 
-                alt="Woman enjoying healthy salad with chat interface" 
-                className="rounded-lg shadow-lg w-full max-w-sm mx-auto md:mx-0"
-              />
+              <img src="/lovable-uploads/31bbe578-403c-4164-88f9-1e31f6881121.png" alt="Woman enjoying healthy salad with chat interface" className="rounded-lg shadow-lg w-full max-w-sm mx-auto md:mx-0" />
             </div>
           </div>
           
@@ -83,11 +74,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           <div className="md:col-start-1 md:col-end-2 md:row-start-2 flex justify-center md:justify-end">
             <div className="relative max-w-[80%] sm:max-w-[70%] md:max-w-none">
               {/* Added new image to this div */}
-              <img 
-                src="/lovable-uploads/1824e1a4-7e83-4d8f-a857-24ea2e9bf41d.png" 
-                alt="Woman eating healthy salad with chat interface" 
-                className="rounded-lg shadow-lg w-full object-cover"
-              />
+              <img alt="Woman eating healthy salad with chat interface" className="rounded-lg shadow-lg w-full object-cover" src="/lovable-uploads/ec9a47d5-3b80-4ed5-80e9-73f8c4c8cf85.png" />
               
               <div className="absolute -bottom-4 -right-4 sm:-bottom-8 sm:-right-8 bg-cyan-400 rounded-lg sm:rounded-xl p-2 text-black">
                 <div className="flex space-x-1 text-xs">
