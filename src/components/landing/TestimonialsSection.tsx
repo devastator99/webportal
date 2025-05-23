@@ -56,7 +56,7 @@ export const TestimonialCard = ({
 }: TestimonialProps) => {
   return <Card className="overflow-hidden border-none shadow-lg animate-fade-up h-full flex flex-col">
       <CardContent className="p-0">
-        <div className="bg-purple-50 p-6">
+        <div className="bg-purple-50 p-6 py-0 px-0">
           <div className="flex justify-between items-center mb-4">
             <div className="flex">
               {Array.from({
@@ -68,7 +68,7 @@ export const TestimonialCard = ({
           <p className="text-gray-700 italic mb-6">{quote}</p>
         </div>
         
-        <div className="p-6 bg-white flex items-center mt-auto">
+        <div className="p-6 bg-white flex items-center mt-auto py-0 px-0">
           <img src={avatar} alt={author} className="w-12 h-12 rounded-full mr-4 border-2 border-purple-100" />
           <div>
             <h4 className="font-semibold text-gray-900">{author}</h4>
@@ -148,7 +148,7 @@ export const TestimonialsSection = () => {
             label: "Diabetes Reversal",
             value: "87%",
             description: "Success rate in reducing medication"
-          }].map((stat, i) => <div key={i} className="text-center p-6">
+          }].map((stat, i) => <div key={i} className="text-center p-6 px-0 py-0">
                 <div className="text-4xl font-bold mb-2 text-purple-700">{stat.value}</div>
                 <div className="text-lg font-semibold mb-2 text-gray-900">{stat.label}</div>
                 <div className="text-gray-600 text-sm">{stat.description}</div>
