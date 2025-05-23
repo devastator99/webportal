@@ -3,11 +3,9 @@ import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import { MobileAppMockup } from '../ui/MobileAppMockup';
 import { useResponsive } from '@/contexts/ResponsiveContext';
-
 interface JourneySectionProps {
   openAuthModal?: (view: 'login' | 'register') => void;
 }
-
 export const JourneySection: React.FC<JourneySectionProps> = ({
   openAuthModal
 }) => {
@@ -15,14 +13,12 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
     isMobile,
     isTablet
   } = useResponsive();
-  
   const handleStartJourneyClick = () => {
     if (openAuthModal) {
       openAuthModal('register');
     }
   };
-  
-  return <section className="py-12 md:py-16 lg:py-20 bg-black text-white relative overflow-hidden">
+  return <section className="py-12 lg:py-20 bg-black text-white relative overflow-hidden md:py-[10px]">
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
         <div className="text-center mb-8 md:mb-12">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4">Your Journey at AnubhootiHealth</h2>
@@ -98,11 +94,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
             
             {/* Added image below the content */}
             <div className="w-full mt-4 md:mt-6">
-              <img 
-                src="/lovable-uploads/72294fef-845b-4724-8b80-eac027068410.png" 
-                alt="Holistic Science-Backed Transformation" 
-                className="w-full max-w-md mx-auto md:mx-0 rounded-lg shadow-lg"
-              />
+              <img src="/lovable-uploads/72294fef-845b-4724-8b80-eac027068410.png" alt="Holistic Science-Backed Transformation" className="w-full max-w-md mx-auto md:mx-0 rounded-lg shadow-lg" />
             </div>
           </div>
           

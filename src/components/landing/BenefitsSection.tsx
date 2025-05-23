@@ -1,38 +1,30 @@
-
 "use client";
 
 import { Check } from "lucide-react";
 import { Card } from "../ui/card";
 import { useResponsive } from "@/contexts/ResponsiveContext";
-
 export const BenefitsSection = () => {
-  const { isMobile } = useResponsive();
-  
-  const benefits = [
-    {
-      icon: "https://images.unsplash.com/photo-1512069772995-ec65ed45afd6?q=80&w=2596&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      title: "Beyond Medicine",
-      description: "Root-cause-focused programs blending ancient wisdom with science.",
-    },
-    {
-      icon: "https://plus.unsplash.com/premium_photo-1683657860843-abae8aa03a64?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      title: "Beyond Fad Diets",
-      description: "Tailored nutrition blueprints, crafted for your unique biochemistry.",
-    },
-    {
-      icon: "https://plus.unsplash.com/premium_photo-1679938885972-180ed418f466?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      title: "Beyond Exercise",
-      description: "Mindful, customized movement strategies to awaken true vitality.",
-    },
-    {
-      icon: "https://plus.unsplash.com/premium_photo-1695119995113-56aa2159c761?q=80&w=3087&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
-      title: "Beyond Cookie Cutter",
-      description: "Hyper-personalized health journeys powered by AI and expert care.",
-    },
-  ];
-
-  return (
-    <section id="benefits" className="py-10 sm:py-14 md:py-20 px-4 sm:px-6 bg-gradient-to-b from-white via-purple-50/20 to-white">
+  const {
+    isMobile
+  } = useResponsive();
+  const benefits = [{
+    icon: "https://images.unsplash.com/photo-1512069772995-ec65ed45afd6?q=80&w=2596&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    title: "Beyond Medicine",
+    description: "Root-cause-focused programs blending ancient wisdom with science."
+  }, {
+    icon: "https://plus.unsplash.com/premium_photo-1683657860843-abae8aa03a64?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    title: "Beyond Fad Diets",
+    description: "Tailored nutrition blueprints, crafted for your unique biochemistry."
+  }, {
+    icon: "https://plus.unsplash.com/premium_photo-1679938885972-180ed418f466?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    title: "Beyond Exercise",
+    description: "Mindful, customized movement strategies to awaken true vitality."
+  }, {
+    icon: "https://plus.unsplash.com/premium_photo-1695119995113-56aa2159c761?q=80&w=3087&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+    title: "Beyond Cookie Cutter",
+    description: "Hyper-personalized health journeys powered by AI and expert care."
+  }];
+  return <section id="benefits" className="py-10 sm:py-14 px-4 bg-gradient-to-b from-white via-purple-50/20 to-white sm:px-[2px] md:py-0">
       <div className="max-w-7xl mx-auto">
         
         {/* HEADER */}
@@ -50,19 +42,10 @@ export const BenefitsSection = () => {
 
         {/* BENEFITS CARDS - Responsive Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-10 mb-10 sm:mb-14 md:mb-16">
-          {benefits.map((benefit, index) => (
-            <Card
-              key={index}
-              className="group bg-white hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden flex flex-col"
-              data-animate
-            >
+          {benefits.map((benefit, index) => <Card key={index} className="group bg-white hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 rounded-2xl overflow-hidden flex flex-col" data-animate>
               {/* Full width image with better aspect ratio control */}
               <div className="aspect-video w-full overflow-hidden">
-                <img
-                  src={benefit.icon}
-                  alt={benefit.title}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
+                <img src={benefit.icon} alt={benefit.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
               </div>
 
               {/* Text content */}
@@ -79,12 +62,11 @@ export const BenefitsSection = () => {
 
               {/* Hover underline */}
               <div className="h-1 w-full bg-gradient-to-r from-purple-500 to-indigo-500 transform scale-x-0 group-hover:scale-x-100 transition-transform origin-left duration-300" />
-            </Card>
-          ))}
+            </Card>)}
         </div>
 
         {/* SCIENCE BACKED SECTION */}
-        <div className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 shadow-xl flex flex-col md:flex-row items-center gap-6 sm:gap-8 md:gap-10" data-animate>
+        <div data-animate className="bg-white rounded-2xl sm:rounded-3xl p-6 sm:p-8 md:p-10 shadow-xl flex flex-col md:flex-row items-center gap-6 sm:gap-8 md:gap-10 px-[10px] py-0">
           
           {/* LEFT TEXT */}
           <div className="flex-1 space-y-3 sm:space-y-4">
@@ -96,30 +78,19 @@ export const BenefitsSection = () => {
             </p>
 
             <ul className="space-y-2 sm:space-y-3">
-              {[
-                "Custom health protocols curated by doctors + AI",
-                "Continuous health monitoring via smart analytics",
-                "Precision-driven nutrition, movement, and stress care",
-                "Empathetic coaching that evolves with you",
-              ].map((point, i) => (
-                <li key={i} className="flex items-start">
+              {["Custom health protocols curated by doctors + AI", "Continuous health monitoring via smart analytics", "Precision-driven nutrition, movement, and stress care", "Empathetic coaching that evolves with you"].map((point, i) => <li key={i} className="flex items-start">
                   <span className="bg-green-100 p-1 rounded-full mr-3 mt-1">
                     <Check size={isMobile ? 16 : 18} className="text-green-600" />
                   </span>
                   <span className="text-gray-700 text-sm sm:text-base">{point}</span>
-                </li>
-              ))}
+                </li>)}
             </ul>
           </div>
 
           {/* RIGHT IMAGE */}
           <div className="flex-1 relative w-full md:w-auto">
             <div className="relative overflow-hidden rounded-xl sm:rounded-2xl shadow-2xl animate-float">
-              <img
-                src="https://plus.unsplash.com/premium_photo-1676325102269-35142789c6b2?q=80&w=2942&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-                alt="Science-backed Care"
-                className="w-full object-cover rounded-2xl"
-              />
+              <img src="https://plus.unsplash.com/premium_photo-1676325102269-35142789c6b2?q=80&w=2942&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" alt="Science-backed Care" className="w-full object-cover rounded-2xl" />
               <div className="absolute inset-0 bg-gradient-to-t from-purple-900/60 to-transparent rounded-2xl" />
               <div className="absolute bottom-4 sm:bottom-6 left-4 sm:left-6 right-4 sm:right-6 text-white">
                 <div className="text-xs sm:text-sm font-medium mb-1 sm:mb-2">Clinical Innovation</div>
@@ -135,6 +106,5 @@ export const BenefitsSection = () => {
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
