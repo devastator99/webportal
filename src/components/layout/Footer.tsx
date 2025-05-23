@@ -54,12 +54,7 @@ export const Footer = () => {
                 <span className="text-indigo-200">A Unit Of Swami Vivekananda
 Integrative Health Services Pvt. Ltd.</span>
               </li>
-              <li className="flex items-center space-x-3 text-sm">
-                <Phone size={16} className="text-indigo-300 flex-shrink-0" />
-                <a href="tel:+1234567890" className="text-indigo-200 hover:text-white transition-colors">
-                  +1 (234) 567-890
-                </a>
-              </li>
+              
               <li className="flex items-center space-x-3 text-sm">
                 <Mail size={16} className="text-indigo-300 flex-shrink-0" />
                 <a href="mailto:info@anubhootihealth.com" className="text-indigo-200 hover:text-white transition-colors">
