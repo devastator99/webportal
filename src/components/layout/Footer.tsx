@@ -69,7 +69,7 @@ export const Footer = () => {
           
           
           {/* Contact - Modified to be right-aligned */}
-          <div className="md:ml-auto text-right">
+          <div className="md:ml-auto text-center">
             <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-blue-300">Contact Us</h3>
             <ul className="space-y-3">
               <li className="flex items-start space-x-3 text-sm justify-end">
