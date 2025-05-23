@@ -27,7 +27,7 @@ export const Footer = () => {
       </div>
       
       {/* Container from CallToAction.tsx */}
-      <div className="container mx-auto px-4 relative z-10">
+      <div className="container mx-auto px-4 relative z-10 max-w-7xl">
         {/* Added the selected div from CallToAction.tsx */}
         <div className="max-w-5xl mx-auto text-center mb-10">
           <h2 className="text-2xl md:text-3xl font-bold mb-4">
@@ -48,7 +48,7 @@ export const Footer = () => {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
             <Logo className="text-white" theme="dark" />
@@ -72,7 +72,15 @@ export const Footer = () => {
           </div>
           
           {/* Quick Links */}
-          
+          <div>
+            <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-blue-300">Quick Links</h3>
+            <ul className="space-y-2">
+              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Home</a></li>
+              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">About Us</a></li>
+              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Services</a></li>
+              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Testimonials</a></li>
+            </ul>
+          </div>
           
           {/* Contact */}
           <div>
@@ -90,15 +98,27 @@ Integrative Health Services Pvt. Ltd.</span>
                   info@anubhootihealth.com
                 </a>
               </li>
+              <li className="flex items-center space-x-3 text-sm">
+                <Phone size={16} className="text-indigo-300 flex-shrink-0" />
+                <a href="tel:+911234567890" className="text-indigo-200 hover:text-white transition-colors">
+                  +91 (123) 456-7890
+                </a>
+              </li>
             </ul>
           </div>
           
-          {/* Newsletter */}
-          
+          {/* Legal */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-blue-300">Legal</h3>
+            <ul className="space-y-2">
+              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Privacy Policy</a></li>
+              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Terms of Service</a></li>
+              <li><a href="#" className="text-indigo-200 hover:text-white transition-colors">Cookie Policy</a></li>
+            </ul>
+          </div>
         </div>
         
-        <div className="border-t border-white/10 mt-12 pt-8 text-center my-[8px] py-0">
-          
+        <div className="border-t border-white/10 mt-12 pt-8 text-center">
           <p className="text-indigo-200/80 text-sm">© {new Date().getFullYear()} Anubhooti Health. All rights reserved.</p>
         </div>
       </div>
