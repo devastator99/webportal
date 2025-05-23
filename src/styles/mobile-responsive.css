@@ -1,5 +1,5 @@
 
-/* Mobile-first responsive utilities */
+/* Mobile-first responsive utilities with enhanced coverage */
 .mobile-container {
   width: 100%;
   max-width: 100%;
@@ -21,6 +21,7 @@
   background: white;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   margin-bottom: 0.75rem;
+  border: 1px solid #f1f5f9;
 }
 
 .mobile-header {
@@ -32,7 +33,7 @@
   padding-bottom: 120px; /* Space for mobile navigation */
 }
 
-/* Improved responsive breakpoints */
+/* Enhanced responsive breakpoints */
 @media (min-width: 640px) {
   .mobile-container {
     padding: 1rem;
@@ -44,6 +45,12 @@
   }
   
   .mobile-card {
+    padding: 1rem;
+    border-radius: 1rem;
+    margin-bottom: 1rem;
+  }
+  
+  .mobile-header {
     padding: 1rem;
   }
 }
@@ -58,6 +65,12 @@
     gap: 1.5rem;
   }
   
+  .mobile-card {
+    padding: 1.25rem;
+    border-radius: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  
   .mobile-content-spacing {
     padding-bottom: 100px;
   }
@@ -66,6 +79,13 @@
 @media (min-width: 1024px) {
   .mobile-grid {
     grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+  
+  .mobile-card {
+    padding: 1.5rem;
+    border-radius: 1.5rem;
+    margin-bottom: 2rem;
   }
   
   .mobile-content-spacing {
@@ -73,7 +93,7 @@
   }
 }
 
-/* Text scaling for mobile */
+/* Enhanced text scaling for mobile */
 .mobile-text-scale {
   font-size: 0.875rem;
   line-height: 1.25rem;
@@ -86,35 +106,159 @@
   }
 }
 
-/* Card content optimization */
+@media (min-width: 1024px) {
+  .mobile-text-scale {
+    font-size: 1.125rem;
+    line-height: 1.75rem;
+  }
+}
+
+/* Enhanced card content optimization */
 .mobile-card-header {
   padding-bottom: 0.5rem;
   margin-bottom: 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .mobile-card-title {
   font-size: 1rem;
   font-weight: 600;
   line-height: 1.25;
+  color: #1f2937;
 }
 
 @media (min-width: 640px) {
   .mobile-card-title {
     font-size: 1.125rem;
+    line-height: 1.375;
   }
 }
 
-/* Button spacing for mobile */
+@media (min-width: 1024px) {
+  .mobile-card-title {
+    font-size: 1.25rem;
+    line-height: 1.5;
+  }
+}
+
+/* Enhanced button spacing for mobile */
 .mobile-button {
   width: 100%;
   padding: 0.75rem;
   font-size: 0.875rem;
   margin-top: 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 @media (min-width: 640px) {
   .mobile-button {
     width: auto;
     padding: 0.5rem 1rem;
+    font-size: 1rem;
+  }
+}
+
+/* Mobile-specific spacing utilities */
+.mobile-spacing-xs {
+  padding: 0.25rem;
+}
+
+.mobile-spacing-sm {
+  padding: 0.5rem;
+}
+
+.mobile-spacing-md {
+  padding: 0.75rem;
+}
+
+.mobile-spacing-lg {
+  padding: 1rem;
+}
+
+@media (min-width: 640px) {
+  .mobile-spacing-xs { padding: 0.5rem; }
+  .mobile-spacing-sm { padding: 0.75rem; }
+  .mobile-spacing-md { padding: 1rem; }
+  .mobile-spacing-lg { padding: 1.5rem; }
+}
+
+@media (min-width: 1024px) {
+  .mobile-spacing-xs { padding: 0.75rem; }
+  .mobile-spacing-sm { padding: 1rem; }
+  .mobile-spacing-md { padding: 1.5rem; }
+  .mobile-spacing-lg { padding: 2rem; }
+}
+
+/* Mobile navigation optimizations */
+.mobile-nav-spacing {
+  padding-bottom: calc(var(--mobile-nav-height, 80px) + 1rem);
+}
+
+/* Enhanced mobile typography */
+.mobile-heading-primary {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.mobile-heading-secondary {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+@media (min-width: 640px) {
+  .mobile-heading-primary {
+    font-size: 1.5rem;
+    line-height: 1.33;
+  }
+  
+  .mobile-heading-secondary {
+    font-size: 1.25rem;
+    line-height: 1.4;
+  }
+}
+
+@media (min-width: 1024px) {
+  .mobile-heading-primary {
+    font-size: 2rem;
+    line-height: 1.25;
+  }
+  
+  .mobile-heading-secondary {
+    font-size: 1.5rem;
+    line-height: 1.33;
+  }
+}
+
+/* Mobile-specific animations */
+.mobile-fade-in {
+  animation: mobileFadeIn 0.3s ease-out;
+}
+
+@keyframes mobileFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Enhanced mobile card hover effects */
+.mobile-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+@media (min-width: 1024px) {
+  .mobile-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
   }
 }

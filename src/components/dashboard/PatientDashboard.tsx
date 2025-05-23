@@ -192,13 +192,13 @@ export const PatientDashboard = () => {
         <div className="mobile-header">
           <div className="flex items-center gap-3">
             <Avatar className="h-10 w-10 bg-[#E5DEFF]">
-              <AvatarFallback className="text-[#9b87f5] font-medium text-sm">
+              <AvatarFallback className="text-[#9b87f5] font-medium mobile-text-scale">
                 {patientData?.profile?.first_name?.charAt(0)}{patientData?.profile?.last_name?.charAt(0)}
               </AvatarFallback>
             </Avatar>
             <div>
-              <h1 className="text-lg font-semibold">Welcome, {patientData?.profile?.first_name}</h1>
-              <p className="text-sm text-muted-foreground">Your account setup is in progress</p>
+              <h1 className="mobile-card-title">Welcome, {patientData?.profile?.first_name}</h1>
+              <p className="mobile-text-scale text-muted-foreground">Your account setup is in progress</p>
             </div>
           </div>
         </div>
@@ -260,7 +260,9 @@ export const PatientDashboard = () => {
           </CardFooter>
         </Card>
 
-        <PatientCuratedHealthTips />
+        <div className="mobile-card">
+          <PatientCuratedHealthTips />
+        </div>
       </div>
     );
   }
@@ -272,13 +274,13 @@ export const PatientDashboard = () => {
       <div className="mobile-header">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 bg-[#E5DEFF]">
-            <AvatarFallback className="text-[#9b87f5] font-medium text-sm">
+            <AvatarFallback className="text-[#9b87f5] font-medium mobile-text-scale">
               {patientData?.profile?.first_name?.charAt(0)}{patientData?.profile?.last_name?.charAt(0)}
             </AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-lg font-semibold">Welcome, {patientData?.profile?.first_name}</h1>
-            <p className="text-sm text-muted-foreground">Keep track of your health journey</p>
+            <h1 className="mobile-card-title">Welcome, {patientData?.profile?.first_name}</h1>
+            <p className="mobile-text-scale text-muted-foreground">Keep track of your health journey</p>
           </div>
         </div>
       </div>
@@ -300,15 +302,15 @@ export const PatientDashboard = () => {
                   </div>
                   <div>
                     <h3 className="mobile-card-title mb-1">Next Appointment</h3>
-                    <p className="text-xs text-muted-foreground mb-1">
+                    <p className="mobile-text-scale text-muted-foreground mb-1">
                       {new Date(patientData.nextAppointment.scheduled_at).toLocaleDateString()} at {new Date(patientData.nextAppointment.scheduled_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                     </p>
-                    <p className="text-xs">
+                    <p className="mobile-text-scale">
                       With Dr. {patientData.nextAppointment.doctor_first_name} {patientData.nextAppointment.doctor_last_name}
                     </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="text-[#9b87f5] text-xs">
+                <Button variant="ghost" size="sm" className="text-[#9b87f5] mobile-text-scale">
                   View Details
                 </Button>
               </div>
