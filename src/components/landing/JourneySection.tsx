@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
@@ -49,15 +50,21 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
             </div>
           </div>
           
-          {/* New div for the image - added below the content div */}
-          <div className="flex flex-col items-center md:items-end relative">
-            <div className="md:max-w-md md:ml-auto">
-              <img src="/lovable-uploads/31bbe578-403c-4164-88f9-1e31f6881121.png" alt="Woman enjoying healthy salad with chat interface" className="rounded-lg shadow-lg w-full max-w-sm mx-auto md:mx-0" />
+          {/* Section 1: One Chat, Full Care image - opposite to App mockup */}
+          <div className="flex flex-col items-center md:items-start relative">
+            <div className="md:max-w-md md:ml-0 md:-mt-6 my-[60px]">
+              <div className="bg-black p-4 rounded-lg shadow-lg">
+                <img 
+                  src="/lovable-uploads/cf8699d0-a562-4744-bbe1-af769d854f0a.png" 
+                  alt="One Chat, Full Care" 
+                  className="w-full rounded-lg shadow-inner"
+                />
+              </div>
             </div>
           </div>
           
           {/* Section 1: App mockup */}
-          <div className="flex justify-center md:justify-start">
+          <div className="flex justify-center md:justify-start order-last md:order-none">
             <div className="w-3/4 sm:w-2/3 md:w-auto my-0">
               <MobileAppMockup />
             </div>
@@ -71,7 +78,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           </div>
           
           {/* Section 2: Calendar tracking - responsive layout reversal on mobile */}
-          <div className="md:col-start-1 md:col-end-2 md:row-start-2 flex justify-center md:justify-end">
+          <div className="md:col-start-1 md:col-end-2 md:row-start-3 flex justify-center md:justify-end">
             <div className="relative max-w-[80%] sm:max-w-[70%] md:max-w-none">
               {/* Added new image to this div */}
               <img alt="Woman eating healthy salad with chat interface" className="rounded-lg shadow-lg w-full object-cover" src="/lovable-uploads/ec9a47d5-3b80-4ed5-80e9-73f8c4c8cf85.png" />
@@ -81,7 +88,7 @@ export const JourneySection: React.FC<JourneySectionProps> = ({
           </div>
           
           {/* Section 2: Track What Matters */}
-          <div className="md:col-start-2 md:col-end-3 md:row-start-2 flex flex-col items-center md:items-start relative py-2 md:py-0">
+          <div className="md:col-start-2 md:col-end-3 md:row-start-3 flex flex-col items-center md:items-start relative py-2 md:py-0">
             <div className="md:max-w-md md:ml-auto md:-mt-3 my-[60px]">
               <p className="text-lg text-white/80 mb-2">
                 Habit tracker with deep insights<br />
