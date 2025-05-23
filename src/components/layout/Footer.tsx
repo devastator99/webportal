@@ -26,6 +26,7 @@ export const Footer = () => {
         </div>
       </div>
       
+      {/* Container from CallToAction.tsx */}
       <div className="container mx-auto px-4 relative z-10">
         {/* Added the selected div from CallToAction.tsx */}
         <div className="max-w-5xl mx-auto text-center mb-10">
