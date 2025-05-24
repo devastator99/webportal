@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RegistrationPayment } from "@/components/auth/RegistrationPayment";
 import { RegistrationProgressReport } from "@/components/auth/RegistrationProgressReport";
+import { useToast } from "@/hooks/use-toast";
 import '@/styles/glass.css';
 import '@/styles/authForm.css';
 import { cleanupAuthState } from "@/utils/authUtils";
@@ -164,9 +165,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     handleClose();
     navigate('/dashboard');
   };
-  
-  // Import the toast hook
-  const { toast } = useToast();
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
