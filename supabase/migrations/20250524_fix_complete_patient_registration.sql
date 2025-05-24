@@ -57,7 +57,7 @@ BEGIN
   RETURNING id INTO v_invoice_id;
   
   -- Create registration tasks
-  SELECT array_agg(task_id) INTO v_task_ids FROM (
+  SELECT array_agg(id) INTO v_task_ids FROM (
     SELECT public.create_registration_tasks(
       p_user_id,
       jsonb_build_array(
@@ -74,7 +74,7 @@ BEGIN
           'priority', 1
         )
       )
-    ) AS task_id
+    ) AS id
   ) AS tasks;
   
   RETURN jsonb_build_object(
