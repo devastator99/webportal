@@ -3,11 +3,12 @@ import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, Clock } from "lucide-react";
+import { CheckCircle2, Clock, LogIn } from "lucide-react";
 import { UserRegistrationStatus, RegistrationStatus, RegistrationStatusValues } from "@/types/registration";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 
 interface RegistrationProgressReportProps {
   onCheckAgain?: () => void;
@@ -16,10 +17,12 @@ interface RegistrationProgressReportProps {
 export const RegistrationProgressReport: React.FC<RegistrationProgressReportProps> = ({
   onCheckAgain
 }) => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [registrationStatus, setRegistrationStatus] = useState<UserRegistrationStatus | null>(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   
   const fetchRegistrationStatus = async () => {
     if (!user?.id) return;
@@ -64,6 +67,31 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
     }
   };
   
+  const handleSignInWithDifferentAccount = async () => {
+    try {
+      setIsSigningOut(true);
+      
+      // Clear registration progress from localStorage
+      localStorage.removeItem('registration_payment_pending');
+      localStorage.removeItem('registration_payment_complete');
+      
+      // Sign out the current user
+      await signOut();
+      
+      // Redirect to the login page
+      navigate("/auth");
+    } catch (err) {
+      console.error("Error signing out:", err);
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+  
   if (isLoading) {
     return (
       <Card className="bg-white">
@@ -88,8 +116,17 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
             </AlertDescription>
           </Alert>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex-col gap-2">
           <Button onClick={handleCheckAgain} className="w-full">Try Again</Button>
+          <Button 
+            variant="outline" 
+            onClick={handleSignInWithDifferentAccount} 
+            className="w-full"
+            disabled={isSigningOut}
+          >
+            <LogIn className="mr-2 h-4 w-4" />
+            {isSigningOut ? "Signing Out..." : "Sign In with Different Account"}
+          </Button>
         </CardFooter>
       </Card>
     );
@@ -113,9 +150,18 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
             </AlertDescription>
           </Alert>
         </CardContent>
-        <CardFooter>
+        <CardFooter className="flex-col gap-2">
           <Button onClick={() => window.location.href = "/dashboard"} className="w-full">
             Go to Dashboard
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleSignInWithDifferentAccount} 
+            className="w-full"
+            disabled={isSigningOut}
+          >
+            <LogIn className="mr-2 h-4 w-4" />
+            {isSigningOut ? "Signing Out..." : "Sign In with Different Account"}
           </Button>
         </CardFooter>
       </Card>
@@ -193,12 +239,21 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
           )}
         </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex-col gap-2">
         <Button 
           onClick={handleCheckAgain}
           className="w-full"
         >
           Check Status Again
+        </Button>
+        <Button 
+          variant="outline" 
+          onClick={handleSignInWithDifferentAccount} 
+          className="w-full"
+          disabled={isSigningOut}
+        >
+          <LogIn className="mr-2 h-4 w-4" />
+          {isSigningOut ? "Signing Out..." : "Sign In with Different Account"}
         </Button>
       </CardFooter>
     </Card>
