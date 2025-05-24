@@ -108,6 +108,7 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
     }
     
     setIsLoading(true);
+    setError(null);
     
     try {
       console.log("Calling complete-registration edge function with:", {
@@ -159,7 +160,7 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
       setError(err.message);
       toast({
         title: 'Registration Failed',
-        description: err.message,
+        description: err.message || "An error occurred during payment processing",
         variant: 'destructive'
       });
       return false;
@@ -264,7 +265,7 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
       
       toast({
         title: 'Task Processing Triggered',
-        description: data.message || 'Registration tasks are being processed',
+        description: data?.message || 'Registration tasks are being processed',
       });
       
       return true;

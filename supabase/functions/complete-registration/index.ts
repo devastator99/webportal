@@ -76,18 +76,23 @@ serve(async (req) => {
     console.log("Registration tasks queued:", data);
     
     // Trigger task processing asynchronously without waiting for completion
-    EdgeRuntime.waitUntil(
-      fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/process-registration-tasks`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
-        },
-        body: JSON.stringify({}),
-      }).catch(err => {
-        console.error("Error triggering tasks processor:", err);
-      })
-    );
+    try {
+      EdgeRuntime.waitUntil(
+        fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/process-registration-tasks`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+          },
+          body: JSON.stringify({}),
+        }).catch(err => {
+          console.error("Error triggering tasks processor:", err);
+        })
+      );
+    } catch (triggerError) {
+      console.error("Failed to trigger task processor:", triggerError);
+      // Continue execution even if task triggering fails
+    }
     
     // Return success response immediately, without waiting for background tasks
     return new Response(
@@ -96,7 +101,7 @@ serve(async (req) => {
         message: "Registration payment completed successfully. Tasks have been queued.",
         payment_id: razorpay_payment_id,
         order_id: razorpay_order_id,
-        tasks: data.tasks
+        tasks: data?.tasks || []
       }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },

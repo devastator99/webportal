@@ -1707,6 +1707,36 @@ export type Database = {
           },
         ]
       }
+      scheduled_sms: {
+        Row: {
+          created_at: string
+          id: number
+          message_body: string
+          phone_number: string
+          scheduled_for: string
+          sent_at: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          message_body: string
+          phone_number: string
+          scheduled_for: string
+          sent_at?: string | null
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          message_body?: string
+          phone_number?: string
+          scheduled_for?: string
+          sent_at?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

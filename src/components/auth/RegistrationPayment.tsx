@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRegistrationProcess } from '@/hooks/useRegistrationProcess';
 import { useToast } from '@/hooks/use-toast';
 import { RegistrationProgressReport } from './RegistrationProgressReport';
+import { Spinner } from '@/components/ui/spinner';
 
 interface RegistrationPaymentProps {
   onComplete: () => void;
@@ -20,6 +21,7 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
   const { toast } = useToast();
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [showRegistrationProgress, setShowRegistrationProgress] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   
   const {
     createOrder,
@@ -75,15 +77,26 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
         description: 'Registration Fee',
         order_id: orderData.order_id,
         handler: async function(response: any) {
-          const success = await completeRegistration(
-            response.razorpay_payment_id,
-            response.razorpay_order_id,
-            response.razorpay_signature
-          );
-          
-          if (success) {
-            onComplete();
-            setShowRegistrationProgress(true);
+          try {
+            setIsProcessing(true);
+            const success = await completeRegistration(
+              response.razorpay_payment_id,
+              response.razorpay_order_id,
+              response.razorpay_signature
+            );
+            
+            if (success) {
+              onComplete();
+              setShowRegistrationProgress(true);
+            }
+          } catch (err: any) {
+            toast({
+              title: "Payment Verification Error",
+              description: err.message || "Failed to verify payment",
+              variant: "destructive"
+            });
+          } finally {
+            setIsProcessing(false);
           }
         },
         prefill: {
@@ -113,6 +126,7 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
     if (!user) return;
     
     try {
+      setIsProcessing(true);
       // Generate a test order ID if needed
       let testOrderId = orderId;
       if (!testOrderId) {
@@ -121,6 +135,7 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
       }
       
       if (testOrderId) {
+        console.log("Completing registration with test order ID:", testOrderId);
         const success = await completeRegistration(
           'test_payment_' + Date.now(),
           testOrderId,
@@ -128,16 +143,23 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
         );
         
         if (success) {
+          toast({
+            title: "Registration Payment",
+            description: "Test payment processed successfully",
+          });
           onComplete();
           setShowRegistrationProgress(true);
         }
       }
     } catch (err: any) {
+      console.error("Error in manual payment:", err);
       toast({
         title: "Error",
         description: err.message || "Failed to process manual payment",
         variant: "destructive"
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
   
@@ -185,7 +207,7 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
         <Button 
           className="w-full" 
           onClick={initiatePayment}
-          disabled={isLoading || isCreatingOrder}
+          disabled={isLoading || isCreatingOrder || isProcessing}
         >
           {isLoading || isCreatingOrder ? (
             <span className="inline-flex items-center">
@@ -203,13 +225,23 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
             variant="outline" 
             className="w-full mt-2" 
             onClick={handleManualPayment}
-            disabled={isLoading}
+            disabled={isLoading || isProcessing}
           >
-            Complete Registration (Testing)
+            {isProcessing ? (
+              <span className="flex items-center">
+                <span className="mr-2">Processing</span>
+                <Spinner className="h-4 w-4" />
+              </span>
+            ) : "Complete Registration (Testing)"}
           </Button>
         )}
         
-        {error && <p className="text-sm text-red-500 mt-2">{error}</p>}
+        {error && (
+          <div className="text-sm text-red-500 mt-2 p-3 bg-red-50 border border-red-100 rounded">
+            <p className="font-medium">Error:</p>
+            <p>{error}</p>
+          </div>
+        )}
       </CardFooter>
     </Card>
   );
