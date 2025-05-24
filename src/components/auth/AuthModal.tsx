@@ -11,10 +11,9 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { RegistrationPayment } from "@/components/auth/RegistrationPayment";
-import { CheckCircle2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { RegistrationProgressReport } from "@/components/auth/RegistrationProgressReport";
 import '@/styles/glass.css';
+import '@/styles/authForm.css';
 import { cleanupAuthState } from "@/utils/authUtils";
 
 interface AuthModalProps {
@@ -165,6 +164,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     handleClose();
     navigate('/dashboard');
   };
+  
+  // Import the toast hook
+  const { toast } = useToast();
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -180,13 +182,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </Button>
           
           <ScrollArea 
-            className="flex-1 w-full overflow-y-auto"
-            viewportRef={undefined} 
-            invisibleScrollbar={false} 
+            className="flex-1 w-full overflow-y-auto invisible-scroll"
+            invisibleScrollbar={true} 
             orientation="vertical"
           >
             <motion.div
-              className="p-6"
+              className="p-6 mobile-form-container"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
@@ -214,7 +215,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                       <h1 className="text-2xl font-bold text-center mb-6">
                         Create Your Account
                       </h1>
-                      <div className="auth-form-container">
+                      <div className="auth-form-container mobile-optimized-form">
                         <AuthForm
                           type="register"
                           onSubmit={handleFormSubmit}
@@ -259,7 +260,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               )}
               
               {/* Always show toggle link for better UX */}
-              <div className="mt-6 text-center pb-4">
+              <div className="mt-6 text-center pb-10">
                 <button
                   onClick={toggleView}
                   className="text-sm font-medium text-purple-600 hover:text-purple-500"

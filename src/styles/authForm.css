@@ -9,7 +9,7 @@
 .mobile-form-container {
   width: 100%;
   margin: 0 auto;
-  padding-bottom: 70px; /* Add padding at the bottom for mobile */
+  padding-bottom: 80px; /* Increased padding at the bottom for mobile */
 }
 
 /* Dialog and Modal Improvements */
@@ -17,6 +17,7 @@
   display: flex;
   flex-direction: column;
   max-height: 85vh; /* Limit height on mobile */
+  overflow: hidden;
 }
 
 @media (min-width: 640px) {
@@ -34,11 +35,17 @@
   .form-field + .form-field {
     margin-top: 0.75rem;
   }
+  
+  /* Add mobile-specific bottom padding for patient information section */
+  .auth-form-container .bg-gray-50 {
+    margin-bottom: 1.5rem;
+  }
 }
 
 /* Make sure the modal is tall enough on mobile but doesn't overflow */
 .glass-dialog .scrollbar-hide {
   scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 .glass-dialog .scrollbar-hide::-webkit-scrollbar {
@@ -49,6 +56,7 @@
 .auth-form-container button[type="submit"] {
   position: relative;
   z-index: 10;
+  margin-bottom: 1.5rem;
 }
 
 /* Fix for label and input alignment */
@@ -69,4 +77,29 @@
   padding: 1rem;
   margin: 1rem 0;
   border-radius: 0.5rem;
+}
+
+/* Add mobile-optimized form styles */
+.mobile-optimized-form {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding-bottom: 2rem;
+}
+
+/* Ensure sufficient padding for form buttons */
+.form-button-container {
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+
+/* Added invisible scrollbar class that works across browsers */
+.invisible-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.invisible-scroll::-webkit-scrollbar {
+  display: none;
 }
