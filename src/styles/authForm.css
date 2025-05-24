@@ -1,0 +1,72 @@
+
+/* Auth Form Styles */
+.auth-form-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-y: visible;
+}
+
+.mobile-form-container {
+  width: 100%;
+  margin: 0 auto;
+  padding-bottom: 70px; /* Add padding at the bottom for mobile */
+}
+
+/* Dialog and Modal Improvements */
+.glass-dialog {
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh; /* Limit height on mobile */
+}
+
+@media (min-width: 640px) {
+  .glass-dialog {
+    max-height: 90vh; /* Slightly taller on desktop */
+  }
+}
+
+/* Improve form field spacing on mobile */
+@media (max-width: 639px) {
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  
+  .form-field + .form-field {
+    margin-top: 0.75rem;
+  }
+}
+
+/* Make sure the modal is tall enough on mobile but doesn't overflow */
+.glass-dialog .scrollbar-hide {
+  scrollbar-width: none;
+}
+
+.glass-dialog .scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Ensure buttons are always visible */
+.auth-form-container button[type="submit"] {
+  position: relative;
+  z-index: 10;
+}
+
+/* Fix for label and input alignment */
+.auth-form-container label {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+/* Make sure long inputs don't overflow on mobile */
+.auth-form-container input,
+.auth-form-container select {
+  max-width: 100%;
+  width: 100%;
+}
+
+/* Specifically target the patient information section */
+.auth-form-container .bg-gray-50 {
+  padding: 1rem;
+  margin: 1rem 0;
+  border-radius: 0.5rem;
+}

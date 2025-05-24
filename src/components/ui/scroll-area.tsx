@@ -24,12 +24,13 @@ const ScrollArea = React.forwardRef<
       ref={viewportRef}
       style={{
         maxHeight: maxHeight,
+        height: "100%",
         WebkitOverflowScrolling: "touch",
         overflowY: invisibleScrollbar ? "auto" : undefined,
       }}
       className={cn(
         "h-full w-full rounded-[inherit]",
-        invisibleScrollbar && "invisible-scroll scrollbar-hide"
+        invisibleScrollbar ? "invisible-scroll scrollbar-hide" : ""
       )}
     >
       {children}

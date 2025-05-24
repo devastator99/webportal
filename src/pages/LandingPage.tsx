@@ -1,4 +1,3 @@
-
 import { useEffect, useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Header } from '@/components/layout/Header';
@@ -15,6 +14,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ResponsiveContainer } from '@/components/layout/ResponsiveContainer';
 import { useBreakpoint } from '@/hooks/use-responsive-layout';
 import '../styles/landingPage.css';
+import '../styles/authForm.css';
 
 export const LandingPage = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);

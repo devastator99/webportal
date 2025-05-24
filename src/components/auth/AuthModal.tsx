@@ -168,8 +168,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="glass-dialog border-0 p-0 overflow-hidden max-w-md w-full max-h-[90vh]">
-        <div className="relative h-full w-full">
+      <DialogContent className="glass-dialog border-0 p-0 overflow-hidden max-w-md w-full sm:max-h-[90vh] max-h-[85vh]">
+        <div className="relative h-full w-full flex flex-col">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -180,9 +180,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </Button>
           
           <ScrollArea 
-            className="h-full w-full" 
-            invisibleScrollbar={true}
-            maxHeight="85vh"
+            className="flex-1 w-full overflow-y-auto"
+            viewportRef={undefined} 
+            invisibleScrollbar={false} 
+            orientation="vertical"
           >
             <motion.div
               className="p-6"
@@ -197,27 +198,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <h1 className="text-2xl font-bold text-center mb-6">
                     Welcome Back
                   </h1>
-                  <SupabaseAuthUI
-                    view="sign_in"
-                    redirectTo={`${window.location.origin}/dashboard`}
-                    showLinks={false}
-                    className="mobile-form-container"
-                  />
+                  <div className="auth-form-container">
+                    <SupabaseAuthUI
+                      view="sign_in"
+                      redirectTo={`${window.location.origin}/dashboard`}
+                      showLinks={false}
+                      className="mobile-form-container"
+                    />
+                  </div>
                 </>
               ) : (
                 <>
                   {registrationStep === 1 && (
-                    <div className="mobile-form-container px-1">
+                    <>
                       <h1 className="text-2xl font-bold text-center mb-6">
                         Create Your Account
                       </h1>
-                      <AuthForm
-                        type="register"
-                        onSubmit={handleFormSubmit}
-                        error={error}
-                        loading={loading}
-                      />
-                    </div>
+                      <div className="auth-form-container">
+                        <AuthForm
+                          type="register"
+                          onSubmit={handleFormSubmit}
+                          error={error}
+                          loading={loading}
+                        />
+                      </div>
+                    </>
                   )}
                   
                   {/* Step 2: Payment */}
