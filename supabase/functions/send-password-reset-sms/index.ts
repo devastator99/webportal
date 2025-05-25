@@ -19,6 +19,8 @@ serve(async (req) => {
   try {
     const { phoneNumber }: RequestBody = await req.json()
     
+    console.log(`[SMS OTP] Request received for phone: ${phoneNumber}`)
+    
     if (!phoneNumber) {
       return new Response(
         JSON.stringify({ error: 'Phone number is required' }),
@@ -46,23 +48,32 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Check if user exists with this phone number (optional validation)
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('id, emergency_contact')
+    console.log(`[SMS OTP] Looking up user with phone: ${phoneNumber}`)
+
+    // Check if user exists with this phone number in patient_details
+    const { data: patientDetail, error: lookupError } = await supabase
+      .from('patient_details')
+      .select('id')
       .or(`emergency_contact.eq.${phoneNumber},emergency_contact.eq.${phoneNumber.replace('+91', '')}`)
       .single()
 
-    if (!profile) {
+    console.log(`[SMS OTP] Lookup result:`, { patientDetail, lookupError })
+
+    if (lookupError || !patientDetail) {
+      console.error(`[SMS OTP] No patient found with phone ${phoneNumber}:`, lookupError)
       return new Response(
         JSON.stringify({ error: 'No account found with this phone number' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
+    const userId = patientDetail.id
+
     // Store OTP temporarily (expires in 5 minutes)
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
     
+    console.log(`[SMS OTP] Creating OTP for user: ${userId}`)
+
     // Create or update OTP record
     const { error: otpError } = await supabase
       .from('password_reset_otps')
@@ -71,7 +82,7 @@ serve(async (req) => {
         otp_code: otp,
         expires_at: expiresAt,
         used: false,
-        user_id: profile.id
+        user_id: userId
       }, {
         onConflict: 'phone_number'
       })
@@ -83,6 +94,8 @@ serve(async (req) => {
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    console.log(`[SMS OTP] OTP stored successfully, sending SMS to ${phoneNumber}`)
 
     // Send SMS via Twilio
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`
@@ -111,7 +124,7 @@ serve(async (req) => {
       )
     }
 
-    console.log(`OTP sent to ${phoneNumber}`)
+    console.log(`[SMS OTP] SMS sent successfully to ${phoneNumber}`)
     
     return new Response(
       JSON.stringify({ 
