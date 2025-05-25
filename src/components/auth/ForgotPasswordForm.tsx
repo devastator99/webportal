@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { LucideLoader2, CheckCircle } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
+import { getSiteUrl } from '@/utils/environmentUtils';
 
 interface ForgotPasswordFormProps {
   open: boolean;
@@ -30,13 +31,24 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
     setError(null);
     
     try {
+      // Get the site URL for proper redirect
+      const siteUrl = getSiteUrl();
+      const redirectUrl = `${siteUrl}/update-password`;
+      
+      console.log('[ForgotPassword] Sending reset email to:', email);
+      console.log('[ForgotPassword] Redirect URL:', redirectUrl);
+      
       // Use Supabase's built-in password reset functionality
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/update-password`,
+        redirectTo: redirectUrl,
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('[ForgotPassword] Error:', error);
+        throw error;
+      }
       
+      console.log('[ForgotPassword] Reset email sent successfully');
       setSuccess(true);
       toast({
         title: 'Password Reset Email Sent',
@@ -45,10 +57,11 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
       
     } catch (error: any) {
       console.error('Password reset error:', error);
-      setError(error.message || 'Failed to send password reset email');
+      const errorMessage = error.message || 'Failed to send password reset email';
+      setError(errorMessage);
       toast({
         title: 'Password Reset Failed',
-        description: error.message || 'Failed to send password reset email',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -79,7 +92,9 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
             </div>
             
             {error && (
-              <div className="text-sm text-red-500">{error}</div>
+              <div className="text-sm text-red-500 p-3 bg-red-50 rounded-md border border-red-200">
+                {error}
+              </div>
             )}
             
             <Button 
@@ -117,8 +132,12 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
             <p className="text-lg font-medium">Reset Link Sent</p>
             <p className="text-gray-600">
               We've sent a password reset link to <span className="font-medium">{email}</span>.
-              Please check your email inbox.
+              Please check your email inbox and click the link to reset your password.
             </p>
+            <div className="text-sm text-gray-500 p-3 bg-blue-50 rounded-md border border-blue-200">
+              <p className="font-medium mb-1">Important:</p>
+              <p>The reset link will redirect you to a page where you can set your new password. Make sure to complete the process within the link's validity period.</p>
+            </div>
             <Button 
               onClick={onClose}
               className="mt-4"

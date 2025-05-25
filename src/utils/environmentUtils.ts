@@ -57,8 +57,27 @@ export const getAuthRedirectUrl = (path: string = '/auth'): string => {
 
 /**
  * Returns the site URL to use for Supabase redirects.
- * This ensures consistency across all auth operations.
+ * This ensures consistency across all auth operations and handles different environments.
  */
 export const getSiteUrl = (): string => {
-  return window.location.origin;
+  const origin = window.location.origin;
+  
+  // Log for debugging
+  console.log('[Environment] Site URL:', origin);
+  
+  return origin;
+};
+
+/**
+ * Returns the correct password reset redirect URL.
+ * This ensures the URL format matches what Supabase expects.
+ */
+export const getPasswordResetRedirectUrl = (): string => {
+  const siteUrl = getSiteUrl();
+  const redirectPath = '/update-password';
+  const fullUrl = `${siteUrl}${redirectPath}`;
+  
+  console.log('[Environment] Password reset redirect URL:', fullUrl);
+  
+  return fullUrl;
 };
