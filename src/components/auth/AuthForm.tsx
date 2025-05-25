@@ -29,9 +29,9 @@ interface AuthFormProps {
 }
 
 const patientDataSchema = z.object({
-  age: z.string().min(1, "Age is required"),
-  gender: z.string().min(1, "Gender is required"),
-  bloodGroup: z.string().min(1, "Blood group is required"),
+  age: z.string().optional(),
+  gender: z.string().optional(),
+  bloodGroup: z.string().optional(),
   allergies: z.string().optional(),
   emergencyContact: z.string().min(10, "Valid emergency contact is required").max(15),
   height: z.string().optional(),
@@ -47,9 +47,9 @@ const patientSignupSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   userType: z.string(),
-  age: z.string().min(1, "Age is required"),
-  gender: z.string().min(1, "Gender is required"),
-  bloodGroup: z.string().min(1, "Blood group is required"),
+  age: z.string().optional(),
+  gender: z.string().optional(),
+  bloodGroup: z.string().optional(),
   allergies: z.string().optional(),
   emergencyContact: z.string().min(10, "Valid emergency contact is required").max(15),
   height: z.string().optional(),
@@ -158,9 +158,9 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
         const birthDateFormatted = data.birthDate ? new Date(data.birthDate).toISOString().split('T')[0] : null;
         
         const patientData: PatientData = {
-          age: data.age,
-          gender: data.gender,
-          bloodGroup: data.bloodGroup,
+          age: data.age || undefined,
+          gender: data.gender || undefined,
+          bloodGroup: data.bloodGroup || undefined,
           allergies: data.allergies || "",
           emergencyContact: data.emergencyContact,
           height: data.height || undefined,
@@ -363,7 +363,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
                   name="age"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-600 font-medium">Age</FormLabel>
+                      <FormLabel className="text-gray-600 font-medium">Age (Optional)</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
@@ -384,7 +384,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
                   name="gender"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-600 font-medium">Gender</FormLabel>
+                      <FormLabel className="text-gray-600 font-medium">Gender (Optional)</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
@@ -411,7 +411,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
                   name="bloodGroup"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-600 font-medium">Blood Group</FormLabel>
+                      <FormLabel className="text-gray-600 font-medium">Blood Group (Optional)</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
