@@ -30,6 +30,7 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
     setError(null);
     
     try {
+      // Use Supabase's built-in password reset functionality
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/update-password`,
       });
