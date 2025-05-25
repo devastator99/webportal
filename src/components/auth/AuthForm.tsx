@@ -19,7 +19,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDateForDisplay, parseDateFromDisplay } from "@/utils/dateUtils";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import ForgotPasswordForm from "./ForgotPasswordForm";
 
 interface AuthFormProps {
@@ -501,7 +501,11 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
       </motion.form>
 
       <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
-        <DialogContent className="auth-glass">
+        <DialogContent className="auth-glass" hideCloseButton={true}>
+          <DialogTitle className="sr-only">Reset Password</DialogTitle>
+          <DialogDescription className="sr-only">
+            Enter your email address to receive a password reset link
+          </DialogDescription>
           <ForgotPasswordForm 
             open={showForgotPassword}
             onClose={() => setShowForgotPassword(false)}
