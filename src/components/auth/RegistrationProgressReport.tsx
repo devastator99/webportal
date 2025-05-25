@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,7 +54,7 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
       // The secure function returns JSONB directly, so we need to handle it properly
       if (data) {
         console.log("Setting registration status:", data);
-        setRegistrationStatus(data as UserRegistrationStatus);
+        setRegistrationStatus(data as unknown as UserRegistrationStatus);
       } else {
         console.log("No data returned, setting default status");
         setRegistrationStatus({
