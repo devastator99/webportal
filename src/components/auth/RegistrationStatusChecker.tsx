@@ -25,7 +25,8 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
       
       try {
         console.log("Checking registration status for patient:", user.id);
-        const { data, error } = await supabase.rpc('get_user_registration_status', {
+        // Use the new secure function that bypasses RLS issues
+        const { data, error } = await supabase.rpc('get_user_registration_status_safe', {
           p_user_id: user.id
         });
         

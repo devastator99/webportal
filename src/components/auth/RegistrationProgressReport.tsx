@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,7 +28,8 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
     
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.rpc('get_user_registration_status', {
+      // Use the new secure function that bypasses RLS issues
+      const { data, error } = await supabase.rpc('get_user_registration_status_safe', {
         p_user_id: user.id
       });
       

@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -211,7 +210,7 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
     setIsPolling(false);
   };
   
-  // Fetch registration progress
+  // Fetch registration progress using the new secure function
   const fetchRegistrationProgress = async () => {
     if (!user?.id) {
       setError('User not authenticated');
@@ -219,7 +218,8 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
     }
     
     try {
-      const { data, error } = await supabase.rpc('get_user_registration_status', {
+      // Use the new secure function that bypasses RLS issues
+      const { data, error } = await supabase.rpc('get_user_registration_status_safe', {
         p_user_id: user.id
       });
       

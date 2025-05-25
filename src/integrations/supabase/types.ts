@@ -2610,6 +2610,10 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: Json
       }
+      get_user_registration_status_safe: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       get_user_role: {
         Args: { lookup_user_id: string }
         Returns: {

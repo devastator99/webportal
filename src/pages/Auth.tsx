@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -47,13 +46,14 @@ const Auth = () => {
     checkLocalStorageState();
   }, []);
 
-  // Function to check user's registration status from the database
+  // Function to check user's registration status from the database using the secure function
   const checkRegistrationStatus = async (userId: string) => {
     setIsCheckingRegistration(true);
     try {
       console.log("Checking registration status for user:", userId);
       
-      const { data, error } = await supabase.rpc('get_user_registration_status', {
+      // Use the new secure function that bypasses RLS issues
+      const { data, error } = await supabase.rpc('get_user_registration_status_safe', {
         p_user_id: userId
       });
       
