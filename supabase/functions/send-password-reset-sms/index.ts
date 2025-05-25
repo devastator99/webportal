@@ -90,7 +90,7 @@ serve(async (req) => {
     
     const formData = new URLSearchParams()
     formData.append('To', phoneNumber)
-    formData.append('From', '+1234567890') // Replace with your Twilio phone number
+    formData.append('From', '+16508648816') // Updated Twilio phone number
     formData.append('Body', `Your password reset code is: ${otp}. This code expires in 5 minutes.`)
 
     const twilioResponse = await fetch(twilioUrl, {
