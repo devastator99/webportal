@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,14 +25,21 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
   const [isSigningOut, setIsSigningOut] = useState(false);
   
   const fetchRegistrationStatus = async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log("No user ID available");
+      setIsLoading(false);
+      return;
+    }
     
     setIsLoading(true);
     try {
+      console.log("Fetching registration status for user:", user.id);
       // Use the new secure function that bypasses RLS issues
       const { data, error } = await supabase.rpc('get_user_registration_status_safe', {
         p_user_id: user.id
       });
+      
+      console.log("Registration status response:", { data, error });
       
       if (error) {
         console.error("Error getting registration status:", error);
@@ -40,12 +48,23 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
           description: "Failed to fetch registration status",
           variant: "destructive"
         });
+        setIsLoading(false);
         return;
       }
       
-      setRegistrationStatus(data as unknown as UserRegistrationStatus);
+      // The secure function returns JSONB directly, so we need to handle it properly
+      if (data) {
+        console.log("Setting registration status:", data);
+        setRegistrationStatus(data as UserRegistrationStatus);
+      } else {
+        console.log("No data returned, setting default status");
+        setRegistrationStatus({
+          registration_status: 'payment_pending',
+          tasks: []
+        } as UserRegistrationStatus);
+      }
     } catch (err) {
-      console.error("Error checking registration status:", err);
+      console.error("Exception checking registration status:", err);
       toast({
         title: "Error",
         description: "Failed to fetch registration status",
@@ -57,10 +76,12 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
   };
   
   useEffect(() => {
+    console.log("RegistrationProgressReport mounted, user:", user?.id);
     fetchRegistrationStatus();
   }, [user?.id]);
   
   const handleCheckAgain = () => {
+    console.log("Check again clicked");
     fetchRegistrationStatus();
     if (onCheckAgain) {
       onCheckAgain();
@@ -91,6 +112,8 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
       setIsSigningOut(false);
     }
   };
+  
+  console.log("Rendering RegistrationProgressReport - isLoading:", isLoading, "registrationStatus:", registrationStatus);
   
   if (isLoading) {
     return (
