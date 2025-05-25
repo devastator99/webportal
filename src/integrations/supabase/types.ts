@@ -868,25 +868,31 @@ export type Database = {
       }
       password_reset_otps: {
         Row: {
-          created_at: string
-          email: string
+          created_at: string | null
           expires_at: string
           id: string
-          otp: string
+          otp_code: string
+          phone_number: string
+          used: boolean | null
+          user_id: string | null
         }
         Insert: {
-          created_at?: string
-          email: string
+          created_at?: string | null
           expires_at: string
           id?: string
-          otp: string
+          otp_code: string
+          phone_number: string
+          used?: boolean | null
+          user_id?: string | null
         }
         Update: {
-          created_at?: string
-          email?: string
+          created_at?: string | null
           expires_at?: string
           id?: string
-          otp?: string
+          otp_code?: string
+          phone_number?: string
+          used?: boolean | null
+          user_id?: string | null
         }
         Relationships: []
       }
