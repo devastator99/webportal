@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -334,19 +335,30 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
                     />
                   </div>
                 </FormControl>
-                <div className="flex items-center space-x-2 mt-2">
-                  <Checkbox 
-                    id="showPassword" 
-                    checked={showPassword} 
-                    onCheckedChange={(checked) => setShowPassword(checked === true)}
-                    className="border-gray-300 text-purple-600 focus:ring-purple-500"
-                  />
-                  <label 
-                    htmlFor="showPassword" 
-                    className="text-sm text-gray-500"
-                  >
-                    Show password
-                  </label>
+                <div className="flex items-center justify-between mt-2">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox 
+                      id="showPassword" 
+                      checked={showPassword} 
+                      onCheckedChange={(checked) => setShowPassword(checked === true)}
+                      className="border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <label 
+                      htmlFor="showPassword" 
+                      className="text-sm text-gray-500"
+                    >
+                      Show password
+                    </label>
+                  </div>
+                  {type === "login" && (
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
                 </div>
               </FormItem>
             )}
@@ -473,6 +485,19 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
             )}
           </Button>
         </motion.div>
+
+        {/* Show additional forgot password link after login errors */}
+        {type === "login" && error && (
+          <motion.div variants={itemVariants} className="text-center">
+            <button
+              type="button"
+              onClick={() => setShowForgotPassword(true)}
+              className="text-sm text-purple-600 hover:text-purple-700 font-medium underline"
+            >
+              Forgot your password? Reset it here
+            </button>
+          </motion.div>
+        )}
       </motion.form>
 
       <Dialog open={showForgotPassword} onOpenChange={setShowForgotPassword}>
