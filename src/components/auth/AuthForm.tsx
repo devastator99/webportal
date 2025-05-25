@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +20,7 @@ import { formatDateForDisplay, parseDateFromDisplay } from "@/utils/dateUtils";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import ForgotPasswordForm from "./ForgotPasswordForm";
+import SmsOtpPasswordReset from "./SmsOtpPasswordReset";
 
 interface AuthFormProps {
   type: "login" | "register";
@@ -79,6 +79,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
   const [dateInputValue, setDateInputValue] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showSmsOtpReset, setShowSmsOtpReset] = useState(false);
   const { toast } = useToast();
 
   const activeSchema = type === "login" 
@@ -351,13 +352,22 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
                     </label>
                   </div>
                   {type === "login" && (
-                    <button
-                      type="button"
-                      onClick={() => setShowForgotPassword(true)}
-                      className="text-sm text-purple-600 hover:text-purple-700 font-medium"
-                    >
-                      Forgot password?
-                    </button>
+                    <div className="flex flex-col gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(true)}
+                        className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                      >
+                        Forgot password?
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setShowSmsOtpReset(true)}
+                        className="text-sm text-gray-500 hover:text-gray-700"
+                      >
+                        Reset via SMS
+                      </button>
+                    </div>
                   )}
                 </div>
               </FormItem>
@@ -488,13 +498,20 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
 
         {/* Show additional forgot password link after login errors */}
         {type === "login" && error && (
-          <motion.div variants={itemVariants} className="text-center">
+          <motion.div variants={itemVariants} className="text-center space-y-2">
             <button
               type="button"
               onClick={() => setShowForgotPassword(true)}
-              className="text-sm text-purple-600 hover:text-purple-700 font-medium underline"
+              className="text-sm text-purple-600 hover:text-purple-700 font-medium underline block"
             >
               Forgot your password? Reset it here
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowSmsOtpReset(true)}
+              className="text-sm text-gray-500 hover:text-gray-700 underline block"
+            >
+              Or reset via SMS
             </button>
           </motion.div>
         )}
@@ -509,6 +526,19 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           <ForgotPasswordForm 
             open={showForgotPassword}
             onClose={() => setShowForgotPassword(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showSmsOtpReset} onOpenChange={setShowSmsOtpReset}>
+        <DialogContent className="auth-glass" hideCloseButton={true}>
+          <DialogTitle className="sr-only">Reset Password via SMS</DialogTitle>
+          <DialogDescription className="sr-only">
+            Enter your phone number to receive an OTP for password reset
+          </DialogDescription>
+          <SmsOtpPasswordReset 
+            open={showSmsOtpReset}
+            onClose={() => setShowSmsOtpReset(false)}
           />
         </DialogContent>
       </Dialog>
