@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { AuthForm } from "@/components/auth/AuthForm";
-import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
@@ -13,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { RegistrationPayment } from "@/components/auth/RegistrationPayment";
 import { RegistrationProgressReport } from "@/components/auth/RegistrationProgressReport";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import '@/styles/glass.css';
 import '@/styles/authForm.css';
 import { cleanupAuthState } from "@/utils/authUtils";
@@ -31,7 +31,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [view, setView] = useState<"login" | "register">(initialView);
   const [registrationStep, setRegistrationStep] = useState<number>(1);
   const [registeredUser, setRegisteredUser] = useState<any>(null);
-  const { handleSignUp, error, loading, setError } = useAuthHandlers();
+  const { handleSignUp, handleSignIn, error, loading, setError } = useAuthHandlers();
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -65,7 +65,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     patientData?: PatientData
   ) => {
     try {
-      if (view === "register") {
+      if (view === "login") {
+        // Handle login
+        const user = await handleSignIn(email, password);
+        if (user) {
+          toast({
+            title: "Login Successful",
+            description: "Welcome back!",
+          });
+          handleClose();
+          navigate("/dashboard");
+        }
+      } else if (view === "register") {
         // Set localStorage flag to prevent redirection race condition
         if (userType === 'patient') {
           localStorage.setItem('registration_payment_pending', 'true');
@@ -93,7 +104,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           navigate("/dashboard");
         }
       }
-      // For login, the SupabaseAuthUI handles the submission
     } catch (error: any) {
       console.error("Authentication error:", error);
       
@@ -104,8 +114,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
       
       toast({
-        title: "Registration Error",
-        description: error.message || "Failed to create account",
+        title: view === "login" ? "Login Error" : "Registration Error",
+        description: error.message || `Failed to ${view === "login" ? "sign in" : "create account"}`,
         variant: "destructive",
       });
     }
@@ -198,11 +208,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                     Welcome Back
                   </h1>
                   <div className="auth-form-container">
-                    <SupabaseAuthUI
-                      view="sign_in"
-                      redirectTo={`${window.location.origin}/dashboard`}
-                      showLinks={false}
-                      className="mobile-form-container"
+                    <AuthForm
+                      type="login"
+                      onSubmit={handleFormSubmit}
+                      error={error}
+                      loading={loading}
                     />
                   </div>
                 </>
