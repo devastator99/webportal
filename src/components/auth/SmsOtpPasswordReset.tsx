@@ -6,6 +6,7 @@ import { toast } from '@/hooks/use-toast';
 import { LucideLoader2, CheckCircle, Phone, Lock } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+import { supabase } from '@/integrations/supabase/client';
 
 interface SmsOtpPasswordResetProps {
   open: boolean;
@@ -36,20 +37,18 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
     try {
       console.log('[SMS OTP] Sending OTP to:', phoneNumber);
       
-      const response = await fetch('/api/send-password-reset-sms', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
+      const { data, error } = await supabase.functions.invoke('send-password-reset-sms', {
+        body: { 
           phoneNumber: phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`
-        }),
+        }
       });
       
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send OTP');
+      if (error) {
+        throw new Error(error.message || 'Failed to send OTP');
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
       }
       
       console.log('[SMS OTP] OTP sent successfully');
@@ -86,21 +85,19 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
     try {
       console.log('[SMS OTP] Verifying OTP:', otp);
       
-      const response = await fetch('/api/verify-password-reset-otp', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
+      const { data, error } = await supabase.functions.invoke('verify-password-reset-otp', {
+        body: { 
           phoneNumber: phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`,
           otp 
-        }),
+        }
       });
       
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Invalid OTP');
+      if (error) {
+        throw new Error(error.message || 'Invalid OTP');
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
       }
       
       console.log('[SMS OTP] OTP verified successfully');
@@ -143,21 +140,19 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
     try {
       console.log('[SMS OTP] Updating password');
       
-      const response = await fetch('/api/update-password-with-sms-token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
+      const { data, error } = await supabase.functions.invoke('update-password-with-sms-token', {
+        body: { 
           sessionToken,
           newPassword 
-        }),
+        }
       });
       
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to update password');
+      if (error) {
+        throw new Error(error.message || 'Failed to update password');
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
       }
       
       console.log('[SMS OTP] Password updated successfully');
