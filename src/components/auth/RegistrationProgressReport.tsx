@@ -16,21 +16,21 @@ interface RegistrationProgressReportProps {
 export const RegistrationProgressReport: React.FC<RegistrationProgressReportProps> = ({
   onCheckAgain
 }) => {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isLoading: authIsLoading } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isFetching, setIsFetching] = useState(false);
   const [registrationStatus, setRegistrationStatus] = useState<UserRegistrationStatus | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
   
   const fetchRegistrationStatus = async () => {
-    if (!user?.id) {
-      console.log("No user ID available");
-      setIsLoading(false);
+    // Don't fetch if auth is still loading or no user
+    if (authIsLoading || !user?.id) {
+      console.log("Skipping fetch - auth loading:", authIsLoading, "user ID:", user?.id);
       return;
     }
     
-    setIsLoading(true);
+    setIsFetching(true);
     try {
       console.log("Fetching registration status for user:", user.id);
       // Use the new secure function that bypasses RLS issues
@@ -47,7 +47,6 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
           description: "Failed to fetch registration status",
           variant: "destructive"
         });
-        setIsLoading(false);
         return;
       }
       
@@ -70,14 +69,22 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
         variant: "destructive"
       });
     } finally {
-      setIsLoading(false);
+      setIsFetching(false);
     }
   };
   
   useEffect(() => {
-    console.log("RegistrationProgressReport mounted, user:", user?.id);
-    fetchRegistrationStatus();
-  }, [user?.id]);
+    console.log("RegistrationProgressReport effect - authIsLoading:", authIsLoading, "user:", user?.id);
+    
+    // Only fetch when auth is done loading and we have a user
+    if (!authIsLoading && user?.id) {
+      fetchRegistrationStatus();
+    } else if (!authIsLoading && !user?.id) {
+      // Auth is done loading but no user - this shouldn't happen on this page
+      console.log("Auth loaded but no user found");
+      setIsFetching(false);
+    }
+  }, [user?.id, authIsLoading]);
   
   const handleCheckAgain = () => {
     console.log("Check again clicked");
@@ -112,14 +119,39 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
     }
   };
   
-  console.log("Rendering RegistrationProgressReport - isLoading:", isLoading, "registrationStatus:", registrationStatus);
+  console.log("Rendering RegistrationProgressReport - authIsLoading:", authIsLoading, "isFetching:", isFetching, "registrationStatus:", registrationStatus);
   
-  if (isLoading) {
+  // Show loading while auth is loading OR while fetching registration status
+  if (authIsLoading || isFetching) {
     return (
       <Card className="bg-white">
         <CardContent className="pt-6 flex justify-center items-center h-40">
           <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9b87f5]"></div>
         </CardContent>
+      </Card>
+    );
+  }
+
+  // If auth is done loading but no user, show error
+  if (!authIsLoading && !user?.id) {
+    return (
+      <Card className="bg-white">
+        <CardHeader>
+          <CardTitle>Authentication Required</CardTitle>
+          <CardDescription>Please sign in to view registration status</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertDescription>
+              You must be signed in to view your registration status.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+        <CardFooter>
+          <Button onClick={() => navigate("/auth")} className="w-full">
+            Sign In
+          </Button>
+        </CardFooter>
       </Card>
     );
   }
