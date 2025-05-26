@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import type { OtpVerificationResult, SupabaseQueryResult, ProfileData, FunctionInvokeResult } from './types';
+import type { OtpVerificationResult, SupabaseQueryResult, ProfileData, FunctionInvokeResult } from '../types';
 
 export const sendOtpToPhone = async (phoneNumber: string): Promise<void> => {
   if (!phoneNumber) {
@@ -60,55 +60,44 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
   console.log('[SMS OTP] Attempting to link phone number to email:', email);
   
   try {
-    // Step 1: Find user profile by email with explicit typing
-    const profileQuery = supabase
+    const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
+    
+    // Step 1: Find user profile by email - simplified with explicit typing
+    const profileResponse = await supabase
       .from('profiles')
       .select('id')
       .eq('email', email);
     
-    const profileResult: SupabaseQueryResult<ProfileData[]> = await profileQuery;
-    
-    if (profileResult.error) {
+    if (profileResponse.error) {
       throw new Error('Database error occurred while looking up account');
     }
     
-    if (!profileResult.data || profileResult.data.length === 0) {
+    const profiles = profileResponse.data as ProfileData[] | null;
+    if (!profiles || profiles.length === 0) {
       throw new Error('No account found with this email address. Please check your email or create a new account.');
     }
     
-    const userId: string = profileResult.data[0].id;
-    const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
+    const userId: string = profiles[0].id;
     
-    // Step 2: Update phone number with explicit type handling
-    const updateQuery = supabase
+    // Step 2: Update phone number - simplified with explicit typing
+    const updateResponse = await supabase
       .from('profiles')
       .update({ phone: normalizedPhone })
       .eq('id', userId);
     
-    const updateResult: SupabaseQueryResult<any> = await updateQuery;
-    
-    if (updateResult.error) {
+    if (updateResponse.error) {
       throw new Error('Failed to link phone number to your account. Please try again.');
     }
     
-    // Step 3: Verify OTP with explicit result typing
-    const otpInvokeResult: FunctionInvokeResult = await supabase.functions.invoke('verify-password-reset-otp', {
-      body: { 
-        phoneNumber: normalizedPhone,
-        otp 
-      }
-    });
+    // Step 3: Verify OTP - reuse the existing function
+    const otpResult = await verifyOtpCode(normalizedPhone, otp);
     
-    if (otpInvokeResult.error) {
-      throw new Error(otpInvokeResult.error.message || 'Failed to verify OTP after linking account');
-    }
-
-    if (otpInvokeResult.data?.error) {
-      throw new Error(otpInvokeResult.data.error);
+    if (!otpResult.sessionToken) {
+      throw new Error('Failed to get session token after linking account');
     }
     
     console.log('[SMS OTP] Phone number linked and OTP verified successfully');
-    return otpInvokeResult.data.sessionToken as string;
+    return otpResult.sessionToken;
     
   } catch (error: any) {
     console.error('[SMS OTP] Error in linkPhoneToEmail:', error);
