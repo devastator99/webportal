@@ -62,29 +62,27 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
   try {
     const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
     
-    // Step 1: Find user profile by email - use simplified approach to avoid type issues
+    // Step 1: Find user profile by email - use direct query with explicit typing
     let userId: string;
     
     try {
-      // Use a simplified query approach to avoid deep type inference
-      const profileQuery = supabase.from('profiles');
-      const selectQuery = profileQuery.select('id');
-      const emailQuery = selectQuery.eq('email', email);
-      const finalQuery = emailQuery.limit(1);
+      // Use direct query with explicit typing to avoid deep inference
+      const profileResponse = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
       
-      const { data: profiles, error: profileError } = await finalQuery;
-      
-      if (profileError) {
-        console.error('Profile query error:', profileError);
+      if (profileResponse.error) {
+        console.error('Profile query error:', profileResponse.error);
         throw new Error('Database error occurred while looking up account');
       }
       
-      if (!profiles || profiles.length === 0) {
+      if (!profileResponse.data) {
         throw new Error('No account found with this email address. Please check your email or create a new account.');
       }
       
-      // Type assertion to avoid inference issues
-      userId = (profiles[0] as { id: string }).id;
+      userId = profileResponse.data.id;
       
     } catch (queryError: any) {
       console.error('Error finding user profile:', queryError);
@@ -94,16 +92,15 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
       throw new Error('Failed to lookup user account. Please try again.');
     }
     
-    // Step 2: Update phone number - use simplified approach
+    // Step 2: Update phone number - use direct update
     try {
-      const updateQuery = supabase.from('profiles');
-      const updateOperation = updateQuery.update({ phone: normalizedPhone });
-      const whereClause = updateOperation.eq('id', userId);
+      const updateResponse = await supabase
+        .from('profiles')
+        .update({ phone: normalizedPhone })
+        .eq('id', userId);
       
-      const { error: updateError } = await whereClause;
-      
-      if (updateError) {
-        console.error('Phone update error:', updateError);
+      if (updateResponse.error) {
+        console.error('Phone update error:', updateResponse.error);
         throw new Error('Failed to link phone number to your account. Please try again.');
       }
     } catch (updateErr: any) {
