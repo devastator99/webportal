@@ -46,42 +46,57 @@ export const verifyOtpCode = async (phoneNumber: string, otp: string): Promise<O
       }
     });
     
-    console.log('[SMS OTP] Function result:', result);
+    console.log('[SMS OTP] Raw function result:', result);
     
-    if (result.error) {
-      console.error('[SMS OTP] Function invoke error:', result.error);
-      throw new Error(result.error.message || 'Failed to verify OTP');
-    }
-
-    // Check for function-level errors
-    if (result.data?.error) {
-      // Check if it's a "needs email confirmation" error
+    // Handle the case where the function returns successfully but with error data
+    if (result.data) {
+      // Check for successful verification first
+      if (result.data.success && result.data.sessionToken) {
+        console.log('[SMS OTP] OTP verified successfully');
+        return { 
+          sessionToken: result.data.sessionToken, 
+          needsEmailConfirmation: false 
+        };
+      }
+      
+      // Check if it's a "needs email confirmation" case
       if (result.data.needsEmailConfirmation || 
-          result.data.error.includes('No account found') || 
-          result.data.error.includes('Please enter your email')) {
+          (result.data.error && result.data.error.includes('No account found'))) {
         console.log('[SMS OTP] Email confirmation needed');
         return { needsEmailConfirmation: true };
       }
       
-      console.error('[SMS OTP] Function returned error:', result.data.error);
-      throw new Error(result.data.error);
+      // Handle other error cases
+      if (result.data.error) {
+        console.error('[SMS OTP] Function returned error:', result.data.error);
+        throw new Error(result.data.error);
+      }
     }
     
-    // Success case
-    if (result.data?.success && result.data?.sessionToken) {
-      console.log('[SMS OTP] OTP verified successfully');
-      return { 
-        sessionToken: result.data.sessionToken, 
-        needsEmailConfirmation: false 
-      };
+    // Handle function invoke errors (network issues, etc.)
+    if (result.error) {
+      console.error('[SMS OTP] Function invoke error:', result.error);
+      throw new Error(result.error.message || 'Failed to verify OTP');
     }
     
     // Unexpected response format
-    console.error('[SMS OTP] Unexpected response format:', result.data);
+    console.error('[SMS OTP] Unexpected response format:', result);
     throw new Error('Unexpected response from server. Please try again.');
     
   } catch (error: any) {
-    console.error('[SMS OTP] Verify error:', error);
+    console.error('[SMS OTP] Verify error caught:', error);
+    
+    // Check if this is a network or function error vs a business logic error
+    if (error.message && (
+      error.message.includes('No account found') ||
+      error.message.includes('Please enter your email') ||
+      error.message.includes('Invalid or expired OTP')
+    )) {
+      // Re-throw business logic errors as-is
+      throw error;
+    }
+    
+    // For other errors, provide a generic message
     throw new Error(error.message || 'Failed to verify OTP. Please try again.');
   }
 };
@@ -95,16 +110,19 @@ const getUserIdByEmail = async (email: string): Promise<string> => {
       body: { emails: [email] }
     });
     
+    // Handle function invoke errors
     if (result.error) {
       console.error('[SMS OTP] Email lookup function error:', result.error);
       throw new Error('Failed to lookup user account. Please try again.');
     }
     
+    // Handle function response errors
     if (result.data?.error) {
       console.error('[SMS OTP] Email lookup returned error:', result.data.error);
       throw new Error(result.data.error);
     }
     
+    // Check if user was found
     if (!result.data?.users || result.data.users.length === 0) {
       throw new Error('No account found with this email address. Please check your email or create a new account.');
     }

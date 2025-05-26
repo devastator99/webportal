@@ -48,7 +48,7 @@ export const usePasswordResetActions = (props: UsePasswordResetActionsProps): Pa
         description: 'Check your phone for the verification code.',
       });
     } catch (error: any) {
-      console.error('SMS OTP send error:', error);
+      console.error('[SMS OTP] Send error:', error);
       const errorMessage: string = error.message || 'Failed to send OTP';
       setError(errorMessage);
       toast({
@@ -73,7 +73,10 @@ export const usePasswordResetActions = (props: UsePasswordResetActionsProps): Pa
     setError(null);
     
     try {
+      console.log('[SMS OTP] Starting OTP verification process...');
       const result = await verifyOtpCode(phoneNumber, otp);
+      
+      console.log('[SMS OTP] OTP verification result:', result);
       
       if (result.needsEmailConfirmation) {
         console.log('[SMS OTP] User not found, showing email confirmation step');
@@ -90,22 +93,31 @@ export const usePasswordResetActions = (props: UsePasswordResetActionsProps): Pa
       }
       
       if (result.sessionToken) {
+        console.log('[SMS OTP] OTP verified successfully, setting session token');
         setSessionToken(result.sessionToken);
+        setStep('password');
+        toast({
+          title: 'OTP Verified',
+          description: 'Please set your new password.',
+        });
+        return;
       }
-      setStep('password');
-      toast({
-        title: 'OTP Verified',
-        description: 'Please set your new password.',
-      });
+      
+      // This should not happen if our logic is correct
+      throw new Error('Unexpected verification result');
+      
     } catch (error: any) {
-      console.error('OTP verification error:', error);
+      console.error('[SMS OTP] OTP verification error:', error);
       
       let errorMessage: string = error.message || 'Invalid OTP';
       
+      // Provide more specific error messages based on the error content
       if (error.message?.includes('Invalid or expired')) {
         errorMessage = 'The OTP has expired or is invalid. Please request a new OTP.';
       } else if (error.message?.includes('already used')) {
         errorMessage = 'This OTP has already been used. Please request a new OTP.';
+      } else if (error.message?.includes('Failed to verify OTP')) {
+        errorMessage = 'Unable to verify OTP. Please check your internet connection and try again.';
       }
       
       setError(errorMessage);
@@ -131,6 +143,7 @@ export const usePasswordResetActions = (props: UsePasswordResetActionsProps): Pa
     setError(null);
     
     try {
+      console.log('[SMS OTP] Starting email confirmation process...');
       const token: string = await linkPhoneToEmail(email, phoneNumber, otp);
       setSessionToken(token);
       setStep('password');
@@ -139,7 +152,7 @@ export const usePasswordResetActions = (props: UsePasswordResetActionsProps): Pa
         description: 'Your phone number has been linked to your account. Please set your new password.',
       });
     } catch (error: any) {
-      console.error('Email confirmation error:', error);
+      console.error('[SMS OTP] Email confirmation error:', error);
       const errorMessage: string = error.message || 'Failed to link account';
       setError(errorMessage);
       toast({
@@ -181,7 +194,7 @@ export const usePasswordResetActions = (props: UsePasswordResetActionsProps): Pa
       
       onClose();
     } catch (error: any) {
-      console.error('Password update error:', error);
+      console.error('[SMS OTP] Password update error:', error);
       const errorMessage: string = error.message || 'Failed to update password';
       setError(errorMessage);
       toast({
@@ -204,7 +217,7 @@ export const usePasswordResetActions = (props: UsePasswordResetActionsProps): Pa
         description: 'Check your phone for the verification code.',
       });
     } catch (error: any) {
-      console.error('SMS OTP resend error:', error);
+      console.error('[SMS OTP] OTP resend error:', error);
       const errorMessage: string = error.message || 'Failed to send OTP';
       setError(errorMessage);
       toast({
