@@ -12,19 +12,21 @@ interface SmsOtpPasswordResetProps {
   onClose: () => void;
 }
 
+type StepType = 'phone' | 'otp' | 'email_confirmation' | 'password';
+
 const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
-  const [step, setStep] = useState<'phone' | 'otp' | 'email_confirmation' | 'password'>('phone');
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [email, setEmail] = useState('');
-  const [otp, setOtp] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<StepType>('phone');
+  const [phoneNumber, setPhoneNumber] = useState<string>('');
+  const [email, setEmail] = useState<string>('');
+  const [otp, setOtp] = useState<string>('');
+  const [newPassword, setNewPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [sessionToken, setSessionToken] = useState<string | null>(null);
-  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState<boolean>(false);
 
-  const handleSendOtp = async (e: React.FormEvent) => {
+  const handleSendOtp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!phoneNumber) {
@@ -72,7 +74,7 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
+  const handleVerifyOtp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!otp || otp.length !== 6) {
@@ -146,7 +148,7 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
     }
   };
 
-  const handleEmailConfirmation = async (e: React.FormEvent) => {
+  const handleEmailConfirmation = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!email || !email.includes('@')) {
@@ -214,7 +216,7 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
     }
   };
 
-  const handleUpdatePassword = async (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!newPassword || newPassword.length < 6) {
@@ -434,7 +436,7 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
               <br />
               <button
                 type="button"
-                onClick={handleSendOtp}
+                onClick={() => handleSendOtp(new Event('submit') as any)}
                 className="text-sm text-blue-600 hover:text-blue-700"
                 disabled={loading}
               >
