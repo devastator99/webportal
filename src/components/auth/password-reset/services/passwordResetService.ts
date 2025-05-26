@@ -54,51 +54,57 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
   console.log('[SMS OTP] Attempting to link phone number to email:', email);
   
   try {
-    // Step 1: Find user profile by email
-    const { data: profiles, error: profileError } = await supabase
+    // Step 1: Find user profile by email with explicit type
+    const profilesQuery = supabase
       .from('profiles')
       .select('id')
       .eq('email', email);
     
-    if (profileError) {
+    const profilesResult = await profilesQuery;
+    
+    if (profilesResult.error) {
       throw new Error('Database error occurred while looking up account');
     }
     
-    if (!profiles || profiles.length === 0) {
+    if (!profilesResult.data || profilesResult.data.length === 0) {
       throw new Error('No account found with this email address. Please check your email or create a new account.');
     }
     
-    const userId = profiles[0].id;
+    const userId = profilesResult.data[0].id;
     const normalizedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
     
-    // Step 2: Update phone number
-    const { error: updateError } = await supabase
+    // Step 2: Update phone number with explicit handling
+    const updateQuery = supabase
       .from('profiles')
       .update({ phone: normalizedPhone })
       .eq('id', userId);
     
-    if (updateError) {
+    const updateResult = await updateQuery;
+    
+    if (updateResult.error) {
       throw new Error('Failed to link phone number to your account. Please try again.');
     }
     
-    // Step 3: Verify OTP
-    const { data: otpData, error: otpError } = await supabase.functions.invoke('verify-password-reset-otp', {
+    // Step 3: Verify OTP with explicit handling
+    const otpQuery = supabase.functions.invoke('verify-password-reset-otp', {
       body: { 
         phoneNumber: normalizedPhone,
         otp 
       }
     });
     
-    if (otpError) {
-      throw new Error(otpError.message || 'Failed to verify OTP after linking account');
+    const otpResult = await otpQuery;
+    
+    if (otpResult.error) {
+      throw new Error(otpResult.error.message || 'Failed to verify OTP after linking account');
     }
 
-    if (otpData?.error) {
-      throw new Error(otpData.error);
+    if (otpResult.data?.error) {
+      throw new Error(otpResult.data.error);
     }
     
     console.log('[SMS OTP] Phone number linked and OTP verified successfully');
-    return otpData.sessionToken;
+    return otpResult.data.sessionToken;
     
   } catch (error: any) {
     console.error('[SMS OTP] Error in linkPhoneToEmail:', error);
