@@ -1,6 +1,5 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
 
 export const sendOtpToPhone = async (phoneNumber: string): Promise<void> => {
   if (!phoneNumber) {
@@ -19,7 +18,7 @@ export const sendOtpToPhone = async (phoneNumber: string): Promise<void> => {
     throw new Error(error.message || 'Failed to send OTP');
   }
 
-  if (data.error) {
+  if (data?.error) {
     throw new Error(data.error);
   }
   
@@ -40,7 +39,7 @@ export const verifyOtpCode = async (phoneNumber: string, otp: string) => {
     throw new Error(error.message || 'Invalid OTP');
   }
 
-  if (data.error) {
+  if (data?.error) {
     if (data.error.includes('No account found') || data.error.includes('No user found')) {
       return { needsEmailConfirmation: true };
     }
@@ -51,25 +50,26 @@ export const verifyOtpCode = async (phoneNumber: string, otp: string) => {
   return { sessionToken: data.sessionToken, needsEmailConfirmation: false };
 };
 
-export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: string) => {
+export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: string): Promise<string> => {
   console.log('[SMS OTP] Attempting to link phone number to email:', email);
   
-  const { data: userData, error: userError } = await supabase
+  // Use explicit typing to avoid type inference issues
+  const profileQuery = await supabase
     .from('profiles')
     .select('id')
     .eq('email', email)
     .single();
   
-  if (userError || !userData) {
+  if (profileQuery.error || !profileQuery.data) {
     throw new Error('No account found with this email address. Please check your email or create a new account.');
   }
   
-  const { error: updateError } = await supabase
+  const updateResult = await supabase
     .from('profiles')
     .update({ phone: phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}` })
-    .eq('id', userData.id);
+    .eq('id', profileQuery.data.id);
   
-  if (updateError) {
+  if (updateResult.error) {
     throw new Error('Failed to link phone number to your account. Please try again.');
   }
   
@@ -80,7 +80,7 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
     }
   });
   
-  if (error || data.error) {
+  if (error || data?.error) {
     throw new Error(data?.error || error.message || 'Failed to verify OTP after linking account');
   }
   
@@ -102,7 +102,7 @@ export const updatePasswordWithToken = async (sessionToken: string, newPassword:
     throw new Error(error.message || 'Failed to update password');
   }
 
-  if (data.error) {
+  if (data?.error) {
     throw new Error(data.error);
   }
   
