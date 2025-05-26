@@ -75,7 +75,7 @@ const checkUserExists = async (email: string): Promise<boolean> => {
   }
 };
 
-// Simplified helper function using RPC call instead of table query
+// Simplified helper function using edge function
 const getUserIdByEmailRPC = async (email: string): Promise<string> => {
   try {
     // Use edge function to get user ID to avoid complex table queries
