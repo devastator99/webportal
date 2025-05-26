@@ -79,15 +79,18 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
         throw new Error('No account found with this email address. Please check your email or create a new account.');
       }
       
-      // Get user ID using simplified query structure to avoid type inference issues
-      const profileQuery = supabase.from('profiles').select('id').eq('email', email);
-      const { data: profileResult, error: profileError } = await profileQuery;
+      // Get user ID using explicit any type to avoid type inference issues
+      const profileQueryResult: any = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .limit(1);
       
-      if (profileError || !profileResult || profileResult.length === 0) {
+      if (profileQueryResult.error || !profileQueryResult.data || profileQueryResult.data.length === 0) {
         throw new Error('No account found with this email address. Please check your email or create a new account.');
       }
       
-      userId = profileResult[0].id;
+      userId = profileQueryResult.data[0].id;
       
     } catch (queryError: any) {
       console.error('Error finding user profile:', queryError);
@@ -97,13 +100,15 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
       throw new Error('Failed to lookup user account. Please try again.');
     }
     
-    // Step 2: Update phone number using simplified query structure
+    // Step 2: Update phone number using explicit any type
     try {
-      const updateQuery = supabase.from('profiles').update({ phone: normalizedPhone }).eq('id', userId);
-      const { error: updateError } = await updateQuery;
+      const updateResult: any = await supabase
+        .from('profiles')
+        .update({ phone: normalizedPhone })
+        .eq('id', userId);
       
-      if (updateError) {
-        console.error('Phone update error:', updateError);
+      if (updateResult.error) {
+        console.error('Phone update error:', updateResult.error);
         throw new Error('Failed to link phone number to your account. Please try again.');
       }
     } catch (updateErr: any) {
