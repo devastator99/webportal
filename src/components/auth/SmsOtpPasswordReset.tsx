@@ -288,8 +288,30 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
     setShowEmailConfirmation(false);
   };
 
-  const handleOtpChange = (value: string) => {
-    setOtp(value);
+  const handleOtpInputChange = (index: number, value: string) => {
+    if (value.length <= 1 && /^\d*$/.test(value)) {
+      const newOtp = otp.split('');
+      newOtp[index] = value;
+      setOtp(newOtp.join(''));
+      
+      // Auto-focus next input
+      if (value && index < 5) {
+        const nextInput = document.querySelector(`input[data-otp-index="${index + 1}"]`) as HTMLInputElement;
+        if (nextInput) {
+          nextInput.focus();
+        }
+      }
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    // Handle backspace to go to previous input
+    if (e.key === 'Backspace' && !otp[index] && index > 0) {
+      const prevInput = document.querySelector(`input[data-otp-index="${index - 1}"]`) as HTMLInputElement;
+      if (prevInput) {
+        prevInput.focus();
+      }
+    }
   };
 
   return (
@@ -367,31 +389,9 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
                       type="text"
                       maxLength={1}
                       value={otp[index] || ''}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value.length <= 1 && /^\d*$/.test(value)) {
-                          const newOtp = otp.split('');
-                          newOtp[index] = value;
-                          handleOtpChange(newOtp.join(''));
-                          
-                          // Auto-focus next input
-                          if (value && index < 5) {
-                            const nextInput = e.target.parentElement?.nextElementSibling?.querySelector('input');
-                            if (nextInput) {
-                              (nextInput as HTMLInputElement).focus();
-                            }
-                          }
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        // Handle backspace to go to previous input
-                        if (e.key === 'Backspace' && !otp[index] && index > 0) {
-                          const prevInput = e.target.parentElement?.previousElementSibling?.querySelector('input');
-                          if (prevInput) {
-                            (prevInput as HTMLInputElement).focus();
-                          }
-                        }
-                      }}
+                      onChange={(e) => handleOtpInputChange(index, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      data-otp-index={index}
                       className="w-10 h-10 text-center"
                     />
                   ))}
