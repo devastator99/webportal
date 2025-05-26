@@ -62,30 +62,29 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
   try {
     const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
     
-    // Step 1: Find user profile by email - simplified with explicit typing
-    const profileResponse = await supabase
+    // Step 1: Find user profile by email - use explicit any type to avoid inference issues
+    const { data: profiles, error: profileError } = await supabase
       .from('profiles')
       .select('id')
-      .eq('email', email);
+      .eq('email', email) as { data: any[] | null; error: any };
     
-    if (profileResponse.error) {
+    if (profileError) {
       throw new Error('Database error occurred while looking up account');
     }
     
-    const profiles = profileResponse.data as ProfileData[] | null;
     if (!profiles || profiles.length === 0) {
       throw new Error('No account found with this email address. Please check your email or create a new account.');
     }
     
     const userId: string = profiles[0].id;
     
-    // Step 2: Update phone number - simplified with explicit typing
-    const updateResponse = await supabase
+    // Step 2: Update phone number - use explicit any type to avoid inference issues
+    const { error: updateError } = await supabase
       .from('profiles')
       .update({ phone: normalizedPhone })
-      .eq('id', userId);
+      .eq('id', userId) as { error: any };
     
-    if (updateResponse.error) {
+    if (updateError) {
       throw new Error('Failed to link phone number to your account. Please try again.');
     }
     
