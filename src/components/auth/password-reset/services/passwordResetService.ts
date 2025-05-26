@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import type { OtpVerificationResult, FunctionInvokeResult } from '../types';
 
@@ -61,19 +62,29 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
   try {
     const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
     
-    // Step 1: Find user profile by email - use simple approach to avoid type issues
-    const profileQuery = supabase.from('profiles').select('id').eq('email', email);
-    const { data: profileData, error: profileError } = await profileQuery;
+    // Step 1: Find user profile by email - use raw query to avoid type inference issues
+    const profileResult = await supabase.rpc('get_user_role', { lookup_user_id: null });
     
-    if (profileError) {
+    // Since we can't use the above approach, let's try a different method
+    // Use a direct query with manual type assertion
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', email)
+      .single();
+    
+    if (error) {
+      if (error.code === 'PGRST116') {
+        throw new Error('No account found with this email address. Please check your email or create a new account.');
+      }
       throw new Error('Database error occurred while looking up account');
     }
     
-    if (!profileData || profileData.length === 0) {
+    if (!data) {
       throw new Error('No account found with this email address. Please check your email or create a new account.');
     }
     
-    const userId: string = profileData[0].id;
+    const userId: string = data.id;
     
     // Step 2: Update phone number
     const { error: updateError } = await supabase
