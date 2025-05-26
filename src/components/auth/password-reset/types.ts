@@ -2,6 +2,8 @@
 export interface OtpVerificationResult {
   needsEmailConfirmation: boolean;
   sessionToken?: string;
+  phoneNotRegistered?: boolean;
+  phoneNumber?: string;
 }
 
 export interface SupabaseQueryResult<T> {

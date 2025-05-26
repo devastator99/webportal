@@ -1,7 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { LucideLoader2, AlertCircle } from 'lucide-react';
+import { LucideLoader2, AlertCircle, PhoneOff } from 'lucide-react';
 
 interface OtpVerificationStepProps {
   otp: string;
@@ -50,6 +50,9 @@ export const OtpVerificationStep = ({
     }
   };
 
+  // Check if error indicates phone not registered
+  const isPhoneNotRegistered = error?.includes('not registered') || error?.includes('not found');
+
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-2">
@@ -78,11 +81,26 @@ export const OtpVerificationStep = ({
       </div>
       
       {error && (
-        <div className="text-sm text-red-500 p-3 bg-red-50 rounded-md border border-red-200 flex items-start gap-2">
-          <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+        <div className={`text-sm p-3 rounded-md border flex items-start gap-2 ${
+          isPhoneNotRegistered 
+            ? 'text-orange-600 bg-orange-50 border-orange-200' 
+            : 'text-red-500 bg-red-50 border-red-200'
+        }`}>
+          {isPhoneNotRegistered ? (
+            <PhoneOff className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
+          ) : (
+            <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+          )}
           <div>
-            <p className="font-medium">Verification Failed</p>
+            <p className="font-medium">
+              {isPhoneNotRegistered ? 'Phone Number Not Registered' : 'Verification Failed'}
+            </p>
             <p className="text-xs mt-1">{error}</p>
+            {isPhoneNotRegistered && (
+              <p className="text-xs mt-2 font-medium">
+                You'll need to link this phone number to your email address to continue.
+              </p>
+            )}
           </div>
         </div>
       )}

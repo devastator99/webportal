@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import type { OtpVerificationResult, FunctionInvokeResult } from '../types';
 
@@ -50,14 +51,7 @@ export const verifyOtpCode = async (phoneNumber: string, otp: string): Promise<O
     // Handle network/function invoke errors first
     if (result.error) {
       console.error('[SMS OTP] Function invoke error:', result.error);
-      
-      // Check if this is a FunctionsHttpError (non-2xx response)
-      if (result.error.message?.includes('non-2xx status code')) {
-        // Try to get more details from the error
-        throw new Error('Server returned an error. Please check your OTP and try again.');
-      }
-      
-      throw new Error(result.error.message || 'Failed to verify OTP');
+      throw new Error('Failed to verify OTP. Please check your internet connection and try again.');
     }
     
     // Handle successful response with data
@@ -71,9 +65,18 @@ export const verifyOtpCode = async (phoneNumber: string, otp: string): Promise<O
         };
       }
       
-      // Check if it's a "needs email confirmation" case
-      if (result.data.needsEmailConfirmation || 
-          (result.data.error && result.data.error.includes('No account found'))) {
+      // Check if phone number is not registered
+      if (result.data.phoneNotRegistered) {
+        console.log('[SMS OTP] Phone number not registered, email confirmation needed');
+        return { 
+          needsEmailConfirmation: true,
+          phoneNotRegistered: true,
+          phoneNumber: result.data.phoneNumber
+        };
+      }
+      
+      // Check if it's a general "needs email confirmation" case
+      if (result.data.needsEmailConfirmation) {
         console.log('[SMS OTP] Email confirmation needed');
         return { needsEmailConfirmation: true };
       }
@@ -98,19 +101,8 @@ export const verifyOtpCode = async (phoneNumber: string, otp: string): Promise<O
   } catch (error: any) {
     console.error('[SMS OTP] Verify error caught:', error);
     
-    // Check if this is a network or function error vs a business logic error
-    if (error.message && (
-      error.message.includes('No account found') ||
-      error.message.includes('Please enter your email') ||
-      error.message.includes('Invalid or expired OTP') ||
-      error.message.includes('needs email confirmation')
-    )) {
-      // Re-throw business logic errors as-is
-      throw error;
-    }
-    
-    // For other errors, provide a more user-friendly message
-    throw new Error(error.message || 'Failed to verify OTP. Please check your internet connection and try again.');
+    // Re-throw business logic errors as-is
+    throw error;
   }
 };
 

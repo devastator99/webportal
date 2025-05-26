@@ -68,10 +68,39 @@ serve(async (req) => {
 
     if (otpError || !otpRecord) {
       console.error('[OTP Verification] Invalid or expired OTP:', otpError?.message)
+      
+      // Check if OTP exists but is expired/used
+      const { data: anyOtpRecord } = await supabase
+        .from('password_reset_otps')
+        .select('*')
+        .eq('phone_number', cleanPhone)
+        .eq('otp_code', otp)
+        .single()
+
+      if (anyOtpRecord) {
+        if (anyOtpRecord.used) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: 'This OTP has already been used. Please request a new OTP.' 
+            }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        } else if (new Date(anyOtpRecord.expires_at) < new Date()) {
+          return new Response(
+            JSON.stringify({ 
+              success: false, 
+              error: 'This OTP has expired. Please request a new OTP.' 
+            }),
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          )
+        }
+      }
+
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Invalid or expired OTP. Please request a new one.' 
+          error: 'Invalid OTP. Please check the code and try again.' 
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
@@ -82,6 +111,7 @@ serve(async (req) => {
     // Step 2: Find user by phone number using multiple strategies
     let userId = null
     let userFound = false
+    let searchStrategy = ''
 
     // Strategy 1: Direct phone lookup in profiles
     try {
@@ -94,7 +124,8 @@ serve(async (req) => {
       if (profileData && !profileError) {
         userId = profileData.id
         userFound = true
-        console.log('[OTP Verification] User found in profiles by phone')
+        searchStrategy = 'profiles_phone_exact'
+        console.log('[OTP Verification] User found in profiles by exact phone match')
       }
     } catch (error) {
       console.log('[OTP Verification] Profile lookup failed:', error)
@@ -113,7 +144,8 @@ serve(async (req) => {
         if (profileDataAlt && !profileErrorAlt) {
           userId = profileDataAlt.id
           userFound = true
-          console.log('[OTP Verification] User found in profiles by alternative phone format')
+          searchStrategy = 'profiles_phone_without_code'
+          console.log('[OTP Verification] User found in profiles by phone without country code')
         }
       } catch (error) {
         console.log('[OTP Verification] Alternative profile lookup failed:', error)
@@ -132,6 +164,7 @@ serve(async (req) => {
         if (patientData && !patientError) {
           userId = patientData.id
           userFound = true
+          searchStrategy = 'patient_details_emergency'
           console.log('[OTP Verification] User found in patient_details emergency_contact')
         }
       } catch (error) {
@@ -159,14 +192,16 @@ serve(async (req) => {
       )
     }
 
-    // If user not found, return success response with needsEmailConfirmation flag
+    // If user not found, return clear message about phone number not being registered
     if (!userFound) {
-      console.log('[OTP Verification] No user found, email confirmation required')
+      console.log('[OTP Verification] No user found for phone number:', cleanPhone)
       return new Response(
         JSON.stringify({ 
           success: false,
           needsEmailConfirmation: true,
-          error: 'No account found with this phone number. Please enter your email address to link your phone number to your account.'
+          phoneNotRegistered: true,
+          phoneNumber: cleanPhone,
+          error: `The phone number ${phoneNumber} is not registered with any account. Please enter your email address to link this phone number to your account, or contact support if you need assistance.`
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
@@ -177,16 +212,19 @@ serve(async (req) => {
       userId: userId,
       phoneNumber: cleanPhone,
       timestamp: Date.now(),
-      purpose: 'password_reset'
+      purpose: 'password_reset',
+      searchStrategy: searchStrategy
     }))
 
-    console.log('[OTP Verification] OTP verified successfully for user:', userId)
+    console.log(`[OTP Verification] OTP verified successfully for user: ${userId} (found via: ${searchStrategy})`)
     
     return new Response(
       JSON.stringify({ 
         success: true, 
         message: 'OTP verified successfully',
-        sessionToken
+        sessionToken,
+        userFound: true,
+        searchStrategy: searchStrategy
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
@@ -196,7 +234,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: 'An unexpected error occurred. Please try again.',
+        error: 'An unexpected error occurred during OTP verification. Please try again.',
         details: error.message 
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
