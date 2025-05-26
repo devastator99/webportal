@@ -62,11 +62,10 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
   try {
     const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
     
-    // Step 1: Find user profile by email using RPC to avoid complex type inference
+    // Step 1: Check if user exists using RPC to avoid type complexity
     let userId: string;
     
     try {
-      // Use RPC call to avoid complex Supabase query type inference
       const { data: userExists, error: checkError } = await supabase.rpc('check_user_exists', {
         p_email: email
       });
@@ -80,18 +79,18 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
         throw new Error('No account found with this email address. Please check your email or create a new account.');
       }
       
-      // Get user ID from auth.users table using a simple query
-      const authQuery = await supabase
+      // Get user ID using a very simple approach to avoid type inference issues
+      const profileData: any = await supabase
         .from('profiles')
         .select('id')
         .eq('email', email)
-        .limit(1);
+        .single();
       
-      if (authQuery.error || !authQuery.data || authQuery.data.length === 0) {
+      if (profileData.error || !profileData.data) {
         throw new Error('No account found with this email address. Please check your email or create a new account.');
       }
       
-      userId = authQuery.data[0].id;
+      userId = profileData.data.id;
       
     } catch (queryError: any) {
       console.error('Error finding user profile:', queryError);
@@ -101,15 +100,15 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
       throw new Error('Failed to lookup user account. Please try again.');
     }
     
-    // Step 2: Update phone number using RPC to avoid type issues
+    // Step 2: Update phone number using explicit typing
     try {
-      const { error: updateError } = await supabase
+      const updateData: any = await supabase
         .from('profiles')
         .update({ phone: normalizedPhone })
         .eq('id', userId);
       
-      if (updateError) {
-        console.error('Phone update error:', updateError);
+      if (updateData.error) {
+        console.error('Phone update error:', updateData.error);
         throw new Error('Failed to link phone number to your account. Please try again.');
       }
     } catch (updateErr: any) {
