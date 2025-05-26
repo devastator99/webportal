@@ -1,5 +1,3 @@
-
-
 import { supabase } from '@/integrations/supabase/client';
 import type { OtpVerificationResult, FunctionInvokeResult } from '../types';
 
@@ -63,29 +61,30 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
   try {
     const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
     
-    // Step 1: Find user profile by email - use direct query
-    const profileData = await supabase
+    // Step 1: Find user profile by email - use a simple query to avoid type issues
+    const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('id')
       .eq('email', email)
-      .single();
+      .limit(1);
     
-    if (profileData.error) {
-      if (profileData.error.code === 'PGRST116') {
-        throw new Error('No account found with this email address. Please check your email or create a new account.');
-      }
+    if (profileError) {
       throw new Error('Database error occurred while looking up account');
     }
     
-    const userId: string = profileData.data.id;
+    if (!profileData || profileData.length === 0) {
+      throw new Error('No account found with this email address. Please check your email or create a new account.');
+    }
+    
+    const userId: string = profileData[0].id;
     
     // Step 2: Update phone number
-    const updateData = await supabase
+    const { error: updateError } = await supabase
       .from('profiles')
       .update({ phone: normalizedPhone })
       .eq('id', userId);
     
-    if (updateData.error) {
+    if (updateError) {
       throw new Error('Failed to link phone number to your account. Please try again.');
     }
     
@@ -125,4 +124,3 @@ export const updatePasswordWithToken = async (sessionToken: string, newPassword:
   
   console.log('[SMS OTP] Password updated successfully');
 };
-
