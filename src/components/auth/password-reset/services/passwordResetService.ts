@@ -1,0 +1,110 @@
+
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+
+export const sendOtpToPhone = async (phoneNumber: string): Promise<void> => {
+  if (!phoneNumber) {
+    throw new Error('Please enter your phone number');
+  }
+  
+  console.log('[SMS OTP] Sending OTP to:', phoneNumber);
+  
+  const { data, error } = await supabase.functions.invoke('send-password-reset-sms', {
+    body: { 
+      phoneNumber: phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`
+    }
+  });
+  
+  if (error) {
+    throw new Error(error.message || 'Failed to send OTP');
+  }
+
+  if (data.error) {
+    throw new Error(data.error);
+  }
+  
+  console.log('[SMS OTP] OTP sent successfully');
+};
+
+export const verifyOtpCode = async (phoneNumber: string, otp: string) => {
+  console.log('[SMS OTP] Verifying OTP:', otp);
+  
+  const { data, error } = await supabase.functions.invoke('verify-password-reset-otp', {
+    body: { 
+      phoneNumber: phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`,
+      otp 
+    }
+  });
+  
+  if (error) {
+    throw new Error(error.message || 'Invalid OTP');
+  }
+
+  if (data.error) {
+    if (data.error.includes('No account found') || data.error.includes('No user found')) {
+      return { needsEmailConfirmation: true };
+    }
+    throw new Error(data.error);
+  }
+  
+  console.log('[SMS OTP] OTP verified successfully');
+  return { sessionToken: data.sessionToken, needsEmailConfirmation: false };
+};
+
+export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: string) => {
+  console.log('[SMS OTP] Attempting to link phone number to email:', email);
+  
+  const { data: userData, error: userError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('email', email)
+    .single();
+  
+  if (userError || !userData) {
+    throw new Error('No account found with this email address. Please check your email or create a new account.');
+  }
+  
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({ phone: phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}` })
+    .eq('id', userData.id);
+  
+  if (updateError) {
+    throw new Error('Failed to link phone number to your account. Please try again.');
+  }
+  
+  const { data, error } = await supabase.functions.invoke('verify-password-reset-otp', {
+    body: { 
+      phoneNumber: phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`,
+      otp 
+    }
+  });
+  
+  if (error || data.error) {
+    throw new Error(data?.error || error.message || 'Failed to verify OTP after linking account');
+  }
+  
+  console.log('[SMS OTP] Phone number linked and OTP verified successfully');
+  return data.sessionToken;
+};
+
+export const updatePasswordWithToken = async (sessionToken: string, newPassword: string): Promise<void> => {
+  console.log('[SMS OTP] Updating password');
+  
+  const { data, error } = await supabase.functions.invoke('update-password-with-sms-token', {
+    body: { 
+      sessionToken,
+      newPassword 
+    }
+  });
+  
+  if (error) {
+    throw new Error(error.message || 'Failed to update password');
+  }
+
+  if (data.error) {
+    throw new Error(data.error);
+  }
+  
+  console.log('[SMS OTP] Password updated successfully');
+};
