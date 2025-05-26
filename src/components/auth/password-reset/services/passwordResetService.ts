@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import type { OtpVerificationResult, SupabaseQueryResult, ProfileData, FunctionInvokeResult } from '../types';
+import type { OtpVerificationResult, FunctionInvokeResult } from '../types';
 
 export const sendOtpToPhone = async (phoneNumber: string): Promise<void> => {
   if (!phoneNumber) {
@@ -62,29 +62,33 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
   try {
     const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
     
-    // Step 1: Find user profile by email - use explicit any type to avoid inference issues
-    const { data: profiles, error: profileError } = await supabase
+    // Step 1: Find user profile by email - use raw query approach
+    const profileQuery = supabase
       .from('profiles')
       .select('id')
-      .eq('email', email) as { data: any[] | null; error: any };
+      .eq('email', email);
     
-    if (profileError) {
+    const profileResult = await profileQuery;
+    
+    if (profileResult.error) {
       throw new Error('Database error occurred while looking up account');
     }
     
-    if (!profiles || profiles.length === 0) {
+    if (!profileResult.data || profileResult.data.length === 0) {
       throw new Error('No account found with this email address. Please check your email or create a new account.');
     }
     
-    const userId: string = profiles[0].id;
+    const userId: string = profileResult.data[0].id;
     
-    // Step 2: Update phone number - use explicit any type to avoid inference issues
-    const { error: updateError } = await supabase
+    // Step 2: Update phone number - use raw query approach
+    const updateQuery = supabase
       .from('profiles')
       .update({ phone: normalizedPhone })
-      .eq('id', userId) as { error: any };
+      .eq('id', userId);
     
-    if (updateError) {
+    const updateResult = await updateQuery;
+    
+    if (updateResult.error) {
       throw new Error('Failed to link phone number to your account. Please try again.');
     }
     
