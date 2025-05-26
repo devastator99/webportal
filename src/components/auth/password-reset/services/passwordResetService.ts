@@ -61,12 +61,9 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
   try {
     const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
     
-    // Step 1: Find user profile by email - use a simple query to avoid type issues
-    const { data: profileData, error: profileError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('email', email)
-      .limit(1);
+    // Step 1: Find user profile by email - use simple approach to avoid type issues
+    const profileQuery = supabase.from('profiles').select('id').eq('email', email);
+    const { data: profileData, error: profileError } = await profileQuery;
     
     if (profileError) {
       throw new Error('Database error occurred while looking up account');
