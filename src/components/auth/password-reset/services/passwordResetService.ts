@@ -79,18 +79,15 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
         throw new Error('No account found with this email address. Please check your email or create a new account.');
       }
       
-      // Get user ID using a very simple approach to avoid type inference issues
-      const profileData: any = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', email)
-        .single();
+      // Get user ID using simplified query structure to avoid type inference issues
+      const profileQuery = supabase.from('profiles').select('id').eq('email', email);
+      const { data: profileResult, error: profileError } = await profileQuery;
       
-      if (profileData.error || !profileData.data) {
+      if (profileError || !profileResult || profileResult.length === 0) {
         throw new Error('No account found with this email address. Please check your email or create a new account.');
       }
       
-      userId = profileData.data.id;
+      userId = profileResult[0].id;
       
     } catch (queryError: any) {
       console.error('Error finding user profile:', queryError);
@@ -100,15 +97,13 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
       throw new Error('Failed to lookup user account. Please try again.');
     }
     
-    // Step 2: Update phone number using explicit typing
+    // Step 2: Update phone number using simplified query structure
     try {
-      const updateData: any = await supabase
-        .from('profiles')
-        .update({ phone: normalizedPhone })
-        .eq('id', userId);
+      const updateQuery = supabase.from('profiles').update({ phone: normalizedPhone }).eq('id', userId);
+      const { error: updateError } = await updateQuery;
       
-      if (updateData.error) {
-        console.error('Phone update error:', updateData.error);
+      if (updateError) {
+        console.error('Phone update error:', updateError);
         throw new Error('Failed to link phone number to your account. Please try again.');
       }
     } catch (updateErr: any) {
