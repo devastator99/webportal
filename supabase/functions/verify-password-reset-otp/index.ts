@@ -58,22 +58,82 @@ serve(async (req) => {
 
     console.log(`[OTP Verification] Valid OTP found, looking up user with phone: ${cleanPhone}`)
 
-    // Now look up the user by phone number in patient_details
-    const { data: patientDetail, error: lookupError } = await supabase
-      .from('patient_details')
+    // Strategy 1: Look up user by phone in profiles table
+    let userId = null
+    let userFound = false
+
+    // First try to find user by phone in profiles table
+    const { data: profileByPhone, error: profileError } = await supabase
+      .from('profiles')
       .select('id')
-      .or(`emergency_contact.eq.${cleanPhone},emergency_contact.eq.${cleanPhone.replace('+91', '')}`)
+      .eq('phone', cleanPhone)
       .single()
 
-    if (lookupError || !patientDetail) {
-      console.error(`No patient found with phone ${cleanPhone}:`, lookupError)
+    if (profileByPhone && !profileError) {
+      userId = profileByPhone.id
+      userFound = true
+      console.log(`[OTP Verification] User found by phone in profiles: ${userId}`)
+    } else {
+      console.log(`[OTP Verification] No user found by phone in profiles, trying alternative phone formats`)
+      
+      // Try without country code
+      const phoneWithoutCountryCode = cleanPhone.replace('+91', '')
+      const { data: profileByPhoneAlt, error: profileErrorAlt } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('phone', phoneWithoutCountryCode)
+        .single()
+
+      if (profileByPhoneAlt && !profileErrorAlt) {
+        userId = profileByPhoneAlt.id
+        userFound = true
+        console.log(`[OTP Verification] User found by alternative phone format: ${userId}`)
+      }
+    }
+
+    // Strategy 2: If not found in profiles, try patient_details emergency_contact
+    if (!userFound) {
+      console.log(`[OTP Verification] Trying patient_details emergency_contact lookup`)
+      const { data: patientDetail, error: lookupError } = await supabase
+        .from('patient_details')
+        .select('id')
+        .or(`emergency_contact.eq.${cleanPhone},emergency_contact.eq.${cleanPhone.replace('+91', '')}`)
+        .single()
+
+      if (patientDetail && !lookupError) {
+        userId = patientDetail.id
+        userFound = true
+        console.log(`[OTP Verification] User found in patient_details: ${userId}`)
+      }
+    }
+
+    // Strategy 3: If still not found, check auth.users by phone
+    if (!userFound) {
+      console.log(`[OTP Verification] Trying auth.users phone lookup`)
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers()
+      
+      if (authUsers && !authError) {
+        const userByPhone = authUsers.users.find(user => 
+          user.phone === cleanPhone || user.phone === cleanPhone.replace('+91', '')
+        )
+        
+        if (userByPhone) {
+          userId = userByPhone.id
+          userFound = true
+          console.log(`[OTP Verification] User found in auth.users: ${userId}`)
+        }
+      }
+    }
+
+    if (!userFound || !userId) {
+      console.error(`No user found with phone ${cleanPhone} in any lookup strategy`)
       return new Response(
-        JSON.stringify({ error: 'No account found with this phone number' }),
+        JSON.stringify({ 
+          error: 'No account found with this phone number. Please ensure your phone number is registered with your account.' 
+        }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
-
-    const userId = patientDetail.id
 
     // Mark OTP as used and update with user_id
     const { error: updateError } = await supabase

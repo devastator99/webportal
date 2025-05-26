@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -110,10 +109,20 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
       
     } catch (error: any) {
       console.error('OTP verification error:', error);
-      setError(error.message || 'Invalid OTP');
+      
+      // Provide more specific error messages
+      let errorMessage = error.message || 'Invalid OTP';
+      
+      if (error.message?.includes('No account found')) {
+        errorMessage = 'No account found with this phone number. Please ensure your phone number is registered or try a different number.';
+      } else if (error.message?.includes('Invalid or expired')) {
+        errorMessage = 'The OTP has expired or is invalid. Please request a new OTP.';
+      }
+      
+      setError(errorMessage);
       toast({
         title: 'OTP Verification Failed',
-        description: error.message || 'Please try again',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -210,7 +219,7 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
                 />
               </div>
               <p className="text-xs text-gray-500">
-                Enter your phone number to receive an OTP
+                Enter the phone number registered with your account
               </p>
             </div>
             
@@ -303,6 +312,15 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
                 className="text-sm text-gray-500 hover:text-gray-700"
               >
                 Change Phone Number
+              </button>
+              <br />
+              <button
+                type="button"
+                onClick={handleSendOtp}
+                className="text-sm text-blue-600 hover:text-blue-700"
+                disabled={loading}
+              >
+                Resend OTP
               </button>
             </div>
           </form>
