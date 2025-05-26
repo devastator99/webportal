@@ -31,7 +31,7 @@ serve(async (req: Request) => {
       console.error("Missing email in request");
       return new Response(
         JSON.stringify({ success: false, error: "Email is required" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
@@ -39,11 +39,19 @@ serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     const resendApiKey = Deno.env.get("RESEND_API_KEY");
     
-    if (!supabaseUrl || !supabaseServiceKey || !resendApiKey) {
-      console.error("Missing required environment variables");
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error("Missing Supabase environment variables");
       return new Response(
         JSON.stringify({ success: false, error: "Server configuration error" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (!resendApiKey) {
+      console.error("Missing RESEND_API_KEY environment variable");
+      return new Response(
+        JSON.stringify({ success: false, error: "Email service not configured" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
@@ -68,29 +76,57 @@ serve(async (req: Request) => {
     if (storeError) {
       console.error("Error storing OTP:", storeError);
       return new Response(
-        JSON.stringify({ success: false, error: storeError.message }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "Failed to process request" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
     // Initialize Resend
     const resend = new Resend(resendApiKey);
     
-    // Send email using Resend
+    // Send email using Resend with improved template
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Password Reset <onboarding@resend.dev>",
+      from: "Healthcare App <noreply@yourdomain.com>", // Replace with your verified domain
       to: [email],
-      subject: "Your Password Reset OTP",
+      subject: "Password Reset Code - Healthcare App",
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>Password Reset Request</h2>
-          <p>You have requested to reset your password. Here is your one-time password (OTP):</p>
-          <div style="background-color: #f4f4f4; padding: 20px; text-align: center; font-size: 24px; letter-spacing: 5px; margin: 20px 0;">
-            <strong>${otp}</strong>
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #1f2937; margin: 0;">Password Reset Request</h1>
           </div>
-          <p>This code will expire in 1 hour.</p>
-          <p>If you didn't request this password reset, please ignore this email.</p>
-          <p>Best regards,<br/>Your Support Team</p>
+          
+          <div style="background-color: #f9fafb; border-radius: 8px; padding: 24px; margin: 20px 0;">
+            <p style="color: #374151; font-size: 16px; line-height: 1.5; margin: 0 0 20px 0;">
+              You have requested to reset your password for your Healthcare App account.
+            </p>
+            
+            <p style="color: #374151; font-size: 16px; line-height: 1.5; margin: 0 0 20px 0;">
+              Your verification code is:
+            </p>
+            
+            <div style="background-color: #ffffff; border: 2px solid #e5e7eb; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
+              <div style="font-size: 32px; font-weight: bold; color: #1f2937; letter-spacing: 8px; font-family: 'Courier New', monospace;">
+                ${otp}
+              </div>
+            </div>
+            
+            <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 20px 0 0 0;">
+              This code will expire in 1 hour for security reasons.
+            </p>
+          </div>
+          
+          <div style="border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px;">
+            <p style="color: #6b7280; font-size: 14px; line-height: 1.5; margin: 0;">
+              If you didn't request this password reset, please ignore this email. Your account remains secure.
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin-top: 30px;">
+            <p style="color: #6b7280; font-size: 14px; margin: 0;">
+              Best regards,<br/>
+              Healthcare App Team
+            </p>
+          </div>
         </div>
       `,
     });
@@ -98,23 +134,30 @@ serve(async (req: Request) => {
     if (emailError) {
       console.error("Error sending email:", emailError);
       return new Response(
-        JSON.stringify({ success: false, error: emailError.message }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ success: false, error: "Failed to send email" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    console.log("Password reset OTP sent successfully");
+    console.log("Password reset OTP sent successfully:", emailData);
     
     return new Response(
-      JSON.stringify({ success: true, message: "Password reset OTP sent successfully" }),
+      JSON.stringify({ 
+        success: true, 
+        message: "Password reset code sent successfully",
+        messageId: emailData?.id 
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error: any) {
     console.error("Password reset email error:", error);
     
     return new Response(
-      JSON.stringify({ success: false, error: error.message || "Failed to send password reset OTP" }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ 
+        success: false, 
+        error: "Failed to send password reset email. Please try again." 
+      }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });

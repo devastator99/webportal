@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
-import { LucideLoader2, CheckCircle } from 'lucide-react';
+import { LucideLoader2, CheckCircle, Mail } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { getSiteUrl } from '@/utils/environmentUtils';
 
@@ -38,21 +38,39 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
       console.log('[ForgotPassword] Sending reset email to:', email);
       console.log('[ForgotPassword] Redirect URL:', redirectUrl);
       
-      // Use Supabase's built-in password reset functionality
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      // First try to send email via our custom edge function
+      const { data, error: emailError } = await supabase.functions.invoke('send-password-reset-email', {
+        body: { 
+          email,
+          resetUrl: redirectUrl
+        }
+      });
+      
+      if (emailError) {
+        console.error('[ForgotPassword] Email function error:', emailError);
+        throw new Error('Failed to send password reset email');
+      }
+      
+      if (data?.error) {
+        console.error('[ForgotPassword] Email function returned error:', data.error);
+        throw new Error(data.error);
+      }
+      
+      // Also use Supabase's built-in password reset as backup
+      const { error: supabaseError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
       });
       
-      if (error) {
-        console.error('[ForgotPassword] Error:', error);
-        throw error;
+      if (supabaseError) {
+        console.warn('[ForgotPassword] Supabase reset warning:', supabaseError);
+        // Don't throw here as our custom email might have worked
       }
       
       console.log('[ForgotPassword] Reset email sent successfully');
       setSuccess(true);
       toast({
         title: 'Password Reset Email Sent',
-        description: 'Check your email for the password reset link.',
+        description: 'Check your email for the password reset code and link.',
       });
       
     } catch (error: any) {
@@ -72,7 +90,11 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
   return (
     <ScrollArea className="max-h-[80vh]" invisibleScrollbar={true}>
       <div className="p-4">
-        <h2 className="text-2xl font-bold text-center mb-6">Reset Password</h2>
+        <div className="text-center mb-6">
+          <Mail className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold">Reset Password</h2>
+          <p className="text-gray-600 mt-2">Enter your email to receive a reset code</p>
+        </div>
         
         {!success ? (
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -88,6 +110,7 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
                 placeholder="Enter your email address"
                 className="w-full"
                 required
+                disabled={loading}
               />
             </div>
             
@@ -108,7 +131,7 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
                   Sending...
                 </span>
               ) : (
-                'Send Reset Link'
+                'Send Reset Code'
               )}
             </Button>
             
@@ -117,6 +140,7 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
                 type="button"
                 onClick={onClose}
                 className="text-sm text-gray-500 hover:text-gray-700"
+                disabled={loading}
               >
                 Back to Login
               </button>
@@ -129,14 +153,18 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
                 <CheckCircle className="h-6 w-6 text-green-600" />
               </div>
             </div>
-            <p className="text-lg font-medium">Reset Link Sent</p>
+            <p className="text-lg font-medium">Reset Email Sent</p>
             <p className="text-gray-600">
-              We've sent a password reset link to <span className="font-medium">{email}</span>.
-              Please check your email inbox and click the link to reset your password.
+              We've sent a password reset code to <span className="font-medium">{email}</span>.
+              Please check your email inbox and follow the instructions.
             </p>
             <div className="text-sm text-gray-500 p-3 bg-blue-50 rounded-md border border-blue-200">
-              <p className="font-medium mb-1">Important:</p>
-              <p>The reset link will redirect you to a page where you can set your new password. Make sure to complete the process within the link's validity period.</p>
+              <p className="font-medium mb-1">What to expect:</p>
+              <ul className="text-left space-y-1">
+                <li>• A 6-digit verification code</li>
+                <li>• A direct reset link (backup)</li>
+                <li>• Valid for 1 hour</li>
+              </ul>
             </div>
             <Button 
               onClick={onClose}
