@@ -1,4 +1,5 @@
 
+
 import { supabase } from '@/integrations/supabase/client';
 import type { OtpVerificationResult, FunctionInvokeResult } from '../types';
 
@@ -62,33 +63,29 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
   try {
     const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
     
-    // Step 1: Find user profile by email - use raw query approach
-    const profileQuery = supabase
+    // Step 1: Find user profile by email - use direct query
+    const profileData = await supabase
       .from('profiles')
       .select('id')
-      .eq('email', email);
+      .eq('email', email)
+      .single();
     
-    const profileResult = await profileQuery;
-    
-    if (profileResult.error) {
+    if (profileData.error) {
+      if (profileData.error.code === 'PGRST116') {
+        throw new Error('No account found with this email address. Please check your email or create a new account.');
+      }
       throw new Error('Database error occurred while looking up account');
     }
     
-    if (!profileResult.data || profileResult.data.length === 0) {
-      throw new Error('No account found with this email address. Please check your email or create a new account.');
-    }
+    const userId: string = profileData.data.id;
     
-    const userId: string = profileResult.data[0].id;
-    
-    // Step 2: Update phone number - use raw query approach
-    const updateQuery = supabase
+    // Step 2: Update phone number
+    const updateData = await supabase
       .from('profiles')
       .update({ phone: normalizedPhone })
       .eq('id', userId);
     
-    const updateResult = await updateQuery;
-    
-    if (updateResult.error) {
+    if (updateData.error) {
       throw new Error('Failed to link phone number to your account. Please try again.');
     }
     
@@ -128,3 +125,4 @@ export const updatePasswordWithToken = async (sessionToken: string, newPassword:
   
   console.log('[SMS OTP] Password updated successfully');
 };
+
