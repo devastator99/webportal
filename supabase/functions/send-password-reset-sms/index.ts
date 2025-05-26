@@ -28,6 +28,9 @@ serve(async (req) => {
       )
     }
 
+    // Basic phone number validation
+    const cleanPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`
+    
     // Get Twilio credentials from Supabase secrets
     const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID')
     const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN')
@@ -48,41 +51,20 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    console.log(`[SMS OTP] Looking up user with phone: ${phoneNumber}`)
-
-    // Check if user exists with this phone number in patient_details
-    const { data: patientDetail, error: lookupError } = await supabase
-      .from('patient_details')
-      .select('id')
-      .or(`emergency_contact.eq.${phoneNumber},emergency_contact.eq.${phoneNumber.replace('+91', '')}`)
-      .single()
-
-    console.log(`[SMS OTP] Lookup result:`, { patientDetail, lookupError })
-
-    if (lookupError || !patientDetail) {
-      console.error(`[SMS OTP] No patient found with phone ${phoneNumber}:`, lookupError)
-      return new Response(
-        JSON.stringify({ error: 'No account found with this phone number' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const userId = patientDetail.id
+    console.log(`[SMS OTP] Generated OTP for phone: ${cleanPhone}`)
 
     // Store OTP temporarily (expires in 5 minutes)
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
-    
-    console.log(`[SMS OTP] Creating OTP for user: ${userId}`)
 
-    // Create or update OTP record
+    // Create or update OTP record (user_id will be null for now)
     const { error: otpError } = await supabase
       .from('password_reset_otps')
       .upsert({
-        phone_number: phoneNumber,
+        phone_number: cleanPhone,
         otp_code: otp,
         expires_at: expiresAt,
         used: false,
-        user_id: userId
+        user_id: null // Will be set during verification when we match the phone to a user
       }, {
         onConflict: 'phone_number'
       })
@@ -95,14 +77,14 @@ serve(async (req) => {
       )
     }
 
-    console.log(`[SMS OTP] OTP stored successfully, sending SMS to ${phoneNumber}`)
+    console.log(`[SMS OTP] OTP stored successfully, sending SMS to ${cleanPhone}`)
 
     // Send SMS via Twilio
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`
     const auth = btoa(`${twilioAccountSid}:${twilioAuthToken}`)
     
     const formData = new URLSearchParams()
-    formData.append('To', phoneNumber)
+    formData.append('To', cleanPhone)
     formData.append('From', '+16508648816') // Updated Twilio phone number
     formData.append('Body', `Your password reset code is: ${otp}. This code expires in 5 minutes.`)
 
@@ -124,7 +106,7 @@ serve(async (req) => {
       )
     }
 
-    console.log(`[SMS OTP] SMS sent successfully to ${phoneNumber}`)
+    console.log(`[SMS OTP] SMS sent successfully to ${cleanPhone}`)
     
     return new Response(
       JSON.stringify({ 

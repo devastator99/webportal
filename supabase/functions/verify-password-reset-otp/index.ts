@@ -21,12 +21,17 @@ serve(async (req) => {
   try {
     const { phoneNumber, otp }: RequestBody = await req.json()
     
+    console.log(`[OTP Verification] Request for phone: ${phoneNumber}`)
+    
     if (!phoneNumber || !otp) {
       return new Response(
         JSON.stringify({ error: 'Phone number and OTP are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
+
+    // Clean phone number format
+    const cleanPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -37,23 +42,46 @@ serve(async (req) => {
     const { data: otpRecord, error: otpError } = await supabase
       .from('password_reset_otps')
       .select('*')
-      .eq('phone_number', phoneNumber)
+      .eq('phone_number', cleanPhone)
       .eq('otp_code', otp)
       .eq('used', false)
       .gt('expires_at', new Date().toISOString())
       .single()
 
     if (otpError || !otpRecord) {
+      console.error('Invalid or expired OTP:', otpError)
       return new Response(
         JSON.stringify({ error: 'Invalid or expired OTP' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Mark OTP as used
+    console.log(`[OTP Verification] Valid OTP found, looking up user with phone: ${cleanPhone}`)
+
+    // Now look up the user by phone number in patient_details
+    const { data: patientDetail, error: lookupError } = await supabase
+      .from('patient_details')
+      .select('id')
+      .or(`emergency_contact.eq.${cleanPhone},emergency_contact.eq.${cleanPhone.replace('+91', '')}`)
+      .single()
+
+    if (lookupError || !patientDetail) {
+      console.error(`No patient found with phone ${cleanPhone}:`, lookupError)
+      return new Response(
+        JSON.stringify({ error: 'No account found with this phone number' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const userId = patientDetail.id
+
+    // Mark OTP as used and update with user_id
     const { error: updateError } = await supabase
       .from('password_reset_otps')
-      .update({ used: true })
+      .update({ 
+        used: true,
+        user_id: userId
+      })
       .eq('id', otpRecord.id)
 
     if (updateError) {
@@ -66,13 +94,13 @@ serve(async (req) => {
 
     // Generate a temporary session token for password reset
     const sessionToken = encode(JSON.stringify({
-      userId: otpRecord.user_id,
-      phoneNumber: phoneNumber,
+      userId: userId,
+      phoneNumber: cleanPhone,
       timestamp: Date.now(),
       purpose: 'password_reset'
     }))
 
-    console.log(`OTP verified for ${phoneNumber}`)
+    console.log(`[OTP Verification] OTP verified successfully for user: ${userId}`)
     
     return new Response(
       JSON.stringify({ 
