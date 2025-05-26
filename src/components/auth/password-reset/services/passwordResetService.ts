@@ -11,19 +11,26 @@ export const sendOtpToPhone = async (phoneNumber: string): Promise<void> => {
   
   const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
   
-  const result: FunctionInvokeResult = await supabase.functions.invoke('send-password-reset-sms', {
-    body: { phoneNumber: normalizedPhone }
-  });
-  
-  if (result.error) {
-    throw new Error(result.error.message || 'Failed to send OTP');
-  }
+  try {
+    const result: FunctionInvokeResult = await supabase.functions.invoke('send-password-reset-sms', {
+      body: { phoneNumber: normalizedPhone }
+    });
+    
+    if (result.error) {
+      console.error('[SMS OTP] Function invoke error:', result.error);
+      throw new Error(result.error.message || 'Failed to send OTP');
+    }
 
-  if (result.data?.error) {
-    throw new Error(result.data.error);
+    if (result.data?.error) {
+      console.error('[SMS OTP] Function returned error:', result.data.error);
+      throw new Error(result.data.error);
+    }
+    
+    console.log('[SMS OTP] OTP sent successfully');
+  } catch (error: any) {
+    console.error('[SMS OTP] Send error:', error);
+    throw new Error(error.message || 'Failed to send OTP. Please try again.');
   }
-  
-  console.log('[SMS OTP] OTP sent successfully');
 };
 
 export const verifyOtpCode = async (phoneNumber: string, otp: string): Promise<OtpVerificationResult> => {
@@ -31,71 +38,105 @@ export const verifyOtpCode = async (phoneNumber: string, otp: string): Promise<O
   
   const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
   
-  const result: FunctionInvokeResult = await supabase.functions.invoke('verify-password-reset-otp', {
-    body: { 
-      phoneNumber: normalizedPhone,
-      otp 
+  try {
+    const result: FunctionInvokeResult = await supabase.functions.invoke('verify-password-reset-otp', {
+      body: { 
+        phoneNumber: normalizedPhone,
+        otp 
+      }
+    });
+    
+    console.log('[SMS OTP] Function result:', result);
+    
+    if (result.error) {
+      console.error('[SMS OTP] Function invoke error:', result.error);
+      throw new Error(result.error.message || 'Failed to verify OTP');
     }
-  });
-  
-  if (result.error) {
-    throw new Error(result.error.message || 'Invalid OTP');
-  }
 
-  // Check if the function returned an error (including 404 for no user found)
-  if (result.data?.error) {
-    if (result.data.error.includes('No account found') || result.data.error.includes('Please enter your email')) {
-      return { needsEmailConfirmation: true };
+    // Check for function-level errors
+    if (result.data?.error) {
+      // Check if it's a "needs email confirmation" error
+      if (result.data.needsEmailConfirmation || 
+          result.data.error.includes('No account found') || 
+          result.data.error.includes('Please enter your email')) {
+        console.log('[SMS OTP] Email confirmation needed');
+        return { needsEmailConfirmation: true };
+      }
+      
+      console.error('[SMS OTP] Function returned error:', result.data.error);
+      throw new Error(result.data.error);
     }
-    throw new Error(result.data.error);
+    
+    // Success case
+    if (result.data?.success && result.data?.sessionToken) {
+      console.log('[SMS OTP] OTP verified successfully');
+      return { 
+        sessionToken: result.data.sessionToken, 
+        needsEmailConfirmation: false 
+      };
+    }
+    
+    // Unexpected response format
+    console.error('[SMS OTP] Unexpected response format:', result.data);
+    throw new Error('Unexpected response from server. Please try again.');
+    
+  } catch (error: any) {
+    console.error('[SMS OTP] Verify error:', error);
+    throw new Error(error.message || 'Failed to verify OTP. Please try again.');
   }
-  
-  console.log('[SMS OTP] OTP verified successfully');
-  return { 
-    sessionToken: result.data.sessionToken, 
-    needsEmailConfirmation: false 
-  };
 };
 
-// Helper function using edge function
-const getUserIdByEmailRPC = async (email: string): Promise<string> => {
+// Helper function to get user ID by email
+const getUserIdByEmail = async (email: string): Promise<string> => {
   try {
-    // Use edge function to get user ID to avoid complex table queries
-    const { data, error } = await supabase.functions.invoke('verify-users-exist', {
+    console.log('[SMS OTP] Looking up user by email:', email);
+    
+    const result = await supabase.functions.invoke('verify-users-exist', {
       body: { emails: [email] }
     });
     
-    if (error) {
+    if (result.error) {
+      console.error('[SMS OTP] Email lookup function error:', result.error);
+      throw new Error('Failed to lookup user account. Please try again.');
+    }
+    
+    if (result.data?.error) {
+      console.error('[SMS OTP] Email lookup returned error:', result.data.error);
+      throw new Error(result.data.error);
+    }
+    
+    if (!result.data?.users || result.data.users.length === 0) {
       throw new Error('No account found with this email address. Please check your email or create a new account.');
     }
     
-    if (!data || !data.users || data.users.length === 0) {
-      throw new Error('No account found with this email address. Please check your email or create a new account.');
-    }
+    console.log('[SMS OTP] User found by email');
+    return result.data.users[0].id;
     
-    return data.users[0].id;
   } catch (error: any) {
-    console.error('Error getting user ID:', error);
-    throw new Error('Failed to lookup user account. Please try again.');
+    console.error('[SMS OTP] Error getting user ID:', error);
+    throw new Error(error.message || 'Failed to lookup user account. Please try again.');
   }
 };
 
-// Simplified helper function using direct table update
-const updateUserPhoneRPC = async (userId: string, phoneNumber: string): Promise<void> => {
+// Helper function to update user phone
+const updateUserPhone = async (userId: string, phoneNumber: string): Promise<void> => {
   try {
-    // Use a direct update with explicit any typing to avoid query builder
-    const updateResult = await (supabase as any)
+    console.log('[SMS OTP] Updating user phone for user:', userId);
+    
+    const { error } = await (supabase as any)
       .from('profiles')
       .update({ phone: phoneNumber })
       .eq('id', userId);
     
-    if (updateResult.error) {
-      console.error('Phone update error:', updateResult.error);
+    if (error) {
+      console.error('[SMS OTP] Phone update error:', error);
       throw new Error('Failed to link phone number to your account. Please try again.');
     }
+    
+    console.log('[SMS OTP] Phone updated successfully');
   } catch (error: any) {
-    console.error('Error updating phone:', error);
-    throw new Error('Failed to link phone number to your account. Please try again.');
+    console.error('[SMS OTP] Error updating phone:', error);
+    throw new Error(error.message || 'Failed to link phone number to your account. Please try again.');
   }
 };
 
@@ -105,13 +146,13 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
   try {
     const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
     
-    // Step 1: Get user ID using edge function instead of table query
-    const userId = await getUserIdByEmailRPC(email);
+    // Step 1: Get user ID by email
+    const userId = await getUserIdByEmail(email);
     
-    // Step 2: Update phone number using simplified approach
-    await updateUserPhoneRPC(userId, normalizedPhone);
+    // Step 2: Update phone number
+    await updateUserPhone(userId, normalizedPhone);
     
-    // Step 3: Verify OTP - reuse the existing function
+    // Step 3: Verify OTP again - this time it should find the user
     const otpResult = await verifyOtpCode(normalizedPhone, otp);
     
     if (!otpResult.sessionToken) {
@@ -130,20 +171,27 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
 export const updatePasswordWithToken = async (sessionToken: string, newPassword: string): Promise<void> => {
   console.log('[SMS OTP] Updating password');
   
-  const result: FunctionInvokeResult = await supabase.functions.invoke('update-password-with-sms-token', {
-    body: { 
-      sessionToken,
-      newPassword 
+  try {
+    const result: FunctionInvokeResult = await supabase.functions.invoke('update-password-with-sms-token', {
+      body: { 
+        sessionToken,
+        newPassword 
+      }
+    });
+    
+    if (result.error) {
+      console.error('[SMS OTP] Password update function error:', result.error);
+      throw new Error(result.error.message || 'Failed to update password');
     }
-  });
-  
-  if (result.error) {
-    throw new Error(result.error.message || 'Failed to update password');
-  }
 
-  if (result.data?.error) {
-    throw new Error(result.data.error);
+    if (result.data?.error) {
+      console.error('[SMS OTP] Password update returned error:', result.data.error);
+      throw new Error(result.data.error);
+    }
+    
+    console.log('[SMS OTP] Password updated successfully');
+  } catch (error: any) {
+    console.error('[SMS OTP] Password update error:', error);
+    throw new Error(error.message || 'Failed to update password. Please try again.');
   }
-  
-  console.log('[SMS OTP] Password updated successfully');
 };

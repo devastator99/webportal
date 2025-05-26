@@ -21,9 +21,10 @@ serve(async (req) => {
   try {
     const { phoneNumber, otp }: RequestBody = await req.json()
     
-    console.log(`[OTP Verification] Request for phone: ${phoneNumber}`)
+    console.log(`[OTP Verification] Starting verification for phone: ${phoneNumber}`)
     
     if (!phoneNumber || !otp) {
+      console.error('[OTP Verification] Missing required fields')
       return new Response(
         JSON.stringify({ error: 'Phone number and OTP are required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -32,13 +33,24 @@ serve(async (req) => {
 
     // Clean phone number format
     const cleanPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`
+    console.log(`[OTP Verification] Cleaned phone: ${cleanPhone}`)
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('[OTP Verification] Missing Supabase configuration')
+      return new Response(
+        JSON.stringify({ error: 'Server configuration error' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Verify OTP
+    // Step 1: Verify OTP exists and is valid
+    console.log('[OTP Verification] Checking OTP validity...')
     const { data: otpRecord, error: otpError } = await supabase
       .from('password_reset_otps')
       .select('*')
@@ -49,110 +61,105 @@ serve(async (req) => {
       .single()
 
     if (otpError || !otpRecord) {
-      console.error('Invalid or expired OTP:', otpError)
+      console.error('[OTP Verification] Invalid or expired OTP:', otpError?.message)
       return new Response(
-        JSON.stringify({ error: 'Invalid or expired OTP' }),
+        JSON.stringify({ error: 'Invalid or expired OTP. Please request a new one.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log(`[OTP Verification] Valid OTP found, looking up user with phone: ${cleanPhone}`)
+    console.log('[OTP Verification] OTP is valid, searching for user...')
 
-    // Strategy 1: Look up user by phone in profiles table
+    // Step 2: Find user by phone number using multiple strategies
     let userId = null
     let userFound = false
 
-    // First try to find user by phone in profiles table
-    const { data: profileByPhone, error: profileError } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('phone', cleanPhone)
-      .single()
-
-    if (profileByPhone && !profileError) {
-      userId = profileByPhone.id
-      userFound = true
-      console.log(`[OTP Verification] User found by phone in profiles: ${userId}`)
-    } else {
-      console.log(`[OTP Verification] No user found by phone in profiles, trying alternative phone formats`)
-      
-      // Try without country code
-      const phoneWithoutCountryCode = cleanPhone.replace('+91', '')
-      const { data: profileByPhoneAlt, error: profileErrorAlt } = await supabase
+    // Strategy 1: Direct phone lookup in profiles
+    try {
+      const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('id')
-        .eq('phone', phoneWithoutCountryCode)
-        .single()
+        .eq('phone', cleanPhone)
+        .maybeSingle()
 
-      if (profileByPhoneAlt && !profileErrorAlt) {
-        userId = profileByPhoneAlt.id
+      if (profileData && !profileError) {
+        userId = profileData.id
         userFound = true
-        console.log(`[OTP Verification] User found by alternative phone format: ${userId}`)
+        console.log('[OTP Verification] User found in profiles by phone')
+      }
+    } catch (error) {
+      console.log('[OTP Verification] Profile lookup failed:', error)
+    }
+
+    // Strategy 2: Try alternative phone format if not found
+    if (!userFound) {
+      try {
+        const phoneWithoutCountryCode = cleanPhone.replace('+91', '')
+        const { data: profileDataAlt, error: profileErrorAlt } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('phone', phoneWithoutCountryCode)
+          .maybeSingle()
+
+        if (profileDataAlt && !profileErrorAlt) {
+          userId = profileDataAlt.id
+          userFound = true
+          console.log('[OTP Verification] User found in profiles by alternative phone format')
+        }
+      } catch (error) {
+        console.log('[OTP Verification] Alternative profile lookup failed:', error)
       }
     }
 
-    // Strategy 2: If not found in profiles, try patient_details emergency_contact
+    // Strategy 3: Check patient_details emergency_contact
     if (!userFound) {
-      console.log(`[OTP Verification] Trying patient_details emergency_contact lookup`)
-      const { data: patientDetail, error: lookupError } = await supabase
-        .from('patient_details')
-        .select('id')
-        .or(`emergency_contact.eq.${cleanPhone},emergency_contact.eq.${cleanPhone.replace('+91', '')}`)
-        .single()
+      try {
+        const { data: patientData, error: patientError } = await supabase
+          .from('patient_details')
+          .select('id')
+          .or(`emergency_contact.eq.${cleanPhone},emergency_contact.eq.${cleanPhone.replace('+91', '')}`)
+          .maybeSingle()
 
-      if (patientDetail && !lookupError) {
-        userId = patientDetail.id
-        userFound = true
-        console.log(`[OTP Verification] User found in patient_details: ${userId}`)
+        if (patientData && !patientError) {
+          userId = patientData.id
+          userFound = true
+          console.log('[OTP Verification] User found in patient_details emergency_contact')
+        }
+      } catch (error) {
+        console.log('[OTP Verification] Patient details lookup failed:', error)
       }
     }
 
-    // Strategy 3: If still not found, use the verify-users-exist function with a dummy email
-    // This is a fallback when we don't have phone number in our records
+    // Mark OTP as used regardless of user found status
+    const { error: updateError } = await supabase
+      .from('password_reset_otps')
+      .update({ 
+        used: true,
+        user_id: userId // This will be null if user not found
+      })
+      .eq('id', otpRecord.id)
+
+    if (updateError) {
+      console.error('[OTP Verification] Error marking OTP as used:', updateError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to process OTP verification' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    // If user not found, return error indicating email confirmation needed
     if (!userFound) {
-      console.log(`[OTP Verification] User not found with any strategy, this will require email confirmation`)
-      
-      // Mark OTP as used but don't set user_id since we need email confirmation
-      const { error: updateError } = await supabase
-        .from('password_reset_otps')
-        .update({ used: true })
-        .eq('id', otpRecord.id)
-
-      if (updateError) {
-        console.error('Error marking OTP as used:', updateError)
-        return new Response(
-          JSON.stringify({ error: 'Failed to verify OTP' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-
-      // Return response indicating email confirmation is needed
+      console.log('[OTP Verification] No user found, email confirmation required')
       return new Response(
         JSON.stringify({ 
-          error: 'No account found with this phone number. Please enter your email address to link your phone number to your account.' 
+          error: 'No account found with this phone number. Please enter your email address to link your phone number to your account.',
+          needsEmailConfirmation: true
         }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Mark OTP as used and update with user_id
-    const { error: updateError } = await supabase
-      .from('password_reset_otps')
-      .update({ 
-        used: true,
-        user_id: userId
-      })
-      .eq('id', otpRecord.id)
-
-    if (updateError) {
-      console.error('Error marking OTP as used:', updateError)
-      return new Response(
-        JSON.stringify({ error: 'Failed to verify OTP' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Generate a temporary session token for password reset
+    // Generate session token for password reset
     const sessionToken = encode(JSON.stringify({
       userId: userId,
       phoneNumber: cleanPhone,
@@ -160,7 +167,7 @@ serve(async (req) => {
       purpose: 'password_reset'
     }))
 
-    console.log(`[OTP Verification] OTP verified successfully for user: ${userId}`)
+    console.log('[OTP Verification] OTP verified successfully for user:', userId)
     
     return new Response(
       JSON.stringify({ 
@@ -172,9 +179,12 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error in verify-password-reset-otp:', error)
+    console.error('[OTP Verification] Unexpected error:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ 
+        error: 'An unexpected error occurred. Please try again.',
+        details: error.message 
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
