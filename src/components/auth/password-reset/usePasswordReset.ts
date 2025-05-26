@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -17,9 +16,7 @@ export const usePasswordReset = (onClose: () => void) => {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState<boolean>(false);
 
-  const handleSendOtp = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
-    e.preventDefault();
-    
+  const sendOtpToPhone = async (): Promise<void> => {
     if (!phoneNumber) {
       setError('Please enter your phone number');
       return;
@@ -63,6 +60,11 @@ export const usePasswordReset = (onClose: () => void) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSendOtp = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+    e.preventDefault();
+    await sendOtpToPhone();
   };
 
   const handleVerifyOtp = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
@@ -277,15 +279,7 @@ export const usePasswordReset = (onClose: () => void) => {
   };
 
   const handleResendOtp = async (): Promise<void> => {
-    try {
-      await handleSendOtp({
-        preventDefault: () => {},
-        currentTarget: null,
-        target: null
-      } as React.FormEvent<HTMLFormElement>);
-    } catch (error) {
-      console.error('Resend OTP error:', error);
-    }
+    await sendOtpToPhone();
   };
 
   return {
