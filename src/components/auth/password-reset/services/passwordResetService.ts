@@ -62,37 +62,52 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
   try {
     const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
     
-    // Step 1: Find user profile by email - use raw query to avoid type inference issues
-    const profileResult = await supabase.rpc('get_user_role', { lookup_user_id: null });
+    // Step 1: Find user profile by email - use simplified approach to avoid type issues
+    let userId: string;
     
-    // Since we can't use the above approach, let's try a different method
-    // Use a direct query with manual type assertion
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('email', email)
-      .single();
-    
-    if (error) {
-      if (error.code === 'PGRST116') {
+    try {
+      // Use a simplified query approach to avoid deep type inference
+      const profileQuery = supabase.from('profiles');
+      const selectQuery = profileQuery.select('id');
+      const emailQuery = selectQuery.eq('email', email);
+      const finalQuery = emailQuery.limit(1);
+      
+      const { data: profiles, error: profileError } = await finalQuery;
+      
+      if (profileError) {
+        console.error('Profile query error:', profileError);
+        throw new Error('Database error occurred while looking up account');
+      }
+      
+      if (!profiles || profiles.length === 0) {
         throw new Error('No account found with this email address. Please check your email or create a new account.');
       }
-      throw new Error('Database error occurred while looking up account');
+      
+      // Type assertion to avoid inference issues
+      userId = (profiles[0] as { id: string }).id;
+      
+    } catch (queryError: any) {
+      console.error('Error finding user profile:', queryError);
+      if (queryError.message.includes('No account found')) {
+        throw queryError;
+      }
+      throw new Error('Failed to lookup user account. Please try again.');
     }
     
-    if (!data) {
-      throw new Error('No account found with this email address. Please check your email or create a new account.');
-    }
-    
-    const userId: string = data.id;
-    
-    // Step 2: Update phone number
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ phone: normalizedPhone })
-      .eq('id', userId);
-    
-    if (updateError) {
+    // Step 2: Update phone number - use simplified approach
+    try {
+      const updateQuery = supabase.from('profiles');
+      const updateOperation = updateQuery.update({ phone: normalizedPhone });
+      const whereClause = updateOperation.eq('id', userId);
+      
+      const { error: updateError } = await whereClause;
+      
+      if (updateError) {
+        console.error('Phone update error:', updateError);
+        throw new Error('Failed to link phone number to your account. Please try again.');
+      }
+    } catch (updateErr: any) {
+      console.error('Error updating phone:', updateErr);
       throw new Error('Failed to link phone number to your account. Please try again.');
     }
     
