@@ -62,27 +62,36 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
   try {
     const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
     
-    // Step 1: Find user profile by email - use direct query with explicit typing
+    // Step 1: Find user profile by email using RPC to avoid complex type inference
     let userId: string;
     
     try {
-      // Use direct query with explicit typing to avoid deep inference
-      const profileResponse = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
+      // Use RPC call to avoid complex Supabase query type inference
+      const { data: userExists, error: checkError } = await supabase.rpc('check_user_exists', {
+        p_email: email
+      });
       
-      if (profileResponse.error) {
-        console.error('Profile query error:', profileResponse.error);
+      if (checkError) {
+        console.error('User check error:', checkError);
         throw new Error('Database error occurred while looking up account');
       }
       
-      if (!profileResponse.data) {
+      if (!userExists) {
         throw new Error('No account found with this email address. Please check your email or create a new account.');
       }
       
-      userId = profileResponse.data.id;
+      // Get user ID from auth.users table using a simple query
+      const authQuery = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .limit(1);
+      
+      if (authQuery.error || !authQuery.data || authQuery.data.length === 0) {
+        throw new Error('No account found with this email address. Please check your email or create a new account.');
+      }
+      
+      userId = authQuery.data[0].id;
       
     } catch (queryError: any) {
       console.error('Error finding user profile:', queryError);
@@ -92,15 +101,15 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
       throw new Error('Failed to lookup user account. Please try again.');
     }
     
-    // Step 2: Update phone number - use direct update
+    // Step 2: Update phone number using RPC to avoid type issues
     try {
-      const updateResponse = await supabase
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ phone: normalizedPhone })
         .eq('id', userId);
       
-      if (updateResponse.error) {
-        console.error('Phone update error:', updateResponse.error);
+      if (updateError) {
+        console.error('Phone update error:', updateError);
         throw new Error('Failed to link phone number to your account. Please try again.');
       }
     } catch (updateErr: any) {
