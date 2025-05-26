@@ -27,13 +27,15 @@ interface PasswordResetActions {
   handleSendOtp: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
   handleVerifyOtp: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
   handleEmailConfirmation: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
-  handleUpdatePassword: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
+  handleUpdatePassword: (e: React.FormEvent<HTMLFormEvent>) => Promise<void>;
   resetFlow: () => void;
   goBackToOtp: () => void;
   handleResendOtp: () => Promise<void>;
 }
 
-export const usePasswordReset = (onClose: () => void): PasswordResetState & PasswordResetActions => {
+type UsePasswordResetReturn = PasswordResetState & PasswordResetActions;
+
+export const usePasswordReset = (onClose: () => void): UsePasswordResetReturn => {
   const [step, setStep] = useState<StepType>('phone');
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [email, setEmail] = useState<string>('');
@@ -311,7 +313,8 @@ export const usePasswordReset = (onClose: () => void): PasswordResetState & Pass
     await sendOtpToPhone();
   };
 
-  return {
+  // Explicitly construct the return object with proper typing
+  const returnValue: UsePasswordResetReturn = {
     step,
     phoneNumber,
     setPhoneNumber,
@@ -335,4 +338,6 @@ export const usePasswordReset = (onClose: () => void): PasswordResetState & Pass
     goBackToOtp,
     handleResendOtp
   };
+
+  return returnValue;
 };
