@@ -42,8 +42,9 @@ export const verifyOtpCode = async (phoneNumber: string, otp: string): Promise<O
     throw new Error(result.error.message || 'Invalid OTP');
   }
 
+  // Check if the function returned an error (including 404 for no user found)
   if (result.data?.error) {
-    if (result.data.error.includes('No account found') || result.data.error.includes('No user found')) {
+    if (result.data.error.includes('No account found') || result.data.error.includes('Please enter your email')) {
       return { needsEmailConfirmation: true };
     }
     throw new Error(result.data.error);
@@ -56,30 +57,11 @@ export const verifyOtpCode = async (phoneNumber: string, otp: string): Promise<O
   };
 };
 
-// Helper function to check if user exists via RPC
-const checkUserExists = async (email: string): Promise<boolean> => {
-  try {
-    const { data, error } = await (supabase.rpc as any)('check_user_exists', {
-      p_email: email
-    });
-    
-    if (error) {
-      console.error('User check error:', error);
-      throw new Error('Database error occurred while looking up account');
-    }
-    
-    return Boolean(data);
-  } catch (error: any) {
-    console.error('Error in checkUserExists:', error);
-    throw new Error('Failed to check user existence');
-  }
-};
-
-// Simplified helper function using edge function
+// Helper function using edge function
 const getUserIdByEmailRPC = async (email: string): Promise<string> => {
   try {
     // Use edge function to get user ID to avoid complex table queries
-    const { data, error } = await (supabase.functions.invoke as any)('verify-users-exist', {
+    const { data, error } = await supabase.functions.invoke('verify-users-exist', {
       body: { emails: [email] }
     });
     
@@ -98,7 +80,7 @@ const getUserIdByEmailRPC = async (email: string): Promise<string> => {
   }
 };
 
-// Simplified helper function using edge function
+// Simplified helper function using direct table update
 const updateUserPhoneRPC = async (userId: string, phoneNumber: string): Promise<void> => {
   try {
     // Use a direct update with explicit any typing to avoid query builder
@@ -123,19 +105,13 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
   try {
     const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
     
-    // Step 1: Check if user exists using RPC
-    const userExists = await checkUserExists(email);
-    if (!userExists) {
-      throw new Error('No account found with this email address. Please check your email or create a new account.');
-    }
-    
-    // Step 2: Get user ID using edge function instead of table query
+    // Step 1: Get user ID using edge function instead of table query
     const userId = await getUserIdByEmailRPC(email);
     
-    // Step 3: Update phone number using simplified approach
+    // Step 2: Update phone number using simplified approach
     await updateUserPhoneRPC(userId, normalizedPhone);
     
-    // Step 4: Verify OTP - reuse the existing function
+    // Step 3: Verify OTP - reuse the existing function
     const otpResult = await verifyOtpCode(normalizedPhone, otp);
     
     if (!otpResult.sessionToken) {

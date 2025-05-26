@@ -107,29 +107,29 @@ serve(async (req) => {
       }
     }
 
-    // Strategy 3: If still not found, check auth.users by phone
+    // Strategy 3: If still not found, use the verify-users-exist function with a dummy email
+    // This is a fallback when we don't have phone number in our records
     if (!userFound) {
-      console.log(`[OTP Verification] Trying auth.users phone lookup`)
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers()
+      console.log(`[OTP Verification] User not found with any strategy, this will require email confirmation`)
       
-      if (authUsers && !authError) {
-        const userByPhone = authUsers.users.find(user => 
-          user.phone === cleanPhone || user.phone === cleanPhone.replace('+91', '')
-        )
-        
-        if (userByPhone) {
-          userId = userByPhone.id
-          userFound = true
-          console.log(`[OTP Verification] User found in auth.users: ${userId}`)
-        }
-      }
-    }
+      // Mark OTP as used but don't set user_id since we need email confirmation
+      const { error: updateError } = await supabase
+        .from('password_reset_otps')
+        .update({ used: true })
+        .eq('id', otpRecord.id)
 
-    if (!userFound || !userId) {
-      console.error(`No user found with phone ${cleanPhone} in any lookup strategy`)
+      if (updateError) {
+        console.error('Error marking OTP as used:', updateError)
+        return new Response(
+          JSON.stringify({ error: 'Failed to verify OTP' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+
+      // Return response indicating email confirmation is needed
       return new Response(
         JSON.stringify({ 
-          error: 'No account found with this phone number. Please ensure your phone number is registered with your account.' 
+          error: 'No account found with this phone number. Please enter your email address to link your phone number to your account.' 
         }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
