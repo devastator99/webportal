@@ -59,7 +59,7 @@ export const verifyOtpCode = async (phoneNumber: string, otp: string): Promise<O
 // Helper function to check if user exists via RPC
 const checkUserExists = async (email: string): Promise<boolean> => {
   try {
-    const { data, error }: any = await supabase.rpc('check_user_exists', {
+    const { data, error } = await (supabase.rpc as any)('check_user_exists', {
       p_email: email
     });
     
@@ -75,39 +75,40 @@ const checkUserExists = async (email: string): Promise<boolean> => {
   }
 };
 
-// Helper function to get user ID by email via direct query with explicit typing
-const getUserIdByEmail = async (email: string): Promise<string> => {
+// Simplified helper function using RPC call instead of table query
+const getUserIdByEmailRPC = async (email: string): Promise<string> => {
   try {
-    // Use explicit any typing to avoid type instantiation issues
-    const result: any = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('email', email)
-      .limit(1)
-      .single();
+    // Use edge function to get user ID to avoid complex table queries
+    const { data, error } = await (supabase.functions.invoke as any)('verify-users-exist', {
+      body: { emails: [email] }
+    });
     
-    if (result.error || !result.data) {
+    if (error) {
       throw new Error('No account found with this email address. Please check your email or create a new account.');
     }
     
-    return result.data.id;
+    if (!data || !data.users || data.users.length === 0) {
+      throw new Error('No account found with this email address. Please check your email or create a new account.');
+    }
+    
+    return data.users[0].id;
   } catch (error: any) {
     console.error('Error getting user ID:', error);
     throw new Error('Failed to lookup user account. Please try again.');
   }
 };
 
-// Helper function to update phone number with explicit typing
-const updateUserPhone = async (userId: string, phoneNumber: string): Promise<void> => {
+// Simplified helper function using edge function
+const updateUserPhoneRPC = async (userId: string, phoneNumber: string): Promise<void> => {
   try {
-    // Use explicit any typing to avoid type instantiation issues
-    const result: any = await supabase
+    // Use a direct update with explicit any typing to avoid query builder
+    const updateResult = await (supabase as any)
       .from('profiles')
       .update({ phone: phoneNumber })
       .eq('id', userId);
     
-    if (result.error) {
-      console.error('Phone update error:', result.error);
+    if (updateResult.error) {
+      console.error('Phone update error:', updateResult.error);
       throw new Error('Failed to link phone number to your account. Please try again.');
     }
   } catch (error: any) {
@@ -128,11 +129,11 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
       throw new Error('No account found with this email address. Please check your email or create a new account.');
     }
     
-    // Step 2: Get user ID
-    const userId = await getUserIdByEmail(email);
+    // Step 2: Get user ID using edge function instead of table query
+    const userId = await getUserIdByEmailRPC(email);
     
-    // Step 3: Update phone number
-    await updateUserPhone(userId, normalizedPhone);
+    // Step 3: Update phone number using simplified approach
+    await updateUserPhoneRPC(userId, normalizedPhone);
     
     // Step 4: Verify OTP - reuse the existing function
     const otpResult = await verifyOtpCode(normalizedPhone, otp);
