@@ -79,12 +79,12 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
         throw new Error('No account found with this email address. Please check your email or create a new account.');
       }
       
-      // Get user ID using explicit any type to avoid type inference issues
-      const profileQueryResult: any = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('email', email)
-        .limit(1);
+      // Get user ID using completely separate query without chaining
+      const profilesTable = supabase.from('profiles');
+      const selectQuery = profilesTable.select('id');
+      const filteredQuery = selectQuery.eq('email', email);
+      const limitedQuery = filteredQuery.limit(1);
+      const profileQueryResult = await limitedQuery as any;
       
       if (profileQueryResult.error || !profileQueryResult.data || profileQueryResult.data.length === 0) {
         throw new Error('No account found with this email address. Please check your email or create a new account.');
@@ -100,12 +100,12 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
       throw new Error('Failed to lookup user account. Please try again.');
     }
     
-    // Step 2: Update phone number using explicit any type
+    // Step 2: Update phone number using completely separate query without chaining
     try {
-      const updateResult: any = await supabase
-        .from('profiles')
-        .update({ phone: normalizedPhone })
-        .eq('id', userId);
+      const profilesTable = supabase.from('profiles');
+      const updateQuery = profilesTable.update({ phone: normalizedPhone });
+      const filteredUpdate = updateQuery.eq('id', userId);
+      const updateResult = await filteredUpdate as any;
       
       if (updateResult.error) {
         console.error('Phone update error:', updateResult.error);
