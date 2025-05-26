@@ -1,10 +1,10 @@
+
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
 import { LucideLoader2, CheckCircle, Phone, Lock, Mail } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
-import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { supabase } from '@/integrations/supabase/client';
 
 interface SmsOtpPasswordResetProps {
@@ -288,6 +288,10 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
     setShowEmailConfirmation(false);
   };
 
+  const handleOtpChange = (value: string) => {
+    setOtp(value);
+  };
+
   return (
     <ScrollArea className="max-h-[80vh]" invisibleScrollbar={true}>
       <div className="p-4">
@@ -356,21 +360,42 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
                 Enter OTP
               </label>
               <div className="flex justify-center">
-                <InputOTP 
-                  value={otp} 
-                  onChange={setOtp} 
-                  maxLength={6}
-                  containerClassName="gap-2"
-                >
-                  <InputOTPGroup>
-                    <InputOTPSlot index={0} />
-                    <InputOTPSlot index={1} />
-                    <InputOTPSlot index={2} />
-                    <InputOTPSlot index={3} />
-                    <InputOTPSlot index={4} />
-                    <InputOTPSlot index={5} />
-                  </InputOTPGroup>
-                </InputOTP>
+                <div className="flex gap-2">
+                  {[0, 1, 2, 3, 4, 5].map((index) => (
+                    <Input
+                      key={index}
+                      type="text"
+                      maxLength={1}
+                      value={otp[index] || ''}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value.length <= 1 && /^\d*$/.test(value)) {
+                          const newOtp = otp.split('');
+                          newOtp[index] = value;
+                          handleOtpChange(newOtp.join(''));
+                          
+                          // Auto-focus next input
+                          if (value && index < 5) {
+                            const nextInput = e.target.parentElement?.nextElementSibling?.querySelector('input');
+                            if (nextInput) {
+                              (nextInput as HTMLInputElement).focus();
+                            }
+                          }
+                        }
+                      }}
+                      onKeyDown={(e) => {
+                        // Handle backspace to go to previous input
+                        if (e.key === 'Backspace' && !otp[index] && index > 0) {
+                          const prevInput = e.target.parentElement?.previousElementSibling?.querySelector('input');
+                          if (prevInput) {
+                            (prevInput as HTMLInputElement).focus();
+                          }
+                        }
+                      }}
+                      className="w-10 h-10 text-center"
+                    />
+                  ))}
+                </div>
               </div>
               <p className="text-xs text-gray-500 text-center">
                 Enter the 6-digit code sent to {phoneNumber}
