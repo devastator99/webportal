@@ -17,7 +17,7 @@ export const usePasswordReset = (onClose: () => void) => {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState<boolean>(false);
 
-  const handleSendOtp = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSendOtp = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     
     if (!phoneNumber) {
@@ -65,7 +65,7 @@ export const usePasswordReset = (onClose: () => void) => {
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleVerifyOtp = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     
     if (!otp || otp.length !== 6) {
@@ -137,7 +137,7 @@ export const usePasswordReset = (onClose: () => void) => {
     }
   };
 
-  const handleEmailConfirmation = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleEmailConfirmation = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     
     if (!email || !email.includes('@')) {
@@ -202,7 +202,7 @@ export const usePasswordReset = (onClose: () => void) => {
     }
   };
 
-  const handleUpdatePassword = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleUpdatePassword = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     
     if (!newPassword || newPassword.length < 6) {
@@ -257,7 +257,7 @@ export const usePasswordReset = (onClose: () => void) => {
     }
   };
 
-  const resetFlow = () => {
+  const resetFlow = (): void => {
     setStep('phone');
     setPhoneNumber('');
     setEmail('');
@@ -269,17 +269,23 @@ export const usePasswordReset = (onClose: () => void) => {
     setShowEmailConfirmation(false);
   };
 
-  const goBackToOtp = () => {
+  const goBackToOtp = (): void => {
     setStep('otp');
     setEmail('');
     setError(null);
     setShowEmailConfirmation(false);
   };
 
-  const handleResendOtp = () => {
-    const form = document.createElement('form');
-    const event = new Event('submit') as any;
-    handleSendOtp(event);
+  const handleResendOtp = async (): Promise<void> => {
+    try {
+      await handleSendOtp({
+        preventDefault: () => {},
+        currentTarget: null,
+        target: null
+      } as React.FormEvent<HTMLFormElement>);
+    } catch (error) {
+      console.error('Resend OTP error:', error);
+    }
   };
 
   return {
