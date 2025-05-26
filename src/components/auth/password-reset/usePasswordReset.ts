@@ -1,8 +1,29 @@
 
 import { usePasswordResetState } from './hooks/usePasswordResetState';
 import { usePasswordResetActions } from './hooks/usePasswordResetActions';
+import type { StepType, PasswordResetActions } from './types';
 
-export const usePasswordReset = (onClose: () => void) => {
+interface PasswordResetHook extends PasswordResetActions {
+  step: StepType;
+  phoneNumber: string;
+  setPhoneNumber: (value: string) => void;
+  email: string;
+  setEmail: (value: string) => void;
+  otp: string;
+  setOtp: (value: string) => void;
+  newPassword: string;
+  setNewPassword: (value: string) => void;
+  confirmPassword: string;
+  setConfirmPassword: (value: string) => void;
+  loading: boolean;
+  error: string | null;
+  sessionToken: string | null;
+  showEmailConfirmation: boolean;
+  resetFlow: () => void;
+  goBackToOtp: () => void;
+}
+
+export const usePasswordReset = (onClose: () => void): PasswordResetHook => {
   const state = usePasswordResetState();
   
   const actions = usePasswordResetActions({

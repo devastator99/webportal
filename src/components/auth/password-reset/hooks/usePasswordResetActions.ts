@@ -1,6 +1,7 @@
 
 import { toast } from '@/hooks/use-toast';
 import { sendOtpToPhone, verifyOtpCode, linkPhoneToEmail, updatePasswordWithToken } from '../services/passwordResetService';
+import type { StepType, PasswordResetActions } from '../types';
 
 interface UsePasswordResetActionsProps {
   phoneNumber: string;
@@ -11,28 +12,29 @@ interface UsePasswordResetActionsProps {
   sessionToken: string | null;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  setStep: (step: 'phone' | 'otp' | 'email_confirmation' | 'password') => void;
+  setStep: (step: StepType) => void;
   setShowEmailConfirmation: (show: boolean) => void;
   setSessionToken: (token: string | null) => void;
   onClose: () => void;
 }
 
-export const usePasswordResetActions = ({
-  phoneNumber,
-  otp,
-  email,
-  newPassword,
-  confirmPassword,
-  sessionToken,
-  setLoading,
-  setError,
-  setStep,
-  setShowEmailConfirmation,
-  setSessionToken,
-  onClose
-}: UsePasswordResetActionsProps) => {
+export const usePasswordResetActions = (props: UsePasswordResetActionsProps): PasswordResetActions => {
+  const {
+    phoneNumber,
+    otp,
+    email,
+    newPassword,
+    confirmPassword,
+    sessionToken,
+    setLoading,
+    setError,
+    setStep,
+    setShowEmailConfirmation,
+    setSessionToken,
+    onClose
+  } = props;
 
-  const handleSendOtp = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSendOtp = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     
     setLoading(true);
@@ -47,10 +49,11 @@ export const usePasswordResetActions = ({
       });
     } catch (error: any) {
       console.error('SMS OTP send error:', error);
-      setError(error.message || 'Failed to send OTP');
+      const errorMessage: string = error.message || 'Failed to send OTP';
+      setError(errorMessage);
       toast({
         title: 'Failed to Send OTP',
-        description: error.message || 'Please try again',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -58,7 +61,7 @@ export const usePasswordResetActions = ({
     }
   };
 
-  const handleVerifyOtp = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleVerifyOtp = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     
     if (!otp || otp.length !== 6) {
@@ -76,7 +79,7 @@ export const usePasswordResetActions = ({
         console.log('[SMS OTP] User not found, showing email confirmation step');
         setShowEmailConfirmation(true);
         setStep('email_confirmation');
-        const emailConfirmMessage = 'No account found with this phone number. Please enter your email address to link your phone number to your account.';
+        const emailConfirmMessage: string = 'No account found with this phone number. Please enter your email address to link your phone number to your account.';
         setError(emailConfirmMessage);
         toast({
           title: 'Account Linking Required',
@@ -86,7 +89,9 @@ export const usePasswordResetActions = ({
         return;
       }
       
-      setSessionToken(result.sessionToken);
+      if (result.sessionToken) {
+        setSessionToken(result.sessionToken);
+      }
       setStep('password');
       toast({
         title: 'OTP Verified',
@@ -95,7 +100,7 @@ export const usePasswordResetActions = ({
     } catch (error: any) {
       console.error('OTP verification error:', error);
       
-      let errorMessage = error.message || 'Invalid OTP';
+      let errorMessage: string = error.message || 'Invalid OTP';
       
       if (error.message?.includes('Invalid or expired')) {
         errorMessage = 'The OTP has expired or is invalid. Please request a new OTP.';
@@ -114,7 +119,7 @@ export const usePasswordResetActions = ({
     }
   };
 
-  const handleEmailConfirmation = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleEmailConfirmation = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     
     if (!email || !email.includes('@')) {
@@ -126,7 +131,7 @@ export const usePasswordResetActions = ({
     setError(null);
     
     try {
-      const token = await linkPhoneToEmail(email, phoneNumber, otp);
+      const token: string = await linkPhoneToEmail(email, phoneNumber, otp);
       setSessionToken(token);
       setStep('password');
       toast({
@@ -135,10 +140,11 @@ export const usePasswordResetActions = ({
       });
     } catch (error: any) {
       console.error('Email confirmation error:', error);
-      setError(error.message || 'Failed to link account');
+      const errorMessage: string = error.message || 'Failed to link account';
+      setError(errorMessage);
       toast({
         title: 'Account Linking Failed',
-        description: error.message || 'Please try again or contact support',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -146,7 +152,7 @@ export const usePasswordResetActions = ({
     }
   };
 
-  const handleUpdatePassword = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleUpdatePassword = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     
     if (!newPassword || newPassword.length < 6) {
@@ -176,10 +182,11 @@ export const usePasswordResetActions = ({
       onClose();
     } catch (error: any) {
       console.error('Password update error:', error);
-      setError(error.message || 'Failed to update password');
+      const errorMessage: string = error.message || 'Failed to update password';
+      setError(errorMessage);
       toast({
         title: 'Password Update Failed',
-        description: error.message || 'Please try again',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {
@@ -187,7 +194,7 @@ export const usePasswordResetActions = ({
     }
   };
 
-  const handleResendOtp = async () => {
+  const handleResendOtp = async (): Promise<void> => {
     try {
       setLoading(true);
       setError(null);
@@ -198,10 +205,11 @@ export const usePasswordResetActions = ({
       });
     } catch (error: any) {
       console.error('SMS OTP resend error:', error);
-      setError(error.message || 'Failed to send OTP');
+      const errorMessage: string = error.message || 'Failed to send OTP';
+      setError(errorMessage);
       toast({
         title: 'Failed to Send OTP',
-        description: error.message || 'Please try again',
+        description: errorMessage,
         variant: 'destructive',
       });
     } finally {

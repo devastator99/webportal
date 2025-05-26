@@ -1,9 +1,21 @@
 
 import { useState } from 'react';
+import type { StepType, PasswordResetState } from '../types';
 
-type StepType = 'phone' | 'otp' | 'email_confirmation' | 'password';
-
-export const usePasswordResetState = () => {
+export const usePasswordResetState = (): PasswordResetState & {
+  setStep: (step: StepType) => void;
+  setPhoneNumber: (phone: string) => void;
+  setEmail: (email: string) => void;
+  setOtp: (otp: string) => void;
+  setNewPassword: (password: string) => void;
+  setConfirmPassword: (password: string) => void;
+  setLoading: (loading: boolean) => void;
+  setError: (error: string | null) => void;
+  setSessionToken: (token: string | null) => void;
+  setShowEmailConfirmation: (show: boolean) => void;
+  resetFlow: () => void;
+  goBackToOtp: () => void;
+} => {
   const [step, setStep] = useState<StepType>('phone');
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [email, setEmail] = useState<string>('');
@@ -15,7 +27,7 @@ export const usePasswordResetState = () => {
   const [sessionToken, setSessionToken] = useState<string | null>(null);
   const [showEmailConfirmation, setShowEmailConfirmation] = useState<boolean>(false);
 
-  const resetFlow = () => {
+  const resetFlow = (): void => {
     setStep('phone');
     setPhoneNumber('');
     setEmail('');
@@ -27,7 +39,7 @@ export const usePasswordResetState = () => {
     setShowEmailConfirmation(false);
   };
 
-  const goBackToOtp = () => {
+  const goBackToOtp = (): void => {
     setStep('otp');
     setEmail('');
     setError(null);
