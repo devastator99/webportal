@@ -1,7 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { LucideLoader2 } from 'lucide-react';
+import { LucideLoader2, AlertCircle } from 'lucide-react';
 
 interface OtpVerificationStepProps {
   otp: string;
@@ -78,8 +78,12 @@ export const OtpVerificationStep = ({
       </div>
       
       {error && (
-        <div className="text-sm text-red-500 p-3 bg-red-50 rounded-md border border-red-200">
-          {error}
+        <div className="text-sm text-red-500 p-3 bg-red-50 rounded-md border border-red-200 flex items-start gap-2">
+          <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-medium">Verification Failed</p>
+            <p className="text-xs mt-1">{error}</p>
+          </div>
         </div>
       )}
       

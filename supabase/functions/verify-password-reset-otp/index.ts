@@ -26,8 +26,11 @@ serve(async (req) => {
     if (!phoneNumber || !otp) {
       console.error('[OTP Verification] Missing required fields')
       return new Response(
-        JSON.stringify({ error: 'Phone number and OTP are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: false, 
+          error: 'Phone number and OTP are required' 
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -42,8 +45,11 @@ serve(async (req) => {
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error('[OTP Verification] Missing Supabase configuration')
       return new Response(
-        JSON.stringify({ error: 'Server configuration error' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: false, 
+          error: 'Server configuration error' 
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -63,8 +69,11 @@ serve(async (req) => {
     if (otpError || !otpRecord) {
       console.error('[OTP Verification] Invalid or expired OTP:', otpError?.message)
       return new Response(
-        JSON.stringify({ error: 'Invalid or expired OTP. Please request a new one.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: false, 
+          error: 'Invalid or expired OTP. Please request a new one.' 
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -142,20 +151,24 @@ serve(async (req) => {
     if (updateError) {
       console.error('[OTP Verification] Error marking OTP as used:', updateError)
       return new Response(
-        JSON.stringify({ error: 'Failed to process OTP verification' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          success: false, 
+          error: 'Failed to process OTP verification' 
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // If user not found, return error indicating email confirmation needed
+    // If user not found, return success response with needsEmailConfirmation flag
     if (!userFound) {
       console.log('[OTP Verification] No user found, email confirmation required')
       return new Response(
         JSON.stringify({ 
-          error: 'No account found with this phone number. Please enter your email address to link your phone number to your account.',
-          needsEmailConfirmation: true
+          success: false,
+          needsEmailConfirmation: true,
+          error: 'No account found with this phone number. Please enter your email address to link your phone number to your account.'
         }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -182,10 +195,11 @@ serve(async (req) => {
     console.error('[OTP Verification] Unexpected error:', error)
     return new Response(
       JSON.stringify({ 
+        success: false,
         error: 'An unexpected error occurred. Please try again.',
         details: error.message 
       }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
