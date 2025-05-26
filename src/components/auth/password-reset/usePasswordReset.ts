@@ -1,10 +1,39 @@
+
 import { useState } from 'react';
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
 type StepType = 'phone' | 'otp' | 'email_confirmation' | 'password';
 
-export const usePasswordReset = (onClose: () => void) => {
+interface PasswordResetState {
+  step: StepType;
+  phoneNumber: string;
+  email: string;
+  otp: string;
+  newPassword: string;
+  confirmPassword: string;
+  loading: boolean;
+  error: string | null;
+  sessionToken: string | null;
+  showEmailConfirmation: boolean;
+}
+
+interface PasswordResetActions {
+  setPhoneNumber: (value: string) => void;
+  setEmail: (value: string) => void;
+  setOtp: (value: string) => void;
+  setNewPassword: (value: string) => void;
+  setConfirmPassword: (value: string) => void;
+  handleSendOtp: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
+  handleVerifyOtp: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
+  handleEmailConfirmation: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
+  handleUpdatePassword: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
+  resetFlow: () => void;
+  goBackToOtp: () => void;
+  handleResendOtp: () => Promise<void>;
+}
+
+export const usePasswordReset = (onClose: () => void): PasswordResetState & PasswordResetActions => {
   const [step, setStep] = useState<StepType>('phone');
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [email, setEmail] = useState<string>('');
