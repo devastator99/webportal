@@ -53,39 +53,52 @@ export const verifyOtpCode = async (phoneNumber: string, otp: string) => {
 export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: string): Promise<string> => {
   console.log('[SMS OTP] Attempting to link phone number to email:', email);
   
-  // Use explicit typing to avoid type inference issues
+  // Step 1: Find user profile by email with explicit typing
   const profileQuery = await supabase
     .from('profiles')
     .select('id')
-    .eq('email', email)
-    .single();
+    .eq('email', email);
   
-  if (profileQuery.error || !profileQuery.data) {
+  // Check if profile exists
+  if (profileQuery.error || !profileQuery.data || profileQuery.data.length === 0) {
     throw new Error('No account found with this email address. Please check your email or create a new account.');
   }
   
+  const userId = profileQuery.data[0].id;
+  
+  // Step 2: Update phone number with explicit error handling
+  const normalizedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
   const updateResult = await supabase
     .from('profiles')
-    .update({ phone: phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}` })
-    .eq('id', profileQuery.data.id);
+    .update({ phone: normalizedPhone })
+    .eq('id', userId);
   
   if (updateResult.error) {
     throw new Error('Failed to link phone number to your account. Please try again.');
   }
   
-  const { data, error } = await supabase.functions.invoke('verify-password-reset-otp', {
-    body: { 
-      phoneNumber: phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`,
-      otp 
+  // Step 3: Verify OTP with explicit response handling
+  try {
+    const otpResponse = await supabase.functions.invoke('verify-password-reset-otp', {
+      body: { 
+        phoneNumber: normalizedPhone,
+        otp 
+      }
+    });
+    
+    if (otpResponse.error) {
+      throw new Error(otpResponse.error.message || 'Failed to verify OTP after linking account');
     }
-  });
-  
-  if (error || data?.error) {
-    throw new Error(data?.error || error.message || 'Failed to verify OTP after linking account');
+
+    if (otpResponse.data?.error) {
+      throw new Error(otpResponse.data.error);
+    }
+    
+    console.log('[SMS OTP] Phone number linked and OTP verified successfully');
+    return otpResponse.data.sessionToken;
+  } catch (err: any) {
+    throw new Error(err.message || 'Failed to verify OTP after linking account');
   }
-  
-  console.log('[SMS OTP] Phone number linked and OTP verified successfully');
-  return data.sessionToken;
 };
 
 export const updatePasswordWithToken = async (sessionToken: string, newPassword: string): Promise<void> => {
