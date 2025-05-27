@@ -165,7 +165,7 @@ serve(async (req) => {
 
     console.log('[Password Update] Updating password for email:', userEmail)
 
-    // Find user by email using RPC function first
+    // Find user by email using RPC function
     let userId: string | null = null
     try {
       const { data: foundUserId, error: rpcError } = await supabase
@@ -200,8 +200,8 @@ serve(async (req) => {
       )
     }
 
-    // Update the user's password using Supabase Admin API
-    console.log('[Password Update] Updating password for user ID:', userId)
+    // Update the user's password using Supabase Admin API with email instead of user ID
+    console.log('[Password Update] Updating password for user email:', userEmail)
     const { error: updateError } = await supabase.auth.admin.updateUserById(
       userId,
       { password: newPassword }
@@ -209,16 +209,47 @@ serve(async (req) => {
 
     if (updateError) {
       console.error('[Password Update] Password update failed:', updateError)
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: 'Failed to update password. Please try again.' 
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+      
+      // Try alternative approach using email if user ID approach fails
+      console.log('[Password Update] Trying alternative approach with email...')
+      try {
+        // First get the user by email
+        const { data: userData, error: emailError } = await supabase.auth.admin.listUsers()
+        
+        if (emailError) {
+          throw emailError
+        }
+        
+        const user = userData.users.find(u => u.email === userEmail)
+        if (!user) {
+          throw new Error('User not found by email')
+        }
+        
+        // Update password using the found user's ID
+        const { error: altUpdateError } = await supabase.auth.admin.updateUserById(
+          user.id,
+          { password: newPassword }
+        )
+        
+        if (altUpdateError) {
+          throw altUpdateError
+        }
+        
+        console.log('[Password Update] Password updated successfully using alternative approach')
+        
+      } catch (altError) {
+        console.error('[Password Update] Alternative approach also failed:', altError)
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Failed to update password. Please try again.' 
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    } else {
+      console.log(`[Password Update] Password updated successfully for email: ${userEmail}`)
     }
-
-    console.log(`[Password Update] Password updated successfully for email: ${userEmail}`)
     
     return new Response(
       JSON.stringify({ 
