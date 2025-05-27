@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,8 +79,12 @@ const standardSignupSchema = z.object({
 });
 
 const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
+  email: z.string().email("Invalid email address").optional().or(z.literal("")),
+  phone: z.string().optional().or(z.literal("")),
   password: z.string().min(1, "Password is required"),
+}).refine((data) => data.email || data.phone, {
+  message: "Either email or phone number is required",
+  path: ["email"],
 });
 
 export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
@@ -177,6 +180,16 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           });
           return;
         }
+      } else {
+        // For login, ensure either email or phone is provided
+        if (!email && !phone) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Please enter either email or phone number"
+          });
+          return;
+        }
       }
 
       if (type === "register" && userType === "patient") {
@@ -200,7 +213,8 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
         if (type === "register") {
           await onSubmit(email || phone, password, userType, firstName, lastName);
         } else {
-          await onSubmit(email, password);
+          // For login, prioritize email if provided, otherwise use phone
+          await onSubmit(email || phone, password);
         }
       }
     } catch (error) {
@@ -346,51 +360,28 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           />
         </motion.div>
 
-        {type === "login" && (
-          <motion.div variants={itemVariants} className="space-y-1">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-gray-600 font-medium">Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="email"
-                      placeholder="john@example.com"
-                      disabled={loading}
-                      className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </motion.div>
-        )}
-
-        {type === "register" && (
-          <motion.div variants={itemVariants} className="space-y-1">
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-gray-600 font-medium">Email (Optional)</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="email"
-                      placeholder="john@example.com"
-                      disabled={loading}
-                      className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </motion.div>
-        )}
+        <motion.div variants={itemVariants} className="space-y-1">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-gray-600 font-medium">
+                  Email {type === "login" ? "(Optional)" : "(Optional)"}
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    type="email"
+                    placeholder="john@example.com"
+                    disabled={loading}
+                    className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        </motion.div>
 
         <motion.div variants={itemVariants} className="space-y-1">
           <FormField
@@ -501,6 +492,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           </motion.div>
         )}
 
+        {/* ... keep existing code (patient information section) */}
         {type === "register" && userType === "patient" && (
           <div className="bg-gray-50 p-6 rounded-xl space-y-4">
             <h3 className="text-lg font-semibold text-gray-700">Patient Information</h3>
