@@ -98,9 +98,9 @@ serve(async (req: Request) => {
     // Initialize Resend
     const resend = new Resend(resendApiKey);
     
-    // Send email using Resend with improved template
+    // Send email using Resend with a valid sender domain
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Healthcare App <noreply@yourdomain.com>", // Replace with your verified domain
+      from: "Healthcare App <onboarding@resend.dev>", // Using Resend's default domain
       to: [email],
       subject: "Password Reset Code - Healthcare App",
       html: `

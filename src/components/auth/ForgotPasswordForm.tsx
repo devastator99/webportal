@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/hooks/use-toast';
-import { LucideLoader2, CheckCircle, Mail } from 'lucide-react';
+import { LucideLoader2, CheckCircle, Mail, AlertCircle } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { getSiteUrl } from '@/utils/environmentUtils';
 
@@ -38,17 +38,23 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
       console.log('[ForgotPassword] Sending reset email to:', email);
       console.log('[ForgotPassword] Redirect URL:', redirectUrl);
       
-      // First try to send email via our custom edge function
+      // Send email via our custom edge function
       const { data, error: emailError } = await supabase.functions.invoke('send-password-reset-email', {
         body: { 
-          email,
+          email: email.toLowerCase().trim(),
           resetUrl: redirectUrl
         }
       });
       
       if (emailError) {
         console.error('[ForgotPassword] Email function error:', emailError);
-        throw new Error('Failed to send password reset email');
+        
+        // Check if it's a domain verification error
+        if (emailError.message?.includes('domain is not verified')) {
+          throw new Error('Email service configuration issue. Please contact support or try the SMS reset option.');
+        }
+        
+        throw new Error('Failed to send password reset email. Please try again.');
       }
       
       if (data?.error) {
@@ -56,21 +62,16 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
         throw new Error(data.error);
       }
       
-      // Also use Supabase's built-in password reset as backup
-      const { error: supabaseError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl,
-      });
-      
-      if (supabaseError) {
-        console.warn('[ForgotPassword] Supabase reset warning:', supabaseError);
-        // Don't throw here as our custom email might have worked
+      if (!data?.success) {
+        console.error('[ForgotPassword] Email function returned unsuccessful result:', data);
+        throw new Error('Failed to send password reset email. Please try again.');
       }
       
       console.log('[ForgotPassword] Reset email sent successfully');
       setSuccess(true);
       toast({
         title: 'Password Reset Email Sent',
-        description: 'Check your email for the password reset code and link.',
+        description: 'Check your email for the password reset code.',
       });
       
     } catch (error: any) {
@@ -85,6 +86,15 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleTrySMS = () => {
+    // Close this modal and suggest SMS option
+    toast({
+      title: 'Try SMS Reset',
+      description: 'You can also try resetting your password using SMS if you have a phone number linked to your account.',
+    });
+    onClose();
   };
 
   return (
@@ -115,8 +125,21 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
             </div>
             
             {error && (
-              <div className="text-sm text-red-500 p-3 bg-red-50 rounded-md border border-red-200">
-                {error}
+              <div className="text-sm text-red-500 p-3 bg-red-50 rounded-md border border-red-200 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-medium">Reset Failed</p>
+                  <p className="text-xs mt-1">{error}</p>
+                  {error.includes('configuration') && (
+                    <button
+                      type="button"
+                      onClick={handleTrySMS}
+                      className="text-xs mt-2 text-blue-600 hover:text-blue-700 underline"
+                    >
+                      Try SMS reset instead
+                    </button>
+                  )}
+                </div>
               </div>
             )}
             
@@ -135,7 +158,7 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
               )}
             </Button>
             
-            <div className="text-center">
+            <div className="text-center space-y-2">
               <button
                 type="button"
                 onClick={onClose}
@@ -143,6 +166,15 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
                 disabled={loading}
               >
                 Back to Login
+              </button>
+              <br />
+              <button
+                type="button"
+                onClick={handleTrySMS}
+                className="text-sm text-blue-600 hover:text-blue-700"
+                disabled={loading}
+              >
+                Try SMS Reset Instead
               </button>
             </div>
           </form>
@@ -162,8 +194,8 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
               <p className="font-medium mb-1">What to expect:</p>
               <ul className="text-left space-y-1">
                 <li>• A 6-digit verification code</li>
-                <li>• A direct reset link (backup)</li>
                 <li>• Valid for 1 hour</li>
+                <li>• Check spam folder if not received</li>
               </ul>
             </div>
             <Button 
