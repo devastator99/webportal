@@ -17,6 +17,7 @@ import { ForgotPasswordRouteWrapper } from '@/pages/ForgotPasswordRouteWrapper';
 import VideosPage from '@/pages/VideosPage';
 import NewPrescriptionPage from '@/pages/NewPrescriptionPage';
 import { RegistrationStatusChecker } from '@/components/auth/RegistrationStatusChecker';
+import { TestingPage } from '@/pages/TestingPage';
 
 // Lazy loaded components
 const ChatPage = lazy(() => import('@/pages/ChatPage'));
@@ -29,6 +30,13 @@ const PatientProfilePage = lazy(() => import('@/pages/PatientProfilePage'));
 export const AppRoutes = () => {
   const { userRole } = useAuth();
 
+  // Check if we're in development or staging environment
+  const isDevelopment = import.meta.env.DEV || 
+                       window.location.hostname === 'localhost' ||
+                       window.location.hostname.includes('lovable.app') ||
+                       window.location.hostname.includes('staging') ||
+                       import.meta.env.VITE_ENVIRONMENT !== 'production';
+
   return (
     <Suspense fallback={<DashboardSkeleton />}>
       <Routes>
@@ -40,6 +48,18 @@ export const AppRoutes = () => {
         <Route path="/verify-code" element={<VerifyCodePage />} />
         <Route path="/forgot-password" element={<ForgotPasswordRouteWrapper />} />
         <Route path="/update-password" element={<UpdatePassword />} />
+        
+        {/* Testing Route - Only available in development/staging environments */}
+        {isDevelopment && (
+          <Route
+            path="/testing"
+            element={
+              <RoleProtectedRoute allowedRoles={['administrator']}>
+                <TestingPage />
+              </RoleProtectedRoute>
+            }
+          />
+        )}
         
         {/* Protected Routes */}
         <Route
