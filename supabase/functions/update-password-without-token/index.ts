@@ -166,101 +166,56 @@ serve(async (req) => {
     console.log('[Password Update] Updating password for email:', userEmail)
 
     // Find user by email using RPC function first
-    let userFound = false
+    let userId: string | null = null
     try {
-      const { data: userExists, error: rpcError } = await supabase
-        .rpc('check_user_exists', { p_email: userEmail });
+      const { data: foundUserId, error: rpcError } = await supabase
+        .rpc('get_user_id_by_email', { user_email: userEmail });
       
       if (rpcError) {
-        console.error('[Password Update] User existence check error:', rpcError);
-        throw new Error('Failed to verify user account');
-      } else if (userExists) {
-        userFound = true
-        console.log('[Password Update] User found via email auth check')
+        console.error('[Password Update] User ID lookup error:', rpcError);
+        throw new Error('Failed to find user account');
+      } 
+      
+      if (foundUserId) {
+        userId = foundUserId
+        console.log('[Password Update] User ID found via RPC:', userId)
+      } else {
+        console.log('[Password Update] No user found for email:', userEmail)
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            error: `No account found with email address ${userEmail}. Please check your email or create a new account.`
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
       }
     } catch (error) {
       console.error('[Password Update] Email user lookup failed:', error)
-      throw new Error('Failed to verify user account');
-    }
-
-    // If user not found, return error
-    if (!userFound) {
-      console.log('[Password Update] No user found for email:', userEmail)
       return new Response(
         JSON.stringify({ 
-          success: false,
-          error: `No account found with email address ${userEmail}. Please check your email or create a new account.`
+          success: false, 
+          error: 'Failed to verify user account' 
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Get the user by email using a direct query to auth.users
-    console.log('[Password Update] Finding user by email for password update...')
-    const { data: authUser, error: getUserError } = await supabase.auth.admin.getUserById(
-      // We need to get the user ID first by querying the auth.users table directly via RPC
-      await (async () => {
-        try {
-          // Create a simple query to get user ID by email
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('id')
-            .limit(1)
-            .single()
-          
-          if (error) {
-            // Try a different approach using a custom RPC
-            const { data: userData, error: userError } = await supabase.rpc('get_user_id_by_email', { 
-              user_email: userEmail 
-            })
-            
-            if (userError || !userData) {
-              throw new Error('User not found')
-            }
-            return userData
-          }
-          
-          return data?.id
-        } catch (e) {
-          // Fallback: Use Supabase admin to find user
-          const { data: { users }, error: listError } = await supabase.auth.admin.listUsers({
-            page: 1,
-            perPage: 1000
-          })
-          
-          if (listError) {
-            throw new Error('Failed to find user')
-          }
-          
-          const user = users.find(u => u.email === userEmail)
-          if (!user) {
-            throw new Error('User not found')
-          }
-          
-          return user.id
-        }
-      })()
-    )
-
-    if (getUserError) {
-      console.error('[Password Update] Error getting user by ID:', getUserError)
-      throw new Error('Failed to find user account')
-    }
-
-    if (!authUser?.user) {
-      console.error('[Password Update] User not found in auth system')
-      throw new Error('User account not found')
-    }
-
     // Update the user's password using Supabase Admin API
+    console.log('[Password Update] Updating password for user ID:', userId)
     const { error: updateError } = await supabase.auth.admin.updateUserById(
-      authUser.user.id,
+      userId,
       { password: newPassword }
     )
 
     if (updateError) {
       console.error('[Password Update] Password update failed:', updateError)
-      throw new Error('Failed to update password')
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Failed to update password. Please try again.' 
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     console.log(`[Password Update] Password updated successfully for email: ${userEmail}`)
