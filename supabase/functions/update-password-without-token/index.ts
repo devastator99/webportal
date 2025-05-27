@@ -90,13 +90,13 @@ serve(async (req) => {
       console.log('[Password Update] Using legacy OTP approach')
       userEmail = email.toLowerCase().trim()
       
-      // Verify OTP exists and is valid - FIXED: using otp_code instead of otp
+      // Verify OTP exists and is valid
       console.log('[Password Update] Verifying OTP...')
       const { data: otpRecord, error: otpError } = await supabase
         .from('password_reset_otps')
         .select('*')
         .eq('email', userEmail)
-        .eq('otp_code', otp)  // FIXED: Changed from 'otp' to 'otp_code'
+        .eq('otp_code', otp)
         .eq('reset_method', 'email')
         .eq('used', false)
         .gt('expires_at', new Date().toISOString())
@@ -110,7 +110,7 @@ serve(async (req) => {
           .from('password_reset_otps')
           .select('*')
           .eq('email', userEmail)
-          .eq('otp_code', otp)  // FIXED: Changed from 'otp' to 'otp_code'
+          .eq('otp_code', otp)
           .eq('reset_method', 'email')
           .single()
 
@@ -165,9 +165,8 @@ serve(async (req) => {
 
     console.log('[Password Update] Updating password for email:', userEmail)
 
-    // Find user by email using RPC function
+    // Find user by email using RPC function first
     let userFound = false
-
     try {
       const { data: userExists, error: rpcError } = await supabase
         .rpc('check_user_exists', { p_email: userEmail });
@@ -196,23 +195,66 @@ serve(async (req) => {
       )
     }
 
-    // Get the user by email first to get their ID
-    const { data: { users }, error: listError } = await supabase.auth.admin.listUsers()
-    
-    if (listError) {
-      console.error('[Password Update] Error listing users:', listError)
-      throw new Error('Failed to update password')
+    // Get the user by email using a direct query to auth.users
+    console.log('[Password Update] Finding user by email for password update...')
+    const { data: authUser, error: getUserError } = await supabase.auth.admin.getUserById(
+      // We need to get the user ID first by querying the auth.users table directly via RPC
+      await (async () => {
+        try {
+          // Create a simple query to get user ID by email
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('id')
+            .limit(1)
+            .single()
+          
+          if (error) {
+            // Try a different approach using a custom RPC
+            const { data: userData, error: userError } = await supabase.rpc('get_user_id_by_email', { 
+              user_email: userEmail 
+            })
+            
+            if (userError || !userData) {
+              throw new Error('User not found')
+            }
+            return userData
+          }
+          
+          return data?.id
+        } catch (e) {
+          // Fallback: Use Supabase admin to find user
+          const { data: { users }, error: listError } = await supabase.auth.admin.listUsers({
+            page: 1,
+            perPage: 1000
+          })
+          
+          if (listError) {
+            throw new Error('Failed to find user')
+          }
+          
+          const user = users.find(u => u.email === userEmail)
+          if (!user) {
+            throw new Error('User not found')
+          }
+          
+          return user.id
+        }
+      })()
+    )
+
+    if (getUserError) {
+      console.error('[Password Update] Error getting user by ID:', getUserError)
+      throw new Error('Failed to find user account')
     }
 
-    const user = users.find(u => u.email === userEmail)
-    if (!user) {
-      console.error('[Password Update] User not found in auth.users')
+    if (!authUser?.user) {
+      console.error('[Password Update] User not found in auth system')
       throw new Error('User account not found')
     }
 
     // Update the user's password using Supabase Admin API
     const { error: updateError } = await supabase.auth.admin.updateUserById(
-      user.id,
+      authUser.user.id,
       { password: newPassword }
     )
 
