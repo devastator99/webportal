@@ -17,7 +17,9 @@ export const UserRegistration = () => {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [role, setRole] = useState<"patient" | "doctor" | "nutritionist" | "administrator">("patient");
@@ -30,10 +32,28 @@ export const UserRegistration = () => {
   const [emergencyContact, setEmergencyContact] = useState("");
 
   const validateForm = () => {
-    if (!phone || !password || !firstName || !lastName) {
+    if (!phone || !password || !confirmPassword || !firstName || !lastName) {
       toast({
         title: "Missing fields",
-        description: "Please fill all required fields including phone number",
+        description: "Please fill all required fields including phone number and password confirmation",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (password !== confirmPassword) {
+      toast({
+        title: "Password mismatch",
+        description: "Password and confirm password do not match",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    if (password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters long",
         variant: "destructive",
       });
       return false;
@@ -110,6 +130,7 @@ export const UserRegistration = () => {
       setEmail("");
       setPhone("");
       setPassword("");
+      setConfirmPassword("");
       setFirstName("");
       setLastName("");
       setRole("patient");
@@ -199,20 +220,46 @@ export const UserRegistration = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-            </div>
-            <div className="flex items-center space-x-2 mt-1">
-              <Checkbox 
-                id="showPassword" 
-                checked={showPassword} 
-                onCheckedChange={(checked) => setShowPassword(checked === true)}
-              />
-              <Label 
-                htmlFor="showPassword" 
-                className="text-sm cursor-pointer font-normal"
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                onClick={() => setShowPassword(!showPassword)}
               >
-                Show password
-              </Label>
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm Password *</Label>
+            <div className="relative">
+              <Input 
+                id="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className={confirmPassword && password !== confirmPassword ? "border-red-500" : ""}
+                required
+              />
+              <button
+                type="button"
+                className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-4 w-4 text-gray-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-gray-400" />
+                )}
+              </button>
+            </div>
+            {confirmPassword && password !== confirmPassword && (
+              <p className="text-sm text-red-500">Passwords do not match</p>
+            )}
           </div>
           
           <div className="space-y-2">
@@ -319,7 +366,7 @@ export const UserRegistration = () => {
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={loading}
+            disabled={loading || (password && confirmPassword && password !== confirmPassword)}
           >
             {loading ? "Registering..." : "Register User"}
           </Button>

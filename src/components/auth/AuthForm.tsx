@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -5,7 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { LucideLoader2, Calendar as CalendarIcon, Mail, Lock, Phone } from "lucide-react";
+import { LucideLoader2, Calendar as CalendarIcon, Mail, Lock, Phone, Eye, EyeOff } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -46,6 +47,7 @@ const patientSignupSchema = z.object({
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
   phone: z.string().min(10, "Phone number must be at least 10 digits").max(15, "Phone number must be at most 15 digits"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   userType: z.string(),
@@ -59,15 +61,22 @@ const patientSignupSchema = z.object({
   foodHabit: z.string().optional(),
   knownAllergies: z.string().optional(),
   currentMedicalConditions: z.string().optional(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 const standardSignupSchema = z.object({
   email: z.string().email("Invalid email address").optional().or(z.literal("")),
   phone: z.string().min(10, "Phone number must be at least 10 digits").max(15, "Phone number must be at most 15 digits"),
   password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
   userType: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
 });
 
 const loginSchema = z.object({
@@ -80,6 +89,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
   const [showPatientFields, setShowPatientFields] = useState(type === "register" && userType === "patient");
   const [dateInputValue, setDateInputValue] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showSmsOtpReset, setShowSmsOtpReset] = useState(false);
   const { toast } = useToast();
@@ -94,6 +104,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
       email: "",
       phone: "",
       password: "",
+      confirmPassword: "",
       firstName: "",
       lastName: "",
       userType: "patient",
@@ -137,7 +148,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
     if (loading) return;
 
     try {
-      const { email, phone, password, firstName, lastName } = data;
+      const { email, phone, password, confirmPassword, firstName, lastName } = data;
       
       if (type === "register") {
         if (!userType) {
@@ -154,6 +165,15 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
             variant: "destructive",
             title: "Error",
             description: "Please fill in all required fields"
+          });
+          return;
+        }
+
+        if (password !== confirmPassword) {
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Passwords do not match"
           });
           return;
         }
@@ -209,6 +229,9 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
     hidden: { opacity: 0, y: 10 },
     visible: { opacity: 1, y: 0 }
   };
+
+  const watchedPassword = form.watch("password");
+  const watchedConfirmPassword = form.watch("confirmPassword");
 
   return (
     <Form {...form}>
@@ -383,26 +406,37 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
                       type={showPassword ? "text" : "password"}
                       placeholder="••••••••"
                       disabled={loading}
-                      className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                      className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 pr-10"
                     />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
                   </div>
                 </FormControl>
-                <div className="flex items-center justify-between mt-2">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="showPassword" 
-                      checked={showPassword} 
-                      onCheckedChange={(checked) => setShowPassword(checked === true)}
-                      className="border-gray-300 text-purple-600 focus:ring-purple-500"
-                    />
-                    <label 
-                      htmlFor="showPassword" 
-                      className="text-sm text-gray-500"
-                    >
-                      Show password
-                    </label>
-                  </div>
-                  {type === "login" && (
+                {type === "login" && (
+                  <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox 
+                        id="showPassword" 
+                        checked={showPassword} 
+                        onCheckedChange={(checked) => setShowPassword(checked === true)}
+                        className="border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <label 
+                        htmlFor="showPassword" 
+                        className="text-sm text-gray-500"
+                      >
+                        Show password
+                      </label>
+                    </div>
                     <div className="flex flex-col gap-1">
                       <button
                         type="button"
@@ -419,12 +453,53 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
                         Reset via SMS
                       </button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </FormItem>
             )}
           />
         </motion.div>
+
+        {type === "register" && (
+          <motion.div variants={itemVariants} className="space-y-1">
+            <FormField
+              control={form.control}
+              name="confirmPassword"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-gray-600 font-medium">Confirm Password</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Input
+                        {...field}
+                        type={showConfirmPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        disabled={loading}
+                        className={`rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 pr-10 ${
+                          watchedConfirmPassword && watchedPassword !== watchedConfirmPassword ? "border-red-500" : ""
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4 text-gray-400" />
+                        ) : (
+                          <Eye className="h-4 w-4 text-gray-400" />
+                        )}
+                      </button>
+                    </div>
+                  </FormControl>
+                  {watchedConfirmPassword && watchedPassword !== watchedConfirmPassword && (
+                    <p className="text-sm text-red-500 mt-1">Passwords do not match</p>
+                  )}
+                </FormItem>
+              )}
+            />
+          </motion.div>
+        )}
 
         {type === "register" && userType === "patient" && (
           <div className="bg-gray-50 p-6 rounded-xl space-y-4">
@@ -534,7 +609,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           <Button 
             type="submit" 
             className="w-full h-12 rounded-lg bg-purple-600 hover:bg-purple-700 text-white font-medium transition-colors"
-            disabled={loading || !form.formState.isValid}
+            disabled={loading || !form.formState.isValid || (type === "register" && watchedPassword && watchedConfirmPassword && watchedPassword !== watchedConfirmPassword)}
           >
             {loading ? (
               <span className="flex items-center justify-center">
