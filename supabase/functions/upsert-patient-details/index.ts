@@ -44,9 +44,10 @@ serve(async (req) => {
       currentMedicalConditions
     } = await req.json();
     
-    if (!patientId || !age || !gender || !bloodGroup || !emergencyContact) {
+    // Updated validation - emergency contact is now optional
+    if (!patientId || !age || !gender || !bloodGroup) {
       return new Response(
-        JSON.stringify({ error: "Missing required parameters" }),
+        JSON.stringify({ error: "Missing required parameters: patientId, age, gender, and bloodGroup are required" }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
@@ -59,12 +60,12 @@ serve(async (req) => {
       age,
       gender,
       blood_group: bloodGroup,
-      allergies,
-      emergency_contact: emergencyContact,
-      height,
-      birth_date: birthDate,
-      food_habit: foodHabit,
-      current_medical_conditions: currentMedicalConditions
+      allergies: allergies || null,
+      emergency_contact: emergencyContact || null, // Allow null for optional field
+      height: height || null,
+      birth_date: birthDate || null,
+      food_habit: foodHabit || null,
+      current_medical_conditions: currentMedicalConditions || null
     };
     
     // Update the user's metadata
