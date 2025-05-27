@@ -417,8 +417,8 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
         )}
 
         {step === 'new_password' && (
-          <form onSubmit={handleUpdatePassword} className="space-y-4">
-            <div className="text-center space-y-2 mb-4">
+          <form onSubmit={handleUpdatePassword} className="space-y-6">
+            <div className="text-center space-y-2 mb-6">
               <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
               <h3 className="text-lg font-semibold text-gray-900">Set New Password</h3>
               <p className="text-sm text-gray-600">
@@ -426,102 +426,111 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
               </p>
             </div>
 
-            <div className="space-y-2">
-              <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
-                New Password
-              </label>
-              <div className="relative">
-                <Input
-                  id="newPassword"
-                  type={showPassword ? "text" : "password"}
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password"
-                  className="w-full pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
-                  )}
-                </button>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
+                  New Password
+                </label>
+                <div className="relative">
+                  <Input
+                    id="newPassword"
+                    type={showPassword ? "text" : "password"}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    className="w-full pr-10"
+                    required
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={loading}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+                {newPassword && (
+                  <p className={`text-xs ${passwordValid ? 'text-green-600' : 'text-red-600'}`}>
+                    {passwordValid ? '✓ Password meets requirements' : '✗ Password must be at least 6 characters'}
+                  </p>
+                )}
               </div>
-              {newPassword && (
-                <p className={`text-xs ${passwordValid ? 'text-green-600' : 'text-red-600'}`}>
-                  {passwordValid ? '✓ Password meets requirements' : '✗ Password must be at least 6 characters'}
-                </p>
-              )}
-            </div>
 
-            <div className="space-y-2">
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <Input
-                  id="confirmPassword"
-                  type={showConfirmPassword ? "text" : "password"}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm new password"
-                  className="w-full pr-10"
-                  required
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-4 w-4 text-gray-400" />
-                  ) : (
-                    <Eye className="h-4 w-4 text-gray-400" />
-                  )}
-                </button>
+              <div className="space-y-2">
+                <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                  Confirm Password
+                </label>
+                <div className="relative">
+                  <Input
+                    id="confirmPassword"
+                    type={showConfirmPassword ? "text" : "password"}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                    className="w-full pr-10"
+                    required
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    disabled={loading}
+                  >
+                    {showConfirmPassword ? (
+                      <EyeOff className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <Eye className="h-4 w-4 text-gray-400" />
+                    )}
+                  </button>
+                </div>
+                {confirmPassword && (
+                  <p className={`text-xs ${passwordsMatch ? 'text-green-600' : 'text-red-600'}`}>
+                    {passwordsMatch ? '✓ Passwords match' : '✗ Passwords do not match'}
+                  </p>
+                )}
               </div>
-              {confirmPassword && (
-                <p className={`text-xs ${passwordsMatch ? 'text-green-600' : 'text-red-600'}`}>
-                  {passwordsMatch ? '✓ Passwords match' : '✗ Passwords do not match'}
-                </p>
-              )}
             </div>
             
             {error && (
-              <div className="text-sm text-red-500 p-3 bg-red-50 rounded-md border border-red-200">
-                {error}
+              <div className="text-sm text-red-500 p-3 bg-red-50 rounded-md border border-red-200 flex items-start gap-2">
+                <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                <span>{error}</span>
               </div>
             )}
             
-            <Button 
-              type="submit"
-              className="w-full"
-              disabled={loading || !passwordValid || !passwordsMatch}
-            >
-              {loading ? (
-                <span className="flex items-center">
-                  <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating Password...
-                </span>
-              ) : (
-                'Update Password'
-              )}
-            </Button>
-            
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={handleBackToCode}
-                className="text-sm text-gray-500 hover:text-gray-700"
-                disabled={loading}
+            <div className="space-y-3">
+              <Button 
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors"
+                disabled={loading || !passwordValid || !passwordsMatch}
               >
-                Back to Verification
-              </button>
+                {loading ? (
+                  <span className="flex items-center justify-center">
+                    <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating Password...
+                  </span>
+                ) : (
+                  'Update Password'
+                )}
+              </Button>
+              
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={handleBackToCode}
+                  className="text-sm text-gray-500 hover:text-gray-700 underline"
+                  disabled={loading}
+                >
+                  Back to Verification
+                </button>
+              </div>
             </div>
           </form>
         )}
