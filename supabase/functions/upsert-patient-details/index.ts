@@ -44,7 +44,8 @@ serve(async (req) => {
       currentMedicalConditions
     } = await req.json();
     
-    // Updated validation - emergency contact is now optional
+    // Updated validation - only patientId, age, gender, and bloodGroup are required
+    // emergencyContact is now optional as per the new frontend requirements
     if (!patientId || !age || !gender || !bloodGroup) {
       return new Response(
         JSON.stringify({ error: "Missing required parameters: patientId, age, gender, and bloodGroup are required" }),
@@ -61,7 +62,7 @@ serve(async (req) => {
       gender,
       blood_group: bloodGroup,
       allergies: allergies || null,
-      emergency_contact: emergencyContact || null, // Allow null for optional field
+      emergency_contact: emergencyContact || null, // Explicitly allow null for optional field
       height: height || null,
       birth_date: birthDate || null,
       food_habit: foodHabit || null,

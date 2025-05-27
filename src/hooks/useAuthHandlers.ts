@@ -1,188 +1,188 @@
 
 import { useState } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
-import { supabase, createUserRole, createPatientDetails } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { User } from '@supabase/supabase-js';
-import { UserRole, UserRoleEnum } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface PatientData {
-  age: string;
-  gender: string;
-  bloodGroup: string;
+  age?: string;
+  gender?: string;
+  bloodGroup?: string;
   allergies?: string;
-  emergencyContact: string;
+  emergencyContact?: string;
   height?: string;
-  birthDate?: string | null;
+  birthDate?: string;
   foodHabit?: string;
   knownAllergies?: string;
   currentMedicalConditions?: string;
 }
 
-// Re-export UserRoleEnum from the AuthContext
-export { UserRoleEnum };
-
-export const useAuthHandlers = () => {
-  const [loading, setLoading] = useState(false);
+export function useAuthHandlers() {
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  // Handle Sign Up
   const handleSignUp = async (
-    email: string, 
-    password: string, 
-    userType: UserRole, 
-    firstName?: string, 
+    emailOrPhone: string,
+    password: string,
+    userType: 'patient' | 'doctor' | 'nutritionist',
+    firstName?: string,
     lastName?: string,
     patientData?: PatientData
-  ): Promise<User | null> => {
+  ) => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      console.log("Starting signup process for user type:", userType);
-      
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
+      // Determine if input is email or phone
+      const isEmail = emailOrPhone.includes('@');
+      const signUpData: any = {
         password,
         options: {
           data: {
+            user_type: userType,
             first_name: firstName,
             last_name: lastName,
-            user_type: userType,
-          },
-        },
-      });
-      
-      if (authError) throw authError;
-      
-      const user = authData.user;
-      
-      if (!user || !user.id) {
-        throw new Error("User creation failed");
+          }
+        }
+      };
+
+      if (isEmail) {
+        signUpData.email = emailOrPhone;
+      } else {
+        // For phone registration, use phone as email since Supabase requires email
+        // We'll store the actual phone in user metadata
+        signUpData.email = emailOrPhone; // Use phone as email for now
+        signUpData.options.data.phone = emailOrPhone;
       }
-      
-      console.log("User created successfully, updating profile:", user.id);
-      
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          first_name: firstName,
-          last_name: lastName,
-          email: email,
-        });
-      
-      if (profileError) throw profileError;
-      
-      // Create user role using Edge Function instead of direct RPC
-      console.log("Assigning role:", userType);
-      const roleResult = await createUserRole(user.id, userType);
-      
-      if (!roleResult || (roleResult as any).error) {
-        throw new Error((roleResult as any).error || 'Failed to assign user role');
+
+      const { data, error } = await supabase.auth.signUp(signUpData);
+
+      if (error) {
+        console.error('Signup error:', error);
+        throw error;
       }
-      
+
+      if (!data.user) {
+        throw new Error('User creation failed');
+      }
+
+      // If patient with additional data, store patient details
       if (userType === 'patient' && patientData) {
-        console.log("Creating patient details");
-        // Using Edge Function instead of direct RPC
-        const patientResult = await createPatientDetails(
-          user.id,
-          parseInt(patientData.age),
-          patientData.gender,
-          patientData.bloodGroup,
-          patientData.allergies || null,
-          patientData.emergencyContact,
-          patientData.height ? parseFloat(patientData.height) : null,
-          patientData.birthDate || null,
-          patientData.foodHabit || null,
-          patientData.currentMedicalConditions || null
-        );
-        
-        if (!patientResult || (patientResult as any).error) {
-          throw new Error((patientResult as any).error || 'Failed to create patient details');
+        try {
+          const { data: functionData, error: functionError } = await supabase.functions.invoke(
+            'upsert-patient-details',
+            {
+              body: {
+                patientId: data.user.id,
+                age: patientData.age,
+                gender: patientData.gender,
+                bloodGroup: patientData.bloodGroup,
+                allergies: patientData.allergies,
+                emergencyContact: patientData.emergencyContact, // This can be undefined/null
+                height: patientData.height,
+                birthDate: patientData.birthDate,
+                foodHabit: patientData.foodHabit,
+                currentMedicalConditions: patientData.currentMedicalConditions
+              }
+            }
+          );
+
+          if (functionError) {
+            console.error('Error storing patient details:', functionError);
+            // Don't throw here, registration was successful even if patient details failed
+          }
+        } catch (detailsError) {
+          console.error('Error calling patient details function:', detailsError);
+          // Continue with registration success
         }
       }
-      
-      console.log("Signup completed successfully");
-      return user;
-    } catch (err: any) {
-      console.error("Signup error:", err);
-      setError(err.message);
-      throw err;
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  // Handle Login
-  const handleLogin = async (email: string, password: string): Promise<User> => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      toast({
+        title: "Registration successful",
+        description: `Welcome ${firstName}! Please check your email to verify your account.`,
+      });
+
+      return data.user;
+    } catch (error: any) {
+      console.error('Registration failed:', error);
+      const errorMessage = error.message || 'Registration failed. Please try again.';
+      setError(errorMessage);
+      
+      toast({
+        variant: "destructive",
+        title: "Registration failed",
+        description: errorMessage,
       });
       
-      if (error) throw error;
-      
-      return data.user;
-    } catch (err: any) {
-      console.error("Login error:", err);
-      setError(err.message);
-      throw err;
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle Test Login
-  const handleTestLogin = async (userType: 'doctor' | 'patient' | 'nutritionist' | 'admin'): Promise<User> => {
+  const handleSignIn = async (emailOrPhone: string, password: string) => {
     setLoading(true);
     setError(null);
-    
+
     try {
-      let email, password;
+      // Determine if input is email or phone
+      const isEmail = emailOrPhone.includes('@');
       
-      switch (userType) {
-        case 'doctor':
-          email = 'doctor@example.com';
-          password = 'password123';
-          break;
-        case 'patient':
-          email = 'patient@example.com';
-          password = 'password123';
-          break;
-        case 'nutritionist':
-          email = 'nutritionist@example.com';
-          password = 'password123';
-          break;
-        case 'admin':
-          email = 'admin@example.com';
-          password = 'password123';
-          break;
-        default:
-          throw new Error("Invalid user type");
+      let signInData: any = {
+        password
+      };
+
+      if (isEmail) {
+        signInData.email = emailOrPhone;
+      } else {
+        // For phone login, we need to find the user first
+        // Since we stored phone as email during registration, use it as email
+        signInData.email = emailOrPhone;
       }
+
+      const { data, error } = await supabase.auth.signInWithPassword(signInData);
+
+      if (error) {
+        console.error('Login error:', error);
+        throw error;
+      }
+
+      if (!data.user) {
+        throw new Error('Login failed');
+      }
+
+      toast({
+        title: "Login successful",
+        description: "Welcome back!",
+      });
+
+      return data.user;
+    } catch (error: any) {
+      console.error('Login failed:', error);
+      const errorMessage = error.message || 'Login failed. Please check your credentials.';
+      setError(errorMessage);
       
-      return await handleLogin(email, password);
-    } catch (err: any) {
-      console.error("Test login error:", err);
-      setError(err.message);
-      throw err;
+      toast({
+        variant: "destructive",
+        title: "Login failed", 
+        description: errorMessage,
+      });
+      
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
   return {
-    loading,
-    error,
-    handleLogin,
     handleSignUp,
-    handleTestLogin,
-    setError,
+    handleSignIn,
+    error,
+    loading,
+    setError
   };
-};
+}

@@ -78,16 +78,20 @@ export const UserRegistration = () => {
     
     setLoading(true);
     try {
+      // Determine primary identifier (phone is required, email is optional)
+      const primaryIdentifier = email || phone; // Use email if provided, otherwise phone
+      
       // Step 1: Create the user in Auth
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: email || phone, // Use phone as email if no email provided
+        email: primaryIdentifier,
         password,
         options: {
           data: {
             user_type: role,
             first_name: firstName,
             last_name: lastName,
-            phone: phone
+            phone: phone, // Always store phone in metadata
+            primary_contact: phone // Store phone as primary contact method
           }
         }
       });
@@ -113,7 +117,7 @@ export const UserRegistration = () => {
             p_gender: gender,
             p_blood_group: bloodGroup,
             p_allergies: allergies,
-            p_emergency_contact: emergencyContact || null,
+            p_emergency_contact: emergencyContact || null, // Allow null for optional field
             p_height: null,
             p_birth_date: null,
             p_food_habit: null,
