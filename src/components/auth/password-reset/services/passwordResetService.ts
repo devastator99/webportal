@@ -106,32 +106,32 @@ export const verifyOtpCode = async (phoneNumber: string, otp: string): Promise<O
   }
 };
 
-// Helper function to get user ID by email using profiles table
+// Helper function to get user ID by email using RPC call
 const getUserIdByEmail = async (email: string): Promise<string> => {
   try {
-    console.log('[SMS OTP] Looking up user by email in profiles table:', email);
+    console.log('[SMS OTP] Looking up user by email using RPC:', email);
     
-    // Add explicit typing to avoid TypeScript infinite recursion
-    const { data, error }: { data: { id: string } | null; error: any } = await supabase
-      .from('profiles')
-      .select('id')
-      .eq('email', email.toLowerCase().trim())
-      .single();
+    // Use the verify-users-exist edge function which is designed for this purpose
+    const { data, error } = await supabase.functions.invoke('verify-users-exist', {
+      body: { emails: [email.toLowerCase().trim()] }
+    });
     
     if (error) {
-      console.error('[SMS OTP] Profile lookup error:', error);
-      if (error.code === 'PGRST116') {
-        throw new Error('No account found with this email address. Please check your email or create a new account.');
-      }
+      console.error('[SMS OTP] RPC lookup error:', error);
       throw new Error('Failed to lookup user account. Please try again.');
     }
     
-    if (!data) {
+    if (!data || !data.results || data.results.length === 0) {
       throw new Error('No account found with this email address. Please check your email or create a new account.');
     }
     
-    console.log('[SMS OTP] User found by email in profiles table');
-    return data.id;
+    const userResult = data.results[0];
+    if (!userResult.exists || !userResult.user_id) {
+      throw new Error('No account found with this email address. Please check your email or create a new account.');
+    }
+    
+    console.log('[SMS OTP] User found by email using RPC');
+    return userResult.user_id;
     
   } catch (error: any) {
     console.error('[SMS OTP] Error getting user ID:', error);
@@ -139,23 +139,30 @@ const getUserIdByEmail = async (email: string): Promise<string> => {
   }
 };
 
-// Helper function to update user phone
+// Helper function to update user phone using RPC call
 const updateUserPhone = async (userId: string, phoneNumber: string): Promise<void> => {
   try {
-    console.log('[SMS OTP] Updating user phone for user:', userId);
+    console.log('[SMS OTP] Updating user phone via edge function for user:', userId);
     
-    // Add explicit typing to avoid TypeScript issues
-    const { error }: { error: any } = await supabase
-      .from('profiles')
-      .update({ phone: phoneNumber })
-      .eq('id', userId);
+    // Call the upsert-patient-details edge function to update phone
+    const { data, error } = await supabase.functions.invoke('upsert-patient-details', {
+      body: { 
+        patientId: userId,
+        emergencyContact: phoneNumber  // Store phone in emergency_contact field
+      }
+    });
     
     if (error) {
-      console.error('[SMS OTP] Phone update error:', error);
+      console.error('[SMS OTP] Phone update RPC error:', error);
       throw new Error('Failed to link phone number to your account. Please try again.');
     }
     
-    console.log('[SMS OTP] Phone updated successfully');
+    if (data?.error) {
+      console.error('[SMS OTP] Phone update function returned error:', data.error);
+      throw new Error('Failed to link phone number to your account. Please try again.');
+    }
+    
+    console.log('[SMS OTP] Phone updated successfully via RPC');
   } catch (error: any) {
     console.error('[SMS OTP] Error updating phone:', error);
     throw new Error(error.message || 'Failed to link phone number to your account. Please try again.');
@@ -168,10 +175,10 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
   try {
     const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
     
-    // Step 1: Get user ID by email from profiles table
+    // Step 1: Get user ID by email using RPC
     const userId = await getUserIdByEmail(email);
     
-    // Step 2: Update phone number in profiles table
+    // Step 2: Update phone number using RPC
     await updateUserPhone(userId, normalizedPhone);
     
     // Step 3: Verify OTP again - this time it should find the user
