@@ -31,7 +31,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [view, setView] = useState<"login" | "register">(initialView);
   const [registrationStep, setRegistrationStep] = useState<number>(1);
   const [registeredUser, setRegisteredUser] = useState<any>(null);
-  const { handleSignUp, handleLogin, error, loading, setError } = useAuthHandlers();
+  const { handleSignUp, handleSignIn, error, loading, setError } = useAuthHandlers();
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -67,7 +67,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     try {
       if (view === "login") {
         // Handle login
-        const user = await handleLogin(email, password);
+        const user = await handleSignIn(email, password);
         if (user) {
           toast({
             title: "Login Successful",
