@@ -165,47 +165,47 @@ serve(async (req) => {
 
     console.log('[Password Update] Updating password for email:', userEmail)
 
-    // Directly find user by email using admin API and update password
+    // Use Supabase Admin API to update password by email
     try {
-      console.log('[Password Update] Looking up user by email using admin API...')
-      const { data: userData, error: listError } = await supabase.auth.admin.listUsers()
+      console.log('[Password Update] Attempting password update using admin generateLink...')
       
-      if (listError) {
-        console.error('[Password Update] Failed to list users:', listError)
-        throw new Error('Failed to lookup user account')
+      // Generate a password reset link which gives us the user
+      const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+        type: 'recovery',
+        email: userEmail
+      })
+      
+      if (linkError) {
+        console.error('[Password Update] Failed to generate recovery link:', linkError)
+        throw new Error('User account not found or inactive')
       }
       
-      const user = userData.users.find(u => u.email === userEmail)
-      if (!user) {
-        console.log('[Password Update] No user found for email:', userEmail)
-        return new Response(
-          JSON.stringify({ 
-            success: false,
-            error: `No account found with email address ${userEmail}. Please check your email or create a new account.`
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
+      if (!linkData.user) {
+        console.error('[Password Update] No user data returned from generateLink')
+        throw new Error('User account not found')
       }
       
-      console.log('[Password Update] User found, updating password...')
+      console.log('[Password Update] User found via generateLink, updating password...')
+      
+      // Now update the password using the user ID
       const { error: updateError } = await supabase.auth.admin.updateUserById(
-        user.id,
+        linkData.user.id,
         { password: newPassword }
       )
       
       if (updateError) {
         console.error('[Password Update] Password update failed:', updateError)
-        throw new Error('Failed to update password')
+        throw new Error('Failed to update password: ' + updateError.message)
       }
       
       console.log(`[Password Update] Password updated successfully for email: ${userEmail}`)
       
     } catch (error) {
-      console.error('[Password Update] User lookup and password update failed:', error)
+      console.error('[Password Update] Password update process failed:', error)
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Failed to update password. Please try again.' 
+          error: 'Failed to update password. Please ensure the email is associated with an active account.' 
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
