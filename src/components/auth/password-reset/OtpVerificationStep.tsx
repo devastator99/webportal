@@ -1,7 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { LucideLoader2, AlertCircle, PhoneOff, Info } from 'lucide-react';
+import { LucideLoader2, AlertCircle, PhoneOff, Info, ExternalLink } from 'lucide-react';
 
 interface OtpVerificationStepProps {
   otp: string;
@@ -50,8 +50,9 @@ export const OtpVerificationStep = ({
     }
   };
 
-  // Check if error indicates phone not registered
+  // Check if error indicates phone not registered or linking unavailable
   const isPhoneNotRegistered = error?.includes('not registered') || error?.includes('not found');
+  const isLinkingUnavailable = error?.includes('currently unavailable') || error?.includes('contact support');
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
@@ -95,21 +96,35 @@ export const OtpVerificationStep = ({
       
       {error && (
         <div className={`text-sm p-3 rounded-md border flex items-start gap-2 ${
-          isPhoneNotRegistered 
+          isLinkingUnavailable 
+            ? 'text-amber-600 bg-amber-50 border-amber-200'
+            : isPhoneNotRegistered 
             ? 'text-orange-600 bg-orange-50 border-orange-200' 
             : 'text-red-500 bg-red-50 border-red-200'
         }`}>
-          {isPhoneNotRegistered ? (
+          {isLinkingUnavailable ? (
+            <ExternalLink className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+          ) : isPhoneNotRegistered ? (
             <PhoneOff className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
           ) : (
             <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
           )}
           <div>
             <p className="font-medium">
-              {isPhoneNotRegistered ? 'Phone Number Not Registered' : 'Verification Failed'}
+              {isLinkingUnavailable 
+                ? 'Service Temporarily Unavailable'
+                : isPhoneNotRegistered 
+                ? 'Phone Number Not Registered' 
+                : 'Verification Failed'
+              }
             </p>
             <p className="text-xs mt-1">{error}</p>
-            {isPhoneNotRegistered && (
+            {isLinkingUnavailable && (
+              <p className="text-xs mt-2 font-medium">
+                Please use the email reset option instead, or contact support for assistance.
+              </p>
+            )}
+            {isPhoneNotRegistered && !isLinkingUnavailable && (
               <p className="text-xs mt-2 font-medium">
                 You'll need to link this phone number to your email address to continue.
               </p>

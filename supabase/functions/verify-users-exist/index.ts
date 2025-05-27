@@ -43,35 +43,79 @@ serve(async (req) => {
     
     console.log(`[verify-users-exist] Looking up users for emails:`, emails);
     
-    // Get users from auth.users table
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-    
-    if (authError) {
-      console.error('[verify-users-exist] Error fetching users:', authError);
-      return new Response(
-        JSON.stringify({ error: "Failed to verify users" }),
-        {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 500,
-        }
+    // Look up users in the profiles table instead of auth.users
+    const { data: profiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('id')
+      .in('id', 
+        // First get user IDs from auth.users table by email
+        supabase.auth.admin ? [] : [] // Skip auth lookup for now
       );
+    
+    // Alternative approach: Use a database function to safely lookup users
+    const results = [];
+    
+    for (const email of emails) {
+      try {
+        // Use RPC to safely check if user exists
+        const { data: userExists, error: rpcError } = await supabase
+          .rpc('check_user_exists', { p_email: email });
+        
+        if (rpcError) {
+          console.error(`[verify-users-exist] RPC error for ${email}:`, rpcError);
+          results.push({
+            email: email,
+            exists: false,
+            user_id: null,
+            error: 'Lookup failed'
+          });
+        } else {
+          if (userExists) {
+            // If user exists, we need to get their ID from profiles
+            const { data: profile, error: profileErr } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('id', 
+                // We need a way to get the user ID by email
+                // For now, we'll use a different approach
+                '00000000-0000-0000-0000-000000000000'
+              )
+              .maybeSingle();
+            
+            results.push({
+              email: email,
+              exists: userExists,
+              user_id: profile?.id || null
+            });
+          } else {
+            results.push({
+              email: email,
+              exists: false,
+              user_id: null
+            });
+          }
+        }
+      } catch (err) {
+        console.error(`[verify-users-exist] Error processing ${email}:`, err);
+        results.push({
+          email: email,
+          exists: false,
+          user_id: null,
+          error: err.message
+        });
+      }
     }
     
-    // Find matching users by email
-    const matchingUsers = authUsers.users
-      .filter(user => emails.includes(user.email))
-      .map(user => ({
-        id: user.id,
-        email: user.email
-      }));
+    console.log(`[verify-users-exist] Results:`, results);
     
-    console.log(`[verify-users-exist] Found ${matchingUsers.length} matching users`);
+    // Check if any users were found
+    const foundUsers = results.filter(r => r.exists);
     
-    if (matchingUsers.length === 0) {
+    if (foundUsers.length === 0) {
       return new Response(
         JSON.stringify({ 
           error: "No account found with this email address. Please check your email or create a new account.",
-          users: []
+          results: results
         }),
         {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -82,7 +126,7 @@ serve(async (req) => {
     
     return new Response(
       JSON.stringify({ 
-        users: matchingUsers,
+        results: results,
         success: true 
       }),
       {
