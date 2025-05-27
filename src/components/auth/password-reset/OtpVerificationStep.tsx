@@ -1,7 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { LucideLoader2, AlertCircle, PhoneOff, Info, ExternalLink } from 'lucide-react';
+import { LucideLoader2, AlertCircle, PhoneOff, Info, Mail } from 'lucide-react';
 
 interface OtpVerificationStepProps {
   otp: string;
@@ -51,9 +51,8 @@ export const OtpVerificationStep = ({
     }
   };
 
-  // Check if error indicates phone not registered or linking unavailable
+  // Check if error indicates phone not registered
   const isPhoneNotRegistered = error?.includes('not registered') || error?.includes('not found');
-  const isLinkingUnavailable = error?.includes('currently unavailable') || error?.includes('contact support');
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
@@ -88,9 +87,9 @@ export const OtpVerificationStep = ({
         <div className="text-sm p-3 rounded-md border bg-blue-50 border-blue-200 flex items-start gap-2">
           <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
           <div>
-            <p className="text-blue-700 font-medium">Next Steps</p>
+            <p className="text-blue-700 font-medium">Verification Process</p>
             <p className="text-blue-600 text-xs mt-1">
-              If your phone number isn't registered, you'll be asked to enter your email address to link this phone number to your account.
+              If your phone number isn't registered with any account, you'll receive clear guidance on next steps.
             </p>
           </div>
         </div>
@@ -98,38 +97,33 @@ export const OtpVerificationStep = ({
       
       {error && (
         <div className={`text-sm p-3 rounded-md border flex items-start gap-2 ${
-          isLinkingUnavailable 
-            ? 'text-amber-600 bg-amber-50 border-amber-200'
-            : isPhoneNotRegistered 
+          isPhoneNotRegistered 
             ? 'text-orange-600 bg-orange-50 border-orange-200' 
             : 'text-red-500 bg-red-50 border-red-200'
         }`}>
-          {isLinkingUnavailable ? (
-            <ExternalLink className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
-          ) : isPhoneNotRegistered ? (
+          {isPhoneNotRegistered ? (
             <PhoneOff className="h-4 w-4 text-orange-500 mt-0.5 flex-shrink-0" />
           ) : (
             <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
           )}
           <div>
             <p className="font-medium">
-              {isLinkingUnavailable 
-                ? 'Service Temporarily Unavailable'
-                : isPhoneNotRegistered 
+              {isPhoneNotRegistered 
                 ? 'Phone Number Not Registered' 
                 : 'Verification Failed'
               }
             </p>
             <p className="text-xs mt-1">{error}</p>
-            {isLinkingUnavailable && (
-              <p className="text-xs mt-2 font-medium">
-                Please use the email reset option instead, or contact support for assistance.
-              </p>
-            )}
-            {isPhoneNotRegistered && !isLinkingUnavailable && (
-              <p className="text-xs mt-2 font-medium">
-                You'll need to link this phone number to your email address to continue.
-              </p>
+            {isPhoneNotRegistered && (
+              <div className="mt-3 space-y-2">
+                <div className="flex items-center gap-2 text-xs">
+                  <Mail className="h-3 w-3" />
+                  <span className="font-medium">Alternative: Use email reset instead</span>
+                </div>
+                <p className="text-xs">
+                  You can also contact support if you need assistance linking this phone number to your account.
+                </p>
+              </div>
             )}
           </div>
         </div>

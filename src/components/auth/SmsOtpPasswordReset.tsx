@@ -2,7 +2,6 @@
 import { ScrollArea } from '../ui/scroll-area';
 import { PhoneNumberStep } from './password-reset/PhoneNumberStep';
 import { OtpVerificationStep } from './password-reset/OtpVerificationStep';
-import { EmailConfirmationStep } from './password-reset/EmailConfirmationStep';
 import { PasswordUpdateStep } from './password-reset/PasswordUpdateStep';
 import { usePasswordReset } from './password-reset/usePasswordReset';
 
@@ -16,8 +15,6 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
     step,
     phoneNumber,
     setPhoneNumber,
-    email,
-    setEmail,
     otp,
     setOtp,
     newPassword,
@@ -28,10 +25,8 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
     error,
     handleSendOtp,
     handleVerifyOtp,
-    handleEmailConfirmation,
     handleUpdatePassword,
     resetFlow,
-    goBackToOtp,
     handleResendOtp
   } = usePasswordReset(onClose);
 
@@ -59,19 +54,6 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
             onSubmit={handleVerifyOtp}
             onResendOtp={handleResendOtp}
             onChangePhone={resetFlow}
-            loading={loading}
-            error={error}
-          />
-        )}
-
-        {step === 'email_confirmation' && (
-          <EmailConfirmationStep
-            email={email}
-            setEmail={setEmail}
-            phoneNumber={phoneNumber}
-            onSubmit={handleEmailConfirmation}
-            onBackToOtp={goBackToOtp}
-            onStartOver={resetFlow}
             loading={loading}
             error={error}
           />

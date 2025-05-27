@@ -3,12 +3,11 @@ import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
-export type PasswordResetStep = 'phone' | 'otp' | 'email_confirmation' | 'password';
+export type PasswordResetStep = 'phone' | 'otp' | 'password';
 
 export function usePasswordReset(onClose: () => void) {
   const [step, setStep] = useState<PasswordResetStep>('phone');
   const [phoneNumber, setPhoneNumber] = useState('');
-  const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -86,9 +85,15 @@ export function usePasswordReset(onClose: () => void) {
       }
 
       if (!data.success) {
+        // Phone number not registered - show clear message and guidance
         if (data.needsEmailConfirmation || data.phoneNotRegistered) {
-          setStep('email_confirmation');
-          setError(data.error || 'Phone number not registered. Please enter your email address.');
+          const phoneNotRegisteredMessage = `The phone number ${phoneNumber} is not registered with any account. Please use the email reset option instead, or contact support if you need assistance linking this phone number to your account.`;
+          setError(phoneNotRegisteredMessage);
+          toast({
+            title: 'Phone Number Not Registered',
+            description: 'Please use email reset or contact support for assistance.',
+            variant: 'destructive',
+          });
           return;
         }
         throw new Error(data.error || 'Invalid OTP');
@@ -108,41 +113,6 @@ export function usePasswordReset(onClose: () => void) {
       setError(errorMessage);
       toast({
         title: 'OTP Verification Failed',
-        description: errorMessage,
-        variant: 'destructive',
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleEmailConfirmation = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
-    if (!email || !email.includes('@')) {
-      setError('Please enter a valid email address');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      // For now, just show a message that this feature is not available
-      toast({
-        title: 'Feature Not Available',
-        description: 'Phone to email linking is currently unavailable. Please use email reset instead.',
-        variant: 'destructive',
-      });
-      
-      // Reset the flow
-      resetFlow();
-    } catch (error: any) {
-      console.error('Email confirmation error:', error);
-      const errorMessage = error.message || 'Failed to link account';
-      setError(errorMessage);
-      toast({
-        title: 'Account Linking Failed',
         description: errorMessage,
         variant: 'destructive',
       });
@@ -246,7 +216,6 @@ export function usePasswordReset(onClose: () => void) {
   const resetFlow = () => {
     setStep('phone');
     setPhoneNumber('');
-    setEmail('');
     setOtp('');
     setNewPassword('');
     setConfirmPassword('');
@@ -254,17 +223,10 @@ export function usePasswordReset(onClose: () => void) {
     setSessionToken(null);
   };
 
-  const goBackToOtp = () => {
-    setStep('otp');
-    setError(null);
-  };
-
   return {
     step,
     phoneNumber,
     setPhoneNumber,
-    email,
-    setEmail,
     otp,
     setOtp,
     newPassword,
@@ -275,10 +237,8 @@ export function usePasswordReset(onClose: () => void) {
     error,
     handleSendOtp,
     handleVerifyOtp,
-    handleEmailConfirmation,
     handleUpdatePassword,
     resetFlow,
-    goBackToOtp,
     handleResendOtp
   };
 }
