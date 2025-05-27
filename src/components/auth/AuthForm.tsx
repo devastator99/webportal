@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +34,7 @@ const patientDataSchema = z.object({
   gender: z.string().optional(),
   bloodGroup: z.string().optional(),
   allergies: z.string().optional(),
-  emergencyContact: z.string().min(10, "Valid emergency contact is required").max(15),
+  emergencyContact: z.string().optional(),
   height: z.string().optional(),
   birthDate: z.string().optional(),
   foodHabit: z.string().optional(),
@@ -54,7 +53,7 @@ const patientSignupSchema = z.object({
   gender: z.string().optional(),
   bloodGroup: z.string().optional(),
   allergies: z.string().optional(),
-  emergencyContact: z.string().min(10, "Valid emergency contact is required").max(15),
+  emergencyContact: z.string().optional(),
   height: z.string().optional(),
   birthDate: z.string().optional(),
   foodHabit: z.string().optional(),
@@ -168,7 +167,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           gender: data.gender || undefined,
           bloodGroup: data.bloodGroup || undefined,
           allergies: data.allergies || "",
-          emergencyContact: data.emergencyContact,
+          emergencyContact: data.emergencyContact || undefined,
           height: data.height || undefined,
           birthDate: birthDateFormatted,
           foodHabit: data.foodHabit || undefined,
@@ -514,7 +513,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
                   name="emergencyContact"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-600 font-medium">Emergency Contact</FormLabel>
+                      <FormLabel className="text-gray-600 font-medium">Emergency Contact (Optional)</FormLabel>
                       <FormControl>
                         <Input
                           {...field}

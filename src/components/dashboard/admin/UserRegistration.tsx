@@ -39,10 +39,10 @@ export const UserRegistration = () => {
       return false;
     }
     
-    if (role === "patient" && (!age || !gender || !bloodGroup || !emergencyContact)) {
+    if (role === "patient" && (!age || !gender || !bloodGroup)) {
       toast({
         title: "Missing patient information",
-        description: "Please fill all required patient fields",
+        description: "Please fill all required patient fields (age, gender, blood group)",
         variant: "destructive",
       });
       return false;
@@ -93,7 +93,7 @@ export const UserRegistration = () => {
             p_gender: gender,
             p_blood_group: bloodGroup,
             p_allergies: allergies,
-            p_emergency_contact: emergencyContact,
+            p_emergency_contact: emergencyContact || null,
             p_height: null,
             p_birth_date: null,
             p_food_habit: null,
@@ -270,11 +270,12 @@ export const UserRegistration = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="emergencyContact">Emergency Contact *</Label>
+                  <Label htmlFor="emergencyContact">Emergency Contact (Optional)</Label>
                   <Input 
                     id="emergencyContact"
                     value={emergencyContact}
                     onChange={(e) => setEmergencyContact(e.target.value)}
+                    placeholder="+1 234 567 890"
                   />
                 </div>
               </TabsContent>
@@ -303,11 +304,12 @@ export const UserRegistration = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="allergies">Known Allergies</Label>
+                  <Label htmlFor="allergies">Known Allergies (Optional)</Label>
                   <Input 
                     id="allergies"
                     value={allergies}
                     onChange={(e) => setAllergies(e.target.value)}
+                    placeholder="e.g., Peanuts, Shellfish"
                   />
                 </div>
               </TabsContent>
