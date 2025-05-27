@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import type { StepType, PasswordResetState } from '../types';
+import type { StepType, PasswordResetState, ResetMethod } from '../types';
 
 export const usePasswordResetState = (): PasswordResetState & {
   setStep: (step: StepType) => void;
@@ -13,10 +13,12 @@ export const usePasswordResetState = (): PasswordResetState & {
   setError: (error: string | null) => void;
   setSessionToken: (token: string | null) => void;
   setShowEmailConfirmation: (show: boolean) => void;
+  setResetMethod: (method: ResetMethod | null) => void;
   resetFlow: () => void;
   goBackToOtp: () => void;
 } => {
-  const [step, setStep] = useState<StepType>('phone');
+  const [step, setStep] = useState<StepType>('method_selection');
+  const [resetMethod, setResetMethod] = useState<ResetMethod | null>(null);
   const [phoneNumber, setPhoneNumber] = useState<string>('');
   const [email, setEmail] = useState<string>('');
   const [otp, setOtp] = useState<string>('');
@@ -28,7 +30,8 @@ export const usePasswordResetState = (): PasswordResetState & {
   const [showEmailConfirmation, setShowEmailConfirmation] = useState<boolean>(false);
 
   const resetFlow = (): void => {
-    setStep('phone');
+    setStep('method_selection');
+    setResetMethod(null);
     setPhoneNumber('');
     setEmail('');
     setOtp('');
@@ -49,6 +52,8 @@ export const usePasswordResetState = (): PasswordResetState & {
   return {
     step,
     setStep,
+    resetMethod,
+    setResetMethod,
     phoneNumber,
     setPhoneNumber,
     email,

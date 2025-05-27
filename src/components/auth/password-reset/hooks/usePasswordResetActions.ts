@@ -1,9 +1,10 @@
 
 import { toast } from '@/hooks/use-toast';
-import { sendOtpToPhone, verifyOtpCode, linkPhoneToEmail, updatePasswordWithToken } from '../services/passwordResetService';
-import type { StepType, PasswordResetActions } from '../types';
+import { sendOtpToPhone, sendOtpToEmail, verifyOtpCode, linkPhoneToEmail, updatePasswordWithToken } from '../services/passwordResetService';
+import type { StepType, PasswordResetActions, ResetMethod } from '../types';
 
 interface UsePasswordResetActionsProps {
+  resetMethod: ResetMethod | null;
   phoneNumber: string;
   otp: string;
   email: string;
@@ -15,11 +16,13 @@ interface UsePasswordResetActionsProps {
   setStep: (step: StepType) => void;
   setShowEmailConfirmation: (show: boolean) => void;
   setSessionToken: (token: string | null) => void;
+  setResetMethod: (method: ResetMethod | null) => void;
   onClose: () => void;
 }
 
 export const usePasswordResetActions = (props: UsePasswordResetActionsProps): PasswordResetActions => {
   const {
+    resetMethod,
     phoneNumber,
     otp,
     email,
@@ -31,8 +34,19 @@ export const usePasswordResetActions = (props: UsePasswordResetActionsProps): Pa
     setStep,
     setShowEmailConfirmation,
     setSessionToken,
+    setResetMethod,
     onClose
   } = props;
+
+  const handleMethodSelection = (method: ResetMethod): void => {
+    setResetMethod(method);
+    if (method === 'sms') {
+      setStep('phone');
+    } else {
+      setStep('email');
+    }
+    setError(null);
+  };
 
   const handleSendOtp = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
@@ -41,14 +55,25 @@ export const usePasswordResetActions = (props: UsePasswordResetActionsProps): Pa
     setError(null);
     
     try {
-      await sendOtpToPhone(phoneNumber);
+      if (resetMethod === 'sms') {
+        await sendOtpToPhone(phoneNumber);
+        toast({
+          title: 'OTP Sent',
+          description: 'Check your phone for the verification code.',
+        });
+      } else if (resetMethod === 'email') {
+        await sendOtpToEmail(email);
+        toast({
+          title: 'OTP Sent',
+          description: 'Check your email for the verification code.',
+        });
+      } else {
+        throw new Error('Please select a reset method');
+      }
+      
       setStep('otp');
-      toast({
-        title: 'OTP Sent',
-        description: 'Check your phone for the verification code.',
-      });
     } catch (error: any) {
-      console.error('[SMS OTP] Send error:', error);
+      console.error('[Password Reset] Send OTP error:', error);
       const errorMessage: string = error.message || 'Failed to send OTP';
       setError(errorMessage);
       toast({
@@ -69,20 +94,28 @@ export const usePasswordResetActions = (props: UsePasswordResetActionsProps): Pa
       return;
     }
     
+    if (!resetMethod) {
+      setError('Reset method not selected');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     
     try {
-      console.log('[SMS OTP] Starting OTP verification process...');
-      const result = await verifyOtpCode(phoneNumber, otp);
+      console.log('[Password Reset] Starting OTP verification process...');
+      const contact = resetMethod === 'sms' ? phoneNumber : email;
+      const result = await verifyOtpCode(contact, otp, resetMethod);
       
-      console.log('[SMS OTP] OTP verification result:', result);
+      console.log('[Password Reset] OTP verification result:', result);
       
       if (result.needsEmailConfirmation) {
-        console.log('[SMS OTP] User not found, showing email confirmation step');
+        console.log('[Password Reset] User not found, showing email confirmation step');
         setShowEmailConfirmation(true);
         setStep('email_confirmation');
-        const emailConfirmMessage: string = 'No account found with this phone number. Please enter your email address to link your phone number to your account.';
+        const emailConfirmMessage: string = resetMethod === 'sms' 
+          ? 'No account found with this phone number. Please enter your email address to link your phone number to your account.'
+          : 'No account found with this email address. Please check your email or create a new account.';
         setError(emailConfirmMessage);
         toast({
           title: 'Account Linking Required',
@@ -93,7 +126,7 @@ export const usePasswordResetActions = (props: UsePasswordResetActionsProps): Pa
       }
       
       if (result.sessionToken) {
-        console.log('[SMS OTP] OTP verified successfully, setting session token');
+        console.log('[Password Reset] OTP verified successfully, setting session token');
         setSessionToken(result.sessionToken);
         setStep('password');
         toast({
@@ -107,7 +140,7 @@ export const usePasswordResetActions = (props: UsePasswordResetActionsProps): Pa
       throw new Error('Unexpected verification result');
       
     } catch (error: any) {
-      console.error('[SMS OTP] OTP verification error:', error);
+      console.error('[Password Reset] OTP verification error:', error);
       
       let errorMessage: string = error.message || 'Invalid OTP';
       
@@ -143,7 +176,7 @@ export const usePasswordResetActions = (props: UsePasswordResetActionsProps): Pa
     setError(null);
     
     try {
-      console.log('[SMS OTP] Starting email confirmation process...');
+      console.log('[Password Reset] Starting email confirmation process...');
       const token: string = await linkPhoneToEmail(email, phoneNumber, otp);
       setSessionToken(token);
       setStep('password');
@@ -152,7 +185,7 @@ export const usePasswordResetActions = (props: UsePasswordResetActionsProps): Pa
         description: 'Your phone number has been linked to your account. Please set your new password.',
       });
     } catch (error: any) {
-      console.error('[SMS OTP] Email confirmation error:', error);
+      console.error('[Password Reset] Email confirmation error:', error);
       const errorMessage: string = error.message || 'Failed to link account';
       setError(errorMessage);
       toast({
@@ -194,7 +227,7 @@ export const usePasswordResetActions = (props: UsePasswordResetActionsProps): Pa
       
       onClose();
     } catch (error: any) {
-      console.error('[SMS OTP] Password update error:', error);
+      console.error('[Password Reset] Password update error:', error);
       const errorMessage: string = error.message || 'Failed to update password';
       setError(errorMessage);
       toast({
@@ -211,13 +244,24 @@ export const usePasswordResetActions = (props: UsePasswordResetActionsProps): Pa
     try {
       setLoading(true);
       setError(null);
-      await sendOtpToPhone(phoneNumber);
-      toast({
-        title: 'OTP Sent',
-        description: 'Check your phone for the verification code.',
-      });
+      
+      if (resetMethod === 'sms') {
+        await sendOtpToPhone(phoneNumber);
+        toast({
+          title: 'OTP Sent',
+          description: 'Check your phone for the verification code.',
+        });
+      } else if (resetMethod === 'email') {
+        await sendOtpToEmail(email);
+        toast({
+          title: 'OTP Sent',
+          description: 'Check your email for the verification code.',
+        });
+      } else {
+        throw new Error('Reset method not selected');
+      }
     } catch (error: any) {
-      console.error('[SMS OTP] OTP resend error:', error);
+      console.error('[Password Reset] OTP resend error:', error);
       const errorMessage: string = error.message || 'Failed to send OTP';
       setError(errorMessage);
       toast({
@@ -231,6 +275,7 @@ export const usePasswordResetActions = (props: UsePasswordResetActionsProps): Pa
   };
 
   return {
+    handleMethodSelection,
     handleSendOtp,
     handleVerifyOtp,
     handleEmailConfirmation,

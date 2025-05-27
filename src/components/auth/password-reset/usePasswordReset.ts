@@ -1,10 +1,11 @@
 
 import { usePasswordResetState } from './hooks/usePasswordResetState';
 import { usePasswordResetActions } from './hooks/usePasswordResetActions';
-import type { StepType, PasswordResetActions } from './types';
+import type { StepType, PasswordResetActions, ResetMethod } from './types';
 
 interface PasswordResetHook extends PasswordResetActions {
   step: StepType;
+  resetMethod: ResetMethod | null;
   phoneNumber: string;
   setPhoneNumber: (value: string) => void;
   email: string;
@@ -27,6 +28,7 @@ export const usePasswordReset = (onClose: () => void): PasswordResetHook => {
   const state = usePasswordResetState();
   
   const actions = usePasswordResetActions({
+    resetMethod: state.resetMethod,
     phoneNumber: state.phoneNumber,
     otp: state.otp,
     email: state.email,
@@ -38,12 +40,14 @@ export const usePasswordReset = (onClose: () => void): PasswordResetHook => {
     setStep: state.setStep,
     setShowEmailConfirmation: state.setShowEmailConfirmation,
     setSessionToken: state.setSessionToken,
+    setResetMethod: state.setResetMethod,
     onClose
   });
 
   return {
     // State
     step: state.step,
+    resetMethod: state.resetMethod,
     phoneNumber: state.phoneNumber,
     setPhoneNumber: state.setPhoneNumber,
     email: state.email,
@@ -60,12 +64,13 @@ export const usePasswordReset = (onClose: () => void): PasswordResetHook => {
     showEmailConfirmation: state.showEmailConfirmation,
     
     // Actions
+    handleMethodSelection: actions.handleMethodSelection,
     handleSendOtp: actions.handleSendOtp,
     handleVerifyOtp: actions.handleVerifyOtp,
     handleEmailConfirmation: actions.handleEmailConfirmation,
     handleUpdatePassword: actions.handleUpdatePassword,
+    handleResendOtp: actions.handleResendOtp,
     resetFlow: state.resetFlow,
-    goBackToOtp: state.goBackToOtp,
-    handleResendOtp: actions.handleResendOtp
+    goBackToOtp: state.goBackToOtp
   };
 };
