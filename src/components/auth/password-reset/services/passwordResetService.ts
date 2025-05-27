@@ -111,7 +111,8 @@ const getUserIdByEmail = async (email: string): Promise<string> => {
   try {
     console.log('[SMS OTP] Looking up user by email in profiles table:', email);
     
-    const { data, error } = await supabase
+    // Add explicit typing to avoid TypeScript infinite recursion
+    const { data, error }: { data: { id: string } | null; error: any } = await supabase
       .from('profiles')
       .select('id')
       .eq('email', email.toLowerCase().trim())
@@ -143,7 +144,8 @@ const updateUserPhone = async (userId: string, phoneNumber: string): Promise<voi
   try {
     console.log('[SMS OTP] Updating user phone for user:', userId);
     
-    const { error } = await supabase
+    // Add explicit typing to avoid TypeScript issues
+    const { error }: { error: any } = await supabase
       .from('profiles')
       .update({ phone: phoneNumber })
       .eq('id', userId);
