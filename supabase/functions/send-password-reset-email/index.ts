@@ -50,7 +50,7 @@ serve(async (req: Request) => {
     if (!resendApiKey) {
       console.error("Missing RESEND_API_KEY environment variable");
       return new Response(
-        JSON.stringify({ success: false, error: "Email service not configured" }),
+        JSON.stringify({ success: false, error: "Email service not configured. Please contact support." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -98,9 +98,9 @@ serve(async (req: Request) => {
     // Initialize Resend
     const resend = new Resend(resendApiKey);
     
-    // Send email using Resend with a valid sender domain
+    // Send email using Resend with the proper default domain
     const { data: emailData, error: emailError } = await resend.emails.send({
-      from: "Healthcare App <onboarding@resend.dev>", // Using Resend's default domain
+      from: "onboarding@resend.dev", // Use only the email address without display name
       to: [email],
       subject: "Password Reset Code - Healthcare App",
       html: `
@@ -147,8 +147,21 @@ serve(async (req: Request) => {
     
     if (emailError) {
       console.error("Error sending email:", emailError);
+      
+      // Check for specific domain verification errors
+      if (emailError.message && emailError.message.includes('domain is not verified')) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "Email service configuration issue. Please contact support.",
+            details: "Domain verification required"
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
       return new Response(
-        JSON.stringify({ success: false, error: "Failed to send email" }),
+        JSON.stringify({ success: false, error: "Failed to send email. Please try again." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

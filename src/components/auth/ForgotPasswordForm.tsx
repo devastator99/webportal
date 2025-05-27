@@ -48,17 +48,21 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
       
       if (emailError) {
         console.error('[ForgotPassword] Email function error:', emailError);
-        
-        // Check if it's a domain verification error
-        if (emailError.message?.includes('domain is not verified')) {
-          throw new Error('Email service configuration issue. Please contact support or try the SMS reset option.');
-        }
-        
         throw new Error('Failed to send password reset email. Please try again.');
       }
       
       if (data?.error) {
         console.error('[ForgotPassword] Email function returned error:', data.error);
+        
+        // Check for specific configuration errors
+        if (data.error.includes('Email service not configured')) {
+          throw new Error('Email service is currently unavailable. Please contact support or try the SMS reset option.');
+        }
+        
+        if (data.error.includes('configuration issue')) {
+          throw new Error('Email service configuration issue. Please contact support or try the SMS reset option.');
+        }
+        
         throw new Error(data.error);
       }
       
@@ -97,6 +101,13 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
     onClose();
   };
 
+  const handleContactSupport = () => {
+    toast({
+      title: 'Contact Support',
+      description: 'Please contact our support team for assistance with password reset.',
+    });
+  };
+
   return (
     <ScrollArea className="max-h-[80vh]" invisibleScrollbar={true}>
       <div className="p-4">
@@ -127,18 +138,37 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
             {error && (
               <div className="text-sm text-red-500 p-3 bg-red-50 rounded-md border border-red-200 flex items-start gap-2">
                 <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
-                <div>
+                <div className="flex-1">
                   <p className="font-medium">Reset Failed</p>
                   <p className="text-xs mt-1">{error}</p>
-                  {error.includes('configuration') && (
-                    <button
-                      type="button"
-                      onClick={handleTrySMS}
-                      className="text-xs mt-2 text-blue-600 hover:text-blue-700 underline"
-                    >
-                      Try SMS reset instead
-                    </button>
-                  )}
+                  <div className="mt-3 space-y-2">
+                    {error.includes('configuration') || error.includes('unavailable') ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleTrySMS}
+                          className="text-xs text-blue-600 hover:text-blue-700 underline block"
+                        >
+                          Try SMS reset instead
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleContactSupport}
+                          className="text-xs text-gray-600 hover:text-gray-700 underline block"
+                        >
+                          Contact support
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleTrySMS}
+                        className="text-xs text-blue-600 hover:text-blue-700 underline"
+                      >
+                        Try SMS reset instead
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
