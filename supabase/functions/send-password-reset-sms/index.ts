@@ -63,15 +63,16 @@ serve(async (req) => {
 
     console.log(`[SMS OTP] Generated OTP for phone: ${cleanPhone}`)
 
-    // Store OTP - First delete any existing OTPs for this phone, then insert new one
+    // Store OTP - First delete any existing SMS OTPs for this phone, then insert new one
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString()
 
     try {
-      // Delete any existing OTPs for this phone number (cleanup)
+      // Delete any existing SMS OTPs for this phone number (cleanup)
       const { error: deleteError } = await supabase
         .from('password_reset_otps')
         .delete()
         .eq('phone_number', cleanPhone)
+        .eq('reset_method', 'sms')
 
       if (deleteError) {
         console.warn(`[SMS OTP] Warning during cleanup: ${deleteError.message}`)
@@ -85,6 +86,7 @@ serve(async (req) => {
           otp_code: otp,
           expires_at: expiresAt,
           used: false,
+          reset_method: 'sms',
           user_id: null // Will be set during verification when we match the phone to a user
         })
 

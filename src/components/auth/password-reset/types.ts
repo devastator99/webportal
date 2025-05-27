@@ -4,6 +4,7 @@ export interface OtpVerificationResult {
   sessionToken?: string;
   phoneNotRegistered?: boolean;
   phoneNumber?: string;
+  email?: string;
 }
 
 export interface SupabaseQueryResult<T> {
@@ -20,10 +21,13 @@ export interface FunctionInvokeResult {
   error: any;
 }
 
-export type StepType = 'phone' | 'otp' | 'email_confirmation' | 'password';
+export type StepType = 'method_selection' | 'phone' | 'email' | 'otp' | 'email_confirmation' | 'password';
+
+export type ResetMethod = 'sms' | 'email';
 
 export interface PasswordResetState {
   step: StepType;
+  resetMethod: ResetMethod | null;
   phoneNumber: string;
   email: string;
   otp: string;
@@ -41,4 +45,5 @@ export interface PasswordResetActions {
   handleEmailConfirmation: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
   handleUpdatePassword: (e: React.FormEvent<HTMLFormElement>) => Promise<void>;
   handleResendOtp: () => Promise<void>;
+  handleMethodSelection: (method: ResetMethod) => void;
 }

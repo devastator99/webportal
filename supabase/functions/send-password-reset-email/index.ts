@@ -63,14 +63,28 @@ serve(async (req: Request) => {
     // Generate a 6-digit OTP
     const otp = generateOTP();
     
-    // Store the OTP in the database temporarily (1 hour expiry)
+    // Clean up any existing email OTPs for this email address
+    const { error: deleteError } = await supabase
+      .from('password_reset_otps')
+      .delete()
+      .eq('email', email.toLowerCase().trim())
+      .eq('reset_method', 'email');
+      
+    if (deleteError) {
+      console.warn("Warning during email OTP cleanup:", deleteError);
+    }
+    
+    // Store the OTP in the database (1 hour expiry)
     const { error: storeError } = await supabase
       .from('password_reset_otps')
-      .upsert({ 
-        email, 
-        otp, 
+      .insert({ 
+        email: email.toLowerCase().trim(),
+        otp_code: otp,
+        reset_method: 'email',
         created_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 3600000).toISOString() // 1 hour expiry
+        expires_at: new Date(Date.now() + 3600000).toISOString(), // 1 hour expiry
+        used: false,
+        user_id: null
       });
       
     if (storeError) {

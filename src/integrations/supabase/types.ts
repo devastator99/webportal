@@ -869,28 +869,34 @@ export type Database = {
       password_reset_otps: {
         Row: {
           created_at: string | null
+          email: string | null
           expires_at: string
           id: string
           otp_code: string
-          phone_number: string
+          phone_number: string | null
+          reset_method: Database["public"]["Enums"]["reset_method"]
           used: boolean | null
           user_id: string | null
         }
         Insert: {
           created_at?: string | null
+          email?: string | null
           expires_at: string
           id?: string
           otp_code: string
-          phone_number: string
+          phone_number?: string | null
+          reset_method?: Database["public"]["Enums"]["reset_method"]
           used?: boolean | null
           user_id?: string | null
         }
         Update: {
           created_at?: string | null
+          email?: string | null
           expires_at?: string
           id?: string
           otp_code?: string
-          phone_number?: string
+          phone_number?: string | null
+          reset_method?: Database["public"]["Enums"]["reset_method"]
           used?: boolean | null
           user_id?: string | null
         }
@@ -2851,6 +2857,7 @@ export type Database = {
         | "payment_complete"
         | "care_team_assigned"
         | "fully_registered"
+      reset_method: "email" | "sms"
       task_status: "pending" | "in_progress" | "completed" | "failed"
       user_type:
         | "patient"
@@ -2990,6 +2997,7 @@ export const Constants = {
         "care_team_assigned",
         "fully_registered",
       ],
+      reset_method: ["email", "sms"],
       task_status: ["pending", "in_progress", "completed", "failed"],
       user_type: [
         "patient",
