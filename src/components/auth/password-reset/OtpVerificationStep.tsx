@@ -10,6 +10,7 @@ interface OtpVerificationStepProps {
   onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
   onResendOtp: () => void;
   onChangePhone: () => void;
+  onSwitchToEmail?: () => void;
   loading: boolean;
   error: string | null;
 }
@@ -21,6 +22,7 @@ export const OtpVerificationStep = ({
   onSubmit,
   onResendOtp,
   onChangePhone,
+  onSwitchToEmail,
   loading,
   error
 }: OtpVerificationStepProps) => {
@@ -120,9 +122,19 @@ export const OtpVerificationStep = ({
                   <Mail className="h-3 w-3" />
                   <span className="font-medium">Alternative: Use email reset instead</span>
                 </div>
-                <p className="text-xs">
-                  You can also contact support if you need assistance linking this phone number to your account.
-                </p>
+                {onSwitchToEmail ? (
+                  <button
+                    type="button"
+                    onClick={onSwitchToEmail}
+                    className="text-xs text-blue-600 hover:text-blue-700 underline font-medium"
+                  >
+                    Reset password with email →
+                  </button>
+                ) : (
+                  <p className="text-xs">
+                    You can also contact support if you need assistance linking this phone number to your account.
+                  </p>
+                )}
               </div>
             )}
           </div>

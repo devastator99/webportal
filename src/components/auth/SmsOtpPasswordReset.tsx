@@ -8,9 +8,10 @@ import { usePasswordReset } from './password-reset/usePasswordReset';
 interface SmsOtpPasswordResetProps {
   open: boolean;
   onClose: () => void;
+  onSwitchToEmail?: () => void;
 }
 
-const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
+const SmsOtpPasswordReset = ({ open, onClose, onSwitchToEmail }: SmsOtpPasswordResetProps) => {
   const {
     step,
     phoneNumber,
@@ -54,6 +55,7 @@ const SmsOtpPasswordReset = ({ open, onClose }: SmsOtpPasswordResetProps) => {
             onSubmit={handleVerifyOtp}
             onResendOtp={handleResendOtp}
             onChangePhone={resetFlow}
+            onSwitchToEmail={onSwitchToEmail}
             loading={loading}
             error={error}
           />
