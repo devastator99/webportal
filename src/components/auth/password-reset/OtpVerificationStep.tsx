@@ -56,6 +56,15 @@ export const OtpVerificationStep = ({
   // Check if error indicates phone not registered
   const isPhoneNotRegistered = error?.includes('not registered') || error?.includes('not found');
 
+  const handleEmailResetClick = () => {
+    if (onSwitchToEmail) {
+      onSwitchToEmail();
+    } else {
+      // Fallback: reload page to go back to main auth flow where email reset is available
+      window.location.reload();
+    }
+  };
+
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-2">
@@ -122,19 +131,16 @@ export const OtpVerificationStep = ({
                   <Mail className="h-3 w-3" />
                   <span className="font-medium">Alternative: Use email reset instead</span>
                 </div>
-                {onSwitchToEmail ? (
-                  <button
-                    type="button"
-                    onClick={onSwitchToEmail}
-                    className="text-xs text-blue-600 hover:text-blue-700 underline font-medium"
-                  >
-                    Reset password with email →
-                  </button>
-                ) : (
-                  <p className="text-xs">
-                    You can also contact support if you need assistance linking this phone number to your account.
-                  </p>
-                )}
+                <button
+                  type="button"
+                  onClick={handleEmailResetClick}
+                  className="text-xs text-blue-600 hover:text-blue-700 underline font-medium block"
+                >
+                  Reset password with email →
+                </button>
+                <p className="text-xs">
+                  You can also contact support if you need assistance linking this phone number to your account.
+                </p>
               </div>
             )}
           </div>
