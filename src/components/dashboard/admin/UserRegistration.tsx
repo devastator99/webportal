@@ -15,6 +15,7 @@ export const UserRegistration = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [firstName, setFirstName] = useState("");
@@ -29,10 +30,10 @@ export const UserRegistration = () => {
   const [emergencyContact, setEmergencyContact] = useState("");
 
   const validateForm = () => {
-    if (!email || !password || !firstName || !lastName) {
+    if (!phone || !password || !firstName || !lastName) {
       toast({
         title: "Missing fields",
-        description: "Please fill all required fields",
+        description: "Please fill all required fields including phone number",
         variant: "destructive",
       });
       return false;
@@ -59,13 +60,14 @@ export const UserRegistration = () => {
     try {
       // Step 1: Create the user in Auth
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email,
+        email: email || phone, // Use phone as email if no email provided
         password,
         options: {
           data: {
             user_type: role,
             first_name: firstName,
-            last_name: lastName
+            last_name: lastName,
+            phone: phone
           }
         }
       });
@@ -106,6 +108,7 @@ export const UserRegistration = () => {
 
       // Reset form
       setEmail("");
+      setPhone("");
       setPassword("");
       setFirstName("");
       setLastName("");
@@ -164,13 +167,25 @@ export const UserRegistration = () => {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="email">Email Address *</Label>
+            <Label htmlFor="phone">Phone Number *</Label>
+            <Input 
+              id="phone"
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+1 234 567 890"
+              required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="email">Email Address (Optional)</Label>
             <Input 
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              required
+              placeholder="john@example.com"
             />
           </div>
           

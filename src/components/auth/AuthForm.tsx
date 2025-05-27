@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -5,7 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { LucideLoader2, Calendar as CalendarIcon, Mail, Lock } from "lucide-react";
+import { LucideLoader2, Calendar as CalendarIcon, Mail, Lock, Phone } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -43,7 +44,8 @@ const patientDataSchema = z.object({
 });
 
 const patientSignupSchema = z.object({
-  email: z.string().email("Invalid email address"),
+  email: z.string().email("Invalid email address").optional().or(z.literal("")),
+  phone: z.string().min(10, "Phone number must be at least 10 digits").max(15, "Phone number must be at most 15 digits"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
@@ -61,7 +63,8 @@ const patientSignupSchema = z.object({
 });
 
 const standardSignupSchema = z.object({
-  email: z.string().email("Invalid email address"),
+  email: z.string().email("Invalid email address").optional().or(z.literal("")),
+  phone: z.string().min(10, "Phone number must be at least 10 digits").max(15, "Phone number must be at most 15 digits"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
@@ -90,6 +93,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
     resolver: zodResolver(activeSchema),
     defaultValues: {
       email: "",
+      phone: "",
       password: "",
       firstName: "",
       lastName: "",
@@ -134,7 +138,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
     if (loading) return;
 
     try {
-      const { email, password, firstName, lastName } = data;
+      const { email, phone, password, firstName, lastName } = data;
       
       if (type === "register") {
         if (!userType) {
@@ -146,7 +150,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           return;
         }
 
-        if (!firstName || !lastName) {
+        if (!firstName || !lastName || !phone) {
           toast({
             variant: "destructive",
             title: "Error",
@@ -172,10 +176,10 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           currentMedicalConditions: data.currentMedicalConditions || undefined,
         };
         console.log("Submitting patient data:", patientData);
-        await onSubmit(email, password, userType, firstName, lastName, patientData);
+        await onSubmit(email || phone, password, userType, firstName, lastName, patientData);
       } else {
         if (type === "register") {
-          await onSubmit(email, password, userType, firstName, lastName);
+          await onSubmit(email || phone, password, userType, firstName, lastName);
         } else {
           await onSubmit(email, password);
         }
@@ -300,15 +304,17 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
         <motion.div variants={itemVariants} className="space-y-1">
           <FormField
             control={form.control}
-            name="email"
+            name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-gray-600 font-medium">Email</FormLabel>
+                <FormLabel className="text-gray-600 font-medium">
+                  Phone Number {type === "register" && <span className="text-red-500">*</span>}
+                </FormLabel>
                 <FormControl>
                   <Input
                     {...field}
-                    type="email"
-                    placeholder="john@example.com"
+                    type="tel"
+                    placeholder="+1 234 567 890"
                     disabled={loading}
                     className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   />
@@ -317,6 +323,52 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
             )}
           />
         </motion.div>
+
+        {type === "login" && (
+          <motion.div variants={itemVariants} className="space-y-1">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-gray-600 font-medium">Email</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      type="email"
+                      placeholder="john@example.com"
+                      disabled={loading}
+                      className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </motion.div>
+        )}
+
+        {type === "register" && (
+          <motion.div variants={itemVariants} className="space-y-1">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-gray-600 font-medium">Email (Optional)</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      type="email"
+                      placeholder="john@example.com"
+                      disabled={loading}
+                      className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </motion.div>
+        )}
 
         <motion.div variants={itemVariants} className="space-y-1">
           <FormField
