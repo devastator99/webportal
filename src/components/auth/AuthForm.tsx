@@ -43,7 +43,9 @@ const patientDataSchema = z.object({
 });
 
 const patientSignupSchema = z.object({
-  email: z.string().email("Invalid email address").optional().or(z.literal("")),
+  email: z.string().optional().refine((val) => !val || z.string().email().safeParse(val).success, {
+    message: "Invalid email address",
+  }),
   phone: z.string().min(10, "Phone number must be at least 10 digits").max(15, "Phone number must be at most 15 digits"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
@@ -66,7 +68,9 @@ const patientSignupSchema = z.object({
 });
 
 const standardSignupSchema = z.object({
-  email: z.string().email("Invalid email address").optional().or(z.literal("")),
+  email: z.string().optional().refine((val) => !val || z.string().email().safeParse(val).success, {
+    message: "Invalid email address",
+  }),
   phone: z.string().min(10, "Phone number must be at least 10 digits").max(15, "Phone number must be at most 15 digits"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
@@ -79,7 +83,9 @@ const standardSignupSchema = z.object({
 });
 
 const loginSchema = z.object({
-  email: z.string().email("Invalid email address").optional().or(z.literal("")),
+  email: z.string().optional().refine((val) => !val || z.string().email().safeParse(val).success, {
+    message: "Invalid email address",
+  }),
   phone: z.string().optional().or(z.literal("")),
   password: z.string().min(1, "Password is required"),
 }).refine((data) => data.email || data.phone, {
@@ -492,7 +498,6 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           </motion.div>
         )}
 
-        {/* ... keep existing code (patient information section) */}
         {type === "register" && userType === "patient" && (
           <div className="bg-gray-50 p-6 rounded-xl space-y-4">
             <h3 className="text-lg font-semibold text-gray-700">Patient Information</h3>
@@ -614,7 +619,6 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           </Button>
         </motion.div>
 
-        {/* Show additional forgot password link after login errors */}
         {type === "login" && error && (
           <motion.div variants={itemVariants} className="text-center space-y-2">
             <button
