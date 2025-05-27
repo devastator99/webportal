@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -25,6 +24,7 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionToken, setSessionToken] = useState<string | null>(null);
 
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,6 +131,12 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
       }
       
       console.log('[ForgotPassword] Code verified successfully');
+      
+      // Store the session token for password update
+      if (data.sessionToken) {
+        setSessionToken(data.sessionToken);
+      }
+      
       setStep('new_password');
       toast({
         title: 'Code Verified',
@@ -170,12 +176,13 @@ const ForgotPasswordForm = ({ open, onClose }: ForgotPasswordFormProps) => {
     try {
       console.log('[ForgotPassword] Updating password for email:', email);
       
+      // Use session token if available, otherwise fall back to email/OTP
+      const requestBody = sessionToken 
+        ? { sessionToken, newPassword }
+        : { email: email.toLowerCase().trim(), otp: code, newPassword };
+      
       const { data, error } = await supabase.functions.invoke('update-password-without-token', {
-        body: { 
-          email: email.toLowerCase().trim(),
-          otp: code,
-          newPassword
-        }
+        body: requestBody
       });
       
       if (error) {

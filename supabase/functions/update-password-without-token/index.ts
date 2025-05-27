@@ -1,6 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { decode } from "https://deno.land/std@0.82.0/encoding/base64.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,8 +9,9 @@ const corsHeaders = {
 }
 
 interface RequestBody {
-  email: string;
-  otp: string;
+  sessionToken?: string;
+  email?: string;
+  otp?: string;
   newPassword: string;
 }
 
@@ -19,23 +21,20 @@ serve(async (req) => {
   }
 
   try {
-    const { email, otp, newPassword }: RequestBody = await req.json()
+    const { sessionToken, email, otp, newPassword }: RequestBody = await req.json()
     
-    console.log(`[Password Update] Starting password update for email: ${email}`)
+    console.log(`[Password Update] Starting password update with ${sessionToken ? 'session token' : 'email/OTP'}`)
     
-    if (!email || !otp || !newPassword) {
-      console.error('[Password Update] Missing required fields')
+    if (!newPassword) {
+      console.error('[Password Update] Missing new password')
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Email, OTP, and new password are required' 
+          error: 'New password is required' 
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
-
-    const cleanEmail = email.toLowerCase().trim()
-    console.log(`[Password Update] Cleaned email: ${cleanEmail}`)
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
@@ -54,67 +53,124 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Verify OTP exists and is valid - FIXED: using otp_code instead of otp
-    console.log('[Password Update] Verifying OTP...')
-    const { data: otpRecord, error: otpError } = await supabase
-      .from('password_reset_otps')
-      .select('*')
-      .eq('email', cleanEmail)
-      .eq('otp_code', otp)  // FIXED: Changed from 'otp' to 'otp_code'
-      .eq('reset_method', 'email')
-      .eq('used', false)
-      .gt('expires_at', new Date().toISOString())
-      .single()
+    let userEmail: string
 
-    if (otpError || !otpRecord) {
-      console.error('[Password Update] OTP validation error:', otpError)
+    // Handle session token approach (preferred)
+    if (sessionToken) {
+      console.log('[Password Update] Using session token approach')
+      try {
+        const sessionData = JSON.parse(new TextDecoder().decode(decode(sessionToken)))
+        
+        if (!sessionData.email || sessionData.purpose !== 'password_reset') {
+          throw new Error('Invalid session token')
+        }
+        
+        // Check if token is not too old (1 hour max)
+        const tokenAge = Date.now() - sessionData.timestamp
+        if (tokenAge > 3600000) { // 1 hour
+          throw new Error('Session token has expired')
+        }
+        
+        userEmail = sessionData.email
+        console.log(`[Password Update] Session token validated for email: ${userEmail}`)
+        
+      } catch (error) {
+        console.error('[Password Update] Session token validation failed:', error)
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Invalid or expired session token. Please start the password reset process again.' 
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    } 
+    // Fallback to OTP approach (legacy)
+    else if (email && otp) {
+      console.log('[Password Update] Using legacy OTP approach')
+      userEmail = email.toLowerCase().trim()
       
-      // Check if OTP exists but is expired/used
-      const { data: anyOtpRecord } = await supabase
+      // Verify OTP exists and is valid - FIXED: using otp_code instead of otp
+      console.log('[Password Update] Verifying OTP...')
+      const { data: otpRecord, error: otpError } = await supabase
         .from('password_reset_otps')
         .select('*')
-        .eq('email', cleanEmail)
+        .eq('email', userEmail)
         .eq('otp_code', otp)  // FIXED: Changed from 'otp' to 'otp_code'
         .eq('reset_method', 'email')
+        .eq('used', false)
+        .gt('expires_at', new Date().toISOString())
         .single()
 
-      if (anyOtpRecord) {
-        if (anyOtpRecord.used) {
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: 'This OTP has already been used. Please request a new OTP.' 
-            }),
-            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
-        } else if (new Date(anyOtpRecord.expires_at) < new Date()) {
-          return new Response(
-            JSON.stringify({ 
-              success: false, 
-              error: 'This OTP has expired. Please request a new OTP.' 
-            }),
-            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          )
+      if (otpError || !otpRecord) {
+        console.error('[Password Update] OTP validation error:', otpError)
+        
+        // Check if OTP exists but is expired/used
+        const { data: anyOtpRecord } = await supabase
+          .from('password_reset_otps')
+          .select('*')
+          .eq('email', userEmail)
+          .eq('otp_code', otp)  // FIXED: Changed from 'otp' to 'otp_code'
+          .eq('reset_method', 'email')
+          .single()
+
+        if (anyOtpRecord) {
+          if (anyOtpRecord.used) {
+            return new Response(
+              JSON.stringify({ 
+                success: false, 
+                error: 'This OTP has already been used. Please request a new OTP.' 
+              }),
+              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          } else if (new Date(anyOtpRecord.expires_at) < new Date()) {
+            return new Response(
+              JSON.stringify({ 
+                success: false, 
+                error: 'This OTP has expired. Please request a new OTP.' 
+              }),
+              { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            )
+          }
         }
+
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: 'Invalid OTP. Please check the code and try again.' 
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
       }
 
+      // Mark OTP as used immediately to prevent reuse
+      const { error: markUsedError } = await supabase
+        .from('password_reset_otps')
+        .update({ used: true })
+        .eq('id', otpRecord.id)
+
+      if (markUsedError) {
+        console.warn('[Password Update] Warning: Failed to mark OTP as used:', markUsedError)
+      }
+    } else {
+      console.error('[Password Update] Missing required authentication data')
       return new Response(
         JSON.stringify({ 
           success: false, 
-          error: 'Invalid OTP. Please check the code and try again.' 
+          error: 'Session token or email/OTP is required' 
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log('[Password Update] OTP is valid, updating password...')
+    console.log('[Password Update] Updating password for email:', userEmail)
 
     // Find user by email using RPC function
     let userFound = false
 
     try {
       const { data: userExists, error: rpcError } = await supabase
-        .rpc('check_user_exists', { p_email: cleanEmail });
+        .rpc('check_user_exists', { p_email: userEmail });
       
       if (rpcError) {
         console.error('[Password Update] User existence check error:', rpcError);
@@ -130,64 +186,42 @@ serve(async (req) => {
 
     // If user not found, return error
     if (!userFound) {
-      console.log('[Password Update] No user found for email:', cleanEmail)
+      console.log('[Password Update] No user found for email:', userEmail)
       return new Response(
         JSON.stringify({ 
           success: false,
-          error: `No account found with email address ${email}. Please check your email or create a new account.`
+          error: `No account found with email address ${userEmail}. Please check your email or create a new account.`
         }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
+    // Get the user by email first to get their ID
+    const { data: { users }, error: listError } = await supabase.auth.admin.listUsers()
+    
+    if (listError) {
+      console.error('[Password Update] Error listing users:', listError)
+      throw new Error('Failed to update password')
+    }
+
+    const user = users.find(u => u.email === userEmail)
+    if (!user) {
+      console.error('[Password Update] User not found in auth.users')
+      throw new Error('User account not found')
+    }
+
     // Update the user's password using Supabase Admin API
     const { error: updateError } = await supabase.auth.admin.updateUserById(
-      otpRecord.user_id || '', // This might be null, we'll handle it
+      user.id,
       { password: newPassword }
     )
 
-    // If user_id is null, try to find and update by email
-    if (updateError && updateError.message.includes('User not found')) {
-      // Get the user by email first
-      const { data: { users }, error: listError } = await supabase.auth.admin.listUsers()
-      
-      if (listError) {
-        console.error('[Password Update] Error listing users:', listError)
-        throw new Error('Failed to update password')
-      }
-
-      const user = users.find(u => u.email === cleanEmail)
-      if (!user) {
-        console.error('[Password Update] User not found in auth.users')
-        throw new Error('User account not found')
-      }
-
-      // Try updating with the found user ID
-      const { error: retryUpdateError } = await supabase.auth.admin.updateUserById(
-        user.id,
-        { password: newPassword }
-      )
-
-      if (retryUpdateError) {
-        console.error('[Password Update] Password update failed on retry:', retryUpdateError)
-        throw new Error('Failed to update password')
-      }
-    } else if (updateError) {
+    if (updateError) {
       console.error('[Password Update] Password update failed:', updateError)
       throw new Error('Failed to update password')
     }
 
-    // Mark OTP as used
-    const { error: markUsedError } = await supabase
-      .from('password_reset_otps')
-      .update({ used: true })
-      .eq('id', otpRecord.id)
-
-    if (markUsedError) {
-      console.warn('[Password Update] Warning: Failed to mark OTP as used:', markUsedError)
-    }
-
-    console.log(`[Password Update] Password updated successfully for email: ${cleanEmail}`)
+    console.log(`[Password Update] Password updated successfully for email: ${userEmail}`)
     
     return new Response(
       JSON.stringify({ 
