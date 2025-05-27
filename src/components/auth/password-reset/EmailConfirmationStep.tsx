@@ -1,8 +1,7 @@
 
-import { Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { LucideLoader2 } from 'lucide-react';
+import { LucideLoader2, AlertCircle, ArrowLeft, Mail } from 'lucide-react';
 
 interface EmailConfirmationStepProps {
   email: string;
@@ -27,19 +26,14 @@ export const EmailConfirmationStep = ({
 }: EmailConfirmationStepProps) => {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <div className="text-center space-y-4 mb-6">
-        <div className="flex justify-center">
-          <div className="rounded-full bg-yellow-100 p-3">
-            <Mail className="h-6 w-6 text-yellow-600" />
-          </div>
-        </div>
-        <p className="text-lg font-medium">Account Linking Required</p>
-        <p className="text-gray-600 text-sm">
-          We couldn't find an account with the phone number {phoneNumber}. 
-          Please enter your email address to link this phone number to your account.
+      <div className="text-center space-y-2">
+        <AlertCircle className="h-12 w-12 text-orange-500 mx-auto" />
+        <h3 className="text-lg font-semibold text-gray-900">Phone Number Not Found</h3>
+        <p className="text-sm text-gray-600">
+          The phone number {phoneNumber} is not registered with any account.
         </p>
       </div>
-      
+
       <div className="space-y-2">
         <label htmlFor="email" className="block text-sm font-medium text-gray-700">
           Email Address
@@ -57,47 +51,61 @@ export const EmailConfirmationStep = ({
           />
         </div>
         <p className="text-xs text-gray-500">
-          This should be the email address you used to create your account
+          Enter the email address associated with your account to link this phone number
         </p>
       </div>
       
       {error && (
-        <div className="text-sm text-red-500 p-3 bg-red-50 rounded-md border border-red-200">
-          {error}
+        <div className="text-sm text-amber-600 p-3 bg-amber-50 rounded-md border border-amber-200 flex items-start gap-2">
+          <AlertCircle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-medium">Service Currently Unavailable</p>
+            <p className="text-xs mt-1">{error}</p>
+            <p className="text-xs mt-2 font-medium">
+              Please use the email reset option instead, or contact support for assistance.
+            </p>
+          </div>
         </div>
       )}
       
-      <Button 
-        type="submit"
-        className="w-full"
-        disabled={loading}
-      >
-        {loading ? (
-          <span className="flex items-center">
-            <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
-            Linking Account...
-          </span>
-        ) : (
-          'Link Phone Number'
-        )}
-      </Button>
-      
-      <div className="text-center space-y-2">
-        <button
-          type="button"
-          onClick={onBackToOtp}
-          className="text-sm text-gray-500 hover:text-gray-700"
+      <div className="space-y-3">
+        <Button 
+          type="submit"
+          className="w-full"
+          disabled={loading}
         >
-          Back to OTP Verification
-        </button>
-        <br />
-        <button
-          type="button"
-          onClick={onStartOver}
-          className="text-sm text-blue-600 hover:text-blue-700"
-        >
-          Start Over
-        </button>
+          {loading ? (
+            <span className="flex items-center">
+              <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
+              Linking Account...
+            </span>
+          ) : (
+            'Link Phone to Account'
+          )}
+        </Button>
+        
+        <div className="flex gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onBackToOtp}
+            className="flex-1"
+            disabled={loading}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Back to OTP
+          </Button>
+          
+          <Button
+            type="button"
+            variant="ghost"
+            onClick={onStartOver}
+            className="flex-1"
+            disabled={loading}
+          >
+            Start Over
+          </Button>
+        </div>
       </div>
     </form>
   );

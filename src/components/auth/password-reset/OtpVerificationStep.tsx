@@ -27,6 +27,7 @@ export const OtpVerificationStep = ({
   const handleOtpInputChange = (index: number, value: string) => {
     if (value.length <= 1 && /^\d*$/.test(value)) {
       const newOtp = otp.split('');
+      while (newOtp.length < 6) newOtp.push('');
       newOtp[index] = value;
       setOtp(newOtp.join(''));
       
@@ -72,6 +73,7 @@ export const OtpVerificationStep = ({
                 onKeyDown={(e) => handleOtpKeyDown(index, e)}
                 data-otp-index={index}
                 className="w-10 h-10 text-center"
+                disabled={loading}
               />
             ))}
           </div>
@@ -153,6 +155,7 @@ export const OtpVerificationStep = ({
           type="button"
           onClick={onChangePhone}
           className="text-sm text-gray-500 hover:text-gray-700"
+          disabled={loading}
         >
           Change Phone Number
         </button>

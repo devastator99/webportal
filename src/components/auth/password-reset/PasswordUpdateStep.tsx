@@ -1,8 +1,8 @@
 
-import { Lock, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { LucideLoader2 } from 'lucide-react';
+import { LucideLoader2, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { useState } from 'react';
 
 interface PasswordUpdateStepProps {
   newPassword: string;
@@ -25,52 +25,86 @@ export const PasswordUpdateStep = ({
   loading,
   error
 }: PasswordUpdateStepProps) => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const passwordsMatch = newPassword && confirmPassword && newPassword === confirmPassword;
+  const passwordValid = newPassword && newPassword.length >= 6;
+
   return (
     <form onSubmit={onSubmit} className="space-y-4">
-      <div className="text-center space-y-4 mb-6">
-        <div className="flex justify-center">
-          <div className="rounded-full bg-green-100 p-3">
-            <CheckCircle className="h-6 w-6 text-green-600" />
-          </div>
-        </div>
-        <p className="text-lg font-medium">OTP Verified</p>
-        <p className="text-gray-600">Now set your new password</p>
+      <div className="text-center space-y-2">
+        <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
+        <h3 className="text-lg font-semibold text-gray-900">Set New Password</h3>
+        <p className="text-sm text-gray-600">
+          Your identity has been verified. Please enter your new password.
+        </p>
       </div>
-      
+
       <div className="space-y-2">
         <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700">
           New Password
         </label>
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             id="newPassword"
-            type="password"
+            type={showPassword ? "text" : "password"}
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="Enter new password"
-            className="w-full pl-10"
+            className="w-full pr-10"
             required
           />
+          <button
+            type="button"
+            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            onClick={() => setShowPassword(!showPassword)}
+          >
+            {showPassword ? (
+              <EyeOff className="h-4 w-4 text-gray-400" />
+            ) : (
+              <Eye className="h-4 w-4 text-gray-400" />
+            )}
+          </button>
         </div>
+        {newPassword && (
+          <p className={`text-xs ${passwordValid ? 'text-green-600' : 'text-red-600'}`}>
+            {passwordValid ? '✓ Password meets requirements' : '✗ Password must be at least 6 characters'}
+          </p>
+        )}
       </div>
-      
+
       <div className="space-y-2">
         <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
           Confirm Password
         </label>
         <div className="relative">
-          <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
             id="confirmPassword"
-            type="password"
+            type={showConfirmPassword ? "text" : "password"}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             placeholder="Confirm new password"
-            className="w-full pl-10"
+            className="w-full pr-10"
             required
           />
+          <button
+            type="button"
+            className="absolute inset-y-0 right-0 pr-3 flex items-center"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+          >
+            {showConfirmPassword ? (
+              <EyeOff className="h-4 w-4 text-gray-400" />
+            ) : (
+              <Eye className="h-4 w-4 text-gray-400" />
+            )}
+          </button>
         </div>
+        {confirmPassword && (
+          <p className={`text-xs ${passwordsMatch ? 'text-green-600' : 'text-red-600'}`}>
+            {passwordsMatch ? '✓ Passwords match' : '✗ Passwords do not match'}
+          </p>
+        )}
       </div>
       
       {error && (
@@ -79,29 +113,31 @@ export const PasswordUpdateStep = ({
         </div>
       )}
       
-      <Button 
-        type="submit"
-        className="w-full"
-        disabled={loading}
-      >
-        {loading ? (
-          <span className="flex items-center">
-            <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
-            Updating...
-          </span>
-        ) : (
-          'Update Password'
-        )}
-      </Button>
-      
-      <div className="text-center">
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-sm text-gray-500 hover:text-gray-700"
+      <div className="space-y-3">
+        <Button 
+          type="submit"
+          className="w-full"
+          disabled={loading || !passwordValid || !passwordsMatch}
         >
-          Back to Login
-        </button>
+          {loading ? (
+            <span className="flex items-center">
+              <LucideLoader2 className="mr-2 h-4 w-4 animate-spin" />
+              Updating Password...
+            </span>
+          ) : (
+            'Update Password'
+          )}
+        </Button>
+        
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={onClose}
+          className="w-full"
+          disabled={loading}
+        >
+          Cancel
+        </Button>
       </div>
     </form>
   );
