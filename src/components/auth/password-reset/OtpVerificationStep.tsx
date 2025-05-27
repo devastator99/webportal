@@ -1,7 +1,7 @@
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LucideLoader2, AlertCircle, PhoneOff, Info, Mail } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface OtpVerificationStepProps {
   otp: string;
@@ -26,6 +26,8 @@ export const OtpVerificationStep = ({
   loading,
   error
 }: OtpVerificationStepProps) => {
+  const navigate = useNavigate();
+
   const handleOtpInputChange = (index: number, value: string) => {
     if (value.length <= 1 && /^\d*$/.test(value)) {
       const newOtp = otp.split('');
@@ -60,8 +62,8 @@ export const OtpVerificationStep = ({
     if (onSwitchToEmail) {
       onSwitchToEmail();
     } else {
-      // Fallback: reload page to go back to main auth flow where email reset is available
-      window.location.reload();
+      // Navigate to the forgot password page to access email reset
+      navigate('/forgot-password');
     }
   };
 
