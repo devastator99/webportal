@@ -1,7 +1,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { LucideLoader2, AlertCircle, PhoneOff } from 'lucide-react';
+import { LucideLoader2, AlertCircle, PhoneOff, Info } from 'lucide-react';
 
 interface OtpVerificationStepProps {
   otp: string;
@@ -79,6 +79,19 @@ export const OtpVerificationStep = ({
           Enter the 6-digit code sent to {phoneNumber}
         </p>
       </div>
+
+      {/* Helpful info when no error */}
+      {!error && (
+        <div className="text-sm p-3 rounded-md border bg-blue-50 border-blue-200 flex items-start gap-2">
+          <Info className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-blue-700 font-medium">Next Steps</p>
+            <p className="text-blue-600 text-xs mt-1">
+              If your phone number isn't registered, you'll be asked to enter your email address to link this phone number to your account.
+            </p>
+          </div>
+        </div>
+      )}
       
       {error && (
         <div className={`text-sm p-3 rounded-md border flex items-start gap-2 ${

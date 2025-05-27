@@ -106,34 +106,31 @@ export const verifyOtpCode = async (phoneNumber: string, otp: string): Promise<O
   }
 };
 
-// Helper function to get user ID by email
+// Helper function to get user ID by email using profiles table
 const getUserIdByEmail = async (email: string): Promise<string> => {
   try {
-    console.log('[SMS OTP] Looking up user by email:', email);
+    console.log('[SMS OTP] Looking up user by email in profiles table:', email);
     
-    const result = await supabase.functions.invoke('verify-users-exist', {
-      body: { emails: [email] }
-    });
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id')
+      .eq('email', email.toLowerCase().trim())
+      .single();
     
-    // Handle function invoke errors
-    if (result.error) {
-      console.error('[SMS OTP] Email lookup function error:', result.error);
+    if (error) {
+      console.error('[SMS OTP] Profile lookup error:', error);
+      if (error.code === 'PGRST116') {
+        throw new Error('No account found with this email address. Please check your email or create a new account.');
+      }
       throw new Error('Failed to lookup user account. Please try again.');
     }
     
-    // Handle function response errors
-    if (result.data?.error) {
-      console.error('[SMS OTP] Email lookup returned error:', result.data.error);
-      throw new Error(result.data.error);
-    }
-    
-    // Check if user was found
-    if (!result.data?.users || result.data.users.length === 0) {
+    if (!data) {
       throw new Error('No account found with this email address. Please check your email or create a new account.');
     }
     
-    console.log('[SMS OTP] User found by email');
-    return result.data.users[0].id;
+    console.log('[SMS OTP] User found by email in profiles table');
+    return data.id;
     
   } catch (error: any) {
     console.error('[SMS OTP] Error getting user ID:', error);
@@ -146,7 +143,7 @@ const updateUserPhone = async (userId: string, phoneNumber: string): Promise<voi
   try {
     console.log('[SMS OTP] Updating user phone for user:', userId);
     
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from('profiles')
       .update({ phone: phoneNumber })
       .eq('id', userId);
@@ -169,10 +166,10 @@ export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: 
   try {
     const normalizedPhone: string = phoneNumber.startsWith('+') ? phoneNumber : `+91${phoneNumber}`;
     
-    // Step 1: Get user ID by email
+    // Step 1: Get user ID by email from profiles table
     const userId = await getUserIdByEmail(email);
     
-    // Step 2: Update phone number
+    // Step 2: Update phone number in profiles table
     await updateUserPhone(userId, normalizedPhone);
     
     // Step 3: Verify OTP again - this time it should find the user
