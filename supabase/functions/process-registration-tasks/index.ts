@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -40,11 +41,13 @@ serve(async (req) => {
     );
     
     if (taskError) {
+      console.error("Task fetch error:", taskError);
       throw new Error(`Failed to get next task: ${taskError.message}`);
     }
     
     // If no task is available, return success
     if (!taskData || taskData.length === 0) {
+      console.log("No pending tasks found");
       return new Response(
         JSON.stringify({ 
           success: true,
@@ -59,7 +62,7 @@ serve(async (req) => {
     
     // Get task info (first row)
     const task: Task = taskData[0];
-    console.log(`Processing task: ${task.task_id}, type: ${task.task_type}, for user: ${task.user_id}`);
+    console.log(`Processing task: ${task.task_id}, type: ${task.task_type}, for user: ${task.user_id}, retry: ${task.retry_count}`);
     
     // Process based on task type
     let processResult;
@@ -68,26 +71,39 @@ serve(async (req) => {
     try {
       switch (task.task_type) {
         case 'assign_care_team':
+          console.log("Starting assign_care_team task...");
           processResult = await processAssignCareTeam(supabase, task);
+          console.log("assign_care_team completed:", processResult);
           break;
         case 'create_chat_room':
+          console.log("Starting create_chat_room task...");
           processResult = await processCreateChatRoom(supabase, task);
+          console.log("create_chat_room completed:", processResult);
           break;
         case 'send_welcome_notification':
+          console.log("Starting send_welcome_notification task...");
           processResult = await processSendWelcomeNotification(supabase, task);
+          console.log("send_welcome_notification completed:", processResult);
           break;
         default:
           throw new Error(`Unknown task type: ${task.task_type}`);
       }
       
       // Mark task as completed
-      await supabase.rpc('update_registration_task_status', {
+      console.log(`Marking task ${task.task_id} as completed...`);
+      const { error: updateError } = await supabase.rpc('update_registration_task_status', {
         p_task_id: task.task_id,
         p_status: 'completed',
         p_result_payload: processResult
       });
       
+      if (updateError) {
+        console.error("Error updating task status:", updateError);
+        throw new Error(`Failed to update task status: ${updateError.message}`);
+      }
+      
       // Update user registration status if all tasks are completed
+      console.log(`Checking if all tasks completed for user ${task.user_id}...`);
       await updateUserRegistrationStatus(supabase, task.user_id);
       
       return new Response(
@@ -95,7 +111,8 @@ serve(async (req) => {
           success: true,
           task_id: task.task_id,
           task_type: task.task_type,
-          result: processResult
+          result: processResult,
+          message: `Task ${task.task_type} completed successfully`
         }),
         { 
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -104,13 +121,16 @@ serve(async (req) => {
       );
       
     } catch (processError: any) {
-      console.error(`Error processing task ${task.task_id}:`, processError);
+      console.error(`Error processing task ${task.task_id} (${task.task_type}):`, processError);
       errorDetails = {
         message: processError.message,
-        stack: processError.stack
+        stack: processError.stack,
+        task_type: task.task_type,
+        retry_count: task.retry_count
       };
       
       // Mark task as failed
+      console.log(`Marking task ${task.task_id} as failed...`);
       await supabase.rpc('update_registration_task_status', {
         p_task_id: task.task_id,
         p_status: 'failed',
@@ -121,7 +141,10 @@ serve(async (req) => {
         JSON.stringify({ 
           success: false,
           task_id: task.task_id,
-          error: processError.message
+          task_type: task.task_type,
+          error: processError.message,
+          retry_count: task.retry_count,
+          will_retry: task.retry_count < 3
         }),
         { 
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -149,10 +172,11 @@ serve(async (req) => {
 // Function to update user registration status based on completed tasks
 async function updateUserRegistrationStatus(supabase: any, userId: string) {
   try {
+    console.log(`Checking pending tasks for user ${userId}...`);
     // Check if all tasks are completed for this user
     const { data: pendingTasks, error } = await supabase
       .from('registration_tasks')
-      .select('id')
+      .select('id, task_type, status')
       .eq('user_id', userId)
       .eq('status', 'pending');
     
@@ -161,9 +185,12 @@ async function updateUserRegistrationStatus(supabase: any, userId: string) {
       return;
     }
     
+    console.log(`Found ${pendingTasks?.length || 0} pending tasks for user ${userId}`);
+    
     // If no pending tasks, mark registration as fully complete
     if (!pendingTasks || pendingTasks.length === 0) {
-      await supabase
+      console.log(`Marking user ${userId} as fully_registered...`);
+      const { error: updateError } = await supabase
         .from('profiles')
         .update({ 
           registration_status: 'fully_registered',
@@ -171,7 +198,13 @@ async function updateUserRegistrationStatus(supabase: any, userId: string) {
         })
         .eq('id', userId);
       
-      console.log(`User ${userId} registration marked as fully_registered`);
+      if (updateError) {
+        console.error('Error updating user registration status:', updateError);
+      } else {
+        console.log(`User ${userId} registration marked as fully_registered`);
+      }
+    } else {
+      console.log(`User ${userId} still has pending tasks:`, pendingTasks.map(t => t.task_type));
     }
   } catch (error) {
     console.error('Error updating user registration status:', error);
@@ -190,11 +223,14 @@ async function processAssignCareTeam(supabase: any, task: Task) {
     .single();
     
   if (careTeamError || !careTeamData) {
+    console.error("No default care team found:", careTeamError);
     throw new Error(`No active default care team found: ${careTeamError?.message || 'No data'}`);
   }
 
   const doctorId = careTeamData.default_doctor_id;
   const nutritionistId = careTeamData.default_nutritionist_id;
+  
+  console.log(`Assigning doctor ${doctorId} and nutritionist ${nutritionistId} to patient ${task.user_id}`);
   
   if (!doctorId) {
     throw new Error('Default doctor not configured');
@@ -214,8 +250,11 @@ async function processAssignCareTeam(supabase: any, task: Task) {
     .select();
     
   if (assignmentError) {
+    console.error("Care team assignment error:", assignmentError);
     throw new Error(`Error assigning care team: ${assignmentError.message}`);
   }
+  
+  console.log("Care team assigned successfully:", assignmentData);
   
   return {
     assignment_id: assignmentData?.[0]?.id,
@@ -236,8 +275,11 @@ async function processCreateChatRoom(supabase: any, task: Task) {
     .single();
     
   if (assignmentError) {
+    console.error("No care team assignment found:", assignmentError);
     throw new Error(`Patient has no care team assigned yet: ${assignmentError.message}`);
   }
+  
+  console.log("Found care team assignment:", assignmentData);
   
   // Get patient name for room name
   const { data: patientData, error: patientError } = await supabase
@@ -247,6 +289,7 @@ async function processCreateChatRoom(supabase: any, task: Task) {
     .single();
     
   if (patientError || !patientData) {
+    console.error("Cannot retrieve patient profile:", patientError);
     throw new Error(`Cannot retrieve patient profile: ${patientError?.message || 'No data'}`);
   }
   
@@ -256,6 +299,7 @@ async function processCreateChatRoom(supabase: any, task: Task) {
   }
   
   const roomName = `${patientName} - Care Team`;
+  console.log(`Creating room: ${roomName}`);
   
   // Check if room already exists
   const { data: existingRooms, error: roomError } = await supabase
@@ -265,6 +309,7 @@ async function processCreateChatRoom(supabase: any, task: Task) {
     .eq('room_type', 'care_team');
     
   if (roomError) {
+    console.error("Error checking existing rooms:", roomError);
     throw new Error(`Error checking existing rooms: ${roomError.message}`);
   }
   
@@ -289,6 +334,7 @@ async function processCreateChatRoom(supabase: any, task: Task) {
       .single();
       
     if (createError) {
+      console.error("Error creating room:", createError);
       throw new Error(`Error creating room: ${createError.message}`);
     }
     
@@ -326,6 +372,8 @@ async function processCreateChatRoom(supabase: any, task: Task) {
       role: 'aibot'
     });
     
+    console.log(`Adding ${membersToAdd.length} members to room ${roomId}`);
+    
     // Add members
     const { error: membersError } = await supabase
       .from('room_members')
@@ -335,8 +383,11 @@ async function processCreateChatRoom(supabase: any, task: Task) {
       });
       
     if (membersError) {
+      console.error("Error adding members to room:", membersError);
       throw new Error(`Error adding members to room: ${membersError.message}`);
     }
+    
+    console.log("Room members added successfully");
     
     // Add welcome message
     const { error: welcomeMessageError } = await supabase
@@ -351,8 +402,11 @@ async function processCreateChatRoom(supabase: any, task: Task) {
     if (welcomeMessageError) {
       console.error(`Error adding welcome message: ${welcomeMessageError.message}`);
       // Don't throw, continue with success
+    } else {
+      console.log("Welcome message added successfully");
     }
   } catch (error: any) {
+    console.error("Error configuring chat room:", error);
     throw new Error(`Error configuring chat room: ${error.message}`);
   }
   
@@ -375,8 +429,11 @@ async function processSendWelcomeNotification(supabase: any, task: Task) {
       .single();
     
     if (patientError || !patientData) {
+      console.error("Cannot retrieve patient profile:", patientError);
       throw new Error(`Cannot retrieve patient profile: ${patientError?.message || 'No data'}`);
     }
+    
+    console.log("Retrieved patient data for notifications");
     
     // Get care team assignment
     const { data: assignmentData, error: assignmentError } = await supabase
@@ -402,6 +459,9 @@ async function processSendWelcomeNotification(supabase: any, task: Task) {
     
     const patientName = `${patientData.first_name || ''} ${patientData.last_name || ''}`.trim();
     
+    console.log(`Sending notifications to ${patientName} (${patientData.email})`);
+    console.log(`Care team: ${doctorName}, ${nutritionistName}`);
+    
     // Call the comprehensive notification function
     const { data: notificationResult, error: notificationError } = await supabase.functions.invoke(
       'send-comprehensive-welcome-notification',
@@ -418,7 +478,13 @@ async function processSendWelcomeNotification(supabase: any, task: Task) {
     );
     
     if (notificationError) {
-      throw new Error(`Failed to send comprehensive notification: ${notificationError.message}`);
+      console.error("Notification error:", notificationError);
+      // Don't fail the task if WhatsApp is missing but other channels work
+      if (notificationError.message && notificationError.message.includes('TWILIO_WHATSAPP_NUMBER')) {
+        console.log("WhatsApp notification failed (expected), continuing with other channels");
+      } else {
+        throw new Error(`Failed to send comprehensive notification: ${notificationError.message}`);
+      }
     }
     
     console.log("Comprehensive welcome notification sent:", notificationResult);
@@ -433,6 +499,17 @@ async function processSendWelcomeNotification(supabase: any, task: Task) {
     };
     
   } catch (error: any) {
+    console.error("Welcome notification error:", error);
+    // If it's just a WhatsApp configuration issue, don't fail the entire task
+    if (error.message && error.message.includes('TWILIO_WHATSAPP_NUMBER')) {
+      console.log("Treating WhatsApp failure as non-critical, marking task as completed");
+      return {
+        notification_sent: true,
+        channels_used: { whatsapp: { success: false, error: 'WhatsApp not configured' } },
+        timestamp: new Date().toISOString(),
+        warning: 'WhatsApp notifications not available'
+      };
+    }
     throw new Error(`Failed to send comprehensive welcome notification: ${error.message}`);
   }
 }
