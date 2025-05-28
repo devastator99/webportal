@@ -1,3 +1,4 @@
+
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -68,7 +69,11 @@ class AuthService {
   }
 
   // Fetch user role with proper error handling and loading state management
-  private async fetchUserRole(userId: string, setUserRole: (role: UserRole) => void): Promise<void> {
+  private async fetchUserRole(
+    userId: string, 
+    setUserRole: (role: UserRole) => void,
+    setIsLoadingRole: (loading: boolean) => void
+  ): Promise<void> {
     try {
       console.log("Fetching user role for:", userId);
       const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
@@ -89,6 +94,9 @@ class AuthService {
     } catch (error) {
       console.error("Exception in role fetching:", error);
       setUserRole(null);
+    } finally {
+      // Always set loading to false when role fetching is complete
+      setIsLoadingRole(false);
     }
   }
 
@@ -97,7 +105,8 @@ class AuthService {
     setUser: (user: User | null) => void,
     setSession: (session: Session | null) => void,
     setUserRole: (role: UserRole) => void,
-    setIsLoading: (loading: boolean) => void
+    setIsLoading: (loading: boolean) => void,
+    setIsLoadingRole: (loading: boolean) => void
   ): void {
     console.log('Initializing auth state');
     
@@ -111,6 +120,7 @@ class AuthService {
           setSession(null);
           setUser(null);
           setUserRole(null);
+          setIsLoadingRole(false);
           return;
         }
         
@@ -120,10 +130,8 @@ class AuthService {
           
           // Fetch user role with proper error handling
           if (newSession.user) {
-            // Use setTimeout to avoid potential deadlocks
-            setTimeout(() => {
-              this.fetchUserRole(newSession.user.id, setUserRole);
-            }, 0);
+            setIsLoadingRole(true);
+            this.fetchUserRole(newSession.user.id, setUserRole, setIsLoadingRole);
           }
         } else if (event === 'TOKEN_REFRESHED' && newSession) {
           setSession(newSession);
@@ -144,7 +152,7 @@ class AuthService {
     };
     
     // Get initial session state
-    this.getInitialSession(setUser, setSession, setUserRole, setIsLoading);
+    this.getInitialSession(setUser, setSession, setUserRole, setIsLoading, setIsLoadingRole);
   }
 
   // Get initial session from localStorage
@@ -152,7 +160,8 @@ class AuthService {
     setUser: (user: User | null) => void,
     setSession: (session: Session | null) => void,
     setUserRole: (role: UserRole) => void,
-    setIsLoading: (loading: boolean) => void
+    setIsLoading: (loading: boolean) => void,
+    setIsLoadingRole: (loading: boolean) => void
   ): Promise<void> {
     try {
       const { data: { session: initialSession } } = await supabase.auth.getSession();
@@ -163,18 +172,18 @@ class AuthService {
         
         // Fetch user role with proper error handling
         if (initialSession.user) {
-          // Use setTimeout to avoid potential deadlocks
-          setTimeout(() => {
-            this.fetchUserRole(initialSession.user.id, setUserRole);
-          }, 0);
+          setIsLoadingRole(true);
+          this.fetchUserRole(initialSession.user.id, setUserRole, setIsLoadingRole);
         }
       } else {
         console.log("No initial session found");
-        setUserRole(null); // Ensure role loading is complete even without session
+        setUserRole(null);
+        setIsLoadingRole(false);
       }
     } catch (error) {
       console.error("Error fetching initial session:", error);
-      setUserRole(null); // Ensure role loading is complete on error
+      setUserRole(null);
+      setIsLoadingRole(false);
     } finally {
       setIsLoading(false);
     }

@@ -96,20 +96,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log("Initializing auth state");
     authStateInitializedRef.current = true;
     
-    // Enhanced role setter that tracks loading state
-    const enhancedSetUserRole = (role: UserRole) => {
-      console.log("Setting user role:", role);
-      setIsLoadingRole(false);
-      setUserRole(role);
-    };
-
     // Enhanced user setter that triggers role loading
     const enhancedSetUser = (newUser: User | null) => {
       console.log("Setting user:", newUser?.email || 'null');
       setUser(newUser);
-      if (newUser) {
-        setIsLoadingRole(true);
-      } else {
+      if (!newUser) {
         setIsLoadingRole(false);
         setUserRole(null);
       }
@@ -119,8 +110,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     authServiceRef.current.initializeAuth(
       enhancedSetUser, 
       setSession, 
-      enhancedSetUserRole, 
-      setIsLoading
+      setUserRole, 
+      setIsLoading,
+      setIsLoadingRole
     );
     
     return () => {
