@@ -100,27 +100,48 @@ export const findUserByPhone = async (phoneNumber: string) => {
     console.log("Looking for phone number:", phoneNumber);
     
     // Normalize phone number variants to check multiple formats
+    const cleanPhone = phoneNumber.replace(/[^\d+]/g, ''); // Remove all non-digit and non-plus characters
     const phoneVariants = [
       phoneNumber.trim(),
+      cleanPhone,
       phoneNumber.replace(/\s+/g, ''), // Remove spaces
       phoneNumber.replace(/[-\s]/g, ''), // Remove dashes and spaces
     ];
     
     // Add +91 prefix variants if not present
     phoneVariants.forEach(variant => {
-      if (!variant.startsWith('+91') && !variant.startsWith('91')) {
-        phoneVariants.push('+91' + variant);
-        phoneVariants.push('91' + variant);
+      const digitsOnly = variant.replace(/\D/g, ''); // Get only digits
+      
+      if (digitsOnly.length === 10) {
+        // 10 digit number, add country code variants
+        phoneVariants.push('+91' + digitsOnly);
+        phoneVariants.push('91' + digitsOnly);
       }
-      if (variant.startsWith('91') && !variant.startsWith('+91')) {
+      
+      if (variant.startsWith('91') && !variant.startsWith('+91') && digitsOnly.length === 12) {
         phoneVariants.push('+' + variant);
+      }
+      
+      if (variant.startsWith('+91') && digitsOnly.length === 12) {
+        phoneVariants.push(variant.substring(1)); // Remove the +
       }
     });
     
-    // Remove duplicates
-    const uniqueVariants = [...new Set(phoneVariants)];
+    // Remove duplicates and empty strings
+    const uniqueVariants = [...new Set(phoneVariants)].filter(v => v.length > 0);
     
     console.log("Checking phone variants:", uniqueVariants);
+    
+    // First, let's see ALL phone numbers in the database for debugging
+    const { data: allProfiles, error: allError } = await supabase
+      .from('profiles')
+      .select('id, first_name, last_name, phone')
+      .not('phone', 'is', null);
+    
+    console.log("All phone numbers in database:", allProfiles?.map(p => ({ 
+      name: `${p.first_name} ${p.last_name}`, 
+      phone: p.phone 
+    })));
     
     // Try to find user by any of the phone variants
     for (const variant of uniqueVariants) {
@@ -165,7 +186,11 @@ export const findUserByPhone = async (phoneNumber: string) => {
           role: userRole?.role,
           registration_status: registrationStatus,
           phone_normalized: variant,
-          phone_variants_checked: uniqueVariants
+          phone_variants_checked: uniqueVariants,
+          all_database_phones: allProfiles?.map(p => ({ 
+            name: `${p.first_name} ${p.last_name}`, 
+            phone: p.phone 
+          }))
         };
       }
     }
@@ -174,7 +199,11 @@ export const findUserByPhone = async (phoneNumber: string) => {
     return { 
       success: false, 
       error: "User not found",
-      phone_variants_checked: uniqueVariants 
+      phone_variants_checked: uniqueVariants,
+      all_database_phones: allProfiles?.map(p => ({ 
+        name: `${p.first_name} ${p.last_name}`, 
+        phone: p.phone 
+      }))
     };
     
   } catch (error: any) {

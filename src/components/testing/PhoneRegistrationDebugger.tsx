@@ -60,7 +60,7 @@ export const PhoneRegistrationDebugger: React.FC = () => {
             <Input
               value={phoneNumber}
               onChange={(e) => setPhoneNumber(e.target.value)}
-              placeholder="Enter phone number (e.g., 9686999433)"
+              placeholder="Enter phone number (e.g., 9686999433 or +919686999433)"
             />
             <Button onClick={handlePhoneCheck} disabled={isLoading}>
               Check Phone
@@ -116,6 +116,20 @@ export const PhoneRegistrationDebugger: React.FC = () => {
                     {results.data.phone_variants_checked && (
                       <div><strong>Phone Variants Checked:</strong> {results.data.phone_variants_checked.join(', ')}</div>
                     )}
+                  </div>
+                )}
+                
+                {/* Show all phone numbers in database for debugging */}
+                {results.data.all_database_phones && results.data.all_database_phones.length > 0 && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded">
+                    <div><strong>All Phone Numbers in Database:</strong></div>
+                    <div className="text-sm space-y-1 mt-2">
+                      {results.data.all_database_phones.map((item: any, index: number) => (
+                        <div key={index}>
+                          {item.name}: <code className="bg-gray-200 px-1 rounded">{item.phone}</code>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
