@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, createUserRole } from "@/integrations/supabase/client";
@@ -64,7 +65,7 @@ export const useAuthHandlers = () => {
         throw new Error("Password must be at least 6 characters long");
       }
 
-      // Use phone as primary identifier, email as secondary
+      // Use identifier as provided - if it's a phone, format it properly for email
       const isEmail = identifier.includes('@');
       const signUpData = {
         email: isEmail ? identifier : `${identifier.replace(/[^0-9]/g, '')}@temp.placeholder`,
@@ -82,7 +83,6 @@ export const useAuthHandlers = () => {
 
       console.log("Attempting Supabase auth signup...");
       
-      // Retry the signup with better error handling
       const { data: authData, error: signUpError } = await retryWithDelay(async () => {
         return await supabase.auth.signUp(signUpData);
       });
@@ -90,7 +90,6 @@ export const useAuthHandlers = () => {
       if (signUpError) {
         console.error("Auth signup error:", signUpError);
         
-        // Provide more specific error messages based on the actual error
         if (signUpError.message?.includes('email address')) {
           throw new Error("This email address is already registered or invalid");
         } else if (signUpError.message?.includes('password')) {
@@ -98,7 +97,7 @@ export const useAuthHandlers = () => {
         } else if (signUpError.message?.includes('signup disabled')) {
           throw new Error("New user registration is currently disabled. Please contact support.");
         } else if (signUpError.name === 'AuthRetryableFetchError' || signUpError.message?.includes('Failed to fetch')) {
-          throw new Error("Unable to connect to authentication service. Please check Supabase configuration or try again later.");
+          throw new Error("Unable to connect to authentication service. Please check your internet connection and try again.");
         } else {
           throw new Error(`Registration failed: ${signUpError.message || "Unknown error occurred"}`);
         }
@@ -110,11 +109,11 @@ export const useAuthHandlers = () => {
 
       console.log("Auth user created successfully:", authData.user.id);
 
-      // Step 2: Create user role
+      // Step 2: Create user role with improved error handling
       try {
         console.log("Creating user role...");
-        await createUserRole(authData.user.id, userType);
-        console.log("User role created successfully");
+        const roleResult = await createUserRole(authData.user.id, userType);
+        console.log("User role created successfully:", roleResult);
       } catch (roleError: any) {
         console.error("Error creating user role:", roleError);
         throw new Error("Account created but role assignment failed. Please contact support.");
@@ -124,7 +123,7 @@ export const useAuthHandlers = () => {
       if (userType === "patient" && patientData) {
         try {
           console.log("Creating patient details...");
-          const { error: patientError } = await supabase.rpc(
+          const { data: patientResult, error: patientError } = await supabase.rpc(
             'upsert_patient_details',
             {
               p_user_id: authData.user.id,
@@ -142,9 +141,15 @@ export const useAuthHandlers = () => {
           
           if (patientError) {
             console.error("Error creating patient details:", patientError);
-            // Don't throw here as the main account was created successfully
             toast({
               title: "Account Created",
+              description: "Your account was created successfully, but some additional details could not be saved. You can update them later in your profile.",
+              variant: "default",
+            });
+          } else if (patientResult && typeof patientResult === 'object' && patientResult.success === false) {
+            console.error("Patient details creation failed:", patientResult);
+            toast({
+              title: "Account Created", 
               description: "Your account was created successfully, but some additional details could not be saved. You can update them later in your profile.",
               variant: "default",
             });
@@ -163,11 +168,10 @@ export const useAuthHandlers = () => {
     } catch (error: any) {
       console.error("Registration error:", error);
       
-      // Enhanced error handling with user-friendly messages
       let userMessage = "Registration failed. Please try again.";
       
       if (error.name === 'AuthRetryableFetchError' || error.message?.includes('Failed to fetch')) {
-        userMessage = "Unable to connect to authentication service. This may be due to Supabase configuration issues. Please contact support.";
+        userMessage = "Unable to connect to the service. Please check your internet connection and try again.";
       } else if (error.message?.includes('email')) {
         userMessage = "Email address issue - it may already be in use or invalid.";
       } else if (error.message?.includes('password')) {
@@ -216,7 +220,7 @@ export const useAuthHandlers = () => {
         } else if (signInError.message?.includes('email not confirmed')) {
           throw new Error("Please check your email and click the confirmation link before signing in.");
         } else if (signInError.name === 'AuthRetryableFetchError' || signInError.message?.includes('Failed to fetch')) {
-          throw new Error("Unable to connect to authentication service. Please contact support if this persists.");
+          throw new Error("Unable to connect to the service. Please check your internet connection and try again.");
         } else {
           throw new Error("Sign in failed. Please try again.");
         }

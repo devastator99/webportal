@@ -2070,7 +2070,7 @@ export type Database = {
           p_user_id: string
           p_role: Database["public"]["Enums"]["user_type"]
         }
-        Returns: string
+        Returns: Json
       }
       delete_health_plan_item: {
         Args: { p_item_id: string }
@@ -2819,17 +2819,18 @@ export type Database = {
       }
       upsert_patient_details: {
         Args: {
-          p_patient_id: string
-          p_date_of_birth?: string
+          p_user_id: string
+          p_age?: number
           p_gender?: string
           p_blood_group?: string
-          p_height?: number
-          p_weight?: number
           p_allergies?: string
-          p_chronic_conditions?: string
           p_emergency_contact?: string
+          p_height?: number
+          p_birth_date?: string
+          p_food_habit?: string
+          p_current_medical_conditions?: string
         }
-        Returns: string
+        Returns: Json
       }
       upsert_push_subscription: {
         Args: {

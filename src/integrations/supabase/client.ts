@@ -52,6 +52,12 @@ export const createUserRole = async (userId: string, role: 'patient' | 'doctor' 
       throw new Error(`Failed to create user role: ${error.message}`);
     }
 
+    // The function now returns jsonb, check if it was successful
+    if (data && typeof data === 'object' && data.success === false) {
+      console.error('User role creation failed:', data);
+      throw new Error(`Failed to create user role: ${data.error || 'Unknown error'}`);
+    }
+
     console.log('User role created successfully:', data);
     return { success: true, data };
   } catch (error: any) {

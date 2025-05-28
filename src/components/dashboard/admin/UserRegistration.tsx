@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { createUserRole, supabase } from "@/integrations/supabase/client";
 import { UserPlus, Eye, EyeOff } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 
 export const UserRegistration = () => {
   const { toast } = useToast();
@@ -80,8 +79,8 @@ export const UserRegistration = () => {
     try {
       console.log("Starting user registration process...");
       
-      // Determine primary identifier (phone is required, email is optional)
-      const primaryIdentifier = email || phone; // Use email if provided, otherwise phone
+      // Use phone as primary identifier
+      const primaryIdentifier = email || phone;
       
       console.log("Creating auth user with identifier:", primaryIdentifier);
       
@@ -94,8 +93,8 @@ export const UserRegistration = () => {
             user_type: role,
             first_name: firstName,
             last_name: lastName,
-            phone: phone, // Always store phone in metadata
-            primary_contact: phone // Store phone as primary contact method
+            phone: phone,
+            primary_contact: phone
           }
         }
       });
@@ -111,11 +110,11 @@ export const UserRegistration = () => {
 
       console.log("Auth user created successfully:", authData.user.id);
 
-      // Step 2: Create user role using the new safe function
+      // Step 2: Create user role using the updated function
       try {
         console.log("Creating user role...");
-        await createUserRole(authData.user.id, role);
-        console.log("User role created successfully");
+        const roleResult = await createUserRole(authData.user.id, role);
+        console.log("User role created successfully:", roleResult);
       } catch (roleError: any) {
         console.error("Error creating user role:", roleError);
         throw new Error(`Failed to assign user role: ${roleError.message}`);
@@ -133,7 +132,7 @@ export const UserRegistration = () => {
               p_gender: gender,
               p_blood_group: bloodGroup,
               p_allergies: allergies,
-              p_emergency_contact: emergencyContact || null, // Allow null for optional field
+              p_emergency_contact: emergencyContact || null,
               p_height: null,
               p_birth_date: null,
               p_food_habit: null,
@@ -143,7 +142,13 @@ export const UserRegistration = () => {
           
           if (patientError) {
             console.error("Error creating patient details:", patientError);
-            // Don't throw here as user role creation was successful
+            toast({
+              title: "Partial success",
+              description: "User created but some patient details could not be saved",
+              variant: "default",
+            });
+          } else if (patientResult && typeof patientResult === 'object' && patientResult.success === false) {
+            console.error("Patient details creation failed:", patientResult);
             toast({
               title: "Partial success",
               description: "User created but some patient details could not be saved",
@@ -154,7 +159,6 @@ export const UserRegistration = () => {
           }
         } catch (patientError: any) {
           console.error("Exception creating patient details:", patientError);
-          // Don't throw here as user role creation was successful
         }
       }
 
@@ -182,7 +186,6 @@ export const UserRegistration = () => {
     } catch (error: any) {
       console.error("Registration error:", error);
       
-      // Provide more specific error messages
       let errorMessage = "An unexpected error occurred during registration";
       
       if (error.message?.includes("email address")) {
