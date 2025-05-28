@@ -8,21 +8,21 @@ export const verifyRegistrationData = async (email: string) => {
     console.log("Email:", email);
     
     // Get user from auth
-    const { data: authUser, error: authError } = await supabase.auth.admin.listUsers();
+    const { data: { users }, error: authError } = await supabase.auth.admin.listUsers();
     
     if (authError) {
       console.error("Error fetching auth users:", authError);
       return { success: false, error: authError.message };
     }
     
-    const user = authUser.users.find(u => u.email === email);
+    const user = users.find(u => u.email === email);
     if (!user) {
       console.log("User not found in auth.users");
       return { success: false, error: "User not found" };
     }
     
     console.log("Auth user metadata:", user.user_metadata);
-    console.log("Raw user metadata:", user.raw_user_meta_data);
+    console.log("Raw user metadata:", user.user_metadata);
     
     // Check profiles table
     const { data: profile, error: profileError } = await supabase

@@ -186,3 +186,59 @@ export const resetPasswordWithPhone = async (phoneNumber: string, newPassword: s
     };
   }
 };
+
+// Add the missing email-related functions that usePasswordResetActions expects
+export const sendOtpToPhone = sendSmsOtp;
+
+export const sendOtpToEmail = async (email: string): Promise<void> => {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/update-password`,
+  });
+  
+  if (error) {
+    throw new Error(error.message);
+  }
+};
+
+export const verifyOtpCode = async (contact: string, otp: string, method: 'sms' | 'email'): Promise<{ needsEmailConfirmation?: boolean; sessionToken?: string }> => {
+  if (method === 'sms') {
+    const result = await verifySmsOtp(contact, otp);
+    if (result.success) {
+      return { sessionToken: 'sms_verified' };
+    } else {
+      throw new Error(result.message);
+    }
+  } else {
+    // For email OTP verification
+    const { error } = await supabase.auth.verifyOtp({
+      email: contact,
+      token: otp,
+      type: 'email'
+    });
+    
+    if (error) {
+      throw new Error(error.message);
+    }
+    
+    return { sessionToken: 'email_verified' };
+  }
+};
+
+export const linkPhoneToEmail = async (email: string, phoneNumber: string, otp: string): Promise<string> => {
+  // This would be implemented if we need to link phone to existing email account
+  throw new Error('Phone to email linking not implemented yet');
+};
+
+export const updatePasswordWithToken = async (sessionToken: string, newPassword: string): Promise<void> => {
+  if (sessionToken === 'sms_verified' || sessionToken === 'email_verified') {
+    const { error } = await supabase.auth.updateUser({ 
+      password: newPassword 
+    });
+    
+    if (error) {
+      throw new Error(error.message);
+    }
+  } else {
+    throw new Error('Invalid session token');
+  }
+};
