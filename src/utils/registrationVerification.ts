@@ -7,15 +7,16 @@ export const verifyRegistrationData = async (email: string) => {
     console.log("=== VERIFYING REGISTRATION DATA ===");
     console.log("Email:", email);
     
-    // Get user from auth
-    const { data: { users }, error: authError } = await supabase.auth.admin.listUsers();
+    // Get user from auth with proper typing
+    const { data, error: authError } = await supabase.auth.admin.listUsers();
     
     if (authError) {
       console.error("Error fetching auth users:", authError);
       return { success: false, error: authError.message };
     }
     
-    const user = users.find(u => u.email === email);
+    // Find user by email with proper null checking
+    const user = data.users?.find((u: any) => u.email === email);
     if (!user) {
       console.log("User not found in auth.users");
       return { success: false, error: "User not found" };
