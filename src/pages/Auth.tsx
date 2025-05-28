@@ -12,6 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { UserRegistrationStatus } from "@/types/registration";
 import { RegistrationProgressReport } from "@/components/auth/RegistrationProgressReport";
+import { PhoneRegistrationDebugger } from "@/components/testing/PhoneRegistrationDebugger";
 
 const Auth = () => {
   const { user, userRole, isLoading } = useAuth();
@@ -23,6 +24,7 @@ const Auth = () => {
   const [registeredUser, setRegisteredUser] = useState<any>(null);
   const [isRegistrationFlow, setIsRegistrationFlow] = useState(false);
   const [isCheckingRegistration, setIsCheckingRegistration] = useState(false);
+  const [showDebugger, setShowDebugger] = useState(false);
   
   const isRegistration = location.pathname.includes('/register');
 
@@ -243,6 +245,23 @@ const Auth = () => {
               showLinks={true}
             />
           </div>
+          
+          {/* Add debug button for testing */}
+          <div className="mt-4 text-center">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowDebugger(!showDebugger)}
+              className="text-xs"
+            >
+              {showDebugger ? 'Hide' : 'Show'} Registration Debugger
+            </Button>
+          </div>
+          
+          {showDebugger && (
+            <div className="mt-4">
+              <PhoneRegistrationDebugger />
+            </div>
+          )}
         </div>
       </div>
     );
@@ -276,6 +295,23 @@ const Auth = () => {
                 />
               </div>
             </ScrollArea>
+            
+            {/* Add debug button for registration page too */}
+            <div className="mt-4 text-center">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowDebugger(!showDebugger)}
+                className="text-xs"
+              >
+                {showDebugger ? 'Hide' : 'Show'} Registration Debugger
+              </Button>
+            </div>
+            
+            {showDebugger && (
+              <div className="mt-4">
+                <PhoneRegistrationDebugger />
+              </div>
+            )}
           </div>
         )}
         

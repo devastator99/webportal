@@ -99,42 +99,132 @@ export const findUserByPhone = async (phoneNumber: string) => {
     console.log("=== FINDING USER BY PHONE ===");
     console.log("Looking for phone number:", phoneNumber);
     
-    // Normalize phone number (add +91 if not present)
-    let normalizedPhone = phoneNumber.trim();
-    if (!normalizedPhone.startsWith('+')) {
-      normalizedPhone = '+91' + normalizedPhone;
+    // Normalize phone number variants to check multiple formats
+    const phoneVariants = [
+      phoneNumber.trim(),
+      phoneNumber.replace(/\s+/g, ''), // Remove spaces
+      phoneNumber.replace(/[-\s]/g, ''), // Remove dashes and spaces
+    ];
+    
+    // Add +91 prefix variants if not present
+    phoneVariants.forEach(variant => {
+      if (!variant.startsWith('+91') && !variant.startsWith('91')) {
+        phoneVariants.push('+91' + variant);
+        phoneVariants.push('91' + variant);
+      }
+      if (variant.startsWith('91') && !variant.startsWith('+91')) {
+        phoneVariants.push('+' + variant);
+      }
+    });
+    
+    // Remove duplicates
+    const uniqueVariants = [...new Set(phoneVariants)];
+    
+    console.log("Checking phone variants:", uniqueVariants);
+    
+    // Try to find user by any of the phone variants
+    for (const variant of uniqueVariants) {
+      console.log("Checking variant:", variant);
+      
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('phone', variant);
+      
+      console.log(`Profiles found for ${variant}:`, profiles);
+      
+      if (profileError) {
+        console.error(`Profile search error for ${variant}:`, profileError);
+        continue;
+      }
+      
+      if (profiles && profiles.length > 0) {
+        const profile = profiles[0];
+        console.log("Found user profile:", profile);
+        
+        // Get user role
+        const { data: userRole, error: roleError } = await supabase
+          .from('user_roles')
+          .select('*')
+          .eq('user_id', profile.id)
+          .single();
+        
+        console.log("User role:", userRole);
+        
+        // Get registration status
+        const { data: registrationStatus, error: regError } = await supabase.rpc(
+          'get_user_registration_status_safe',
+          { p_user_id: profile.id }
+        );
+        
+        console.log("Registration status:", registrationStatus);
+        
+        return {
+          success: true,
+          user: profile,
+          role: userRole?.role,
+          registration_status: registrationStatus,
+          phone_normalized: variant,
+          phone_variants_checked: uniqueVariants
+        };
+      }
     }
     
-    console.log("Normalized phone number:", normalizedPhone);
-    
-    // Try to find user by phone in profiles table
-    const { data: profiles, error: profileError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('phone', normalizedPhone);
-    
-    console.log("Profiles found:", profiles);
-    if (profileError) {
-      console.error("Profile search error:", profileError);
-      return { success: false, error: profileError.message };
-    }
-    
-    if (!profiles || profiles.length === 0) {
-      console.log("No user found with phone number:", normalizedPhone);
-      return { success: false, error: "User not found" };
-    }
-    
-    const profile = profiles[0];
-    console.log("Found user profile:", profile);
-    
-    return {
-      success: true,
-      user: profile,
-      phone_normalized: normalizedPhone
+    console.log("No user found with any phone number variant");
+    return { 
+      success: false, 
+      error: "User not found",
+      phone_variants_checked: uniqueVariants 
     };
     
   } catch (error: any) {
     console.error("Error finding user by phone:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Helper to check registration status by email
+export const checkRegistrationByEmail = async (email: string) => {
+  try {
+    console.log("=== CHECKING REGISTRATION BY EMAIL ===");
+    console.log("Email:", email);
+    
+    // First get the user from profiles using a direct query
+    const { data: profiles, error: profileError } = await supabase
+      .from('profiles')
+      .select('*, user_roles(role)')
+      .or(`id.in.(select id from auth.users where email='${email}')`);
+    
+    if (profileError) {
+      console.error("Error finding profile by email:", profileError);
+      return { success: false, error: profileError.message };
+    }
+    
+    if (!profiles || profiles.length === 0) {
+      console.log("No profile found for email:", email);
+      return { success: false, error: "No profile found for this email" };
+    }
+    
+    const profile = profiles[0];
+    console.log("Found profile:", profile);
+    
+    // Get registration status
+    const { data: registrationStatus, error: regError } = await supabase.rpc(
+      'get_user_registration_status_safe',
+      { p_user_id: profile.id }
+    );
+    
+    console.log("Registration status:", registrationStatus);
+    
+    return {
+      success: true,
+      profile,
+      registration_status: registrationStatus,
+      phone_number: profile.phone
+    };
+    
+  } catch (error: any) {
+    console.error("Error checking registration by email:", error);
     return { success: false, error: error.message };
   }
 };
