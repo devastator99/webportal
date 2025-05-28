@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, createUserRole } from "@/integrations/supabase/client";
@@ -82,7 +81,6 @@ export const useAuthHandlers = () => {
       };
 
       console.log("Attempting Supabase auth signup...");
-      console.log("Supabase URL:", supabase.supabaseUrl);
       
       // Retry the signup with better error handling
       const { data: authData, error: signUpError } = await retryWithDelay(async () => {
@@ -100,7 +98,7 @@ export const useAuthHandlers = () => {
         } else if (signUpError.message?.includes('signup disabled')) {
           throw new Error("New user registration is currently disabled. Please contact support.");
         } else if (signUpError.name === 'AuthRetryableFetchError' || signUpError.message?.includes('Failed to fetch')) {
-          throw new Error("Unable to connect to authentication service. Please check if Supabase is properly configured or try again later.");
+          throw new Error("Unable to connect to authentication service. Please check Supabase configuration or try again later.");
         } else {
           throw new Error(`Registration failed: ${signUpError.message || "Unknown error occurred"}`);
         }
