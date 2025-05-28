@@ -101,6 +101,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showSmsOtpReset, setShowSmsOtpReset] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const { toast } = useToast();
 
   const activeSchema = type === "login" 
@@ -198,6 +199,9 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
         }
       }
 
+      // Reset retry count on new attempt
+      setRetryCount(0);
+
       if (type === "register" && userType === "patient") {
         const birthDateFormatted = data.birthDate ? new Date(data.birthDate).toISOString().split('T')[0] : null;
         
@@ -225,11 +229,30 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
       }
     } catch (error) {
       console.error("Form submission error:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: error instanceof Error ? error.message : "An error occurred"
-      });
+      setRetryCount(prev => prev + 1);
+      
+      // Enhanced error message for network issues
+      if (error instanceof Error && (error.message.includes('Network') || error.message.includes('Failed to fetch'))) {
+        toast({
+          variant: "destructive",
+          title: "Connection Issue",
+          description: `${error.message} ${retryCount > 0 ? `(Attempt ${retryCount + 1})` : ''}`,
+          action: retryCount < 3 ? (
+            <button 
+              onClick={() => handleSubmit(data)}
+              className="text-sm bg-white text-red-600 px-3 py-1 rounded hover:bg-gray-100"
+            >
+              Retry
+            </button>
+          ) : undefined
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: error instanceof Error ? error.message : "An error occurred"
+        });
+      }
     }
   };
 
@@ -264,7 +287,23 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
       >
         {error && (
           <Alert variant="destructive" className="bg-red-100 border-red-200 text-red-600">
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>
+              {error}
+              {(error.includes('Network') || error.includes('connection')) && (
+                <div className="mt-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => form.handleSubmit(handleSubmit)()}
+                    disabled={loading}
+                    className="bg-white text-red-600 border-red-300 hover:bg-red-50"
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              )}
+            </AlertDescription>
           </Alert>
         )}
 

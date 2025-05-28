@@ -1,9 +1,8 @@
 
-import { useState } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { supabase, createUserRole } from "@/integrations/supabase/client";
+import { UserRole } from "@/types/auth";
 
 export interface PatientData {
   age?: string;
@@ -12,23 +11,34 @@ export interface PatientData {
   allergies?: string;
   emergencyContact?: string;
   height?: string;
-  birthDate?: string;
+  birthDate?: string | null;
   foodHabit?: string;
   knownAllergies?: string;
   currentMedicalConditions?: string;
 }
 
-export function useAuthHandlers() {
-  const [error, setError] = useState<string | null>(null);
+export const useAuthHandlers = () => {
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const { user } = useAuth();
+
+  const retryWithDelay = async (fn: () => Promise<any>, retries = 2, delay = 1000): Promise<any> => {
+    try {
+      return await fn();
+    } catch (error: any) {
+      if (retries > 0 && (error.name === 'AuthRetryableFetchError' || error.message?.includes('Failed to fetch'))) {
+        console.log(`Network error, retrying in ${delay}ms... (${retries} retries left)`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        return retryWithDelay(fn, retries - 1, delay * 2);
+      }
+      throw error;
+    }
+  };
 
   const handleSignUp = async (
-    emailOrPhone: string,
+    identifier: string,
     password: string,
-    userType: 'patient' | 'doctor' | 'nutritionist',
+    userType: UserRole,
     firstName?: string,
     lastName?: string,
     patientData?: PatientData
@@ -37,141 +47,183 @@ export function useAuthHandlers() {
     setError(null);
 
     try {
-      // Determine if input is email or phone
-      const isEmail = emailOrPhone.includes('@');
-      const signUpData: any = {
+      console.log("Starting user registration process...");
+      
+      // Validate inputs
+      if (!identifier || !password || !firstName || !lastName) {
+        throw new Error("Please fill in all required fields");
+      }
+
+      if (password.length < 6) {
+        throw new Error("Password must be at least 6 characters long");
+      }
+
+      // Use phone as primary identifier, email as secondary
+      const isEmail = identifier.includes('@');
+      const signUpData = {
+        email: isEmail ? identifier : `${identifier.replace(/[^0-9]/g, '')}@temp.placeholder`,
         password,
         options: {
           data: {
             user_type: userType,
             first_name: firstName,
             last_name: lastName,
+            phone: isEmail ? undefined : identifier,
+            primary_contact: identifier
           }
         }
       };
 
-      if (isEmail) {
-        signUpData.email = emailOrPhone;
-      } else {
-        // For phone registration, use phone as email since Supabase requires email
-        // We'll store the actual phone in user metadata
-        signUpData.email = emailOrPhone; // Use phone as email for now
-        signUpData.options.data.phone = emailOrPhone;
+      console.log("Attempting Supabase auth signup...");
+      
+      // Retry the signup with better error handling
+      const { data: authData, error: signUpError } = await retryWithDelay(async () => {
+        return await supabase.auth.signUp(signUpData);
+      });
+
+      if (signUpError) {
+        console.error("Auth signup error:", signUpError);
+        
+        // Provide more specific error messages
+        if (signUpError.message?.includes('email address')) {
+          throw new Error("This email address is already registered or invalid");
+        } else if (signUpError.message?.includes('password')) {
+          throw new Error("Password requirements not met - must be at least 6 characters");
+        } else if (signUpError.message?.includes('signup disabled')) {
+          throw new Error("New user registration is currently disabled. Please contact support.");
+        } else {
+          throw new Error("Registration failed. Please check your internet connection and try again.");
+        }
+      }
+      
+      if (!authData.user) {
+        throw new Error("Registration failed - please try again or contact support");
       }
 
-      const { data, error } = await supabase.auth.signUp(signUpData);
+      console.log("Auth user created successfully:", authData.user.id);
 
-      if (error) {
-        console.error('Signup error:', error);
-        throw error;
+      // Step 2: Create user role
+      try {
+        console.log("Creating user role...");
+        await createUserRole(authData.user.id, userType);
+        console.log("User role created successfully");
+      } catch (roleError: any) {
+        console.error("Error creating user role:", roleError);
+        throw new Error("Account created but role assignment failed. Please contact support.");
       }
-
-      if (!data.user) {
-        throw new Error('User creation failed');
-      }
-
-      // If patient with additional data, store patient details
-      if (userType === 'patient' && patientData) {
+      
+      // Step 3: Handle patient-specific data
+      if (userType === "patient" && patientData) {
         try {
-          const { data: functionData, error: functionError } = await supabase.functions.invoke(
-            'upsert-patient-details',
+          console.log("Creating patient details...");
+          const { error: patientError } = await supabase.rpc(
+            'upsert_patient_details',
             {
-              body: {
-                patientId: data.user.id,
-                age: patientData.age,
-                gender: patientData.gender,
-                bloodGroup: patientData.bloodGroup,
-                allergies: patientData.allergies,
-                emergencyContact: patientData.emergencyContact, // This can be undefined/null
-                height: patientData.height,
-                birthDate: patientData.birthDate,
-                foodHabit: patientData.foodHabit,
-                currentMedicalConditions: patientData.currentMedicalConditions
-              }
+              p_user_id: authData.user.id,
+              p_age: patientData.age ? parseInt(patientData.age, 10) : null,
+              p_gender: patientData.gender || null,
+              p_blood_group: patientData.bloodGroup || null,
+              p_allergies: patientData.allergies || null,
+              p_emergency_contact: patientData.emergencyContact || null,
+              p_height: patientData.height ? parseFloat(patientData.height) : null,
+              p_birth_date: patientData.birthDate || null,
+              p_food_habit: patientData.foodHabit || null,
+              p_current_medical_conditions: patientData.currentMedicalConditions || null
             }
           );
-
-          if (functionError) {
-            console.error('Error storing patient details:', functionError);
-            // Don't throw here, registration was successful even if patient details failed
+          
+          if (patientError) {
+            console.error("Error creating patient details:", patientError);
+            // Don't throw here as the main account was created successfully
+            toast({
+              title: "Account Created",
+              description: "Your account was created successfully, but some additional details could not be saved. You can update them later in your profile.",
+              variant: "default",
+            });
+          } else {
+            console.log("Patient details created successfully");
           }
-        } catch (detailsError) {
-          console.error('Error calling patient details function:', detailsError);
-          // Continue with registration success
+        } catch (patientError: any) {
+          console.error("Exception creating patient details:", patientError);
+          // Don't throw here as the main account was created successfully
         }
       }
 
-      toast({
-        title: "Registration successful",
-        description: `Welcome ${firstName}! Please check your email to verify your account.`,
-      });
-
-      return data.user;
+      console.log("Registration completed successfully");
+      return authData.user;
+      
     } catch (error: any) {
-      console.error('Registration failed:', error);
-      const errorMessage = error.message || 'Registration failed. Please try again.';
-      setError(errorMessage);
+      console.error("Registration error:", error);
       
-      toast({
-        variant: "destructive",
-        title: "Registration failed",
-        description: errorMessage,
-      });
+      // Enhanced error handling with user-friendly messages
+      let userMessage = "Registration failed. Please try again.";
       
-      throw error;
+      if (error.name === 'AuthRetryableFetchError' || error.message?.includes('Failed to fetch')) {
+        userMessage = "Network connection issue. Please check your internet connection and try again.";
+      } else if (error.message?.includes('email')) {
+        userMessage = "Email address issue - it may already be in use or invalid.";
+      } else if (error.message?.includes('password')) {
+        userMessage = "Password must be at least 6 characters long.";
+      } else if (error.message?.includes('rate limit')) {
+        userMessage = "Too many registration attempts. Please wait a few minutes and try again.";
+      } else if (error.message) {
+        userMessage = error.message;
+      }
+      
+      setError(userMessage);
+      throw new Error(userMessage);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSignIn = async (emailOrPhone: string, password: string) => {
+  const handleSignIn = async (identifier: string, password: string) => {
     setLoading(true);
     setError(null);
 
     try {
-      // Determine if input is email or phone
-      const isEmail = emailOrPhone.includes('@');
+      console.log("Starting sign in process...");
       
-      let signInData: any = {
-        password
-      };
-
-      if (isEmail) {
-        signInData.email = emailOrPhone;
-      } else {
-        // For phone login, we need to find the user first
-        // Since we stored phone as email during registration, use it as email
-        signInData.email = emailOrPhone;
+      if (!identifier || !password) {
+        throw new Error("Please enter both email/phone and password");
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword(signInData);
+      // Determine if identifier is email or phone
+      const isEmail = identifier.includes('@');
+      const signInData = isEmail 
+        ? { email: identifier, password }
+        : { email: `${identifier.replace(/[^0-9]/g, '')}@temp.placeholder`, password };
 
-      if (error) {
-        console.error('Login error:', error);
-        throw error;
-      }
-
-      if (!data.user) {
-        throw new Error('Login failed');
-      }
-
-      toast({
-        title: "Login successful",
-        description: "Welcome back!",
+      console.log("Attempting Supabase auth signin...");
+      
+      const { data: authData, error: signInError } = await retryWithDelay(async () => {
+        return await supabase.auth.signInWithPassword(signInData);
       });
 
-      return data.user;
+      if (signInError) {
+        console.error("Auth signin error:", signInError);
+        
+        if (signInError.message?.includes('credentials') || signInError.message?.includes('password')) {
+          throw new Error("Invalid credentials. Please check your email/phone and password.");
+        } else if (signInError.message?.includes('email not confirmed')) {
+          throw new Error("Please check your email and click the confirmation link before signing in.");
+        } else if (signInError.message?.includes('Failed to fetch')) {
+          throw new Error("Network connection issue. Please check your internet and try again.");
+        } else {
+          throw new Error("Sign in failed. Please try again.");
+        }
+      }
+      
+      if (!authData.user) {
+        throw new Error("Sign in failed - please try again");
+      }
+
+      console.log("Sign in successful");
+      return authData.user;
+      
     } catch (error: any) {
-      console.error('Login failed:', error);
-      const errorMessage = error.message || 'Login failed. Please check your credentials.';
-      setError(errorMessage);
-      
-      toast({
-        variant: "destructive",
-        title: "Login failed", 
-        description: errorMessage,
-      });
-      
+      console.error("Sign in error:", error);
+      setError(error.message);
       throw error;
     } finally {
       setLoading(false);
@@ -181,8 +233,8 @@ export function useAuthHandlers() {
   return {
     handleSignUp,
     handleSignIn,
-    error,
     loading,
+    error,
     setError
   };
-}
+};
