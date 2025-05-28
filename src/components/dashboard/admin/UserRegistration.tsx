@@ -78,8 +78,12 @@ export const UserRegistration = () => {
     
     setLoading(true);
     try {
+      console.log("Starting user registration process...");
+      
       // Determine primary identifier (phone is required, email is optional)
       const primaryIdentifier = email || phone; // Use email if provided, otherwise phone
+      
+      console.log("Creating auth user with identifier:", primaryIdentifier);
       
       // Step 1: Create the user in Auth
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
@@ -97,36 +101,60 @@ export const UserRegistration = () => {
       });
 
       if (signUpError) {
-        throw signUpError;
+        console.error("Auth signup error:", signUpError);
+        throw new Error(`Registration failed: ${signUpError.message}`);
       }
       
       if (!authData.user) {
-        throw new Error("User creation failed - no user returned");
+        throw new Error("User creation failed - no user returned from authentication");
       }
 
-      // Step 2: Create user role
-      const roleResult = await createUserRole(authData.user.id, role);
+      console.log("Auth user created successfully:", authData.user.id);
+
+      // Step 2: Create user role using the new safe function
+      try {
+        console.log("Creating user role...");
+        await createUserRole(authData.user.id, role);
+        console.log("User role created successfully");
+      } catch (roleError: any) {
+        console.error("Error creating user role:", roleError);
+        throw new Error(`Failed to assign user role: ${roleError.message}`);
+      }
       
       // Step 3: If patient, create patient details
       if (role === "patient") {
-        const { data: patientResult, error: patientError } = await (supabase.rpc as any)(
-          'upsert_patient_details',
-          {
-            p_user_id: authData.user.id,
-            p_age: parseInt(age, 10),
-            p_gender: gender,
-            p_blood_group: bloodGroup,
-            p_allergies: allergies,
-            p_emergency_contact: emergencyContact || null, // Allow null for optional field
-            p_height: null,
-            p_birth_date: null,
-            p_food_habit: null,
-            p_current_medical_conditions: null
+        try {
+          console.log("Creating patient details...");
+          const { data: patientResult, error: patientError } = await supabase.rpc(
+            'upsert_patient_details',
+            {
+              p_user_id: authData.user.id,
+              p_age: parseInt(age, 10),
+              p_gender: gender,
+              p_blood_group: bloodGroup,
+              p_allergies: allergies,
+              p_emergency_contact: emergencyContact || null, // Allow null for optional field
+              p_height: null,
+              p_birth_date: null,
+              p_food_habit: null,
+              p_current_medical_conditions: null
+            }
+          );
+          
+          if (patientError) {
+            console.error("Error creating patient details:", patientError);
+            // Don't throw here as user role creation was successful
+            toast({
+              title: "Partial success",
+              description: "User created but some patient details could not be saved",
+              variant: "default",
+            });
+          } else {
+            console.log("Patient details created successfully");
           }
-        );
-        
-        if (patientError) {
-          console.error("Error creating patient details:", patientError);
+        } catch (patientError: any) {
+          console.error("Exception creating patient details:", patientError);
+          // Don't throw here as user role creation was successful
         }
       }
 
@@ -148,11 +176,30 @@ export const UserRegistration = () => {
         title: "User registered successfully",
         description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created for ${firstName} ${lastName}`,
       });
+      
+      console.log("Registration completed successfully");
+      
     } catch (error: any) {
       console.error("Registration error:", error);
+      
+      // Provide more specific error messages
+      let errorMessage = "An unexpected error occurred during registration";
+      
+      if (error.message?.includes("email address")) {
+        errorMessage = "Invalid email address or email already in use";
+      } else if (error.message?.includes("password")) {
+        errorMessage = "Password requirements not met";
+      } else if (error.message?.includes("phone")) {
+        errorMessage = "Invalid phone number format";
+      } else if (error.message?.includes("role")) {
+        errorMessage = "Failed to assign user role - please contact administrator";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Registration failed",
-        description: error.message,
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

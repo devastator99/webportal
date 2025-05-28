@@ -2065,6 +2065,13 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      create_user_role: {
+        Args: {
+          p_user_id: string
+          p_role: Database["public"]["Enums"]["user_type"]
+        }
+        Returns: string
+      }
       delete_health_plan_item: {
         Args: { p_item_id: string }
         Returns: boolean
@@ -2858,6 +2865,7 @@ export type Database = {
         | "care_team_assigned"
         | "fully_registered"
       reset_method: "email" | "sms"
+      resource_type: "pdf" | "video" | "article" | "image"
       task_status: "pending" | "in_progress" | "completed" | "failed"
       user_type:
         | "patient"
@@ -2998,6 +3006,7 @@ export const Constants = {
         "fully_registered",
       ],
       reset_method: ["email", "sms"],
+      resource_type: ["pdf", "video", "article", "image"],
       task_status: ["pending", "in_progress", "completed", "failed"],
       user_type: [
         "patient",
