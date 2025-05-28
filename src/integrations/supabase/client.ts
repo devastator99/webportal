@@ -38,7 +38,7 @@ export interface PatientInvoice {
 }
 
 // Helper function to create user role safely
-export const createUserRole = async (userId: string, role: 'patient' | 'doctor' | 'nutritionist' | 'administrator') => {
+export const createUserRole = async (userId: string, role: 'patient' | 'doctor' | 'nutritionist' | 'administrator' | 'reception') => {
   try {
     console.log(`Creating user role for ${userId} with role ${role}`);
     
