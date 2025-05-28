@@ -6,8 +6,10 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ProfileData {
   first_name: string;
@@ -15,6 +17,15 @@ interface ProfileData {
   email: string;
   phone?: string;
   date_of_birth?: string;
+  gender?: string;
+  blood_group?: string;
+  height?: string;
+  weight?: string;
+  address?: string;
+  emergency_contact?: string;
+  allergies?: string;
+  chronic_conditions?: string;
+  medical_conditions?: string;
 }
 
 export const PatientProfile = () => {
@@ -37,24 +48,44 @@ export const PatientProfile = () => {
         setIsLoading(true);
         
         // Fetch profile data from profiles table
-        const { data, error } = await supabase
+        const { data: profileData, error: profileError } = await supabase
           .from("profiles")
           .select("first_name, last_name, phone")
           .eq("id", user.id)
           .single();
 
-        if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
-          console.error("Error fetching profile:", error);
-          throw error;
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error("Error fetching profile:", profileError);
+          throw profileError;
+        }
+
+        // Fetch patient details
+        const { data: patientDetails, error: patientError } = await supabase
+          .from("patient_details")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (patientError && patientError.code !== 'PGRST116') {
+          console.error("Error fetching patient details:", patientError);
         }
         
-        // Set profile data, using auth user email and profile data
+        // Set profile data, combining both tables
         setProfile({
-          first_name: data?.first_name || "",
-          last_name: data?.last_name || "",
+          first_name: profileData?.first_name || "",
+          last_name: profileData?.last_name || "",
           email: user.email || "",
-          phone: data?.phone || "",
-          date_of_birth: "", // We'll add this field later if needed
+          phone: profileData?.phone || "",
+          date_of_birth: patientDetails?.date_of_birth || "",
+          gender: patientDetails?.gender || "",
+          blood_group: patientDetails?.blood_group || "",
+          height: patientDetails?.height?.toString() || "",
+          weight: patientDetails?.weight?.toString() || "",
+          address: "", // This field doesn't exist in current schema
+          emergency_contact: patientDetails?.emergency_contact || "",
+          allergies: patientDetails?.allergies || "",
+          chronic_conditions: patientDetails?.chronic_conditions || "",
+          medical_conditions: patientDetails?.chronic_conditions || "", // Using chronic_conditions as medical_conditions
         });
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -71,8 +102,15 @@ export const PatientProfile = () => {
     fetchProfile();
   }, [user, toast]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+    setProfile((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
     setProfile((prev) => ({
       ...prev,
       [name]: value,
@@ -97,7 +135,8 @@ export const PatientProfile = () => {
     try {
       setIsSaving(true);
       
-      const { error } = await supabase
+      // Update profiles table
+      const { error: profileError } = await supabase
         .from("profiles")
         .upsert({
           id: user.id,
@@ -109,7 +148,27 @@ export const PatientProfile = () => {
           onConflict: 'id'
         });
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Update patient_details table
+      const { error: patientError } = await supabase
+        .from("patient_details")
+        .upsert({
+          id: user.id,
+          date_of_birth: profile.date_of_birth || null,
+          gender: profile.gender || null,
+          blood_group: profile.blood_group || null,
+          height: profile.height ? parseFloat(profile.height) : null,
+          weight: profile.weight ? parseFloat(profile.weight) : null,
+          emergency_contact: profile.emergency_contact?.trim() || null,
+          allergies: profile.allergies?.trim() || null,
+          chronic_conditions: profile.chronic_conditions?.trim() || null,
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'id'
+        });
+
+      if (patientError) throw patientError;
       
       toast({
         title: "Profile updated",
@@ -159,57 +218,187 @@ export const PatientProfile = () => {
 
       <Separator />
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="first_name">First Name *</Label>
-            <Input
-              id="first_name"
-              name="first_name"
-              value={profile.first_name}
-              onChange={handleChange}
-              disabled={!isEditing}
-              required
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="last_name">Last Name *</Label>
-            <Input
-              id="last_name"
-              name="last_name"
-              value={profile.last_name}
-              onChange={handleChange}
-              disabled={!isEditing}
-              required
-            />
-          </div>
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Personal Information Section */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Personal Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="first_name">First Name *</Label>
+              <Input
+                id="first_name"
+                name="first_name"
+                value={profile.first_name}
+                onChange={handleChange}
+                disabled={!isEditing}
+                required
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="last_name">Last Name *</Label>
+              <Input
+                id="last_name"
+                name="last_name"
+                value={profile.last_name}
+                onChange={handleChange}
+                disabled={!isEditing}
+                required
+              />
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              value={profile.email}
-              disabled={true}
-              className="bg-gray-50"
-            />
-            <p className="text-xs text-muted-foreground">
-              Email cannot be changed here. Contact support if needed.
-            </p>
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={profile.email}
+                disabled={true}
+                className="bg-gray-50"
+              />
+              <p className="text-xs text-muted-foreground">
+                Email cannot be changed here. Contact support if needed.
+              </p>
+            </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number</Label>
-            <Input
-              id="phone"
-              name="phone"
-              value={profile.phone || ""}
-              onChange={handleChange}
-              disabled={!isEditing}
-              placeholder="Enter your phone number"
-            />
+            <div className="space-y-2">
+              <Label htmlFor="phone">Phone Number</Label>
+              <Input
+                id="phone"
+                name="phone"
+                value={profile.phone || ""}
+                onChange={handleChange}
+                disabled={!isEditing}
+                placeholder="Enter your phone number"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="date_of_birth">Date of Birth</Label>
+              <Input
+                id="date_of_birth"
+                name="date_of_birth"
+                type="date"
+                value={profile.date_of_birth || ""}
+                onChange={handleChange}
+                disabled={!isEditing}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gender">Gender</Label>
+              <Select 
+                value={profile.gender || ""} 
+                onValueChange={(value) => handleSelectChange("gender", value)}
+                disabled={!isEditing}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                  <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="emergency_contact">Emergency Contact</Label>
+              <Input
+                id="emergency_contact"
+                name="emergency_contact"
+                value={profile.emergency_contact || ""}
+                onChange={handleChange}
+                disabled={!isEditing}
+                placeholder="Emergency contact number"
+              />
+            </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Medical Information Section */}
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold">Medical Information</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="blood_group">Blood Group</Label>
+              <Select 
+                value={profile.blood_group || ""} 
+                onValueChange={(value) => handleSelectChange("blood_group", value)}
+                disabled={!isEditing}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select blood group" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="A+">A+</SelectItem>
+                  <SelectItem value="A-">A-</SelectItem>
+                  <SelectItem value="B+">B+</SelectItem>
+                  <SelectItem value="B-">B-</SelectItem>
+                  <SelectItem value="AB+">AB+</SelectItem>
+                  <SelectItem value="AB-">AB-</SelectItem>
+                  <SelectItem value="O+">O+</SelectItem>
+                  <SelectItem value="O-">O-</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="height">Height (cm)</Label>
+              <Input
+                id="height"
+                name="height"
+                type="number"
+                value={profile.height || ""}
+                onChange={handleChange}
+                disabled={!isEditing}
+                placeholder="Height in centimeters"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="weight">Weight (kg)</Label>
+              <Input
+                id="weight"
+                name="weight"
+                type="number"
+                value={profile.weight || ""}
+                onChange={handleChange}
+                disabled={!isEditing}
+                placeholder="Weight in kilograms"
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="allergies">Allergies</Label>
+              <Textarea
+                id="allergies"
+                name="allergies"
+                value={profile.allergies || ""}
+                onChange={handleChange}
+                disabled={!isEditing}
+                placeholder="List any allergies you have"
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="chronic_conditions">Medical Conditions</Label>
+              <Textarea
+                id="chronic_conditions"
+                name="chronic_conditions"
+                value={profile.chronic_conditions || ""}
+                onChange={handleChange}
+                disabled={!isEditing}
+                placeholder="List any chronic conditions or medical history"
+                rows={3}
+              />
+            </div>
           </div>
         </div>
 
