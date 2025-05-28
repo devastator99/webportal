@@ -75,33 +75,71 @@ serve(async (req) => {
     
     console.log("Registration tasks queued:", data);
     
-    // Trigger task processing asynchronously without waiting for completion
+    // Enhanced task processing trigger with better error handling
+    console.log("Triggering background task processing...");
     try {
-      EdgeRuntime.waitUntil(
-        fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/process-registration-tasks`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
-          },
-          body: JSON.stringify({}),
-        }).catch(err => {
-          console.error("Error triggering tasks processor:", err);
-        })
-      );
+      // Try to trigger task processing immediately
+      const processResponse = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/process-registration-tasks`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+        },
+        body: JSON.stringify({}),
+      });
+      
+      if (processResponse.ok) {
+        const processResult = await processResponse.json();
+        console.log("Task processing triggered successfully:", processResult);
+      } else {
+        const errorText = await processResponse.text();
+        console.error("Task processing trigger failed:", errorText);
+        
+        // Try with EdgeRuntime.waitUntil as fallback
+        if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+          EdgeRuntime.waitUntil(
+            fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/process-registration-tasks`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+              },
+              body: JSON.stringify({}),
+            }).catch(err => {
+              console.error("Background task processor fallback failed:", err);
+            })
+          );
+        }
+      }
     } catch (triggerError) {
       console.error("Failed to trigger task processor:", triggerError);
-      // Continue execution even if task triggering fails
+      
+      // Last resort: try to call the process function directly after a delay
+      setTimeout(async () => {
+        try {
+          await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/process-registration-tasks`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+            },
+            body: JSON.stringify({}),
+          });
+        } catch (delayedError) {
+          console.error("Delayed task processing also failed:", delayedError);
+        }
+      }, 2000);
     }
     
     // Return success response immediately, without waiting for background tasks
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Registration payment completed successfully. Tasks have been queued.",
+        message: "Registration payment completed successfully. Multi-channel notifications are being sent.",
         payment_id: razorpay_payment_id,
         order_id: razorpay_order_id,
-        tasks: data?.tasks || []
+        tasks: data?.tasks || [],
+        notification_channels: ["SMS", "Email", "WhatsApp", "Care Team Chat"]
       }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -328,24 +328,77 @@ async function processCreateChatRoom(supabase: any, task: Task) {
   };
 }
 
-// Function to process send welcome notification task
+// Enhanced function to process send welcome notification task
 async function processSendWelcomeNotification(supabase: any, task: Task) {
-  console.log(`Processing send welcome notification for user ${task.user_id}`);
+  console.log(`Processing comprehensive welcome notification for user ${task.user_id}`);
   
   try {
-    await supabase.functions.invoke('send-ai-care-team-message', {
-      body: {
-        patient_id: task.user_id,
-        title: "Welcome to AnubhootiHealth",
-        message: "Your registration is complete and your care team has been assigned. You can now communicate with your doctor and nutritionist through the care team chat.",
+    // Get patient and care team information
+    const { data: patientData, error: patientError } = await supabase
+      .from('profiles')
+      .select('first_name, last_name, email, phone')
+      .eq('id', task.user_id)
+      .single();
+    
+    if (patientError || !patientData) {
+      throw new Error(`Cannot retrieve patient profile: ${patientError?.message || 'No data'}`);
+    }
+    
+    // Get care team assignment
+    const { data: assignmentData, error: assignmentError } = await supabase
+      .from('patient_assignments')
+      .select(`
+        doctor:profiles!patient_assignments_doctor_id_fkey(first_name, last_name),
+        nutritionist:profiles!patient_assignments_nutritionist_id_fkey(first_name, last_name)
+      `)
+      .eq('patient_id', task.user_id)
+      .single();
+    
+    let doctorName = 'Being assigned';
+    let nutritionistName = 'Being assigned';
+    
+    if (assignmentData) {
+      if (assignmentData.doctor) {
+        doctorName = `Dr. ${assignmentData.doctor.first_name} ${assignmentData.doctor.last_name}`.trim();
       }
-    });
+      if (assignmentData.nutritionist) {
+        nutritionistName = `${assignmentData.nutritionist.first_name} ${assignmentData.nutritionist.last_name}`.trim();
+      }
+    }
+    
+    const patientName = `${patientData.first_name || ''} ${patientData.last_name || ''}`.trim();
+    
+    // Call the comprehensive notification function
+    const { data: notificationResult, error: notificationError } = await supabase.functions.invoke(
+      'send-comprehensive-welcome-notification',
+      {
+        body: {
+          patient_id: task.user_id,
+          patient_name: patientName,
+          patient_email: patientData.email,
+          patient_phone: patientData.phone,
+          doctor_name: doctorName,
+          nutritionist_name: nutritionistName
+        }
+      }
+    );
+    
+    if (notificationError) {
+      throw new Error(`Failed to send comprehensive notification: ${notificationError.message}`);
+    }
+    
+    console.log("Comprehensive welcome notification sent:", notificationResult);
     
     return {
       notification_sent: true,
-      timestamp: new Date().toISOString()
+      channels_used: notificationResult?.results || {},
+      timestamp: new Date().toISOString(),
+      patient_name: patientName,
+      doctor_name: doctorName,
+      nutritionist_name: nutritionistName
     };
+    
   } catch (error: any) {
-    throw new Error(`Failed to send welcome notification: ${error.message}`);
+    throw new Error(`Failed to send comprehensive welcome notification: ${error.message}`);
   }
 }
