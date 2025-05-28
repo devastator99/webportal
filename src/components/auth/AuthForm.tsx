@@ -5,7 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { LucideLoader2, Calendar as CalendarIcon, Mail, Lock, Phone, Eye, EyeOff } from "lucide-react";
+import { LucideLoader2, Calendar as CalendarIcon, Mail, Lock, Phone, Eye, EyeOff, AlertTriangle } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -231,13 +231,13 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
       console.error("Form submission error:", error);
       setRetryCount(prev => prev + 1);
       
-      // Enhanced error message for network issues
-      if (error instanceof Error && (error.message.includes('Network') || error.message.includes('Failed to fetch'))) {
+      // Enhanced error message for Supabase connectivity issues
+      if (error instanceof Error && (error.message.includes('authentication service') || error.message.includes('Failed to fetch'))) {
         toast({
           variant: "destructive",
-          title: "Connection Issue",
+          title: "Service Connection Issue",
           description: `${error.message} ${retryCount > 0 ? `(Attempt ${retryCount + 1})` : ''}`,
-          action: retryCount < 3 ? (
+          action: retryCount < 2 ? (
             <button 
               onClick={() => handleSubmit(data)}
               className="text-sm bg-white text-red-600 px-3 py-1 rounded hover:bg-gray-100"
@@ -276,6 +276,12 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
   const watchedPassword = form.watch("password");
   const watchedConfirmPassword = form.watch("confirmPassword");
 
+  const isSupabaseConnectionError = error && (
+    error.includes('authentication service') || 
+    error.includes('Failed to fetch') ||
+    error.includes('Supabase')
+  );
+
   return (
     <Form {...form}>
       <motion.form 
@@ -287,9 +293,16 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
       >
         {error && (
           <Alert variant="destructive" className="bg-red-100 border-red-200 text-red-600">
+            <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
               {error}
-              {(error.includes('Network') || error.includes('connection')) && (
+              {isSupabaseConnectionError && (
+                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-sm">
+                  <strong>Technical Details:</strong> This appears to be a Supabase configuration or connectivity issue. 
+                  The authentication service may not be properly set up or accessible.
+                </div>
+              )}
+              {(error.includes('authentication service') || error.includes('connection')) && retryCount < 2 && (
                 <div className="mt-2">
                   <Button 
                     type="button" 

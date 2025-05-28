@@ -26,8 +26,15 @@ export const useAuthHandlers = () => {
     try {
       return await fn();
     } catch (error: any) {
+      console.log("Retry attempt error details:", {
+        name: error.name,
+        message: error.message,
+        status: error.status,
+        code: error.code
+      });
+      
       if (retries > 0 && (error.name === 'AuthRetryableFetchError' || error.message?.includes('Failed to fetch'))) {
-        console.log(`Network error, retrying in ${delay}ms... (${retries} retries left)`);
+        console.log(`Supabase connection issue, retrying in ${delay}ms... (${retries} retries left)`);
         await new Promise(resolve => setTimeout(resolve, delay));
         return retryWithDelay(fn, retries - 1, delay * 2);
       }
@@ -75,6 +82,7 @@ export const useAuthHandlers = () => {
       };
 
       console.log("Attempting Supabase auth signup...");
+      console.log("Supabase URL:", supabase.supabaseUrl);
       
       // Retry the signup with better error handling
       const { data: authData, error: signUpError } = await retryWithDelay(async () => {
@@ -84,15 +92,17 @@ export const useAuthHandlers = () => {
       if (signUpError) {
         console.error("Auth signup error:", signUpError);
         
-        // Provide more specific error messages
+        // Provide more specific error messages based on the actual error
         if (signUpError.message?.includes('email address')) {
           throw new Error("This email address is already registered or invalid");
         } else if (signUpError.message?.includes('password')) {
           throw new Error("Password requirements not met - must be at least 6 characters");
         } else if (signUpError.message?.includes('signup disabled')) {
           throw new Error("New user registration is currently disabled. Please contact support.");
+        } else if (signUpError.name === 'AuthRetryableFetchError' || signUpError.message?.includes('Failed to fetch')) {
+          throw new Error("Unable to connect to authentication service. Please check if Supabase is properly configured or try again later.");
         } else {
-          throw new Error("Registration failed. Please check your internet connection and try again.");
+          throw new Error(`Registration failed: ${signUpError.message || "Unknown error occurred"}`);
         }
       }
       
@@ -159,7 +169,7 @@ export const useAuthHandlers = () => {
       let userMessage = "Registration failed. Please try again.";
       
       if (error.name === 'AuthRetryableFetchError' || error.message?.includes('Failed to fetch')) {
-        userMessage = "Network connection issue. Please check your internet connection and try again.";
+        userMessage = "Unable to connect to authentication service. This may be due to Supabase configuration issues. Please contact support.";
       } else if (error.message?.includes('email')) {
         userMessage = "Email address issue - it may already be in use or invalid.";
       } else if (error.message?.includes('password')) {
@@ -207,8 +217,8 @@ export const useAuthHandlers = () => {
           throw new Error("Invalid credentials. Please check your email/phone and password.");
         } else if (signInError.message?.includes('email not confirmed')) {
           throw new Error("Please check your email and click the confirmation link before signing in.");
-        } else if (signInError.message?.includes('Failed to fetch')) {
-          throw new Error("Network connection issue. Please check your internet and try again.");
+        } else if (signInError.name === 'AuthRetryableFetchError' || signInError.message?.includes('Failed to fetch')) {
+          throw new Error("Unable to connect to authentication service. Please contact support if this persists.");
         } else {
           throw new Error("Sign in failed. Please try again.");
         }
