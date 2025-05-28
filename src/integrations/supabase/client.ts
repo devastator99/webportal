@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = "https://hcaqodjylicmppxcbqbh.supabase.co"
@@ -37,8 +36,11 @@ export interface PatientInvoice {
   razorpay_payment_id?: string;
 }
 
+// Valid user role types - must match database enum exactly
+export type ValidUserRole = 'patient' | 'doctor' | 'nutritionist' | 'administrator' | 'reception';
+
 // Helper function to create user role safely
-export const createUserRole = async (userId: string, role: 'patient' | 'doctor' | 'nutritionist' | 'administrator' | 'reception') => {
+export const createUserRole = async (userId: string, role: ValidUserRole) => {
   try {
     console.log(`Creating user role for ${userId} with role ${role}`);
     
@@ -52,13 +54,21 @@ export const createUserRole = async (userId: string, role: 'patient' | 'doctor' 
       throw new Error(`Failed to create user role: ${error.message}`);
     }
 
-    // The function now returns jsonb, check if it was successful
-    if (data && typeof data === 'object' && data.success === false) {
-      console.error('User role creation failed:', data);
-      throw new Error(`Failed to create user role: ${data.error || 'Unknown error'}`);
+    console.log('User role RPC response:', data);
+
+    // The function returns jsonb, check if it was successful
+    if (data && typeof data === 'object') {
+      if (data.success === false) {
+        console.error('User role creation failed:', data);
+        throw new Error(`Failed to create user role: ${data.error || 'Unknown error'}`);
+      } else if (data.success === true) {
+        console.log('User role created successfully:', data);
+        return { success: true, data };
+      }
     }
 
-    console.log('User role created successfully:', data);
+    // If we get here, something unexpected happened
+    console.warn('Unexpected response from create_user_role:', data);
     return { success: true, data };
   } catch (error: any) {
     console.error('Exception in createUserRole:', error);

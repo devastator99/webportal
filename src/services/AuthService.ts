@@ -1,4 +1,3 @@
-
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -107,21 +106,27 @@ class AuthService {
             // Use setTimeout to prevent potential deadlock
             setTimeout(async () => {
               try {
+                console.log("Fetching user role for:", newSession.user.id);
                 const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
                   lookup_user_id: newSession.user.id
                 });
                 
-                if (!roleError && roleData) {
+                if (!roleError && roleData && roleData.length > 0) {
                   const userRoleValue = roleData[0]?.role as UserRole || null;
+                  console.log("User role fetched:", userRoleValue);
                   setUserRole(userRoleValue);
-                  console.log("User role on sign in:", userRoleValue);
                 } else if (roleError) {
                   console.error("Error fetching user role on sign in:", roleError);
+                  setUserRole(null);
+                } else {
+                  console.warn("No role data returned for user:", newSession.user.id);
+                  setUserRole(null);
                 }
               } catch (error) {
                 console.error("Error in role handling:", error);
+                setUserRole(null);
               }
-            }, 0);
+            }, 100); // Small delay to ensure everything is set up
           }
         } else if (event === 'TOKEN_REFRESHED' && newSession) {
           setSession(newSession);
@@ -163,19 +168,25 @@ class AuthService {
         // Fetch user role
         if (initialSession.user) {
           try {
+            console.log("Fetching initial user role for:", initialSession.user.id);
             const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
               lookup_user_id: initialSession.user.id
             });
             
-            if (!roleError && roleData) {
+            if (!roleError && roleData && roleData.length > 0) {
               const role = roleData[0]?.role as UserRole || null;
+              console.log("Initial user role set:", role);
               setUserRole(role);
-              console.log("User role set:", role);
             } else if (roleError) {
-              console.error("Error fetching user role:", roleError);
+              console.error("Error fetching initial user role:", roleError);
+              setUserRole(null);
+            } else {
+              console.warn("No initial role data returned for user:", initialSession.user.id);
+              setUserRole(null);
             }
           } catch (error) {
-            console.error("Error fetching user role:", error);
+            console.error("Error fetching initial user role:", error);
+            setUserRole(null);
           }
         }
       } else {

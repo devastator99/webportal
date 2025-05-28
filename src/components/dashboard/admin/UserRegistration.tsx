@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createUserRole, supabase } from "@/integrations/supabase/client";
+import { createUserRole, supabase, ValidUserRole } from "@/integrations/supabase/client";
 import { UserPlus, Eye, EyeOff } from "lucide-react";
 
 export const UserRegistration = () => {
@@ -21,7 +20,7 @@ export const UserRegistration = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [role, setRole] = useState<string>("patient");
+  const [role, setRole] = useState<ValidUserRole>("patient");
   
   // Additional patient data fields
   const [age, setAge] = useState("");
@@ -110,17 +109,14 @@ export const UserRegistration = () => {
 
       console.log("Auth user created successfully:", authData.user.id);
 
-      // Step 2: Create user role using the RPC function
+      // Step 2: Create user role using the RPC function with proper type
       try {
         console.log("Creating user role...");
-        const roleResult = await createUserRole(authData.user.id, role as any);
+        const roleResult = await createUserRole(authData.user.id, role);
         console.log("User role created successfully:", roleResult);
         
-        // Check if the result indicates failure
-        if (roleResult && typeof roleResult === 'object' && 'success' in roleResult && !roleResult.success) {
-          console.error("Role creation returned failure:", roleResult);
-          throw new Error("Role assignment failed");
-        }
+        // The createUserRole function will throw if there's an error
+        // so if we get here, it was successful
       } catch (roleError: any) {
         console.error("Error creating user role:", roleError);
         throw new Error(`Failed to assign user role: ${roleError.message}`);
@@ -326,7 +322,7 @@ export const UserRegistration = () => {
             <Label htmlFor="role">User Role *</Label>
             <Select 
               value={role} 
-              onValueChange={(value) => setRole(value)}
+              onValueChange={(value) => setRole(value as ValidUserRole)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select role" />

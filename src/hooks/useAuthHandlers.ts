@@ -1,7 +1,6 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, createUserRole } from "@/integrations/supabase/client";
+import { supabase, createUserRole, ValidUserRole } from "@/integrations/supabase/client";
 
 export interface PatientData {
   age?: string;
@@ -64,6 +63,12 @@ export const useAuthHandlers = () => {
         throw new Error("Password must be at least 6 characters long");
       }
 
+      // Validate user type
+      const validRoles: ValidUserRole[] = ['patient', 'doctor', 'nutritionist', 'administrator', 'reception'];
+      if (!validRoles.includes(userType as ValidUserRole)) {
+        throw new Error(`Invalid user type: ${userType}`);
+      }
+
       // Use identifier as provided - if it's a phone, format it properly for email
       const isEmail = identifier.includes('@');
       
@@ -111,17 +116,14 @@ export const useAuthHandlers = () => {
 
       console.log("Auth user created successfully:", authData.user.id);
 
-      // Step 2: Create user role using our RPC function
+      // Step 2: Create user role using our RPC function with proper type
       try {
         console.log("Creating user role...");
-        const roleResult = await createUserRole(authData.user.id, userType as any);
+        const roleResult = await createUserRole(authData.user.id, userType as ValidUserRole);
         console.log("User role created successfully:", roleResult);
         
-        // Check if the result indicates failure
-        if (roleResult && typeof roleResult === 'object' && 'success' in roleResult && !roleResult.success) {
-          console.error("Role creation returned failure:", roleResult);
-          throw new Error("Role assignment failed. Please contact support.");
-        }
+        // The createUserRole function will throw if there's an error
+        // so if we get here, it was successful
       } catch (roleError: any) {
         console.error("Error creating user role:", roleError);
         throw new Error("Account created but role assignment failed. Please contact support.");
