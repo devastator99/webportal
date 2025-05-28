@@ -195,67 +195,6 @@ export const findUserByPhone = async (phoneNumber: string) => {
       }
     }
     
-    // Also check auth metadata for phone numbers that might not be in profiles yet
-    console.log("Checking auth metadata for phone numbers...");
-    try {
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (!authError && authUsers.users) {
-        for (const variant of uniqueVariants) {
-          // Fix: Properly type the user parameter to avoid 'never' type
-          const userWithPhone = authUsers.users.find((authUser: any) => {
-            const metadataPhone = authUser.user_metadata?.phone;
-            const primaryContact = authUser.user_metadata?.primary_contact;
-            
-            return metadataPhone === variant || primaryContact === variant;
-          });
-          
-          if (userWithPhone) {
-            console.log("Found user in auth metadata:", userWithPhone.id);
-            
-            // Get profile and role data
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', userWithPhone.id)
-              .single();
-            
-            const { data: userRole } = await supabase
-              .from('user_roles')
-              .select('*')
-              .eq('user_id', userWithPhone.id)
-              .single();
-            
-            const { data: registrationStatus } = await supabase.rpc(
-              'get_user_registration_status_safe',
-              { p_user_id: userWithPhone.id }
-            );
-            
-            return {
-              success: true,
-              user: profile || { 
-                id: userWithPhone.id, 
-                first_name: userWithPhone.user_metadata?.first_name,
-                last_name: userWithPhone.user_metadata?.last_name,
-                phone: userWithPhone.user_metadata?.phone 
-              },
-              role: userRole?.role,
-              registration_status: registrationStatus,
-              phone_normalized: variant,
-              phone_variants_checked: uniqueVariants,
-              found_in_auth_metadata: true,
-              all_database_phones: allProfiles?.map(p => ({ 
-                name: `${p.first_name} ${p.last_name}`, 
-                phone: p.phone 
-              }))
-            };
-          }
-        }
-      }
-    } catch (metadataError) {
-      console.log("Could not check auth metadata:", metadataError);
-    }
-    
     console.log("No user found with any phone number variant");
     return { 
       success: false, 
@@ -319,72 +258,80 @@ export const checkRegistrationByEmail = async (email: string) => {
   }
 };
 
-// Helper function to migrate phone numbers from auth metadata to profiles
+// Updated phone migration function that works with current user session
 export const migratePhoneNumbersFromMetadata = async () => {
   try {
     console.log("=== MIGRATING PHONE NUMBERS FROM METADATA ===");
     
-    // Get all auth users
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+    // For now, we'll focus on the current user's data since admin.listUsers() isn't available
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
     
-    if (authError) {
-      console.error("Error fetching auth users:", authError);
-      return { success: false, error: authError.message };
+    if (userError || !user) {
+      return { 
+        success: false, 
+        error: "No authenticated user found. Please login first." 
+      };
     }
     
+    console.log("Current user:", user);
+    console.log("User metadata:", user.user_metadata);
+    
+    const metadataPhone = user.user_metadata?.phone;
     let migratedCount = 0;
     const results = [];
     
-    // Fix: Properly type the user parameter to avoid 'never' type
-    for (const authUser of authUsers.users || []) {
-      const metadataPhone = (authUser as any).user_metadata?.phone;
+    if (metadataPhone) {
+      console.log(`Checking current user ${user.id} with metadata phone: ${metadataPhone}`);
       
-      if (metadataPhone) {
-        console.log(`Checking user ${authUser.id} with metadata phone: ${metadataPhone}`);
+      // Check if profile already has phone
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('phone')
+        .eq('id', user.id)
+        .single();
+      
+      if (!profileError && (!profile?.phone || profile.phone === '')) {
+        console.log(`Updating profile for user ${user.id} with phone: ${metadataPhone}`);
         
-        // Check if profile already has phone
-        const { data: profile, error: profileError } = await supabase
+        // Update profile with phone from metadata
+        const { error: updateError } = await supabase
           .from('profiles')
-          .select('phone')
-          .eq('id', authUser.id)
-          .single();
+          .update({ phone: metadataPhone })
+          .eq('id', user.id);
         
-        if (!profileError && (!profile?.phone || profile.phone === '')) {
-          console.log(`Updating profile for user ${authUser.id} with phone: ${metadataPhone}`);
-          
-          // Update profile with phone from metadata
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ phone: metadataPhone })
-            .eq('id', authUser.id);
-          
-          if (updateError) {
-            console.error(`Error updating profile for ${authUser.id}:`, updateError);
-            results.push({ 
-              user_id: authUser.id, 
-              success: false, 
-              error: updateError.message,
-              phone: metadataPhone 
-            });
-          } else {
-            console.log(`Successfully updated profile for ${authUser.id}`);
-            migratedCount++;
-            results.push({ 
-              user_id: authUser.id, 
-              success: true, 
-              phone: metadataPhone 
-            });
-          }
-        } else {
-          console.log(`Profile for ${authUser.id} already has phone: ${profile?.phone}`);
+        if (updateError) {
+          console.error(`Error updating profile for ${user.id}:`, updateError);
           results.push({ 
-            user_id: authUser.id, 
+            user_id: user.id, 
+            success: false, 
+            error: updateError.message,
+            phone: metadataPhone 
+          });
+        } else {
+          console.log(`Successfully updated profile for ${user.id}`);
+          migratedCount++;
+          results.push({ 
+            user_id: user.id, 
             success: true, 
-            phone: profile?.phone,
-            skipped: 'already_has_phone' 
+            phone: metadataPhone 
           });
         }
+      } else {
+        console.log(`Profile for ${user.id} already has phone: ${profile?.phone}`);
+        results.push({ 
+          user_id: user.id, 
+          success: true, 
+          phone: profile?.phone,
+          skipped: 'already_has_phone' 
+        });
       }
+    } else {
+      console.log(`No phone number in metadata for user ${user.id}`);
+      results.push({ 
+        user_id: user.id, 
+        success: true, 
+        skipped: 'no_phone_in_metadata' 
+      });
     }
     
     console.log(`Migration completed. Updated ${migratedCount} profiles.`);
@@ -393,7 +340,8 @@ export const migratePhoneNumbersFromMetadata = async () => {
       success: true,
       migrated_count: migratedCount,
       total_processed: results.length,
-      results
+      results,
+      note: "Migration limited to current user session due to security restrictions"
     };
     
   } catch (error: any) {
