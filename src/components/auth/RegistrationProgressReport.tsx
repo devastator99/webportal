@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -97,6 +96,11 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
       console.log("Triggering registration task processing for user:", user.id);
       console.log("Timestamp:", new Date().toISOString());
       
+      toast({
+        title: "Processing Started",
+        description: "Processing your registration tasks. This may take a moment...",
+      });
+      
       // Add timeout to the function call
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Function call timeout after 30 seconds')), 30000);
@@ -109,7 +113,8 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
       console.log("Function call initiated, waiting for response...");
       
       // Race between the function call and timeout
-      const { data, error } = await Promise.race([functionPromise, timeoutPromise]) as any;
+      const result = await Promise.race([functionPromise, timeoutPromise]) as any;
+      const { data, error } = result;
       
       console.log("=== FUNCTION RESPONSE RECEIVED ===");
       console.log("Function response data:", data);
@@ -123,7 +128,17 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
           code: error.code
         });
         
-        const errorMessage = error.message || "Failed to process registration tasks";
+        // Handle specific known errors with user-friendly messages
+        let errorMessage = error.message || "Failed to process registration tasks";
+        
+        if (error.message?.includes('column profiles.email does not exist')) {
+          errorMessage = "System configuration issue detected. Please contact support.";
+        } else if (error.message?.includes('care team')) {
+          errorMessage = "Care team assignment is in progress. Please try again in a few minutes.";
+        } else if (error.message?.includes('timeout')) {
+          errorMessage = "Processing is taking longer than usual. Please try again.";
+        }
+        
         setLastProcessingError(errorMessage);
         throw new Error(errorMessage);
       }
@@ -133,7 +148,7 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
       const successMessage = data?.message || "Registration tasks are being processed. Please check back in a few moments.";
       
       toast({
-        title: "Processing Started",
+        title: "Processing Complete",
         description: successMessage,
       });
       
@@ -180,8 +195,16 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
   }, [user?.id, authIsLoading]);
   
   const handleCheckAgain = () => {
-    console.log("Check again clicked - triggering task processing");
+    console.log("=== CHECK AGAIN CLICKED ===");
+    console.log("User ID:", user?.id);
+    console.log("Current registration status:", registrationStatus);
+    
+    // First refresh the status, then trigger task processing
+    fetchRegistrationStatus();
+    
+    // Then trigger task processing
     handleProcessRegistrationTasks();
+    
     if (onCheckAgain) {
       onCheckAgain();
     }
