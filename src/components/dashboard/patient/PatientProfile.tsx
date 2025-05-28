@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -32,6 +31,11 @@ export const PatientProfile = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [profile, setProfile] = useState<ProfileData>({
+    first_name: "",
+    last_name: "",
+    email: "",
+  });
+  const [originalProfile, setOriginalProfile] = useState<ProfileData>({
     first_name: "",
     last_name: "",
     email: "",
@@ -71,7 +75,7 @@ export const PatientProfile = () => {
         }
         
         // Set profile data, combining both tables
-        setProfile({
+        const combinedProfile = {
           first_name: profileData?.first_name || "",
           last_name: profileData?.last_name || "",
           email: user.email || "",
@@ -86,7 +90,10 @@ export const PatientProfile = () => {
           allergies: patientDetails?.allergies || "",
           chronic_conditions: patientDetails?.chronic_conditions || "",
           medical_conditions: patientDetails?.chronic_conditions || "", // Using chronic_conditions as medical_conditions
-        });
+        };
+        
+        setProfile(combinedProfile);
+        setOriginalProfile(combinedProfile);
       } catch (error) {
         console.error("Error fetching profile:", error);
         toast({
@@ -101,6 +108,33 @@ export const PatientProfile = () => {
 
     fetchProfile();
   }, [user, toast]);
+
+  const getChangedFields = () => {
+    const changes: string[] = [];
+    
+    if (profile.first_name !== originalProfile.first_name) changes.push("First Name");
+    if (profile.last_name !== originalProfile.last_name) changes.push("Last Name");
+    if (profile.phone !== originalProfile.phone) changes.push("Phone Number");
+    if (profile.date_of_birth !== originalProfile.date_of_birth) changes.push("Date of Birth");
+    if (profile.gender !== originalProfile.gender) changes.push("Gender");
+    if (profile.blood_group !== originalProfile.blood_group) changes.push("Blood Group");
+    if (profile.height !== originalProfile.height) changes.push("Height");
+    if (profile.weight !== originalProfile.weight) changes.push("Weight");
+    if (profile.emergency_contact !== originalProfile.emergency_contact) changes.push("Emergency Contact");
+    if (profile.allergies !== originalProfile.allergies) changes.push("Allergies");
+    if (profile.chronic_conditions !== originalProfile.chronic_conditions) changes.push("Medical Conditions");
+    
+    return changes;
+  };
+
+  const formatChangesMessage = (changes: string[]) => {
+    if (changes.length === 0) return "No changes were made.";
+    if (changes.length === 1) return `${changes[0]} has been updated successfully.`;
+    if (changes.length === 2) return `${changes[0]} and ${changes[1]} have been updated successfully.`;
+    
+    const lastChange = changes.pop();
+    return `${changes.join(", ")}, and ${lastChange} have been updated successfully.`;
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -129,6 +163,17 @@ export const PatientProfile = () => {
         description: "First name and last name are required.",
         variant: "destructive",
       });
+      return;
+    }
+
+    const changedFields = getChangedFields();
+    
+    if (changedFields.length === 0) {
+      toast({
+        title: "No Changes",
+        description: "No changes were made to your profile.",
+      });
+      setIsEditing(false);
       return;
     }
     
@@ -170,11 +215,15 @@ export const PatientProfile = () => {
 
       if (patientError) throw patientError;
       
+      const successMessage = formatChangesMessage(changedFields);
+      
       toast({
-        title: "Profile updated",
-        description: "Your profile information has been updated successfully.",
+        title: "Profile Updated! 🎉",
+        description: successMessage,
       });
       
+      // Update the original profile to reflect saved changes
+      setOriginalProfile(profile);
       setIsEditing(false);
     } catch (error) {
       console.error("Error updating profile:", error);
