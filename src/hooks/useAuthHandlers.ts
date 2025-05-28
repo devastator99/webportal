@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, createUserRole } from "@/integrations/supabase/client";
-import { UserRole } from "@/types/auth";
 
 export interface PatientData {
   age?: string;
@@ -45,7 +44,7 @@ export const useAuthHandlers = () => {
   const handleSignUp = async (
     identifier: string,
     password: string,
-    userType: UserRole,
+    userType: string,
     firstName?: string,
     lastName?: string,
     patientData?: PatientData
@@ -67,12 +66,15 @@ export const useAuthHandlers = () => {
 
       // Use identifier as provided - if it's a phone, format it properly for email
       const isEmail = identifier.includes('@');
+      
+      // Simple auth signup without custom enum in metadata
       const signUpData = {
         email: isEmail ? identifier : `${identifier.replace(/[^0-9]/g, '')}@temp.placeholder`,
         password,
         options: {
           data: {
-            user_type: userType,
+            // Use plain string instead of enum
+            user_type_string: userType,
             first_name: firstName,
             last_name: lastName,
             phone: isEmail ? undefined : identifier,
@@ -109,11 +111,17 @@ export const useAuthHandlers = () => {
 
       console.log("Auth user created successfully:", authData.user.id);
 
-      // Step 2: Create user role with improved error handling
+      // Step 2: Create user role using our RPC function
       try {
         console.log("Creating user role...");
-        const roleResult = await createUserRole(authData.user.id, userType);
+        const roleResult = await createUserRole(authData.user.id, userType as any);
         console.log("User role created successfully:", roleResult);
+        
+        // Check if the result indicates failure
+        if (roleResult && typeof roleResult === 'object' && 'success' in roleResult && !roleResult.success) {
+          console.error("Role creation returned failure:", roleResult);
+          throw new Error("Role assignment failed. Please contact support.");
+        }
       } catch (roleError: any) {
         console.error("Error creating user role:", roleError);
         throw new Error("Account created but role assignment failed. Please contact support.");

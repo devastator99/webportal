@@ -21,7 +21,7 @@ export const UserRegistration = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [role, setRole] = useState<"patient" | "doctor" | "nutritionist" | "administrator">("patient");
+  const [role, setRole] = useState<string>("patient");
   
   // Additional patient data fields
   const [age, setAge] = useState("");
@@ -84,13 +84,13 @@ export const UserRegistration = () => {
       
       console.log("Creating auth user with identifier:", primaryIdentifier);
       
-      // Step 1: Create the user in Auth
+      // Step 1: Create the user in Auth (simplified without enum in metadata)
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: primaryIdentifier,
         password,
         options: {
           data: {
-            user_type: role,
+            user_type_string: role, // Use string instead of enum
             first_name: firstName,
             last_name: lastName,
             phone: phone,
@@ -110,11 +110,17 @@ export const UserRegistration = () => {
 
       console.log("Auth user created successfully:", authData.user.id);
 
-      // Step 2: Create user role using the updated function
+      // Step 2: Create user role using the RPC function
       try {
         console.log("Creating user role...");
-        const roleResult = await createUserRole(authData.user.id, role);
+        const roleResult = await createUserRole(authData.user.id, role as any);
         console.log("User role created successfully:", roleResult);
+        
+        // Check if the result indicates failure
+        if (roleResult && typeof roleResult === 'object' && 'success' in roleResult && !roleResult.success) {
+          console.error("Role creation returned failure:", roleResult);
+          throw new Error("Role assignment failed");
+        }
       } catch (roleError: any) {
         console.error("Error creating user role:", roleError);
         throw new Error(`Failed to assign user role: ${roleError.message}`);
@@ -320,7 +326,7 @@ export const UserRegistration = () => {
             <Label htmlFor="role">User Role *</Label>
             <Select 
               value={role} 
-              onValueChange={(value) => setRole(value as any)}
+              onValueChange={(value) => setRole(value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select role" />
