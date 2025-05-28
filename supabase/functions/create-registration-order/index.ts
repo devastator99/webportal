@@ -7,8 +7,9 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Demo mode flag
-const DEMO_MODE = true; // Set to false for production with real Razorpay
+// Environment-based demo mode detection
+const isDevelopment = Deno.env.get("ENVIRONMENT") !== "production";
+const DEMO_MODE = isDevelopment && !Deno.env.get("RAZORPAY_KEY_ID");
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -18,6 +19,8 @@ serve(async (req) => {
   
   try {
     console.log("create-registration-order function called");
+    console.log("Demo mode:", DEMO_MODE);
+    console.log("Environment:", Deno.env.get("ENVIRONMENT") || "development");
     
     // Get details from request
     const { user_id, amount = 500, currency = "INR" } = await req.json();
@@ -67,6 +70,7 @@ serve(async (req) => {
     const receipt = `reg_${Date.now()}_${user_id.substring(0, 8)}`;
     
     let orderData;
+    let razorpayKeyId;
     
     if (DEMO_MODE) {
       console.log("Using DEMO mode for payment");
@@ -80,20 +84,25 @@ serve(async (req) => {
           user_id: user_id
         }
       };
+      razorpayKeyId = "rzp_test_PmVJKhNvUghZde"; // Test key for demo
     } else {
       // For production: Call Razorpay API to create an order
       const RAZORPAY_KEY_ID = Deno.env.get("RAZORPAY_KEY_ID");
       const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
       
       if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+        console.error("Razorpay configuration missing");
         return new Response(
-          JSON.stringify({ error: "Razorpay configuration missing" }),
+          JSON.stringify({ error: "Payment gateway configuration missing" }),
           { 
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status: 500 
           }
         );
       }
+      
+      console.log("Using production Razorpay with key:", RAZORPAY_KEY_ID.substring(0, 12) + "...");
+      razorpayKeyId = RAZORPAY_KEY_ID;
       
       const auth = btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`);
       
@@ -117,7 +126,7 @@ serve(async (req) => {
         const errorData = await response.json();
         console.error("Razorpay API error:", errorData);
         return new Response(
-          JSON.stringify({ error: "Failed to create Razorpay order" }),
+          JSON.stringify({ error: "Failed to create payment order" }),
           { 
             headers: { ...corsHeaders, "Content-Type": "application/json" },
             status: response.status
@@ -160,6 +169,7 @@ serve(async (req) => {
         amount: orderData.amount / 100, // Convert back to regular currency units
         currency: orderData.currency,
         demo_mode: DEMO_MODE,
+        razorpay_key_id: razorpayKeyId,
         invoice_id: invoiceData?.id,
         prefill: {
           name: `${profile.first_name} ${profile.last_name}`.trim(),

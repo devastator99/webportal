@@ -22,6 +22,8 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [showRegistrationProgress, setShowRegistrationProgress] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [razorpayKeyId, setRazorpayKeyId] = useState<string | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
   
   const {
     createOrder,
@@ -68,9 +70,16 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
         throw new Error("Failed to create order");
       }
       
-      // Initialize Razorpay
+      // Store the Razorpay key and demo mode from the response
+      setRazorpayKeyId(orderData.razorpay_key_id);
+      setIsDemoMode(orderData.demo_mode || false);
+      
+      console.log("Payment mode:", orderData.demo_mode ? "Demo/Test" : "Production");
+      console.log("Using Razorpay key:", orderData.razorpay_key_id?.substring(0, 12) + "...");
+      
+      // Initialize Razorpay with the key from the server
       const options = {
-        key: 'rzp_test_PmVJKhNvUghZde',
+        key: orderData.razorpay_key_id,
         amount: registrationFee * 100, // amount in paise
         currency: 'INR',
         name: 'Health App',
@@ -102,9 +111,15 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
         prefill: {
           email: user.email,
           contact: '',
+          name: orderData.prefill?.name || '',
         },
         theme: {
           color: '#9b87f5',
+        },
+        modal: {
+          ondismiss: function() {
+            setIsCreatingOrder(false);
+          }
         }
       };
 
@@ -192,6 +207,14 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
           <span className="text-sm font-medium">Registration Fee</span>
           <span className="font-bold">₹{registrationFee}</span>
         </div>
+        
+        {isDemoMode && (
+          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p className="text-sm text-yellow-800">
+              <strong>Demo Mode:</strong> This is a test payment for development purposes.
+            </p>
+          </div>
+        )}
         
         <div className="text-sm text-gray-500">
           <p>This fee includes:</p>

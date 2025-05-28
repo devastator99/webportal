@@ -8,22 +8,33 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Razorpay key secret from environment variable
+// Environment-based configuration
+const isDevelopment = Deno.env.get("ENVIRONMENT") !== "production";
 const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET") || "";
 
 // Function to verify Razorpay signature
 const verifyRazorpaySignature = (orderId: string, paymentId: string, signature: string) => {
-  // Create HMAC SHA256 instance with the secret key
-  const hmac = createHmac("sha256", RAZORPAY_KEY_SECRET);
+  if (!RAZORPAY_KEY_SECRET) {
+    console.warn("Razorpay key secret not configured, skipping signature verification");
+    return true; // Allow in demo mode
+  }
   
-  // Update with the ordered data string (orderId + "|" + paymentId)
-  hmac.update(`${orderId}|${paymentId}`);
-  
-  // Get the generated signature
-  const generatedSignature = hmac.digest("hex");
-  
-  // Compare the signatures
-  return generatedSignature === signature;
+  try {
+    // Create HMAC SHA256 instance with the secret key
+    const hmac = createHmac("sha256", RAZORPAY_KEY_SECRET);
+    
+    // Update with the ordered data string (orderId + "|" + paymentId)
+    hmac.update(`${orderId}|${paymentId}`);
+    
+    // Get the generated signature
+    const generatedSignature = hmac.digest("hex");
+    
+    // Compare the signatures
+    return generatedSignature === signature;
+  } catch (error) {
+    console.error("Error verifying signature:", error);
+    return false;
+  }
 };
 
 serve(async (req) => {
@@ -40,6 +51,13 @@ serve(async (req) => {
       razorpay_signature,
       patient_id
     } = await req.json();
+    
+    console.log("Verifying payment:", {
+      order_id: razorpay_order_id,
+      payment_id: razorpay_payment_id,
+      signature_present: !!razorpay_signature,
+      environment: isDevelopment ? "development" : "production"
+    });
     
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return new Response(
@@ -62,25 +80,27 @@ serve(async (req) => {
       }
     );
     
-    // Only verify signature for real Razorpay payments, not our demo ones
+    // Only verify signature for real Razorpay payments, not demo ones
     let isSignatureValid = true;
-    if (!razorpay_payment_id.startsWith("pay_demo_")) {
+    if (!razorpay_payment_id.startsWith("pay_demo_") && !razorpay_payment_id.startsWith("test_payment_")) {
       isSignatureValid = verifyRazorpaySignature(
         razorpay_order_id,
         razorpay_payment_id,
         razorpay_signature
       );
-    }
-    
-    if (!isSignatureValid) {
-      console.error("Invalid payment signature");
-      return new Response(
-        JSON.stringify({ error: "Invalid payment signature" }),
-        { 
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400 
-        }
-      );
+      
+      if (!isSignatureValid) {
+        console.error("Invalid payment signature for production payment");
+        return new Response(
+          JSON.stringify({ error: "Invalid payment signature" }),
+          { 
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400 
+          }
+        );
+      }
+    } else {
+      console.log("Skipping signature verification for demo/test payment");
     }
     
     // Update the invoice status to 'paid'
@@ -105,6 +125,12 @@ serve(async (req) => {
         }
       );
     }
+    
+    console.log("Payment verified successfully:", {
+      invoice_id: updateData?.id,
+      invoice_number: updateData?.invoice_number,
+      payment_id: razorpay_payment_id
+    });
     
     // Return success response
     return new Response(
