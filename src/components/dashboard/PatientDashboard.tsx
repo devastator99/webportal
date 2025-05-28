@@ -13,7 +13,7 @@ import { PatientCuratedHealthTips } from "./patient/PatientCuratedHealthTips";
 import { RecentCareTeamMessages } from "@/components/chat/RecentCareTeamMessages";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardSkeleton } from "./DashboardSkeleton";
-import { Calendar, UserRound, CheckCircle2, Clock } from "lucide-react";
+import { Calendar, UserRound, CheckCircle2, Clock, Loader2, AlertTriangle } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePatientHabits } from "@/hooks/usePatientHabits";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -30,6 +30,8 @@ export const PatientDashboard = () => {
   const [isLoadingRoom, setIsLoadingRoom] = useState(true);
   const [registrationStatus, setRegistrationStatus] = useState<UserRegistrationStatus | null>(null);
   const [isRegistrationComplete, setIsRegistrationComplete] = useState(true);
+  const [isProcessingTasks, setIsProcessingTasks] = useState(false);
+  const [lastProcessingError, setLastProcessingError] = useState<string | null>(null);
   
   // Get habit summary data using the usePatientHabits hook
   const { summaryData, percentages, habitSummary, isLoading: isLoadingSummary } = usePatientHabits();
@@ -119,6 +121,81 @@ export const PatientDashboard = () => {
   const navigateToPrescriptions = () => {
     if (user?.id) {
       navigate(`/prescriptions/${user.id}`);
+    }
+  };
+
+  const handleProcessRegistrationTasks = async () => {
+    if (!user?.id) {
+      const errorMsg = "User not authenticated";
+      console.error("Process tasks error:", errorMsg);
+      setLastProcessingError(errorMsg);
+      toast({
+        title: "Error",
+        description: errorMsg,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsProcessingTasks(true);
+    setLastProcessingError(null);
+    
+    try {
+      console.log("=== DASHBOARD: STARTING TASK PROCESSING ===");
+      console.log("Triggering registration task processing for user:", user.id);
+      
+      // Add timeout to the function call
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Function call timeout after 30 seconds')), 30000);
+      });
+      
+      const functionPromise = supabase.functions.invoke('trigger-registration-notifications', {
+        body: { patient_id: user.id }
+      });
+      
+      console.log("Dashboard function call initiated, waiting for response...");
+      
+      // Race between the function call and timeout
+      const { data, error } = await Promise.race([functionPromise, timeoutPromise]) as any;
+      
+      console.log("=== DASHBOARD: FUNCTION RESPONSE RECEIVED ===");
+      console.log("Function response data:", data);
+      console.log("Function response error:", error);
+      
+      if (error) {
+        console.error("Dashboard edge function error details:", error);
+        const errorMessage = error.message || "Failed to process registration tasks";
+        setLastProcessingError(errorMessage);
+        throw new Error(errorMessage);
+      }
+      
+      console.log("Dashboard registration tasks processing result:", data);
+      
+      toast({
+        title: "Processing Started",
+        description: data?.message || "Registration tasks are being processed.",
+      });
+      
+      // Refresh registration status after processing
+      setTimeout(() => {
+        window.location.reload();
+      }, 3000);
+      
+    } catch (err: any) {
+      console.error("=== DASHBOARD: TASK PROCESSING ERROR ===");
+      console.error("Error details:", err);
+      
+      const errorMessage = err.message || "Failed to process registration tasks";
+      setLastProcessingError(errorMessage);
+      
+      toast({
+        title: "Processing Failed",
+        description: errorMessage,
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingTasks(false);
+      console.log("=== DASHBOARD: TASK PROCESSING COMPLETED ===");
     }
   };
 
@@ -218,6 +295,15 @@ export const PatientDashboard = () => {
               </AlertDescription>
             </Alert>
             
+            {lastProcessingError && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription className="mobile-text-scale">
+                  Processing error: {lastProcessingError}
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -252,10 +338,18 @@ export const PatientDashboard = () => {
           </CardContent>
           <CardFooter>
             <Button 
-              onClick={() => window.location.reload()}
+              onClick={handleProcessRegistrationTasks}
               className="mobile-button"
+              disabled={isProcessingTasks}
             >
-              Check Status Again
+              {isProcessingTasks ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                "Check Status Again"
+              )}
             </Button>
           </CardFooter>
         </Card>

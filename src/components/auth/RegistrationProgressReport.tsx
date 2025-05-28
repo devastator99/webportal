@@ -3,7 +3,7 @@ import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, Clock, LogIn, RefreshCw, Loader2 } from "lucide-react";
+import { CheckCircle2, Clock, LogIn, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
 import { UserRegistrationStatus, RegistrationStatus, RegistrationStatusValues } from "@/types/registration";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,6 +24,7 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
   const [isProcessingTasks, setIsProcessingTasks] = useState(false);
   const [registrationStatus, setRegistrationStatus] = useState<UserRegistrationStatus | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [lastProcessingError, setLastProcessingError] = useState<string | null>(null);
   
   const fetchRegistrationStatus = async () => {
     // Don't fetch if auth is still loading or no user
@@ -77,49 +78,91 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
 
   const handleProcessRegistrationTasks = async () => {
     if (!user?.id) {
+      const errorMsg = "User not authenticated";
+      console.error("Process tasks error:", errorMsg);
+      setLastProcessingError(errorMsg);
       toast({
         title: "Error",
-        description: "User not authenticated",
+        description: errorMsg,
         variant: "destructive"
       });
       return;
     }
 
     setIsProcessingTasks(true);
+    setLastProcessingError(null);
+    
     try {
+      console.log("=== STARTING TASK PROCESSING ===");
       console.log("Triggering registration task processing for user:", user.id);
+      console.log("Timestamp:", new Date().toISOString());
       
-      // Call the trigger function which will process all pending tasks
-      const { data, error } = await supabase.functions.invoke('trigger-registration-notifications', {
+      // Add timeout to the function call
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Function call timeout after 30 seconds')), 30000);
+      });
+      
+      const functionPromise = supabase.functions.invoke('trigger-registration-notifications', {
         body: { patient_id: user.id }
       });
       
+      console.log("Function call initiated, waiting for response...");
+      
+      // Race between the function call and timeout
+      const { data, error } = await Promise.race([functionPromise, timeoutPromise]) as any;
+      
+      console.log("=== FUNCTION RESPONSE RECEIVED ===");
+      console.log("Function response data:", data);
+      console.log("Function response error:", error);
+      
       if (error) {
-        console.error("Error triggering registration tasks:", error);
-        throw new Error(error.message || "Failed to process registration tasks");
+        console.error("Edge function error details:", {
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+          code: error.code
+        });
+        
+        const errorMessage = error.message || "Failed to process registration tasks";
+        setLastProcessingError(errorMessage);
+        throw new Error(errorMessage);
       }
       
       console.log("Registration tasks processing result:", data);
       
+      const successMessage = data?.message || "Registration tasks are being processed. Please check back in a few moments.";
+      
       toast({
         title: "Processing Started",
-        description: data?.message || "Registration tasks are being processed. Please check back in a few moments.",
+        description: successMessage,
       });
       
+      console.log("=== REFRESHING STATUS ===");
       // Wait a moment then refresh status
       setTimeout(() => {
+        console.log("Fetching updated registration status...");
         fetchRegistrationStatus();
       }, 3000);
       
     } catch (err: any) {
-      console.error("Error processing registration tasks:", err);
+      console.error("=== TASK PROCESSING ERROR ===");
+      console.error("Error details:", {
+        message: err.message,
+        stack: err.stack,
+        name: err.name
+      });
+      
+      const errorMessage = err.message || "Failed to process registration tasks";
+      setLastProcessingError(errorMessage);
+      
       toast({
         title: "Processing Failed",
-        description: err.message || "Failed to process registration tasks",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
       setIsProcessingTasks(false);
+      console.log("=== TASK PROCESSING COMPLETED ===");
     }
   };
   
@@ -224,6 +267,15 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
               We couldn't retrieve your registration status. Please try again later.
             </AlertDescription>
           </Alert>
+          
+          {lastProcessingError && (
+            <Alert variant="destructive" className="mt-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                Last error: {lastProcessingError}
+              </AlertDescription>
+            </Alert>
+          )}
         </CardContent>
         <CardFooter className="flex-col gap-2">
           <Button 
@@ -272,6 +324,15 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
             Your account is currently being set up. This includes assigning your care team and creating your communication channels. This process should be completed shortly.
           </AlertDescription>
         </Alert>
+        
+        {lastProcessingError && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Processing error: {lastProcessingError}
+            </AlertDescription>
+          </Alert>
+        )}
         
         <div className="space-y-3">
           <div className="flex items-center justify-between">
