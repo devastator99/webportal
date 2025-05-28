@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -88,6 +87,9 @@ serve(async (req) => {
         p_result_payload: processResult
       });
       
+      // Update user registration status if all tasks are completed
+      await updateUserRegistrationStatus(supabase, task.user_id);
+      
       return new Response(
         JSON.stringify({ 
           success: true,
@@ -143,6 +145,38 @@ serve(async (req) => {
     );
   }
 });
+
+// Function to update user registration status based on completed tasks
+async function updateUserRegistrationStatus(supabase: any, userId: string) {
+  try {
+    // Check if all tasks are completed for this user
+    const { data: pendingTasks, error } = await supabase
+      .from('registration_tasks')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('status', 'pending');
+    
+    if (error) {
+      console.error('Error checking pending tasks:', error);
+      return;
+    }
+    
+    // If no pending tasks, mark registration as fully complete
+    if (!pendingTasks || pendingTasks.length === 0) {
+      await supabase
+        .from('profiles')
+        .update({ 
+          registration_status: 'fully_registered',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      console.log(`User ${userId} registration marked as fully_registered`);
+    }
+  } catch (error) {
+    console.error('Error updating user registration status:', error);
+  }
+}
 
 // Function to process assign care team task
 async function processAssignCareTeam(supabase: any, task: Task) {
