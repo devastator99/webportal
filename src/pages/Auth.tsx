@@ -71,7 +71,7 @@ const Auth = () => {
     }
   };
 
-  // Enhanced redirection logic - wait for both user and role to be loaded
+  // Enhanced redirection logic - only redirect to dashboard when registration is truly complete
   useEffect(() => {
     // Only proceed if we have completed loading both user and role
     if (!isLoading && !isLoadingRole && user) {
@@ -79,15 +79,15 @@ const Auth = () => {
                   "Registration step:", registrationStep, 
                   "isRegistrationFlow:", isRegistrationFlow);
       
-      // If the user is a patient, we need to check their registration status
-      if (userRole === 'patient') {
+      // If we're actively in a registration flow, stay on the registration page
+      if (isRegistrationFlow) {
+        console.log(`In active registration flow at step: ${registrationStep}`);
+        return;
+      }
+      
+      // If the user is a patient and NOT in registration flow, check their status
+      if (userRole === 'patient' && !isRegistrationFlow) {
         const checkPatientStatus = async () => {
-          // Skip checks if explicitly in registration flow with step 2 (payment) or 3 (complete)
-          if (isRegistrationFlow && (registrationStep === 2 || registrationStep === 3)) {
-            console.log(`Staying on registration page for step: ${registrationStep}`);
-            return;
-          }
-          
           const registrationStatus = await checkRegistrationStatus(user.id);
           console.log("Patient registration status:", registrationStatus);
           
@@ -117,29 +117,21 @@ const Auth = () => {
             }
           }
           
-          // Default redirect if we couldn't determine status
-          if (userRole) {
-            navigate("/dashboard", { replace: true });
-          }
+          // Default redirect if we couldn't determine status and not in registration
+          navigate("/dashboard", { replace: true });
         };
         
         checkPatientStatus();
         return;
       }
       
-      // For non-patient roles, redirect immediately if role is available
-      if (userRole && (!isRegistrationFlow || registrationStep === 3)) {
+      // For non-patient roles, redirect immediately if role is available and not in registration
+      if (userRole && !isRegistrationFlow) {
         console.log("Redirecting to dashboard as", userRole);
         navigate("/dashboard", { replace: true });
-        
-        // Clean up localStorage
-        if (isRegistrationFlow) {
-          localStorage.removeItem('registration_payment_pending');
-          localStorage.removeItem('registration_payment_complete');
-        }
       }
     }
-  }, [user, userRole, isLoading, isLoadingRole, navigate, registrationStep, isRegistrationFlow]);
+  }, [user, userRole, isLoading, isLoadingRole, navigate, isRegistrationFlow]);
 
   // Show loading state while auth or role is loading
   if (isLoading || isLoadingRole || isCheckingRegistration) {
@@ -168,12 +160,12 @@ const Auth = () => {
       
       // Flag this as a registration flow before user creation
       const isPatientRegistration = userType === 'patient';
-      setIsRegistrationFlow(isPatientRegistration);
       
-      // Set localStorage flag to prevent redirection race condition
+      // Set localStorage flags for patient registration
       if (isPatientRegistration) {
         localStorage.setItem('registration_payment_pending', 'true');
         localStorage.setItem('registration_payment_complete', 'false');
+        setIsRegistrationFlow(true);
       }
       
       const enhancedPatientData = patientData ? {
@@ -210,6 +202,7 @@ const Auth = () => {
       if (userType === 'patient') {
         localStorage.removeItem('registration_payment_pending');
         localStorage.removeItem('registration_payment_complete');
+        setIsRegistrationFlow(false);
       }
       
       toast({

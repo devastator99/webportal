@@ -24,6 +24,16 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
         return;
       }
       
+      // Don't check if we're in an active registration flow
+      const isInRegistrationFlow = localStorage.getItem('registration_payment_pending') === 'true' ||
+                                   localStorage.getItem('registration_payment_complete') === 'true';
+      
+      if (isInRegistrationFlow) {
+        console.log("RegistrationStatusChecker: Active registration flow detected, skipping check");
+        setIsChecking(false);
+        return;
+      }
+      
       try {
         console.log("RegistrationStatusChecker: Checking registration status for patient:", user.id);
         
@@ -45,6 +55,16 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
           console.log("RegistrationStatusChecker: Registration payment pending, redirecting to auth/register");
           localStorage.setItem('registration_payment_pending', 'true');
           localStorage.setItem('registration_payment_complete', 'false');
+          setRedirected(true);
+          navigate('/auth/register', { replace: true });
+          return;
+        }
+        
+        // If payment is complete but not fully registered, redirect to progress
+        if (['payment_complete', 'care_team_assigned'].includes(regStatus.registration_status) && !redirected) {
+          console.log("RegistrationStatusChecker: Registration progress pending, redirecting to auth/register");
+          localStorage.setItem('registration_payment_pending', 'false');
+          localStorage.setItem('registration_payment_complete', 'true');
           setRedirected(true);
           navigate('/auth/register', { replace: true });
           return;
