@@ -20,8 +20,8 @@ export const ReceptionDashboard = () => {
 
       const [
         { data: appointments, error: appointmentsError },
-        { data: totalPatients, error: patientsError },
-        { data: totalDoctors, error: doctorsError }
+        { data: patientsCount, error: patientsError },
+        { data: doctorsCount, error: doctorsError }
       ] = await Promise.all([
         supabase
           .from("appointments")
@@ -42,26 +42,31 @@ export const ReceptionDashboard = () => {
           .order("scheduled_at", { ascending: true }),
         supabase
           .from("user_roles")
-          .select("id")
-          .eq("role", "patient")
-          .limit(1)
-          .select("count"),
+          .select("*", { count: 'exact' })
+          .eq("role", "patient"),
         supabase
           .from("user_roles")
-          .select("id")
+          .select("*", { count: 'exact' })
           .eq("role", "doctor")
-          .limit(1)
-          .select("count")
       ]);
 
       if (appointmentsError) throw appointmentsError;
       if (patientsError) throw patientsError;
       if (doctorsError) throw doctorsError;
 
+      // Transform appointments to fix type issues
+      const transformedAppointments = (appointments || []).map(appointment => ({
+        id: appointment.id,
+        scheduled_at: appointment.scheduled_at,
+        status: appointment.status,
+        doctor: Array.isArray(appointment.doctor) ? appointment.doctor[0] : appointment.doctor,
+        patient: Array.isArray(appointment.patient) ? appointment.patient[0] : appointment.patient
+      }));
+
       return {
-        appointments: appointments || [],
-        totalPatients: totalPatients?.[0]?.count || 0,
-        totalDoctors: totalDoctors?.[0]?.count || 0
+        appointments: transformedAppointments,
+        totalPatients: patientsCount?.length || 0,
+        totalDoctors: doctorsCount?.length || 0
       };
     },
     enabled: !!user?.id
