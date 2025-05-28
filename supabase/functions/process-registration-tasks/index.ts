@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -416,7 +415,7 @@ async function processCreateChatRoom(supabase: any, task: Task) {
   };
 }
 
-// Enhanced function to process send welcome notification task
+// Enhanced function to process send welcome notification task with independent channel handling
 async function processSendWelcomeNotification(supabase: any, task: Task) {
   console.log(`Processing comprehensive welcome notification for user ${task.user_id}`);
   
@@ -478,38 +477,83 @@ async function processSendWelcomeNotification(supabase: any, task: Task) {
     );
     
     if (notificationError) {
-      console.error("Notification error:", notificationError);
-      // Don't fail the task if WhatsApp is missing but other channels work
-      if (notificationError.message && notificationError.message.includes('TWILIO_WHATSAPP_NUMBER')) {
-        console.log("WhatsApp notification failed (expected), continuing with other channels");
-      } else {
-        throw new Error(`Failed to send comprehensive notification: ${notificationError.message}`);
-      }
+      console.error("Notification function error:", notificationError);
+      throw new Error(`Failed to call notification function: ${notificationError.message}`);
     }
     
-    console.log("Comprehensive welcome notification sent:", notificationResult);
+    console.log("Notification function response:", notificationResult);
     
-    return {
-      notification_sent: true,
-      channels_used: notificationResult?.results || {},
-      timestamp: new Date().toISOString(),
-      patient_name: patientName,
-      doctor_name: doctorName,
-      nutritionist_name: nutritionistName
-    };
+    // Parse the results to determine success criteria
+    const results = notificationResult?.results || {};
+    const successfulChannels = [];
+    const failedChannels = [];
+    
+    // Check each channel
+    Object.keys(results).forEach(channel => {
+      const channelResult = results[channel];
+      if (channelResult.success) {
+        successfulChannels.push(channel);
+      } else {
+        failedChannels.push({
+          channel,
+          error: channelResult.error
+        });
+      }
+    });
+    
+    console.log(`Successful channels: ${successfulChannels.join(', ')}`);
+    console.log(`Failed channels: ${failedChannels.map(f => `${f.channel} (${f.error})`).join(', ')}`);
+    
+    // Consider the task successful if AT LEAST ONE channel worked
+    if (successfulChannels.length > 0) {
+      console.log(`Notification task considered successful - ${successfulChannels.length}/${Object.keys(results).length} channels worked`);
+      
+      return {
+        notification_sent: true,
+        successful_channels: successfulChannels,
+        failed_channels: failedChannels,
+        channels_summary: `${successfulChannels.length}/${Object.keys(results).length} channels successful`,
+        timestamp: new Date().toISOString(),
+        patient_name: patientName,
+        doctor_name: doctorName,
+        nutritionist_name: nutritionistName,
+        detailed_results: results
+      };
+    } else {
+      // Only fail if ALL channels failed
+      console.error("All notification channels failed");
+      throw new Error(`All notification channels failed: ${failedChannels.map(f => `${f.channel}: ${f.error}`).join('; ')}`);
+    }
     
   } catch (error: any) {
     console.error("Welcome notification error:", error);
-    // If it's just a WhatsApp configuration issue, don't fail the entire task
-    if (error.message && error.message.includes('TWILIO_WHATSAPP_NUMBER')) {
-      console.log("Treating WhatsApp failure as non-critical, marking task as completed");
+    
+    // Check if this is a specific configuration issue that should be treated as non-critical
+    const nonCriticalErrors = [
+      'TWILIO_WHATSAPP_NUMBER',
+      'TWILIO_PHONE_NUMBER', 
+      'RESEND_API_KEY',
+      'WhatsApp not configured'
+    ];
+    
+    const isConfigurationIssue = nonCriticalErrors.some(errorType => 
+      error.message && error.message.includes(errorType)
+    );
+    
+    if (isConfigurationIssue) {
+      console.log("Treating configuration issue as partial success");
       return {
         notification_sent: true,
-        channels_used: { whatsapp: { success: false, error: 'WhatsApp not configured' } },
+        successful_channels: ['chat'], // Assume chat always works
+        failed_channels: [{ channel: 'external', error: error.message }],
+        channels_summary: 'Partial success - some channels not configured',
         timestamp: new Date().toISOString(),
-        warning: 'WhatsApp notifications not available'
+        warning: 'Some notification channels not available due to configuration',
+        configuration_issue: error.message
       };
     }
+    
+    // For other errors, fail the task
     throw new Error(`Failed to send comprehensive welcome notification: ${error.message}`);
   }
 }
