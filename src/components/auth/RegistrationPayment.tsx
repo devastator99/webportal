@@ -52,7 +52,9 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
     checkExistingRegistrationStatus();
   }, [user]);
   
-  const initiatePayment = async () => {
+  const handleInitiatePayment = async () => {
+    console.log("Pay Registration Fee button clicked");
+    
     if (!user) {
       toast({
         title: "Error",
@@ -64,11 +66,14 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
     
     setIsCreatingOrder(true);
     try {
+      console.log("Creating order...");
       const orderData = await createOrder();
       
       if (!orderData || !orderData.order_id) {
         throw new Error("Failed to create order");
       }
+      
+      console.log("Order created successfully:", orderData.order_id);
       
       // Store the Razorpay key and demo mode from the response
       setRazorpayKeyId(orderData.razorpay_key_id);
@@ -76,6 +81,12 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
       
       console.log("Payment mode:", orderData.demo_mode ? "Demo/Test" : "Production");
       console.log("Using Razorpay key:", orderData.razorpay_key_id?.substring(0, 12) + "...");
+      
+      // Check if Razorpay is loaded
+      if (!(window as any).Razorpay) {
+        console.error("Razorpay not loaded");
+        throw new Error("Payment gateway not loaded. Please refresh the page and try again.");
+      }
       
       // Initialize Razorpay with the key from the server
       const options = {
@@ -87,6 +98,7 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
         order_id: orderData.order_id,
         handler: async function(response: any) {
           try {
+            console.log("Payment successful, completing registration...");
             setIsProcessing(true);
             const success = await completeRegistration(
               response.razorpay_payment_id,
@@ -95,10 +107,12 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
             );
             
             if (success) {
+              console.log("Registration completed successfully");
               setShowRegistrationProgress(true);
               onComplete();
             }
           } catch (err: any) {
+            console.error("Payment verification error:", err);
             toast({
               title: "Payment Verification Error",
               description: err.message || "Failed to verify payment",
@@ -118,14 +132,17 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
         },
         modal: {
           ondismiss: function() {
+            console.log("Payment modal dismissed");
             setIsCreatingOrder(false);
           }
         }
       };
 
+      console.log("Opening Razorpay with options:", options);
       const razorpay = new (window as any).Razorpay(options);
       razorpay.open();
     } catch (err: any) {
+      console.error("Payment initiation error:", err);
       toast({
         title: "Payment Error",
         description: err.message || "Failed to initiate payment",
@@ -138,13 +155,25 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
   
   // For testing - manually complete payment without Razorpay
   const handleManualPayment = async () => {
-    if (!user) return;
+    console.log("Complete Registration (Testing) button clicked");
+    
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to complete registration",
+        variant: "destructive"
+      });
+      return;
+    }
     
     try {
       setIsProcessing(true);
+      console.log("Processing manual payment...");
+      
       // Generate a test order ID if needed
       let testOrderId = orderId;
       if (!testOrderId) {
+        console.log("Creating test order...");
         const orderData = await createOrder();
         testOrderId = orderData?.order_id;
       }
@@ -158,6 +187,7 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
         );
         
         if (success) {
+          console.log("Manual payment completed successfully");
           toast({
             title: "Registration Payment",
             description: "Test payment processed successfully",
@@ -165,6 +195,8 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
           setShowRegistrationProgress(true);
           onComplete();
         }
+      } else {
+        throw new Error("Failed to create test order");
       }
     } catch (err: any) {
       console.error("Error in manual payment:", err);
@@ -181,14 +213,19 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
   // Check if the Razorpay script is loaded
   useEffect(() => {
     if (!(window as any).Razorpay) {
+      console.log("Loading Razorpay script...");
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.async = true;
+      script.onload = () => console.log("Razorpay script loaded successfully");
+      script.onerror = () => console.error("Failed to load Razorpay script");
       document.body.appendChild(script);
       
       return () => {
         document.body.removeChild(script);
       };
+    } else {
+      console.log("Razorpay already loaded");
     }
   }, []);
   
@@ -229,7 +266,7 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
       <CardFooter className="flex flex-col gap-2">
         <Button 
           className="w-full" 
-          onClick={initiatePayment}
+          onClick={handleInitiatePayment}
           disabled={isLoading || isCreatingOrder || isProcessing}
         >
           {isLoading || isCreatingOrder ? (
