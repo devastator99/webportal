@@ -4,17 +4,14 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { AuthForm } from "@/components/auth/AuthForm";
-import { LucideLoader2, CheckCircle2 } from "lucide-react";
+import { LucideLoader2 } from "lucide-react";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { RegistrationPayment } from "@/components/auth/RegistrationPayment";
-import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { UserRegistrationStatus } from "@/types/registration";
 import { RegistrationProgressReport } from "@/components/auth/RegistrationProgressReport";
-import { PhoneRegistrationDebugger } from "@/components/testing/PhoneRegistrationDebugger";
-import { PhoneDataMigration } from "@/components/testing/PhoneDataMigration";
 
 const Auth = () => {
   const { user, userRole, isLoading } = useAuth();
@@ -26,8 +23,6 @@ const Auth = () => {
   const [registeredUser, setRegisteredUser] = useState<any>(null);
   const [isRegistrationFlow, setIsRegistrationFlow] = useState(false);
   const [isCheckingRegistration, setIsCheckingRegistration] = useState(false);
-  const [showDebugger, setShowDebugger] = useState(false);
-  const [showMigration, setShowMigration] = useState(false);
   
   const isRegistration = location.pathname.includes('/register');
 
@@ -258,37 +253,6 @@ const Auth = () => {
               showLinks={true}
             />
           </div>
-          
-          {/* Add debug and migration utilities */}
-          <div className="mt-4 text-center space-y-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setShowDebugger(!showDebugger)}
-              className="text-xs mr-2"
-            >
-              {showDebugger ? 'Hide' : 'Show'} Registration Debugger
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              onClick={() => setShowMigration(!showMigration)}
-              className="text-xs"
-            >
-              {showMigration ? 'Hide' : 'Show'} Phone Migration
-            </Button>
-          </div>
-          
-          {showDebugger && (
-            <div className="mt-4">
-              <PhoneRegistrationDebugger />
-            </div>
-          )}
-          
-          {showMigration && (
-            <div className="mt-4">
-              <PhoneDataMigration />
-            </div>
-          )}
         </div>
       </div>
     );
@@ -322,37 +286,6 @@ const Auth = () => {
                 />
               </div>
             </ScrollArea>
-            
-            {/* Add debug and migration utilities for registration page too */}
-            <div className="mt-4 text-center space-y-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setShowDebugger(!showDebugger)}
-                className="text-xs mr-2"
-              >
-                {showDebugger ? 'Hide' : 'Show'} Registration Debugger
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                onClick={() => setShowMigration(!showMigration)}
-                className="text-xs"
-              >
-                {showMigration ? 'Hide' : 'Show'} Phone Migration
-              </Button>
-            </div>
-            
-            {showDebugger && (
-              <div className="mt-4">
-                <PhoneRegistrationDebugger />
-              </div>
-            )}
-            
-            {showMigration && (
-              <div className="mt-4">
-                <PhoneDataMigration />
-              </div>
-            )}
           </div>
         )}
         

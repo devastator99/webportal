@@ -13,8 +13,7 @@ interface ProfileData {
   first_name: string;
   last_name: string;
   email: string;
-  phone_number?: string;
-  address?: string;
+  phone?: string;
   date_of_birth?: string;
 }
 
@@ -28,6 +27,7 @@ export const PatientProfile = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -39,15 +39,22 @@ export const PatientProfile = () => {
         // Fetch profile data from profiles table
         const { data, error } = await supabase
           .from("profiles")
-          .select("*")
+          .select("first_name, last_name, phone")
           .eq("id", user.id)
           .single();
 
-        if (error) throw error;
+        if (error && error.code !== 'PGRST116') { // PGRST116 is "not found" error
+          console.error("Error fetching profile:", error);
+          throw error;
+        }
         
+        // Set profile data, using auth user email and profile data
         setProfile({
-          ...data,
+          first_name: data?.first_name || "",
+          last_name: data?.last_name || "",
           email: user.email || "",
+          phone: data?.phone || "",
+          date_of_birth: "", // We'll add this field later if needed
         });
       } catch (error) {
         console.error("Error fetching profile:", error);
@@ -77,18 +84,30 @@ export const PatientProfile = () => {
     
     if (!user?.id) return;
     
+    // Basic validation
+    if (!profile.first_name.trim() || !profile.last_name.trim()) {
+      toast({
+        title: "Validation Error",
+        description: "First name and last name are required.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
+      setIsSaving(true);
+      
       const { error } = await supabase
         .from("profiles")
-        .update({
-          first_name: profile.first_name,
-          last_name: profile.last_name,
-          phone_number: profile.phone_number,
-          address: profile.address,
-          date_of_birth: profile.date_of_birth,
+        .upsert({
+          id: user.id,
+          first_name: profile.first_name.trim(),
+          last_name: profile.last_name.trim(),
+          phone: profile.phone?.trim() || null,
           updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
+        }, {
+          onConflict: 'id'
+        });
 
       if (error) throw error;
       
@@ -105,6 +124,8 @@ export const PatientProfile = () => {
         description: "There was an error updating your profile. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -117,7 +138,7 @@ export const PatientProfile = () => {
       <div className="flex items-center gap-4">
         <Avatar className="h-20 w-20">
           <AvatarFallback className="text-lg bg-[#E5DEFF] text-[#7E69AB]">
-            {profile.first_name?.[0]}{profile.last_name?.[0]}
+            {profile.first_name?.[0]?.toUpperCase()}{profile.last_name?.[0]?.toUpperCase()}
           </AvatarFallback>
         </Avatar>
         <div>
@@ -130,6 +151,7 @@ export const PatientProfile = () => {
           variant="outline" 
           className="ml-auto"
           onClick={() => setIsEditing(!isEditing)}
+          disabled={isSaving}
         >
           {isEditing ? "Cancel" : "Edit Profile"}
         </Button>
@@ -140,24 +162,26 @@ export const PatientProfile = () => {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="first_name">First Name</Label>
+            <Label htmlFor="first_name">First Name *</Label>
             <Input
               id="first_name"
               name="first_name"
               value={profile.first_name}
               onChange={handleChange}
               disabled={!isEditing}
+              required
             />
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="last_name">Last Name</Label>
+            <Label htmlFor="last_name">Last Name *</Label>
             <Input
               id="last_name"
               name="last_name"
               value={profile.last_name}
               onChange={handleChange}
               disabled={!isEditing}
+              required
             />
           </div>
 
@@ -169,48 +193,41 @@ export const PatientProfile = () => {
               type="email"
               value={profile.email}
               disabled={true}
+              className="bg-gray-50"
             />
+            <p className="text-xs text-muted-foreground">
+              Email cannot be changed here. Contact support if needed.
+            </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="phone_number">Phone Number</Label>
+            <Label htmlFor="phone">Phone Number</Label>
             <Input
-              id="phone_number"
-              name="phone_number"
-              value={profile.phone_number || ""}
+              id="phone"
+              name="phone"
+              value={profile.phone || ""}
               onChange={handleChange}
               disabled={!isEditing}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="date_of_birth">Date of Birth</Label>
-            <Input
-              id="date_of_birth"
-              name="date_of_birth"
-              type="date"
-              value={profile.date_of_birth || ""}
-              onChange={handleChange}
-              disabled={!isEditing}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="address">Address</Label>
-            <Input
-              id="address"
-              name="address"
-              value={profile.address || ""}
-              onChange={handleChange}
-              disabled={!isEditing}
+              placeholder="Enter your phone number"
             />
           </div>
         </div>
 
         {isEditing && (
-          <div className="flex justify-end">
-            <Button type="submit">
-              Save Changes
+          <div className="flex justify-end gap-2">
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={() => setIsEditing(false)}
+              disabled={isSaving}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="submit"
+              disabled={isSaving}
+            >
+              {isSaving ? "Saving..." : "Save Changes"}
             </Button>
           </div>
         )}
