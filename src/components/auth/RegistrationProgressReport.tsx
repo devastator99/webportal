@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +25,30 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
   const [registrationStatus, setRegistrationStatus] = useState<UserRegistrationStatus | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [lastProcessingError, setLastProcessingError] = useState<string | null>(null);
+  
+  // Helper function to check if all required tasks are actually completed
+  const areAllTasksCompleted = (status: UserRegistrationStatus | null) => {
+    if (!status || !status.tasks) return false;
+    
+    // Check if we have the minimum required tasks completed
+    const requiredTaskTypes = ['assign_care_team', 'create_chat_room', 'send_welcome_notification'];
+    const completedTasks = status.tasks.filter(task => task.status === 'completed');
+    const completedTaskTypes = completedTasks.map(task => task.task_type);
+    
+    // Check if all required task types are completed
+    const allRequiredCompleted = requiredTaskTypes.every(taskType => 
+      completedTaskTypes.includes(taskType)
+    );
+    
+    console.log("Task completion check:", {
+      requiredTaskTypes,
+      completedTaskTypes,
+      allRequiredCompleted,
+      registrationStatus: status.registration_status
+    });
+    
+    return allRequiredCompleted && status.registration_status === RegistrationStatusValues.FULLY_REGISTERED;
+  };
   
   const fetchRegistrationStatus = async () => {
     // Don't fetch if auth is still loading or no user
@@ -57,9 +82,10 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
         console.log("Setting registration status:", data);
         setRegistrationStatus(data as unknown as UserRegistrationStatus);
         
-        // Check if registration is fully complete and redirect
-        if (data.registration_status === RegistrationStatusValues.FULLY_REGISTERED) {
-          console.log("Registration is fully complete, redirecting to dashboard");
+        // Check if ALL tasks are actually completed (not just status)
+        const allCompleted = areAllTasksCompleted(data as unknown as UserRegistrationStatus);
+        if (allCompleted) {
+          console.log("All registration tasks are truly complete, redirecting to dashboard");
           localStorage.removeItem('registration_payment_pending');
           localStorage.removeItem('registration_payment_complete');
           
@@ -71,6 +97,8 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
           setTimeout(() => {
             navigate("/dashboard", { replace: true });
           }, 2000);
+        } else {
+          console.log("Registration status is marked complete but tasks are still pending");
         }
       } else {
         console.log("No data returned, setting default status");
@@ -288,8 +316,8 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
     );
   }
   
-  // If registration is fully completed, show completion message instead of returning null
-  if (registrationStatus?.registration_status === RegistrationStatusValues.FULLY_REGISTERED) {
+  // Only show completion when ALL tasks are actually done
+  if (registrationStatus && areAllTasksCompleted(registrationStatus)) {
     return (
       <Card className="bg-white">
         <CardHeader>
@@ -413,24 +441,36 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CheckCircle2 className={`h-5 w-5 ${
-                [RegistrationStatusValues.CARE_TEAM_ASSIGNED, RegistrationStatusValues.FULLY_REGISTERED].includes(registrationStatus?.registration_status as RegistrationStatus) ? 'text-green-500' : 'text-gray-300'
+                registrationStatus?.tasks?.some(task => task.task_type === 'assign_care_team' && task.status === 'completed') ? 'text-green-500' : 'text-gray-300'
               }`} />
               <span>Care Team Assignment</span>
             </div>
             <span className="text-sm text-muted-foreground">
-              {[RegistrationStatusValues.CARE_TEAM_ASSIGNED, RegistrationStatusValues.FULLY_REGISTERED].includes(registrationStatus?.registration_status as RegistrationStatus) ? 'Completed' : 'In Progress'}
+              {registrationStatus?.tasks?.some(task => task.task_type === 'assign_care_team' && task.status === 'completed') ? 'Completed' : 'In Progress'}
             </span>
           </div>
           
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <CheckCircle2 className={`h-5 w-5 ${
-                registrationStatus?.registration_status === RegistrationStatusValues.FULLY_REGISTERED ? 'text-green-500' : 'text-gray-300'
+                registrationStatus?.tasks?.some(task => task.task_type === 'create_chat_room' && task.status === 'completed') ? 'text-green-500' : 'text-gray-300'
               }`} />
-              <span>Account Setup Complete</span>
+              <span>Chat Room Creation</span>
             </div>
             <span className="text-sm text-muted-foreground">
-              {registrationStatus?.registration_status === RegistrationStatusValues.FULLY_REGISTERED ? 'Completed' : 'In Progress'}
+              {registrationStatus?.tasks?.some(task => task.task_type === 'create_chat_room' && task.status === 'completed') ? 'Completed' : 'In Progress'}
+            </span>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className={`h-5 w-5 ${
+                registrationStatus?.tasks?.some(task => task.task_type === 'send_welcome_notification' && task.status === 'completed') ? 'text-green-500' : 'text-gray-300'
+              }`} />
+              <span>Welcome Notifications</span>
+            </div>
+            <span className="text-sm text-muted-foreground">
+              {registrationStatus?.tasks?.some(task => task.task_type === 'send_welcome_notification' && task.status === 'completed') ? 'Completed' : 'In Progress'}
             </span>
           </div>
           
