@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -81,9 +80,9 @@ serve(async (req) => {
           );
         }
         // Use only the filtered task
-        taskData = [filteredTask];
+        const taskData = [filteredTask];
       } else {
-        taskData = fallbackTaskData;
+        const taskData = fallbackTaskData;
       }
     }
     
@@ -407,7 +406,9 @@ async function processCreateChatRoom(supabase: any, task: Task) {
       }
     ];
     
+    // FIXED: Add nutritionist if assigned
     if (assignmentData.nutritionist_id) {
+      console.log(`Adding nutritionist ${assignmentData.nutritionist_id} to room ${roomId}`);
       membersToAdd.push({
         room_id: roomId,
         user_id: assignmentData.nutritionist_id,
@@ -422,7 +423,7 @@ async function processCreateChatRoom(supabase: any, task: Task) {
       role: 'aibot'
     });
     
-    console.log(`Adding ${membersToAdd.length} members to room ${roomId}`);
+    console.log(`Adding ${membersToAdd.length} members to room ${roomId}:`, membersToAdd.map(m => `${m.role}(${m.user_id})`));
     
     // Add members
     const { error: membersError } = await supabase
@@ -462,7 +463,8 @@ async function processCreateChatRoom(supabase: any, task: Task) {
   
   return {
     room_id: roomId,
-    room_name: roomName
+    room_name: roomName,
+    members_added: assignmentData.nutritionist_id ? ['patient', 'doctor', 'nutritionist', 'aibot'] : ['patient', 'doctor', 'aibot']
   };
 }
 

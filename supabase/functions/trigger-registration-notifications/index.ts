@@ -72,57 +72,54 @@ serve(async (req) => {
     console.log(`Found ${pendingTasks.length} pending tasks for patient ${patient_id}:`, 
       pendingTasks.map(t => `${t.task_type} (retry: ${t.retry_count})`).join(', '));
     
-    // Process pending tasks in a loop until all are complete for this patient
-    let maxRetries = 10;
-    let currentRetry = 0;
-    let allTasksComplete = false;
-    let processedTasks = [];
+    // FIXED: Process all tasks independently instead of one at a time
+    const processedTasks = [];
+    const failedTasks = [];
     
-    while (!allTasksComplete && currentRetry < maxRetries) {
-      currentRetry++;
-      console.log(`Processing tasks attempt ${currentRetry}/${maxRetries} for patient ${patient_id}`);
+    // Process each task independently
+    for (const task of pendingTasks) {
+      console.log(`Processing task ${task.task_type} for patient ${patient_id}`);
       
-      // Call the task processor with patient filter
-      const { data: processResult, error: processError } = await supabase.functions.invoke(
-        'process-registration-tasks',
-        { body: { patient_id: patient_id } }
-      );
-      
-      if (processError) {
-        console.error("Task processing error:", processError);
-        break;
-      }
-      
-      console.log("Task processing result:", processResult);
-      
-      if (processResult?.success && processResult?.task_id) {
-        processedTasks.push({
-          task_id: processResult.task_id,
-          task_type: processResult.task_type,
-          status: 'completed'
+      try {
+        // Call the task processor for this specific task
+        const { data: processResult, error: processError } = await supabase.functions.invoke(
+          'process-registration-tasks',
+          { body: { patient_id: patient_id } }
+        );
+        
+        if (processError) {
+          console.error(`Error processing task ${task.task_type}:`, processError);
+          failedTasks.push({
+            task_id: task.id,
+            task_type: task.task_type,
+            error: processError.message
+          });
+        } else if (processResult?.success) {
+          console.log(`Task ${task.task_type} processed successfully`);
+          processedTasks.push({
+            task_id: processResult.task_id || task.id,
+            task_type: processResult.task_type || task.task_type,
+            status: 'completed'
+          });
+        } else {
+          console.log(`Task ${task.task_type} processing returned false success`);
+          failedTasks.push({
+            task_id: task.id,
+            task_type: task.task_type,
+            error: processResult?.error || 'Unknown error'
+          });
+        }
+      } catch (error: any) {
+        console.error(`Exception processing task ${task.task_type}:`, error);
+        failedTasks.push({
+          task_id: task.id,
+          task_type: task.task_type,
+          error: error.message
         });
       }
       
-      // Check if there are more pending tasks for this patient
-      const { data: remainingTasks, error: taskError } = await supabase
-        .from('registration_tasks')
-        .select('id, task_type, status')
-        .eq('user_id', patient_id)
-        .eq('status', 'pending');
-      
-      if (taskError) {
-        console.error("Error checking remaining tasks:", taskError);
-        break;
-      }
-      
-      if (!remainingTasks || remainingTasks.length === 0) {
-        allTasksComplete = true;
-        console.log("All tasks completed for patient:", patient_id);
-      } else {
-        console.log(`${remainingTasks.length} tasks still pending for patient ${patient_id}`);
-        // Wait a bit before next attempt to avoid overwhelming the system
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
+      // Small delay between tasks to avoid overwhelming the system
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
     
     // Get final status for this patient
@@ -131,15 +128,24 @@ serve(async (req) => {
       { p_user_id: patient_id }
     );
     
+    const totalTasks = pendingTasks.length;
+    const successfulTasks = processedTasks.length;
+    const failedTasksCount = failedTasks.length;
+    
+    console.log(`Task processing summary for patient ${patient_id}: ${successfulTasks}/${totalTasks} successful, ${failedTasksCount} failed`);
+    
     return new Response(
       JSON.stringify({
         success: true,
-        message: `Registration task processing completed for patient ${patient_id} after ${currentRetry} attempts`,
+        message: `Processed ${totalTasks} tasks for patient ${patient_id}: ${successfulTasks} successful, ${failedTasksCount} failed`,
         patient_id: patient_id,
-        all_tasks_complete: allTasksComplete,
+        total_tasks: totalTasks,
+        successful_tasks: successfulTasks,
+        failed_tasks: failedTasksCount,
         processed_tasks: processedTasks,
+        failed_task_details: failedTasks,
         final_status: finalStatus,
-        attempts_made: currentRetry
+        all_tasks_completed: failedTasksCount === 0
       }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },
