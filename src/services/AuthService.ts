@@ -67,8 +67,8 @@ class AuthService {
     }
   }
 
-  // Fetch user role synchronously
-  private async fetchUserRole(userId: string): Promise<UserRole> {
+  // Fetch user role with proper error handling and loading state management
+  private async fetchUserRole(userId: string, setUserRole: (role: UserRole) => void): Promise<void> {
     try {
       console.log("Fetching user role for:", userId);
       const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
@@ -77,18 +77,18 @@ class AuthService {
       
       if (!roleError && roleData && roleData.length > 0) {
         const userRoleValue = roleData[0]?.role as UserRole || null;
-        console.log("User role fetched:", userRoleValue);
-        return userRoleValue;
+        console.log("User role fetched successfully:", userRoleValue);
+        setUserRole(userRoleValue);
       } else if (roleError) {
         console.error("Error fetching user role:", roleError);
-        return null;
+        setUserRole(null);
       } else {
         console.warn("No role data returned for user:", userId);
-        return null;
+        setUserRole(null);
       }
     } catch (error) {
-      console.error("Error in role fetching:", error);
-      return null;
+      console.error("Exception in role fetching:", error);
+      setUserRole(null);
     }
   }
 
@@ -118,15 +118,12 @@ class AuthService {
           setSession(newSession);
           setUser(newSession.user);
           
-          // Fetch user role immediately without setTimeout
+          // Fetch user role with proper error handling
           if (newSession.user) {
-            try {
-              const role = await this.fetchUserRole(newSession.user.id);
-              setUserRole(role);
-            } catch (error) {
-              console.error("Error fetching role on sign in:", error);
-              setUserRole(null);
-            }
+            // Use setTimeout to avoid potential deadlocks
+            setTimeout(() => {
+              this.fetchUserRole(newSession.user.id, setUserRole);
+            }, 0);
           }
         } else if (event === 'TOKEN_REFRESHED' && newSession) {
           setSession(newSession);
@@ -164,21 +161,20 @@ class AuthService {
         setSession(initialSession);
         setUser(initialSession.user);
         
-        // Fetch user role immediately
+        // Fetch user role with proper error handling
         if (initialSession.user) {
-          try {
-            const role = await this.fetchUserRole(initialSession.user.id);
-            setUserRole(role);
-          } catch (error) {
-            console.error("Error fetching initial user role:", error);
-            setUserRole(null);
-          }
+          // Use setTimeout to avoid potential deadlocks
+          setTimeout(() => {
+            this.fetchUserRole(initialSession.user.id, setUserRole);
+          }, 0);
         }
       } else {
         console.log("No initial session found");
+        setUserRole(null); // Ensure role loading is complete even without session
       }
     } catch (error) {
       console.error("Error fetching initial session:", error);
+      setUserRole(null); // Ensure role loading is complete on error
     } finally {
       setIsLoading(false);
     }
