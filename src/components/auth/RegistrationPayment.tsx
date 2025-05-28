@@ -95,8 +95,8 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
             );
             
             if (success) {
-              onComplete();
               setShowRegistrationProgress(true);
+              onComplete();
             }
           } catch (err: any) {
             toast({
@@ -162,8 +162,8 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
             title: "Registration Payment",
             description: "Test payment processed successfully",
           });
-          onComplete();
           setShowRegistrationProgress(true);
+          onComplete();
         }
       }
     } catch (err: any) {
