@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -21,6 +22,16 @@ serve(async (req) => {
   }
   
   try {
+    // Get optional patient filter from request body
+    let patientFilter = null;
+    try {
+      const body = await req.json();
+      patientFilter = body?.patient_id || null;
+    } catch (e) {
+      // No body or invalid JSON - that's okay, continue without filter
+      console.log("No request body or invalid JSON, processing all pending tasks");
+    }
+    
     // Get Supabase connection parameters from environment
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
@@ -32,25 +43,61 @@ serve(async (req) => {
     // Create Supabase client with service role key for admin access
     const supabase = createClient(supabaseUrl, supabaseKey);
     
-    console.log("Starting registration task processor...");
+    console.log("Starting registration task processor...", 
+      patientFilter ? `for patient: ${patientFilter}` : "for all patients");
     
-    // Get the next pending task
+    // Get the next pending task, optionally filtered by patient
     const { data: taskData, error: taskError } = await supabase.rpc(
-      'get_next_pending_registration_task'
+      'get_next_pending_registration_task_for_patient',
+      patientFilter ? { p_patient_id: patientFilter } : {}
     );
     
     if (taskError) {
       console.error("Task fetch error:", taskError);
-      throw new Error(`Failed to get next task: ${taskError.message}`);
+      
+      // Fallback to the original function if the new one doesn't exist
+      const { data: fallbackTaskData, error: fallbackError } = await supabase.rpc(
+        'get_next_pending_registration_task'
+      );
+      
+      if (fallbackError) {
+        throw new Error(`Failed to get next task: ${fallbackError.message}`);
+      }
+      
+      // If we have a patient filter but using fallback, filter manually
+      if (patientFilter && fallbackTaskData && fallbackTaskData.length > 0) {
+        const filteredTask = fallbackTaskData.find((task: Task) => task.user_id === patientFilter);
+        if (!filteredTask) {
+          console.log(`No pending tasks found for patient: ${patientFilter}`);
+          return new Response(
+            JSON.stringify({ 
+              success: true,
+              message: `No pending tasks found for patient: ${patientFilter}`
+            }),
+            { 
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 200 
+            }
+          );
+        }
+        // Use only the filtered task
+        taskData = [filteredTask];
+      } else {
+        taskData = fallbackTaskData;
+      }
     }
     
     // If no task is available, return success
     if (!taskData || taskData.length === 0) {
-      console.log("No pending tasks found");
+      const message = patientFilter 
+        ? `No pending tasks found for patient: ${patientFilter}`
+        : "No pending tasks found";
+      console.log(message);
       return new Response(
         JSON.stringify({ 
           success: true,
-          message: "No pending tasks found"
+          message: message,
+          patient_filter: patientFilter
         }),
         { 
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -110,8 +157,10 @@ serve(async (req) => {
           success: true,
           task_id: task.task_id,
           task_type: task.task_type,
+          patient_id: task.user_id,
           result: processResult,
-          message: `Task ${task.task_type} completed successfully`
+          message: `Task ${task.task_type} completed successfully for patient ${task.user_id}`,
+          patient_filter: patientFilter
         }),
         { 
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -141,9 +190,11 @@ serve(async (req) => {
           success: false,
           task_id: task.task_id,
           task_type: task.task_type,
+          patient_id: task.user_id,
           error: processError.message,
           retry_count: task.retry_count,
-          will_retry: task.retry_count < 3
+          will_retry: task.retry_count < 3,
+          patient_filter: patientFilter
         }),
         { 
           headers: { ...corsHeaders, "Content-Type": "application/json" },
