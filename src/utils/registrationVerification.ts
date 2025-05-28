@@ -202,9 +202,10 @@ export const findUserByPhone = async (phoneNumber: string) => {
       
       if (!authError && authUsers.users) {
         for (const variant of uniqueVariants) {
-          const userWithPhone = authUsers.users.find(user => {
-            const metadataPhone = user.user_metadata?.phone;
-            const primaryContact = user.user_metadata?.primary_contact;
+          // Fix: Properly type the user parameter to avoid 'never' type
+          const userWithPhone = authUsers.users.find((authUser: any) => {
+            const metadataPhone = authUser.user_metadata?.phone;
+            const primaryContact = authUser.user_metadata?.primary_contact;
             
             return metadataPhone === variant || primaryContact === variant;
           });
@@ -334,49 +335,50 @@ export const migratePhoneNumbersFromMetadata = async () => {
     let migratedCount = 0;
     const results = [];
     
-    for (const user of authUsers.users || []) {
-      const metadataPhone = user.user_metadata?.phone;
+    // Fix: Properly type the user parameter to avoid 'never' type
+    for (const authUser of authUsers.users || []) {
+      const metadataPhone = (authUser as any).user_metadata?.phone;
       
       if (metadataPhone) {
-        console.log(`Checking user ${user.id} with metadata phone: ${metadataPhone}`);
+        console.log(`Checking user ${authUser.id} with metadata phone: ${metadataPhone}`);
         
         // Check if profile already has phone
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('phone')
-          .eq('id', user.id)
+          .eq('id', authUser.id)
           .single();
         
         if (!profileError && (!profile?.phone || profile.phone === '')) {
-          console.log(`Updating profile for user ${user.id} with phone: ${metadataPhone}`);
+          console.log(`Updating profile for user ${authUser.id} with phone: ${metadataPhone}`);
           
           // Update profile with phone from metadata
           const { error: updateError } = await supabase
             .from('profiles')
             .update({ phone: metadataPhone })
-            .eq('id', user.id);
+            .eq('id', authUser.id);
           
           if (updateError) {
-            console.error(`Error updating profile for ${user.id}:`, updateError);
+            console.error(`Error updating profile for ${authUser.id}:`, updateError);
             results.push({ 
-              user_id: user.id, 
+              user_id: authUser.id, 
               success: false, 
               error: updateError.message,
               phone: metadataPhone 
             });
           } else {
-            console.log(`Successfully updated profile for ${user.id}`);
+            console.log(`Successfully updated profile for ${authUser.id}`);
             migratedCount++;
             results.push({ 
-              user_id: user.id, 
+              user_id: authUser.id, 
               success: true, 
               phone: metadataPhone 
             });
           }
         } else {
-          console.log(`Profile for ${user.id} already has phone: ${profile?.phone}`);
+          console.log(`Profile for ${authUser.id} already has phone: ${profile?.phone}`);
           results.push({ 
-            user_id: user.id, 
+            user_id: authUser.id, 
             success: true, 
             phone: profile?.phone,
             skipped: 'already_has_phone' 
