@@ -263,7 +263,7 @@ export const migratePhoneNumbersFromMetadata = async () => {
   try {
     console.log("=== MIGRATING PHONE NUMBERS FROM METADATA ===");
     
-    // For now, we'll focus on the current user's data since admin.listUsers() isn't available
+    // Get the current user's session
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     
     if (userError || !user) {
