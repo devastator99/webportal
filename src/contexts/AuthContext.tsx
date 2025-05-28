@@ -18,7 +18,6 @@ export type { UserRole };
 
 // Helper function to handle doctor redirects
 export const redirectFixForDoctor = (): string => {
-  // This function helps ensure doctors are sent to the right dashboard
   return '/dashboard';
 };
 
@@ -27,6 +26,7 @@ interface AuthContextType {
   session: Session | null;
   userRole: UserRole;
   isLoading: boolean;
+  isLoadingRole: boolean;
   isSigningOut: boolean;
   signOut: () => Promise<void>;
   forceSignOut: () => Promise<void>;
@@ -39,6 +39,7 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   userRole: null,
   isLoading: true,
+  isLoadingRole: false,
   isSigningOut: false,
   signOut: async () => {},
   forceSignOut: async () => {},
@@ -50,45 +51,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingRole, setIsLoadingRole] = useState(false);
   const authServiceRef = useRef<AuthService>(AuthService.getInstance());
   const authStateInitializedRef = useRef(false);
   
   // Setup cross-tab signout listener
   useEffect(() => {
-    // Listen for signout events from other tabs
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'auth_signout_broadcast' && user) {
         console.log('Received sign-out broadcast from another tab');
-        // Perform local signout without redirecting
         setUser(null);
         setSession(null);
         setUserRole(null);
-        // Show notification
         toast.info('Signed out in another tab');
       }
     };
 
-    // Listen for BroadcastChannel if available
     let bc: BroadcastChannel | null = null;
     if (typeof BroadcastChannel !== 'undefined') {
       bc = new BroadcastChannel('auth_signout_channel');
       bc.onmessage = (event) => {
         if (event.data === 'signout' && user) {
           console.log('Received sign-out broadcast via BroadcastChannel');
-          // Perform local signout without redirecting
           setUser(null);
           setSession(null);
           setUserRole(null);
-          // Show notification
           toast.info('Signed out in another tab');
         }
       };
     }
 
-    // Add storage event listener for browsers without BroadcastChannel
     window.addEventListener('storage', handleStorageChange);
 
-    // Clean up
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       if (bc) bc.close();
@@ -102,15 +96,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log("Initializing auth state");
     authStateInitializedRef.current = true;
     
-    // Initialize auth service with state setters
+    // Enhanced role setter that tracks loading state
+    const enhancedSetUserRole = (role: UserRole) => {
+      console.log("Setting user role:", role);
+      setIsLoadingRole(false);
+      setUserRole(role);
+    };
+
+    // Enhanced user setter that triggers role loading
+    const enhancedSetUser = (newUser: User | null) => {
+      console.log("Setting user:", newUser?.email || 'null');
+      setUser(newUser);
+      if (newUser) {
+        setIsLoadingRole(true);
+      } else {
+        setIsLoadingRole(false);
+        setUserRole(null);
+      }
+    };
+    
+    // Initialize auth service with enhanced state setters
     authServiceRef.current.initializeAuth(
-      setUser, 
+      enhancedSetUser, 
       setSession, 
-      setUserRole, 
+      enhancedSetUserRole, 
       setIsLoading
     );
     
-    // Clean up on unmount
     return () => {
       authServiceRef.current.cleanup();
     };
@@ -121,7 +133,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user) {
       authServiceRef.current.setupInactivityTimer(signOut);
       
-      // Add activity listeners to reset timer
       const handleActivity = () => resetInactivityTimer();
       window.addEventListener('mousemove', handleActivity);
       window.addEventListener('keydown', handleActivity);
@@ -144,7 +155,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
   
-  // IMPROVED Sign out function with proper transaction handling
+  // Sign out function with proper transaction handling
   const signOut = useCallback(async () => {
     try {
       await authServiceRef.current.signOut();
@@ -168,6 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session,
     userRole,
     isLoading,
+    isLoadingRole,
     isSigningOut: authServiceRef.current.isSigningOut(),
     signOut,
     forceSignOut,

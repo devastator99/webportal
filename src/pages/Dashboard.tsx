@@ -48,7 +48,7 @@ const roleLayouts = {
 };
 
 const Dashboard = () => {
-  const { user, userRole, isLoading, signOut } = useAuth();
+  const { user, userRole, isLoading, isLoadingRole, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -56,25 +56,28 @@ const Dashboard = () => {
     user: user?.id, 
     userEmail: user?.email,
     userRole, 
-    isLoading 
+    isLoading,
+    isLoadingRole
   });
 
   useEffect(() => {
     console.log("[Dashboard] useEffect triggered:", { 
       userId: user?.id, 
       userRole, 
-      isLoading 
+      isLoading,
+      isLoadingRole
     });
     
+    // Only redirect if we're not loading and there's no user
     if (!isLoading && !user) {
       console.log("[Dashboard] No user found, redirecting to /");
       navigate("/");
     }
   }, [user, isLoading, navigate]);
 
-  // Show loading state
-  if (isLoading) {
-    console.log("[Dashboard] Showing loading skeleton");
+  // Show loading state while auth is loading OR role is loading
+  if (isLoading || isLoadingRole) {
+    console.log("[Dashboard] Showing loading skeleton - isLoading:", isLoading, "isLoadingRole:", isLoadingRole);
     return <DashboardSkeleton />;
   }
 
@@ -84,7 +87,7 @@ const Dashboard = () => {
     return null;
   }
 
-  // Handle no role case
+  // Handle no role case - but only after role loading is complete
   if (!userRole) {
     console.log("[Dashboard] No role assigned, showing NoRoleWarning");
     return (

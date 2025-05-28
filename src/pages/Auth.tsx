@@ -14,7 +14,7 @@ import { UserRegistrationStatus } from "@/types/registration";
 import { RegistrationProgressReport } from "@/components/auth/RegistrationProgressReport";
 
 const Auth = () => {
-  const { user, userRole, isLoading } = useAuth();
+  const { user, userRole, isLoading, isLoadingRole } = useAuth();
   const { handleSignUp, error, loading, setError } = useAuthHandlers();
   const navigate = useNavigate();
   const location = useLocation();
@@ -52,7 +52,6 @@ const Auth = () => {
     try {
       console.log("Checking registration status for user:", userId);
       
-      // Use the new secure function that bypasses RLS issues
       const { data, error } = await supabase.rpc('get_user_registration_status_safe', {
         p_user_id: userId
       });
@@ -72,10 +71,12 @@ const Auth = () => {
     }
   };
 
-  // Enhanced redirection logic for patients
+  // Enhanced redirection logic - wait for both user and role to be loaded
   useEffect(() => {
-    if (!isLoading && user) {
-      console.log("Auth page detected logged in user. Registration step:", registrationStep, 
+    // Only proceed if we have completed loading both user and role
+    if (!isLoading && !isLoadingRole && user) {
+      console.log("Auth page detected logged in user. Role:", userRole, 
+                  "Registration step:", registrationStep, 
                   "isRegistrationFlow:", isRegistrationFlow);
       
       // If the user is a patient, we need to check their registration status
@@ -91,7 +92,6 @@ const Auth = () => {
           console.log("Patient registration status:", registrationStatus);
           
           if (registrationStatus) {
-            // Update local state based on database status
             if (registrationStatus.registration_status === 'payment_pending') {
               console.log("Payment pending, transitioning to payment step");
               setIsRegistrationFlow(true);
@@ -127,7 +127,7 @@ const Auth = () => {
         return;
       }
       
-      // For non-patient roles, redirect immediately
+      // For non-patient roles, redirect immediately if role is available
       if (userRole && (!isRegistrationFlow || registrationStep === 3)) {
         console.log("Redirecting to dashboard as", userRole);
         navigate("/dashboard", { replace: true });
@@ -139,10 +139,10 @@ const Auth = () => {
         }
       }
     }
-  }, [user, userRole, isLoading, navigate, registrationStep, isRegistrationFlow]);
+  }, [user, userRole, isLoading, isLoadingRole, navigate, registrationStep, isRegistrationFlow]);
 
-  // Show loading state
-  if (isLoading || isCheckingRegistration) {
+  // Show loading state while auth or role is loading
+  if (isLoading || isLoadingRole || isCheckingRegistration) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center pt-16 md:pt-20">
         <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
@@ -164,7 +164,6 @@ const Auth = () => {
       console.log("Form submitted with user type:", userType);
       console.log("Patient data received:", patientData);
       
-      // Clear any previous errors
       setError(null);
       
       // Flag this as a registration flow before user creation
@@ -177,10 +176,8 @@ const Auth = () => {
         localStorage.setItem('registration_payment_complete', 'false');
       }
       
-      // Enhanced patient data handling to include phone number properly
       const enhancedPatientData = patientData ? {
         ...patientData,
-        // If phone number was provided in the form, make sure it's captured
         emergencyContact: patientData.emergencyContact || patientData.phone
       } : undefined;
       
