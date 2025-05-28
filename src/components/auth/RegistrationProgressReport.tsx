@@ -56,6 +56,22 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
       if (data) {
         console.log("Setting registration status:", data);
         setRegistrationStatus(data as unknown as UserRegistrationStatus);
+        
+        // Check if registration is fully complete and redirect
+        if (data.registration_status === RegistrationStatusValues.FULLY_REGISTERED) {
+          console.log("Registration is fully complete, redirecting to dashboard");
+          localStorage.removeItem('registration_payment_pending');
+          localStorage.removeItem('registration_payment_complete');
+          
+          toast({
+            title: "Registration Complete",
+            description: "Your account setup is complete. Redirecting to dashboard...",
+          });
+          
+          setTimeout(() => {
+            navigate("/dashboard", { replace: true });
+          }, 2000);
+        }
       } else {
         console.log("No data returned, setting default status");
         setRegistrationStatus({
@@ -272,9 +288,35 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
     );
   }
   
-  // If registration is fully completed, don't show this component
+  // If registration is fully completed, show completion message instead of returning null
   if (registrationStatus?.registration_status === RegistrationStatusValues.FULLY_REGISTERED) {
-    return null; // Hide the component when registration is complete
+    return (
+      <Card className="bg-white">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle2 className="h-5 w-5 text-green-500" />
+            Registration Complete
+          </CardTitle>
+          <CardDescription>Your account setup is complete</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert className="bg-green-50 border-green-200">
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <AlertDescription className="text-green-800">
+              Your registration is now complete! You will be redirected to the dashboard shortly.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+        <CardFooter>
+          <Button 
+            onClick={() => navigate("/dashboard")} 
+            className="w-full"
+          >
+            Go to Dashboard
+          </Button>
+        </CardFooter>
+      </Card>
+    );
   }
   
   if (!registrationStatus) {
