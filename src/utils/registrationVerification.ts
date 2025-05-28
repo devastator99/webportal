@@ -93,7 +93,7 @@ export const verifyRegistrationData = async (email: string) => {
   }
 };
 
-// Helper to find user by phone number (for SMS verification)
+// Helper to find user by phone number (for SMS verification) - Enhanced version
 export const findUserByPhone = async (phoneNumber: string) => {
   try {
     console.log("=== FINDING USER BY PHONE ===");
@@ -143,9 +143,9 @@ export const findUserByPhone = async (phoneNumber: string) => {
       phone: p.phone 
     })));
     
-    // Try to find user by any of the phone variants
+    // Try to find user by any of the phone variants in profiles table
     for (const variant of uniqueVariants) {
-      console.log("Checking variant:", variant);
+      console.log("Checking variant in profiles:", variant);
       
       const { data: profiles, error: profileError } = await supabase
         .from('profiles')
@@ -193,6 +193,66 @@ export const findUserByPhone = async (phoneNumber: string) => {
           }))
         };
       }
+    }
+    
+    // Also check auth metadata for phone numbers that might not be in profiles yet
+    console.log("Checking auth metadata for phone numbers...");
+    try {
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (!authError && authUsers.users) {
+        for (const variant of uniqueVariants) {
+          const userWithPhone = authUsers.users.find(user => {
+            const metadataPhone = user.user_metadata?.phone;
+            const primaryContact = user.user_metadata?.primary_contact;
+            
+            return metadataPhone === variant || primaryContact === variant;
+          });
+          
+          if (userWithPhone) {
+            console.log("Found user in auth metadata:", userWithPhone.id);
+            
+            // Get profile and role data
+            const { data: profile } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', userWithPhone.id)
+              .single();
+            
+            const { data: userRole } = await supabase
+              .from('user_roles')
+              .select('*')
+              .eq('user_id', userWithPhone.id)
+              .single();
+            
+            const { data: registrationStatus } = await supabase.rpc(
+              'get_user_registration_status_safe',
+              { p_user_id: userWithPhone.id }
+            );
+            
+            return {
+              success: true,
+              user: profile || { 
+                id: userWithPhone.id, 
+                first_name: userWithPhone.user_metadata?.first_name,
+                last_name: userWithPhone.user_metadata?.last_name,
+                phone: userWithPhone.user_metadata?.phone 
+              },
+              role: userRole?.role,
+              registration_status: registrationStatus,
+              phone_normalized: variant,
+              phone_variants_checked: uniqueVariants,
+              found_in_auth_metadata: true,
+              all_database_phones: allProfiles?.map(p => ({ 
+                name: `${p.first_name} ${p.last_name}`, 
+                phone: p.phone 
+              }))
+            };
+          }
+        }
+      }
+    } catch (metadataError) {
+      console.log("Could not check auth metadata:", metadataError);
     }
     
     console.log("No user found with any phone number variant");
@@ -254,6 +314,88 @@ export const checkRegistrationByEmail = async (email: string) => {
     
   } catch (error: any) {
     console.error("Error checking registration by email:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Helper function to migrate phone numbers from auth metadata to profiles
+export const migratePhoneNumbersFromMetadata = async () => {
+  try {
+    console.log("=== MIGRATING PHONE NUMBERS FROM METADATA ===");
+    
+    // Get all auth users
+    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+    
+    if (authError) {
+      console.error("Error fetching auth users:", authError);
+      return { success: false, error: authError.message };
+    }
+    
+    let migratedCount = 0;
+    const results = [];
+    
+    for (const user of authUsers.users || []) {
+      const metadataPhone = user.user_metadata?.phone;
+      
+      if (metadataPhone) {
+        console.log(`Checking user ${user.id} with metadata phone: ${metadataPhone}`);
+        
+        // Check if profile already has phone
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('phone')
+          .eq('id', user.id)
+          .single();
+        
+        if (!profileError && (!profile?.phone || profile.phone === '')) {
+          console.log(`Updating profile for user ${user.id} with phone: ${metadataPhone}`);
+          
+          // Update profile with phone from metadata
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ phone: metadataPhone })
+            .eq('id', user.id);
+          
+          if (updateError) {
+            console.error(`Error updating profile for ${user.id}:`, updateError);
+            results.push({ 
+              user_id: user.id, 
+              success: false, 
+              error: updateError.message,
+              phone: metadataPhone 
+            });
+          } else {
+            console.log(`Successfully updated profile for ${user.id}`);
+            migratedCount++;
+            results.push({ 
+              user_id: user.id, 
+              success: true, 
+              phone: metadataPhone 
+            });
+          }
+        } else {
+          console.log(`Profile for ${user.id} already has phone: ${profile?.phone}`);
+          results.push({ 
+            user_id: user.id, 
+            success: true, 
+            phone: profile?.phone,
+            skipped: 'already_has_phone' 
+          });
+        }
+      }
+    }
+    
+    console.log(`Migration completed. Updated ${migratedCount} profiles.`);
+    
+    return {
+      success: true,
+      migrated_count: migratedCount,
+      total_processed: results.length,
+      results
+    };
+    
+  } catch (error: any) {
+    console.error("Error migrating phone numbers:", error);
     return { success: false, error: error.message };
   }
 };

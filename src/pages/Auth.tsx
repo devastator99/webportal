@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserRegistrationStatus } from "@/types/registration";
 import { RegistrationProgressReport } from "@/components/auth/RegistrationProgressReport";
 import { PhoneRegistrationDebugger } from "@/components/testing/PhoneRegistrationDebugger";
+import { PhoneDataMigration } from "@/components/testing/PhoneDataMigration";
 
 const Auth = () => {
   const { user, userRole, isLoading } = useAuth();
@@ -25,6 +27,7 @@ const Auth = () => {
   const [isRegistrationFlow, setIsRegistrationFlow] = useState(false);
   const [isCheckingRegistration, setIsCheckingRegistration] = useState(false);
   const [showDebugger, setShowDebugger] = useState(false);
+  const [showMigration, setShowMigration] = useState(false);
   
   const isRegistration = location.pathname.includes('/register');
 
@@ -153,7 +156,7 @@ const Auth = () => {
     );
   }
 
-  // Handle signup form submission
+  // Handle signup form submission - Enhanced to better handle phone numbers
   const handleFormSubmit = async (
     email: string, 
     password: string, 
@@ -164,6 +167,7 @@ const Auth = () => {
   ) => {
     try {
       console.log("Form submitted with user type:", userType);
+      console.log("Patient data received:", patientData);
       
       // Clear any previous errors
       setError(null);
@@ -178,8 +182,17 @@ const Auth = () => {
         localStorage.setItem('registration_payment_complete', 'false');
       }
       
+      // Enhanced patient data handling to include phone number properly
+      const enhancedPatientData = patientData ? {
+        ...patientData,
+        // If phone number was provided in the form, make sure it's captured
+        emergencyContact: patientData.emergencyContact || patientData.phone
+      } : undefined;
+      
+      console.log("Enhanced patient data:", enhancedPatientData);
+      
       // Attempt registration
-      const user = await handleSignUp(email, password, userType as any, firstName, lastName, patientData);
+      const user = await handleSignUp(email, password, userType as any, firstName, lastName, enhancedPatientData);
       
       // If this is a patient registration and we were successful, move to payment step
       if (user && isPatientRegistration) {
@@ -246,20 +259,34 @@ const Auth = () => {
             />
           </div>
           
-          {/* Add debug button for testing */}
-          <div className="mt-4 text-center">
+          {/* Add debug and migration utilities */}
+          <div className="mt-4 text-center space-y-2">
             <Button 
               variant="outline" 
               onClick={() => setShowDebugger(!showDebugger)}
-              className="text-xs"
+              className="text-xs mr-2"
             >
               {showDebugger ? 'Hide' : 'Show'} Registration Debugger
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              onClick={() => setShowMigration(!showMigration)}
+              className="text-xs"
+            >
+              {showMigration ? 'Hide' : 'Show'} Phone Migration
             </Button>
           </div>
           
           {showDebugger && (
             <div className="mt-4">
               <PhoneRegistrationDebugger />
+            </div>
+          )}
+          
+          {showMigration && (
+            <div className="mt-4">
+              <PhoneDataMigration />
             </div>
           )}
         </div>
@@ -296,20 +323,34 @@ const Auth = () => {
               </div>
             </ScrollArea>
             
-            {/* Add debug button for registration page too */}
-            <div className="mt-4 text-center">
+            {/* Add debug and migration utilities for registration page too */}
+            <div className="mt-4 text-center space-y-2">
               <Button 
                 variant="outline" 
                 onClick={() => setShowDebugger(!showDebugger)}
-                className="text-xs"
+                className="text-xs mr-2"
               >
                 {showDebugger ? 'Hide' : 'Show'} Registration Debugger
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                onClick={() => setShowMigration(!showMigration)}
+                className="text-xs"
+              >
+                {showMigration ? 'Hide' : 'Show'} Phone Migration
               </Button>
             </div>
             
             {showDebugger && (
               <div className="mt-4">
                 <PhoneRegistrationDebugger />
+              </div>
+            )}
+            
+            {showMigration && (
+              <div className="mt-4">
+                <PhoneDataMigration />
               </div>
             )}
           </div>

@@ -109,6 +109,9 @@ export const PhoneRegistrationDebugger: React.FC = () => {
                     {results.data.phone_variants_checked && (
                       <div><strong>Phone Variants Checked:</strong> {results.data.phone_variants_checked.join(', ')}</div>
                     )}
+                    {results.data.found_in_auth_metadata && (
+                      <div className="text-orange-600"><strong>Found in Auth Metadata:</strong> Yes (needs migration)</div>
+                    )}
                   </div>
                 ) : (
                   <div>

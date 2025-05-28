@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, createUserRole, ValidUserRole } from "@/integrations/supabase/client";
@@ -69,20 +70,37 @@ export const useAuthHandlers = () => {
         throw new Error(`Invalid user type: ${userType}`);
       }
 
-      // Use identifier as provided - if it's a phone, format it properly for email
+      // Determine if identifier is email or phone
       const isEmail = identifier.includes('@');
+      let phoneNumber: string | undefined;
+      let emailAddress: string;
       
-      // Simple auth signup without custom enum in metadata
+      if (isEmail) {
+        emailAddress = identifier;
+        // Phone might be provided in patientData or other form data
+        phoneNumber = patientData?.emergencyContact; // Fallback, should be passed separately
+      } else {
+        phoneNumber = identifier;
+        emailAddress = `${identifier.replace(/[^0-9]/g, '')}@temp.placeholder`;
+      }
+
+      console.log("Registration details:", { 
+        emailAddress, 
+        phoneNumber, 
+        isEmail, 
+        userType 
+      });
+
+      // Auth signup with metadata
       const signUpData = {
-        email: isEmail ? identifier : `${identifier.replace(/[^0-9]/g, '')}@temp.placeholder`,
+        email: emailAddress,
         password,
         options: {
           data: {
-            // Use plain string instead of enum
             user_type_string: userType,
             first_name: firstName,
             last_name: lastName,
-            phone: isEmail ? undefined : identifier,
+            phone: phoneNumber,
             primary_contact: identifier
           }
         }
@@ -116,7 +134,30 @@ export const useAuthHandlers = () => {
 
       console.log("Auth user created successfully:", authData.user.id);
 
-      // Step 2: Create user role using our RPC function with proper type
+      // Step 2: Update profiles table with phone number (most important fix)
+      try {
+        console.log("Updating profile with phone number...");
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ 
+            phone: phoneNumber,
+            first_name: firstName,
+            last_name: lastName
+          })
+          .eq('id', authData.user.id);
+        
+        if (profileError) {
+          console.error("Error updating profile with phone:", profileError);
+          // Don't throw here as the main account creation was successful
+        } else {
+          console.log("Profile updated successfully with phone number:", phoneNumber);
+        }
+      } catch (profileUpdateError: any) {
+        console.error("Exception updating profile:", profileUpdateError);
+        // Don't throw here as the main account creation was successful
+      }
+
+      // Step 3: Create user role using our RPC function with proper type
       try {
         console.log("Creating user role...");
         const roleResult = await createUserRole(authData.user.id, userType as ValidUserRole);
@@ -129,7 +170,7 @@ export const useAuthHandlers = () => {
         throw new Error("Account created but role assignment failed. Please contact support.");
       }
       
-      // Step 3: Handle patient-specific data
+      // Step 4: Handle patient-specific data
       if (userType === "patient" && patientData) {
         try {
           console.log("Creating patient details...");
