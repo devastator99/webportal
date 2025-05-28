@@ -9,12 +9,10 @@ import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { RegistrationPayment } from "@/components/auth/RegistrationPayment";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { UserRegistrationStatus } from "@/types/registration";
 import { RegistrationProgressReport } from "@/components/auth/RegistrationProgressReport";
 
 const Auth = () => {
-  const { user, userRole, isLoading, isLoadingRole } = useAuth();
+  const { user, userRole, isLoading } = useAuth();
   const { handleSignUp, error, loading, setError } = useAuthHandlers();
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,11 +20,10 @@ const Auth = () => {
   const [registrationStep, setRegistrationStep] = useState(1);
   const [registeredUser, setRegisteredUser] = useState<any>(null);
   const [isRegistrationFlow, setIsRegistrationFlow] = useState(false);
-  const [isCheckingRegistration, setIsCheckingRegistration] = useState(false);
   
   const isRegistration = location.pathname.includes('/register');
 
-  // Check registration state from localStorage on initial load
+  // Check registration state from localStorage on initial load (only for new registrations)
   useEffect(() => {
     const checkLocalStorageState = () => {
       const paymentPending = localStorage.getItem('registration_payment_pending') === 'true';
@@ -43,98 +40,37 @@ const Auth = () => {
       }
     };
     
-    checkLocalStorageState();
-  }, []);
-
-  // Function to check user's registration status from the database using the secure function
-  const checkRegistrationStatus = async (userId: string) => {
-    setIsCheckingRegistration(true);
-    try {
-      console.log("Checking registration status for user:", userId);
-      
-      const { data, error } = await supabase.rpc('get_user_registration_status_safe', {
-        p_user_id: userId
-      });
-      
-      if (error) {
-        console.error("Error getting registration status:", error);
-        return null;
-      }
-      
-      console.log("Registration status from database:", data);
-      return data as unknown as UserRegistrationStatus;
-    } catch (err) {
-      console.error("Error checking registration status:", err);
-      return null;
-    } finally {
-      setIsCheckingRegistration(false);
+    if (isRegistration) {
+      checkLocalStorageState();
     }
-  };
+  }, [isRegistration]);
 
-  // Enhanced redirection logic - only redirect to dashboard when registration is truly complete
+  // Simple redirect logic - only redirect non-patient roles or if not in registration flow
   useEffect(() => {
-    // Only proceed if we have completed loading both user and role
-    if (!isLoading && !isLoadingRole && user) {
-      console.log("Auth page detected logged in user. Role:", userRole, 
-                  "Registration step:", registrationStep, 
-                  "isRegistrationFlow:", isRegistrationFlow);
+    if (!isLoading && user && userRole) {
+      console.log("Auth page detected logged in user. Role:", userRole, "isRegistrationFlow:", isRegistrationFlow);
       
-      // If we're actively in a registration flow, stay on the registration page
+      // If we're actively in a registration flow, stay here
       if (isRegistrationFlow) {
         console.log(`In active registration flow at step: ${registrationStep}`);
         return;
       }
       
-      // If the user is a patient and NOT in registration flow, check their status
-      if (userRole === 'patient' && !isRegistrationFlow) {
-        const checkPatientStatus = async () => {
-          const registrationStatus = await checkRegistrationStatus(user.id);
-          console.log("Patient registration status:", registrationStatus);
-          
-          if (registrationStatus) {
-            if (registrationStatus.registration_status === 'payment_pending') {
-              console.log("Payment pending, transitioning to payment step");
-              setIsRegistrationFlow(true);
-              setRegistrationStep(2);
-              localStorage.setItem('registration_payment_pending', 'true');
-              localStorage.setItem('registration_payment_complete', 'false');
-              return;
-            } 
-            else if (['payment_complete', 'care_team_assigned'].includes(registrationStatus.registration_status)) {
-              console.log("Payment complete, transitioning to progress step");
-              setIsRegistrationFlow(true);
-              setRegistrationStep(3);
-              localStorage.setItem('registration_payment_pending', 'false');
-              localStorage.setItem('registration_payment_complete', 'true');
-              return;
-            }
-            else if (registrationStatus.registration_status === 'fully_registered') {
-              console.log("Registration is complete, redirecting to dashboard");
-              localStorage.removeItem('registration_payment_pending');
-              localStorage.removeItem('registration_payment_complete');
-              navigate("/dashboard", { replace: true });
-              return;
-            }
-          }
-          
-          // Default redirect if we couldn't determine status and not in registration
-          navigate("/dashboard", { replace: true });
-        };
-        
-        checkPatientStatus();
+      // For non-patient roles, redirect immediately
+      if (userRole !== 'patient') {
+        console.log("Redirecting to dashboard as", userRole);
+        navigate("/dashboard", { replace: true });
         return;
       }
       
-      // For non-patient roles, redirect immediately if role is available and not in registration
-      if (userRole && !isRegistrationFlow) {
-        console.log("Redirecting to dashboard as", userRole);
-        navigate("/dashboard", { replace: true });
-      }
+      // For patients, let RegistrationStatusChecker handle the logic in Dashboard
+      console.log("Patient detected, redirecting to dashboard");
+      navigate("/dashboard", { replace: true });
     }
-  }, [user, userRole, isLoading, isLoadingRole, navigate, isRegistrationFlow]);
+  }, [user, userRole, isLoading, navigate, isRegistrationFlow, registrationStep]);
 
-  // Show loading state while auth or role is loading
-  if (isLoading || isLoadingRole || isCheckingRegistration) {
+  // Show loading state while auth is loading
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center pt-16 md:pt-20">
         <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
@@ -288,7 +224,7 @@ const Auth = () => {
         
         {registrationStep === 3 && (
           <RegistrationProgressReport 
-            onCheckAgain={() => checkRegistrationStatus(user?.id || '')} 
+            onCheckAgain={() => console.log('Check again clicked')} 
           />
         )}
       </div>

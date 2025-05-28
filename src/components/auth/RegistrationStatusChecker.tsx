@@ -11,26 +11,35 @@ interface RegistrationStatusCheckerProps {
 }
 
 export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps> = ({ children }) => {
-  const { user, userRole, isLoadingRole } = useAuth();
+  const { user, userRole } = useAuth();
   const navigate = useNavigate();
   const [isChecking, setIsChecking] = useState(true);
   const [redirected, setRedirected] = useState(false);
   
   useEffect(() => {
     const checkRegistrationStatus = async () => {
-      // Don't check if we're still loading role or if user/role is not available
-      if (!user?.id || userRole !== 'patient' || isLoadingRole) {
+      // Only check for patients
+      if (!user?.id || userRole !== 'patient') {
+        console.log("RegistrationStatusChecker: Not a patient or no user, skipping check");
         setIsChecking(false);
         return;
       }
       
-      // Don't check if we're in an active registration flow
+      // Don't check if we've already redirected
+      if (redirected) {
+        console.log("RegistrationStatusChecker: Already redirected, skipping check");
+        setIsChecking(false);
+        return;
+      }
+      
+      // Don't check if we're in an active registration flow (coming from Auth page)
       const isInRegistrationFlow = localStorage.getItem('registration_payment_pending') === 'true' ||
                                    localStorage.getItem('registration_payment_complete') === 'true';
       
       if (isInRegistrationFlow) {
-        console.log("RegistrationStatusChecker: Active registration flow detected, skipping check");
-        setIsChecking(false);
+        console.log("RegistrationStatusChecker: Active registration flow detected, redirecting to register");
+        setRedirected(true);
+        navigate('/auth/register', { replace: true });
         return;
       }
       
@@ -50,8 +59,8 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
         const regStatus = data as unknown as UserRegistrationStatus;
         console.log("RegistrationStatusChecker: Registration status:", regStatus.registration_status);
         
-        // If payment is pending, redirect to registration page
-        if (regStatus.registration_status === 'payment_pending' && !redirected) {
+        // Handle incomplete registration states
+        if (regStatus.registration_status === 'payment_pending') {
           console.log("RegistrationStatusChecker: Registration payment pending, redirecting to auth/register");
           localStorage.setItem('registration_payment_pending', 'true');
           localStorage.setItem('registration_payment_complete', 'false');
@@ -60,14 +69,20 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
           return;
         }
         
-        // If payment is complete but not fully registered, redirect to progress
-        if (['payment_complete', 'care_team_assigned'].includes(regStatus.registration_status) && !redirected) {
+        if (['payment_complete', 'care_team_assigned'].includes(regStatus.registration_status)) {
           console.log("RegistrationStatusChecker: Registration progress pending, redirecting to auth/register");
           localStorage.setItem('registration_payment_pending', 'false');
           localStorage.setItem('registration_payment_complete', 'true');
           setRedirected(true);
           navigate('/auth/register', { replace: true });
           return;
+        }
+        
+        // If fully registered, clear any localStorage flags and proceed
+        if (regStatus.registration_status === 'fully_registered') {
+          console.log("RegistrationStatusChecker: Registration complete, clearing flags");
+          localStorage.removeItem('registration_payment_pending');
+          localStorage.removeItem('registration_payment_complete');
         }
         
         setIsChecking(false);
@@ -77,11 +92,12 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
       }
     };
     
+    // Only run the check once when component mounts
     checkRegistrationStatus();
-  }, [user?.id, userRole, isLoadingRole, navigate, redirected]);
+  }, [user?.id, userRole, navigate]); // Removed redirected from dependencies to prevent loops
   
-  // Show loading if we're still checking registration or if role is loading
-  if (isChecking || isLoadingRole) {
+  // Show loading if we're still checking registration
+  if (isChecking) {
     return (
       <Card className="shadow-none border-none">
         <CardContent className="flex items-center justify-center p-6">

@@ -67,21 +67,32 @@ class AuthService {
     }
   }
 
-  // Fetch user role with proper error handling and loading state management
+  // Fetch user role with proper error handling and timeout
   private async fetchUserRole(userId: string, setUserRole: (role: UserRole) => void): Promise<void> {
     try {
       console.log("Fetching user role for:", userId);
-      const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Role fetch timeout')), 10000);
+      });
+      
+      const rolePromise = supabase.rpc('get_user_role', {
         lookup_user_id: userId
       });
       
-      if (!roleError && roleData && roleData.length > 0) {
+      const { data: roleData, error: roleError } = await Promise.race([rolePromise, timeoutPromise]) as any;
+      
+      if (roleError) {
+        console.error("Error fetching user role:", roleError);
+        setUserRole(null);
+        return;
+      }
+      
+      if (roleData && roleData.length > 0) {
         const userRoleValue = roleData[0]?.role as UserRole || null;
         console.log("User role fetched successfully:", userRoleValue);
         setUserRole(userRoleValue);
-      } else if (roleError) {
-        console.error("Error fetching user role:", roleError);
-        setUserRole(null);
       } else {
         console.warn("No role data returned for user:", userId);
         setUserRole(null);
@@ -101,6 +112,24 @@ class AuthService {
   ): void {
     console.log('Initializing auth state');
     
+    // Enhanced role setter that tracks loading state
+    const enhancedSetUserRole = (role: UserRole) => {
+      console.log("Setting user role:", role);
+      setUserRole(role);
+    };
+
+    // Enhanced user setter that handles role loading
+    const enhancedSetUser = (newUser: User | null) => {
+      console.log("Setting user:", newUser?.email || 'null');
+      setUser(newUser);
+      if (newUser) {
+        // Fetch role immediately without setTimeout
+        this.fetchUserRole(newUser.id, enhancedSetUserRole);
+      } else {
+        enhancedSetUserRole(null);
+      }
+    };
+    
     // Set up listeners BEFORE checking session
     const { data } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
@@ -116,15 +145,7 @@ class AuthService {
         
         if (event === 'SIGNED_IN' && newSession) {
           setSession(newSession);
-          setUser(newSession.user);
-          
-          // Fetch user role with proper error handling
-          if (newSession.user) {
-            // Use setTimeout to avoid potential deadlocks
-            setTimeout(() => {
-              this.fetchUserRole(newSession.user.id, setUserRole);
-            }, 0);
-          }
+          enhancedSetUser(newSession.user);
         } else if (event === 'TOKEN_REFRESHED' && newSession) {
           setSession(newSession);
           setUser(newSession.user);
@@ -144,7 +165,7 @@ class AuthService {
     };
     
     // Get initial session state
-    this.getInitialSession(setUser, setSession, setUserRole, setIsLoading);
+    this.getInitialSession(enhancedSetUser, setSession, enhancedSetUserRole, setIsLoading);
   }
 
   // Get initial session from localStorage
@@ -160,21 +181,13 @@ class AuthService {
         console.log("Initial session found", initialSession.user?.email);
         setSession(initialSession);
         setUser(initialSession.user);
-        
-        // Fetch user role with proper error handling
-        if (initialSession.user) {
-          // Use setTimeout to avoid potential deadlocks
-          setTimeout(() => {
-            this.fetchUserRole(initialSession.user.id, setUserRole);
-          }, 0);
-        }
       } else {
         console.log("No initial session found");
-        setUserRole(null); // Ensure role loading is complete even without session
+        setUserRole(null);
       }
     } catch (error) {
       console.error("Error fetching initial session:", error);
-      setUserRole(null); // Ensure role loading is complete on error
+      setUserRole(null);
     } finally {
       setIsLoading(false);
     }
