@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -243,15 +244,25 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
     }
   };
   
-  // Process pending tasks manually (for demo/testing purposes)
+  // Process pending tasks manually (enhanced to use trigger function)
   const triggerTaskProcessing = async () => {
+    if (!user?.id) {
+      toast({
+        title: 'Authentication Error',
+        description: 'User not authenticated',
+        variant: 'destructive'
+      });
+      return false;
+    }
+
     try {
-      const { data, error } = await supabase.functions.invoke('process-registration-tasks', {
-        body: {}
+      // Use the trigger function which handles the complete workflow
+      const { data, error } = await supabase.functions.invoke('trigger-registration-notifications', {
+        body: { patient_id: user.id }
       });
       
       if (error) {
-        console.error("Error processing tasks:", error);
+        console.error("Error triggering registration tasks:", error);
         toast({
           title: 'Task Processing Failed',
           description: error.message,

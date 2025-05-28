@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserManagement } from "@/components/dashboard/admin/UserManagement";
@@ -17,6 +16,7 @@ import { PatientPaymentManager } from "@/components/dashboard/admin/PatientPayme
 import { UserTrainingDocumentPDF } from "@/components/dashboard/admin/UserTrainingDocumentPDF";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
+import { RegistrationProgressReport } from "@/components/dashboard/admin/RegistrationProgressReport";
 
 const SystemSettings = () => {
   return (
@@ -147,6 +147,10 @@ export const AdminDashboard = () => {
         </Card>
         
         <div className="space-y-6">
+          <CollapsibleSection title="Registration Progress & Tasks" id="registration-progress">
+            <RegistrationProgressReport />
+          </CollapsibleSection>
+          
           <CollapsibleSection title="Assign Care Team" id="care-team">
             <PatientAssignmentManager />
           </CollapsibleSection>

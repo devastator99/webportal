@@ -1,8 +1,9 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, Clock, LogIn } from "lucide-react";
+import { CheckCircle2, Clock, LogIn, RefreshCw, Loader2 } from "lucide-react";
 import { UserRegistrationStatus, RegistrationStatus, RegistrationStatusValues } from "@/types/registration";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +21,7 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isFetching, setIsFetching] = useState(false);
+  const [isProcessingTasks, setIsProcessingTasks] = useState(false);
   const [registrationStatus, setRegistrationStatus] = useState<UserRegistrationStatus | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
   
@@ -72,6 +74,54 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
       setIsFetching(false);
     }
   };
+
+  const handleProcessRegistrationTasks = async () => {
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "User not authenticated",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsProcessingTasks(true);
+    try {
+      console.log("Triggering registration task processing for user:", user.id);
+      
+      // Call the trigger function which will process all pending tasks
+      const { data, error } = await supabase.functions.invoke('trigger-registration-notifications', {
+        body: { patient_id: user.id }
+      });
+      
+      if (error) {
+        console.error("Error triggering registration tasks:", error);
+        throw new Error(error.message || "Failed to process registration tasks");
+      }
+      
+      console.log("Registration tasks processing result:", data);
+      
+      toast({
+        title: "Processing Started",
+        description: data?.message || "Registration tasks are being processed. Please check back in a few moments.",
+      });
+      
+      // Wait a moment then refresh status
+      setTimeout(() => {
+        fetchRegistrationStatus();
+      }, 3000);
+      
+    } catch (err: any) {
+      console.error("Error processing registration tasks:", err);
+      toast({
+        title: "Processing Failed",
+        description: err.message || "Failed to process registration tasks",
+        variant: "destructive"
+      });
+    } finally {
+      setIsProcessingTasks(false);
+    }
+  };
   
   useEffect(() => {
     console.log("RegistrationProgressReport effect - authIsLoading:", authIsLoading, "user:", user?.id);
@@ -87,8 +137,8 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
   }, [user?.id, authIsLoading]);
   
   const handleCheckAgain = () => {
-    console.log("Check again clicked");
-    fetchRegistrationStatus();
+    console.log("Check again clicked - triggering task processing");
+    handleProcessRegistrationTasks();
     if (onCheckAgain) {
       onCheckAgain();
     }
@@ -156,6 +206,11 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
     );
   }
   
+  // If registration is fully completed, don't show this component
+  if (registrationStatus?.registration_status === RegistrationStatusValues.FULLY_REGISTERED) {
+    return null; // Hide the component when registration is complete
+  }
+  
   if (!registrationStatus) {
     return (
       <Card className="bg-white">
@@ -171,42 +226,22 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
           </Alert>
         </CardContent>
         <CardFooter className="flex-col gap-2">
-          <Button onClick={handleCheckAgain} className="w-full">Try Again</Button>
           <Button 
-            variant="outline" 
-            onClick={handleSignInWithDifferentAccount} 
+            onClick={handleCheckAgain} 
             className="w-full"
-            disabled={isSigningOut}
+            disabled={isProcessingTasks}
           >
-            <LogIn className="mr-2 h-4 w-4" />
-            {isSigningOut ? "Signing Out..." : "Sign In with Different Account"}
-          </Button>
-        </CardFooter>
-      </Card>
-    );
-  }
-  
-  // If registration is fully completed, redirect to dashboard
-  if (registrationStatus?.registration_status === RegistrationStatusValues.FULLY_REGISTERED) {
-    return (
-      <Card className="bg-white">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-green-500" />
-            Registration Complete
-          </CardTitle>
-          <CardDescription>Your account is fully set up</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert className="bg-green-50 border-green-200">
-            <AlertDescription>
-              Your registration is complete. You can now access all features of the application.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-        <CardFooter className="flex-col gap-2">
-          <Button onClick={() => window.location.href = "/dashboard"} className="w-full">
-            Go to Dashboard
+            {isProcessingTasks ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Process Registration Tasks
+              </>
+            )}
           </Button>
           <Button 
             variant="outline" 
@@ -297,8 +332,19 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
         <Button 
           onClick={handleCheckAgain}
           className="w-full"
+          disabled={isProcessingTasks}
         >
-          Check Status Again
+          {isProcessingTasks ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Processing Registration Tasks...
+            </>
+          ) : (
+            <>
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Process Registration Tasks
+            </>
+          )}
         </Button>
         <Button 
           variant="outline" 
