@@ -53,9 +53,10 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
   }, [user]);
   
   const handleInitiatePayment = async () => {
-    console.log("Pay Registration Fee button clicked");
+    console.log("Pay Registration Fee button clicked - handler called");
     
     if (!user) {
+      console.log("No user found");
       toast({
         title: "Error",
         description: "You must be logged in to complete registration",
@@ -155,9 +156,10 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
   
   // For testing - manually complete payment without Razorpay
   const handleManualPayment = async () => {
-    console.log("Complete Registration (Testing) button clicked");
+    console.log("Complete Registration (Testing) button clicked - handler called");
     
     if (!user) {
+      console.log("No user found for manual payment");
       toast({
         title: "Error",
         description: "You must be logged in to complete registration",
