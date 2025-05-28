@@ -1,13 +1,13 @@
-
 import { TestDataManager } from '@/components/testing/TestDataManager';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { TestTube, CheckCircle } from 'lucide-react';
 import { TestingStatsCards } from '@/components/testing/TestingDashboard/TestingStatsCards';
 import { TestingGuideSection } from '@/components/testing/TestingDashboard/TestingGuideSection';
+import { RegistrationDataVerifier } from "@/components/testing/RegistrationDataVerifier";
 
 export const TestingPage = () => {
   return (
-    <div className="container mx-auto py-8 space-y-8">
+    <div className="container mx-auto px-4 py-8 space-y-8">
       <div className="space-y-4">
         <div className="flex items-center gap-3">
           <TestTube className="h-8 w-8 text-primary" />
@@ -27,6 +27,7 @@ export const TestingPage = () => {
         </Alert>
       </div>
 
+      <RegistrationDataVerifier />
       <TestingStatsCards />
       <TestDataManager />
       <TestingGuideSection />
