@@ -197,9 +197,10 @@ export const PatientPaymentManager = () => {
       
       await fetchPatientPaymentData();
       
+      // Fetch the complete invoice data including all required fields
       const { data: newInvoice, error: fetchError } = await supabase
         .from('patient_invoices')
-        .select('id, invoice_number, amount, created_at, description, status')
+        .select('*')
         .eq('id', data)
         .single();
       
