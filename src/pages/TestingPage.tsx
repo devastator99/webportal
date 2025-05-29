@@ -1,18 +1,65 @@
+
 import React from 'react';
 import { RegistrationTaskProcessor } from '@/components/testing/RegistrationTaskProcessor';
 import { PhoneRegistrationDebugger } from '@/components/testing/PhoneRegistrationDebugger';
 import { TestDataCleanup } from '@/components/testing/TestDataCleanup';
 import { RegistrationDataVerifier } from '@/components/testing/RegistrationDataVerifier';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Wrench, Database, Shield, Phone } from 'lucide-react';
+import { Wrench, Database, Shield, Phone, AlertTriangle } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const TestingPage = () => {
+  const { user, userRole, isLoading } = useAuth();
+
+  console.log('TestingPage - Auth state:', { user: user?.email, userRole, isLoading });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>Loading testing tools...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
+        <Alert className="max-w-md">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            You need to be signed in to access testing tools. Please sign in first.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
+  if (userRole !== 'administrator') {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 flex items-center justify-center">
+        <Alert className="max-w-md" variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>
+            Access denied. Testing tools are only available to administrators. Your role: {userRole || 'none'}
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 space-y-8">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Testing Tools</h1>
           <p className="text-lg text-gray-600">Admin tools for debugging and managing registration issues</p>
+          <div className="mt-2 text-sm text-gray-500">
+            Logged in as: {user.email} | Role: {userRole}
+          </div>
         </div>
         
         {/* Registration Task Processor - Most Important Tool */}
