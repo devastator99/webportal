@@ -84,7 +84,18 @@ serve(async (req) => {
     console.log(`Admin ${admin_id} is deleting user ${user_id}`);
 
     // Delete user from database tables directly instead of using RPC
-    // Delete from user_roles first
+    // Delete from registration_tasks first to avoid foreign key constraint
+    const { error: tasksError } = await supabaseAdmin
+      .from('registration_tasks')
+      .delete()
+      .eq('user_id', user_id);
+
+    if (tasksError) {
+      console.error("Error deleting registration tasks:", tasksError);
+      // Continue with deletion even if this fails
+    }
+
+    // Delete from user_roles
     const { error: userRolesError } = await supabaseAdmin
       .from('user_roles')
       .delete()
