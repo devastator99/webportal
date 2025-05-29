@@ -45,49 +45,24 @@ serve(async (req) => {
     console.log("Starting registration task processor...", 
       patientFilter ? `for patient: ${patientFilter}` : "for all patients");
     
-    // Get the next pending task, optionally filtered by patient
+    // Get the next pending task using the existing function
     const { data: taskData, error: taskError } = await supabase.rpc(
-      'get_next_pending_registration_task_for_patient',
-      patientFilter ? { p_patient_id: patientFilter } : {}
+      'get_next_pending_registration_task'
     );
     
     if (taskError) {
       console.error("Task fetch error:", taskError);
-      
-      // Fallback to the original function if the new one doesn't exist
-      const { data: fallbackTaskData, error: fallbackError } = await supabase.rpc(
-        'get_next_pending_registration_task'
-      );
-      
-      if (fallbackError) {
-        throw new Error(`Failed to get next task: ${fallbackError.message}`);
-      }
-      
-      // If we have a patient filter but using fallback, filter manually
-      if (patientFilter && fallbackTaskData && fallbackTaskData.length > 0) {
-        const filteredTask = fallbackTaskData.find((task: Task) => task.user_id === patientFilter);
-        if (!filteredTask) {
-          console.log(`No pending tasks found for patient: ${patientFilter}`);
-          return new Response(
-            JSON.stringify({ 
-              success: true,
-              message: `No pending tasks found for patient: ${patientFilter}`
-            }),
-            { 
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-              status: 200 
-            }
-          );
-        }
-        // Use only the filtered task
-        const taskData = [filteredTask];
-      } else {
-        const taskData = fallbackTaskData;
-      }
+      throw new Error(`Failed to get next task: ${taskError.message}`);
+    }
+    
+    // Filter by patient if specified
+    let filteredTasks = taskData || [];
+    if (patientFilter && filteredTasks.length > 0) {
+      filteredTasks = filteredTasks.filter((task: Task) => task.user_id === patientFilter);
     }
     
     // If no task is available, return success
-    if (!taskData || taskData.length === 0) {
+    if (!filteredTasks || filteredTasks.length === 0) {
       const message = patientFilter 
         ? `No pending tasks found for patient: ${patientFilter}`
         : "No pending tasks found";
@@ -106,7 +81,7 @@ serve(async (req) => {
     }
     
     // Get task info (first row)
-    const task: Task = taskData[0];
+    const task: Task = filteredTasks[0];
     console.log(`Processing task: ${task.task_id}, type: ${task.task_type}, for user: ${task.user_id}, retry: ${task.retry_count}`);
     
     // Process based on task type
