@@ -16,8 +16,18 @@ serve(async (req) => {
     const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
     const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
 
+    console.log("Environment variables check:");
+    console.log("TWILIO_ACCOUNT_SID:", twilioAccountSid ? "Present" : "Missing");
+    console.log("TWILIO_AUTH_TOKEN:", twilioAuthToken ? "Present" : "Missing");
+    console.log("TWILIO_PHONE_NUMBER:", twilioPhoneNumber ? "Present" : "Missing");
+
     if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
-      throw new Error('Twilio credentials not configured');
+      const missingVars = [];
+      if (!twilioAccountSid) missingVars.push('TWILIO_ACCOUNT_SID');
+      if (!twilioAuthToken) missingVars.push('TWILIO_AUTH_TOKEN');
+      if (!twilioPhoneNumber) missingVars.push('TWILIO_PHONE_NUMBER');
+      
+      throw new Error(`Twilio credentials not configured. Missing: ${missingVars.join(', ')}`);
     }
 
     const { phone_number, message, user_id } = await req.json();
@@ -27,9 +37,11 @@ serve(async (req) => {
     }
 
     console.log(`Sending SMS to: ${phone_number}`);
+    console.log(`Message length: ${message.length} characters`);
 
     // Format phone number to ensure it starts with +
     const formattedPhoneNumber = phone_number.startsWith('+') ? phone_number : `+91${phone_number}`;
+    console.log(`Formatted phone number: ${formattedPhoneNumber}`);
 
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
     
@@ -38,6 +50,8 @@ serve(async (req) => {
       To: formattedPhoneNumber,
       Body: message
     });
+
+    console.log("Twilio request body:", body.toString());
 
     const response = await fetch(twilioUrl, {
       method: 'POST',
@@ -50,9 +64,12 @@ serve(async (req) => {
 
     const result = await response.json();
 
+    console.log("Twilio API response status:", response.status);
+    console.log("Twilio API response:", JSON.stringify(result, null, 2));
+
     if (!response.ok) {
       console.error('Twilio SMS error:', result);
-      throw new Error(`Twilio error: ${result.message || 'Unknown error'}`);
+      throw new Error(`Twilio error (${response.status}): ${result.message || 'Unknown error'}`);
     }
 
     console.log('SMS sent successfully:', result.sid);
