@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { UserRegistrationStatus } from '@/types/registration';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -13,8 +13,9 @@ interface RegistrationStatusCheckerProps {
 export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps> = ({ children }) => {
   const { user, userRole } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isChecking, setIsChecking] = useState(true);
-  const [redirected, setRedirected] = useState(false);
+  const [hasRedirected, setHasRedirected] = useState(false);
   
   useEffect(() => {
     const checkRegistrationStatus = async () => {
@@ -25,21 +26,17 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
         return;
       }
       
-      // Don't check if we've already redirected
-      if (redirected) {
-        console.log("RegistrationStatusChecker: Already redirected, skipping check");
+      // Prevent infinite loops - if we're already on the registration page, don't redirect
+      if (location.pathname.includes('/auth/register')) {
+        console.log("RegistrationStatusChecker: Already on registration page, skipping redirect");
         setIsChecking(false);
         return;
       }
       
-      // Don't check if we're in an active registration flow (coming from Auth page)
-      const isInRegistrationFlow = localStorage.getItem('registration_payment_pending') === 'true' ||
-                                   localStorage.getItem('registration_payment_complete') === 'true';
-      
-      if (isInRegistrationFlow) {
-        console.log("RegistrationStatusChecker: Active registration flow detected, redirecting to register");
-        setRedirected(true);
-        navigate('/auth/register', { replace: true });
+      // Don't check if we've already redirected in this session
+      if (hasRedirected) {
+        console.log("RegistrationStatusChecker: Already redirected in this session, skipping");
+        setIsChecking(false);
         return;
       }
       
@@ -64,7 +61,7 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
           console.log("RegistrationStatusChecker: Registration payment pending, redirecting to auth/register");
           localStorage.setItem('registration_payment_pending', 'true');
           localStorage.setItem('registration_payment_complete', 'false');
-          setRedirected(true);
+          setHasRedirected(true);
           navigate('/auth/register', { replace: true });
           return;
         }
@@ -73,7 +70,7 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
           console.log("RegistrationStatusChecker: Registration progress pending, redirecting to auth/register");
           localStorage.setItem('registration_payment_pending', 'false');
           localStorage.setItem('registration_payment_complete', 'true');
-          setRedirected(true);
+          setHasRedirected(true);
           navigate('/auth/register', { replace: true });
           return;
         }
@@ -92,9 +89,13 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
       }
     };
     
-    // Only run the check once when component mounts
-    checkRegistrationStatus();
-  }, [user?.id, userRole, navigate]); // Removed redirected from dependencies to prevent loops
+    // Add a small delay to prevent immediate redirect loops
+    const timeoutId = setTimeout(() => {
+      checkRegistrationStatus();
+    }, 100);
+    
+    return () => clearTimeout(timeoutId);
+  }, [user?.id, userRole, navigate, location.pathname, hasRedirected]);
   
   // Show loading if we're still checking registration
   if (isChecking) {

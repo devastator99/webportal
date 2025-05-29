@@ -12,7 +12,7 @@ import { toast } from "@/hooks/use-toast";
 import { RegistrationProgressReport } from "@/components/auth/RegistrationProgressReport";
 
 const Auth = () => {
-  const { user, userRole, isLoading } = useAuth();
+  const { user, userRole, isLoading, isLoadingRole } = useAuth();
   const { handleSignUp, error, loading, setError } = useAuthHandlers();
   const navigate = useNavigate();
   const location = useLocation();
@@ -23,9 +23,11 @@ const Auth = () => {
   
   const isRegistration = location.pathname.includes('/register');
 
-  // Check registration state from localStorage on initial load (only for new registrations)
+  // Check registration state from localStorage on initial load (only for registration routes)
   useEffect(() => {
     const checkLocalStorageState = () => {
+      if (!isRegistration) return;
+      
       const paymentPending = localStorage.getItem('registration_payment_pending') === 'true';
       const paymentComplete = localStorage.getItem('registration_payment_complete') === 'true';
       
@@ -40,37 +42,47 @@ const Auth = () => {
       }
     };
     
-    if (isRegistration) {
-      checkLocalStorageState();
-    }
-  }, [isRegistration]);
+    checkLocalStorageState();
+  }, [isRegistration, location.pathname]);
 
-  // Simple redirect logic - only redirect non-patient roles or if not in registration flow
+  // Only redirect non-patient users or completed registrations - be very conservative
   useEffect(() => {
-    if (!isLoading && user && userRole) {
-      console.log("Auth page detected logged in user. Role:", userRole, "isRegistrationFlow:", isRegistrationFlow);
-      
-      // If we're actively in a registration flow, stay here
-      if (isRegistrationFlow) {
-        console.log(`In active registration flow at step: ${registrationStep}`);
-        return;
-      }
-      
-      // For non-patient roles, redirect immediately
-      if (userRole !== 'patient') {
-        console.log("Redirecting to dashboard as", userRole);
-        navigate("/dashboard", { replace: true });
-        return;
-      }
-      
-      // For patients, let RegistrationStatusChecker handle the logic in Dashboard
-      console.log("Patient detected, redirecting to dashboard");
+    // Don't redirect while still loading
+    if (isLoading || isLoadingRole) {
+      console.log("Auth page: Still loading auth state, waiting...");
+      return;
+    }
+    
+    if (!user) {
+      console.log("Auth page: No user found, staying on auth page");
+      return;
+    }
+    
+    console.log("Auth page detected logged in user. Role:", userRole, "isRegistrationFlow:", isRegistrationFlow);
+    
+    // If we're actively in a registration flow, stay here regardless of role
+    if (isRegistrationFlow && isRegistration) {
+      console.log(`In active registration flow at step: ${registrationStep}, staying on auth page`);
+      return;
+    }
+    
+    // For non-patient roles, redirect to dashboard (they don't need registration)
+    if (userRole && userRole !== 'patient') {
+      console.log("Redirecting non-patient to dashboard:", userRole);
+      navigate("/dashboard", { replace: true });
+      return;
+    }
+    
+    // For patients, only redirect if we're NOT on the registration route
+    // Let RegistrationStatusChecker handle the registration flow logic
+    if (userRole === 'patient' && !isRegistration) {
+      console.log("Patient on non-registration route, redirecting to dashboard");
       navigate("/dashboard", { replace: true });
     }
-  }, [user, userRole, isLoading, navigate, isRegistrationFlow, registrationStep]);
+  }, [user, userRole, isLoading, isLoadingRole, navigate, isRegistrationFlow, registrationStep, isRegistration]);
 
   // Show loading state while auth is loading
-  if (isLoading) {
+  if (isLoading || isLoadingRole) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center pt-16 md:pt-20">
         <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
