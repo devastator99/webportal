@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserManagement } from "@/components/dashboard/admin/UserManagement";
@@ -20,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { RegistrationProgressReport } from "@/components/dashboard/admin/RegistrationProgressReport";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { RegistrationTaskProcessor } from "@/components/testing/RegistrationTaskProcessor";
+import { useNavigate } from "react-router-dom";
 
 const SystemSettings = () => {
   return (
@@ -43,10 +43,11 @@ export const AdminDashboard = () => {
   const [syncSuccess, setSyncSuccess] = useState<string | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
   const { data: stats, isLoading: isLoadingStats } = useAdminStats();
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-4 animate-fade-up">
-      {/* Simple header */}
+      {/* Enhanced header with prominent sign-out button */}
       <div className="bg-white dark:bg-gray-950 pt-2 pb-3 border-b shadow-sm">
         <div className="container mx-auto px-4">
           <Breadcrumb className="mb-3">
@@ -66,7 +67,16 @@ export const AdminDashboard = () => {
           
           <div className="flex flex-row items-center justify-between gap-3 mb-3">
             <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => navigate('/testing')}
+                className="flex items-center gap-2 bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+              >
+                <Wrench className="h-4 w-4" />
+                Testing Tools
+              </Button>
               <Button 
                 variant="outline" 
                 size="sm" 
@@ -74,7 +84,11 @@ export const AdminDashboard = () => {
               >
                 <SyncCareTeamsButton />
               </Button>
-              <SignOutButton variant="outline" size="sm" />
+              <SignOutButton 
+                variant="outline" 
+                size="sm" 
+                className="bg-red-50 border-red-200 text-red-700 hover:bg-red-100 font-medium"
+              />
             </div>
           </div>
         </div>
