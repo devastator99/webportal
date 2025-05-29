@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { Logo } from "@/components/navbar/Logo";
 import { AuthButton } from "@/components/auth/AuthButton";
 import { ForceLogoutButton } from "@/components/navbar/ForceLogoutButton";
+import { SignOutButton } from "@/components/auth/SignOutButton";
 import { useIsMobile, useIsIPad } from "@/hooks/use-mobile";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -62,6 +63,8 @@ export const Navbar = () => {
                     {user.email}
                   </span>
                 )}
+                {/* Add Sign Out Button for authenticated users */}
+                <SignOutButton variant="outline" size="sm" />
               </>
             )}
             {isLoading ? (
@@ -69,14 +72,15 @@ export const Navbar = () => {
                 <Spinner size="sm" className="text-[#9b87f5]" />
               </div>
             ) : (
-              !isAuthPage && <AuthButton />
+              !isAuthPage && !user && <AuthButton />
             )}
           </div>
 
           {/* Mobile navigation */}
           {useResponsiveDisplay && (
             <div className="flex items-center gap-2">
-              {!isAuthPage && <AuthButton />}
+              {user && !isLoading && <SignOutButton variant="outline" size="sm" />}
+              {!isAuthPage && !user && <AuthButton />}
               <Button
                 variant="ghost"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
