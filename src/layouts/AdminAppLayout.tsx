@@ -35,11 +35,11 @@ export function AdminAppLayout({
           <AdminSidebar />
           
           <div className={`flex-1 ${isMobileOrTablet ? "pb-20" : "pb-8"}`}>
-            {/* Header with navigation buttons */}
+            {/* Header with navigation buttons - Always visible */}
             <div className="bg-white dark:bg-gray-950 pt-4 pb-3 border-b shadow-sm">
               <div className="container mx-auto px-4">
                 <div className="flex flex-row items-center justify-between gap-3">
-                  <div>
+                  <div className="flex-1">
                     {showHeader && title && (
                       <div>
                         <h1 className="text-2xl font-bold">{title}</h1>
@@ -48,7 +48,7 @@ export function AdminAppLayout({
                     )}
                   </div>
                   
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-shrink-0">
                     <Button 
                       variant="outline" 
                       size="sm" 
@@ -58,6 +58,7 @@ export function AdminAppLayout({
                       <Wrench className="h-4 w-4" />
                       Testing Tools
                     </Button>
+                    
                     <SignOutButton 
                       variant="outline" 
                       size="sm" 
