@@ -51,9 +51,82 @@ Best regards,
 Your Healthcare Team
     `.trim();
 
-    const notifications = [];
+    const results = {};
 
-    // Send WhatsApp notification if phone number is available
+    // Send email notification using Resend
+    if (patient_email) {
+      try {
+        const { data: emailResult, error: emailError } = await supabaseClient.functions.invoke(
+          'send-email-notification',
+          {
+            body: {
+              to: patient_email,
+              subject: `Welcome ${patient_name}! Your care team is ready`,
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h1 style="color: #7E69AB;">🎉 Welcome to our Healthcare Platform!</h1>
+                  <p>Dear ${patient_name},</p>
+                  <p>Your registration is now complete and your care team has been assigned:</p>
+                  <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                    <p><strong>👨‍⚕️ Doctor:</strong> ${doctor_name}</p>
+                    <p><strong>🥗 Nutritionist:</strong> ${nutritionist_name}</p>
+                  </div>
+                  <h3>What's next?</h3>
+                  <ul>
+                    <li>✅ Your care team chat room has been created</li>
+                    <li>✅ You can now access your personalized health dashboard</li>
+                    <li>✅ Start tracking your health habits and goals</li>
+                    <li>✅ Schedule appointments with your care team</li>
+                  </ul>
+                  <p>We're excited to support you on your health journey!</p>
+                  <p>Best regards,<br>Your Healthcare Team</p>
+                </div>
+              `
+            }
+          }
+        );
+
+        if (emailError) {
+          console.error("Email notification error:", emailError);
+          results.email = { success: false, error: emailError.message };
+        } else {
+          console.log("Email notification sent successfully");
+          results.email = { success: true, result: emailResult };
+        }
+      } catch (error) {
+        console.error("Email notification exception:", error);
+        results.email = { success: false, error: error.message };
+      }
+    }
+
+    // Send SMS notification using Twilio
+    if (patient_phone) {
+      try {
+        const { data: smsResult, error: smsError } = await supabaseClient.functions.invoke(
+          'send-sms-notification',
+          {
+            body: {
+              phone_number: patient_phone,
+              message: welcomeMessage,
+              user_id: patient_id
+            }
+          }
+        );
+
+        if (smsError) {
+          console.error("SMS notification error:", smsError);
+          results.sms = { success: false, error: smsError.message };
+        } else {
+          console.log("SMS notification sent successfully");
+          results.sms = { success: true, result: smsResult };
+        }
+      } catch (error) {
+        console.error("SMS notification exception:", error);
+        results.sms = { success: false, error: error.message };
+      }
+    }
+
+    // Send WhatsApp notification using Twilio
     if (patient_phone) {
       try {
         const { data: whatsappResult, error: whatsappError } = await supabaseClient.functions.invoke(
@@ -69,78 +142,31 @@ Your Healthcare Team
 
         if (whatsappError) {
           console.error("WhatsApp notification error:", whatsappError);
-          notifications.push({ type: 'whatsapp', success: false, error: whatsappError.message });
+          results.whatsapp = { success: false, error: whatsappError.message };
         } else {
           console.log("WhatsApp notification sent successfully");
-          notifications.push({ type: 'whatsapp', success: true, result: whatsappResult });
+          results.whatsapp = { success: true, result: whatsappResult };
         }
       } catch (error) {
         console.error("WhatsApp notification exception:", error);
-        notifications.push({ type: 'whatsapp', success: false, error: error.message });
+        results.whatsapp = { success: false, error: error.message };
       }
     }
 
-    // Send email notification if email is available
-    if (patient_email) {
-      try {
-        // For now, we'll log the email content since we don't have an email service configured
-        console.log(`Email notification would be sent to: ${patient_email}`);
-        console.log(`Email content: ${welcomeMessage}`);
-        
-        notifications.push({ 
-          type: 'email', 
-          success: true, 
-          message: 'Email notification logged (service not configured)' 
-        });
-      } catch (error) {
-        console.error("Email notification exception:", error);
-        notifications.push({ type: 'email', success: false, error: error.message });
-      }
-    }
-
-    // Send push notification if user has subscriptions
-    try {
-      const { data: pushResult, error: pushError } = await supabaseClient.functions.invoke(
-        'send-push-notification',
-        {
-          body: {
-            user_id: patient_id,
-            title: `Welcome ${patient_name}!`,
-            body: 'Your registration is complete. Your care team is ready to support you!',
-            data: {
-              type: 'welcome',
-              patient_id: patient_id
-            }
-          }
-        }
-      );
-
-      if (pushError) {
-        console.error("Push notification error:", pushError);
-        notifications.push({ type: 'push', success: false, error: pushError.message });
-      } else {
-        console.log("Push notification sent successfully");
-        notifications.push({ type: 'push', success: true, result: pushResult });
-      }
-    } catch (error) {
-      console.error("Push notification exception:", error);
-      notifications.push({ type: 'push', success: false, error: error.message });
-    }
-
-    // Log the welcome notification in the database
+    // Log the welcome notification in the database with correct enum value
     try {
       const { error: logError } = await supabaseClient
         .from('notification_logs')
         .insert({
           user_id: patient_id,
-          type: 'welcome',
+          type: 'general', // Use 'general' instead of 'welcome' to match enum
           title: `Welcome ${patient_name}!`,
           body: welcomeMessage,
           status: 'sent',
           data: {
             doctor_name,
             nutritionist_name,
-            notifications_sent: notifications
+            notifications_sent: results
           }
         });
 
@@ -158,8 +184,7 @@ Your Healthcare Team
         success: true,
         message: "Comprehensive welcome notification sent",
         patient_id,
-        notifications_sent: notifications.length,
-        notifications
+        results
       }),
       { 
         status: 200, 

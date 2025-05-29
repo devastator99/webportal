@@ -14,10 +14,10 @@ serve(async (req) => {
   try {
     const twilioAccountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
     const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
-    const twilioWhatsAppNumber = Deno.env.get('TWILIO_WHATSAPP_NUMBER');
+    const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
 
-    if (!twilioAccountSid || !twilioAuthToken || !twilioWhatsAppNumber) {
-      throw new Error('Twilio WhatsApp credentials not configured');
+    if (!twilioAccountSid || !twilioAuthToken || !twilioPhoneNumber) {
+      throw new Error('Twilio credentials not configured');
     }
 
     const { phone_number, message, user_id } = await req.json();
@@ -26,17 +26,16 @@ serve(async (req) => {
       throw new Error('Missing required fields: phone_number, message');
     }
 
-    console.log(`Sending WhatsApp message to: ${phone_number}`);
+    console.log(`Sending SMS to: ${phone_number}`);
 
-    // Format phone numbers for WhatsApp
-    const fromWhatsApp = `whatsapp:${twilioWhatsAppNumber}`;
-    const toWhatsApp = `whatsapp:${phone_number.startsWith('+') ? phone_number : `+91${phone_number}`}`;
+    // Format phone number to ensure it starts with +
+    const formattedPhoneNumber = phone_number.startsWith('+') ? phone_number : `+91${phone_number}`;
 
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
     
     const body = new URLSearchParams({
-      From: fromWhatsApp,
-      To: toWhatsApp,
+      From: twilioPhoneNumber,
+      To: formattedPhoneNumber,
       Body: message
     });
 
@@ -52,11 +51,11 @@ serve(async (req) => {
     const result = await response.json();
 
     if (!response.ok) {
-      console.error('Twilio WhatsApp error:', result);
-      throw new Error(`Twilio WhatsApp error: ${result.message || 'Unknown error'}`);
+      console.error('Twilio SMS error:', result);
+      throw new Error(`Twilio error: ${result.message || 'Unknown error'}`);
     }
 
-    console.log('WhatsApp message sent successfully:', result.sid);
+    console.log('SMS sent successfully:', result.sid);
 
     return new Response(JSON.stringify({
       success: true,
@@ -68,7 +67,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error sending WhatsApp message:', error);
+    console.error('Error sending SMS:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error.message
