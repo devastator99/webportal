@@ -8,8 +8,9 @@ import { useIsMobileOrIPad } from "@/hooks/use-mobile";
 import { SignOutButton } from "@/components/auth/SignOutButton";
 import { SyncCareTeamsButton } from "@/components/dashboard/admin/SyncCareTeamsButton";
 import { Button } from "@/components/ui/button";
-import { Wrench } from "lucide-react";
+import { Wrench, LogOut } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AdminAppLayoutProps {
   children: ReactNode;
@@ -28,6 +29,15 @@ export function AdminAppLayout({
 }: AdminAppLayoutProps) {
   const isMobileOrTablet = useIsMobileOrIPad();
   const navigate = useNavigate();
+  const { signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   return (
     <AppLayout>
@@ -62,11 +72,16 @@ export function AdminAppLayout({
                     
                     <SyncCareTeamsButton />
                     
-                    <SignOutButton 
+                    {/* Direct Sign Out Button */}
+                    <Button 
                       variant="outline" 
                       size="sm" 
-                      className="font-medium"
-                    />
+                      onClick={handleSignOut}
+                      className="flex items-center gap-2 font-medium text-red-600 border-red-200 hover:bg-red-50"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sign Out
+                    </Button>
                   </div>
                 </div>
               </div>
