@@ -3,13 +3,13 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
@@ -18,37 +18,35 @@ serve(async (req) => {
     if (!patient_email) {
       return new Response(
         JSON.stringify({ error: "Patient email is required" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    console.log(`Resetting registration tasks for: ${patient_email}`);
+
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    console.log(`Resetting stuck registration tasks for: ${patient_email}`);
+    // Get user ID by email using RPC function
+    const { data: userId, error: userIdError } = await supabaseClient.rpc(
+      'get_user_id_by_email',
+      { user_email: patient_email }
+    );
 
-    // Get the user ID from auth.users by email
-    const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-    
-    if (authError) {
-      throw new Error(`Failed to get users: ${authError.message}`);
-    }
-
-    const user = authUsers.users.find(u => u.email === patient_email);
-    if (!user) {
+    if (userIdError || !userId) {
+      console.error("User not found or error:", userIdError);
       return new Response(
         JSON.stringify({ error: `User with email ${patient_email} not found` }),
-        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const userId = user.id;
     console.log(`Found user ID: ${userId} for email: ${patient_email}`);
 
-    // Reset any stuck tasks (in_progress back to pending)
-    const { data: resetData, error: resetError } = await supabase
+    // Reset all failed and stuck tasks for this user
+    const { data: resetData, error: resetError } = await supabaseClient
       .from('registration_tasks')
       .update({
         status: 'pending',
@@ -58,46 +56,56 @@ serve(async (req) => {
         updated_at: new Date().toISOString()
       })
       .eq('user_id', userId)
-      .eq('status', 'in_progress')
+      .in('status', ['failed', 'pending'])
       .select();
 
     if (resetError) {
       console.error("Error resetting tasks:", resetError);
-      throw new Error(`Failed to reset tasks: ${resetError.message}`);
+      return new Response(
+        JSON.stringify({ error: `Failed to reset tasks: ${resetError.message}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log(`Reset ${resetData?.length || 0} stuck tasks`);
+    console.log(`Reset ${resetData?.length || 0} tasks for user ${userId}`);
 
-    // Now trigger the registration task processor for this specific user
-    const { data: processResult, error: processError } = await supabase.functions.invoke(
+    // Now trigger the processing
+    console.log("Triggering task processing...");
+    const { data: processResult, error: processError } = await supabaseClient.functions.invoke(
       'process-registration-tasks',
       { body: { patient_id: userId } }
     );
 
     if (processError) {
-      console.error("Error triggering task processor:", processError);
-      throw new Error(`Failed to trigger task processor: ${processError.message}`);
+      console.error("Error triggering task processing:", processError);
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: `Tasks reset for ${patient_email} but failed to trigger processing: ${processError.message}`,
+          reset_count: resetData?.length || 0,
+          user_id: userId,
+          processing_error: processError.message
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
-
-    console.log("Task processor triggered successfully:", processResult);
 
     return new Response(
       JSON.stringify({
         success: true,
         message: `Registration tasks reset and processing triggered for ${patient_email}`,
+        reset_count: resetData?.length || 0,
         user_id: userId,
-        reset_tasks: resetData?.length || 0,
-        processor_result: processResult
+        processing_result: processResult
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
   } catch (error: any) {
-    console.error("Error in reset-stuck-registration-tasks:", error);
-    
+    console.error('Error in reset-stuck-registration-tasks:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

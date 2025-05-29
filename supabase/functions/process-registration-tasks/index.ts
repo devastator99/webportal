@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -235,20 +236,25 @@ async function updateUserRegistrationStatus(supabase: any, userId: string) {
   }
 }
 
-// Function to process assign care team task
+// Function to process assign care team task with better error handling
 async function processAssignCareTeam(supabase: any, task: Task) {
   console.log(`Processing assign care team task for user ${task.user_id}`);
   
-  // Get default care team
+  // Get default care team with better error handling
   const { data: careTeamData, error: careTeamError } = await supabase
     .from('default_care_teams')
     .select('default_doctor_id, default_nutritionist_id')
     .eq('is_active', true)
-    .single();
+    .maybeSingle(); // Use maybeSingle to avoid throwing on no results
     
-  if (careTeamError || !careTeamData) {
-    console.error("No default care team found:", careTeamError);
-    throw new Error(`No active default care team found: ${careTeamError?.message || 'No data'}`);
+  if (careTeamError) {
+    console.error("Error fetching default care team:", careTeamError);
+    throw new Error(`Error fetching default care team: ${careTeamError.message}`);
+  }
+  
+  if (!careTeamData) {
+    console.error("No default care team found");
+    throw new Error('No active default care team configured. Please set up default care team in admin settings.');
   }
 
   const doctorId = careTeamData.default_doctor_id;
@@ -257,69 +263,117 @@ async function processAssignCareTeam(supabase: any, task: Task) {
   console.log(`Assigning doctor ${doctorId} and nutritionist ${nutritionistId} to patient ${task.user_id}`);
   
   if (!doctorId) {
-    throw new Error('Default doctor not configured');
+    throw new Error('Default doctor not configured in care team settings');
   }
   
-  // Assign care team (upsert)
-  const { data: assignmentData, error: assignmentError } = await supabase
+  // Check if assignment already exists and handle upsert properly
+  const { data: existingAssignment, error: checkError } = await supabase
     .from('patient_assignments')
-    .upsert({
-      patient_id: task.user_id,
-      doctor_id: doctorId,
-      nutritionist_id: nutritionistId,
-      updated_at: new Date().toISOString()
-    }, {
-      onConflict: 'patient_id'
-    })
-    .select();
+    .select('id, doctor_id, nutritionist_id')
+    .eq('patient_id', task.user_id)
+    .maybeSingle();
+  
+  if (checkError) {
+    console.error("Error checking existing assignment:", checkError);
+    throw new Error(`Error checking existing assignment: ${checkError.message}`);
+  }
+  
+  let assignmentData;
+  
+  if (existingAssignment) {
+    // Update existing assignment
+    console.log(`Updating existing assignment for patient ${task.user_id}`);
+    const { data: updateData, error: updateError } = await supabase
+      .from('patient_assignments')
+      .update({
+        doctor_id: doctorId,
+        nutritionist_id: nutritionistId,
+        updated_at: new Date().toISOString()
+      })
+      .eq('patient_id', task.user_id)
+      .select()
+      .single();
     
-  if (assignmentError) {
-    console.error("Care team assignment error:", assignmentError);
-    throw new Error(`Error assigning care team: ${assignmentError.message}`);
+    if (updateError) {
+      console.error("Care team assignment update error:", updateError);
+      throw new Error(`Error updating care team assignment: ${updateError.message}`);
+    }
+    
+    assignmentData = updateData;
+  } else {
+    // Create new assignment
+    console.log(`Creating new assignment for patient ${task.user_id}`);
+    const { data: insertData, error: insertError } = await supabase
+      .from('patient_assignments')
+      .insert({
+        patient_id: task.user_id,
+        doctor_id: doctorId,
+        nutritionist_id: nutritionistId
+      })
+      .select()
+      .single();
+      
+    if (insertError) {
+      console.error("Care team assignment creation error:", insertError);
+      throw new Error(`Error creating care team assignment: ${insertError.message}`);
+    }
+    
+    assignmentData = insertData;
   }
   
   console.log("Care team assigned successfully:", assignmentData);
   
   return {
-    assignment_id: assignmentData?.[0]?.id,
+    assignment_id: assignmentData.id,
     doctor_id: doctorId,
-    nutritionist_id: nutritionistId
+    nutritionist_id: nutritionistId,
+    action: existingAssignment ? 'updated' : 'created'
   };
 }
 
-// Function to process create chat room task
+// Function to process create chat room task with improved error handling
 async function processCreateChatRoom(supabase: any, task: Task) {
   console.log(`Processing create chat room task for user ${task.user_id}`);
   
-  // First check if patient has assignments
+  // First check if patient has assignments with better error handling
   const { data: assignmentData, error: assignmentError } = await supabase
     .from('patient_assignments')
     .select('doctor_id, nutritionist_id')
     .eq('patient_id', task.user_id)
-    .single();
+    .maybeSingle();
     
   if (assignmentError) {
-    console.error("No care team assignment found:", assignmentError);
-    throw new Error(`Patient has no care team assigned yet: ${assignmentError.message}`);
+    console.error("Error fetching care team assignment:", assignmentError);
+    throw new Error(`Error fetching care team assignment: ${assignmentError.message}`);
+  }
+  
+  if (!assignmentData) {
+    console.error("No care team assignment found for patient:", task.user_id);
+    throw new Error(`Patient ${task.user_id} has no care team assigned yet. Care team must be assigned before creating chat room.`);
   }
   
   console.log("Found care team assignment:", assignmentData);
   
-  // Get patient name for room name
+  // Get patient name for room name with better error handling
   const { data: patientData, error: patientError } = await supabase
     .from('profiles')
     .select('first_name, last_name')
     .eq('id', task.user_id)
-    .single();
+    .maybeSingle();
     
-  if (patientError || !patientData) {
-    console.error("Cannot retrieve patient profile:", patientError);
-    throw new Error(`Cannot retrieve patient profile: ${patientError?.message || 'No data'}`);
+  if (patientError) {
+    console.error("Error retrieving patient profile:", patientError);
+    throw new Error(`Error retrieving patient profile: ${patientError.message}`);
+  }
+  
+  if (!patientData) {
+    console.error("Patient profile not found:", task.user_id);
+    throw new Error(`Patient profile not found for user: ${task.user_id}`);
   }
   
   const patientName = `${patientData.first_name || ''} ${patientData.last_name || ''}`.trim();
   if (!patientName) {
-    throw new Error('Patient has no name configured');
+    throw new Error('Patient has no name configured in profile');
   }
   
   const roomName = `${patientName} - Care Team`;
@@ -339,7 +393,7 @@ async function processCreateChatRoom(supabase: any, task: Task) {
   
   let roomId;
   
-  // Create or update room
+  // Create or use existing room
   if (existingRooms && existingRooms.length > 0) {
     // Room exists
     roomId = existingRooms[0].id;
@@ -366,7 +420,7 @@ async function processCreateChatRoom(supabase: any, task: Task) {
     console.log(`Created new room ${roomId} for patient ${task.user_id}`);
   }
   
-  // Add members to room
+  // Add members to room with better error handling
   try {
     const membersToAdd = [
       {
@@ -381,7 +435,7 @@ async function processCreateChatRoom(supabase: any, task: Task) {
       }
     ];
     
-    // FIXED: Add nutritionist if assigned
+    // Add nutritionist if assigned
     if (assignmentData.nutritionist_id) {
       console.log(`Adding nutritionist ${assignmentData.nutritionist_id} to room ${roomId}`);
       membersToAdd.push({
@@ -400,7 +454,7 @@ async function processCreateChatRoom(supabase: any, task: Task) {
     
     console.log(`Adding ${membersToAdd.length} members to room ${roomId}:`, membersToAdd.map(m => `${m.role}(${m.user_id})`));
     
-    // Add members
+    // Add members with upsert to handle duplicates
     const { error: membersError } = await supabase
       .from('room_members')
       .upsert(membersToAdd, { 
@@ -421,7 +475,7 @@ async function processCreateChatRoom(supabase: any, task: Task) {
       .insert([{
         room_id: roomId,
         sender_id: assignmentData.doctor_id,
-        message: 'Care team chat created. Team members can communicate here about patient care.',
+        message: 'Welcome to your care team chat! Your healthcare team can communicate here about your care.',
         is_system_message: true
       }]);
       
@@ -439,30 +493,49 @@ async function processCreateChatRoom(supabase: any, task: Task) {
   return {
     room_id: roomId,
     room_name: roomName,
-    members_added: assignmentData.nutritionist_id ? ['patient', 'doctor', 'nutritionist', 'aibot'] : ['patient', 'doctor', 'aibot']
+    members_added: assignmentData.nutritionist_id ? ['patient', 'doctor', 'nutritionist', 'aibot'] : ['patient', 'doctor', 'aibot'],
+    action: existingRooms && existingRooms.length > 0 ? 'updated' : 'created'
   };
 }
 
-// Enhanced function to process send welcome notification task with independent channel handling
+// Enhanced function to process send welcome notification task with better email handling
 async function processSendWelcomeNotification(supabase: any, task: Task) {
   console.log(`Processing comprehensive welcome notification for user ${task.user_id}`);
   
   try {
-    // Get patient and care team information
+    // Get patient information - profiles table doesn't have email, we need to join with auth.users
     const { data: patientData, error: patientError } = await supabase
       .from('profiles')
-      .select('first_name, last_name, email, phone')
+      .select('first_name, last_name, phone')
       .eq('id', task.user_id)
-      .single();
+      .maybeSingle();
     
-    if (patientError || !patientData) {
+    if (patientError) {
       console.error("Cannot retrieve patient profile:", patientError);
-      throw new Error(`Cannot retrieve patient profile: ${patientError?.message || 'No data'}`);
+      throw new Error(`Cannot retrieve patient profile: ${patientError.message}`);
+    }
+    
+    if (!patientData) {
+      console.error("Patient profile not found:", task.user_id);
+      throw new Error(`Patient profile not found for user: ${task.user_id}`);
+    }
+    
+    // Get email from auth.users using admin client
+    const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(task.user_id);
+    
+    if (authError || !authUser.user) {
+      console.error("Cannot retrieve auth user for email:", authError);
+      throw new Error(`Cannot retrieve user email: ${authError?.message || 'User not found in auth system'}`);
+    }
+    
+    const patientEmail = authUser.user.email;
+    if (!patientEmail) {
+      throw new Error('Patient email not found in auth system');
     }
     
     console.log("Retrieved patient data for notifications");
     
-    // Get care team assignment
+    // Get care team assignment with better error handling
     const { data: assignmentData, error: assignmentError } = await supabase
       .from('patient_assignments')
       .select(`
@@ -470,10 +543,10 @@ async function processSendWelcomeNotification(supabase: any, task: Task) {
         nutritionist:profiles!patient_assignments_nutritionist_id_fkey(first_name, last_name)
       `)
       .eq('patient_id', task.user_id)
-      .single();
+      .maybeSingle();
     
-    let doctorName = 'Being assigned';
-    let nutritionistName = 'Being assigned';
+    let doctorName = 'Your assigned doctor';
+    let nutritionistName = 'Your assigned nutritionist';
     
     if (assignmentData) {
       if (assignmentData.doctor) {
@@ -482,11 +555,13 @@ async function processSendWelcomeNotification(supabase: any, task: Task) {
       if (assignmentData.nutritionist) {
         nutritionistName = `${assignmentData.nutritionist.first_name} ${assignmentData.nutritionist.last_name}`.trim();
       }
+    } else {
+      console.warn(`No care team assignment found for patient ${task.user_id}, using default names`);
     }
     
     const patientName = `${patientData.first_name || ''} ${patientData.last_name || ''}`.trim();
     
-    console.log(`Sending notifications to ${patientName} (${patientData.email})`);
+    console.log(`Sending notifications to ${patientName} (${patientEmail})`);
     console.log(`Care team: ${doctorName}, ${nutritionistName}`);
     
     // Call the comprehensive notification function
@@ -496,7 +571,7 @@ async function processSendWelcomeNotification(supabase: any, task: Task) {
         body: {
           patient_id: task.user_id,
           patient_name: patientName,
-          patient_email: patientData.email,
+          patient_email: patientEmail,
           patient_phone: patientData.phone,
           doctor_name: doctorName,
           nutritionist_name: nutritionistName
@@ -543,6 +618,7 @@ async function processSendWelcomeNotification(supabase: any, task: Task) {
         channels_summary: `${successfulChannels.length}/${Object.keys(results).length} channels successful`,
         timestamp: new Date().toISOString(),
         patient_name: patientName,
+        patient_email: patientEmail,
         doctor_name: doctorName,
         nutritionist_name: nutritionistName,
         detailed_results: results
@@ -572,7 +648,7 @@ async function processSendWelcomeNotification(supabase: any, task: Task) {
       console.log("Treating configuration issue as partial success");
       return {
         notification_sent: true,
-        successful_channels: ['chat'], // Assume chat always works
+        successful_channels: ['internal'], // Assume internal notification always works
         failed_channels: [{ channel: 'external', error: error.message }],
         channels_summary: 'Partial success - some channels not configured',
         timestamp: new Date().toISOString(),
