@@ -72,13 +72,17 @@ export const RegistrationTaskProcessor = () => {
 
     try {
       // Get user ID first
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      const { data: authResponse, error: authError } = await supabase.auth.admin.listUsers();
       
       if (authError) {
         throw new Error(`Failed to get users: ${authError.message}`);
       }
 
-      const user = authUsers.users.find(u => u.email === email.trim());
+      if (!authResponse?.users) {
+        throw new Error('No users data received');
+      }
+
+      const user = authResponse.users.find(u => u.email === email.trim());
       if (!user) {
         throw new Error(`User with email ${email} not found`);
       }
