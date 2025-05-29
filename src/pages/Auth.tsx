@@ -10,6 +10,8 @@ import { RegistrationPayment } from "@/components/auth/RegistrationPayment";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "@/hooks/use-toast";
 import { RegistrationProgressReport } from "@/components/auth/RegistrationProgressReport";
+import { supabase } from "@/integrations/supabase/client";
+import { UserRegistrationStatus, RegistrationStatusValues } from "@/types/registration";
 
 const Auth = () => {
   const { user, userRole, isLoading, isLoadingRole } = useAuth();
@@ -20,8 +22,51 @@ const Auth = () => {
   const [registrationStep, setRegistrationStep] = useState(1);
   const [registeredUser, setRegisteredUser] = useState<any>(null);
   const [isRegistrationFlow, setIsRegistrationFlow] = useState(false);
+  const [isCheckingRegistrationStatus, setIsCheckingRegistrationStatus] = useState(false);
   
   const isRegistration = location.pathname.includes('/register');
+
+  // Helper function to check if registration is truly complete
+  const checkRegistrationComplete = async (userId: string): Promise<boolean> => {
+    try {
+      console.log("Checking registration completion for user:", userId);
+      
+      const { data, error } = await supabase.rpc('get_user_registration_status_safe', {
+        p_user_id: userId
+      });
+      
+      if (error) {
+        console.error("Error checking registration status:", error);
+        return false;
+      }
+      
+      const regStatus = data as unknown as UserRegistrationStatus;
+      console.log("Registration status check result:", regStatus);
+      
+      // Check if registration is fully complete
+      const isFullyRegistered = regStatus.registration_status === RegistrationStatusValues.FULLY_REGISTERED;
+      
+      // Also check if all required tasks are actually completed
+      const requiredTaskTypes = ['assign_care_team', 'create_chat_room', 'send_welcome_notification'];
+      const completedTasks = regStatus.tasks?.filter(task => task.status === 'completed') || [];
+      const completedTaskTypes = completedTasks.map(task => task.task_type);
+      const allRequiredTasksCompleted = requiredTaskTypes.every(taskType => 
+        completedTaskTypes.includes(taskType)
+      );
+      
+      console.log("Registration completion check:", {
+        isFullyRegistered,
+        allRequiredTasksCompleted,
+        completedTaskTypes,
+        requiredTaskTypes
+      });
+      
+      return isFullyRegistered && allRequiredTasksCompleted;
+    } catch (err) {
+      console.error("Exception checking registration completion:", err);
+      return false;
+    }
+  };
 
   // Check registration state from localStorage on initial load (only for registration routes)
   useEffect(() => {
@@ -45,48 +90,76 @@ const Auth = () => {
     checkLocalStorageState();
   }, [isRegistration, location.pathname]);
 
-  // Modified redirect logic - be much more conservative about redirecting patients
+  // Enhanced redirect logic - check actual registration completion
   useEffect(() => {
-    // Don't redirect while still loading
-    if (isLoading || isLoadingRole) {
-      console.log("Auth page: Still loading auth state, waiting...");
-      return;
-    }
+    const handleRedirect = async () => {
+      // Don't redirect while still loading
+      if (isLoading || isLoadingRole || isCheckingRegistrationStatus) {
+        console.log("Auth page: Still loading auth state, waiting...");
+        return;
+      }
+      
+      if (!user) {
+        console.log("Auth page: No user found, staying on auth page");
+        return;
+      }
+      
+      console.log("Auth page detected logged in user. Role:", userRole, "isRegistrationFlow:", isRegistrationFlow, "isRegistration:", isRegistration);
+      
+      // For non-patient roles, redirect to dashboard (they don't need registration)
+      if (userRole && userRole !== 'patient') {
+        console.log("Redirecting non-patient to dashboard:", userRole);
+        navigate("/dashboard", { replace: true });
+        return;
+      }
+      
+      // For patients: Check actual registration completion before redirecting
+      if (userRole === 'patient') {
+        // If we're on registration route or in registration flow, stay here until fully complete
+        if (isRegistration || isRegistrationFlow) {
+          console.log("Patient in registration process, staying on auth page");
+          return;
+        }
+        
+        // If we're not on registration route, check if registration is actually complete
+        setIsCheckingRegistrationStatus(true);
+        try {
+          const isComplete = await checkRegistrationComplete(user.id);
+          
+          if (isComplete) {
+            console.log("Patient registration is complete, redirecting to dashboard");
+            // Clear any localStorage flags since registration is complete
+            localStorage.removeItem('registration_payment_pending');
+            localStorage.removeItem('registration_payment_complete');
+            navigate("/dashboard", { replace: true });
+          } else {
+            console.log("Patient registration is incomplete, redirecting to registration");
+            // Set appropriate localStorage flags
+            localStorage.setItem('registration_payment_complete', 'true');
+            localStorage.setItem('registration_payment_pending', 'false');
+            navigate("/auth/register", { replace: true });
+          }
+        } catch (error) {
+          console.error("Error checking registration status:", error);
+          // On error, assume registration is incomplete and redirect to registration
+          navigate("/auth/register", { replace: true });
+        } finally {
+          setIsCheckingRegistrationStatus(false);
+        }
+      }
+    };
     
-    if (!user) {
-      console.log("Auth page: No user found, staying on auth page");
-      return;
-    }
-    
-    console.log("Auth page detected logged in user. Role:", userRole, "isRegistrationFlow:", isRegistrationFlow, "isRegistration:", isRegistration);
-    
-    // For non-patient roles, redirect to dashboard (they don't need registration)
-    if (userRole && userRole !== 'patient') {
-      console.log("Redirecting non-patient to dashboard:", userRole);
-      navigate("/dashboard", { replace: true });
-      return;
-    }
-    
-    // For patients: ONLY redirect if we're NOT on registration route AND NOT in active registration flow
-    if (userRole === 'patient' && !isRegistration && !isRegistrationFlow) {
-      console.log("Patient on non-registration route and not in registration flow, redirecting to dashboard");
-      navigate("/dashboard", { replace: true });
-      return;
-    }
-    
-    // If we're a patient on registration route or in registration flow, stay here
-    if (userRole === 'patient' && (isRegistration || isRegistrationFlow)) {
-      console.log("Patient in registration process, staying on auth page");
-      return;
-    }
+    handleRedirect();
   }, [user, userRole, isLoading, isLoadingRole, navigate, isRegistrationFlow, isRegistration]);
 
-  // Show loading state while auth is loading
-  if (isLoading || isLoadingRole) {
+  // Show loading state while auth is loading or checking registration status
+  if (isLoading || isLoadingRole || isCheckingRegistrationStatus) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center pt-16 md:pt-20">
         <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
-        <p className="mt-4 text-sm text-gray-600">Loading...</p>
+        <p className="mt-4 text-sm text-gray-600">
+          {isCheckingRegistrationStatus ? "Checking registration status..." : "Loading..."}
+        </p>
       </div>
     );
   }

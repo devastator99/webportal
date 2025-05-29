@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { UserRegistrationStatus } from '@/types/registration';
+import { UserRegistrationStatus, RegistrationStatusValues } from '@/types/registration';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface RegistrationStatusCheckerProps {
@@ -16,6 +16,20 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
   const location = useLocation();
   const [isChecking, setIsChecking] = useState(true);
   const [hasRedirected, setHasRedirected] = useState(false);
+  
+  // Helper function to check if registration is truly complete
+  const isRegistrationFullyComplete = (regStatus: UserRegistrationStatus): boolean => {
+    if (regStatus.registration_status !== RegistrationStatusValues.FULLY_REGISTERED) {
+      return false;
+    }
+    
+    // Check if all required tasks are actually completed
+    const requiredTaskTypes = ['assign_care_team', 'create_chat_room', 'send_welcome_notification'];
+    const completedTasks = regStatus.tasks?.filter(task => task.status === 'completed') || [];
+    const completedTaskTypes = completedTasks.map(task => task.task_type);
+    
+    return requiredTaskTypes.every(taskType => completedTaskTypes.includes(taskType));
+  };
   
   useEffect(() => {
     const checkRegistrationStatus = async () => {
@@ -56,8 +70,19 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
         const regStatus = data as unknown as UserRegistrationStatus;
         console.log("RegistrationStatusChecker: Registration status:", regStatus.registration_status);
         
+        // Check if registration is truly complete
+        const isFullyComplete = isRegistrationFullyComplete(regStatus);
+        
+        if (isFullyComplete) {
+          console.log("RegistrationStatusChecker: Registration is fully complete, clearing flags and proceeding");
+          localStorage.removeItem('registration_payment_pending');
+          localStorage.removeItem('registration_payment_complete');
+          setIsChecking(false);
+          return;
+        }
+        
         // Handle incomplete registration states
-        if (regStatus.registration_status === 'payment_pending') {
+        if (regStatus.registration_status === RegistrationStatusValues.PAYMENT_PENDING) {
           console.log("RegistrationStatusChecker: Registration payment pending, redirecting to auth/register");
           localStorage.setItem('registration_payment_pending', 'true');
           localStorage.setItem('registration_payment_complete', 'false');
@@ -66,20 +91,13 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
           return;
         }
         
-        if (['payment_complete', 'care_team_assigned'].includes(regStatus.registration_status)) {
+        if ([RegistrationStatusValues.PAYMENT_COMPLETE, RegistrationStatusValues.CARE_TEAM_ASSIGNED].includes(regStatus.registration_status)) {
           console.log("RegistrationStatusChecker: Registration progress pending, redirecting to auth/register");
           localStorage.setItem('registration_payment_pending', 'false');
           localStorage.setItem('registration_payment_complete', 'true');
           setHasRedirected(true);
           navigate('/auth/register', { replace: true });
           return;
-        }
-        
-        // If fully registered, clear any localStorage flags and proceed
-        if (regStatus.registration_status === 'fully_registered') {
-          console.log("RegistrationStatusChecker: Registration complete, clearing flags");
-          localStorage.removeItem('registration_payment_pending');
-          localStorage.removeItem('registration_payment_complete');
         }
         
         setIsChecking(false);
