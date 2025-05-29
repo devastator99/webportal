@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserManagement } from "@/components/dashboard/admin/UserManagement";
@@ -5,7 +6,7 @@ import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAs
 import { PatientAssignmentsReport } from "@/components/dashboard/admin/PatientAssignmentsReport";
 import { UserRegistration } from "@/components/dashboard/admin/UserRegistration";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { Settings, Users, FileText, Database, UserPlus, Building, CreditCard, FileDown, Home } from "lucide-react";
+import { Settings, Users, FileText, Database, UserPlus, Building, CreditCard, FileDown, Home, Wrench } from "lucide-react";
 import { SyncCareTeamsButton } from "@/components/dashboard/admin/SyncCareTeamsButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
@@ -18,6 +19,7 @@ import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbP
 import { Button } from "@/components/ui/button";
 import { RegistrationProgressReport } from "@/components/dashboard/admin/RegistrationProgressReport";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { RegistrationTaskProcessor } from "@/components/testing/RegistrationTaskProcessor";
 
 const SystemSettings = () => {
   return (
@@ -149,8 +151,22 @@ export const AdminDashboard = () => {
         </Card>
         
         <div className="space-y-6">
-          <CollapsibleSection title="Registration Progress & Tasks" id="registration-progress">
-            <RegistrationProgressReport />
+          <CollapsibleSection title="Registration Management" id="registration-management">
+            <div className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Wrench className="h-5 w-5" />
+                    Registration Task Processor
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <RegistrationTaskProcessor />
+                </CardContent>
+              </Card>
+              
+              <RegistrationProgressReport />
+            </div>
           </CollapsibleSection>
           
           <CollapsibleSection title="Assign Care Team" id="care-team">
