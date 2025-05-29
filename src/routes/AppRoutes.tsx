@@ -1,4 +1,3 @@
-
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,7 +16,7 @@ import { ForgotPasswordRouteWrapper } from '@/pages/ForgotPasswordRouteWrapper';
 import VideosPage from '@/pages/VideosPage';
 import NewPrescriptionPage from '@/pages/NewPrescriptionPage';
 import { RegistrationStatusChecker } from '@/components/auth/RegistrationStatusChecker';
-import { TestingPage } from '@/pages/TestingPage';
+import TestingPage from '@/pages/TestingPage';
 
 // Lazy loaded components
 const ChatPage = lazy(() => import('@/pages/ChatPage'));
