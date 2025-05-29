@@ -17,6 +17,7 @@ import { UserTrainingDocumentPDF } from "@/components/dashboard/admin/UserTraini
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import { RegistrationProgressReport } from "@/components/dashboard/admin/RegistrationProgressReport";
+import { SignOutButton } from "@/components/auth/SignOutButton";
 
 const SystemSettings = () => {
   return (
@@ -63,14 +64,15 @@ export const AdminDashboard = () => {
           
           <div className="flex flex-row items-center justify-between gap-3 mb-3">
             <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
-            <div className="flex items-center">
+            <div className="flex items-center gap-2">
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="flex items-center gap-1 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 ml-2"
+                className="flex items-center gap-1 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
               >
                 <SyncCareTeamsButton />
               </Button>
+              <SignOutButton variant="outline" size="sm" />
             </div>
           </div>
         </div>
