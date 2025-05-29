@@ -5,13 +5,17 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AdminSidebar } from "@/components/dashboard/admin/AdminSidebar";
 import { MobileNavigation } from "@/components/mobile/MobileNavigation";
 import { useIsMobileOrIPad } from "@/hooks/use-mobile";
+import { SignOutButton } from "@/components/auth/SignOutButton";
+import { Button } from "@/components/ui/button";
+import { Wrench } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface AdminAppLayoutProps {
   children: ReactNode;
   showHeader?: boolean;
   title?: string;
   description?: string;
-  fullWidth?: boolean; // Added fullWidth prop to match PatientAppLayout
+  fullWidth?: boolean;
 }
 
 export function AdminAppLayout({
@@ -19,9 +23,10 @@ export function AdminAppLayout({
   showHeader = false,
   title,
   description,
-  fullWidth = false, // Added with default value of false
+  fullWidth = false,
 }: AdminAppLayoutProps) {
   const isMobileOrTablet = useIsMobileOrIPad();
+  const navigate = useNavigate();
 
   return (
     <AppLayout>
@@ -30,13 +35,40 @@ export function AdminAppLayout({
           <AdminSidebar />
           
           <div className={`flex-1 ${isMobileOrTablet ? "pb-20" : "pb-8"}`}>
-            <div className={`${fullWidth ? 'px-0' : 'container px-4'} pt-16 pb-8`}>
-              {showHeader && title && (
-                <div className={`mb-6 ${fullWidth ? 'px-4 md:px-6' : ''}`}>
-                  <h1 className="text-2xl font-bold">{title}</h1>
-                  {description && <p className="text-muted-foreground">{description}</p>}
+            {/* Add header with sign-out button */}
+            <div className="bg-white dark:bg-gray-950 pt-4 pb-3 border-b shadow-sm">
+              <div className="container mx-auto px-4">
+                <div className="flex flex-row items-center justify-between gap-3">
+                  <div>
+                    {showHeader && title && (
+                      <div>
+                        <h1 className="text-2xl font-bold">{title}</h1>
+                        {description && <p className="text-muted-foreground">{description}</p>}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => navigate('/testing')}
+                      className="flex items-center gap-2 bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                    >
+                      <Wrench className="h-4 w-4" />
+                      Testing Tools
+                    </Button>
+                    <SignOutButton 
+                      variant="outline" 
+                      size="sm" 
+                      className="bg-red-50 border-red-200 text-red-700 hover:bg-red-100 font-medium"
+                    />
+                  </div>
                 </div>
-              )}
+              </div>
+            </div>
+            
+            <div className={`${fullWidth ? 'px-0' : 'container px-4'} pt-4 pb-8`}>
               {children}
             </div>
           </div>

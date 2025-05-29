@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
+import { AdminAppLayout } from "@/layouts/AdminAppLayout";
 
 const Admin = () => {
   const { user, userRole, isLoading } = useAuth();
@@ -20,9 +21,9 @@ const Admin = () => {
   }
 
   return (
-    <div className="pt-16 md:pt-20">
+    <AdminAppLayout>
       <AdminDashboard />
-    </div>
+    </AdminAppLayout>
   );
 };
 
