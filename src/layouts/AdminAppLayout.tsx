@@ -6,6 +6,7 @@ import { AdminSidebar } from "@/components/dashboard/admin/AdminSidebar";
 import { MobileNavigation } from "@/components/mobile/MobileNavigation";
 import { useIsMobileOrIPad } from "@/hooks/use-mobile";
 import { SignOutButton } from "@/components/auth/SignOutButton";
+import { SyncCareTeamsButton } from "@/components/dashboard/admin/SyncCareTeamsButton";
 import { Button } from "@/components/ui/button";
 import { Wrench } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -58,6 +59,8 @@ export function AdminAppLayout({
                       <Wrench className="h-4 w-4" />
                       Testing Tools
                     </Button>
+                    
+                    <SyncCareTeamsButton />
                     
                     <SignOutButton 
                       variant="outline" 

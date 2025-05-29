@@ -21,7 +21,11 @@ const Admin = () => {
   }
 
   return (
-    <AdminAppLayout>
+    <AdminAppLayout 
+      showHeader={true} 
+      title="Admin Dashboard"
+      description="Manage users, care teams, and system settings"
+    >
       <AdminDashboard />
     </AdminAppLayout>
   );

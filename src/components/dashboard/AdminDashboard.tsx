@@ -7,7 +7,6 @@ import { PatientAssignmentsReport } from "@/components/dashboard/admin/PatientAs
 import { UserRegistration } from "@/components/dashboard/admin/UserRegistration";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
 import { Settings, Users, FileText, Database, UserPlus, Building, CreditCard, FileDown, Wrench } from "lucide-react";
-import { SyncCareTeamsButton } from "@/components/dashboard/admin/SyncCareTeamsButton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,7 +14,6 @@ import { useAdminStats } from "@/hooks/useAdminStats";
 import { NumericFormat } from "react-number-format";
 import { PatientPaymentManager } from "@/components/dashboard/admin/PatientPaymentManager";
 import { UserTrainingDocumentPDF } from "@/components/dashboard/admin/UserTrainingDocumentPDF";
-import { Button } from "@/components/ui/button";
 import { RegistrationProgressReport } from "@/components/dashboard/admin/RegistrationProgressReport";
 import { RegistrationTaskProcessor } from "@/components/testing/RegistrationTaskProcessor";
 
@@ -44,18 +42,6 @@ export const AdminDashboard = () => {
 
   return (
     <div className="space-y-4 animate-fade-up">
-      {/* Header with title and sync button */}
-      <div className="flex flex-row items-center justify-between gap-3 mb-6">
-        <h2 className="text-3xl font-bold tracking-tight">Admin Dashboard</h2>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="flex items-center gap-1 bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
-        >
-          <SyncCareTeamsButton />
-        </Button>
-      </div>
-      
       {syncSuccess && (
         <Alert className="bg-green-50 border-green-200 text-green-800 mb-4">
           <AlertDescription>{syncSuccess}</AlertDescription>
