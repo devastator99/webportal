@@ -16,5 +16,8 @@ enabled = true
 [functions.admin-setup-nutritionist-as-default]
 verify_jwt = true
 
+[functions.send-comprehensive-welcome-notification]
+verify_jwt = true
+
 [functions.sync-care-team-rooms]
 verify_jwt = true
