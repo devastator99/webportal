@@ -5,12 +5,16 @@ import { PhoneRegistrationDebugger } from '@/components/testing/PhoneRegistratio
 import { TestDataCleanup } from '@/components/testing/TestDataCleanup';
 import { RegistrationDataVerifier } from '@/components/testing/RegistrationDataVerifier';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Wrench, Database, Shield, Phone, AlertTriangle } from 'lucide-react';
+import { Wrench, Database, Shield, Phone, AlertTriangle, Home } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { SignOutButton } from '@/components/auth/SignOutButton';
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 const TestingPage = () => {
   const { user, userRole, isLoading } = useAuth();
+  const navigate = useNavigate();
 
   console.log('TestingPage - Auth state:', { user: user?.email, userRole, isLoading });
 
@@ -54,11 +58,25 @@ const TestingPage = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 space-y-8">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Testing Tools</h1>
-          <p className="text-lg text-gray-600">Admin tools for debugging and managing registration issues</p>
-          <div className="mt-2 text-sm text-gray-500">
-            Logged in as: {user.email} | Role: {userRole}
+        {/* Header with navigation and sign out */}
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">Testing Tools</h1>
+            <p className="text-lg text-gray-600">Admin tools for debugging and managing registration issues</p>
+            <div className="mt-2 text-sm text-gray-500">
+              Logged in as: {user.email} | Role: {userRole}
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/dashboard')}
+              className="flex items-center gap-2"
+            >
+              <Home className="h-4 w-4" />
+              Dashboard
+            </Button>
+            <SignOutButton variant="outline" />
           </div>
         </div>
         
