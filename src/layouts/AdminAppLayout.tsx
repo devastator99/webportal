@@ -35,7 +35,7 @@ export function AdminAppLayout({
           <AdminSidebar />
           
           <div className={`flex-1 ${isMobileOrTablet ? "pb-20" : "pb-8"}`}>
-            {/* Add header with sign-out button */}
+            {/* Header with navigation buttons */}
             <div className="bg-white dark:bg-gray-950 pt-4 pb-3 border-b shadow-sm">
               <div className="container mx-auto px-4">
                 <div className="flex flex-row items-center justify-between gap-3">
@@ -53,7 +53,7 @@ export function AdminAppLayout({
                       variant="outline" 
                       size="sm" 
                       onClick={() => navigate('/testing')}
-                      className="flex items-center gap-2 bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                      className="flex items-center gap-2"
                     >
                       <Wrench className="h-4 w-4" />
                       Testing Tools
@@ -61,7 +61,7 @@ export function AdminAppLayout({
                     <SignOutButton 
                       variant="outline" 
                       size="sm" 
-                      className="bg-red-50 border-red-200 text-red-700 hover:bg-red-100 font-medium"
+                      className="font-medium"
                     />
                   </div>
                 </div>
