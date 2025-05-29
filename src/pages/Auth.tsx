@@ -45,7 +45,7 @@ const Auth = () => {
     checkLocalStorageState();
   }, [isRegistration, location.pathname]);
 
-  // Only redirect non-patient users or completed registrations - be very conservative
+  // Modified redirect logic - be much more conservative about redirecting patients
   useEffect(() => {
     // Don't redirect while still loading
     if (isLoading || isLoadingRole) {
@@ -58,13 +58,7 @@ const Auth = () => {
       return;
     }
     
-    console.log("Auth page detected logged in user. Role:", userRole, "isRegistrationFlow:", isRegistrationFlow);
-    
-    // If we're actively in a registration flow, stay here regardless of role
-    if (isRegistrationFlow && isRegistration) {
-      console.log(`In active registration flow at step: ${registrationStep}, staying on auth page`);
-      return;
-    }
+    console.log("Auth page detected logged in user. Role:", userRole, "isRegistrationFlow:", isRegistrationFlow, "isRegistration:", isRegistration);
     
     // For non-patient roles, redirect to dashboard (they don't need registration)
     if (userRole && userRole !== 'patient') {
@@ -73,13 +67,19 @@ const Auth = () => {
       return;
     }
     
-    // For patients, only redirect if we're NOT on the registration route
-    // Let RegistrationStatusChecker handle the registration flow logic
-    if (userRole === 'patient' && !isRegistration) {
-      console.log("Patient on non-registration route, redirecting to dashboard");
+    // For patients: ONLY redirect if we're NOT on registration route AND NOT in active registration flow
+    if (userRole === 'patient' && !isRegistration && !isRegistrationFlow) {
+      console.log("Patient on non-registration route and not in registration flow, redirecting to dashboard");
       navigate("/dashboard", { replace: true });
+      return;
     }
-  }, [user, userRole, isLoading, isLoadingRole, navigate, isRegistrationFlow, registrationStep, isRegistration]);
+    
+    // If we're a patient on registration route or in registration flow, stay here
+    if (userRole === 'patient' && (isRegistration || isRegistrationFlow)) {
+      console.log("Patient in registration process, staying on auth page");
+      return;
+    }
+  }, [user, userRole, isLoading, isLoadingRole, navigate, isRegistrationFlow, isRegistration]);
 
   // Show loading state while auth is loading
   if (isLoading || isLoadingRole) {
