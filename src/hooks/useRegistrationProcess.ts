@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { UserRegistrationStatus, RegistrationTask, RegistrationStatusValues } from '@/types/registration';
+import { handleSupabaseError, retrySupabaseOperation } from '@/utils/supabaseErrorHandler';
 
 interface RegistrationOptions {
   registrationFee?: number;
@@ -42,7 +43,7 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
     };
   }, []);
 
-  // Create a Razorpay order
+  // Create a Razorpay order with enhanced error handling
   const createOrder = async () => {
     if (!user?.id) {
       setError('User not authenticated');
@@ -58,36 +59,40 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
     setError(null);
     
     try {
-      console.log("Calling create-registration-order edge function for user:", user.id);
-      const { data, error } = await supabase.functions.invoke('create-registration-order', {
-        body: {
-          user_id: user.id,
-          amount: defaultOptions.registrationFee,
-          currency: defaultOptions.currency
+      console.log("Creating order for user:", user.id);
+      
+      const result = await retrySupabaseOperation(async () => {
+        const { data, error } = await supabase.functions.invoke('create-registration-order', {
+          body: {
+            user_id: user.id,
+            amount: defaultOptions.registrationFee,
+            currency: defaultOptions.currency
+          }
+        });
+        
+        if (error) {
+          throw error;
         }
+        
+        return data;
       });
       
-      console.log("Edge function response:", data, error);
+      console.log("Order creation result:", result);
       
-      if (error) {
-        console.error("Edge function error:", error);
-        throw new Error(error.message || "Failed to create order");
-      }
-      
-      if (!data?.order_id) {
-        console.error("No order ID returned:", data);
+      if (!result?.order_id) {
         throw new Error('No order ID returned from server');
       }
       
-      setOrderId(data.order_id);
-      return data;
+      setOrderId(result.order_id);
+      return result;
       
     } catch (err: any) {
       console.error('Error creating registration order:', err);
-      setError(err.message);
+      const errorDetails = handleSupabaseError(err);
+      setError(errorDetails.message);
       toast({
         title: 'Order Creation Failed',
-        description: err.message,
+        description: errorDetails.message,
         variant: 'destructive'
       });
       return null;
@@ -96,7 +101,7 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
     }
   };
   
-  // Complete registration after payment
+  // Complete registration after payment with enhanced error handling
   const completeRegistration = async (
     paymentId: string,
     orderId: string,
@@ -111,7 +116,7 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
     setError(null);
     
     try {
-      console.log("Calling complete-registration edge function with:", {
+      console.log("Completing registration with:", {
         user_id: user.id,
         payment_id: paymentId,
         order_id: orderId,
@@ -122,24 +127,27 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
       localStorage.setItem('registration_payment_pending', 'false');
       localStorage.setItem('registration_payment_complete', 'true');
       
-      const { data, error } = await supabase.functions.invoke('complete-registration', {
-        body: {
-          user_id: user.id,
-          razorpay_payment_id: paymentId,
-          razorpay_order_id: orderId,
-          razorpay_signature: signature || 'manual'
+      const result = await retrySupabaseOperation(async () => {
+        const { data, error } = await supabase.functions.invoke('complete-registration', {
+          body: {
+            user_id: user.id,
+            razorpay_payment_id: paymentId,
+            razorpay_order_id: orderId,
+            razorpay_signature: signature || 'manual'
+          }
+        });
+        
+        if (error) {
+          throw error;
         }
+        
+        return data;
       });
       
-      console.log("Complete registration response:", data, error);
-      
-      if (error) {
-        console.error("Edge function error:", error);
-        throw new Error(error.message || "Failed to complete registration");
-      }
+      console.log("Complete registration response:", result);
       
       // Check if tasks were created successfully
-      if (data?.tasks) {
+      if (result?.tasks) {
         // Update registration status
         await fetchRegistrationProgress();
         
@@ -152,20 +160,61 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
         description: 'Your payment was successful. Your care team is being assigned and you will be notified shortly.',
       });
       
-      // Don't redirect automatically - let the parent component handle the next step
       return true;
       
     } catch (err: any) {
       console.error('Error completing registration:', err);
-      setError(err.message);
+      const errorDetails = handleSupabaseError(err);
+      setError(errorDetails.message);
       toast({
         title: 'Registration Failed',
-        description: err.message || "An error occurred during payment processing",
+        description: errorDetails.message,
         variant: 'destructive'
       });
       return false;
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  // Enhanced registration status fetching
+  const fetchRegistrationProgress = async () => {
+    if (!user?.id) {
+      setError('User not authenticated');
+      return null;
+    }
+    
+    try {
+      console.log("Fetching registration status for user:", user.id);
+      
+      const result = await retrySupabaseOperation(async () => {
+        const { data, error } = await supabase.rpc('get_user_registration_status_safe', {
+          p_user_id: user.id
+        });
+        
+        if (error) {
+          throw error;
+        }
+        
+        return data;
+      });
+      
+      console.log("Registration status result:", result);
+      
+      // Make sure we parse the data as UserRegistrationStatus
+      const regData = result as unknown as UserRegistrationStatus;
+      
+      setRegistrationProgress({
+        status: regData.registration_status || 'payment_pending',
+        tasks: regData.tasks || []
+      });
+      
+      return regData;
+    } catch (err) {
+      console.error('Error fetching registration progress:', err);
+      const errorDetails = handleSupabaseError(err);
+      setError(errorDetails.message);
+      return null;
     }
   };
   
@@ -211,40 +260,7 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
     setIsPolling(false);
   };
   
-  // Fetch registration progress using the new secure function
-  const fetchRegistrationProgress = async () => {
-    if (!user?.id) {
-      setError('User not authenticated');
-      return null;
-    }
-    
-    try {
-      // Use the new secure function that bypasses RLS issues
-      const { data, error } = await supabase.rpc('get_user_registration_status_safe', {
-        p_user_id: user.id
-      });
-      
-      if (error) {
-        console.error("Error fetching registration status:", error);
-        return null;
-      }
-      
-      // Make sure we parse the data as UserRegistrationStatus
-      const regData = data as unknown as UserRegistrationStatus;
-      
-      setRegistrationProgress({
-        status: regData.registration_status || 'payment_pending',
-        tasks: regData.tasks || []
-      });
-      
-      return regData;
-    } catch (err) {
-      console.error('Error fetching registration progress:', err);
-      return null;
-    }
-  };
-  
-  // Process pending tasks manually (enhanced to use trigger function)
+  // Process pending tasks manually with enhanced error handling
   const triggerTaskProcessing = async () => {
     if (!user?.id) {
       toast({
@@ -256,35 +272,37 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
     }
 
     try {
-      // Use the trigger function which handles the complete workflow
-      const { data, error } = await supabase.functions.invoke('trigger-registration-notifications', {
-        body: { patient_id: user.id }
+      console.log("Triggering task processing for user:", user.id);
+      
+      const result = await retrySupabaseOperation(async () => {
+        const { data, error } = await supabase.functions.invoke('trigger-registration-notifications', {
+          body: { patient_id: user.id }
+        });
+        
+        if (error) {
+          throw error;
+        }
+        
+        return data;
       });
       
-      if (error) {
-        console.error("Error triggering registration tasks:", error);
-        toast({
-          title: 'Task Processing Failed',
-          description: error.message,
-          variant: 'destructive'
-        });
-        return false;
-      }
+      console.log("Task processing result:", result);
       
       // Refresh progress
       await fetchRegistrationProgress();
       
       toast({
         title: 'Task Processing Triggered',
-        description: data?.message || 'Registration tasks are being processed',
+        description: result?.message || 'Registration tasks are being processed',
       });
       
       return true;
     } catch (err: any) {
       console.error('Error triggering task processing:', err);
+      const errorDetails = handleSupabaseError(err);
       toast({
         title: 'Task Processing Failed',
-        description: err.message,
+        description: errorDetails.message,
         variant: 'destructive'
       });
       return false;
