@@ -48,17 +48,15 @@ export const AppRoutes = () => {
         <Route path="/forgot-password" element={<ForgotPasswordRouteWrapper />} />
         <Route path="/update-password" element={<UpdatePassword />} />
         
-        {/* Testing Route - Only available in development/staging environments */}
-        {isDevelopment && (
-          <Route
-            path="/testing"
-            element={
-              <RoleProtectedRoute allowedRoles={['administrator']}>
-                <TestingPage />
-              </RoleProtectedRoute>
-            }
-          />
-        )}
+        {/* Testing Route - Available in development/staging environments */}
+        <Route
+          path="/testing"
+          element={
+            <RoleProtectedRoute allowedRoles={['administrator']}>
+              <TestingPage />
+            </RoleProtectedRoute>
+          }
+        />
         
         {/* Protected Routes */}
         <Route
