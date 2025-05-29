@@ -82,7 +82,8 @@ export const RegistrationTaskProcessor = () => {
         throw new Error('No users data received');
       }
 
-      const user = authResponse.users.find(u => u.email === email.trim());
+      // Type assertion to handle the auth user type properly
+      const user = authResponse.users.find((u: any) => u.email === email.trim());
       if (!user) {
         throw new Error(`User with email ${email} not found`);
       }
