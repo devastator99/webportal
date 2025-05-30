@@ -9,29 +9,39 @@ const Auth = () => {
   const { user, userRole, isLoading, isLoadingRole } = useAuth();
   const navigate = useNavigate();
 
-  // Redirect authenticated users with roles to dashboard
+  // FIXED: Only redirect when BOTH user and role loading are complete
+  // This prevents the redirect loop by ensuring we don't redirect to dashboard
+  // before the role is properly loaded
   useEffect(() => {
     const handleRedirect = async () => {
-      // Don't redirect while still loading
+      // Don't redirect while still loading either auth state or role
       if (isLoading || isLoadingRole) {
-        console.log("Auth page: Still loading auth state, waiting...");
+        console.log("Auth page: Still loading auth state or role, waiting...");
         return;
       }
       
-      // Redirect if user is authenticated and has a role
+      // Only redirect if user is authenticated AND has a role
+      // This ensures we don't get into a loop where Dashboard redirects back here
       if (user && userRole) {
         console.log("Auth page: User has authentication and role, redirecting to dashboard:", userRole);
         navigate("/dashboard", { replace: true });
         return;
       }
       
-      console.log("Auth page: User not fully authenticated, staying on auth page");
+      // If user exists but no role, stay on auth page
+      // The registration process will handle role creation
+      if (user && !userRole) {
+        console.log("Auth page: User authenticated but no role yet, staying on auth page");
+        return;
+      }
+      
+      console.log("Auth page: User not authenticated, staying on auth page");
     };
     
     handleRedirect();
   }, [user, userRole, isLoading, isLoadingRole, navigate]);
 
-  // Show loading state while auth is loading
+  // Show loading state while auth or role is loading
   if (isLoading || isLoadingRole) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center pt-16 md:pt-20">

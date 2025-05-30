@@ -21,7 +21,7 @@ const Dashboard = () => {
   console.log("Dashboard:", { user: user?.id, userRole, isLoading, isLoadingRole });
 
   useEffect(() => {
-    // Only redirect unauthenticated users
+    // Only redirect unauthenticated users after loading is complete
     if (!isLoading && !user) {
       console.log("Dashboard: No user found, redirecting to auth");
       navigate("/auth", { replace: true });
@@ -29,10 +29,11 @@ const Dashboard = () => {
     }
   }, [user, isLoading, navigate]);
 
-  // Handle users without roles - redirect to auth
+  // FIXED: Only redirect users without roles AFTER both auth and role loading are complete
+  // This prevents the redirect loop where users get sent back to auth while role is still loading
   useEffect(() => {
     if (!isLoading && !isLoadingRole && user && !userRole) {
-      console.log("Dashboard: User has no role, redirecting to auth");
+      console.log("Dashboard: User has no role after loading complete, redirecting to auth");
       navigate("/auth", { replace: true });
     }
   }, [user, userRole, isLoading, isLoadingRole, navigate]);

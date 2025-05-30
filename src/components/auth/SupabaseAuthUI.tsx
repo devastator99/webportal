@@ -19,15 +19,14 @@ export const SupabaseAuthUI = ({
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Listen for auth state changes and redirect to dashboard after successful auth
+  // Remove the immediate redirect - let AuthContext and routing handle it properly
+  // The Auth page will handle redirects once both user and role are loaded
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        console.log('SupabaseAuthUI: User signed in successfully, redirecting to dashboard');
-        // Small delay to ensure the auth state is fully updated
-        setTimeout(() => {
-          navigate('/dashboard', { replace: true });
-        }, 100);
+        console.log('SupabaseAuthUI: User signed in successfully, auth flow will handle redirect');
+        // Don't redirect immediately - let the auth context load the role first
+        // The Auth page component will handle the redirect once role is loaded
       }
     });
 
