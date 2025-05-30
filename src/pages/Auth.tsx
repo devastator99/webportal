@@ -20,6 +20,13 @@ const Auth = () => {
   // Redirect when we have BOTH user AND role
   useEffect(() => {
     const handleRedirect = async () => {
+      console.log("Auth page: Current state:", { 
+        hasUser: !!user, 
+        userRole, 
+        isLoading, 
+        isLoadingRole 
+      });
+      
       // Don't redirect while still loading
       if (isLoading || isLoadingRole) {
         console.log("Auth page: Still loading, waiting...");
@@ -33,10 +40,16 @@ const Auth = () => {
         return;
       }
       
-      // If user exists but no role, the auth hook should have created it
-      // Give it a moment to process
+      // If user exists but no role, wait a moment for auth hook to complete
       if (user && !userRole) {
-        console.log("Auth page: User authenticated, waiting for auth hook to complete role creation...");
+        console.log("Auth page: User authenticated but no role yet, waiting for auth hook...");
+        // Give auth hook more time to process
+        setTimeout(() => {
+          // Check again after a delay
+          if (user && !userRole) {
+            console.log("Auth page: Auth hook may have failed, staying on auth page");
+          }
+        }, 3000);
         return;
       }
       
@@ -81,8 +94,22 @@ const Auth = () => {
     if (authMode === 'login') {
       await handleLogin(email, password);
     } else {
-      // Use the registration handler with auth hook integration
-      await handleRegistration(email, password, userType!, firstName, lastName, patientData);
+      // Clear any previous errors
+      setAuthError(null);
+      
+      try {
+        // Use the registration handler with auth hook integration
+        const result = await handleRegistration(email, password, userType!, firstName, lastName, patientData);
+        
+        if (result) {
+          console.log("Auth: Registration successful, user created:", result.id);
+          // The auth hook should have created the role automatically
+          // The useAuth context should pick up the changes and redirect
+        }
+      } catch (err: any) {
+        console.error("Auth: Registration failed:", err);
+        setAuthError(err.message || 'Registration failed. Please try again.');
+      }
     }
   };
 

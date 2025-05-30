@@ -22,26 +22,6 @@ export const useRegistrationAuth = () => {
   const [error, setError] = useState<string | null>(null);
   const [registrationStep, setRegistrationStep] = useState<string>("");
 
-  const retryWithDelay = async (fn: () => Promise<any>, retries = 2, delay = 1000): Promise<any> => {
-    try {
-      return await fn();
-    } catch (error: any) {
-      console.log("Registration retry attempt error details:", {
-        name: error.name,
-        message: error.message,
-        status: error.status,
-        code: error.code
-      });
-      
-      if (retries > 0 && (error.name === 'AuthRetryableFetchError' || error.message?.includes('Failed to fetch'))) {
-        console.log(`Registration: Supabase connection issue, retrying in ${delay}ms... (${retries} retries left)`);
-        await new Promise(resolve => setTimeout(resolve, delay));
-        return retryWithDelay(fn, retries - 1, delay * 2);
-      }
-      throw error;
-    }
-  };
-
   const handleRegistration = async (
     identifier: string,
     password: string,
@@ -92,7 +72,7 @@ export const useRegistrationAuth = () => {
         userType
       });
 
-      // Prepare comprehensive user metadata for the auth hook
+      // Prepare user metadata for the auth hook to process
       const userMetadata = {
         user_type_string: userType,
         first_name: firstName,
@@ -114,20 +94,16 @@ export const useRegistrationAuth = () => {
         } : {})
       };
 
-      // Auth signup with comprehensive metadata for the hook
-      const signUpData = {
+      // Auth signup - the hook will handle profile and role creation
+      console.log("Registration: Attempting Supabase auth signup with hook metadata...");
+      setRegistrationStep("Setting up your account...");
+      
+      const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: emailAddress,
         password,
         options: {
           data: userMetadata
         }
-      };
-
-      console.log("Registration: Attempting Supabase auth signup with hook metadata...");
-      setRegistrationStep("Setting up your account...");
-      
-      const { data: authData, error: signUpError } = await retryWithDelay(async () => {
-        return await supabase.auth.signUp(signUpData);
       });
 
       if (signUpError) {
@@ -139,8 +115,6 @@ export const useRegistrationAuth = () => {
           throw new Error("Password requirements not met - must be at least 6 characters");
         } else if (signUpError.message?.includes('signup disabled')) {
           throw new Error("New user registration is currently disabled. Please contact support.");
-        } else if (signUpError.name === 'AuthRetryableFetchError' || signUpError.message?.includes('Failed to fetch')) {
-          throw new Error("Unable to connect to authentication service. Please check your internet connection and try again.");
         } else {
           throw new Error(`Registration failed: ${signUpError.message || "Unknown error occurred"}`);
         }
@@ -155,6 +129,7 @@ export const useRegistrationAuth = () => {
       
       setRegistrationStep("Account ready!");
       console.log("Registration: Registration completed successfully - auth hook will process user setup");
+      
       return authData.user;
       
     } catch (error: any) {
@@ -162,9 +137,7 @@ export const useRegistrationAuth = () => {
       
       let userMessage = "Registration failed. Please try again.";
       
-      if (error.name === 'AuthRetryableFetchError' || error.message?.includes('Failed to fetch')) {
-        userMessage = "Unable to connect to the service. Please check your internet connection and try again.";
-      } else if (error.message?.includes('email')) {
+      if (error.message?.includes('email')) {
         userMessage = "Email address issue - it may already be in use or invalid.";
       } else if (error.message?.includes('password')) {
         userMessage = "Password must be at least 6 characters long.";
