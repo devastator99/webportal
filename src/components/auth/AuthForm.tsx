@@ -216,7 +216,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           foodHabit: data.foodHabit || undefined,
           knownAllergies: data.knownAllergies || undefined,
           currentMedicalConditions: data.currentMedicalConditions || undefined,
-          phone: phone, // Ensure primary phone is passed separately
+          phone: phone, // Primary phone number for notifications
         };
         console.log("Submitting patient data:", patientData);
         await onSubmit(email || phone, password, userType, firstName, lastName, patientData);

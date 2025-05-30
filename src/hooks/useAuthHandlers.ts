@@ -14,6 +14,7 @@ export interface PatientData {
   foodHabit?: string;
   knownAllergies?: string;
   currentMedicalConditions?: string;
+  phone?: string; // Add phone property for primary contact
 }
 
 export const useAuthHandlers = () => {
