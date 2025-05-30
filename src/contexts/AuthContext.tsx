@@ -1,9 +1,9 @@
-
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import AuthService, { UserRole } from '@/services/AuthService';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 // Define UserRole enum for value references (keep existing enum)
 export enum UserRoleEnum {
@@ -103,11 +103,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoadingRole(true);
     
     try {
-      const role = await authServiceRef.current.getUserRole(user.id);
-      console.log("AuthContext: Refreshed role result:", role);
-      setUserRole(role);
+      // Use the same RPC call that AuthService uses internally
+      const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
+        lookup_user_id: user.id
+      });
+      
+      if (roleError) {
+        console.error("AuthContext: Error refreshing user role:", roleError);
+        setUserRole(null);
+        return;
+      }
+      
+      if (roleData && roleData.length > 0) {
+        const userRoleValue = roleData[0]?.role as UserRole || null;
+        console.log("AuthContext: Refreshed role result:", userRoleValue);
+        setUserRole(userRoleValue);
+      } else {
+        console.warn("AuthContext: No role data returned for user:", user.id);
+        setUserRole(null);
+      }
     } catch (error) {
       console.error("AuthContext: Error refreshing user role:", error);
+      setUserRole(null);
     } finally {
       setIsLoadingRole(false);
     }
