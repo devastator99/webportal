@@ -219,6 +219,13 @@ const RegistrationPage = () => {
     localStorage.removeItem('registration_user_role');
     localStorage.removeItem('registration_payment_complete');
     
+    // Reset component state that prevents redirection
+    setPreventRedirection(false);
+    setRegistrationStep(1);
+    setRegisteredUserRole(null);
+    setUserInfo(null);
+    setIsProcessingRegistration(false);
+    
     // Navigate back to home
     navigate('/', { replace: true });
   };
