@@ -42,7 +42,7 @@ const roleLayouts = {
 };
 
 const Dashboard = () => {
-  const { user, userRole, isLoading, signOut } = useAuth();
+  const { user, userRole, isLoading, isLoadingRole, signOut, refreshUserRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -50,14 +50,16 @@ const Dashboard = () => {
     user: user?.id, 
     userEmail: user?.email,
     userRole, 
-    isLoading
+    isLoading,
+    isLoadingRole
   });
 
   useEffect(() => {
     console.log("[Dashboard] useEffect triggered:", { 
       userId: user?.id, 
       userRole, 
-      isLoading
+      isLoading,
+      isLoadingRole
     });
     
     // Only redirect if we're not loading and there's no user
@@ -67,9 +69,17 @@ const Dashboard = () => {
     }
   }, [user, isLoading, navigate]);
 
-  // Show loading state while auth is loading
-  if (isLoading) {
-    console.log("[Dashboard] Showing loading skeleton - isLoading:", isLoading);
+  // Auto-refresh role if user exists but no role after loading is complete
+  useEffect(() => {
+    if (!isLoading && !isLoadingRole && user && !userRole) {
+      console.log("[Dashboard] User exists but no role found, attempting to refresh role");
+      refreshUserRole();
+    }
+  }, [user, userRole, isLoading, isLoadingRole, refreshUserRole]);
+
+  // Show loading state while auth is loading or role is loading
+  if (isLoading || isLoadingRole) {
+    console.log("[Dashboard] Showing loading skeleton - isLoading:", isLoading, "isLoadingRole:", isLoadingRole);
     return <DashboardSkeleton />;
   }
 

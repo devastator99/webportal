@@ -1,8 +1,10 @@
 
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, User, ArrowRight } from "lucide-react";
+import { AlertTriangle, User, ArrowRight, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useState } from "react";
 
 interface NoRoleWarningProps {
   onSignOut: () => Promise<void>;
@@ -10,9 +12,22 @@ interface NoRoleWarningProps {
 
 export const NoRoleWarning = ({ onSignOut }: NoRoleWarningProps) => {
   const navigate = useNavigate();
+  const { refreshUserRole } = useAuth();
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleCompleteRegistration = () => {
     navigate("/auth/register");
+  };
+
+  const handleRefreshRole = async () => {
+    setIsRefreshing(true);
+    try {
+      await refreshUserRole();
+    } catch (error) {
+      console.error("Error refreshing role:", error);
+    } finally {
+      setIsRefreshing(false);
+    }
   };
 
   return (
@@ -36,6 +51,15 @@ export const NoRoleWarning = ({ onSignOut }: NoRoleWarningProps) => {
         </Alert>
 
         <div className="space-y-3">
+          <Button
+            onClick={handleRefreshRole}
+            disabled={isRefreshing}
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+            {isRefreshing ? 'Checking Role...' : 'Refresh Account Status'}
+          </Button>
+          
           <Button
             onClick={handleCompleteRegistration}
             className="w-full bg-[#9b87f5] hover:bg-[#8b77e5] text-white"

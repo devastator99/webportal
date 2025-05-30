@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import AuthService, { UserRole } from '@/services/AuthService';
@@ -31,6 +32,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   forceSignOut: () => Promise<void>;
   resetInactivityTimer: () => void;
+  refreshUserRole: () => Promise<void>; // Add method to manually refresh role
 }
 
 // Create the context with a default value
@@ -44,6 +46,7 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
   forceSignOut: async () => {},
   resetInactivityTimer: () => {},
+  refreshUserRole: async () => {},
 });
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -88,6 +91,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (bc) bc.close();
     };
   }, [user]);
+  
+  // Function to manually refresh user role
+  const refreshUserRole = useCallback(async () => {
+    if (!user?.id) {
+      console.log("AuthContext: No user ID, cannot refresh role");
+      return;
+    }
+    
+    console.log("AuthContext: Manually refreshing user role for:", user.id);
+    setIsLoadingRole(true);
+    
+    try {
+      const role = await authServiceRef.current.getUserRole(user.id);
+      console.log("AuthContext: Refreshed role result:", role);
+      setUserRole(role);
+    } catch (error) {
+      console.error("AuthContext: Error refreshing user role:", error);
+    } finally {
+      setIsLoadingRole(false);
+    }
+  }, [user?.id]);
   
   // Initialize auth state only once
   useEffect(() => {
@@ -183,7 +207,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isSigningOut: authServiceRef.current.isSigningOut(),
     signOut,
     forceSignOut,
-    resetInactivityTimer
+    resetInactivityTimer,
+    refreshUserRole
   };
   
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
