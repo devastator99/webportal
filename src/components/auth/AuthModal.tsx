@@ -5,7 +5,7 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
-import { PatientData } from "@/hooks/useAuthHandlers";
+import { PatientData } from "@/hooks/useRegistrationAuth";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -31,7 +31,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [view, setView] = useState<"login" | "register">(initialView);
   const [registrationStep, setRegistrationStep] = useState<number>(1);
   const [registeredUser, setRegisteredUser] = useState<any>(null);
-  const { handleSignUp, handleSignIn, error, loading, setError } = useAuthHandlers();
+  const [error, setError] = useState<string | null>(null);
+  const { handleSignUp, handleLogin, loading } = useAuthHandlers();
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -61,10 +62,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     patientData?: PatientData
   ) => {
     try {
+      setError(null);
+      
       if (view === "login") {
         // Handle login
-        const user = await handleSignIn(email, password);
-        if (user) {
+        const result = await handleLogin(email, password);
+        if (result.user) {
           toast({
             title: "Login Successful",
             description: "Welcome back!",
@@ -74,18 +77,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
       } else if (view === "register") {
         // FIXED: For patient registration, don't set localStorage flags until later
-        const user = await handleSignUp(email, password, userType as any, firstName, lastName, patientData);
+        const result = await handleSignUp(email, password, userType as any, firstName, lastName);
         
         // If this is a patient registration and we were successful, move to payment step
-        if (user && userType === 'patient') {
-          setRegisteredUser(user);
+        if (result.user && userType === 'patient') {
+          setRegisteredUser(result.user);
           setRegistrationStep(2); // Go to PAYMENT step, not status step
           toast({
             title: "Account Created",
             description: "Please complete your registration with payment",
           });
           return; // Important! Don't close the modal yet
-        } else if (user) {
+        } else if (result.user) {
           // Non-patient users can go directly to dashboard
           toast({
             title: "Account Created",
@@ -104,9 +107,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         localStorage.removeItem('registration_payment_complete');
       }
       
+      const errorMessage = error.message || `Failed to ${view === "login" ? "sign in" : "create account"}`;
+      setError(errorMessage);
+      
       toast({
         title: view === "login" ? "Login Error" : "Registration Error",
-        description: error.message || `Failed to ${view === "login" ? "sign in" : "create account"}`,
+        description: errorMessage,
         variant: "destructive",
       });
     }
