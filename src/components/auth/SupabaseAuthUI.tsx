@@ -3,7 +3,7 @@ import { useEffect } from 'react';
 import { Auth } from '@supabase/auth-ui-react';
 import { ThemeSupa } from '@supabase/auth-ui-shared';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 interface SupabaseAuthUIProps {
   view?: 'sign_in' | 'sign_up';
@@ -17,14 +17,14 @@ export const SupabaseAuthUI = ({
   showLinks = true 
 }: SupabaseAuthUIProps) => {
   const navigate = useNavigate();
-  const location = useLocation();
 
-  // Do NOT redirect here - let Auth page handle all redirects after role is loaded
+  // Handle auth state changes - let Auth page handle redirects after role loads
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        console.log('SupabaseAuthUI: User signed in, letting Auth page handle redirect after role loads');
-        // NO REDIRECT HERE - Auth page will handle it once role is confirmed
+        console.log('SupabaseAuthUI: User signed in, Auth page will handle redirect after role loads');
+        // Database trigger will create role automatically
+        // Auth page will handle redirect once role is confirmed and registration status is checked
       }
     });
 
@@ -43,6 +43,16 @@ export const SupabaseAuthUI = ({
               brand: '#9b87f5',
               brandAccent: '#7E69AB',
             },
+          },
+        },
+        style: {
+          button: {
+            background: '#9b87f5',
+            color: 'white',
+            borderRadius: '6px',
+          },
+          anchor: {
+            color: '#9b87f5',
           },
         },
       }}

@@ -11,12 +11,11 @@ export const useAuthHandlers = () => {
     password: string,
     userType: string,
     firstName?: string,
-    lastName?: string,
-    skipRoleCreation = false
+    lastName?: string
   ) => {
     try {
       setLoading(true);
-      console.log("Starting user registration process...", { skipRoleCreation });
+      console.log("Starting simplified user registration...");
       
       // Validate user type
       const validRoles = ['patient', 'doctor', 'nutritionist', 'administrator', 'reception'];
@@ -24,41 +23,21 @@ export const useAuthHandlers = () => {
         throw new Error(`Invalid user type: ${userType}`);
       }
 
-      // Determine if identifier is email or phone
-      const isEmail = email.includes('@');
-      let phoneNumber: string | undefined;
-      let emailAddress: string;
-      
-      if (isEmail) {
-        emailAddress = email;
-      } else {
-        phoneNumber = email;
-        emailAddress = `${email.replace(/[^0-9]/g, '')}@temp.placeholder`;
-      }
-
-      console.log("Registration details:", { 
-        emailAddress, 
-        phoneNumber, 
-        isEmail, 
-        userType,
-        skipRoleCreation
-      });
-
       // Prepare user metadata for the database trigger
       const userMetadata = {
         user_type_string: userType,
         first_name: firstName,
-        last_name: lastName,
-        phone: phoneNumber
+        last_name: lastName
       };
 
-      console.log("Attempting Supabase auth signup...");
+      console.log("Attempting Supabase auth signup with metadata:", userMetadata);
       
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: emailAddress,
+        email,
         password,
         options: {
-          data: userMetadata
+          data: userMetadata,
+          emailRedirectTo: `${window.location.origin}/auth`
         }
       });
 
@@ -72,31 +51,13 @@ export const useAuthHandlers = () => {
       }
 
       console.log("Auth user created successfully:", authData.user.id);
-
-      // Update profile with phone number if provided
-      if (phoneNumber) {
-        console.log("Updating profile with phone number...");
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ phone: phoneNumber })
-          .eq('id', authData.user.id);
-
-        if (profileError) {
-          console.error("Error updating profile:", profileError);
-        } else {
-          console.log("Profile updated successfully with phone number:", phoneNumber);
-        }
-      }
-
-      // Database trigger handles role creation automatically
       console.log("Database trigger will handle role creation automatically");
       
       return { user: authData.user, session: authData.session };
       
     } catch (error: any) {
       console.error("Registration error:", error);
-      toast.error(error.message || "Registration failed");
-      throw new Error("Account created but role assignment failed. Please contact support.");
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -118,7 +79,6 @@ export const useAuthHandlers = () => {
       return { user: data.user, session: data.session };
     } catch (error: any) {
       console.error("Login error:", error);
-      toast.error(error.message || "Login failed");
       throw error;
     } finally {
       setLoading(false);

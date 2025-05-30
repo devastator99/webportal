@@ -1,11 +1,9 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { AuthForm } from "@/components/auth/AuthForm";
-import { useRegistrationAuth, PatientData } from "@/hooks/useRegistrationAuth";
+import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { LucideLoader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
 import { EnhancedRegistrationProgress } from "@/components/registration/EnhancedRegistrationProgress";
 
 const Auth = () => {
@@ -18,11 +16,8 @@ const Auth = () => {
     isLoadingRegistrationStatus 
   } = useAuth();
   const navigate = useNavigate();
-  const { handleRegistration, loading: registrationLoading, error: registrationError } = useRegistrationAuth();
   
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [authLoading, setAuthLoading] = useState(false);
+  const [authMode, setAuthMode] = useState<'sign_in' | 'sign_up'>('sign_in');
 
   // Enhanced redirect logic with registration progress support
   useEffect(() => {
@@ -60,60 +55,6 @@ const Auth = () => {
   // Show registration progress if user has role but registration is not complete
   const shouldShowRegistrationProgress = user && userRole && !isRegistrationComplete && !isLoadingRegistrationStatus;
 
-  const handleLogin = async (email: string, password: string) => {
-    setAuthLoading(true);
-    setAuthError(null);
-    
-    try {
-      console.log("Auth: Attempting login...");
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      console.log("Auth: Login successful");
-    } catch (err: any) {
-      console.error('Auth: Login error:', err);
-      setAuthError(err.message || 'Login failed. Please try again.');
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleAuthSubmit = async (
-    email: string,
-    password: string,
-    userType?: string,
-    firstName?: string,
-    lastName?: string,
-    patientData?: PatientData
-  ) => {
-    if (authMode === 'login') {
-      await handleLogin(email, password);
-    } else {
-      // Clear any previous errors
-      setAuthError(null);
-      
-      try {
-        // Use the registration handler with database trigger integration
-        const result = await handleRegistration(email, password, userType!, firstName, lastName, patientData);
-        
-        if (result) {
-          console.log("Auth: Registration successful, user created:", result.id);
-          // The database trigger should have created the role automatically
-          // The useAuth context should pick up the changes and redirect
-        }
-      } catch (err: any) {
-        console.error("Auth: Registration failed:", err);
-        setAuthError(err.message || 'Registration failed. Please try again.');
-      }
-    }
-  };
-
   // Show loading while anything is loading
   if (isLoading || isLoadingRole || isLoadingRegistrationStatus) {
     return (
@@ -128,7 +69,7 @@ const Auth = () => {
     );
   }
 
-  // Show registration progress if needed
+  // Show registration progress if needed (includes payment flow)
   if (shouldShowRegistrationProgress) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
@@ -142,15 +83,15 @@ const Auth = () => {
     );
   }
 
-  // Show auth form
+  // Show simplified auth form
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-saas-dark">
-          {authMode === 'login' ? 'Welcome Back' : 'Welcome'}
+          {authMode === 'sign_in' ? 'Welcome Back' : 'Welcome'}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          {authMode === 'login' 
+          {authMode === 'sign_in' 
             ? 'Sign in to your account' 
             : 'Create your account and start your health journey'
           }
@@ -159,28 +100,23 @@ const Auth = () => {
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10">
-          <AuthForm 
-            type={authMode}
-            onSubmit={handleAuthSubmit}
-            error={authError || registrationError}
-            loading={authLoading || registrationLoading}
+          <SupabaseAuthUI 
+            view={authMode}
+            redirectTo={`${window.location.origin}/auth`}
+            showLinks={true}
           />
           
           <div className="mt-6 text-center">
-            <Button
+            <button
               type="button"
-              variant="ghost"
-              onClick={() => {
-                setAuthMode(authMode === 'login' ? 'register' : 'login');
-                setAuthError(null);
-              }}
-              className="text-sm text-purple-600 hover:text-purple-500"
+              onClick={() => setAuthMode(authMode === 'sign_in' ? 'sign_up' : 'sign_in')}
+              className="text-sm text-purple-600 hover:text-purple-500 font-medium"
             >
-              {authMode === 'login' 
+              {authMode === 'sign_in' 
                 ? "Don't have an account? Sign up" 
                 : "Already have an account? Sign in"
               }
-            </Button>
+            </button>
           </div>
         </div>
       </div>

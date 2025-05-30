@@ -1,24 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
+import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useToast } from '@/hooks/use-toast';
-import { 
-  CheckCircle, 
-  Clock, 
-  AlertCircle, 
-  ArrowRight, 
-  Loader2, 
-  LogOut, 
-  RefreshCw,
-  Wifi,
-  WifiOff,
-  Activity
-} from 'lucide-react';
 import { useRegistrationProcess } from '@/hooks/useRegistrationProcess';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle, Clock, AlertCircle, CreditCard, Users, RefreshCw } from 'lucide-react';
+import { RegistrationPayment } from '@/components/auth/RegistrationPayment';
+import { toast } from '@/hooks/use-toast';
 
 interface EnhancedRegistrationProgressProps {
   onComplete?: () => void;
@@ -29,350 +19,232 @@ export const EnhancedRegistrationProgress: React.FC<EnhancedRegistrationProgress
   onComplete,
   userRole
 }) => {
-  const { user, signOut } = useAuth();
-  const { toast } = useToast();
-  const [isSigningOut, setIsSigningOut] = useState(false);
-  const [autoRedirectCountdown, setAutoRedirectCountdown] = useState<number | null>(null);
-
+  const { user } = useAuth();
+  const [currentStep, setCurrentStep] = useState<'payment' | 'progress' | 'complete'>('payment');
+  const [refreshing, setRefreshing] = useState(false);
+  
   const {
     registrationProgress,
-    triggerTaskProcessing,
     fetchRegistrationProgress,
     isLoading,
-    error,
-    isPolling
+    triggerTaskProcessing,
+    startPollingRegistrationStatus,
+    stopPollingRegistrationStatus
   } = useRegistrationProcess();
 
-  // Auto-redirect countdown effect
+  // Check registration status on mount
   useEffect(() => {
-    if (autoRedirectCountdown === null) return;
-    
-    if (autoRedirectCountdown <= 0) {
-      if (onComplete) {
-        onComplete();
-      }
-      return;
+    if (user?.id) {
+      console.log("Checking registration status for user:", user.id);
+      fetchRegistrationProgress();
     }
-    
-    const timer = setTimeout(() => {
-      setAutoRedirectCountdown(autoRedirectCountdown - 1);
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [autoRedirectCountdown, onComplete]);
+  }, [user?.id, fetchRegistrationProgress]);
 
-  // Check if registration is complete
+  // Determine current step based on registration status
   useEffect(() => {
-    if (registrationProgress?.status === 'fully_registered') {
-      const tasks = registrationProgress.tasks || [];
-      const requiredTaskTypes = ['assign_care_team', 'create_chat_room', 'send_welcome_notification'];
-      const completedTasks = tasks.filter(task => task.status === 'completed');
-      const completedTaskTypes = completedTasks.map(task => task.task_type);
+    if (registrationProgress) {
+      console.log("Registration progress:", registrationProgress);
       
-      const allRequiredCompleted = requiredTaskTypes.every(taskType => 
-        completedTaskTypes.includes(taskType)
-      );
-      
-      if (allRequiredCompleted && autoRedirectCountdown === null) {
-        setAutoRedirectCountdown(5);
+      if (registrationProgress.status === 'payment_pending') {
+        setCurrentStep('payment');
+      } else if (registrationProgress.status === 'fully_registered') {
+        setCurrentStep('complete');
+        // Auto-complete after a delay
+        setTimeout(() => {
+          onComplete?.();
+        }, 2000);
+      } else {
+        setCurrentStep('progress');
+        // Start polling for updates
+        startPollingRegistrationStatus();
       }
     }
-  }, [registrationProgress, autoRedirectCountdown]);
+  }, [registrationProgress, onComplete, startPollingRegistrationStatus]);
 
-  const handleManualComplete = () => {
-    if (onComplete) {
-      onComplete();
-    }
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      stopPollingRegistrationStatus();
+    };
+  }, [stopPollingRegistrationStatus]);
+
+  const handlePaymentComplete = () => {
+    console.log("Payment completed, updating status");
+    setCurrentStep('progress');
+    fetchRegistrationProgress();
+    startPollingRegistrationStatus();
+    
+    toast({
+      title: "Payment Successful",
+      description: "Your care team is being assigned. This may take a few minutes.",
+    });
   };
 
-  const handleRefresh = async () => {
+  const handleRefreshStatus = async () => {
+    setRefreshing(true);
     await fetchRegistrationProgress();
-  };
-
-  const handleRetryTasks = async () => {
     await triggerTaskProcessing();
+    setRefreshing(false);
   };
 
-  const handleLogout = async () => {
-    if (isSigningOut) return;
-    
-    try {
-      setIsSigningOut(true);
-      
-      toast({
-        title: "Signing out",
-        description: "Your registration will continue in the background.",
-      });
-      
-      await signOut();
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast({
-        title: "Error",
-        description: "Failed to sign out. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSigningOut(false);
-    }
-  };
-
-  // Get role-specific content
-  const getRoleSpecificContent = () => {
-    switch (userRole) {
-      case 'patient':
-        return {
-          title: '🎉 Patient Registration In Progress',
-          description: 'Your account setup is being processed. Here\'s what\'s happening:',
-          tasks: [
-            { type: 'assign_care_team', title: 'Care Team Assignment', description: 'Assigning your personal doctor and nutritionist' },
-            { type: 'create_chat_room', title: 'Communication Setup', description: 'Setting up secure messaging with your care team' },
-            { type: 'send_welcome_notification', title: 'Welcome Notification', description: 'Sending your personalized welcome notification' }
-          ]
-        };
-      default:
-        return {
-          title: '⚙️ Account Setup In Progress',
-          description: 'Setting up your account and permissions:',
-          tasks: [
-            { type: 'send_welcome_notification', title: 'Account Setup', description: 'Configuring your account and permissions' }
-          ]
-        };
-    }
-  };
-
-  // Calculate progress percentage
-  const calculateProgress = () => {
-    if (!registrationProgress?.tasks) return 0;
-    
-    const roleContent = getRoleSpecificContent();
-    const totalTasks = roleContent.tasks.length;
-    const completedTasks = registrationProgress.tasks.filter(task => task.status === 'completed').length;
-    
-    return Math.round((completedTasks / totalTasks) * 100);
-  };
-
-  // Get connection status indicator
-  const getConnectionStatus = () => {
-    if (error && error.includes('network')) {
-      return { icon: WifiOff, color: 'text-red-500', label: 'Connection Issues' };
-    }
-    
-    if (isPolling) {
-      return { icon: Activity, color: 'text-green-500', label: 'Live Updates Active' };
-    }
-    
-    return { icon: Wifi, color: 'text-blue-500', label: 'Connected' };
-  };
-
-  if (isLoading && !registrationProgress) {
+  // Show payment step for patients who haven't paid yet
+  if (currentStep === 'payment' && userRole === 'patient') {
     return (
-      <Card className="bg-white shadow-lg border border-gray-100">
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-purple-600 mb-4" />
-          <p className="text-gray-600">Checking your registration status...</p>
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader className="text-center">
+          <CardTitle className="flex items-center justify-center gap-2">
+            <CreditCard className="h-6 w-6 text-purple-600" />
+            Complete Your Registration
+          </CardTitle>
+          <CardDescription>
+            Please complete your payment to finish the registration process
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RegistrationPayment 
+            onComplete={handlePaymentComplete}
+            registrationFee={500}
+          />
         </CardContent>
       </Card>
     );
   }
 
-  const roleContent = getRoleSpecificContent();
-  const tasks = registrationProgress?.tasks || [];
-  const progress = calculateProgress();
-  const connectionStatus = getConnectionStatus();
-  const isComplete = progress === 100;
+  // Show completion step
+  if (currentStep === 'complete') {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader className="text-center">
+          <CardTitle className="flex items-center justify-center gap-2 text-green-600">
+            <CheckCircle className="h-6 w-6" />
+            Registration Complete!
+          </CardTitle>
+          <CardDescription>
+            Your account is fully set up and ready to use
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-center">
+          <div className="space-y-4">
+            <Progress value={100} className="w-full" />
+            <p className="text-sm text-muted-foreground">
+              Redirecting to your dashboard...
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Show progress step (default)
+  const getProgressValue = () => {
+    if (!registrationProgress) return 25;
+    
+    switch (registrationProgress.status) {
+      case 'payment_complete':
+        return 50;
+      case 'care_team_assigned':
+        return 75;
+      case 'fully_registered':
+        return 100;
+      default:
+        return 25;
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'in_progress':
+        return <Clock className="h-5 w-5 text-yellow-500" />;
+      case 'pending':
+        return <AlertCircle className="h-5 w-5 text-gray-400" />;
+      default:
+        return <Clock className="h-5 w-5 text-gray-400" />;
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <Badge variant="default" className="bg-green-100 text-green-800">Complete</Badge>;
+      case 'in_progress':
+        return <Badge variant="default" className="bg-yellow-100 text-yellow-800">In Progress</Badge>;
+      case 'pending':
+        return <Badge variant="secondary">Pending</Badge>;
+      default:
+        return <Badge variant="secondary">Pending</Badge>;
+    }
+  };
 
   return (
-    <Card className="bg-white shadow-lg border border-gray-100">
+    <Card className="w-full max-w-2xl mx-auto">
       <CardHeader className="text-center">
-        <div className="flex items-center justify-between mb-2">
-          <Badge variant="secondary" className="flex items-center gap-2">
-            <connectionStatus.icon className={`h-4 w-4 ${connectionStatus.color}`} />
-            {connectionStatus.label}
-          </Badge>
-          {isPolling && (
-            <Badge variant="outline" className="flex items-center gap-2">
-              <Activity className="h-3 w-3 animate-pulse" />
-              Polling active
-            </Badge>
-          )}
-        </div>
-        
-        <CardTitle className="text-2xl text-green-600">
-          {roleContent.title}
+        <CardTitle className="flex items-center justify-center gap-2">
+          <Users className="h-6 w-6 text-purple-600" />
+          Setting Up Your Account
         </CardTitle>
-        <p className="text-gray-600">
-          {roleContent.description}
-        </p>
-        
-        {/* Progress Bar */}
-        <div className="mt-4">
-          <div className="flex justify-between text-sm text-gray-600 mb-2">
-            <span>Overall Progress</span>
-            <span>{progress}%</span>
-          </div>
-          <Progress value={progress} className="h-2" />
-        </div>
+        <CardDescription>
+          We're preparing your personalized healthcare experience
+        </CardDescription>
       </CardHeader>
       
       <CardContent className="space-y-6">
-        {/* Payment confirmation for patients */}
-        {userRole === 'patient' && (
-          <div className="flex items-center gap-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <CheckCircle className="h-6 w-6 text-green-600" />
-            <div className="flex-1">
-              <h3 className="font-semibold text-green-800">Payment Processed</h3>
-              <p className="text-sm text-green-700">Your registration fee has been successfully processed</p>
-            </div>
+        {/* Progress Bar */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span>Registration Progress</span>
+            <span>{getProgressValue()}% Complete</span>
           </div>
-        )}
-
-        {/* Progress Steps */}
-        <div className="space-y-4">
-          {roleContent.tasks.map((taskConfig, index) => {
-            const actualTask = tasks.find(t => t.task_type === taskConfig.type);
-            const isCompleted = actualTask?.status === 'completed';
-            const isFailed = actualTask?.status === 'failed';
-            const isPending = actualTask?.status === 'pending' || !actualTask;
-            
-            return (
-              <div key={taskConfig.type} className={`flex items-center gap-4 p-4 rounded-lg border ${
-                isCompleted 
-                  ? 'bg-green-50 border-green-200' 
-                  : isFailed
-                  ? 'bg-red-50 border-red-200'
-                  : 'bg-blue-50 border-blue-200'
-              }`}>
-                {isCompleted ? (
-                  <CheckCircle className="h-6 w-6 text-green-600" />
-                ) : isFailed ? (
-                  <AlertCircle className="h-6 w-6 text-red-600" />
-                ) : (
-                  <Clock className="h-6 w-6 text-blue-600 animate-pulse" />
-                )}
-                <div className="flex-1">
-                  <h3 className={`font-semibold ${
-                    isCompleted ? 'text-green-800' : 
-                    isFailed ? 'text-red-800' : 'text-blue-800'
-                  }`}>
-                    {taskConfig.title}
-                  </h3>
-                  <p className={`text-sm ${
-                    isCompleted ? 'text-green-700' : 
-                    isFailed ? 'text-red-700' : 'text-blue-700'
-                  }`}>
-                    {isCompleted 
-                      ? `${taskConfig.description} - Complete!`
-                      : isFailed
-                      ? `${taskConfig.description} - Retrying...`
-                      : taskConfig.description
-                    }
-                  </p>
-                </div>
-                <Badge variant={isCompleted ? 'default' : isFailed ? 'destructive' : 'secondary'}>
-                  {isCompleted ? 'Done' : isFailed ? 'Retry' : 'Processing'}
-                </Badge>
-              </div>
-            );
-          })}
+          <Progress value={getProgressValue()} className="w-full" />
         </div>
 
-        {/* Error Display */}
-        {error && (
-          <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
-            <h3 className="font-semibold text-red-800 mb-2">
-              ⚠️ Processing Issue
-            </h3>
-            <p className="text-red-700 text-sm mb-3">{error}</p>
-            <Button 
-              onClick={handleRetryTasks}
-              disabled={isLoading}
-              className="bg-red-600 hover:bg-red-700 text-white"
-            >
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-              Retry Now
-            </Button>
+        {/* Status Message */}
+        <div className="text-center p-4 bg-purple-50 rounded-lg">
+          <p className="text-sm text-purple-700">
+            {registrationProgress?.status === 'payment_complete' && 
+              "Payment received! Assigning your care team..."}
+            {registrationProgress?.status === 'care_team_assigned' && 
+              "Care team assigned! Finalizing your setup..."}
+            {!registrationProgress?.status && "Loading registration status..."}
+          </p>
+        </div>
+
+        {/* Tasks List */}
+        {registrationProgress?.tasks && registrationProgress.tasks.length > 0 && (
+          <div className="space-y-3">
+            <h4 className="font-medium text-sm text-gray-700">Setup Tasks:</h4>
+            {registrationProgress.tasks.map((task) => (
+              <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg">
+                <div className="flex items-center gap-3">
+                  {getStatusIcon(task.status)}
+                  <span className="text-sm font-medium">
+                    {task.task_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                  </span>
+                </div>
+                {getStatusBadge(task.status)}
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Auto-redirect countdown */}
-        {autoRedirectCountdown !== null && isComplete && (
-          <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg text-center">
-            <h3 className="font-semibold text-purple-800 mb-2">
-              🎉 Setup Complete!
-            </h3>
-            <p className="text-purple-700 mb-3">
-              Your account is ready! Redirecting to your dashboard in {autoRedirectCountdown} seconds...
-            </p>
-            <Button 
-              onClick={handleManualComplete}
-              className="bg-purple-600 hover:bg-purple-700"
-            >
-              Go to Dashboard Now <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
-        )}
+        {/* Refresh Button */}
+        <div className="text-center">
+          <Button 
+            variant="outline" 
+            onClick={handleRefreshStatus}
+            disabled={refreshing || isLoading}
+            className="gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${(refreshing || isLoading) ? 'animate-spin' : ''}`} />
+            {refreshing || isLoading ? 'Refreshing...' : 'Refresh Status'}
+          </Button>
+        </div>
 
-        {/* Actions for incomplete registration */}
-        {!isComplete && (
-          <div className="flex flex-col gap-3 pt-4 border-t">
-            <div className="flex gap-2">
-              <Button
-                onClick={handleRefresh}
-                disabled={isLoading}
-                variant="outline"
-                className="flex-1"
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Checking...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Refresh Status
-                  </>
-                )}
-              </Button>
-              
-              <Button
-                onClick={handleLogout}
-                disabled={isSigningOut}
-                variant="outline"
-                className="flex-1"
-              >
-                {isSigningOut ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                    Signing Out...
-                  </>
-                ) : (
-                  <>
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </>
-                )}
-              </Button>
-            </div>
-            
-            <div className="text-center text-sm text-gray-600">
-              <p>Setup tasks are processing automatically in the background.</p>
-            </div>
-          </div>
-        )}
-
-        {/* Manual redirect for completed registration */}
-        {isComplete && autoRedirectCountdown === null && (
-          <div className="pt-4 border-t">
-            <Button 
-              onClick={handleManualComplete}
-              className="w-full bg-green-600 hover:bg-green-700"
-            >
-              Access Your Dashboard <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
-          </div>
-        )}
+        {/* Help Text */}
+        <div className="text-center text-xs text-muted-foreground">
+          This process usually takes 2-5 minutes. You'll be automatically redirected when complete.
+        </div>
       </CardContent>
     </Card>
   );
