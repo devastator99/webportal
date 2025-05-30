@@ -11,9 +11,10 @@ import { Button } from "@/components/ui/button";
 import { HealthTrackingCards } from "./patient/HealthTrackingCards";
 import { PatientCuratedHealthTips } from "./patient/PatientCuratedHealthTips";
 import { RecentCareTeamMessages } from "@/components/chat/RecentCareTeamMessages";
+import { RegistrationPayment } from "@/components/auth/RegistrationPayment";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardSkeleton } from "./DashboardSkeleton";
-import { Calendar, UserRound, CheckCircle2, Clock, Loader2, AlertTriangle } from "lucide-react";
+import { Calendar, UserRound, CheckCircle2, Clock, Loader2, AlertTriangle, CreditCard } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePatientHabits } from "@/hooks/usePatientHabits";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -32,6 +33,7 @@ export const PatientDashboard = () => {
   const [isRegistrationComplete, setIsRegistrationComplete] = useState(true);
   const [isProcessingTasks, setIsProcessingTasks] = useState(false);
   const [lastProcessingError, setLastProcessingError] = useState<string | null>(null);
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   
   // Get habit summary data using the usePatientHabits hook
   const { summaryData, percentages, habitSummary, isLoading: isLoadingSummary } = usePatientHabits();
@@ -262,7 +264,7 @@ export const PatientDashboard = () => {
     return <DashboardSkeleton />;
   }
   
-  // If registration is not complete, show a simplified dashboard
+  // If registration is not complete, show a simplified dashboard with payment option
   if (!isRegistrationComplete && registrationStatus) {
     return (
       <div className="mobile-container mobile-content-spacing">
@@ -279,6 +281,32 @@ export const PatientDashboard = () => {
             </div>
           </div>
         </div>
+
+        {/* Payment Dialog */}
+        {showPaymentDialog && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-semibold">Complete Registration Payment</h2>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setShowPaymentDialog(false)}
+                  >
+                    ×
+                  </Button>
+                </div>
+                <RegistrationPayment 
+                  onComplete={() => {
+                    setShowPaymentDialog(false);
+                    window.location.reload();
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
 
         <Card className="mobile-card">
           <CardHeader className="mobile-card-header">
@@ -336,10 +364,21 @@ export const PatientDashboard = () => {
               </div>
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-2">
+            {registrationStatus.registration_status === 'payment_pending' && (
+              <Button 
+                onClick={() => setShowPaymentDialog(true)}
+                className="mobile-button w-full bg-[#9b87f5] hover:bg-[#8b77e5]"
+              >
+                <CreditCard className="mr-2 h-4 w-4" />
+                Complete Payment
+              </Button>
+            )}
+            
             <Button 
               onClick={handleProcessRegistrationTasks}
-              className="mobile-button"
+              className="mobile-button w-full"
+              variant="outline"
               disabled={isProcessingTasks}
             >
               {isProcessingTasks ? (
