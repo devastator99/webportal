@@ -115,37 +115,66 @@ const Auth = () => {
       
       // For patients: Check actual registration completion before redirecting
       if (userRole === 'patient') {
-        // If we're on registration route or in registration flow, stay here until fully complete
+        // If we're in registration flow or on registration route, check completion
         if (isRegistration || isRegistrationFlow) {
-          console.log("Patient in registration process, staying on auth page");
-          return;
-        }
-        
-        // If we're not on registration route, check if registration is actually complete
-        setIsCheckingRegistrationStatus(true);
-        try {
-          const isComplete = await checkRegistrationComplete(user.id);
+          console.log("Patient in registration process, checking completion status");
           
-          if (isComplete) {
-            console.log("Patient registration is complete, redirecting to dashboard");
-            // Clear any localStorage flags since registration is complete
-            localStorage.removeItem('registration_payment_pending');
-            localStorage.removeItem('registration_payment_complete');
-            navigate("/dashboard", { replace: true });
-          } else {
-            console.log("Patient registration is incomplete, redirecting to registration");
-            // Set appropriate localStorage flags
-            localStorage.setItem('registration_payment_complete', 'true');
-            localStorage.setItem('registration_payment_pending', 'false');
-            navigate("/auth/register", { replace: true });
+          setIsCheckingRegistrationStatus(true);
+          try {
+            const isComplete = await checkRegistrationComplete(user.id);
+            
+            if (isComplete) {
+              console.log("Patient registration is complete, redirecting to dashboard");
+              // Clear any localStorage flags since registration is complete
+              localStorage.removeItem('registration_payment_pending');
+              localStorage.removeItem('registration_payment_complete');
+              navigate("/dashboard", { replace: true });
+            } else {
+              console.log("Patient registration is incomplete, staying in registration flow");
+              // Stay in registration flow - don't redirect
+            }
+          } catch (error) {
+            console.error("Error checking registration status:", error);
+            // On error, stay in registration flow
+          } finally {
+            setIsCheckingRegistrationStatus(false);
           }
-        } catch (error) {
-          console.error("Error checking registration status:", error);
-          // On error, assume registration is incomplete and redirect to registration
-          navigate("/auth/register", { replace: true });
-        } finally {
-          setIsCheckingRegistrationStatus(false);
+        } else {
+          // Patient not on registration route - check if they need to complete registration
+          setIsCheckingRegistrationStatus(true);
+          try {
+            const isComplete = await checkRegistrationComplete(user.id);
+            
+            if (!isComplete) {
+              console.log("Patient has incomplete registration, redirecting to registration");
+              // Set appropriate localStorage flags
+              localStorage.setItem('registration_payment_complete', 'true');
+              localStorage.setItem('registration_payment_pending', 'false');
+              navigate("/auth/register", { replace: true });
+            } else {
+              console.log("Patient registration is complete, allowing dashboard access");
+              // Clear any localStorage flags since registration is complete
+              localStorage.removeItem('registration_payment_pending');
+              localStorage.removeItem('registration_payment_complete');
+              navigate("/dashboard", { replace: true });
+            }
+          } catch (error) {
+            console.error("Error checking registration status:", error);
+            // On error, redirect to registration to be safe
+            navigate("/auth/register", { replace: true });
+          } finally {
+            setIsCheckingRegistrationStatus(false);
+          }
         }
+        return;
+      }
+      
+      // User has no role yet - this shouldn't happen after proper registration
+      if (user && !userRole) {
+        console.log("User has no role, this indicates an incomplete registration");
+        // For users with no role, redirect to registration to complete the process
+        navigate("/auth/register", { replace: true });
+        return;
       }
     };
     
@@ -164,7 +193,7 @@ const Auth = () => {
     );
   }
 
-  // Handle signup form submission - Enhanced to better handle phone numbers
+  // Handle signup form submission - Enhanced to better handle role assignment
   const handleFormSubmit = async (
     email: string, 
     password: string, 

@@ -33,7 +33,7 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
   
   useEffect(() => {
     const checkRegistrationStatus = async () => {
-      // Only check for patients
+      // Only check for patients with valid roles
       if (!user?.id || userRole !== 'patient') {
         console.log("RegistrationStatusChecker: Not a patient or no user, skipping check");
         setIsChecking(false);
@@ -81,7 +81,7 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
           return;
         }
         
-        // Handle incomplete registration states
+        // Handle incomplete registration states - be more conservative
         if (regStatus.registration_status === RegistrationStatusValues.PAYMENT_PENDING) {
           console.log("RegistrationStatusChecker: Registration payment pending, redirecting to auth/register");
           localStorage.setItem('registration_payment_pending', 'true');
@@ -91,7 +91,11 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
           return;
         }
         
-        if ([RegistrationStatusValues.PAYMENT_COMPLETE, RegistrationStatusValues.CARE_TEAM_ASSIGNED].includes(regStatus.registration_status)) {
+        // For any other incomplete status, redirect to registration
+        if ([
+          RegistrationStatusValues.PAYMENT_COMPLETE, 
+          RegistrationStatusValues.CARE_TEAM_ASSIGNED
+        ].includes(regStatus.registration_status)) {
           console.log("RegistrationStatusChecker: Registration progress pending, redirecting to auth/register");
           localStorage.setItem('registration_payment_pending', 'false');
           localStorage.setItem('registration_payment_complete', 'true');
