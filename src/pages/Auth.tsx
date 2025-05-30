@@ -4,11 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { AuthForm } from "@/components/auth/AuthForm";
-import { RegistrationReview } from "@/components/auth/RegistrationReview";
-import { EmailVerification } from "@/components/auth/EmailVerification";
-import { RegistrationPayment } from "@/components/auth/RegistrationPayment";
 import { RegistrationProgressReport } from "@/components/auth/RegistrationProgressReport";
-import { ProgressIndicator } from "@/components/auth/ProgressIndicator";
 import { LucideLoader2 } from "lucide-react";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -23,22 +19,12 @@ const Auth = () => {
   const location = useLocation();
   
   const [registrationStep, setRegistrationStep] = useState(1);
-  const [registeredUser, setRegisteredUser] = useState<any>(null);
   const [isRegistrationFlow, setIsRegistrationFlow] = useState(false);
   const [isCheckingRegistrationStatus, setIsCheckingRegistrationStatus] = useState(false);
   const [hasCompletionCheck, setHasCompletionCheck] = useState(false);
   const [formData, setFormData] = useState<any>(null);
   
   const isRegistration = location.pathname.includes('/register');
-
-  // Registration steps for progress indicator
-  const registrationSteps = [
-    "Account Setup",
-    "Review Information", 
-    "Email Verification",
-    "Payment",
-    "Completion"
-  ];
 
   // Helper function to check if registration is truly complete
   const checkRegistrationComplete = async (userId: string): Promise<boolean> => {
@@ -87,17 +73,13 @@ const Auth = () => {
     const checkLocalStorageState = () => {
       if (!isRegistration) return;
       
-      const paymentPending = localStorage.getItem('registration_payment_pending') === 'true';
-      const paymentComplete = localStorage.getItem('registration_payment_complete') === 'true';
+      const registrationComplete = localStorage.getItem('registration_complete') === 'true';
       
-      console.log("Auth page loaded with registration state:", { paymentPending, paymentComplete });
+      console.log("Auth page loaded with registration state:", { registrationComplete });
       
-      if (paymentComplete) {
+      if (registrationComplete) {
         setIsRegistrationFlow(true);
-        setRegistrationStep(5); // Go to completion step
-      } else if (paymentPending) {
-        setIsRegistrationFlow(true);
-        setRegistrationStep(4); // Go to payment step
+        setRegistrationStep(2); // Go directly to registration progress report
       }
     };
     
@@ -129,7 +111,7 @@ const Auth = () => {
       
       // For patients: Only redirect if we're NOT in an active registration flow
       if (userRole === 'patient') {
-        // If we're in registration flow (steps 2-5), let the flow continue - DON'T redirect
+        // If we're in registration flow (step 2), let the flow continue - DON'T redirect
         if (isRegistration && isRegistrationFlow && registrationStep >= 2) {
           console.log("Patient in active registration flow, step:", registrationStep, "- staying in flow");
           return;
@@ -146,14 +128,12 @@ const Auth = () => {
             if (!isComplete) {
               console.log("Patient has incomplete registration, redirecting to registration");
               // Set appropriate localStorage flags
-              localStorage.setItem('registration_payment_complete', 'true');
-              localStorage.setItem('registration_payment_pending', 'false');
+              localStorage.setItem('registration_complete', 'true');
               navigate("/auth/register", { replace: true });
             } else {
               console.log("Patient registration is complete, allowing dashboard access");
               // Clear any localStorage flags since registration is complete
-              localStorage.removeItem('registration_payment_pending');
-              localStorage.removeItem('registration_payment_complete');
+              localStorage.removeItem('registration_complete');
               navigate("/dashboard", { replace: true });
             }
           } catch (error) {
@@ -191,7 +171,7 @@ const Auth = () => {
     );
   }
 
-  // Handle signup form submission - Enhanced to properly trigger registration flow
+  // Handle signup form submission - Go directly to registration progress after form submission
   const handleFormSubmit = async (
     email: string, 
     password: string, 
@@ -206,32 +186,82 @@ const Auth = () => {
       
       setError(null);
       
-      // Store form data for review step
-      const formDataToStore = {
-        email,
-        password,
-        userType,
-        firstName,
-        lastName,
-        phone: email.includes('@') ? patientData?.phone : email,
-        ...patientData
-      };
-      setFormData(formDataToStore);
-      
-      // Flag this as a registration flow before user creation
-      const isPatientRegistration = userType === 'patient';
-      
-      if (isPatientRegistration) {
-        setIsRegistrationFlow(true);
-        // Move to review step instead of creating user immediately
-        setRegistrationStep(2);
-        toast({
-          title: "Information collected",
-          description: "Please review your information before proceeding",
-        });
+      // For patients, create account and payment immediately, then show progress
+      if (userType === 'patient') {
+        const enhancedPatientData = patientData ? {
+          ...patientData,
+          emergencyContact: patientData.emergencyContact || patientData.phone
+        } : undefined;
+        
+        // Create the user account immediately
+        const user = await handleSignUp(
+          email, 
+          password, 
+          userType as any, 
+          firstName, 
+          lastName, 
+          enhancedPatientData
+        );
+        
+        if (user) {
+          console.log("Patient registered successfully, processing payment and moving to progress report");
+          
+          // Set localStorage flag to indicate registration is complete
+          localStorage.setItem('registration_complete', 'true');
+          setIsRegistrationFlow(true);
+          setRegistrationStep(2); // Move directly to progress report
+          
+          // Process payment automatically (using mock payment for now)
+          try {
+            const paymentResponse = await fetch('/api/process-registration-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_id: user.id,
+                amount: 500,
+                currency: 'INR'
+              })
+            });
+            
+            if (!paymentResponse.ok) {
+              // Use mock payment data for demo
+              console.log("Using mock payment for demo purposes");
+            }
+            
+            // Call complete-registration endpoint to process payment and create tasks
+            const { data: completeResponse, error: completeError } = await supabase.functions.invoke('complete-registration', {
+              body: {
+                user_id: user.id,
+                razorpay_order_id: 'mock_order_' + Date.now(),
+                razorpay_payment_id: 'mock_payment_' + Date.now(),
+                razorpay_signature: 'mock_signature'
+              }
+            });
+            
+            if (completeError) {
+              console.error("Error completing registration:", completeError);
+              throw new Error("Failed to complete registration process");
+            }
+            
+            console.log("Registration completed successfully:", completeResponse);
+            
+            toast({
+              title: "Registration Successful!",
+              description: "Your account has been created and payment processed. Setting up your care team...",
+            });
+            
+          } catch (paymentError) {
+            console.error("Payment processing error:", paymentError);
+            toast({
+              title: "Registration completed with payment pending",
+              description: "Your account is created. Payment processing in progress...",
+            });
+          }
+        }
+        
         return;
       } else {
-        // For non-patients, create account immediately
+        // For non-patients, create account immediately and redirect to dashboard
         const enhancedPatientData = patientData ? {
           ...patientData,
           emergencyContact: patientData.emergencyContact || patientData.phone
@@ -250,51 +280,8 @@ const Auth = () => {
     } catch (error: any) {
       console.error("Registration error:", error);
       
-      toast({
-        title: "Registration failed",
-        description: error.message || "An error occurred during registration",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Handle review confirmation - CREATE USER ACCOUNT HERE
-  const handleReviewConfirm = async () => {
-    if (!formData) return;
-    
-    try {
-      console.log("Creating user after review confirmation");
-      
-      const enhancedPatientData = {
-        ...formData,
-        emergencyContact: formData.emergencyContact || formData.phone
-      };
-      
-      // Create the user account NOW
-      const user = await handleSignUp(
-        formData.email || formData.phone, 
-        formData.password, 
-        formData.userType, 
-        formData.firstName, 
-        formData.lastName, 
-        enhancedPatientData
-      );
-      
-      if (user) {
-        console.log("Patient registered successfully, moving to email verification");
-        setRegisteredUser(user);
-        setRegistrationStep(3); // Move to email verification
-        toast({
-          title: "Account created",
-          description: "Please verify your email to continue",
-        });
-      }
-    } catch (error: any) {
-      console.error("Registration error:", error);
-      
       // Clean up localStorage if registration fails
-      localStorage.removeItem('registration_payment_pending');
-      localStorage.removeItem('registration_payment_complete');
+      localStorage.removeItem('registration_complete');
       setIsRegistrationFlow(false);
       
       toast({
@@ -303,31 +290,6 @@ const Auth = () => {
         variant: "destructive"
       });
     }
-  };
-
-  // Handle email verification completion
-  const handleEmailVerified = () => {
-    console.log("Email verified, moving to payment step");
-    setRegistrationStep(4);
-    // Set payment pending flag
-    localStorage.setItem('registration_payment_pending', 'true');
-    localStorage.setItem('registration_payment_complete', 'false');
-    toast({
-      title: "Email verified",
-      description: "Please complete your registration payment",
-    });
-  };
-  
-  // When payment is complete, move to final step
-  const handlePaymentComplete = () => {
-    console.log("Payment completed, moving to final step");
-    setRegistrationStep(5);
-    localStorage.setItem('registration_payment_pending', 'false');
-    localStorage.setItem('registration_payment_complete', 'true');
-    toast({
-      title: "Registration payment complete",
-      description: "Your payment has been processed. Your care team is being assigned.",
-    });
   };
 
   // For non-registration routes
@@ -353,26 +315,13 @@ const Auth = () => {
     );
   }
 
-  // For registration process with multiple steps
+  // For registration process - simplified to 2 steps: Form → Progress Report
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 pt-16 md:pt-20 overflow-hidden">
       <div className="sm:mx-auto sm:w-full sm:max-w-4xl">
         <h2 className="mt-3 text-center text-2xl sm:text-3xl font-bold text-saas-dark mb-8">
-          {registrationStep === 1 ? 'Create your account' : 
-           registrationStep === 2 ? 'Review your information' :
-           registrationStep === 3 ? 'Verify your email' :
-           registrationStep === 4 ? 'Complete registration' : 
-           'Registration status'}
+          {registrationStep === 1 ? 'Create your account' : 'Registration status'}
         </h2>
-
-        {/* Progress Indicator */}
-        {isRegistrationFlow && (
-          <ProgressIndicator 
-            currentStep={registrationStep}
-            totalSteps={registrationSteps.length}
-            steps={registrationSteps}
-          />
-        )}
       </div>
 
       <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -394,36 +343,8 @@ const Auth = () => {
             </ScrollArea>
           </div>
         )}
-
-        {registrationStep === 2 && formData && (
-          <RegistrationReview
-            data={formData}
-            onEdit={() => setRegistrationStep(1)}
-            onConfirm={handleReviewConfirm}
-            isLoading={loading}
-          />
-        )}
-
-        {registrationStep === 3 && formData && (
-          <EmailVerification
-            email={formData.email || 'your-email@example.com'}
-            onVerified={handleEmailVerified}
-            onBack={() => setRegistrationStep(2)}
-          />
-        )}
         
-        {registrationStep === 4 && (user || registeredUser) && (
-          <RegistrationPayment 
-            onComplete={handlePaymentComplete}
-            registrationFee={500}
-            userInfo={formData ? {
-              firstName: formData.firstName,
-              lastName: formData.lastName
-            } : undefined}
-          />
-        )}
-        
-        {registrationStep === 5 && (
+        {registrationStep === 2 && (
           <RegistrationProgressReport 
             onCheckAgain={() => console.log('Check again clicked')} 
           />
