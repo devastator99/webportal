@@ -129,6 +129,7 @@ export const AppRoutes = () => {
           }
         />
         
+        {/* Only use RegistrationStatusChecker for specific patient features that require completed setup */}
         <Route
           path="/patient-habits"
           element={
@@ -159,7 +160,7 @@ export const AppRoutes = () => {
           }
         />
         
-        {/* Routes for prescriptions */}
+        {/* Routes for prescriptions - keep RegistrationStatusChecker for essential patient features */}
         <Route
           path="/prescriptions"
           element={

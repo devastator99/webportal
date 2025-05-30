@@ -16,18 +16,12 @@ import { PatientAppLayout } from "@/layouts/PatientAppLayout";
 import { DoctorAppLayout } from "@/layouts/DoctorAppLayout";
 import { AdminAppLayout } from "@/layouts/AdminAppLayout";
 import { AppLayout } from "@/layouts/AppLayout";
-import { RegistrationStatusChecker } from "@/components/auth/RegistrationStatusChecker";
 
 // Map user roles to their respective layouts and dashboards
 const roleLayouts = {
   patient: {
     Layout: PatientAppLayout,
-    Dashboard: ({ children }: { children?: React.ReactNode }) => (
-      <RegistrationStatusChecker>
-        <PatientDashboard />
-        {children}
-      </RegistrationStatusChecker>
-    ),
+    Dashboard: PatientDashboard, // Removed RegistrationStatusChecker wrapper
   },
   doctor: {
     Layout: DoctorAppLayout,
