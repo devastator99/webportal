@@ -1,6 +1,6 @@
 
 import React, { useEffect } from 'react';
-import { Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Spinner } from '@/components/ui/spinner';
 import { toast } from 'sonner';
@@ -15,7 +15,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   redirectTo = "/auth" 
 }) => {
   const { user, userRole, isLoading } = useAuth();
-  const navigate = useNavigate();
   const location = useLocation();
   
   // Enhanced logging for better debugging
@@ -28,32 +27,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       pathname: location.pathname
     });
   }, [user, userRole, isLoading, location.pathname]);
-  
-  // Redirect patients specifically to the correct pages
-  useEffect(() => {
-    if (!isLoading && user && userRole === 'patient') {
-      // If the patient is on any route they shouldn't access, redirect to dashboard
-      const allowedPatientRoutes = [
-        '/dashboard', 
-        '/prescriptions', 
-        '/new-prescription', // Added new-prescription route to allowed routes
-        '/patient-habits', 
-        '/patient-profile', 
-        '/chat',
-        '/videos'
-      ];
-      
-      // Check if on allowed route or subcategory of allowed route
-      const isOnAllowedRoute = allowedPatientRoutes.some(route => 
-        location.pathname === route || location.pathname.startsWith(`${route}/`)
-      );
-      
-      if (!isOnAllowedRoute) {
-        console.log("ProtectedRoute: Patient detected on restricted page, redirecting to dashboard");
-        navigate('/dashboard', { replace: true });
-      }
-    }
-  }, [user, userRole, isLoading, navigate, location.pathname]);
   
   // When still loading, show spinner
   if (isLoading) {

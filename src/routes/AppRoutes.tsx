@@ -129,14 +129,12 @@ export const AppRoutes = () => {
           }
         />
         
-        {/* Only use RegistrationStatusChecker for specific patient features that require completed setup */}
+        {/* Patient routes without RegistrationStatusChecker - allow immediate access */}
         <Route
           path="/patient-habits"
           element={
             <RoleProtectedRoute allowedRoles={['patient']}>
-              <RegistrationStatusChecker>
-                <PatientHabitsPage />
-              </RegistrationStatusChecker>
+              <PatientHabitsPage />
             </RoleProtectedRoute>
           }
         />
@@ -160,14 +158,12 @@ export const AppRoutes = () => {
           }
         />
         
-        {/* Routes for prescriptions - keep RegistrationStatusChecker for essential patient features */}
+        {/* Routes for prescriptions - removed RegistrationStatusChecker */}
         <Route
           path="/prescriptions"
           element={
             <ProtectedRoute>
-              <RegistrationStatusChecker>
-                <PatientPrescriptionsRoute />
-              </RegistrationStatusChecker>
+              <PatientPrescriptionsRoute />
             </ProtectedRoute>
           }
         />
@@ -185,9 +181,7 @@ export const AppRoutes = () => {
           path="/patient-profile"
           element={
             <RoleProtectedRoute allowedRoles={['patient']}>
-              <RegistrationStatusChecker>
-                <PatientProfilePage />
-              </RegistrationStatusChecker>
+              <PatientProfilePage />
             </RoleProtectedRoute>
           }
         />
