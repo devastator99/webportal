@@ -1,3 +1,4 @@
+
 import { useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NoRoleWarning } from "@/components/auth/NoRoleWarning";
@@ -16,8 +17,6 @@ import { DoctorAppLayout } from "@/layouts/DoctorAppLayout";
 import { AdminAppLayout } from "@/layouts/AdminAppLayout";
 import { AppLayout } from "@/layouts/AppLayout";
 import { RegistrationStatusChecker } from "@/components/auth/RegistrationStatusChecker";
-import { useRegistrationState } from "@/hooks/useRegistrationState";
-import { useEnhancedRegistrationState } from "@/hooks/useEnhancedRegistrationState";
 
 // Map user roles to their respective layouts and dashboards
 const roleLayouts = {
@@ -55,8 +54,6 @@ const Dashboard = () => {
   const redirectAttempts = useRef(0);
   const lastRedirectTime = useRef(0);
   
-  const enhancedState = useEnhancedRegistrationState();
-  
   console.log("Dashboard render:", { 
     user: user?.id, 
     userEmail: user?.email,
@@ -64,30 +61,24 @@ const Dashboard = () => {
     isLoading
   });
 
-  // Enhanced redirect with safety checks and state validation
+  // Simple redirect with safety checks
   const safeRedirect = (path: string, reason: string) => {
     const now = Date.now();
     const timeSinceLastRedirect = now - lastRedirectTime.current;
     
     // Prevent redirects if we just redirected recently (within 3 seconds)
     if (timeSinceLastRedirect < 3000) {
-      if (enhancedState.debugMode) {
-        console.log(`[Dashboard] Skipping redirect - too recent (${timeSinceLastRedirect}ms ago)`);
-      }
+      console.log(`[Dashboard] Skipping redirect - too recent (${timeSinceLastRedirect}ms ago)`);
       return;
     }
 
     // Prevent too many redirect attempts
     if (redirectAttempts.current >= 2) {
-      if (enhancedState.debugMode) {
-        console.log('[Dashboard] Too many redirect attempts, stopping');
-      }
+      console.log('[Dashboard] Too many redirect attempts, stopping');
       return;
     }
 
-    if (enhancedState.debugMode) {
-      console.log(`[Dashboard] Safe redirect to ${path}: ${reason}`);
-    }
+    console.log(`[Dashboard] Safe redirect to ${path}: ${reason}`);
     
     redirectAttempts.current++;
     lastRedirectTime.current = now;
@@ -95,108 +86,48 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    if (enhancedState.debugMode) {
-      console.log("[Dashboard] Enhanced useEffect triggered:", { 
-        userId: user?.id, 
-        userRole, 
-        isLoading
-      });
-    }
+    console.log("[Dashboard] useEffect triggered:", { 
+      userId: user?.id, 
+      userRole, 
+      isLoading
+    });
     
     // Only redirect if we're not loading and there's no user
     if (!isLoading && !user) {
-      if (enhancedState.debugMode) {
-        console.log("[Dashboard] No user found, redirecting to /auth");
-      }
+      console.log("[Dashboard] No user found, redirecting to /auth");
       safeRedirect("/auth", "No user authenticated");
       return;
     }
     
-    // Enhanced: Check if user is in active registration flow using enhanced state
-    if (user && enhancedState.isUserInActiveRegistration()) {
-      if (enhancedState.debugMode) {
-        console.log("[Dashboard] User in active registration (enhanced check), redirecting to /register");
-      }
-      safeRedirect("/register", "User in active registration");
-      return;
-    }
-    
-    // Enhanced: More sophisticated approach for users with no role
-    if (user && !userRole && !enhancedState.isUserInActiveRegistration()) {
-      if (enhancedState.debugMode) {
-        console.log("[Dashboard] User has no role, running enhanced state validation...");
-      }
-      
-      // Validate and potentially fix state issues
-      const validation = enhancedState.validateAndCorrectState();
-      if (validation.corrected) {
-        if (enhancedState.debugMode) {
-          console.log("[Dashboard] State corrected, issues found:", validation.issues);
+    // If user exists but no role, wait a bit more for role to load
+    if (user && !userRole) {
+      console.log("[Dashboard] User has no role, giving time for role to load");
+      const timeoutId = setTimeout(() => {
+        if (!userRole) {
+          console.log("[Dashboard] No role after timeout, user might need to complete registration");
+          // Don't auto-redirect to registration, let NoRoleWarning handle it
         }
-        // Give a moment for corrected state to settle
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
-        return;
-      }
+      }, 3000);
       
-      // Check if user was just redirected from registration
-      const fromRegistration = window.history.state?.from === 'registration';
-      
-      if (!fromRegistration) {
-        // Enhanced: Sync with database before redirecting
-        enhancedState.syncWithDatabase().then((syncSuccess) => {
-          if (syncSuccess && enhancedState.debugMode) {
-            console.log("[Dashboard] Database sync completed");
-          }
-          
-          // Add a delay to allow for auth state to settle
-          const timeoutId = setTimeout(() => {
-            if (enhancedState.debugMode) {
-              console.log("[Dashboard] User has no role after enhanced checks, redirecting to /register");
-            }
-            safeRedirect("/register", "No user role assigned after enhanced validation");
-          }, 2000);
-          
-          return () => clearTimeout(timeoutId);
-        });
-      } else {
-        if (enhancedState.debugMode) {
-          console.log("[Dashboard] User just came from registration, giving more time for role to load");
-        }
-      }
+      return () => clearTimeout(timeoutId);
     }
-  }, [user, userRole, isLoading, navigate, enhancedState]);
+  }, [user, userRole, isLoading, navigate]);
 
   // Show loading state while auth is loading
   if (isLoading) {
-    if (enhancedState.debugMode) {
-      console.log("[Dashboard] Showing loading skeleton - isLoading:", isLoading);
-    }
+    console.log("[Dashboard] Showing loading skeleton - isLoading:", isLoading);
     return <DashboardSkeleton />;
   }
 
   // After loading, if no user is found, useEffect will handle redirect
   if (!user) {
-    if (enhancedState.debugMode) {
-      console.log("[Dashboard] No user, returning null");
-    }
+    console.log("[Dashboard] No user, returning null");
     return null;
   }
 
-  // If user is in active registration, useEffect will handle redirect
-  if (enhancedState.isUserInActiveRegistration()) {
-    if (enhancedState.debugMode) {
-      console.log("[Dashboard] User in active registration, returning null (redirect will happen)");
-    }
-    return null;
-  }
-
-  // Handle no role case with enhanced state management
+  // Handle no role case
   if (!userRole) {
-    if (enhancedState.debugMode) {
-      console.log("[Dashboard] No role assigned, showing NoRoleWarning with enhanced state");
-    }
+    console.log("[Dashboard] No role assigned, showing NoRoleWarning");
     return (
       <AppLayout>
         <NoRoleWarning onSignOut={signOut} />
@@ -204,9 +135,7 @@ const Dashboard = () => {
     );
   }
 
-  if (enhancedState.debugMode) {
-    console.log(`[Dashboard] Attempting to render ${userRole} dashboard`);
-  }
+  console.log(`[Dashboard] Attempting to render ${userRole} dashboard`);
   
   // Render appropriate dashboard based on role
   try {
@@ -215,9 +144,7 @@ const Dashboard = () => {
     
     if (roleConfig) {
       const { Layout, Dashboard: RoleDashboard } = roleConfig;
-      if (enhancedState.debugMode) {
-        console.log(`[Dashboard] Rendering ${userRole} dashboard`);
-      }
+      console.log(`[Dashboard] Rendering ${userRole} dashboard`);
       
       return (
         <Layout>
@@ -226,9 +153,7 @@ const Dashboard = () => {
       );
     } else {
       // Fallback for unknown roles
-      if (enhancedState.debugMode) {
-        console.log(`[Dashboard] Invalid role: ${userRole}, rendering NoRoleWarning`);
-      }
+      console.log(`[Dashboard] Invalid role: ${userRole}, rendering NoRoleWarning`);
       return (
         <AppLayout>
           <NoRoleWarning onSignOut={signOut} />

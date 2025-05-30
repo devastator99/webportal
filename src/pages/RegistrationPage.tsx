@@ -4,30 +4,38 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { RegistrationForm } from '@/components/registration/RegistrationForm';
 import { RegistrationPayment } from '@/components/auth/RegistrationPayment';
-import { RegistrationProgressReport } from '@/components/auth/RegistrationProgressReport';
 import { LucideLoader2, ArrowLeft, LogOut } from 'lucide-react';
 import { useAuthHandlers } from '@/hooks/useAuthHandlers';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { useRegistrationProcess } from '@/hooks/useRegistrationProcess';
 
 const RegistrationPage = () => {
   const { user, userRole, isLoading, isLoadingRole, signOut } = useAuth();
   const { handleSignUp, error, loading, setError } = useAuthHandlers();
   const navigate = useNavigate();
   
-  // Simple state management - no complex enhanced state
   const [currentStep, setCurrentStep] = useState(1);
   const [registeredUserRole, setRegisteredUserRole] = useState<string | null>(null);
   const [userInfo, setUserInfo] = useState<any>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  console.log("=== REGISTRATION PAGE STATE ===", {
+  const {
+    registrationProgress,
+    fetchRegistrationProgress,
+    isPolling,
+    startPollingRegistrationStatus,
+    stopPollingRegistrationStatus
+  } = useRegistrationProcess();
+
+  console.log("=== SIMPLE REGISTRATION STATE ===", {
     currentStep,
     registeredUserRole,
     user: user?.id,
     userRole,
-    isProcessing
+    isProcessing,
+    registrationProgress
   });
 
   // Redirect authenticated users with roles to dashboard
@@ -48,7 +56,7 @@ const RegistrationPage = () => {
     );
   }
 
-  // SIMPLIFIED form submission handler
+  // Simple form submission handler
   const handleFormSubmit = async (
     email: string,
     password: string,
@@ -59,59 +67,45 @@ const RegistrationPage = () => {
   ) => {
     try {
       console.log("=== FORM SUBMISSION STARTED ===");
-      console.log("User type:", userType);
-      
       setError(null);
       setIsProcessing(true);
       
-      // Store user info and role immediately
+      // Store user info and role
       setUserInfo({ firstName, lastName });
       setRegisteredUserRole(userType!);
       
-      console.log("Creating user account...");
-      
-      const enhancedPatientData = patientData ? {
-        ...patientData,
-        emergencyContact: patientData.emergencyContact || patientData.phone
-      } : undefined;
-      
-      // Create the user account
       const newUser = await handleSignUp(
         email,
         password,
         userType as any,
         firstName,
         lastName,
-        enhancedPatientData
+        patientData
       );
       
       if (newUser) {
         console.log("=== ACCOUNT CREATED SUCCESSFULLY ===");
         setIsProcessing(false);
         
-        // IMMEDIATELY move to next step
         if (userType === 'patient') {
-          console.log("Moving to PAYMENT step");
-          setCurrentStep(2);
+          setCurrentStep(2); // Payment step
           toast({
             title: "Account Created!",
             description: "Please complete the payment to activate your account.",
           });
         } else {
-          console.log("Moving to PROGRESS step");
-          setCurrentStep(2);
+          // For non-patients, go directly to dashboard
           toast({
             title: "Account Created!",
-            description: "Setting up your account and permissions...",
+            description: "Your account has been created successfully.",
           });
+          setTimeout(() => {
+            navigate('/dashboard', { replace: true });
+          }, 1500);
         }
-      } else {
-        throw new Error("Failed to create user account");
       }
     } catch (error: any) {
       console.error("=== REGISTRATION ERROR ===", error);
-      
-      // Reset on error
       setIsProcessing(false);
       setCurrentStep(1);
       setRegisteredUserRole(null);
@@ -126,18 +120,23 @@ const RegistrationPage = () => {
 
   // Handle payment completion
   const handlePaymentComplete = () => {
-    console.log("Payment completed, moving to progress step");
-    setCurrentStep(3);
+    console.log("Payment completed, starting polling for completion");
     
+    // Start polling for registration status
+    startPollingRegistrationStatus();
+    
+    setCurrentStep(3); // Progress step
     toast({
       title: "Payment Complete!",
-      description: "Your registration is being processed. Please wait while we set up your account.",
+      description: "Your registration is being processed...",
     });
   };
 
   // Handle registration completion
   const handleRegistrationComplete = () => {
     console.log("Registration fully complete, redirecting to dashboard");
+    
+    stopPollingRegistrationStatus();
     
     toast({
       title: "Welcome!",
@@ -147,6 +146,13 @@ const RegistrationPage = () => {
     navigate("/dashboard", { replace: true });
   };
 
+  // Check if registration is complete
+  useEffect(() => {
+    if (registrationProgress?.status === 'fully_registered' && currentStep === 3) {
+      handleRegistrationComplete();
+    }
+  }, [registrationProgress, currentStep]);
+
   // Navigation handlers
   const handleBackToHome = () => {
     setCurrentStep(1);
@@ -155,17 +161,10 @@ const RegistrationPage = () => {
     navigate('/', { replace: true });
   };
 
-  // Determine step title
   const getStepTitle = () => {
     if (currentStep === 1) return 'Create your account';
-    
-    if (registeredUserRole === 'patient') {
-      if (currentStep === 2) return 'Complete Payment';
-      if (currentStep === 3) return 'Registration in Progress';
-    } else {
-      if (currentStep === 2) return 'Account Setup in Progress';
-    }
-    
+    if (currentStep === 2) return 'Complete Payment';
+    if (currentStep === 3) return 'Setting up your account...';
     return 'Registration';
   };
 
@@ -198,14 +197,6 @@ const RegistrationPage = () => {
         <h2 className="mt-3 text-center text-2xl sm:text-3xl font-bold text-saas-dark mb-8">
           {getStepTitle()}
         </h2>
-        
-        {/* Debug info in development */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mb-4 p-2 bg-blue-100 border border-blue-300 rounded text-xs">
-            <strong>Debug:</strong> Step {currentStep}, Role: {registeredUserRole || 'none'}, 
-            User: {user?.id || 'none'}, Processing: {isProcessing}
-          </div>
-        )}
       </div>
 
       <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md">
@@ -239,7 +230,7 @@ const RegistrationPage = () => {
           </div>
         )}
         
-        {/* Step 2: Payment (Patients Only) or Progress (Others) */}
+        {/* Step 2: Payment (Patients Only) */}
         {currentStep === 2 && !isProcessing && registeredUserRole === 'patient' && (
           <RegistrationPayment 
             onComplete={handlePaymentComplete}
@@ -247,19 +238,18 @@ const RegistrationPage = () => {
           />
         )}
 
-        {currentStep === 2 && !isProcessing && registeredUserRole !== 'patient' && (
-          <RegistrationProgressReport 
-            onComplete={handleRegistrationComplete}
-            userRole={registeredUserRole}
-          />
-        )}
-
         {/* Step 3: Progress (Patients After Payment) */}
         {currentStep === 3 && !isProcessing && registeredUserRole === 'patient' && (
-          <RegistrationProgressReport 
-            onComplete={handleRegistrationComplete}
-            userRole={registeredUserRole}
-          />
+          <div className="bg-white py-6 sm:py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10 relative">
+            <div className="flex flex-col items-center justify-center py-8">
+              <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600 mb-4" />
+              <p className="text-lg font-medium text-gray-800">Setting up your account...</p>
+              <p className="text-sm text-gray-600 mt-2">Your care team is being assigned. This may take a few moments.</p>
+              {isPolling && (
+                <p className="text-xs text-gray-500 mt-2">Checking status...</p>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>
