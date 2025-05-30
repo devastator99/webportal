@@ -5,8 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRegistrationProcess } from '@/hooks/useRegistrationProcess';
 import { useToast } from '@/hooks/use-toast';
 import { Spinner } from '@/components/ui/spinner';
-import { Shield, Clock, Users, MessageSquare, FileText, CheckCircle } from 'lucide-react';
-import { Loader2 } from '@/components/ui/loader2';
+import { Shield, Clock, Users, MessageSquare, FileText, CheckCircle, Loader2 } from 'lucide-react';
 
 interface RegistrationPaymentProps {
   onComplete: () => void;
