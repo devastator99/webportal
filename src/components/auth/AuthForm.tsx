@@ -32,6 +32,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ type, onSubmit, error, loadi
   const [confirmPassword, setConfirmPassword] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [userType, setUserType] = useState('patient');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [patientData, setPatientData] = useState<PatientData>({});
@@ -48,6 +49,11 @@ export const AuthForm: React.FC<AuthFormProps> = ({ type, onSubmit, error, loadi
 
   const validateName = (name: string) => {
     return name.length >= 2;
+  };
+
+  const validatePhone = (phone: string) => {
+    // Basic phone validation - adjust regex as needed for your requirements
+    return phone.match(/^[\+]?[1-9][\d]{0,15}$/);
   };
 
   const handleFormSubmit = async (e: React.FormEvent) => {
@@ -76,16 +82,21 @@ export const AuthForm: React.FC<AuthFormProps> = ({ type, onSubmit, error, loadi
       }
 
       if (userType === 'patient') {
+        // Add phone to patient data for patient registrations
+        setPatientData(prev => ({ ...prev, phone }));
         setIsDialogOpen(true);
       } else {
-        await onSubmit(email, password, userType, firstName, lastName);
+        // For non-patient users, pass phone through patient data parameter
+        await onSubmit(email, password, userType, firstName, lastName, { phone });
       }
     }
   };
 
   const handlePatientRegistration = async () => {
     setIsDialogOpen(false);
-    await onSubmit(email, password, userType, firstName, lastName, patientData);
+    // Include phone number in patient data
+    const updatedPatientData = { ...patientData, phone };
+    await onSubmit(email, password, userType, firstName, lastName, updatedPatientData);
   };
 
   // Show registration progress if loading and we have a registration step
@@ -158,6 +169,19 @@ export const AuthForm: React.FC<AuthFormProps> = ({ type, onSubmit, error, loadi
                       className="w-full"
                     />
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    required
+                    className="w-full"
+                    placeholder="+1234567890"
+                  />
                 </div>
 
                 <div className="space-y-2">
