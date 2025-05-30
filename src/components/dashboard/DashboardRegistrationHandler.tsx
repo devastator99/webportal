@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,6 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { CheckCircle, Clock, CreditCard, Users, MessageCircle, Bell } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserRole } from '@/contexts/AuthContext';
+import { useRegistrationProcess } from '@/hooks/useRegistrationProcess';
 
 interface DashboardRegistrationHandlerProps {
   children: React.ReactNode;
@@ -23,6 +23,17 @@ export const DashboardRegistrationHandler: React.FC<DashboardRegistrationHandler
   const [registrationStatus, setRegistrationStatus] = useState<UserRegistrationStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Use the existing registration process hook
+  const {
+    createOrder,
+    completeRegistration,
+    fetchRegistrationProgress,
+    orderId
+  } = useRegistrationProcess({
+    registrationFee: 500,
+    redirectUrl: '/dashboard'
+  });
 
   // Check registration status on component mount
   useEffect(() => {
@@ -55,38 +66,133 @@ export const DashboardRegistrationHandler: React.FC<DashboardRegistrationHandler
     checkRegistrationStatus();
   }, [user?.id]);
 
-  // For patients, handle payment completion
+  // For patients, handle payment completion using existing Razorpay integration
   const handlePaymentCompletion = async () => {
     if (!user?.id) return;
 
     setIsProcessing(true);
     try {
-      // Simulate payment process - in real app this would integrate with payment gateway
-      const { error } = await supabase.functions.invoke('complete-registration', {
-        body: { 
-          user_id: user.id,
-          step: 'payment_complete'
+      console.log("Creating Razorpay order...");
+      const orderData = await createOrder();
+      
+      if (!orderData || !orderData.order_id) {
+        throw new Error("Failed to create order");
+      }
+
+      console.log("Order created:", orderData.order_id);
+
+      // Check if Razorpay is loaded
+      if (!(window as any).Razorpay) {
+        console.log("Loading Razorpay script...");
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        await new Promise((resolve, reject) => {
+          script.onload = resolve;
+          script.onerror = reject;
+          document.body.appendChild(script);
+        });
+      }
+
+      // Initialize Razorpay
+      const options = {
+        key: orderData.razorpay_key_id,
+        amount: orderData.amount * 100,
+        currency: 'INR',
+        name: 'Health App',
+        description: 'Registration Fee',
+        order_id: orderData.order_id,
+        handler: async function(response: any) {
+          try {
+            console.log("Payment successful, completing registration...");
+            const success = await completeRegistration(
+              response.razorpay_payment_id,
+              response.razorpay_order_id,
+              response.razorpay_signature
+            );
+            
+            if (success) {
+              toast.success('Payment completed successfully!');
+              
+              // Refresh registration status
+              const { data } = await supabase.rpc('get_user_registration_status_safe', {
+                p_user_id: user.id
+              });
+              
+              if (data) {
+                setRegistrationStatus(data as unknown as UserRegistrationStatus);
+              }
+            }
+          } catch (err: any) {
+            console.error("Payment verification error:", err);
+            toast.error('Payment verification failed');
+          }
+        },
+        prefill: {
+          email: user.email,
+          name: orderData.prefill?.name || '',
+        },
+        theme: {
+          color: '#9b87f5',
+        },
+        modal: {
+          ondismiss: function() {
+            console.log("Payment modal dismissed");
+          }
         }
-      });
+      };
 
-      if (error) {
-        toast.error('Payment completion failed');
-        return;
-      }
+      console.log("Opening Razorpay with options:", options);
+      const razorpay = new (window as any).Razorpay(options);
+      razorpay.open();
+    } catch (err: any) {
+      console.error("Payment initiation error:", err);
+      toast.error('Payment initiation failed');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
-      toast.success('Payment completed successfully!');
+  // For testing - manual payment completion
+  const handleManualPayment = async () => {
+    if (!user?.id) return;
+
+    setIsProcessing(true);
+    try {
+      console.log("Processing manual payment...");
       
-      // Refresh registration status
-      const { data } = await supabase.rpc('get_user_registration_status_safe', {
-        p_user_id: user.id
-      });
-      
-      if (data) {
-        setRegistrationStatus(data as unknown as UserRegistrationStatus);
+      // Create a test order first
+      let testOrderId = orderId;
+      if (!testOrderId) {
+        const orderData = await createOrder();
+        testOrderId = orderData?.order_id;
       }
-    } catch (err) {
-      console.error("Payment completion error:", err);
-      toast.error('Payment completion failed');
+      
+      if (testOrderId) {
+        const success = await completeRegistration(
+          'test_payment_' + Date.now(),
+          testOrderId,
+          'manual_signature'
+        );
+        
+        if (success) {
+          toast.success('Test payment completed successfully!');
+          
+          // Refresh registration status
+          const { data } = await supabase.rpc('get_user_registration_status_safe', {
+            p_user_id: user.id
+          });
+          
+          if (data) {
+            setRegistrationStatus(data as unknown as UserRegistrationStatus);
+          }
+        }
+      } else {
+        throw new Error("Failed to create test order");
+      }
+    } catch (err: any) {
+      console.error("Error in manual payment:", err);
+      toast.error('Manual payment failed');
     } finally {
       setIsProcessing(false);
     }
@@ -199,14 +305,25 @@ export const DashboardRegistrationHandler: React.FC<DashboardRegistrationHandler
                   <CreditCard className="h-5 w-5" />
                   <span>Payment Processing</span>
                   {registrationStatus?.registration_status === RegistrationStatusValues.PAYMENT_PENDING && (
-                    <Button 
-                      size="sm" 
-                      onClick={handlePaymentCompletion}
-                      disabled={isProcessing}
-                      className="ml-auto"
-                    >
-                      {isProcessing ? 'Processing...' : 'Complete Payment'}
-                    </Button>
+                    <div className="ml-auto flex gap-2">
+                      <Button 
+                        size="sm" 
+                        onClick={handlePaymentCompletion}
+                        disabled={isProcessing}
+                      >
+                        {isProcessing ? 'Processing...' : 'Pay ₹500'}
+                      </Button>
+                      {process.env.NODE_ENV === 'development' && (
+                        <Button 
+                          size="sm"
+                          variant="outline"
+                          onClick={handleManualPayment}
+                          disabled={isProcessing}
+                        >
+                          Test Complete
+                        </Button>
+                      )}
+                    </div>
                   )}
                 </div>
 
@@ -253,7 +370,7 @@ export const DashboardRegistrationHandler: React.FC<DashboardRegistrationHandler
             <p className="font-medium mb-2">What happens next?</p>
             {userRole === 'patient' ? (
               <ul className="space-y-1 text-sm">
-                <li>• Payment will be processed automatically</li>
+                <li>• Payment will be processed securely via Razorpay</li>
                 <li>• You'll be assigned a doctor and nutritionist</li>
                 <li>• A secure chat room will be created for your care team</li>
                 <li>• You'll receive welcome notifications with next steps</li>
