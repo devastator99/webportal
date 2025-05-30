@@ -5,10 +5,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { RegistrationForm } from '@/components/registration/RegistrationForm';
 import { RegistrationPayment } from '@/components/auth/RegistrationPayment';
 import { RegistrationProgressReport } from '@/components/auth/RegistrationProgressReport';
-import { LucideLoader2 } from 'lucide-react';
+import { LucideLoader2, ArrowLeft } from 'lucide-react';
 import { useAuthHandlers } from '@/hooks/useAuthHandlers';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 const RegistrationPage = () => {
   const { user, userRole, isLoading, isLoadingRole } = useAuth();
@@ -211,6 +212,17 @@ const RegistrationPage = () => {
     navigate("/dashboard", { replace: true });
   };
 
+  // Handle navigation back to home
+  const handleBackToHome = () => {
+    // Clear any registration state
+    localStorage.removeItem('registration_step');
+    localStorage.removeItem('registration_user_role');
+    localStorage.removeItem('registration_payment_complete');
+    
+    // Navigate back to home
+    navigate('/', { replace: true });
+  };
+
   // Determine step title based on role and step
   const getStepTitle = () => {
     if (registrationStep === 1) return 'Create your account';
@@ -239,6 +251,18 @@ const RegistrationPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 pt-16 md:pt-20 overflow-hidden">
       <div className="sm:mx-auto sm:w-full sm:max-w-4xl">
+        {/* Back to Home Button */}
+        <div className="mb-6">
+          <Button
+            variant="ghost"
+            onClick={handleBackToHome}
+            className="flex items-center gap-2 text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Back to Home
+          </Button>
+        </div>
+        
         <h2 className="mt-3 text-center text-2xl sm:text-3xl font-bold text-saas-dark mb-8">
           {getStepTitle()}
         </h2>
