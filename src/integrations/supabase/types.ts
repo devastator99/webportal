@@ -2024,6 +2024,26 @@ export type Database = {
         }
         Returns: Json
       }
+      complete_user_registration: {
+        Args: {
+          p_user_id: string
+          p_role: string
+          p_first_name: string
+          p_last_name: string
+          p_phone: string
+          p_email?: string
+          p_age?: number
+          p_gender?: string
+          p_blood_group?: string
+          p_allergies?: string
+          p_emergency_contact?: string
+          p_height?: number
+          p_birth_date?: string
+          p_food_habit?: string
+          p_current_medical_conditions?: string
+        }
+        Returns: Json
+      }
       create_appointment: {
         Args: {
           p_patient_id: string

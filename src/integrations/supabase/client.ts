@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = "https://hcaqodjylicmppxcbqbh.supabase.co"
@@ -5,137 +6,66 @@ const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Type definitions
-export interface PatientProfile {
-  id: string;
-  first_name: string | null;
-  last_name: string | null;
-  phone?: string | null;
-  email?: string | null;
-}
-
-export interface AdminOperationResponse {
-  success: boolean;
-  message?: string;
-  error?: string;
-  id?: string;
-}
-
-export interface PatientInvoice {
-  id: string;
-  patient_id: string;
-  doctor_id?: string;
-  amount: number;
-  currency: string;
-  description?: string;
-  status: string;
-  invoice_number: string;
-  created_at: string;
-  updated_at: string;
-  razorpay_order_id?: string;
-  razorpay_payment_id?: string;
-}
-
-// Valid user role types - must match database enum exactly
+// Valid user roles that can be created
 export type ValidUserRole = 'patient' | 'doctor' | 'nutritionist' | 'administrator' | 'reception';
 
-// Helper function to create user role safely
+// Helper function to create user role using the unified RPC
+export const completeUserRegistration = async (
+  userId: string, 
+  role: ValidUserRole, 
+  firstName: string,
+  lastName: string,
+  phone: string,
+  patientData?: {
+    age?: string;
+    gender?: string;
+    bloodGroup?: string;
+    allergies?: string;
+    emergencyContact?: string;
+    height?: string;
+    birthDate?: string | null;
+    foodHabit?: string;
+    knownAllergies?: string;
+    currentMedicalConditions?: string;
+  }
+) => {
+  console.log("Calling complete_user_registration RPC for user:", userId, "role:", role);
+  
+  const { data, error } = await supabase.rpc('complete_user_registration', {
+    p_user_id: userId,
+    p_role: role,
+    p_first_name: firstName,
+    p_last_name: lastName,
+    p_phone: phone,
+    p_email: null, // Not used currently
+    p_age: patientData?.age ? parseInt(patientData.age, 10) : null,
+    p_gender: patientData?.gender || null,
+    p_blood_group: patientData?.bloodGroup || null,
+    p_allergies: patientData?.allergies || null,
+    p_emergency_contact: patientData?.emergencyContact || null,
+    p_height: patientData?.height ? parseFloat(patientData.height) : null,
+    p_birth_date: patientData?.birthDate ? new Date(patientData.birthDate).toISOString().split('T')[0] : null,
+    p_food_habit: patientData?.foodHabit || null,
+    p_current_medical_conditions: patientData?.currentMedicalConditions || null
+  });
+
+  if (error) {
+    console.error("RPC call failed:", error);
+    throw new Error(`Registration failed: ${error.message}`);
+  }
+
+  console.log("RPC call result:", data);
+  
+  // Check if the RPC function returned an error
+  if (data && typeof data === 'object' && data.success === false) {
+    throw new Error(data.error || 'Registration failed');
+  }
+
+  return data;
+};
+
+// Legacy function for backward compatibility - now just calls the unified RPC
 export const createUserRole = async (userId: string, role: ValidUserRole) => {
-  try {
-    console.log(`Creating user role for ${userId} with role ${role}`);
-    
-    const { data, error } = await supabase.rpc('create_user_role', {
-      p_user_id: userId,
-      p_role: role
-    });
-
-    if (error) {
-      console.error('Error creating user role:', error);
-      throw new Error(`Failed to create user role: ${error.message}`);
-    }
-
-    console.log('User role RPC response:', data);
-
-    // The function returns jsonb, check if it was successful
-    if (data && typeof data === 'object') {
-      if (data.success === false) {
-        console.error('User role creation failed:', data);
-        throw new Error(`Failed to create user role: ${data.error || 'Unknown error'}`);
-      } else if (data.success === true) {
-        console.log('User role created successfully:', data);
-        return { success: true, data };
-      }
-    }
-
-    // If we get here, something unexpected happened
-    console.warn('Unexpected response from create_user_role:', data);
-    return { success: true, data };
-  } catch (error: any) {
-    console.error('Exception in createUserRole:', error);
-    throw new Error(`Failed to create user role: ${error.message}`);
-  }
-};
-
-// Function to get doctor's patients
-export const getDoctorPatients = async (doctorId: string): Promise<PatientProfile[]> => {
-  try {
-    const { data, error } = await supabase.rpc('get_doctor_patients', {
-      p_doctor_id: doctorId
-    });
-
-    if (error) {
-      console.error('Error fetching doctor patients:', error);
-      throw error;
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error('Error in getDoctorPatients:', error);
-    throw error;
-  }
-};
-
-// Function to get nutritionist's patients
-export const getNutritionistPatients = async (nutritionistId: string): Promise<PatientProfile[]> => {
-  try {
-    const { data, error } = await supabase.rpc('get_nutritionist_patients', {
-      p_nutritionist_id: nutritionistId
-    });
-
-    if (error) {
-      console.error('Error fetching nutritionist patients:', error);
-      throw error;
-    }
-
-    // Transform the data to match PatientProfile interface
-    const formattedPatients = (data || []).map((patient: any) => ({
-      id: patient.patient_id,
-      first_name: patient.patient_first_name,
-      last_name: patient.patient_last_name
-    }));
-
-    return formattedPatients;
-  } catch (error) {
-    console.error('Error in getNutritionistPatients:', error);
-    throw error;
-  }
-};
-
-// Function to get patient invoices
-export const getPatientInvoices = async (patientId: string): Promise<PatientInvoice[]> => {
-  try {
-    const { data, error } = await supabase.rpc('get_patient_invoices', {
-      p_patient_id: patientId
-    });
-
-    if (error) {
-      console.error('Error fetching patient invoices:', error);
-      throw error;
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error('Error in getPatientInvoices:', error);
-    throw error;
-  }
+  console.log("Legacy createUserRole called - this should not be used anymore");
+  throw new Error("Use completeUserRegistration instead of createUserRole");
 };

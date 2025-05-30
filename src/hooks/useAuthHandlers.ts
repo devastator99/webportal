@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, createUserRole, ValidUserRole } from "@/integrations/supabase/client";
+import { supabase, completeUserRegistration, ValidUserRole } from "@/integrations/supabase/client";
 
 export interface PatientData {
   age?: string;
@@ -54,7 +54,7 @@ export const useAuthHandlers = () => {
     setError(null);
 
     try {
-      console.log("Starting user registration process...");
+      console.log("Starting unified user registration process...");
       
       // Validate inputs
       if (!identifier || !password || !firstName || !lastName) {
@@ -92,7 +92,7 @@ export const useAuthHandlers = () => {
         userType 
       });
 
-      // Auth signup with metadata
+      // Step 1: Auth signup with metadata
       const signUpData = {
         email: emailAddress,
         password,
@@ -135,83 +135,30 @@ export const useAuthHandlers = () => {
 
       console.log("Auth user created successfully:", authData.user.id);
 
-      // Step 2: Update profiles table with phone number (most important fix)
+      // Step 2: Complete user registration using unified RPC (atomic operation)
       try {
-        console.log("Updating profile with phone number...");
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ 
-            phone: phoneNumber,
-            first_name: firstName,
-            last_name: lastName
-          })
-          .eq('id', authData.user.id);
+        console.log("Completing user registration with unified RPC...");
         
-        if (profileError) {
-          console.error("Error updating profile with phone:", profileError);
-          // Don't throw here as the main account creation was successful
-        } else {
-          console.log("Profile updated successfully with phone number:", phoneNumber);
+        // Ensure we have the primary phone number for the unified call
+        const primaryPhone = phoneNumber || patientData?.phone || patientData?.emergencyContact;
+        if (!primaryPhone) {
+          throw new Error("Phone number is required for registration");
         }
-      } catch (profileUpdateError: any) {
-        console.error("Exception updating profile:", profileUpdateError);
-        // Don't throw here as the main account creation was successful
-      }
 
-      // Step 3: Create user role using our RPC function with proper type
-      try {
-        console.log("Creating user role...");
-        const roleResult = await createUserRole(authData.user.id, userType as ValidUserRole);
-        console.log("User role created successfully:", roleResult);
+        const registrationResult = await completeUserRegistration(
+          authData.user.id,
+          userType as ValidUserRole,
+          firstName,
+          lastName,
+          primaryPhone,
+          userType === 'patient' ? patientData : undefined
+        );
         
-        // The createUserRole function will throw if there's an error
-        // so if we get here, it was successful
-      } catch (roleError: any) {
-        console.error("Error creating user role:", roleError);
-        throw new Error("Account created but role assignment failed. Please contact support.");
-      }
-      
-      // Step 4: Handle patient-specific data
-      if (userType === "patient" && patientData) {
-        try {
-          console.log("Creating patient details...");
-          const { data: patientResult, error: patientError } = await supabase.rpc(
-            'upsert_patient_details',
-            {
-              p_user_id: authData.user.id,
-              p_age: patientData.age ? parseInt(patientData.age, 10) : null,
-              p_gender: patientData.gender || null,
-              p_blood_group: patientData.bloodGroup || null,
-              p_allergies: patientData.allergies || null,
-              p_emergency_contact: patientData.emergencyContact || null,
-              p_height: patientData.height ? parseFloat(patientData.height) : null,
-              p_birth_date: patientData.birthDate || null,
-              p_food_habit: patientData.foodHabit || null,
-              p_current_medical_conditions: patientData.currentMedicalConditions || null
-            }
-          );
-          
-          if (patientError) {
-            console.error("Error creating patient details:", patientError);
-            toast({
-              title: "Account Created",
-              description: "Your account was created successfully, but some additional details could not be saved. You can update them later in your profile.",
-              variant: "default",
-            });
-          } else if (patientResult && typeof patientResult === 'object' && patientResult.success === false) {
-            console.error("Patient details creation failed:", patientResult);
-            toast({
-              title: "Account Created", 
-              description: "Your account was created successfully, but some additional details could not be saved. You can update them later in your profile.",
-              variant: "default",
-            });
-          } else {
-            console.log("Patient details created successfully");
-          }
-        } catch (patientError: any) {
-          console.error("Exception creating patient details:", patientError);
-          // Don't throw here as the main account was created successfully
-        }
+        console.log("Unified registration completed successfully:", registrationResult);
+        
+      } catch (registrationError: any) {
+        console.error("Unified registration failed:", registrationError);
+        throw new Error(`Account created but setup failed: ${registrationError.message}`);
       }
 
       console.log("Registration completed successfully");
