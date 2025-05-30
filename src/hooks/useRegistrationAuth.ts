@@ -20,6 +20,7 @@ export interface PatientData {
 export const useRegistrationAuth = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [registrationStep, setRegistrationStep] = useState<string>("");
 
   const retryWithDelay = async (fn: () => Promise<any>, retries = 2, delay = 1000): Promise<any> => {
     try {
@@ -52,6 +53,7 @@ export const useRegistrationAuth = () => {
   ) => {
     setLoading(true);
     setError(null);
+    setRegistrationStep("Creating account...");
 
     try {
       console.log("Registration: Starting user registration process...", { skipRoleCreation });
@@ -134,6 +136,7 @@ export const useRegistrationAuth = () => {
       }
 
       console.log("Registration: Auth user created successfully:", authData.user.id);
+      setRegistrationStep("Updating profile...");
 
       // Update profiles table with phone number
       try {
@@ -156,12 +159,31 @@ export const useRegistrationAuth = () => {
         console.error("Registration: Exception updating profile:", profileUpdateError);
       }
 
-      // Create user role - skip for patients during initial registration
+      // Create user role SYNCHRONOUSLY - this is the critical fix
       if (!skipRoleCreation) {
+        setRegistrationStep("Setting up your account...");
+        console.log("Registration: Creating user role synchronously...");
+        
         try {
-          console.log("Registration: Creating user role...");
+          // CRITICAL: Wait for role creation to complete before proceeding
           const roleResult = await createUserRole(authData.user.id, userType as ValidUserRole);
           console.log("Registration: User role created successfully:", roleResult);
+          
+          // Verify role was actually created by checking it exists
+          setRegistrationStep("Verifying account setup...");
+          const { data: roleCheck, error: roleCheckError } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', authData.user.id)
+            .single();
+          
+          if (roleCheckError || !roleCheck) {
+            console.error("Registration: Role verification failed:", roleCheckError);
+            throw new Error("Role creation verification failed. Please contact support.");
+          }
+          
+          console.log("Registration: Role verified successfully:", roleCheck.role);
+          
         } catch (roleError: any) {
           console.error("Registration: Error creating user role:", roleError);
           throw new Error("Account created but role assignment failed. Please contact support.");
@@ -172,6 +194,7 @@ export const useRegistrationAuth = () => {
       
       // Handle patient-specific data
       if (userType === "patient" && patientData) {
+        setRegistrationStep("Saving additional details...");
         try {
           console.log("Registration: Creating patient details...");
           const { data: patientResult, error: patientError } = await supabase.rpc(
@@ -212,6 +235,7 @@ export const useRegistrationAuth = () => {
         }
       }
 
+      setRegistrationStep("Account ready!");
       console.log("Registration: Registration completed successfully");
       return authData.user;
       
@@ -236,6 +260,7 @@ export const useRegistrationAuth = () => {
       throw new Error(userMessage);
     } finally {
       setLoading(false);
+      setRegistrationStep("");
     }
   };
 
@@ -243,6 +268,7 @@ export const useRegistrationAuth = () => {
     handleRegistration,
     loading,
     error,
+    registrationStep,
     setError
   };
 };
