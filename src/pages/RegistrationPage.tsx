@@ -22,12 +22,13 @@ const RegistrationPage = () => {
 
   console.log("RegistrationPage:", { user: user?.id, userRole, step, userType });
 
-  // If user has role, go to dashboard
+  // If user has role and registration is complete, go to dashboard
   useEffect(() => {
-    if (user && userRole) {
+    if (user && userRole && step === 1) {
+      console.log("User has role, redirecting to dashboard");
       navigate('/dashboard', { replace: true });
     }
-  }, [user, userRole, navigate]);
+  }, [user, userRole, navigate, step]);
 
   if (isLoading) {
     return (
@@ -47,6 +48,7 @@ const RegistrationPage = () => {
     patientData?: any
   ) => {
     try {
+      console.log("Form submission started:", { userType });
       setUserType(userType!);
       setUserInfo({ firstName, lastName });
       
@@ -60,20 +62,26 @@ const RegistrationPage = () => {
       );
       
       if (newUser) {
+        console.log("User created successfully:", newUser.id, "UserType:", userType);
+        
         if (userType === 'patient') {
-          setStep(2); // Payment step
+          console.log("Patient account created, moving to payment step");
+          setStep(2); // Move to payment step
           toast({
             title: "Account Created!",
             description: "Please complete the payment to activate your account.",
           });
         } else {
           // Non-patients go directly to dashboard
+          console.log("Non-patient account created, redirecting to dashboard");
           toast({
             title: "Account Created!",
             description: "Your account has been created successfully.",
           });
           navigate('/dashboard', { replace: true });
         }
+      } else {
+        throw new Error("Failed to create user account");
       }
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -86,7 +94,8 @@ const RegistrationPage = () => {
   };
 
   const handlePaymentComplete = () => {
-    setStep(3); // Progress step
+    console.log("Payment completed, moving to progress step");
+    setStep(3); // Move to progress step
     toast({
       title: "Payment Complete!",
       description: "Your registration is being processed...",
@@ -94,6 +103,7 @@ const RegistrationPage = () => {
   };
 
   const handleRegistrationComplete = () => {
+    console.log("Registration complete, redirecting to dashboard");
     navigate("/dashboard", { replace: true });
   };
 
@@ -103,6 +113,8 @@ const RegistrationPage = () => {
     if (step === 3) return 'Setting up your account...';
     return 'Registration';
   };
+
+  console.log("Rendering step:", step, "UserType:", userType);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 pt-16 md:pt-20 overflow-hidden">
@@ -149,20 +161,24 @@ const RegistrationPage = () => {
           </div>
         )}
         
-        {/* Step 2: Payment */}
+        {/* Step 2: Payment - Only for patients */}
         {step === 2 && userType === 'patient' && (
-          <RegistrationPayment 
-            onComplete={handlePaymentComplete}
-            userInfo={userInfo}
-          />
+          <div className="bg-white shadow-lg shadow-saas-light-purple/20 sm:rounded-lg">
+            <RegistrationPayment 
+              onComplete={handlePaymentComplete}
+              userInfo={userInfo}
+            />
+          </div>
         )}
 
-        {/* Step 3: Progress */}
+        {/* Step 3: Progress - Only for patients */}
         {step === 3 && userType === 'patient' && (
-          <EnhancedRegistrationProgress 
-            onComplete={handleRegistrationComplete}
-            userRole={userType}
-          />
+          <div className="bg-white shadow-lg shadow-saas-light-purple/20 sm:rounded-lg">
+            <EnhancedRegistrationProgress 
+              onComplete={handleRegistrationComplete}
+              userRole={userType}
+            />
+          </div>
         )}
       </div>
     </div>
