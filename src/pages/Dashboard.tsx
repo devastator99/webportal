@@ -68,10 +68,28 @@ const Dashboard = () => {
     
     // Only redirect if we're not loading and there's no user
     if (!isLoading && !user) {
-      console.log("[Dashboard] No user found, redirecting to /");
-      navigate("/");
+      console.log("[Dashboard] No user found, redirecting to /auth/login");
+      navigate("/auth/login");
+      return;
     }
-  }, [user, isLoading, navigate]);
+    
+    // Check if user is in active registration flow
+    if (user && !userRole) {
+      const registrationStep = localStorage.getItem('registration_step');
+      const registrationRole = localStorage.getItem('registration_user_role');
+      
+      if (registrationStep && registrationRole) {
+        console.log("[Dashboard] User in active registration, redirecting to /register");
+        navigate("/register", { replace: true });
+        return;
+      }
+      
+      // User has no role and no active registration - redirect to registration
+      console.log("[Dashboard] User has no role, redirecting to /register");
+      navigate("/register", { replace: true });
+      return;
+    }
+  }, [user, userRole, isLoading, navigate]);
 
   // Show loading state while auth is loading
   if (isLoading) {

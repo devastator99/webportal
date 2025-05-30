@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LandingPage } from '@/pages/LandingPage';
 import Auth from '@/pages/Auth';
+import RegistrationPage from '@/pages/RegistrationPage';
 import UpdatePassword from '@/pages/UpdatePassword';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { RoleProtectedRoute } from '@/components/auth/RoleProtectedRoute';
@@ -43,7 +44,7 @@ export const AppRoutes = () => {
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth/*" element={<Auth />} />
         <Route path="/auth/login" element={<Auth />} />
-        <Route path="/auth/register" element={<Auth />} />
+        <Route path="/auth/register" element={<RegistrationPage />} />
         <Route path="/verify-code" element={<VerifyCodePage />} />
         <Route path="/forgot-password" element={<ForgotPasswordRouteWrapper />} />
         <Route path="/update-password" element={<UpdatePassword />} />

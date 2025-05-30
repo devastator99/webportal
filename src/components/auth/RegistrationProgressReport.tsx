@@ -9,10 +9,12 @@ import { UserRegistrationStatus, RegistrationStatusValues } from '@/types/regist
 
 interface RegistrationProgressReportProps {
   onComplete?: () => void;
+  userRole?: string | null;
 }
 
 export const RegistrationProgressReport: React.FC<RegistrationProgressReportProps> = ({
-  onComplete
+  onComplete,
+  userRole
 }) => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
@@ -48,29 +50,27 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
       console.log("Registration status:", regStatus);
       setStatus(regStatus);
       
-      // Check if registration is truly complete - ALL required tasks must be completed
+      // Check if registration is complete based on role
       if (regStatus.registration_status === RegistrationStatusValues.FULLY_REGISTERED) {
-        const requiredTaskTypes = ['assign_care_team', 'create_chat_room', 'send_welcome_notification'];
-        const completedTasks = regStatus.tasks?.filter(task => task.status === 'completed') || [];
-        const completedTaskTypes = completedTasks.map(task => task.task_type);
-        
-        // ALL required tasks must be completed, including welcome notification
-        const allRequiredTasksCompleted = requiredTaskTypes.every(taskType => 
-          completedTaskTypes.includes(taskType)
-        );
-        
-        console.log("Registration completion check:", {
-          isFullyRegistered: regStatus.registration_status === RegistrationStatusValues.FULLY_REGISTERED,
-          allRequiredTasksCompleted,
-          completedTaskTypes,
-          requiredTaskTypes,
-          welcomeNotificationSent: completedTaskTypes.includes('send_welcome_notification')
-        });
-        
-        // Only start countdown if ALL tasks including welcome notification are complete
-        if (allRequiredTasksCompleted) {
-          // Start 5-second countdown
-          setAutoRedirectCountdown(5);
+        // For patients, check all required tasks
+        if (userRole === 'patient') {
+          const requiredTaskTypes = ['assign_care_team', 'create_chat_room', 'send_welcome_notification'];
+          const completedTasks = regStatus.tasks?.filter(task => task.status === 'completed') || [];
+          const completedTaskTypes = completedTasks.map(task => task.task_type);
+          
+          const allRequiredTasksCompleted = requiredTaskTypes.every(taskType => 
+            completedTaskTypes.includes(taskType)
+          );
+          
+          if (allRequiredTasksCompleted) {
+            setAutoRedirectCountdown(5);
+          }
+        } else {
+          // For non-patients, check if welcome notification is sent
+          const welcomeTask = regStatus.tasks?.find(task => task.task_type === 'send_welcome_notification');
+          if (welcomeTask?.status === 'completed') {
+            setAutoRedirectCountdown(5);
+          }
         }
       }
       
@@ -130,8 +130,8 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
         description: "Your registration will continue in the background. You can log back in anytime to check the status.",
       });
       
-      // Clear localStorage flags but keep registration processing
-      localStorage.removeItem('registration_payment_complete');
+      // Keep registration state for resuming later
+      // Don't clear localStorage flags here
       
       await signOut();
     } catch (error) {
@@ -143,6 +143,62 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
       });
     } finally {
       setIsSigningOut(false);
+    }
+  };
+
+  // Get role-specific messaging
+  const getRoleSpecificContent = () => {
+    switch (userRole) {
+      case 'patient':
+        return {
+          title: '🎉 Registration In Progress',
+          description: 'Your account setup is being processed. Here\'s what\'s happening:',
+          tasks: [
+            { type: 'assign_care_team', title: 'Care Team Assignment', description: 'Assigning your personal doctor and nutritionist' },
+            { type: 'create_chat_room', title: 'Communication Setup', description: 'Setting up secure messaging with your care team' },
+            { type: 'send_welcome_notification', title: 'Welcome Notification', description: 'Sending your personalized welcome notification' }
+          ]
+        };
+      case 'doctor':
+        return {
+          title: '🩺 Doctor Account Setup',
+          description: 'Setting up your doctor profile and permissions:',
+          tasks: [
+            { type: 'send_welcome_notification', title: 'Profile Setup', description: 'Configuring your doctor profile and permissions' }
+          ]
+        };
+      case 'nutritionist':
+        return {
+          title: '🥗 Nutritionist Account Setup',
+          description: 'Setting up your nutritionist profile and permissions:',
+          tasks: [
+            { type: 'send_welcome_notification', title: 'Profile Setup', description: 'Configuring your nutritionist profile and permissions' }
+          ]
+        };
+      case 'administrator':
+        return {
+          title: '👨‍💼 Administrator Account Setup',
+          description: 'Setting up your administrator access and permissions:',
+          tasks: [
+            { type: 'send_welcome_notification', title: 'Admin Setup', description: 'Configuring administrator access and system permissions' }
+          ]
+        };
+      case 'reception':
+        return {
+          title: '📋 Reception Account Setup',
+          description: 'Setting up your reception access and permissions:',
+          tasks: [
+            { type: 'send_welcome_notification', title: 'Reception Setup', description: 'Configuring reception access and appointment management permissions' }
+          ]
+        };
+      default:
+        return {
+          title: '⚙️ Account Setup',
+          description: 'Setting up your account and permissions:',
+          tasks: [
+            { type: 'send_welcome_notification', title: 'Account Setup', description: 'Configuring your account and permissions' }
+          ]
+        };
     }
   };
 
@@ -171,34 +227,29 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
     );
   }
 
+  const roleContent = getRoleSpecificContent();
   const tasks = status.tasks || [];
-  const careTeamTask = tasks.find(t => t.task_type === 'assign_care_team');
-  const chatRoomTask = tasks.find(t => t.task_type === 'create_chat_room');
-  const welcomeTask = tasks.find(t => t.task_type === 'send_welcome_notification');
 
-  // Registration is only complete if ALL tasks are completed, especially the welcome notification
-  const isFullyComplete = status.registration_status === RegistrationStatusValues.FULLY_REGISTERED &&
-    careTeamTask?.status === 'completed' &&
-    chatRoomTask?.status === 'completed' &&
-    welcomeTask?.status === 'completed';
-
-  // Check if any task failed
-  const hasFailedTasks = tasks.some(task => task.status === 'failed');
+  // Check if registration is complete
+  const isComplete = status.registration_status === RegistrationStatusValues.FULLY_REGISTERED &&
+    (userRole === 'patient' ? 
+      tasks.some(task => task.task_type === 'send_welcome_notification' && task.status === 'completed') :
+      tasks.some(task => task.task_type === 'send_welcome_notification' && task.status === 'completed')
+    );
 
   return (
     <Card className="bg-white shadow-lg border border-gray-100">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl text-green-600">
-          🎉 Registration In Progress
+          {roleContent.title}
         </CardTitle>
         <p className="text-gray-600">
-          Your account setup is being processed. Here's what's happening:
+          {roleContent.description}
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Progress Steps */}
-        <div className="space-y-4">
-          {/* Payment */}
+        {/* Payment confirmation for patients */}
+        {userRole === 'patient' && (
           <div className="flex items-center gap-4 p-4 bg-green-50 border border-green-200 rounded-lg">
             <CheckCircle className="h-6 w-6 text-green-600" />
             <div className="flex-1">
@@ -206,124 +257,62 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
               <p className="text-sm text-green-700">Your registration fee has been successfully processed</p>
             </div>
           </div>
+        )}
 
-          {/* Care Team Assignment */}
-          <div className={`flex items-center gap-4 p-4 rounded-lg border ${
-            careTeamTask?.status === 'completed' 
-              ? 'bg-green-50 border-green-200' 
-              : careTeamTask?.status === 'failed'
-              ? 'bg-red-50 border-red-200'
-              : 'bg-blue-50 border-blue-200'
-          }`}>
-            {careTeamTask?.status === 'completed' ? (
-              <CheckCircle className="h-6 w-6 text-green-600" />
-            ) : careTeamTask?.status === 'failed' ? (
-              <AlertCircle className="h-6 w-6 text-red-600" />
-            ) : (
-              <Clock className="h-6 w-6 text-blue-600 animate-pulse" />
-            )}
-            <div className="flex-1">
-              <h3 className={`font-semibold ${
-                careTeamTask?.status === 'completed' ? 'text-green-800' : 
-                careTeamTask?.status === 'failed' ? 'text-red-800' : 'text-blue-800'
+        {/* Progress Steps */}
+        <div className="space-y-4">
+          {roleContent.tasks.map((taskConfig, index) => {
+            const actualTask = tasks.find(t => t.task_type === taskConfig.type);
+            const isCompleted = actualTask?.status === 'completed';
+            const isFailed = actualTask?.status === 'failed';
+            
+            return (
+              <div key={taskConfig.type} className={`flex items-center gap-4 p-4 rounded-lg border ${
+                isCompleted 
+                  ? 'bg-green-50 border-green-200' 
+                  : isFailed
+                  ? 'bg-red-50 border-red-200'
+                  : 'bg-blue-50 border-blue-200'
               }`}>
-                Care Team Assignment
-              </h3>
-              <p className={`text-sm ${
-                careTeamTask?.status === 'completed' ? 'text-green-700' : 
-                careTeamTask?.status === 'failed' ? 'text-red-700' : 'text-blue-700'
-              }`}>
-                {careTeamTask?.status === 'completed' 
-                  ? 'Your dedicated doctor and nutritionist have been assigned'
-                  : careTeamTask?.status === 'failed'
-                  ? 'There was an issue assigning your care team. Our team is working to resolve this.'
-                  : 'Assigning your personal doctor and nutritionist'
-                }
-              </p>
-            </div>
-          </div>
-
-          {/* Chat Room Setup */}
-          <div className={`flex items-center gap-4 p-4 rounded-lg border ${
-            chatRoomTask?.status === 'completed' 
-              ? 'bg-green-50 border-green-200' 
-              : chatRoomTask?.status === 'failed'
-              ? 'bg-red-50 border-red-200'
-              : 'bg-blue-50 border-blue-200'
-          }`}>
-            {chatRoomTask?.status === 'completed' ? (
-              <CheckCircle className="h-6 w-6 text-green-600" />
-            ) : chatRoomTask?.status === 'failed' ? (
-              <AlertCircle className="h-6 w-6 text-red-600" />
-            ) : (
-              <Clock className="h-6 w-6 text-blue-600 animate-pulse" />
-            )}
-            <div className="flex-1">
-              <h3 className={`font-semibold ${
-                chatRoomTask?.status === 'completed' ? 'text-green-800' : 
-                chatRoomTask?.status === 'failed' ? 'text-red-800' : 'text-blue-800'
-              }`}>
-                Communication Setup
-              </h3>
-              <p className={`text-sm ${
-                chatRoomTask?.status === 'completed' ? 'text-green-700' : 
-                chatRoomTask?.status === 'failed' ? 'text-red-700' : 'text-blue-700'
-              }`}>
-                {chatRoomTask?.status === 'completed' 
-                  ? 'Your secure chat room with the care team is ready'
-                  : chatRoomTask?.status === 'failed'
-                  ? 'There was an issue setting up your communication channel. Retrying...'
-                  : 'Setting up secure messaging with your care team'
-                }
-              </p>
-            </div>
-          </div>
-
-          {/* Welcome Message - CRITICAL FOR COMPLETION */}
-          <div className={`flex items-center gap-4 p-4 rounded-lg border ${
-            welcomeTask?.status === 'completed' 
-              ? 'bg-green-50 border-green-200' 
-              : welcomeTask?.status === 'failed'
-              ? 'bg-red-50 border-red-200'
-              : 'bg-blue-50 border-blue-200'
-          }`}>
-            {welcomeTask?.status === 'completed' ? (
-              <CheckCircle className="h-6 w-6 text-green-600" />
-            ) : welcomeTask?.status === 'failed' ? (
-              <AlertCircle className="h-6 w-6 text-red-600" />
-            ) : (
-              <Clock className="h-6 w-6 text-blue-600 animate-pulse" />
-            )}
-            <div className="flex-1">
-              <h3 className={`font-semibold ${
-                welcomeTask?.status === 'completed' ? 'text-green-800' : 
-                welcomeTask?.status === 'failed' ? 'text-red-800' : 'text-blue-800'
-              }`}>
-                Welcome Notification
-              </h3>
-              <p className={`text-sm ${
-                welcomeTask?.status === 'completed' ? 'text-green-700' : 
-                welcomeTask?.status === 'failed' ? 'text-red-700' : 'text-blue-700'
-              }`}>
-                {welcomeTask?.status === 'completed' 
-                  ? 'Welcome notifications sent successfully to your email and phone'
-                  : welcomeTask?.status === 'failed'
-                  ? 'There was an issue sending your welcome notification. Retrying...'
-                  : 'Sending your personalized welcome notification'
-                }
-              </p>
-            </div>
-          </div>
+                {isCompleted ? (
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                ) : isFailed ? (
+                  <AlertCircle className="h-6 w-6 text-red-600" />
+                ) : (
+                  <Clock className="h-6 w-6 text-blue-600 animate-pulse" />
+                )}
+                <div className="flex-1">
+                  <h3 className={`font-semibold ${
+                    isCompleted ? 'text-green-800' : 
+                    isFailed ? 'text-red-800' : 'text-blue-800'
+                  }`}>
+                    {taskConfig.title}
+                  </h3>
+                  <p className={`text-sm ${
+                    isCompleted ? 'text-green-700' : 
+                    isFailed ? 'text-red-700' : 'text-blue-700'
+                  }`}>
+                    {isCompleted 
+                      ? `${taskConfig.description} - Complete!`
+                      : isFailed
+                      ? `${taskConfig.description} - Retrying...`
+                      : taskConfig.description
+                    }
+                  </p>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Auto-redirect countdown - ONLY show when ALL tasks including notification are complete */}
-        {autoRedirectCountdown !== null && isFullyComplete && (
+        {/* Auto-redirect countdown */}
+        {autoRedirectCountdown !== null && isComplete && (
           <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg text-center">
             <h3 className="font-semibold text-purple-800 mb-2">
-              🎉 Registration Complete!
+              🎉 Setup Complete!
             </h3>
             <p className="text-purple-700 mb-3">
-              All setup tasks including welcome notification have been completed successfully! Redirecting to your dashboard in {autoRedirectCountdown} seconds...
+              Your account is ready! Redirecting to your dashboard in {autoRedirectCountdown} seconds...
             </p>
             <Button 
               onClick={handleManualComplete}
@@ -335,7 +324,7 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
         )}
 
         {/* Actions for incomplete registration */}
-        {!isFullyComplete && (
+        {!isComplete && (
           <div className="flex flex-col gap-3 pt-4 border-t">
             <div className="flex gap-2">
               <Button
@@ -368,7 +357,7 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
                 ) : (
                   <>
                     <LogOut className="h-4 w-4 mr-2" />
-                    Log Out
+                    Sign Out
                   </>
                 )}
               </Button>
@@ -377,19 +366,14 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
             <div className="text-center text-sm text-gray-600">
               <p>Setup tasks are processing automatically in the background.</p>
               <p className="font-medium text-purple-700">
-                You can log out and the registration will continue. Log back in anytime to check progress.
+                You can sign out and the setup will continue. Log back in anytime to check progress.
               </p>
-              {hasFailedTasks && (
-                <p className="text-red-600 font-medium mt-2">
-                  Some tasks encountered issues and are being retried automatically.
-                </p>
-              )}
             </div>
           </div>
         )}
 
         {/* Manual redirect for completed registration */}
-        {isFullyComplete && autoRedirectCountdown === null && (
+        {isComplete && autoRedirectCountdown === null && (
           <div className="pt-4 border-t">
             <Button 
               onClick={handleManualComplete}

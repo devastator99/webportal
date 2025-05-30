@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '../ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../ui/card';
@@ -7,6 +6,7 @@ import { useRegistrationProcess } from '@/hooks/useRegistrationProcess';
 import { useToast } from '@/hooks/use-toast';
 import { Spinner } from '@/components/ui/spinner';
 import { Shield, Clock, Users, MessageSquare, FileText, CheckCircle } from 'lucide-react';
+import { Loader2 } from '@/components/ui/loader2';
 
 interface RegistrationPaymentProps {
   onComplete: () => void;
@@ -22,12 +22,13 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
   registrationFee = 500,
   userInfo
 }) => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [razorpayKeyId, setRazorpayKeyId] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   
   const {
     createOrder,
@@ -214,6 +215,34 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
     }
   };
   
+  // Add sign out handler
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+    
+    try {
+      setIsSigningOut(true);
+      
+      toast({
+        title: "Signing out",
+        description: "You can complete your registration later. Your account is saved and payment can be completed anytime.",
+      });
+      
+      // Keep registration state for resuming later
+      // Don't clear localStorage flags here - they should persist
+      
+      await signOut();
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
+  
   // Check if the Razorpay script is loaded
   useEffect(() => {
     if (!(window as any).Razorpay) {
@@ -358,15 +387,35 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
           )}
         </Button>
         
-        <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
-          <div className="flex items-center gap-1">
-            <Shield className="h-3 w-3" />
-            <span>Secure Payment</span>
+        {/* Sign Out Option */}
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
+            <div className="flex items-center gap-1">
+              <Shield className="h-3 w-3" />
+              <span>Secure Payment</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <CheckCircle className="h-3 w-3" />
+              <span>Instant Activation</span>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <CheckCircle className="h-3 w-3" />
-            <span>Instant Activation</span>
-          </div>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleSignOut}
+            disabled={isSigningOut}
+            className="text-gray-600 hover:text-gray-800"
+          >
+            {isSigningOut ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                Signing Out...
+              </>
+            ) : (
+              'Sign Out'
+            )}
+          </Button>
         </div>
         
         {process.env.NODE_ENV === 'development' && (
