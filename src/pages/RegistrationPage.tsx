@@ -36,17 +36,22 @@ const RegistrationPage = () => {
         
         // For patients, if payment is complete, go to progress step
         if (savedRole === 'patient' && paymentComplete) {
+          console.log("Patient with completed payment, setting step to 3");
           setRegistrationStep(3);
-        } else if (savedRole === 'patient' && step === 2) {
-          setRegistrationStep(2); // Stay on payment step
+        } else if (savedRole === 'patient' && step >= 2) {
+          console.log("Patient registration, setting step to 2 (payment)");
+          setRegistrationStep(2); // Payment step for patients
         } else if (savedRole !== 'patient' && step >= 2) {
-          setRegistrationStep(2); // Non-patients go directly to progress
+          console.log("Non-patient registration, setting step to 2 (progress)");
+          setRegistrationStep(2); // Progress step for non-patients
         } else {
+          console.log("Starting from form step");
           setRegistrationStep(1); // Start from form
         }
         
         setPreventRedirection(true);
       } else {
+        console.log("No saved registration state, clearing localStorage");
         // Clear any stale state
         localStorage.removeItem('registration_step');
         localStorage.removeItem('registration_user_role');
@@ -92,7 +97,10 @@ const RegistrationPage = () => {
     patientData?: any
   ) => {
     try {
+      console.log("=== FORM SUBMISSION STARTED ===");
       console.log("Registration form submitted with user type:", userType);
+      console.log("Form data:", { email, firstName, lastName, userType, patientData });
+      
       setError(null);
       setPreventRedirection(true);
       
@@ -100,6 +108,7 @@ const RegistrationPage = () => {
       setUserInfo({ firstName, lastName });
       setRegisteredUserRole(userType!);
       
+      console.log("Storing registration state in localStorage");
       // Store registration state
       localStorage.setItem('registration_step', '2');
       localStorage.setItem('registration_user_role', userType!);
@@ -109,8 +118,9 @@ const RegistrationPage = () => {
         emergencyContact: patientData.emergencyContact || patientData.phone
       } : undefined;
       
+      console.log("Calling handleSignUp...");
       // Create the user account
-      const user = await handleSignUp(
+      const newUser = await handleSignUp(
         email,
         password,
         userType as any,
@@ -119,11 +129,14 @@ const RegistrationPage = () => {
         enhancedPatientData
       );
       
-      if (user) {
+      if (newUser) {
+        console.log("=== ACCOUNT CREATED SUCCESSFULLY ===");
         console.log("Account created successfully for role:", userType);
+        console.log("New user:", newUser.id);
         
         // Route based on user type
         if (userType === 'patient') {
+          console.log("Patient registration - moving to PAYMENT step");
           // Patients go to payment step
           setRegistrationStep(2);
           toast({
@@ -131,6 +144,7 @@ const RegistrationPage = () => {
             description: "Please complete the payment to activate your account.",
           });
         } else {
+          console.log("Non-patient registration - moving to PROGRESS step");
           // All other roles skip payment and go directly to progress step
           setRegistrationStep(2); // For non-patients, step 2 is progress
           toast({
@@ -138,9 +152,17 @@ const RegistrationPage = () => {
             description: "Setting up your account and permissions...",
           });
         }
+        
+        console.log("=== FORM SUBMISSION COMPLETED ===");
+        console.log("Final step set to:", registrationStep);
+      } else {
+        console.error("User creation failed - no user returned");
+        throw new Error("Failed to create user account");
       }
     } catch (error: any) {
+      console.error("=== REGISTRATION ERROR ===");
       console.error("Registration error:", error);
+      console.error("Error details:", error.message);
       
       // Clean up localStorage if registration fails
       localStorage.removeItem('registration_step');
@@ -204,12 +226,29 @@ const RegistrationPage = () => {
     return 'Registration';
   };
 
+  console.log("=== REGISTRATION PAGE RENDER ===");
+  console.log("Current state:", {
+    registrationStep,
+    registeredUserRole,
+    userInfo,
+    preventRedirection,
+    user: user?.id,
+    userRole
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 pt-16 md:pt-20 overflow-hidden">
       <div className="sm:mx-auto sm:w-full sm:max-w-4xl">
         <h2 className="mt-3 text-center text-2xl sm:text-3xl font-bold text-saas-dark mb-8">
           {getStepTitle()}
         </h2>
+        
+        {/* Debug info in development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mb-4 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs">
+            <strong>Debug:</strong> Step {registrationStep}, Role: {registeredUserRole || 'none'}, User: {user?.id || 'none'}
+          </div>
+        )}
       </div>
 
       <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md">
