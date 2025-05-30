@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import AuthService, { UserRole } from '@/services/AuthService';
@@ -104,7 +103,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log("Initializing auth state with database trigger support");
     authStateInitializedRef.current = true;
     
-    // Enhanced role setter with retry logic for database trigger
+    // Enhanced role setter with proper loading state management
     const enhancedSetUserRole = (role: UserRole) => {
       console.log("Setting user role:", role);
       setIsLoadingRole(false);

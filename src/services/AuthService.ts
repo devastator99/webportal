@@ -67,39 +67,67 @@ class AuthService {
     }
   }
 
-  // Fetch user role with proper error handling and timeout
+  // Fetch user role with improved retry logic and no aggressive timeout
   private async fetchUserRole(userId: string, setUserRole: (role: UserRole) => void): Promise<void> {
-    try {
-      console.log("Fetching user role for:", userId);
-      
-      // Add timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Role fetch timeout')), 10000);
-      });
-      
-      const rolePromise = supabase.rpc('get_user_role', {
-        lookup_user_id: userId
-      });
-      
-      const { data: roleData, error: roleError } = await Promise.race([rolePromise, timeoutPromise]) as any;
-      
-      if (roleError) {
-        console.error("Error fetching user role:", roleError);
-        setUserRole(null);
-        return;
+    const maxRetries = 3;
+    let currentRetry = 0;
+    
+    while (currentRetry < maxRetries) {
+      try {
+        console.log(`Fetching user role for: ${userId} (attempt ${currentRetry + 1})`);
+        
+        const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
+          lookup_user_id: userId
+        });
+        
+        if (roleError) {
+          console.error(`Error fetching user role (attempt ${currentRetry + 1}):`, roleError);
+          
+          // If it's the last retry, set null and break
+          if (currentRetry === maxRetries - 1) {
+            console.warn("Max retries reached, setting role to null");
+            setUserRole(null);
+            return;
+          }
+          
+          // Wait before retrying (exponential backoff)
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, currentRetry) * 1000));
+          currentRetry++;
+          continue;
+        }
+        
+        if (roleData && roleData.length > 0) {
+          const userRoleValue = roleData[0]?.role as UserRole || null;
+          console.log("User role fetched successfully:", userRoleValue);
+          setUserRole(userRoleValue);
+          return;
+        } else {
+          console.warn(`No role data returned for user: ${userId}`);
+          
+          // For database trigger, role might not exist yet for very new users
+          // Wait a bit and retry
+          if (currentRetry < maxRetries - 1) {
+            console.log("Role not found, retrying in case database trigger is still processing...");
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            currentRetry++;
+            continue;
+          } else {
+            console.warn("No role found after all retries");
+            setUserRole(null);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error(`Exception in role fetching (attempt ${currentRetry + 1}):`, error);
+        
+        if (currentRetry === maxRetries - 1) {
+          setUserRole(null);
+          return;
+        }
+        
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, currentRetry) * 1000));
+        currentRetry++;
       }
-      
-      if (roleData && roleData.length > 0) {
-        const userRoleValue = roleData[0]?.role as UserRole || null;
-        console.log("User role fetched successfully:", userRoleValue);
-        setUserRole(userRoleValue);
-      } else {
-        console.warn("No role data returned for user:", userId);
-        setUserRole(null);
-      }
-    } catch (error) {
-      console.error("Exception in role fetching:", error);
-      setUserRole(null);
     }
   }
 
@@ -123,7 +151,7 @@ class AuthService {
       console.log("Setting user:", newUser?.email || 'null');
       setUser(newUser);
       if (newUser) {
-        // Fetch role immediately without setTimeout
+        // Fetch role immediately for authenticated users
         this.fetchUserRole(newUser.id, enhancedSetUserRole);
       } else {
         enhancedSetUserRole(null);
