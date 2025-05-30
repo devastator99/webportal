@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -102,7 +103,7 @@ const RegistrationPage = () => {
       
       setError(null);
       setPreventRedirection(true);
-      setIsProcessingRegistration(true); // Add processing state
+      setIsProcessingRegistration(true);
       
       // Store user info and role FIRST
       setUserInfo({ firstName, lastName });
@@ -133,11 +134,12 @@ const RegistrationPage = () => {
         console.log("=== ACCOUNT CREATED SUCCESSFULLY ===");
         console.log("Account created successfully for role:", userType);
         
-        // IMMEDIATELY set the registration step and stop processing
+        // IMMEDIATELY update state synchronously - don't wait for anything
+        setIsProcessingRegistration(false);
+        
         if (userType === 'patient') {
           console.log("Patient registration - IMMEDIATELY moving to PAYMENT step");
           setRegistrationStep(2);
-          setIsProcessingRegistration(false); // Stop processing immediately
           toast({
             title: "Account Created!",
             description: "Please complete the payment to activate your account.",
@@ -145,7 +147,6 @@ const RegistrationPage = () => {
         } else {
           console.log("Non-patient registration - IMMEDIATELY moving to PROGRESS step");
           setRegistrationStep(2);
-          setIsProcessingRegistration(false); // Stop processing immediately
           toast({
             title: "Account Created!",
             description: "Setting up your account and permissions...",
@@ -251,8 +252,8 @@ const RegistrationPage = () => {
       </div>
 
       <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        {/* Step 1: Registration Form (All Roles) - Hide if processing */}
-        {registrationStep === 1 && !isProcessingRegistration && (
+        {/* Step 1: Registration Form (All Roles) */}
+        {registrationStep === 1 && (
           <div className="bg-white py-6 sm:py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10 relative">
             <ScrollArea 
               className="w-full" 
