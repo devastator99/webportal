@@ -1,10 +1,11 @@
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { UserRegistrationStatus, RegistrationStatusValues } from '@/types/registration';
 import { Card, CardContent } from '@/components/ui/card';
+import { useRegistrationState } from '@/hooks/useRegistrationState';
 
 interface RegistrationStatusCheckerProps {
   children: React.ReactNode;
@@ -16,6 +17,16 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
   const location = useLocation();
   const [isChecking, setIsChecking] = useState(true);
   const [hasRedirected, setHasRedirected] = useState(false);
+  const lastCheckTime = useRef<number>(0);
+  const redirectAttempts = useRef<number>(0);
+  
+  const {
+    getRegistrationState,
+    isUserInActiveRegistration,
+    clearRegistrationState,
+    fixStateIssues,
+    debugMode
+  } = useRegistrationState();
   
   // Helper function to check if registration is truly complete
   const isRegistrationFullyComplete = (regStatus: UserRegistrationStatus): boolean => {
@@ -30,14 +41,53 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
     
     return requiredTaskTypes.every(taskType => completedTaskTypes.includes(taskType));
   };
+
+  // Debounced redirect function to prevent rapid redirects
+  const safeRedirect = (path: string, reason: string) => {
+    const now = Date.now();
+    const timeSinceLastCheck = now - lastCheckTime.current;
+    
+    // Prevent redirects if we just checked recently (within 2 seconds)
+    if (timeSinceLastCheck < 2000) {
+      if (debugMode) {
+        console.log(`[RegistrationStatusChecker] Skipping redirect - too recent (${timeSinceLastCheck}ms ago)`);
+      }
+      return;
+    }
+
+    // Prevent too many redirect attempts
+    if (redirectAttempts.current >= 3) {
+      if (debugMode) {
+        console.log('[RegistrationStatusChecker] Too many redirect attempts, stopping');
+      }
+      return;
+    }
+
+    if (debugMode) {
+      console.log(`[RegistrationStatusChecker] Safe redirect to ${path}: ${reason}`);
+    }
+    
+    redirectAttempts.current++;
+    lastCheckTime.current = now;
+    setHasRedirected(true);
+    navigate(path, { replace: true });
+  };
   
   useEffect(() => {
     const checkRegistrationStatus = async () => {
       // Only check for patients with valid roles
       if (!user?.id || userRole !== 'patient') {
-        console.log("RegistrationStatusChecker: Not a patient or no user, skipping check");
+        if (debugMode) {
+          console.log("RegistrationStatusChecker: Not a patient or no user, skipping check");
+        }
         setIsChecking(false);
         return;
+      }
+      
+      // Fix any state issues first
+      const wasFixed = fixStateIssues();
+      if (wasFixed && debugMode) {
+        console.log("RegistrationStatusChecker: Fixed state issues");
       }
       
       // Prevent infinite loops - be more conservative about redirects
@@ -45,13 +95,17 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
       const isOnCriticalPath = criticalPaths.some(path => location.pathname.includes(path));
       
       if (location.pathname.includes('/register') || hasRedirected) {
-        console.log("RegistrationStatusChecker: Already on registration page or redirected, skipping");
+        if (debugMode) {
+          console.log("RegistrationStatusChecker: Already on registration page or redirected, skipping");
+        }
         setIsChecking(false);
         return;
       }
       
       try {
-        console.log("RegistrationStatusChecker: Checking registration status for patient:", user.id);
+        if (debugMode) {
+          console.log("RegistrationStatusChecker: Checking registration status for patient:", user.id);
+        }
         
         const { data, error } = await supabase.rpc('get_user_registration_status_safe', {
           p_user_id: user.id
@@ -64,31 +118,31 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
         }
         
         const regStatus = data as unknown as UserRegistrationStatus;
-        console.log("RegistrationStatusChecker: Registration status:", regStatus.registration_status);
+        if (debugMode) {
+          console.log("RegistrationStatusChecker: Registration status:", regStatus.registration_status);
+        }
         
         // Check if registration is truly complete
         const isFullyComplete = isRegistrationFullyComplete(regStatus);
         
         if (isFullyComplete) {
-          console.log("RegistrationStatusChecker: Registration is fully complete, clearing flags and proceeding");
-          localStorage.removeItem('registration_payment_pending');
-          localStorage.removeItem('registration_payment_complete');
-          localStorage.removeItem('registration_step');
-          localStorage.removeItem('registration_user_role');
+          if (debugMode) {
+            console.log("RegistrationStatusChecker: Registration is fully complete, clearing flags and proceeding");
+          }
+          clearRegistrationState();
           setIsChecking(false);
           return;
         }
         
         // Only redirect for incomplete registrations if we're in a safe state
         if (regStatus.registration_status === RegistrationStatusValues.PAYMENT_PENDING) {
-          console.log("RegistrationStatusChecker: Registration payment pending, will redirect if safe");
-          localStorage.setItem('registration_payment_pending', 'true');
-          localStorage.setItem('registration_payment_complete', 'false');
+          if (debugMode) {
+            console.log("RegistrationStatusChecker: Registration payment pending");
+          }
           
           // Only redirect if we're not already in a critical flow
-          if (!isOnCriticalPath) {
-            setHasRedirected(true);
-            navigate('/register', { replace: true });
+          if (!isOnCriticalPath && !hasRedirected) {
+            safeRedirect('/register', 'Payment pending');
             return;
           }
         }
@@ -98,14 +152,13 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
           RegistrationStatusValues.PAYMENT_COMPLETE, 
           RegistrationStatusValues.CARE_TEAM_ASSIGNED
         ].includes(regStatus.registration_status)) {
-          console.log("RegistrationStatusChecker: Registration progress pending, but being conservative");
-          localStorage.setItem('registration_payment_pending', 'false');
-          localStorage.setItem('registration_payment_complete', 'true');
+          if (debugMode) {
+            console.log("RegistrationStatusChecker: Registration progress pending, but being conservative");
+          }
           
           // Only redirect if absolutely necessary and safe
-          if (location.pathname === '/' || location.pathname === '/home') {
-            setHasRedirected(true);
-            navigate('/register', { replace: true });
+          if ((location.pathname === '/' || location.pathname === '/home') && !hasRedirected) {
+            safeRedirect('/register', 'Registration incomplete');
             return;
           }
         }
@@ -120,10 +173,10 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
     // Add a delay to prevent immediate redirect loops and allow auth state to settle
     const timeoutId = setTimeout(() => {
       checkRegistrationStatus();
-    }, 500);
+    }, 1000);
     
     return () => clearTimeout(timeoutId);
-  }, [user?.id, userRole, navigate, location.pathname, hasRedirected]);
+  }, [user?.id, userRole, navigate, location.pathname, hasRedirected, debugMode, fixStateIssues, clearRegistrationState]);
   
   // Show loading if we're still checking registration
   if (isChecking) {

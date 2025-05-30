@@ -10,6 +10,7 @@ import { useAuthHandlers } from '@/hooks/useAuthHandlers';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { useRegistrationState } from '@/hooks/useRegistrationState';
 
 const RegistrationPage = () => {
   const { user, userRole, isLoading, isLoadingRole, signOut } = useAuth();
@@ -24,69 +25,95 @@ const RegistrationPage = () => {
   const [isProcessingRegistration, setIsProcessingRegistration] = useState(false);
   const [hasIncompleteRegistration, setHasIncompleteRegistration] = useState(false);
 
+  const {
+    getRegistrationState,
+    isUserInActiveRegistration,
+    updateRegistrationStep,
+    updateUserRole,
+    updatePaymentStatus,
+    clearRegistrationState,
+    validateState,
+    fixStateIssues,
+    debugMode
+  } = useRegistrationState();
+
   // Check for existing registration state on load
   useEffect(() => {
     const checkRegistrationState = () => {
-      const savedStep = localStorage.getItem('registration_step');
-      const savedRole = localStorage.getItem('registration_user_role');
-      const paymentComplete = localStorage.getItem('registration_payment_complete') === 'true';
+      const state = getRegistrationState();
       
-      console.log("Registration page loaded with state:", { savedStep, savedRole, paymentComplete, user, userRole });
+      if (debugMode) {
+        console.log("Registration page loaded with state:", state);
+      }
+      
+      // Fix any state issues first
+      fixStateIssues();
       
       // If user exists but has no role and no active registration, they have incomplete registration
-      if (user && !userRole && !savedStep && !savedRole) {
-        console.log("Detected incomplete registration for existing user");
+      if (user && !userRole && !state.userRole && state.step === 1) {
+        if (debugMode) {
+          console.log("Detected incomplete registration for existing user");
+        }
         setHasIncompleteRegistration(true);
         setPreventRedirection(true);
         return;
       }
       
-      if (user && savedStep && savedRole) {
-        const step = parseInt(savedStep, 10);
-        setRegisteredUserRole(savedRole);
+      if (user && state.userRole && state.step > 1) {
+        setRegisteredUserRole(state.userRole);
         
         // For patients, if payment is complete, go to progress step
-        if (savedRole === 'patient' && paymentComplete) {
-          console.log("Patient with completed payment, setting step to 3");
+        if (state.userRole === 'patient' && state.paymentComplete) {
+          if (debugMode) {
+            console.log("Patient with completed payment, setting step to 3");
+          }
           setRegistrationStep(3);
-        } else if (savedRole === 'patient' && step >= 2) {
-          console.log("Patient registration, setting step to 2 (payment)");
+        } else if (state.userRole === 'patient' && state.step >= 2) {
+          if (debugMode) {
+            console.log("Patient registration, setting step to 2 (payment)");
+          }
           setRegistrationStep(2); // Payment step for patients
-        } else if (savedRole !== 'patient' && step >= 2) {
-          console.log("Non-patient registration, setting step to 2 (progress)");
+        } else if (state.userRole !== 'patient' && state.step >= 2) {
+          if (debugMode) {
+            console.log("Non-patient registration, setting step to 2 (progress)");
+          }
           setRegistrationStep(2); // Progress step for non-patients
         } else {
-          console.log("Starting from form step");
+          if (debugMode) {
+            console.log("Starting from form step");
+          }
           setRegistrationStep(1); // Start from form
         }
         
         setPreventRedirection(true);
       } else {
-        console.log("No saved registration state, clearing localStorage");
-        // Clear any stale state
-        localStorage.removeItem('registration_step');
-        localStorage.removeItem('registration_user_role');
-        localStorage.removeItem('registration_payment_complete');
+        if (debugMode) {
+          console.log("No saved registration state");
+        }
         setRegistrationStep(1);
       }
     };
     
     checkRegistrationState();
-  }, [user, userRole]);
+  }, [user, userRole, getRegistrationState, fixStateIssues, debugMode]);
 
   // Enhanced redirect logic for authenticated users with completed registration
   useEffect(() => {
     if (!isLoading && !isLoadingRole && user && userRole && !preventRedirection && !hasIncompleteRegistration) {
-      console.log("User with role detected, checking if should redirect to dashboard");
+      if (debugMode) {
+        console.log("User with role detected, checking if should redirect to dashboard");
+      }
       
       // Check if this is a completed registration
-      const savedStep = localStorage.getItem('registration_step');
-      if (!savedStep) {
-        console.log("No registration in progress, redirecting to dashboard");
+      const state = getRegistrationState();
+      if (state.step === 1 && !state.userRole) {
+        if (debugMode) {
+          console.log("No registration in progress, redirecting to dashboard");
+        }
         navigate('/dashboard', { replace: true });
       }
     }
-  }, [user, userRole, isLoading, isLoadingRole, navigate, preventRedirection, hasIncompleteRegistration]);
+  }, [user, userRole, isLoading, isLoadingRole, navigate, preventRedirection, hasIncompleteRegistration, getRegistrationState, debugMode]);
 
   // Show loading state
   if (isLoading || isLoadingRole) {
@@ -108,8 +135,10 @@ const RegistrationPage = () => {
     patientData?: any
   ) => {
     try {
-      console.log("=== FORM SUBMISSION STARTED ===");
-      console.log("Registration form submitted with user type:", userType);
+      if (debugMode) {
+        console.log("=== FORM SUBMISSION STARTED ===");
+        console.log("Registration form submitted with user type:", userType);
+      }
       
       setError(null);
       setPreventRedirection(true);
@@ -119,17 +148,19 @@ const RegistrationPage = () => {
       setUserInfo({ firstName, lastName });
       setRegisteredUserRole(userType!);
       
-      console.log("Storing registration state in localStorage");
-      // Store registration state
-      localStorage.setItem('registration_step', '2');
-      localStorage.setItem('registration_user_role', userType!);
+      // Store registration state using new state manager
+      updateRegistrationStep(2);
+      updateUserRole(userType!);
       
       const enhancedPatientData = patientData ? {
         ...patientData,
         emergencyContact: patientData.emergencyContact || patientData.phone
       } : undefined;
       
-      console.log("Calling handleSignUp...");
+      if (debugMode) {
+        console.log("Calling handleSignUp...");
+      }
+      
       // Create the user account
       const newUser = await handleSignUp(
         email,
@@ -141,8 +172,10 @@ const RegistrationPage = () => {
       );
       
       if (newUser) {
-        console.log("=== ACCOUNT CREATED SUCCESSFULLY ===");
-        console.log("Account created successfully for role:", userType);
+        if (debugMode) {
+          console.log("=== ACCOUNT CREATED SUCCESSFULLY ===");
+          console.log("Account created successfully for role:", userType);
+        }
         
         // Clear incomplete registration flag
         setHasIncompleteRegistration(false);
@@ -151,14 +184,18 @@ const RegistrationPage = () => {
         setIsProcessingRegistration(false);
         
         if (userType === 'patient') {
-          console.log("Patient registration - IMMEDIATELY moving to PAYMENT step");
+          if (debugMode) {
+            console.log("Patient registration - IMMEDIATELY moving to PAYMENT step");
+          }
           setRegistrationStep(2);
           toast({
             title: "Account Created!",
             description: "Please complete the payment to activate your account.",
           });
         } else {
-          console.log("Non-patient registration - IMMEDIATELY moving to PROGRESS step");
+          if (debugMode) {
+            console.log("Non-patient registration - IMMEDIATELY moving to PROGRESS step");
+          }
           setRegistrationStep(2);
           toast({
             title: "Account Created!",
@@ -166,7 +203,9 @@ const RegistrationPage = () => {
           });
         }
         
-        console.log("=== FORM SUBMISSION COMPLETED ===");
+        if (debugMode) {
+          console.log("=== FORM SUBMISSION COMPLETED ===");
+        }
       } else {
         console.error("User creation failed - no user returned");
         throw new Error("Failed to create user account");
@@ -175,10 +214,8 @@ const RegistrationPage = () => {
       console.error("=== REGISTRATION ERROR ===");
       console.error("Registration error:", error);
       
-      // Clean up localStorage if registration fails
-      localStorage.removeItem('registration_step');
-      localStorage.removeItem('registration_user_role');
-      localStorage.removeItem('registration_payment_complete');
+      // Clean up state if registration fails
+      clearRegistrationState();
       setPreventRedirection(false);
       setIsProcessingRegistration(false);
       
@@ -192,10 +229,12 @@ const RegistrationPage = () => {
 
   // Handle payment completion (patients only)
   const handlePaymentComplete = () => {
-    console.log("Payment completed, moving to progress step");
+    if (debugMode) {
+      console.log("Payment completed, moving to progress step");
+    }
     
-    localStorage.setItem('registration_payment_complete', 'true');
-    localStorage.setItem('registration_step', '3');
+    updatePaymentStatus(true, false);
+    updateRegistrationStep(3);
     
     toast({
       title: "Payment Complete!",
@@ -207,12 +246,12 @@ const RegistrationPage = () => {
 
   // Handle final registration completion
   const handleRegistrationComplete = () => {
-    console.log("Registration fully complete, redirecting to dashboard");
+    if (debugMode) {
+      console.log("Registration fully complete, redirecting to dashboard");
+    }
     
-    // Clear all localStorage flags
-    localStorage.removeItem('registration_step');
-    localStorage.removeItem('registration_user_role');
-    localStorage.removeItem('registration_payment_complete');
+    // Clear all registration state
+    clearRegistrationState();
     setPreventRedirection(false);
     setHasIncompleteRegistration(false);
     
@@ -225,12 +264,14 @@ const RegistrationPage = () => {
     navigate("/dashboard", { replace: true });
   };
 
-  // Handle navigation back to home
+  // Enhanced navigation back to home with proper cleanup
   const handleBackToHome = () => {
+    if (debugMode) {
+      console.log('[RegistrationPage] Handling back to home navigation');
+    }
+    
     // Clear any registration state
-    localStorage.removeItem('registration_step');
-    localStorage.removeItem('registration_user_role');
-    localStorage.removeItem('registration_payment_complete');
+    clearRegistrationState();
     
     // Reset component state that prevents redirection
     setPreventRedirection(false);
@@ -277,17 +318,19 @@ const RegistrationPage = () => {
     return 'Registration';
   };
 
-  console.log("=== REGISTRATION PAGE RENDER ===");
-  console.log("Current state:", {
-    registrationStep,
-    registeredUserRole,
-    userInfo,
-    preventRedirection,
-    user: user?.id,
-    userRole,
-    isProcessingRegistration,
-    hasIncompleteRegistration
-  });
+  if (debugMode) {
+    console.log("=== REGISTRATION PAGE RENDER ===");
+    console.log("Current state:", {
+      registrationStep,
+      registeredUserRole,
+      userInfo,
+      preventRedirection,
+      user: user?.id,
+      userRole,
+      isProcessingRegistration,
+      hasIncompleteRegistration
+    });
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 pt-16 md:pt-20 overflow-hidden">
@@ -330,7 +373,7 @@ const RegistrationPage = () => {
         )}
         
         {/* Debug info in development */}
-        {process.env.NODE_ENV === 'development' && (
+        {debugMode && (
           <div className="mb-4 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs">
             <strong>Debug:</strong> Step {registrationStep}, Role: {registeredUserRole || 'none'}, User: {user?.id || 'none'}, Processing: {isProcessingRegistration}, Incomplete: {hasIncompleteRegistration}
           </div>

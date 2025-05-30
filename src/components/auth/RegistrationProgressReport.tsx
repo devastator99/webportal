@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, Clock, Users, MessageSquare, ArrowRight, Loader2, AlertCircle, LogOut } from 'lucide-react';
+import { CheckCircle, Clock, Users, MessageSquare, ArrowRight, Loader2, AlertCircle, LogOut, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { UserRegistrationStatus, RegistrationStatusValues } from '@/types/registration';
 
@@ -23,6 +24,10 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [autoRedirectCountdown, setAutoRedirectCountdown] = useState<number | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [failureCount, setFailureCount] = useState(0);
+  const [isTimedOut, setIsTimedOut] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const maxWaitTime = 5 * 60 * 1000; // 5 minutes timeout
 
   const fetchStatus = async (showLoadingToast = false) => {
     if (!user) return;
@@ -38,17 +43,22 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
       
       if (error) {
         console.error("Error fetching registration status:", error);
-        toast({
-          title: "Error",
-          description: "Failed to fetch registration status",
-          variant: "destructive"
-        });
+        setFailureCount(prev => prev + 1);
+        
+        if (failureCount >= 3) {
+          toast({
+            title: "Connection Issues",
+            description: "Having trouble checking your registration status. You can try refreshing or sign out and check back later.",
+            variant: "destructive"
+          });
+        }
         return;
       }
       
       const regStatus = data as unknown as UserRegistrationStatus;
       console.log("Registration status:", regStatus);
       setStatus(regStatus);
+      setFailureCount(0); // Reset failure count on success
       
       // Check if registration is complete based on role
       if (regStatus.registration_status === RegistrationStatusValues.FULLY_REGISTERED) {
@@ -64,18 +74,21 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
           
           if (allRequiredTasksCompleted) {
             setAutoRedirectCountdown(5);
+            clearTimeout(timeoutRef.current!);
           }
         } else {
           // For non-patients, check if welcome notification is sent
           const welcomeTask = regStatus.tasks?.find(task => task.task_type === 'send_welcome_notification');
           if (welcomeTask?.status === 'completed') {
             setAutoRedirectCountdown(5);
+            clearTimeout(timeoutRef.current!);
           }
         }
       }
       
     } catch (err: any) {
       console.error("Exception fetching registration status:", err);
+      setFailureCount(prev => prev + 1);
       toast({
         title: "Error",
         description: "Failed to fetch registration status",
@@ -105,8 +118,35 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
     return () => clearTimeout(timer);
   }, [autoRedirectCountdown, onComplete]);
 
+  // Set up timeout for registration process
+  useEffect(() => {
+    timeoutRef.current = setTimeout(() => {
+      setIsTimedOut(true);
+      toast({
+        title: "Registration Taking Longer Than Expected",
+        description: "Your registration is taking longer than usual. You can continue waiting, refresh, or sign out and check back later.",
+        variant: "destructive"
+      });
+    }, maxWaitTime);
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     fetchStatus();
+    
+    // Set up periodic polling if registration is not complete
+    const pollInterval = setInterval(() => {
+      if (!autoRedirectCountdown && !isTimedOut) {
+        fetchStatus();
+      }
+    }, 10000); // Poll every 10 seconds
+    
+    return () => clearInterval(pollInterval);
   }, [user]);
 
   const handleManualComplete = () => {
@@ -116,6 +156,8 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
   };
 
   const handleRefresh = () => {
+    setFailureCount(0);
+    setIsTimedOut(false);
     fetchStatus(true);
   };
 
@@ -143,6 +185,43 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
       });
     } finally {
       setIsSigningOut(false);
+    }
+  };
+
+  // Trigger manual task processing for stuck registrations
+  const handleRetryTasks = async () => {
+    if (!user) return;
+    
+    setIsRefreshing(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('trigger-registration-notifications', {
+        body: { patient_id: user.id }
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Tasks Restarted",
+        description: "Registration tasks have been restarted. Please wait a moment and check again.",
+      });
+      
+      // Wait a bit then refresh status
+      setTimeout(() => {
+        fetchStatus();
+      }, 3000);
+      
+    } catch (error: any) {
+      console.error("Error restarting tasks:", error);
+      toast({
+        title: "Retry Failed",
+        description: "Could not restart registration tasks. Please try refreshing or contact support.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRefreshing(false);
     }
   };
 
@@ -218,10 +297,12 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
       <Card className="bg-white shadow-lg border border-gray-100">
         <CardContent className="text-center py-12">
           <p className="text-gray-600 mb-4">Unable to fetch registration status</p>
-          <Button onClick={handleRefresh} disabled={isRefreshing}>
-            {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Try Again
-          </Button>
+          <div className="flex gap-2 justify-center">
+            <Button onClick={handleRefresh} disabled={isRefreshing}>
+              {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              Try Again
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );
@@ -305,6 +386,26 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
           })}
         </div>
 
+        {/* Timeout warning */}
+        {isTimedOut && (
+          <div className="bg-orange-50 border border-orange-200 p-4 rounded-lg">
+            <h3 className="font-semibold text-orange-800 mb-2">
+              ⏰ Taking Longer Than Expected
+            </h3>
+            <p className="text-orange-700 text-sm mb-3">
+              Your registration is taking longer than usual. This sometimes happens during high traffic periods.
+            </p>
+            <Button 
+              onClick={handleRetryTasks}
+              disabled={isRefreshing}
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              Retry Setup
+            </Button>
+          </div>
+        )}
+
         {/* Auto-redirect countdown */}
         {autoRedirectCountdown !== null && isComplete && (
           <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg text-center">
@@ -339,7 +440,10 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
                     Checking...
                   </>
                 ) : (
-                  'Refresh Status'
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Refresh Status
+                  </>
                 )}
               </Button>
               
