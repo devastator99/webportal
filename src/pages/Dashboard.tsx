@@ -1,7 +1,6 @@
 
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { NoRoleWarning } from "@/components/auth/NoRoleWarning";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { PatientDashboard } from "@/components/dashboard/PatientDashboard";
 import { DoctorDashboard } from "@/components/dashboard/doctor/DoctorDashboard";
@@ -16,7 +15,7 @@ import { AppLayout } from "@/layouts/AppLayout";
 import { RegistrationStatusChecker } from "@/components/auth/RegistrationStatusChecker";
 
 const Dashboard = () => {
-  const { user, userRole, isLoading, isLoadingRole, signOut } = useAuth();
+  const { user, userRole, isLoading, isLoadingRole } = useAuth();
   const navigate = useNavigate();
   
   console.log("Dashboard:", { user: user?.id, userRole, isLoading, isLoadingRole });
@@ -28,6 +27,14 @@ const Dashboard = () => {
     }
   }, [user, isLoading, navigate]);
 
+  // Handle users without roles - redirect to registration
+  useEffect(() => {
+    if (!isLoading && !isLoadingRole && user && !userRole) {
+      console.log("Dashboard: User has no role, redirecting to registration");
+      navigate("/register", { replace: true });
+    }
+  }, [user, userRole, isLoading, isLoadingRole, navigate]);
+
   // Show loading while auth or role is loading
   if (isLoading || isLoadingRole) {
     return <DashboardSkeleton />;
@@ -38,13 +45,9 @@ const Dashboard = () => {
     return null;
   }
 
-  // No role - show warning (only if not loading)
+  // No role - redirect will handle this
   if (!userRole) {
-    return (
-      <AppLayout>
-        <NoRoleWarning onSignOut={signOut} />
-      </AppLayout>
-    );
+    return null;
   }
 
   // Render dashboard based on role
@@ -73,7 +76,7 @@ const Dashboard = () => {
       return (
         <AdminAppLayout>
           <AdminDashboard />
-        </AdminAppLayout>
+        </AdminDashboard>
       );
     case 'reception':
       return (
@@ -82,11 +85,9 @@ const Dashboard = () => {
         </AppLayout>
       );
     default:
-      return (
-        <AppLayout>
-          <NoRoleWarning onSignOut={signOut} />
-        </AppLayout>
-      );
+      // For unknown roles, also redirect to registration
+      navigate("/register", { replace: true });
+      return null;
   }
 };
 
