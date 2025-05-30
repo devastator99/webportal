@@ -35,7 +35,7 @@ export const useRegistrationAuth = () => {
     setRegistrationStep("Creating account...");
 
     try {
-      console.log("Registration: Starting user registration process with auth hook...");
+      console.log("Registration: Starting user registration with database trigger...");
       
       // Validate inputs
       if (!identifier || !password || !firstName || !lastName) {
@@ -72,30 +72,30 @@ export const useRegistrationAuth = () => {
         userType
       });
 
-      // Prepare user metadata for the auth hook to process
+      // Prepare user metadata for the database trigger
       const userMetadata = {
         user_type_string: userType,
         first_name: firstName,
         last_name: lastName,
         phone: phoneNumber,
         primary_contact: identifier,
-        // Include patient data in metadata for the hook to process
+        // Include patient data in metadata for the trigger to process
         ...(userType === 'patient' && patientData ? {
           age: patientData.age,
           gender: patientData.gender,
           bloodGroup: patientData.bloodGroup,
           allergies: patientData.allergies,
+          knownAllergies: patientData.knownAllergies,
           emergencyContact: patientData.emergencyContact,
           height: patientData.height,
           birthDate: patientData.birthDate,
           foodHabit: patientData.foodHabit,
-          knownAllergies: patientData.knownAllergies,
           currentMedicalConditions: patientData.currentMedicalConditions
         } : {})
       };
 
-      // Auth signup - the hook will handle profile and role creation
-      console.log("Registration: Attempting Supabase auth signup with hook metadata...");
+      // Auth signup - the database trigger will handle profile and role creation automatically
+      console.log("Registration: Attempting Supabase auth signup with trigger metadata...");
       setRegistrationStep("Setting up your account...");
       
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
@@ -125,10 +125,10 @@ export const useRegistrationAuth = () => {
       }
 
       console.log("Registration: Auth user created successfully:", authData.user.id);
-      console.log("Registration: Auth hook will handle profile and role creation automatically");
+      console.log("Registration: Database trigger will handle profile and role creation automatically");
       
-      setRegistrationStep("Account ready!");
-      console.log("Registration: Registration completed successfully - auth hook will process user setup");
+      setRegistrationStep("Account setup complete!");
+      console.log("Registration: Registration completed successfully - database trigger will process user setup");
       
       return authData.user;
       

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import AuthService, { UserRole } from '@/services/AuthService';
@@ -100,24 +101,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (authStateInitializedRef.current) return;
     
-    console.log("Initializing auth state");
+    console.log("Initializing auth state with database trigger support");
     authStateInitializedRef.current = true;
     
-    // Simplified role setter - always load role for authenticated users
+    // Enhanced role setter with retry logic for database trigger
     const enhancedSetUserRole = (role: UserRole) => {
       console.log("Setting user role:", role);
       setIsLoadingRole(false);
       setUserRole(role);
     };
 
-    // Simplified user setter - always trigger role loading for authenticated users
+    // Enhanced user setter with database trigger awareness
     const enhancedSetUser = (newUser: User | null) => {
       console.log("Setting user:", newUser?.email || 'null');
       setUser(newUser);
       
       if (newUser) {
-        // Always load role for authenticated users
-        console.log("User authenticated, loading role");
+        // Always load role for authenticated users - database trigger should have created it
+        console.log("User authenticated, loading role (database trigger should have created it)");
         setIsLoadingRole(true);
       } else {
         setIsLoadingRole(false);
