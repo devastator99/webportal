@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -7,9 +6,17 @@ import { useRegistrationAuth, PatientData } from "@/hooks/useRegistrationAuth";
 import { LucideLoader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import { EnhancedRegistrationProgress } from "@/components/registration/EnhancedRegistrationProgress";
 
 const Auth = () => {
-  const { user, userRole, isLoading, isLoadingRole } = useAuth();
+  const { 
+    user, 
+    userRole, 
+    isLoading, 
+    isLoadingRole, 
+    isRegistrationComplete, 
+    isLoadingRegistrationStatus 
+  } = useAuth();
   const navigate = useNavigate();
   const { handleRegistration, loading: registrationLoading, error: registrationError } = useRegistrationAuth();
   
@@ -17,24 +24,26 @@ const Auth = () => {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Simple redirect logic - if user has both auth and role, redirect to dashboard
+  // Enhanced redirect logic with registration progress support
   useEffect(() => {
     console.log("Auth page: Current state:", { 
       hasUser: !!user, 
       userRole, 
       isLoading, 
-      isLoadingRole 
+      isLoadingRole,
+      isRegistrationComplete,
+      isLoadingRegistrationStatus
     });
     
     // Don't redirect while still loading
-    if (isLoading || isLoadingRole) {
+    if (isLoading || isLoadingRole || isLoadingRegistrationStatus) {
       console.log("Auth page: Still loading, waiting...");
       return;
     }
     
-    // If user exists and has a role, redirect to dashboard
-    if (user && userRole) {
-      console.log("Auth page: User has both auth and role, redirecting to dashboard:", userRole);
+    // If user exists, has a role, AND registration is complete, redirect to dashboard
+    if (user && userRole && isRegistrationComplete) {
+      console.log("Auth page: User has auth, role, and completed registration - redirecting to dashboard:", userRole);
       navigate("/dashboard", { replace: true });
       return;
     }
@@ -42,12 +51,14 @@ const Auth = () => {
     // If user exists but no role, log the issue but don't redirect infinitely
     if (user && !userRole) {
       console.log("Auth page: User authenticated but no role found");
-      // Don't redirect back, just stay on auth page and let user try again
       return;
     }
     
-    console.log("Auth page: No user, staying on auth page");
-  }, [user, userRole, isLoading, isLoadingRole, navigate]);
+    console.log("Auth page: No user or incomplete registration, staying on auth page");
+  }, [user, userRole, isLoading, isLoadingRole, isRegistrationComplete, isLoadingRegistrationStatus, navigate]);
+
+  // Show registration progress if user has role but registration is not complete
+  const shouldShowRegistrationProgress = user && userRole && !isRegistrationComplete && !isLoadingRegistrationStatus;
 
   const handleLogin = async (email: string, password: string) => {
     setAuthLoading(true);
@@ -104,13 +115,29 @@ const Auth = () => {
   };
 
   // Show loading while anything is loading
-  if (isLoading || isLoadingRole) {
+  if (isLoading || isLoadingRole || isLoadingRegistrationStatus) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center pt-16 md:pt-20">
         <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
         <p className="mt-4 text-sm text-gray-600">
-          {isLoading ? "Loading authentication..." : "Setting up your account..."}
+          {isLoading ? "Loading authentication..." : 
+           isLoadingRole ? "Setting up your account..." :
+           "Checking registration status..."}
         </p>
+      </div>
+    );
+  }
+
+  // Show registration progress if needed
+  if (shouldShowRegistrationProgress) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
+        <div className="sm:mx-auto sm:w-full sm:max-w-2xl">
+          <EnhancedRegistrationProgress 
+            onComplete={() => navigate("/dashboard", { replace: true })}
+            userRole={userRole}
+          />
+        </div>
       </div>
     );
   }

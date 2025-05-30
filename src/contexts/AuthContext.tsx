@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import AuthService, { UserRole } from '@/services/AuthService';
@@ -34,6 +35,8 @@ interface AuthContextType {
   userRole: UserRole;
   isLoading: boolean;
   isLoadingRole: boolean;
+  isRegistrationComplete: boolean;
+  isLoadingRegistrationStatus: boolean;
   isSigningOut: boolean;
   signOut: () => Promise<void>;
   forceSignOut: () => Promise<void>;
@@ -47,6 +50,8 @@ const AuthContext = createContext<AuthContextType>({
   userRole: null,
   isLoading: true,
   isLoadingRole: false,
+  isRegistrationComplete: false,
+  isLoadingRegistrationStatus: false,
   isSigningOut: false,
   signOut: async () => {},
   forceSignOut: async () => {},
@@ -59,6 +64,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingRole, setIsLoadingRole] = useState(false);
+  const [isRegistrationComplete, setIsRegistrationComplete] = useState(false);
+  const [isLoadingRegistrationStatus, setIsLoadingRegistrationStatus] = useState(false);
   const authServiceRef = useRef<AuthService>(AuthService.getInstance());
   const authStateInitializedRef = useRef(false);
   
@@ -122,6 +129,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setIsLoadingRole(false);
         setUserRole(null);
+        setIsRegistrationComplete(false);
+        setIsLoadingRegistrationStatus(false);
       }
     };
     
@@ -130,7 +139,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       enhancedSetUser, 
       setSession, 
       enhancedSetUserRole, 
-      setIsLoading
+      setIsLoading,
+      setIsRegistrationComplete,
+      setIsLoadingRegistrationStatus
     );
     
     return () => {
@@ -190,6 +201,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userRole,
     isLoading,
     isLoadingRole,
+    isRegistrationComplete,
+    isLoadingRegistrationStatus,
     isSigningOut: authServiceRef.current.isSigningOut(),
     signOut,
     forceSignOut,

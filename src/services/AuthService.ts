@@ -131,19 +131,82 @@ class AuthService {
     }
   }
 
+  // Check registration completion status
+  private async checkRegistrationStatus(
+    userId: string, 
+    userRole: UserRole,
+    setIsRegistrationComplete: (complete: boolean) => void,
+    setIsLoadingRegistrationStatus: (loading: boolean) => void
+  ): Promise<void> {
+    try {
+      console.log("Checking registration completion status for:", userId, "with role:", userRole);
+      
+      // Non-patient users are always considered complete
+      if (userRole && userRole !== 'patient') {
+        console.log("Non-patient user, marking registration as complete");
+        setIsRegistrationComplete(true);
+        setIsLoadingRegistrationStatus(false);
+        return;
+      }
+      
+      // For patients, check if registration tasks are complete
+      if (userRole === 'patient') {
+        setIsLoadingRegistrationStatus(true);
+        
+        const { data: registrationData, error: registrationError } = await supabase.rpc(
+          'get_user_registration_status_safe', 
+          { lookup_user_id: userId }
+        );
+        
+        if (registrationError) {
+          console.error("Error checking registration status:", registrationError);
+          // Default to incomplete if we can't check
+          setIsRegistrationComplete(false);
+        } else if (registrationData && registrationData.length > 0) {
+          const status = registrationData[0];
+          const isComplete = status.status === 'fully_registered';
+          console.log("Registration status check result:", { status: status.status, isComplete });
+          setIsRegistrationComplete(isComplete);
+        } else {
+          console.log("No registration status found, marking as incomplete");
+          setIsRegistrationComplete(false);
+        }
+        
+        setIsLoadingRegistrationStatus(false);
+      } else {
+        // No role yet, can't determine completion
+        setIsRegistrationComplete(false);
+        setIsLoadingRegistrationStatus(false);
+      }
+    } catch (error) {
+      console.error("Exception checking registration status:", error);
+      setIsRegistrationComplete(false);
+      setIsLoadingRegistrationStatus(false);
+    }
+  }
+
   // Initialize auth state listeners
   public initializeAuth(
     setUser: (user: User | null) => void,
     setSession: (session: Session | null) => void,
     setUserRole: (role: UserRole) => void,
-    setIsLoading: (loading: boolean) => void
+    setIsLoading: (loading: boolean) => void,
+    setIsRegistrationComplete: (complete: boolean) => void,
+    setIsLoadingRegistrationStatus: (loading: boolean) => void
   ): void {
     console.log('Initializing auth state');
     
-    // Enhanced role setter that tracks loading state
+    // Enhanced role setter that tracks loading state and checks registration
     const enhancedSetUserRole = (role: UserRole) => {
       console.log("Setting user role:", role);
       setUserRole(role);
+      
+      // Check registration status when role is set
+      const currentUser = supabase.auth.getUser().then(({ data: { user } }) => {
+        if (user) {
+          this.checkRegistrationStatus(user.id, role, setIsRegistrationComplete, setIsLoadingRegistrationStatus);
+        }
+      });
     };
 
     // Enhanced user setter that handles role loading
