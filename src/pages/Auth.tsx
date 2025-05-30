@@ -104,7 +104,7 @@ const Auth = () => {
     checkLocalStorageState();
   }, [isRegistration, location.pathname]);
 
-  // Enhanced redirect logic - but don't interfere with step 5
+  // Enhanced redirect logic - but don't interfere with registration flow
   useEffect(() => {
     const handleRedirect = async () => {
       // Don't redirect while still loading
@@ -127,70 +127,41 @@ const Auth = () => {
         return;
       }
       
-      // For patients: Check actual registration completion before redirecting
+      // For patients: Only redirect if we're NOT in an active registration flow
       if (userRole === 'patient') {
-        // If we're in step 5 of registration (RegistrationProgressReport), let that component handle redirects
-        if (isRegistration && registrationStep === 5) {
-          console.log("Patient in step 5, letting RegistrationProgressReport handle redirects");
+        // If we're in registration flow (steps 2-5), let the flow continue - DON'T redirect
+        if (isRegistration && isRegistrationFlow && registrationStep >= 2) {
+          console.log("Patient in active registration flow, step:", registrationStep, "- staying in flow");
           return;
         }
         
-        // If we're in registration flow or on registration route, check completion
-        if (isRegistration || isRegistrationFlow) {
-          console.log("Patient in registration process, checking completion status");
-          
-          // Only check once to avoid infinite loops
-          if (!hasCompletionCheck) {
-            setIsCheckingRegistrationStatus(true);
-            setHasCompletionCheck(true);
-            try {
-              const isComplete = await checkRegistrationComplete(user.id);
-              
-              if (isComplete) {
-                console.log("Patient registration is complete, redirecting to dashboard");
-                // Clear any localStorage flags since registration is complete
-                localStorage.removeItem('registration_payment_pending');
-                localStorage.removeItem('registration_payment_complete');
-                navigate("/dashboard", { replace: true });
-              } else {
-                console.log("Patient registration is incomplete, staying in registration flow");
-                // Stay in registration flow - don't redirect
-              }
-            } catch (error) {
-              console.error("Error checking registration status:", error);
-              // On error, stay in registration flow
-            } finally {
-              setIsCheckingRegistrationStatus(false);
-            }
-          }
-        } else {
-          // Patient not on registration route - check if they need to complete registration
-          if (!hasCompletionCheck) {
-            setIsCheckingRegistrationStatus(true);
-            setHasCompletionCheck(true);
-            try {
-              const isComplete = await checkRegistrationComplete(user.id);
-              
-              if (!isComplete) {
-                console.log("Patient has incomplete registration, redirecting to registration");
-                // Set appropriate localStorage flags
-                localStorage.setItem('registration_payment_complete', 'true');
-                localStorage.setItem('registration_payment_pending', 'false');
-                navigate("/auth/register", { replace: true });
-              } else {
-                console.log("Patient registration is complete, allowing dashboard access");
-                // Clear any localStorage flags since registration is complete
-                localStorage.removeItem('registration_payment_pending');
-                localStorage.removeItem('registration_payment_complete');
-                navigate("/dashboard", { replace: true });
-              }
-            } catch (error) {
-              console.error("Error checking registration status:", error);
-              // On error, redirect to registration to be safe
+        // If not in registration flow, check completion status
+        if (!isRegistrationFlow && !hasCompletionCheck) {
+          console.log("Patient not in registration flow, checking completion status");
+          setIsCheckingRegistrationStatus(true);
+          setHasCompletionCheck(true);
+          try {
+            const isComplete = await checkRegistrationComplete(user.id);
+            
+            if (!isComplete) {
+              console.log("Patient has incomplete registration, redirecting to registration");
+              // Set appropriate localStorage flags
+              localStorage.setItem('registration_payment_complete', 'true');
+              localStorage.setItem('registration_payment_pending', 'false');
               navigate("/auth/register", { replace: true });
-            } finally {
-              setIsCheckingRegistrationStatus(false);
+            } else {
+              console.log("Patient registration is complete, allowing dashboard access");
+              // Clear any localStorage flags since registration is complete
+              localStorage.removeItem('registration_payment_pending');
+              localStorage.removeItem('registration_payment_complete');
+              navigate("/dashboard", { replace: true });
             }
+          } catch (error) {
+            console.error("Error checking registration status:", error);
+            // On error, redirect to registration to be safe
+            navigate("/auth/register", { replace: true });
+          } finally {
+            setIsCheckingRegistrationStatus(false);
           }
         }
         return;
@@ -220,7 +191,7 @@ const Auth = () => {
     );
   }
 
-  // Handle signup form submission - Enhanced to better handle role assignment
+  // Handle signup form submission - Enhanced to properly trigger registration flow
   const handleFormSubmit = async (
     email: string, 
     password: string, 
@@ -287,23 +258,19 @@ const Auth = () => {
     }
   };
 
-  // Handle review confirmation
+  // Handle review confirmation - CREATE USER ACCOUNT HERE
   const handleReviewConfirm = async () => {
     if (!formData) return;
     
     try {
       console.log("Creating user after review confirmation");
       
-      // Set localStorage flags for patient registration
-      localStorage.setItem('registration_payment_pending', 'true');
-      localStorage.setItem('registration_payment_complete', 'false');
-      
       const enhancedPatientData = {
         ...formData,
         emergencyContact: formData.emergencyContact || formData.phone
       };
       
-      // Create the user account
+      // Create the user account NOW
       const user = await handleSignUp(
         formData.email || formData.phone, 
         formData.password, 
@@ -342,6 +309,9 @@ const Auth = () => {
   const handleEmailVerified = () => {
     console.log("Email verified, moving to payment step");
     setRegistrationStep(4);
+    // Set payment pending flag
+    localStorage.setItem('registration_payment_pending', 'true');
+    localStorage.setItem('registration_payment_complete', 'false');
     toast({
       title: "Email verified",
       description: "Please complete your registration payment",
