@@ -1,30 +1,19 @@
 
-import { useEffect, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { LucideLoader2 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
 
 const Auth = () => {
   const { user, userRole, isLoading, isLoadingRole } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  
-  const [isCheckingRegistrationStatus, setIsCheckingRegistrationStatus] = useState(false);
 
-  // Helper function to check if user is in active registration
-  const isUserInActiveRegistration = (): boolean => {
-    const registrationStep = localStorage.getItem('registration_step');
-    const registrationRole = localStorage.getItem('registration_user_role');
-    return !!(registrationStep && registrationRole);
-  };
-
-  // Enhanced redirect logic for authenticated users - respects registration flow
+  // Clean redirect logic for authenticated users - only dashboard
   useEffect(() => {
     const handleRedirect = async () => {
       // Don't redirect while still loading
-      if (isLoading || isLoadingRole || isCheckingRegistrationStatus) {
+      if (isLoading || isLoadingRole) {
         console.log("Auth page: Still loading auth state, waiting...");
         return;
       }
@@ -36,13 +25,6 @@ const Auth = () => {
       
       console.log("Auth page detected logged in user. Role:", userRole);
       
-      // Check if user is in active registration flow
-      if (isUserInActiveRegistration()) {
-        console.log("User in active registration, redirecting to /register");
-        navigate("/register", { replace: true });
-        return;
-      }
-      
       // For users with roles, redirect to dashboard
       if (userRole) {
         console.log("User has role, redirecting to dashboard:", userRole);
@@ -50,19 +32,19 @@ const Auth = () => {
         return;
       }
       
-      // User has no role and no active registration - redirect to registration
-      if (user && !userRole && !isUserInActiveRegistration()) {
-        console.log("User has no role and no active registration, redirecting to registration");
+      // User has no role - they need to complete registration
+      if (user && !userRole) {
+        console.log("User has no role, redirecting to registration");
         navigate("/register", { replace: true });
         return;
       }
     };
     
     handleRedirect();
-  }, [user, userRole, isLoading, isLoadingRole, navigate, isCheckingRegistrationStatus]);
+  }, [user, userRole, isLoading, isLoadingRole, navigate]);
 
   // Show loading state while auth is loading
-  if (isLoading || isLoadingRole || isCheckingRegistrationStatus) {
+  if (isLoading || isLoadingRole) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center pt-16 md:pt-20">
         <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
