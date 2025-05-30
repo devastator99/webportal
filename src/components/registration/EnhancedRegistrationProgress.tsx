@@ -18,8 +18,7 @@ import {
   WifiOff,
   Activity
 } from 'lucide-react';
-import { useEnhancedRegistrationProcess } from '@/hooks/useEnhancedRegistrationProcess';
-import { registrationErrorHandler } from '@/utils/registrationErrorHandler';
+import { useRegistrationProcess } from '@/hooks/useRegistrationProcess';
 
 interface EnhancedRegistrationProgressProps {
   onComplete?: () => void;
@@ -38,13 +37,11 @@ export const EnhancedRegistrationProgress: React.FC<EnhancedRegistrationProgress
   const {
     registrationProgress,
     triggerTaskProcessing,
-    fetchRegistrationStatus,
+    fetchRegistrationProgress,
     isLoading,
     error,
-    isPolling,
-    pollingState,
-    enhancedState
-  } = useEnhancedRegistrationProcess();
+    isPolling
+  } = useRegistrationProcess();
 
   // Auto-redirect countdown effect
   useEffect(() => {
@@ -89,7 +86,7 @@ export const EnhancedRegistrationProgress: React.FC<EnhancedRegistrationProgress
   };
 
   const handleRefresh = async () => {
-    await fetchRegistrationStatus();
+    await fetchRegistrationProgress();
   };
 
   const handleRetryTasks = async () => {
@@ -157,7 +154,7 @@ export const EnhancedRegistrationProgress: React.FC<EnhancedRegistrationProgress
 
   // Get connection status indicator
   const getConnectionStatus = () => {
-    if (error && registrationErrorHandler.categorizeError({ message: error }) === 'network') {
+    if (error && error.includes('network')) {
       return { icon: WifiOff, color: 'text-red-500', label: 'Connection Issues' };
     }
     
@@ -196,7 +193,7 @@ export const EnhancedRegistrationProgress: React.FC<EnhancedRegistrationProgress
           {isPolling && (
             <Badge variant="outline" className="flex items-center gap-2">
               <Activity className="h-3 w-3 animate-pulse" />
-              Polling every {Math.round(pollingState.currentInterval / 1000)}s
+              Polling active
             </Badge>
           )}
         </div>
@@ -284,7 +281,7 @@ export const EnhancedRegistrationProgress: React.FC<EnhancedRegistrationProgress
         {error && (
           <div className="bg-red-50 border border-red-200 p-4 rounded-lg">
             <h3 className="font-semibold text-red-800 mb-2">
-              ⚠️ {registrationErrorHandler.categorizeError({ message: error }) === 'network' ? 'Connection Issue' : 'Processing Issue'}
+              ⚠️ Processing Issue
             </h3>
             <p className="text-red-700 text-sm mb-3">{error}</p>
             <Button 
@@ -361,9 +358,6 @@ export const EnhancedRegistrationProgress: React.FC<EnhancedRegistrationProgress
             
             <div className="text-center text-sm text-gray-600">
               <p>Setup tasks are processing automatically in the background.</p>
-              <p className="font-medium text-purple-700">
-                Current attempt: {pollingState.attemptCount}, Next check in: {Math.round(pollingState.currentInterval / 1000)}s
-              </p>
             </div>
           </div>
         )}
