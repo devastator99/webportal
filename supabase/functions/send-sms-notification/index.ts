@@ -16,6 +16,7 @@ serve(async (req) => {
     const twilioAuthToken = Deno.env.get('TWILIO_AUTH_TOKEN');
     const twilioPhoneNumber = Deno.env.get('TWILIO_PHONE_NUMBER');
 
+    console.log("=== SMS NOTIFICATION FUNCTION ===");
     console.log("Environment variables check:");
     console.log("TWILIO_ACCOUNT_SID:", twilioAccountSid ? "Present" : "Missing");
     console.log("TWILIO_AUTH_TOKEN:", twilioAuthToken ? "Present" : "Missing");
@@ -27,6 +28,7 @@ serve(async (req) => {
       if (!twilioAuthToken) missingVars.push('TWILIO_AUTH_TOKEN');
       if (!twilioPhoneNumber) missingVars.push('TWILIO_PHONE_NUMBER');
       
+      console.error("Missing Twilio credentials:", missingVars);
       throw new Error(`Twilio credentials not configured. Missing: ${missingVars.join(', ')}`);
     }
 
@@ -37,10 +39,22 @@ serve(async (req) => {
     }
 
     console.log(`Sending SMS to: ${phone_number}`);
+    console.log(`Message preview: ${message.substring(0, 50)}...`);
     console.log(`Message length: ${message.length} characters`);
 
-    // Format phone number to ensure it starts with +
-    const formattedPhoneNumber = phone_number.startsWith('+') ? phone_number : `+91${phone_number}`;
+    // Clean and format phone number
+    let formattedPhoneNumber = phone_number.toString().replace(/\D/g, ''); // Remove non-digits
+    
+    // Add country code if not present
+    if (!formattedPhoneNumber.startsWith('91') && formattedPhoneNumber.length === 10) {
+      formattedPhoneNumber = '91' + formattedPhoneNumber;
+    }
+    
+    // Add + prefix
+    if (!formattedPhoneNumber.startsWith('+')) {
+      formattedPhoneNumber = '+' + formattedPhoneNumber;
+    }
+    
     console.log(`Formatted phone number: ${formattedPhoneNumber}`);
 
     const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${twilioAccountSid}/Messages.json`;
@@ -51,7 +65,7 @@ serve(async (req) => {
       Body: message
     });
 
-    console.log("Twilio request body:", body.toString());
+    console.log("Making Twilio API request...");
 
     const response = await fetch(twilioUrl, {
       method: 'POST',
@@ -69,7 +83,7 @@ serve(async (req) => {
 
     if (!response.ok) {
       console.error('Twilio SMS error:', result);
-      throw new Error(`Twilio error (${response.status}): ${result.message || 'Unknown error'}`);
+      throw new Error(`Twilio error (${response.status}): ${result.message || result.error_message || 'Unknown error'}`);
     }
 
     console.log('SMS sent successfully:', result.sid);
@@ -77,7 +91,9 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: true,
       message_sid: result.sid,
-      status: result.status
+      status: result.status,
+      to: result.to,
+      from: result.from
     }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
