@@ -244,7 +244,10 @@ export const UserRegistration = () => {
           </div>
           
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone Number *</Label>
+            <Label htmlFor="phone">
+              Phone Number * 
+              <span className="text-sm text-gray-500 ml-2">(Used for notifications)</span>
+            </Label>
             <Input 
               id="phone"
               type="tel"
@@ -373,7 +376,10 @@ export const UserRegistration = () => {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="emergencyContact">Emergency Contact (Optional)</Label>
+                  <Label htmlFor="emergencyContact">
+                    Emergency Contact (Optional)
+                    <span className="text-sm text-gray-500 block">Different from main phone number</span>
+                  </Label>
                   <Input 
                     id="emergencyContact"
                     value={emergencyContact}

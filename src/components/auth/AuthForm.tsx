@@ -216,6 +216,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           foodHabit: data.foodHabit || undefined,
           knownAllergies: data.knownAllergies || undefined,
           currentMedicalConditions: data.currentMedicalConditions || undefined,
+          phone: phone, // Ensure primary phone is passed separately
         };
         console.log("Submitting patient data:", patientData);
         await onSubmit(email || phone, password, userType, firstName, lastName, patientData);
@@ -403,6 +404,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
               <FormItem>
                 <FormLabel className="text-gray-600 font-medium">
                   Phone Number {type === "register" && <span className="text-red-500">*</span>}
+                  {type === "register" && <span className="text-sm text-gray-500 ml-2">(Used for notifications)</span>}
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -637,7 +639,10 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
                   name="emergencyContact"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-600 font-medium">Emergency Contact (Optional)</FormLabel>
+                      <FormLabel className="text-gray-600 font-medium">
+                        Emergency Contact (Optional)
+                        <span className="text-sm text-gray-500 block">Different from main phone number</span>
+                      </FormLabel>
                       <FormControl>
                         <Input
                           {...field}

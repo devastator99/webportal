@@ -41,6 +41,9 @@ serve(async (req) => {
     console.log(`Sending SMS to: ${phone_number}`);
     console.log(`Message preview: ${message.substring(0, 50)}...`);
     console.log(`Message length: ${message.length} characters`);
+    
+    // Log that we're using the primary phone number for notifications
+    console.log(`Using primary phone number for SMS notifications (not emergency contact)`);
 
     // Clean and format phone number
     let formattedPhoneNumber = phone_number.toString().replace(/\D/g, ''); // Remove non-digits
