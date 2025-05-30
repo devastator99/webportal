@@ -140,18 +140,10 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
           return;
         }
         
-        // For incomplete registrations, be very conservative about redirects
-        // Only redirect if we're on the home page and not already in a flow
-        if (regStatus.registration_status === RegistrationStatusValues.PAYMENT_PENDING) {
-          if (debugMode) {
-            console.log("RegistrationStatusChecker: Registration payment pending");
-          }
-          
-          // Only redirect from home page, not from dashboard or other pages
-          if (location.pathname === '/' && !hasRedirected) {
-            safeRedirect('/register', 'Payment pending');
-            return;
-          }
+        // REMOVED: No longer redirect for PAYMENT_PENDING status
+        // Let DashboardRegistrationHandler show the payment banner instead
+        if (debugMode) {
+          console.log("RegistrationStatusChecker: Registration incomplete but letting DashboardRegistrationHandler handle it");
         }
         
         setIsChecking(false);
