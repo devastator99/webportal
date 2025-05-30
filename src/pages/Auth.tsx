@@ -4,10 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { LucideLoader2 } from "lucide-react";
+import { useRegistrationState } from "@/hooks/useRegistrationState";
 
 const Auth = () => {
   const { user, userRole, isLoading, isLoadingRole } = useAuth();
   const navigate = useNavigate();
+  const { isUserInActiveRegistration } = useRegistrationState();
 
   // ONLY redirect users who are fully authenticated AND have roles to dashboard
   // Do NOT redirect users during registration process
@@ -16,6 +18,12 @@ const Auth = () => {
       // Don't redirect while still loading
       if (isLoading || isLoadingRole) {
         console.log("Auth page: Still loading auth state, waiting...");
+        return;
+      }
+      
+      // If user is in active registration, don't redirect to dashboard
+      if (user && isUserInActiveRegistration()) {
+        console.log("Auth page: User in active registration, not redirecting to dashboard");
         return;
       }
       
@@ -32,7 +40,7 @@ const Auth = () => {
     };
     
     handleRedirect();
-  }, [user, userRole, isLoading, isLoadingRole, navigate]);
+  }, [user, userRole, isLoading, isLoadingRole, navigate, isUserInActiveRegistration]);
 
   // Show loading state while auth is loading
   if (isLoading || isLoadingRole) {

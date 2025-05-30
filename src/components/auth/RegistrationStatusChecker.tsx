@@ -84,16 +84,22 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
         return;
       }
       
+      // If user is in active registration flow, don't interfere
+      if (isUserInActiveRegistration()) {
+        if (debugMode) {
+          console.log("RegistrationStatusChecker: User in active registration flow, skipping status check");
+        }
+        setIsChecking(false);
+        return;
+      }
+      
       // Fix any state issues first
       const wasFixed = fixStateIssues();
       if (wasFixed && debugMode) {
         console.log("RegistrationStatusChecker: Fixed state issues");
       }
       
-      // Prevent infinite loops - be more conservative about redirects
-      const criticalPaths = ['/register', '/auth/register', '/dashboard'];
-      const isOnCriticalPath = criticalPaths.some(path => location.pathname.includes(path));
-      
+      // Prevent infinite loops - be conservative about redirects
       if (location.pathname.includes('/register') || hasRedirected) {
         if (debugMode) {
           console.log("RegistrationStatusChecker: Already on registration page or redirected, skipping");
@@ -134,31 +140,16 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
           return;
         }
         
-        // Only redirect for incomplete registrations if we're in a safe state
+        // For incomplete registrations, be very conservative about redirects
+        // Only redirect if we're on the home page and not already in a flow
         if (regStatus.registration_status === RegistrationStatusValues.PAYMENT_PENDING) {
           if (debugMode) {
             console.log("RegistrationStatusChecker: Registration payment pending");
           }
           
-          // Only redirect if we're not already in a critical flow
-          if (!isOnCriticalPath && !hasRedirected) {
+          // Only redirect from home page, not from dashboard or other pages
+          if (location.pathname === '/' && !hasRedirected) {
             safeRedirect('/register', 'Payment pending');
-            return;
-          }
-        }
-        
-        // For other incomplete statuses, be very conservative
-        if ([
-          RegistrationStatusValues.PAYMENT_COMPLETE, 
-          RegistrationStatusValues.CARE_TEAM_ASSIGNED
-        ].includes(regStatus.registration_status)) {
-          if (debugMode) {
-            console.log("RegistrationStatusChecker: Registration progress pending, but being conservative");
-          }
-          
-          // Only redirect if absolutely necessary and safe
-          if ((location.pathname === '/' || location.pathname === '/home') && !hasRedirected) {
-            safeRedirect('/register', 'Registration incomplete');
             return;
           }
         }
@@ -176,7 +167,7 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
     }, 1000);
     
     return () => clearTimeout(timeoutId);
-  }, [user?.id, userRole, navigate, location.pathname, hasRedirected, debugMode, fixStateIssues, clearRegistrationState]);
+  }, [user?.id, userRole, navigate, location.pathname, hasRedirected, debugMode, fixStateIssues, clearRegistrationState, isUserInActiveRegistration]);
   
   // Show loading if we're still checking registration
   if (isChecking) {

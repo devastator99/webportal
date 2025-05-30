@@ -13,38 +13,38 @@ import { DoctorAppLayout } from "@/layouts/DoctorAppLayout";
 import { AdminAppLayout } from "@/layouts/AdminAppLayout";
 import { AppLayout } from "@/layouts/AppLayout";
 import { RegistrationStatusChecker } from "@/components/auth/RegistrationStatusChecker";
+import { useRegistrationState } from "@/hooks/useRegistrationState";
 
 const Dashboard = () => {
   const { user, userRole, isLoading, isLoadingRole } = useAuth();
   const navigate = useNavigate();
+  const { isUserInActiveRegistration } = useRegistrationState();
   
   console.log("Dashboard:", { user: user?.id, userRole, isLoading, isLoadingRole });
 
   useEffect(() => {
+    // Check if user is in active registration flow - if so, redirect to registration
+    if (!isLoading && user && isUserInActiveRegistration()) {
+      console.log("Dashboard: User in active registration, redirecting to registration");
+      navigate("/register", { replace: true });
+      return;
+    }
+
     // Only redirect unauthenticated users - do NOT redirect users in registration
     if (!isLoading && !user) {
       console.log("Dashboard: No user found, redirecting to auth");
       navigate("/auth", { replace: true });
       return;
     }
-  }, [user, isLoading, navigate]);
+  }, [user, isLoading, navigate, isUserInActiveRegistration]);
 
-  // Handle users without roles - but be careful not to interfere with registration
+  // Handle users without roles - but ONLY if they're not in active registration
   useEffect(() => {
-    if (!isLoading && !isLoadingRole && user && !userRole) {
-      // Check if we're in a registration flow by looking at current path
-      const currentPath = window.location.pathname;
-      
-      // Don't redirect if already on registration or auth pages
-      if (currentPath.includes('/register') || currentPath.includes('/auth')) {
-        console.log("Dashboard: User in registration flow, not redirecting");
-        return;
-      }
-      
+    if (!isLoading && !isLoadingRole && user && !userRole && !isUserInActiveRegistration()) {
       console.log("Dashboard: User has no role and not in registration, redirecting to auth");
       navigate("/auth", { replace: true });
     }
-  }, [user, userRole, isLoading, isLoadingRole, navigate]);
+  }, [user, userRole, isLoading, isLoadingRole, navigate, isUserInActiveRegistration]);
 
   // Show loading while auth or role is loading
   if (isLoading || isLoadingRole) {
@@ -53,6 +53,11 @@ const Dashboard = () => {
 
   // No user - redirect will handle this
   if (!user) {
+    return null;
+  }
+
+  // User in active registration - redirect will handle this
+  if (isUserInActiveRegistration()) {
     return null;
   }
 
