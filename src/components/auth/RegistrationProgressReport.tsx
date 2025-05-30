@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +24,7 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
   const [registrationStatus, setRegistrationStatus] = useState<UserRegistrationStatus | null>(null);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [lastProcessingError, setLastProcessingError] = useState<string | null>(null);
+  const [hasRedirected, setHasRedirected] = useState(false);
   
   // Helper function to check if all required tasks are actually completed
   const areAllTasksCompleted = (status: UserRegistrationStatus | null) => {
@@ -84,21 +84,23 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
         
         // Check if ALL tasks are actually completed (not just status)
         const allCompleted = areAllTasksCompleted(data as unknown as UserRegistrationStatus);
-        if (allCompleted) {
-          console.log("All registration tasks are truly complete, redirecting to dashboard");
+        if (allCompleted && !hasRedirected) {
+          console.log("All registration tasks are truly complete, redirecting to dashboard immediately");
+          
+          // Clear localStorage flags immediately
           localStorage.removeItem('registration_payment_pending');
           localStorage.removeItem('registration_payment_complete');
           
+          // Set redirect flag to prevent multiple redirects
+          setHasRedirected(true);
+          
           toast({
             title: "Registration Complete",
-            description: "Your account setup is complete. Redirecting to dashboard...",
+            description: "Welcome! Redirecting to your dashboard...",
           });
           
-          setTimeout(() => {
-            navigate("/dashboard", { replace: true });
-          }, 2000);
-        } else {
-          console.log("Registration status is marked complete but tasks are still pending");
+          // Navigate immediately without delay
+          navigate("/dashboard", { replace: true });
         }
       } else {
         console.log("No data returned, setting default status");
@@ -138,7 +140,6 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
     try {
       console.log("=== STARTING TASK PROCESSING ===");
       console.log("Triggering registration task processing for user:", user.id);
-      console.log("Timestamp:", new Date().toISOString());
       
       toast({
         title: "Processing Started",
@@ -162,8 +163,6 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
           title: "Partial Configuration",
           description: "SMS/WhatsApp notifications may not work. Email notifications will work.",
         });
-      } else {
-        console.log("Twilio configuration OK:", configData.message);
       }
       
       // Add timeout to the function call
@@ -186,12 +185,7 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
       console.log("Function response error:", error);
       
       if (error) {
-        console.error("Edge function error details:", {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
+        console.error("Edge function error details:", error);
         
         // Handle specific known errors with user-friendly messages
         let errorMessage = error.message || "Failed to process registration tasks";
@@ -226,11 +220,7 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
       
     } catch (err: any) {
       console.error("=== TASK PROCESSING ERROR ===");
-      console.error("Error details:", {
-        message: err.message,
-        stack: err.stack,
-        name: err.name
-      });
+      console.error("Error details:", err);
       
       const errorMessage = err.message || "Failed to process registration tasks";
       setLastProcessingError(errorMessage);
@@ -300,8 +290,6 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
     }
   };
   
-  console.log("Rendering RegistrationProgressReport - authIsLoading:", authIsLoading, "isFetching:", isFetching, "registrationStatus:", registrationStatus);
-  
   // Show loading while auth is loading OR while fetching registration status
   if (authIsLoading || isFetching) {
     return (
@@ -352,7 +340,7 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
           <Alert className="bg-green-50 border-green-200">
             <CheckCircle2 className="h-4 w-4 text-green-500" />
             <AlertDescription className="text-green-800">
-              Your registration is now complete! You will be redirected to the dashboard shortly.
+              Your registration is now complete! Redirecting to dashboard...
             </AlertDescription>
           </Alert>
         </CardContent>

@@ -54,6 +54,13 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
         return;
       }
       
+      // If user is on dashboard, be less aggressive about checking - they might have just completed registration
+      if (location.pathname.includes('/dashboard')) {
+        console.log("RegistrationStatusChecker: User on dashboard, being less aggressive");
+        setIsChecking(false);
+        return;
+      }
+      
       try {
         console.log("RegistrationStatusChecker: Checking registration status for patient:", user.id);
         
@@ -91,17 +98,27 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
           return;
         }
         
-        // For any other incomplete status, redirect to registration
+        // For any other incomplete status, redirect to registration only if not critical paths
         if ([
           RegistrationStatusValues.PAYMENT_COMPLETE, 
           RegistrationStatusValues.CARE_TEAM_ASSIGNED
         ].includes(regStatus.registration_status)) {
-          console.log("RegistrationStatusChecker: Registration progress pending, redirecting to auth/register");
-          localStorage.setItem('registration_payment_pending', 'false');
-          localStorage.setItem('registration_payment_complete', 'true');
-          setHasRedirected(true);
-          navigate('/auth/register', { replace: true });
-          return;
+          console.log("RegistrationStatusChecker: Registration progress pending, checking if redirect is safe");
+          
+          // Only redirect if user is not on critical paths
+          const criticalPaths = ['/dashboard', '/auth'];
+          const isOnCriticalPath = criticalPaths.some(path => location.pathname.includes(path));
+          
+          if (!isOnCriticalPath) {
+            console.log("RegistrationStatusChecker: Safe to redirect, redirecting to auth/register");
+            localStorage.setItem('registration_payment_pending', 'false');
+            localStorage.setItem('registration_payment_complete', 'true');
+            setHasRedirected(true);
+            navigate('/auth/register', { replace: true });
+            return;
+          } else {
+            console.log("RegistrationStatusChecker: User on critical path, not redirecting");
+          }
         }
         
         setIsChecking(false);
