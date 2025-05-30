@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase, createUserRole, ValidUserRole } from "@/integrations/supabase/client";
@@ -48,13 +47,14 @@ export const useAuthHandlers = () => {
     userType: string,
     firstName?: string,
     lastName?: string,
-    patientData?: PatientData
+    patientData?: PatientData,
+    skipRoleCreation = false
   ) => {
     setLoading(true);
     setError(null);
 
     try {
-      console.log("Starting user registration process...");
+      console.log("Starting user registration process...", { skipRoleCreation });
       
       // Validate inputs
       if (!identifier || !password || !firstName || !lastName) {
@@ -78,7 +78,6 @@ export const useAuthHandlers = () => {
       
       if (isEmail) {
         emailAddress = identifier;
-        // Phone might be provided in patientData or other form data
         phoneNumber = patientData?.emergencyContact; // Fallback, should be passed separately
       } else {
         phoneNumber = identifier;
@@ -89,7 +88,8 @@ export const useAuthHandlers = () => {
         emailAddress, 
         phoneNumber, 
         isEmail, 
-        userType 
+        userType,
+        skipRoleCreation
       });
 
       // Auth signup with metadata
@@ -135,7 +135,7 @@ export const useAuthHandlers = () => {
 
       console.log("Auth user created successfully:", authData.user.id);
 
-      // Step 2: Update profiles table with phone number (most important fix)
+      // Step 2: Update profiles table with phone number
       try {
         console.log("Updating profile with phone number...");
         const { error: profileError } = await supabase
@@ -149,26 +149,25 @@ export const useAuthHandlers = () => {
         
         if (profileError) {
           console.error("Error updating profile with phone:", profileError);
-          // Don't throw here as the main account creation was successful
         } else {
           console.log("Profile updated successfully with phone number:", phoneNumber);
         }
       } catch (profileUpdateError: any) {
         console.error("Exception updating profile:", profileUpdateError);
-        // Don't throw here as the main account creation was successful
       }
 
-      // Step 3: Create user role using our RPC function with proper type
-      try {
-        console.log("Creating user role...");
-        const roleResult = await createUserRole(authData.user.id, userType as ValidUserRole);
-        console.log("User role created successfully:", roleResult);
-        
-        // The createUserRole function will throw if there's an error
-        // so if we get here, it was successful
-      } catch (roleError: any) {
-        console.error("Error creating user role:", roleError);
-        throw new Error("Account created but role assignment failed. Please contact support.");
+      // Step 3: Create user role - skip for patients during initial registration
+      if (!skipRoleCreation) {
+        try {
+          console.log("Creating user role...");
+          const roleResult = await createUserRole(authData.user.id, userType as ValidUserRole);
+          console.log("User role created successfully:", roleResult);
+        } catch (roleError: any) {
+          console.error("Error creating user role:", roleError);
+          throw new Error("Account created but role assignment failed. Please contact support.");
+        }
+      } else {
+        console.log("Skipping role creation as requested");
       }
       
       // Step 4: Handle patient-specific data
@@ -210,7 +209,6 @@ export const useAuthHandlers = () => {
           }
         } catch (patientError: any) {
           console.error("Exception creating patient details:", patientError);
-          // Don't throw here as the main account was created successfully
         }
       }
 
@@ -252,7 +250,6 @@ export const useAuthHandlers = () => {
         throw new Error("Please enter both email/phone and password");
       }
 
-      // Determine if identifier is email or phone
       const isEmail = identifier.includes('@');
       const signInData = isEmail 
         ? { email: identifier, password }
