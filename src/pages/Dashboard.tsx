@@ -1,4 +1,5 @@
 
+
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
@@ -76,7 +77,7 @@ const Dashboard = () => {
       return (
         <AdminAppLayout>
           <AdminDashboard />
-        </AdminDashboard>
+        </AdminAppLayout>
       );
     case 'reception':
       return (
@@ -92,3 +93,4 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
