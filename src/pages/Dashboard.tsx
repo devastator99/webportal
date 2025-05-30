@@ -21,7 +21,7 @@ const Dashboard = () => {
   console.log("Dashboard:", { user: user?.id, userRole, isLoading, isLoadingRole });
 
   useEffect(() => {
-    // Only redirect unauthenticated users after loading is complete
+    // Only redirect if not loading AND no user
     if (!isLoading && !user) {
       console.log("Dashboard: No user found, redirecting to auth");
       navigate("/auth", { replace: true });
@@ -29,16 +29,16 @@ const Dashboard = () => {
     }
   }, [user, isLoading, navigate]);
 
-  // FIXED: Only redirect users without roles AFTER both auth and role loading are complete
-  // This prevents the redirect loop where users get sent back to auth while role is still loading
+  // CRITICAL: Only redirect users without roles AFTER loading is completely done
+  // This prevents redirect loops during role creation
   useEffect(() => {
     if (!isLoading && !isLoadingRole && user && !userRole) {
-      console.log("Dashboard: User has no role after loading complete, redirecting to auth");
+      console.log("Dashboard: User has no role after loading complete, redirecting to auth for role creation");
       navigate("/auth", { replace: true });
     }
   }, [user, userRole, isLoading, isLoadingRole, navigate]);
 
-  // Show loading while auth or role is loading
+  // Show loading while anything is loading
   if (isLoading || isLoadingRole) {
     return <DashboardSkeleton />;
   }
@@ -48,12 +48,12 @@ const Dashboard = () => {
     return null;
   }
 
-  // No role - redirect will handle this
+  // No role - redirect will handle this  
   if (!userRole) {
     return null;
   }
 
-  // Render dashboard based on role with registration completion handler
+  // User has both auth and role - safe to render dashboard
   switch (userRole) {
     case 'patient':
       return (
@@ -96,7 +96,7 @@ const Dashboard = () => {
         </AppLayout>
       );
     default:
-      // For unknown roles, redirect to auth
+      // Unknown role - redirect to auth
       navigate("/auth", { replace: true });
       return null;
   }
