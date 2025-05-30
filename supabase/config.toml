@@ -22,5 +22,17 @@ verify_jwt = true
 [functions.sync-care-team-rooms]
 verify_jwt = true
 
+[functions.auth-user-created-hook]
+verify_jwt = false
+
+# Database webhook configuration for automatic user creation processing
+[[db.webhooks]]
+enabled = true
+url = "https://hcaqodjylicmppxcbqbh.supabase.co/functions/v1/auth-user-created-hook"
+http_method = "POST"
+http_headers = { "Content-Type" = "application/json" }
+events = ["INSERT"]
+filter = "auth.users"
+
 # Removed auth hooks configuration since we're using database triggers instead
 # Database triggers handle user registration automatically without requiring Pro plan
