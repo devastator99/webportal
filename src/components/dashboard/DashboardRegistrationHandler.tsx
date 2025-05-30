@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +24,7 @@ export const DashboardRegistrationHandler: React.FC<DashboardRegistrationHandler
   const [registrationStatus, setRegistrationStatus] = useState<UserRegistrationStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
   // Use the existing registration process hook
   const {
@@ -34,6 +36,66 @@ export const DashboardRegistrationHandler: React.FC<DashboardRegistrationHandler
     registrationFee: 500,
     redirectUrl: '/dashboard'
   });
+
+  // Enhanced status polling function
+  const pollRegistrationStatus = async () => {
+    if (!user?.id) return;
+
+    try {
+      console.log("Polling registration status for user:", user.id);
+      
+      const { data, error } = await supabase.rpc('get_user_registration_status_safe', {
+        p_user_id: user.id
+      });
+
+      if (error) {
+        console.error("Error polling registration status:", error);
+        return;
+      }
+
+      const regStatus = data as unknown as UserRegistrationStatus;
+      console.log("Polled registration status:", regStatus.registration_status);
+      console.log("Completed tasks:", regStatus.tasks?.filter(task => task.status === 'completed').length || 0);
+      
+      setRegistrationStatus(regStatus);
+
+      // Check if registration is now complete
+      if (regStatus.registration_status === RegistrationStatusValues.FULLY_REGISTERED) {
+        console.log("Registration is now complete, stopping polling");
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          setPollingInterval(null);
+        }
+        
+        toast.success('Registration completed successfully! Welcome to your dashboard.');
+        
+        // Small delay before showing dashboard
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 2000);
+      }
+    } catch (err) {
+      console.error("Exception polling registration status:", err);
+    }
+  };
+
+  // Start polling when payment is completed
+  const startPolling = () => {
+    if (pollingInterval) return; // Already polling
+    
+    console.log("Starting registration status polling");
+    const interval = setInterval(pollRegistrationStatus, 3000); // Poll every 3 seconds
+    setPollingInterval(interval);
+    
+    // Stop polling after 2 minutes as a safety measure
+    setTimeout(() => {
+      if (interval) {
+        clearInterval(interval);
+        setPollingInterval(null);
+        console.log("Stopped polling after timeout");
+      }
+    }, 120000); // 2 minutes
+  };
 
   // Check registration status on component mount
   useEffect(() => {
@@ -55,6 +117,7 @@ export const DashboardRegistrationHandler: React.FC<DashboardRegistrationHandler
         }
 
         const regStatus = data as unknown as UserRegistrationStatus;
+        console.log("Initial registration status:", regStatus.registration_status);
         setRegistrationStatus(regStatus);
         setIsLoading(false);
       } catch (err) {
@@ -65,6 +128,15 @@ export const DashboardRegistrationHandler: React.FC<DashboardRegistrationHandler
 
     checkRegistrationStatus();
   }, [user?.id]);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+    };
+  }, [pollingInterval]);
 
   // For patients, handle payment completion using existing Razorpay integration
   const handlePaymentCompletion = async () => {
@@ -112,16 +184,13 @@ export const DashboardRegistrationHandler: React.FC<DashboardRegistrationHandler
             );
             
             if (success) {
-              toast.success('Payment completed successfully!');
+              toast.success('Payment completed successfully! Setting up your account...');
               
-              // Refresh registration status
-              const { data } = await supabase.rpc('get_user_registration_status_safe', {
-                p_user_id: user.id
-              });
+              // Start polling for completion immediately after payment
+              startPolling();
               
-              if (data) {
-                setRegistrationStatus(data as unknown as UserRegistrationStatus);
-              }
+              // Also refresh status once immediately
+              setTimeout(pollRegistrationStatus, 1000);
             }
           } catch (err: any) {
             console.error("Payment verification error:", err);
@@ -176,16 +245,13 @@ export const DashboardRegistrationHandler: React.FC<DashboardRegistrationHandler
         );
         
         if (success) {
-          toast.success('Test payment completed successfully!');
+          toast.success('Test payment completed successfully! Setting up your account...');
           
-          // Refresh registration status
-          const { data } = await supabase.rpc('get_user_registration_status_safe', {
-            p_user_id: user.id
-          });
+          // Start polling for completion immediately after payment
+          startPolling();
           
-          if (data) {
-            setRegistrationStatus(data as unknown as UserRegistrationStatus);
-          }
+          // Also refresh status once immediately
+          setTimeout(pollRegistrationStatus, 1000);
         }
       } else {
         throw new Error("Failed to create test order");
@@ -255,6 +321,66 @@ export const DashboardRegistrationHandler: React.FC<DashboardRegistrationHandler
     if (!registrationStatus?.tasks) return [];
     return registrationStatus.tasks.filter(task => task.status === 'completed');
   };
+
+  // Show special completion message if we're polling
+  if (pollingInterval && registrationStatus?.registration_status === RegistrationStatusValues.PAYMENT_COMPLETE) {
+    return (
+      <div className="container mx-auto px-4 py-6">
+        <Card className="max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle className="h-5 w-5 text-green-500" />
+              Setting Up Your Account
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#9b87f5] mx-auto mb-4"></div>
+              <p className="text-lg font-medium">Payment completed successfully!</p>
+              <p className="text-gray-600">We're setting up your care team and completing your registration...</p>
+            </div>
+            
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Account Setup Progress</span>
+                <span>75%</span>
+              </div>
+              <Progress value={75} className="h-2" />
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 text-green-500">
+                <CheckCircle className="h-5 w-5" />
+                <span>Payment Processed</span>
+              </div>
+              
+              <div className="flex items-center gap-3 text-yellow-500">
+                <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-yellow-500"></div>
+                <span>Assigning Care Team</span>
+              </div>
+              
+              <div className="flex items-center gap-3 text-gray-400">
+                <Clock className="h-5 w-5" />
+                <span>Creating Chat Room</span>
+              </div>
+              
+              <div className="flex items-center gap-3 text-gray-400">
+                <Bell className="h-5 w-5" />
+                <span>Sending Welcome Notification</span>
+              </div>
+            </div>
+
+            <div className="text-sm text-gray-600 bg-gray-50 p-4 rounded-lg">
+              <p className="font-medium mb-2">Almost done!</p>
+              <p className="text-sm">
+                This usually takes 10-30 seconds. You'll be automatically redirected to your dashboard once everything is ready.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
