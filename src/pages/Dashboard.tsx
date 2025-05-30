@@ -59,6 +59,13 @@ const Dashboard = () => {
     isLoading
   });
 
+  // Helper function to check if user is in active registration
+  const isUserInActiveRegistration = (): boolean => {
+    const registrationStep = localStorage.getItem('registration_step');
+    const registrationRole = localStorage.getItem('registration_user_role');
+    return !!(registrationStep && registrationRole);
+  };
+
   useEffect(() => {
     console.log("[Dashboard] useEffect triggered:", { 
       userId: user?.id, 
@@ -68,24 +75,21 @@ const Dashboard = () => {
     
     // Only redirect if we're not loading and there's no user
     if (!isLoading && !user) {
-      console.log("[Dashboard] No user found, redirecting to /auth/login");
-      navigate("/auth/login");
+      console.log("[Dashboard] No user found, redirecting to /auth");
+      navigate("/auth");
       return;
     }
     
-    // Check if user is in active registration flow
-    if (user && !userRole) {
-      const registrationStep = localStorage.getItem('registration_step');
-      const registrationRole = localStorage.getItem('registration_user_role');
-      
-      if (registrationStep && registrationRole) {
-        console.log("[Dashboard] User in active registration, redirecting to /register");
-        navigate("/register", { replace: true });
-        return;
-      }
-      
-      // User has no role and no active registration - redirect to registration
-      console.log("[Dashboard] User has no role, redirecting to /register");
+    // Check if user is in active registration flow - this takes priority
+    if (user && isUserInActiveRegistration()) {
+      console.log("[Dashboard] User in active registration, redirecting to /register");
+      navigate("/register", { replace: true });
+      return;
+    }
+    
+    // Check if user has no role and no active registration - redirect to registration
+    if (user && !userRole && !isUserInActiveRegistration()) {
+      console.log("[Dashboard] User has no role and no active registration, redirecting to /register");
       navigate("/register", { replace: true });
       return;
     }
@@ -103,7 +107,13 @@ const Dashboard = () => {
     return null;
   }
 
-  // Handle no role case - but only after loading is complete
+  // If user is in active registration, useEffect will handle redirect
+  if (isUserInActiveRegistration()) {
+    console.log("[Dashboard] User in active registration, returning null (redirect will happen)");
+    return null;
+  }
+
+  // Handle no role case - but only after loading is complete and not in registration
   if (!userRole) {
     console.log("[Dashboard] No role assigned, showing NoRoleWarning");
     return (

@@ -13,7 +13,14 @@ const Auth = () => {
   
   const [isCheckingRegistrationStatus, setIsCheckingRegistrationStatus] = useState(false);
 
-  // Enhanced redirect logic for authenticated users
+  // Helper function to check if user is in active registration
+  const isUserInActiveRegistration = (): boolean => {
+    const registrationStep = localStorage.getItem('registration_step');
+    const registrationRole = localStorage.getItem('registration_user_role');
+    return !!(registrationStep && registrationRole);
+  };
+
+  // Enhanced redirect logic for authenticated users - respects registration flow
   useEffect(() => {
     const handleRedirect = async () => {
       // Don't redirect while still loading
@@ -29,6 +36,13 @@ const Auth = () => {
       
       console.log("Auth page detected logged in user. Role:", userRole);
       
+      // Check if user is in active registration flow
+      if (isUserInActiveRegistration()) {
+        console.log("User in active registration, redirecting to /register");
+        navigate("/register", { replace: true });
+        return;
+      }
+      
       // For users with roles, redirect to dashboard
       if (userRole) {
         console.log("User has role, redirecting to dashboard:", userRole);
@@ -36,9 +50,9 @@ const Auth = () => {
         return;
       }
       
-      // User has no role - redirect to registration
-      if (user && !userRole) {
-        console.log("User has no role, redirecting to registration");
+      // User has no role and no active registration - redirect to registration
+      if (user && !userRole && !isUserInActiveRegistration()) {
+        console.log("User has no role and no active registration, redirecting to registration");
         navigate("/register", { replace: true });
         return;
       }

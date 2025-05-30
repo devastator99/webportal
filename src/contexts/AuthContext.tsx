@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import AuthService, { UserRole } from '@/services/AuthService';
@@ -19,6 +20,13 @@ export type { UserRole };
 // Helper function to handle doctor redirects
 export const redirectFixForDoctor = (): string => {
   return '/dashboard';
+};
+
+// Helper function to check if user is in active registration
+const isUserInActiveRegistration = (): boolean => {
+  const registrationStep = localStorage.getItem('registration_step');
+  const registrationRole = localStorage.getItem('registration_user_role');
+  return !!(registrationStep && registrationRole);
 };
 
 interface AuthContextType {
@@ -96,19 +104,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log("Initializing auth state");
     authStateInitializedRef.current = true;
     
-    // Enhanced role setter that tracks loading state
+    // Enhanced role setter that tracks loading state and respects registration
     const enhancedSetUserRole = (role: UserRole) => {
       console.log("Setting user role:", role);
+      
+      // If user is in active registration and has no role, don't set role yet
+      if (isUserInActiveRegistration() && !role) {
+        console.log("User in active registration, not setting role yet");
+        setIsLoadingRole(false);
+        return;
+      }
+      
       setIsLoadingRole(false);
       setUserRole(role);
     };
 
-    // Enhanced user setter that triggers role loading
+    // Enhanced user setter that triggers role loading but respects registration state
     const enhancedSetUser = (newUser: User | null) => {
       console.log("Setting user:", newUser?.email || 'null');
       setUser(newUser);
+      
       if (newUser) {
-        setIsLoadingRole(true);
+        // Check if user is in active registration
+        if (isUserInActiveRegistration()) {
+          console.log("User in active registration, not loading role yet");
+          setIsLoadingRole(false);
+          setUserRole(null);
+        } else {
+          setIsLoadingRole(true);
+        }
       } else {
         setIsLoadingRole(false);
         setUserRole(null);
@@ -130,7 +154,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Set up inactivity timer whenever user changes
   useEffect(() => {
-    if (user) {
+    if (user && !isUserInActiveRegistration()) {
       authServiceRef.current.setupInactivityTimer(signOut);
       
       const handleActivity = () => resetInactivityTimer();
@@ -150,7 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Reset inactivity timer - memoized through the ref to prevent unnecessary re-renders
   const resetInactivityTimer = useCallback(() => {
-    if (user) {
+    if (user && !isUserInActiveRegistration()) {
       authServiceRef.current.resetInactivityTimer(signOut);
     }
   }, [user]);

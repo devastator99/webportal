@@ -1,3 +1,4 @@
+
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -44,7 +45,10 @@ export const AppRoutes = () => {
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth/*" element={<Auth />} />
         <Route path="/auth/login" element={<Auth />} />
-        <Route path="/auth/register" element={<RegistrationPage />} />
+        
+        {/* Registration Route - Completely Separate from Auth */}
+        <Route path="/register" element={<RegistrationPage />} />
+        
         <Route path="/verify-code" element={<VerifyCodePage />} />
         <Route path="/forgot-password" element={<ForgotPasswordRouteWrapper />} />
         <Route path="/update-password" element={<UpdatePassword />} />
