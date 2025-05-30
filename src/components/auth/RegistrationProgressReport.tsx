@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, Clock, Users, MessageSquare, ArrowRight, Loader2 } from 'lucide-react';
+import { CheckCircle, Clock, Users, MessageSquare, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { UserRegistrationStatus, RegistrationStatusValues } from '@/types/registration';
@@ -50,19 +50,31 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
       console.log("Registration status:", regStatus);
       setStatus(regStatus);
       
-      // If fully registered, start countdown for auto-redirect
+      // Check if registration is truly complete - ALL required tasks must be completed
       if (regStatus.registration_status === RegistrationStatusValues.FULLY_REGISTERED) {
         const requiredTaskTypes = ['assign_care_team', 'create_chat_room', 'send_welcome_notification'];
         const completedTasks = regStatus.tasks?.filter(task => task.status === 'completed') || [];
         const completedTaskTypes = completedTasks.map(task => task.task_type);
+        
+        // ALL required tasks must be completed, including welcome notification
         const allRequiredTasksCompleted = requiredTaskTypes.every(taskType => 
           completedTaskTypes.includes(taskType)
         );
         
+        console.log("Registration completion check:", {
+          isFullyRegistered: regStatus.registration_status === RegistrationStatusValues.FULLY_REGISTERED,
+          allRequiredTasksCompleted,
+          completedTaskTypes,
+          requiredTaskTypes,
+          welcomeNotificationSent: completedTaskTypes.includes('send_welcome_notification')
+        });
+        
+        // Only start countdown if ALL tasks including welcome notification are complete
         if (allRequiredTasksCompleted) {
           // Clear localStorage flags
           localStorage.removeItem('registration_payment_pending');
           localStorage.removeItem('registration_payment_complete');
+          localStorage.removeItem('registration_complete');
           
           // Start 5-second countdown
           setAutoRedirectCountdown(5);
@@ -110,6 +122,7 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
     // Clear localStorage flags
     localStorage.removeItem('registration_payment_pending');
     localStorage.removeItem('registration_payment_complete');
+    localStorage.removeItem('registration_complete');
     
     toast({
       title: "Welcome to your Health Dashboard!",
@@ -155,19 +168,23 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
   const chatRoomTask = tasks.find(t => t.task_type === 'create_chat_room');
   const welcomeTask = tasks.find(t => t.task_type === 'send_welcome_notification');
 
+  // Registration is only complete if ALL tasks are completed, especially the welcome notification
   const isFullyComplete = status.registration_status === RegistrationStatusValues.FULLY_REGISTERED &&
     careTeamTask?.status === 'completed' &&
     chatRoomTask?.status === 'completed' &&
     welcomeTask?.status === 'completed';
 
+  // Check if any task failed
+  const hasFailedTasks = tasks.some(task => task.status === 'failed');
+
   return (
     <Card className="bg-white shadow-lg border border-gray-100">
       <CardHeader className="text-center">
         <CardTitle className="text-2xl text-green-600">
-          🎉 Registration Complete!
+          🎉 Registration In Progress
         </CardTitle>
         <p className="text-gray-600">
-          Your account setup is in progress. Here's what's happening:
+          Your account setup is being processed. Here's what's happening:
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -186,25 +203,33 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
           <div className={`flex items-center gap-4 p-4 rounded-lg border ${
             careTeamTask?.status === 'completed' 
               ? 'bg-green-50 border-green-200' 
+              : careTeamTask?.status === 'failed'
+              ? 'bg-red-50 border-red-200'
               : 'bg-blue-50 border-blue-200'
           }`}>
             {careTeamTask?.status === 'completed' ? (
               <CheckCircle className="h-6 w-6 text-green-600" />
+            ) : careTeamTask?.status === 'failed' ? (
+              <AlertCircle className="h-6 w-6 text-red-600" />
             ) : (
               <Clock className="h-6 w-6 text-blue-600 animate-pulse" />
             )}
             <div className="flex-1">
               <h3 className={`font-semibold ${
-                careTeamTask?.status === 'completed' ? 'text-green-800' : 'text-blue-800'
+                careTeamTask?.status === 'completed' ? 'text-green-800' : 
+                careTeamTask?.status === 'failed' ? 'text-red-800' : 'text-blue-800'
               }`}>
                 Care Team Assignment
               </h3>
               <p className={`text-sm ${
-                careTeamTask?.status === 'completed' ? 'text-green-700' : 'text-blue-700'
+                careTeamTask?.status === 'completed' ? 'text-green-700' : 
+                careTeamTask?.status === 'failed' ? 'text-red-700' : 'text-blue-700'
               }`}>
                 {careTeamTask?.status === 'completed' 
                   ? 'Your dedicated doctor and nutritionist have been assigned'
-                  : 'Assigning your personal doctor and nutritionist (typically takes 2-4 hours)'
+                  : careTeamTask?.status === 'failed'
+                  ? 'There was an issue assigning your care team. Our team is working to resolve this.'
+                  : 'Assigning your personal doctor and nutritionist'
                 }
               </p>
             </div>
@@ -214,67 +239,83 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
           <div className={`flex items-center gap-4 p-4 rounded-lg border ${
             chatRoomTask?.status === 'completed' 
               ? 'bg-green-50 border-green-200' 
+              : chatRoomTask?.status === 'failed'
+              ? 'bg-red-50 border-red-200'
               : 'bg-blue-50 border-blue-200'
           }`}>
             {chatRoomTask?.status === 'completed' ? (
               <CheckCircle className="h-6 w-6 text-green-600" />
+            ) : chatRoomTask?.status === 'failed' ? (
+              <AlertCircle className="h-6 w-6 text-red-600" />
             ) : (
               <Clock className="h-6 w-6 text-blue-600 animate-pulse" />
             )}
             <div className="flex-1">
               <h3 className={`font-semibold ${
-                chatRoomTask?.status === 'completed' ? 'text-green-800' : 'text-blue-800'
+                chatRoomTask?.status === 'completed' ? 'text-green-800' : 
+                chatRoomTask?.status === 'failed' ? 'text-red-800' : 'text-blue-800'
               }`}>
                 Communication Setup
               </h3>
               <p className={`text-sm ${
-                chatRoomTask?.status === 'completed' ? 'text-green-700' : 'text-blue-700'
+                chatRoomTask?.status === 'completed' ? 'text-green-700' : 
+                chatRoomTask?.status === 'failed' ? 'text-red-700' : 'text-blue-700'
               }`}>
                 {chatRoomTask?.status === 'completed' 
                   ? 'Your secure chat room with the care team is ready'
+                  : chatRoomTask?.status === 'failed'
+                  ? 'There was an issue setting up your communication channel. Retrying...'
                   : 'Setting up secure messaging with your care team'
                 }
               </p>
             </div>
           </div>
 
-          {/* Welcome Message */}
+          {/* Welcome Message - CRITICAL FOR COMPLETION */}
           <div className={`flex items-center gap-4 p-4 rounded-lg border ${
             welcomeTask?.status === 'completed' 
               ? 'bg-green-50 border-green-200' 
+              : welcomeTask?.status === 'failed'
+              ? 'bg-red-50 border-red-200'
               : 'bg-blue-50 border-blue-200'
           }`}>
             {welcomeTask?.status === 'completed' ? (
               <CheckCircle className="h-6 w-6 text-green-600" />
+            ) : welcomeTask?.status === 'failed' ? (
+              <AlertCircle className="h-6 w-6 text-red-600" />
             ) : (
               <Clock className="h-6 w-6 text-blue-600 animate-pulse" />
             )}
             <div className="flex-1">
               <h3 className={`font-semibold ${
-                welcomeTask?.status === 'completed' ? 'text-green-800' : 'text-blue-800'
+                welcomeTask?.status === 'completed' ? 'text-green-800' : 
+                welcomeTask?.status === 'failed' ? 'text-red-800' : 'text-blue-800'
               }`}>
-                Welcome Message
+                Welcome Notification
               </h3>
               <p className={`text-sm ${
-                welcomeTask?.status === 'completed' ? 'text-green-700' : 'text-blue-700'
+                welcomeTask?.status === 'completed' ? 'text-green-700' : 
+                welcomeTask?.status === 'failed' ? 'text-red-700' : 'text-blue-700'
               }`}>
                 {welcomeTask?.status === 'completed' 
-                  ? 'Welcome message sent to your dashboard'
-                  : 'Preparing your personalized welcome message'
+                  ? 'Welcome notifications sent successfully to your email and phone'
+                  : welcomeTask?.status === 'failed'
+                  ? 'There was an issue sending your welcome notification. Retrying...'
+                  : 'Sending your personalized welcome notification'
                 }
               </p>
             </div>
           </div>
         </div>
 
-        {/* Auto-redirect countdown */}
-        {autoRedirectCountdown !== null && (
+        {/* Auto-redirect countdown - ONLY show when ALL tasks including notification are complete */}
+        {autoRedirectCountdown !== null && isFullyComplete && (
           <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg text-center">
             <h3 className="font-semibold text-purple-800 mb-2">
-              🎉 Everything is Ready!
+              🎉 Registration Complete!
             </h3>
             <p className="text-purple-700 mb-3">
-              Automatically redirecting to your dashboard in {autoRedirectCountdown} seconds...
+              All setup tasks including welcome notification have been completed successfully! Redirecting to your dashboard in {autoRedirectCountdown} seconds...
             </p>
             <Button 
               onClick={handleManualRedirect}
@@ -285,7 +326,7 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
           </div>
         )}
 
-        {/* Actions */}
+        {/* Actions for incomplete registration */}
         {!isFullyComplete && (
           <div className="flex flex-col gap-3 pt-4 border-t">
             <Button
@@ -305,12 +346,20 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
             </Button>
             
             <div className="text-center text-sm text-gray-600">
-              <p>Most tasks complete within 2-4 hours during business hours.</p>
-              <p>You'll receive notifications when everything is ready!</p>
+              <p>Setup tasks are processing automatically in the background.</p>
+              <p className="font-medium text-purple-700">
+                Registration will complete only after ALL tasks including welcome notification are successful.
+              </p>
+              {hasFailedTasks && (
+                <p className="text-red-600 font-medium mt-2">
+                  Some tasks encountered issues and are being retried automatically.
+                </p>
+              )}
             </div>
           </div>
         )}
 
+        {/* Manual redirect for completed registration */}
         {isFullyComplete && autoRedirectCountdown === null && (
           <div className="pt-4 border-t">
             <Button 
