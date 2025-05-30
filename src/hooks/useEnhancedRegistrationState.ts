@@ -32,30 +32,6 @@ export const useEnhancedRegistrationState = () => {
   const VALIDATION_INTERVAL = 5 * 60 * 1000;
   const MAX_ERROR_COUNT = 3;
 
-  // Define valid state transitions
-  const stateTransitions: StateTransition[] = [
-    {
-      from: 1,
-      to: 2,
-      condition: () => !!(user && getStoredRole()),
-    },
-    {
-      from: 2,
-      to: 3,
-      condition: () => getStoredRole() === 'patient' && getStoredPaymentStatus(),
-    },
-    {
-      from: 2,
-      to: 0,
-      condition: () => getStoredRole() !== 'patient' && user && userRole,
-    },
-    {
-      from: 3,
-      to: 0,
-      condition: () => !!(user && userRole),
-    },
-  ];
-
   // Atomic localStorage operations with error handling
   const atomicSetItem = useCallback((key: string, value: string): boolean => {
     try {
@@ -88,7 +64,33 @@ export const useEnhancedRegistrationState = () => {
 
   // Helper functions
   const getStoredRole = useCallback(() => atomicGetItem('registration_user_role'), [atomicGetItem]);
-  const getStoredPaymentStatus = useCallback(() => atomicGetItem('registration_payment_complete') === 'true', [atomicGetItem]);
+  const getStoredPaymentStatus = useCallback((): boolean => {
+    return atomicGetItem('registration_payment_complete') === 'true';
+  }, [atomicGetItem]);
+
+  // Define valid state transitions
+  const stateTransitions: StateTransition[] = [
+    {
+      from: 1,
+      to: 2,
+      condition: () => Boolean(user && getStoredRole()),
+    },
+    {
+      from: 2,
+      to: 3,
+      condition: () => getStoredRole() === 'patient' && getStoredPaymentStatus(),
+    },
+    {
+      from: 2,
+      to: 0,
+      condition: () => getStoredRole() !== 'patient' && Boolean(user && userRole),
+    },
+    {
+      from: 3,
+      to: 0,
+      condition: () => Boolean(user && userRole),
+    },
+  ];
 
   // Enhanced state retrieval with validation
   const getRegistrationState = useCallback((): EnhancedRegistrationState => {
@@ -102,7 +104,7 @@ export const useEnhancedRegistrationState = () => {
     const lastError = atomicGetItem('registration_last_error');
 
     // Detect incomplete registration
-    const hasIncompleteRegistration = !!(user && !userRole && !savedStep && !savedRole);
+    const hasIncompleteRegistration = Boolean(user && !userRole && !savedStep && !savedRole);
     
     const state: EnhancedRegistrationState = {
       step: savedStep ? parseInt(savedStep, 10) : 1,
@@ -282,7 +284,7 @@ export const useEnhancedRegistrationState = () => {
   // Check if user is in active registration flow
   const isUserInActiveRegistration = useCallback((): boolean => {
     const state = getRegistrationState();
-    return !!(state.step > 1 && state.userRole);
+    return Boolean(state.step > 1 && state.userRole);
   }, [getRegistrationState]);
 
   // Automatic state validation
