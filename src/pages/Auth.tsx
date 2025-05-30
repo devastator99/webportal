@@ -213,8 +213,7 @@ const Auth = () => {
           // Store user info for payment step
           setUserInfo({ firstName, lastName });
           
-          // Set localStorage flag to indicate payment is needed
-          localStorage.setItem('registration_payment_complete', 'true');
+          // Move to payment step IMMEDIATELY after account creation
           setIsRegistrationFlow(true);
           setRegistrationStep(2); // Move to payment step
           
@@ -262,11 +261,13 @@ const Auth = () => {
   const handlePaymentComplete = () => {
     console.log("Payment completed, moving to registration progress report");
     
-    // Set localStorage flag to indicate registration is complete
-    localStorage.setItem('registration_complete', 'true');
-    localStorage.removeItem('registration_payment_complete');
-    
+    // Move to registration progress report step
     setRegistrationStep(3); // Move to registration progress report
+    
+    toast({
+      title: "Payment Successful!",
+      description: "Your account is being set up. Please wait while we prepare your dashboard.",
+    });
   };
 
   // For non-registration routes
