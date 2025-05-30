@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
-import { supabase, createUserRole, ValidUserRole } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface PatientData {
   age?: string;
@@ -48,15 +48,14 @@ export const useRegistrationAuth = () => {
     userType: string,
     firstName?: string,
     lastName?: string,
-    patientData?: PatientData,
-    skipRoleCreation = false
+    patientData?: PatientData
   ) => {
     setLoading(true);
     setError(null);
     setRegistrationStep("Creating account...");
 
     try {
-      console.log("Registration: Starting user registration process...", { skipRoleCreation });
+      console.log("Registration: Starting user registration process with auth hook...");
       
       // Validate inputs
       if (!identifier || !password || !firstName || !lastName) {
@@ -68,8 +67,8 @@ export const useRegistrationAuth = () => {
       }
 
       // Validate user type
-      const validRoles: ValidUserRole[] = ['patient', 'doctor', 'nutritionist', 'administrator', 'reception'];
-      if (!validRoles.includes(userType as ValidUserRole)) {
+      const validRoles = ['patient', 'doctor', 'nutritionist', 'administrator', 'reception'];
+      if (!validRoles.includes(userType)) {
         throw new Error(`Invalid user type: ${userType}`);
       }
 
@@ -80,7 +79,7 @@ export const useRegistrationAuth = () => {
       
       if (isEmail) {
         emailAddress = identifier;
-        phoneNumber = patientData?.emergencyContact;
+        phoneNumber = patientData?.phone || patientData?.emergencyContact;
       } else {
         phoneNumber = identifier;
         emailAddress = `${identifier.replace(/[^0-9]/g, '')}@temp.placeholder`;
@@ -90,26 +89,42 @@ export const useRegistrationAuth = () => {
         emailAddress, 
         phoneNumber, 
         isEmail, 
-        userType,
-        skipRoleCreation
+        userType
       });
 
-      // Auth signup with metadata
+      // Prepare comprehensive user metadata for the auth hook
+      const userMetadata = {
+        user_type_string: userType,
+        first_name: firstName,
+        last_name: lastName,
+        phone: phoneNumber,
+        primary_contact: identifier,
+        // Include patient data in metadata for the hook to process
+        ...(userType === 'patient' && patientData ? {
+          age: patientData.age,
+          gender: patientData.gender,
+          bloodGroup: patientData.bloodGroup,
+          allergies: patientData.allergies,
+          emergencyContact: patientData.emergencyContact,
+          height: patientData.height,
+          birthDate: patientData.birthDate,
+          foodHabit: patientData.foodHabit,
+          knownAllergies: patientData.knownAllergies,
+          currentMedicalConditions: patientData.currentMedicalConditions
+        } : {})
+      };
+
+      // Auth signup with comprehensive metadata for the hook
       const signUpData = {
         email: emailAddress,
         password,
         options: {
-          data: {
-            user_type_string: userType,
-            first_name: firstName,
-            last_name: lastName,
-            phone: phoneNumber,
-            primary_contact: identifier
-          }
+          data: userMetadata
         }
       };
 
-      console.log("Registration: Attempting Supabase auth signup...");
+      console.log("Registration: Attempting Supabase auth signup with hook metadata...");
+      setRegistrationStep("Setting up your account...");
       
       const { data: authData, error: signUpError } = await retryWithDelay(async () => {
         return await supabase.auth.signUp(signUpData);
@@ -136,107 +151,10 @@ export const useRegistrationAuth = () => {
       }
 
       console.log("Registration: Auth user created successfully:", authData.user.id);
-      setRegistrationStep("Updating profile...");
-
-      // Update profiles table with phone number
-      try {
-        console.log("Registration: Updating profile with phone number...");
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ 
-            phone: phoneNumber,
-            first_name: firstName,
-            last_name: lastName
-          })
-          .eq('id', authData.user.id);
-        
-        if (profileError) {
-          console.error("Registration: Error updating profile with phone:", profileError);
-        } else {
-          console.log("Registration: Profile updated successfully with phone number:", phoneNumber);
-        }
-      } catch (profileUpdateError: any) {
-        console.error("Registration: Exception updating profile:", profileUpdateError);
-      }
-
-      // Create user role SYNCHRONOUSLY - this is the critical fix
-      if (!skipRoleCreation) {
-        setRegistrationStep("Setting up your account...");
-        console.log("Registration: Creating user role synchronously...");
-        
-        try {
-          // CRITICAL: Wait for role creation to complete before proceeding
-          const roleResult = await createUserRole(authData.user.id, userType as ValidUserRole);
-          console.log("Registration: User role created successfully:", roleResult);
-          
-          // Verify role was actually created by checking it exists
-          setRegistrationStep("Verifying account setup...");
-          const { data: roleCheck, error: roleCheckError } = await supabase
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', authData.user.id)
-            .single();
-          
-          if (roleCheckError || !roleCheck) {
-            console.error("Registration: Role verification failed:", roleCheckError);
-            throw new Error("Role creation verification failed. Please contact support.");
-          }
-          
-          console.log("Registration: Role verified successfully:", roleCheck.role);
-          
-        } catch (roleError: any) {
-          console.error("Registration: Error creating user role:", roleError);
-          throw new Error("Account created but role assignment failed. Please contact support.");
-        }
-      } else {
-        console.log("Registration: Skipping role creation as requested");
-      }
+      console.log("Registration: Auth hook will handle profile and role creation automatically");
       
-      // Handle patient-specific data
-      if (userType === "patient" && patientData) {
-        setRegistrationStep("Saving additional details...");
-        try {
-          console.log("Registration: Creating patient details...");
-          const { data: patientResult, error: patientError } = await supabase.rpc(
-            'upsert_patient_details',
-            {
-              p_user_id: authData.user.id,
-              p_age: patientData.age ? parseInt(patientData.age, 10) : null,
-              p_gender: patientData.gender || null,
-              p_blood_group: patientData.bloodGroup || null,
-              p_allergies: patientData.allergies || null,
-              p_emergency_contact: patientData.emergencyContact || null,
-              p_height: patientData.height ? parseFloat(patientData.height) : null,
-              p_birth_date: patientData.birthDate || null,
-              p_food_habit: patientData.foodHabit || null,
-              p_current_medical_conditions: patientData.currentMedicalConditions || null
-            }
-          );
-          
-          if (patientError) {
-            console.error("Registration: Error creating patient details:", patientError);
-            toast({
-              title: "Account Created",
-              description: "Your account was created successfully, but some additional details could not be saved. You can update them later in your profile.",
-              variant: "default",
-            });
-          } else if (patientResult && typeof patientResult === 'object' && patientResult.success === false) {
-            console.error("Registration: Patient details creation failed:", patientResult);
-            toast({
-              title: "Account Created", 
-              description: "Your account was created successfully, but some additional details could not be saved. You can update them later in your profile.",
-              variant: "default",
-            });
-          } else {
-            console.log("Registration: Patient details created successfully");
-          }
-        } catch (patientError: any) {
-          console.error("Registration: Exception creating patient details:", patientError);
-        }
-      }
-
       setRegistrationStep("Account ready!");
-      console.log("Registration: Registration completed successfully");
+      console.log("Registration: Registration completed successfully - auth hook will process user setup");
       return authData.user;
       
     } catch (error: any) {

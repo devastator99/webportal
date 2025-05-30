@@ -17,7 +17,7 @@ const Auth = () => {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
 
-  // ONLY redirect when we have BOTH user AND role - never redirect without a role
+  // Redirect when we have BOTH user AND role
   useEffect(() => {
     const handleRedirect = async () => {
       // Don't redirect while still loading
@@ -26,21 +26,20 @@ const Auth = () => {
         return;
       }
       
-      // CRITICAL: Only redirect if user has BOTH authentication AND a role
-      // This prevents the infinite loop by ensuring role is fully loaded
+      // Only redirect if user has BOTH authentication AND a role
       if (user && userRole) {
-        console.log("Auth page: User has both auth and role, safe to redirect:", userRole);
+        console.log("Auth page: User has both auth and role, redirecting to dashboard:", userRole);
         navigate("/dashboard", { replace: true });
         return;
       }
       
-      // If user exists but no role, stay here and let registration complete
+      // If user exists but no role, the auth hook should have created it
+      // Give it a moment to process
       if (user && !userRole) {
-        console.log("Auth page: User authenticated but waiting for role creation");
+        console.log("Auth page: User authenticated, waiting for auth hook to complete role creation...");
         return;
       }
       
-      // No user, stay on auth page
       console.log("Auth page: No user, staying on auth page");
     };
     
@@ -82,7 +81,7 @@ const Auth = () => {
     if (authMode === 'login') {
       await handleLogin(email, password);
     } else {
-      // Use the existing registration handler
+      // Use the registration handler with auth hook integration
       await handleRegistration(email, password, userType!, firstName, lastName, patientData);
     }
   };
@@ -99,7 +98,7 @@ const Auth = () => {
     );
   }
 
-  // Show auth form - let users sign in/up and wait for role creation
+  // Show auth form
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
