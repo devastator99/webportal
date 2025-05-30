@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -99,12 +98,11 @@ const RegistrationPage = () => {
     try {
       console.log("=== FORM SUBMISSION STARTED ===");
       console.log("Registration form submitted with user type:", userType);
-      console.log("Form data:", { email, firstName, lastName, userType, patientData });
       
       setError(null);
       setPreventRedirection(true);
       
-      // Store user info and role
+      // Store user info and role FIRST
       setUserInfo({ firstName, lastName });
       setRegisteredUserRole(userType!);
       
@@ -132,21 +130,18 @@ const RegistrationPage = () => {
       if (newUser) {
         console.log("=== ACCOUNT CREATED SUCCESSFULLY ===");
         console.log("Account created successfully for role:", userType);
-        console.log("New user:", newUser.id);
         
-        // Route based on user type
+        // IMMEDIATELY set the registration step based on user type
         if (userType === 'patient') {
-          console.log("Patient registration - moving to PAYMENT step");
-          // Patients go to payment step
+          console.log("Patient registration - IMMEDIATELY moving to PAYMENT step");
           setRegistrationStep(2);
           toast({
             title: "Account Created!",
             description: "Please complete the payment to activate your account.",
           });
         } else {
-          console.log("Non-patient registration - moving to PROGRESS step");
-          // All other roles skip payment and go directly to progress step
-          setRegistrationStep(2); // For non-patients, step 2 is progress
+          console.log("Non-patient registration - IMMEDIATELY moving to PROGRESS step");
+          setRegistrationStep(2);
           toast({
             title: "Account Created!",
             description: "Setting up your account and permissions...",
@@ -154,7 +149,6 @@ const RegistrationPage = () => {
         }
         
         console.log("=== FORM SUBMISSION COMPLETED ===");
-        console.log("Final step set to:", registrationStep);
       } else {
         console.error("User creation failed - no user returned");
         throw new Error("Failed to create user account");
@@ -162,7 +156,6 @@ const RegistrationPage = () => {
     } catch (error: any) {
       console.error("=== REGISTRATION ERROR ===");
       console.error("Registration error:", error);
-      console.error("Error details:", error.message);
       
       // Clean up localStorage if registration fails
       localStorage.removeItem('registration_step');
