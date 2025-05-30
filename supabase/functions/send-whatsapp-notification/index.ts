@@ -55,8 +55,12 @@ serve(async (req) => {
       formattedPhoneNumber = '+' + formattedPhoneNumber;
     }
 
-    // Format for WhatsApp
-    const fromWhatsApp = `whatsapp:${twilioWhatsAppNumber}`;
+    // Format for WhatsApp - ensure the from number has whatsapp: prefix
+    let fromWhatsApp = twilioWhatsAppNumber;
+    if (!fromWhatsApp.startsWith('whatsapp:')) {
+      fromWhatsApp = `whatsapp:${twilioWhatsAppNumber}`;
+    }
+    
     const toWhatsApp = `whatsapp:${formattedPhoneNumber}`;
     
     console.log(`From WhatsApp: ${fromWhatsApp}`);
