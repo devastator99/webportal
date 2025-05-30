@@ -24,6 +24,7 @@ const Auth = () => {
   const [isCheckingRegistrationStatus, setIsCheckingRegistrationStatus] = useState(false);
   const [hasCompletionCheck, setHasCompletionCheck] = useState(false);
   const [userInfo, setUserInfo] = useState<any>(null);
+  const [preventRedirection, setPreventRedirection] = useState(false);
   
   const isRegistration = location.pathname.includes('/register');
 
@@ -91,7 +92,7 @@ const Auth = () => {
     checkLocalStorageState();
   }, [isRegistration, location.pathname]);
 
-  // FIXED: Enhanced redirect logic - only redirect when NOT in active registration flow
+  // FIXED: Enhanced redirect logic - but ONLY when not in active registration flow
   useEffect(() => {
     const handleRedirect = async () => {
       // Don't redirect while still loading
@@ -102,6 +103,12 @@ const Auth = () => {
       
       if (!user) {
         console.log("Auth page: No user found, staying on auth page");
+        return;
+      }
+      
+      // CRITICAL: If preventRedirection is set, don't redirect (used during registration flow)
+      if (preventRedirection) {
+        console.log("Auth page: Redirection prevented during registration flow");
         return;
       }
       
@@ -167,7 +174,7 @@ const Auth = () => {
     };
     
     handleRedirect();
-  }, [user, userRole, isLoading, isLoadingRole, navigate, isRegistrationFlow, isRegistration, registrationStep, hasCompletionCheck]);
+  }, [user, userRole, isLoading, isLoadingRole, navigate, isRegistrationFlow, isRegistration, registrationStep, hasCompletionCheck, preventRedirection]);
 
   // Show loading state while auth is loading or checking registration status
   if (isLoading || isLoadingRole || isCheckingRegistrationStatus) {
@@ -198,6 +205,9 @@ const Auth = () => {
       
       // For patients, create account and move to payment step
       if (userType === 'patient') {
+        // CRITICAL: Prevent any redirections during registration flow
+        setPreventRedirection(true);
+        
         const enhancedPatientData = patientData ? {
           ...patientData,
           emergencyContact: patientData.emergencyContact || patientData.phone
@@ -254,6 +264,7 @@ const Auth = () => {
       localStorage.removeItem('registration_payment_complete');
       localStorage.removeItem('registration_complete');
       setIsRegistrationFlow(false);
+      setPreventRedirection(false);
       
       toast({
         title: "Registration failed",
