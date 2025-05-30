@@ -1,13 +1,21 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
+import { AuthForm } from "@/components/auth/AuthForm";
+import { useRegistrationAuth, PatientData } from "@/hooks/useRegistrationAuth";
 import { LucideLoader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
 
 const Auth = () => {
   const { user, userRole, isLoading, isLoadingRole } = useAuth();
   const navigate = useNavigate();
+  const { handleRegistration, loading: registrationLoading, error: registrationError } = useRegistrationAuth();
+  
+  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
 
   // ONLY redirect when we have BOTH user AND role - never redirect without a role
   useEffect(() => {
@@ -39,6 +47,46 @@ const Auth = () => {
     handleRedirect();
   }, [user, userRole, isLoading, isLoadingRole, navigate]);
 
+  const handleLogin = async (email: string, password: string) => {
+    setAuthLoading(true);
+    setAuthError(null);
+    
+    try {
+      console.log("Auth: Attempting login...");
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      console.log("Auth: Login successful");
+    } catch (err: any) {
+      console.error('Auth: Login error:', err);
+      setAuthError(err.message || 'Login failed. Please try again.');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleAuthSubmit = async (
+    email: string,
+    password: string,
+    userType?: string,
+    firstName?: string,
+    lastName?: string,
+    patientData?: PatientData
+  ) => {
+    if (authMode === 'login') {
+      await handleLogin(email, password);
+    } else {
+      // Use the existing registration handler
+      await handleRegistration(email, password, userType!, firstName, lastName, patientData);
+    }
+  };
+
   // Show loading while anything is loading
   if (isLoading || isLoadingRole) {
     return (
@@ -56,20 +104,41 @@ const Auth = () => {
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-saas-dark">
-          Welcome
+          {authMode === 'login' ? 'Welcome Back' : 'Welcome'}
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Sign in to your account or create a new one
+          {authMode === 'login' 
+            ? 'Sign in to your account' 
+            : 'Create your account and start your health journey'
+          }
         </p>
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10">
-          <SupabaseAuthUI 
-            view="sign_in"
-            redirectTo={`${window.location.origin}/auth`}
-            showLinks={true}
+          <AuthForm 
+            type={authMode}
+            onSubmit={handleAuthSubmit}
+            error={authError || registrationError}
+            loading={authLoading || registrationLoading}
           />
+          
+          <div className="mt-6 text-center">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setAuthMode(authMode === 'login' ? 'register' : 'login');
+                setAuthError(null);
+              }}
+              className="text-sm text-purple-600 hover:text-purple-500"
+            >
+              {authMode === 'login' 
+                ? "Don't have an account? Sign up" 
+                : "Already have an account? Sign in"
+              }
+            </Button>
+          </div>
         </div>
       </div>
     </div>
