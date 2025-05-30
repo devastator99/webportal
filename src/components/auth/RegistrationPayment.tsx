@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { useAuth } from '@/contexts/AuthContext';
 import { useRegistrationProcess } from '@/hooks/useRegistrationProcess';
 import { useToast } from '@/hooks/use-toast';
-import { RegistrationProgressReport } from './RegistrationProgressReport';
 import { Spinner } from '@/components/ui/spinner';
 import { Shield, Clock, Users, MessageSquare, FileText, CheckCircle } from 'lucide-react';
 
@@ -26,7 +25,6 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
-  const [showRegistrationProgress, setShowRegistrationProgress] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [razorpayKeyId, setRazorpayKeyId] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
@@ -48,9 +46,9 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
       if (user) {
         const status = await fetchRegistrationProgress();
         
-        // If payment is already complete, show the registration progress
+        // If payment is already complete, redirect to dashboard
         if (status && status.registration_status !== 'payment_pending') {
-          setShowRegistrationProgress(true);
+          onComplete();
         }
       }
     };
@@ -115,7 +113,6 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
             
             if (success) {
               console.log("Registration completed successfully");
-              setShowRegistrationProgress(true);
               onComplete();
             }
           } catch (err: any) {
@@ -197,10 +194,9 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
         if (success) {
           console.log("Manual payment completed successfully");
           toast({
-            title: "Registration Payment",
-            description: "Test payment processed successfully",
+            title: "Registration Complete!",
+            description: "Test payment processed successfully. Redirecting to dashboard...",
           });
-          setShowRegistrationProgress(true);
           onComplete();
         }
       } else {
@@ -236,10 +232,6 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
       console.log("Razorpay already loaded");
     }
   }, []);
-  
-  if (showRegistrationProgress) {
-    return <RegistrationProgressReport />;
-  }
   
   return (
     <Card className="bg-white shadow-lg border border-gray-100">
@@ -326,7 +318,7 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
           <div className="space-y-2 text-sm text-gray-600">
             <div className="flex items-center gap-2">
               <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-medium">1</span>
-              <span>Instant account activation (within seconds)</span>
+              <span>Instant account activation and dashboard access</span>
             </div>
             <div className="flex items-center gap-2">
               <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-medium">2</span>
@@ -335,10 +327,6 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
             <div className="flex items-center gap-2">
               <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-medium">3</span>
               <span>Welcome message from your care team (same day)</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-medium">4</span>
-              <span>Full platform access immediately</span>
             </div>
           </div>
         </div>

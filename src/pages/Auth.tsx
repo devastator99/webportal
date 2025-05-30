@@ -5,7 +5,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { RegistrationPayment } from "@/components/auth/RegistrationPayment";
-import { RegistrationProgressReport } from "@/components/auth/RegistrationProgressReport";
 import { LucideLoader2 } from "lucide-react";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -76,14 +75,10 @@ const Auth = () => {
       if (!isRegistration) return;
       
       const paymentComplete = localStorage.getItem('registration_payment_complete') === 'true';
-      const registrationComplete = localStorage.getItem('registration_complete') === 'true';
       
-      console.log("Auth page loaded with state:", { paymentComplete, registrationComplete });
+      console.log("Auth page loaded with state:", { paymentComplete });
       
-      if (registrationComplete) {
-        setIsRegistrationFlow(true);
-        setRegistrationStep(3); // Go directly to registration progress report
-      } else if (paymentComplete) {
+      if (paymentComplete) {
         setIsRegistrationFlow(true);
         setRegistrationStep(2); // Go to payment step
       }
@@ -92,7 +87,7 @@ const Auth = () => {
     checkLocalStorageState();
   }, [isRegistration, location.pathname]);
 
-  // FIXED: Enhanced redirect logic - but ONLY when not in active registration flow
+  // Enhanced redirect logic - but ONLY when not in active registration flow
   useEffect(() => {
     const handleRedirect = async () => {
       // Don't redirect while still loading
@@ -114,8 +109,8 @@ const Auth = () => {
       
       console.log("Auth page detected logged in user. Role:", userRole, "isRegistrationFlow:", isRegistrationFlow, "isRegistration:", isRegistration, "registrationStep:", registrationStep);
       
-      // CRITICAL FIX: Don't redirect if user is in active registration flow (steps 2 or 3)
-      if (isRegistration && isRegistrationFlow && (registrationStep === 2 || registrationStep === 3)) {
+      // CRITICAL FIX: Don't redirect if user is in active registration flow (step 2 = payment)
+      if (isRegistration && isRegistrationFlow && registrationStep === 2) {
         console.log("User in active registration flow, step:", registrationStep, "- NOT redirecting");
         return;
       }
@@ -274,17 +269,22 @@ const Auth = () => {
     }
   };
 
-  // Handle payment completion - move to registration progress report
+  // Handle payment completion - redirect directly to dashboard
   const handlePaymentComplete = () => {
-    console.log("Payment completed, moving to registration progress report");
+    console.log("Payment completed, redirecting to dashboard");
     
-    // Move to registration progress report step
-    setRegistrationStep(3); // Move to registration progress report
+    // Clear localStorage flags
+    localStorage.removeItem('registration_payment_complete');
+    localStorage.removeItem('registration_complete');
+    setPreventRedirection(false);
     
     toast({
-      title: "Payment Successful!",
-      description: "Your account is being set up. Please wait while we prepare your dashboard.",
+      title: "Registration Complete!",
+      description: "Welcome to your health dashboard. Your care team will be assigned shortly.",
     });
+    
+    // Redirect directly to dashboard
+    navigate("/dashboard", { replace: true });
   };
 
   // For non-registration routes
@@ -310,14 +310,12 @@ const Auth = () => {
     );
   }
 
-  // For registration process - 3 steps: Form → Payment → Progress Report
+  // For registration process - 2 steps: Form → Payment
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 pt-16 md:pt-20 overflow-hidden">
       <div className="sm:mx-auto sm:w-full sm:max-w-4xl">
         <h2 className="mt-3 text-center text-2xl sm:text-3xl font-bold text-saas-dark mb-8">
-          {registrationStep === 1 ? 'Create your account' : 
-           registrationStep === 2 ? 'Complete Payment' : 
-           'Registration Status'}
+          {registrationStep === 1 ? 'Create your account' : 'Complete Payment'}
         </h2>
       </div>
 
@@ -345,12 +343,6 @@ const Auth = () => {
           <RegistrationPayment 
             onComplete={handlePaymentComplete}
             userInfo={userInfo}
-          />
-        )}
-        
-        {registrationStep === 3 && (
-          <RegistrationProgressReport 
-            onCheckAgain={() => console.log('Check again clicked')} 
           />
         )}
       </div>
