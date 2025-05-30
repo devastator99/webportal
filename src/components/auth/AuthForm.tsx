@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,7 +11,6 @@ import { AlertCircle, Loader2 } from 'lucide-react';
 import { PatientData, useRegistrationAuth } from '@/hooks/useRegistrationAuth';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import '../styles/authForm.css';
 
 interface AuthFormProps {
   type: 'login' | 'register';
@@ -91,8 +91,8 @@ export const AuthForm: React.FC<AuthFormProps> = ({ type, onSubmit, error, loadi
   // Show registration progress if loading and we have a registration step
   if (loading && registrationStep) {
     return (
-      <div className="auth-form-container">
-        <Card className="shadow-lg shadow-saas-light-purple/20">
+      <div className="w-full max-w-md mx-auto">
+        <Card className="shadow-lg shadow-purple-200/20">
           <CardContent className="flex flex-col items-center justify-center p-8 space-y-4">
             <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
             <div className="text-center">
@@ -110,10 +110,10 @@ export const AuthForm: React.FC<AuthFormProps> = ({ type, onSubmit, error, loadi
   }
 
   return (
-    <div className="auth-form-container">
-      <Card className="shadow-lg shadow-saas-light-purple/20">
+    <div className="w-full max-w-md mx-auto">
+      <Card className="shadow-lg shadow-purple-200/20">
         <CardHeader>
-          <CardTitle className="text-2xl font-bold text-center text-saas-dark">
+          <CardTitle className="text-2xl font-bold text-center text-gray-900">
             {type === 'login' ? 'Sign In' : 'Create Account'}
           </CardTitle>
           <CardDescription className="text-center text-gray-600">
@@ -218,7 +218,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ type, onSubmit, error, loadi
 
             <Button
               type="submit"
-              className="w-full bg-saas-purple hover:bg-saas-purple/90"
+              className="w-full bg-purple-600 hover:bg-purple-700"
               disabled={loading}
             >
               {loading ? (
@@ -236,7 +236,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ type, onSubmit, error, loadi
 
       {/* Patient Information Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="glass-dialog max-w-2xl max-h-[85vh] overflow-y-auto scrollbar-hide">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Patient Information</DialogTitle>
             <DialogDescription>
@@ -244,7 +244,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ type, onSubmit, error, loadi
             </DialogDescription>
           </DialogHeader>
           
-          <div className="mobile-form-container">
+          <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="gender">Gender</Label>
@@ -343,7 +343,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ type, onSubmit, error, loadi
               </div>
             </div>
             
-            <div className="mt-4 space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="knownAllergies">Known Allergies</Label>
               <Input
                 id="knownAllergies"
@@ -355,7 +355,7 @@ export const AuthForm: React.FC<AuthFormProps> = ({ type, onSubmit, error, loadi
               />
             </div>
             
-            <div className="mt-4 space-y-2">
+            <div className="space-y-2">
               <Label htmlFor="currentMedicalConditions">Current Medical Conditions</Label>
               <Input
                 id="currentMedicalConditions"
@@ -367,32 +367,30 @@ export const AuthForm: React.FC<AuthFormProps> = ({ type, onSubmit, error, loadi
               />
             </div>
             
-            <div className="form-button-container">
-              <div className="flex flex-col sm:flex-row gap-3 mt-6">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="button"
-                  onClick={handlePatientRegistration}
-                  className="flex-1 bg-saas-purple hover:bg-saas-purple/90"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating Account...
-                    </>
-                  ) : (
-                    'Complete Registration'
-                  )}
-                </Button>
-              </div>
+            <div className="flex flex-col sm:flex-row gap-3 mt-6">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={handlePatientRegistration}
+                className="flex-1 bg-purple-600 hover:bg-purple-700"
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creating Account...
+                  </>
+                ) : (
+                  'Complete Registration'
+                )}
+              </Button>
             </div>
           </div>
         </DialogContent>
