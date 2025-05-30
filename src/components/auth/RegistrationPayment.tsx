@@ -46,7 +46,7 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
       if (user) {
         const status = await fetchRegistrationProgress();
         
-        // If payment is already complete, redirect to dashboard
+        // If payment is already complete, move to next step
         if (status && status.registration_status !== 'payment_pending') {
           onComplete();
         }
@@ -112,7 +112,7 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
             );
             
             if (success) {
-              console.log("Registration completed successfully");
+              console.log("Registration completed successfully, moving to status screen");
               onComplete();
             }
           } catch (err: any) {
@@ -192,10 +192,10 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
         );
         
         if (success) {
-          console.log("Manual payment completed successfully");
+          console.log("Manual payment completed successfully, moving to status screen");
           toast({
-            title: "Registration Complete!",
-            description: "Test payment processed successfully. Redirecting to dashboard...",
+            title: "Registration Payment Complete!",
+            description: "Test payment processed successfully. Moving to registration status...",
           });
           onComplete();
         }

@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { RegistrationPayment } from "@/components/auth/RegistrationPayment";
+import { RegistrationProgressReport } from "@/components/auth/RegistrationProgressReport";
 import { LucideLoader2 } from "lucide-react";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -80,7 +81,7 @@ const Auth = () => {
       
       if (paymentComplete) {
         setIsRegistrationFlow(true);
-        setRegistrationStep(2); // Go to payment step
+        setRegistrationStep(3); // Go to status screen
       }
     };
     
@@ -109,8 +110,8 @@ const Auth = () => {
       
       console.log("Auth page detected logged in user. Role:", userRole, "isRegistrationFlow:", isRegistrationFlow, "isRegistration:", isRegistration, "registrationStep:", registrationStep);
       
-      // CRITICAL FIX: Don't redirect if user is in active registration flow (step 2 = payment)
-      if (isRegistration && isRegistrationFlow && registrationStep === 2) {
+      // CRITICAL FIX: Don't redirect if user is in active registration flow (step 2 = payment, step 3 = status)
+      if (isRegistration && isRegistrationFlow && (registrationStep === 2 || registrationStep === 3)) {
         console.log("User in active registration flow, step:", registrationStep, "- NOT redirecting");
         return;
       }
@@ -269,9 +270,25 @@ const Auth = () => {
     }
   };
 
-  // Handle payment completion - redirect directly to dashboard
+  // Handle payment completion - move to status screen
   const handlePaymentComplete = () => {
-    console.log("Payment completed, redirecting to dashboard");
+    console.log("Payment completed, moving to status screen");
+    
+    // Store completion state
+    localStorage.setItem('registration_payment_complete', 'true');
+    
+    toast({
+      title: "Payment Complete!",
+      description: "Your registration is being processed. Please wait while we set up your account.",
+    });
+    
+    // Move to status screen (step 3)
+    setRegistrationStep(3);
+  };
+
+  // Handle final completion - redirect to dashboard
+  const handleRegistrationComplete = () => {
+    console.log("Registration fully complete, redirecting to dashboard");
     
     // Clear localStorage flags
     localStorage.removeItem('registration_payment_complete');
@@ -279,11 +296,11 @@ const Auth = () => {
     setPreventRedirection(false);
     
     toast({
-      title: "Registration Complete!",
-      description: "Welcome to your health dashboard. Your care team will be assigned shortly.",
+      title: "Welcome to your Health Dashboard!",
+      description: "Your account setup is complete. Welcome aboard!",
     });
     
-    // Redirect directly to dashboard
+    // Redirect to dashboard
     navigate("/dashboard", { replace: true });
   };
 
@@ -310,12 +327,14 @@ const Auth = () => {
     );
   }
 
-  // For registration process - 2 steps: Form → Payment
+  // For registration process - 3 steps: Form → Payment → Status
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 pt-16 md:pt-20 overflow-hidden">
       <div className="sm:mx-auto sm:w-full sm:max-w-4xl">
         <h2 className="mt-3 text-center text-2xl sm:text-3xl font-bold text-saas-dark mb-8">
-          {registrationStep === 1 ? 'Create your account' : 'Complete Payment'}
+          {registrationStep === 1 ? 'Create your account' : 
+           registrationStep === 2 ? 'Complete Payment' : 
+           'Registration in Progress'}
         </h2>
       </div>
 
@@ -343,6 +362,12 @@ const Auth = () => {
           <RegistrationPayment 
             onComplete={handlePaymentComplete}
             userInfo={userInfo}
+          />
+        )}
+
+        {registrationStep === 3 && (
+          <RegistrationProgressReport 
+            onComplete={handleRegistrationComplete}
           />
         )}
       </div>

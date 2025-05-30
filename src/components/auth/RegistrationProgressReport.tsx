@@ -1,28 +1,26 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, Clock, Users, MessageSquare, ArrowRight, Loader2, AlertCircle } from 'lucide-react';
+import { CheckCircle, Clock, Users, MessageSquare, ArrowRight, Loader2, AlertCircle, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
 import { UserRegistrationStatus, RegistrationStatusValues } from '@/types/registration';
 
 interface RegistrationProgressReportProps {
-  onCheckAgain?: () => void;
+  onComplete?: () => void;
 }
 
 export const RegistrationProgressReport: React.FC<RegistrationProgressReportProps> = ({
-  onCheckAgain
+  onComplete
 }) => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
   const [status, setStatus] = useState<UserRegistrationStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [autoRedirectCountdown, setAutoRedirectCountdown] = useState<number | null>(null);
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const fetchStatus = async (showLoadingToast = false) => {
     if (!user) return;
@@ -71,11 +69,6 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
         
         // Only start countdown if ALL tasks including welcome notification are complete
         if (allRequiredTasksCompleted) {
-          // Clear localStorage flags
-          localStorage.removeItem('registration_payment_pending');
-          localStorage.removeItem('registration_payment_complete');
-          localStorage.removeItem('registration_complete');
-          
           // Start 5-second countdown
           setAutoRedirectCountdown(5);
         }
@@ -99,11 +92,9 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
     if (autoRedirectCountdown === null) return;
     
     if (autoRedirectCountdown <= 0) {
-      toast({
-        title: "Welcome to your Health Dashboard!",
-        description: "Registration completed successfully. Redirecting...",
-      });
-      navigate('/dashboard', { replace: true });
+      if (onComplete) {
+        onComplete();
+      }
       return;
     }
     
@@ -112,29 +103,46 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
     }, 1000);
     
     return () => clearTimeout(timer);
-  }, [autoRedirectCountdown, navigate, toast]);
+  }, [autoRedirectCountdown, onComplete]);
 
   useEffect(() => {
     fetchStatus();
   }, [user]);
 
-  const handleManualRedirect = () => {
-    // Clear localStorage flags
-    localStorage.removeItem('registration_payment_pending');
-    localStorage.removeItem('registration_payment_complete');
-    localStorage.removeItem('registration_complete');
-    
-    toast({
-      title: "Welcome to your Health Dashboard!",
-      description: "Registration completed successfully.",
-    });
-    navigate('/dashboard', { replace: true });
+  const handleManualComplete = () => {
+    if (onComplete) {
+      onComplete();
+    }
   };
 
   const handleRefresh = () => {
     fetchStatus(true);
-    if (onCheckAgain) {
-      onCheckAgain();
+  };
+
+  const handleLogout = async () => {
+    if (isSigningOut) return;
+    
+    try {
+      setIsSigningOut(true);
+      
+      toast({
+        title: "Logging out",
+        description: "Your registration will continue in the background. You can log back in anytime to check the status.",
+      });
+      
+      // Clear localStorage flags but keep registration processing
+      localStorage.removeItem('registration_payment_complete');
+      
+      await signOut();
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSigningOut(false);
     }
   };
 
@@ -318,7 +326,7 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
               All setup tasks including welcome notification have been completed successfully! Redirecting to your dashboard in {autoRedirectCountdown} seconds...
             </p>
             <Button 
-              onClick={handleManualRedirect}
+              onClick={handleManualComplete}
               className="bg-purple-600 hover:bg-purple-700"
             >
               Go to Dashboard Now <ArrowRight className="h-4 w-4 ml-2" />
@@ -329,26 +337,47 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
         {/* Actions for incomplete registration */}
         {!isFullyComplete && (
           <div className="flex flex-col gap-3 pt-4 border-t">
-            <Button
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-              variant="outline"
-              className="w-full"
-            >
-              {isRefreshing ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  Checking Status...
-                </>
-              ) : (
-                'Refresh Status'
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                variant="outline"
+                className="flex-1"
+              >
+                {isRefreshing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Checking...
+                  </>
+                ) : (
+                  'Refresh Status'
+                )}
+              </Button>
+              
+              <Button
+                onClick={handleLogout}
+                disabled={isSigningOut}
+                variant="outline"
+                className="flex-1"
+              >
+                {isSigningOut ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    Signing Out...
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Log Out
+                  </>
+                )}
+              </Button>
+            </div>
             
             <div className="text-center text-sm text-gray-600">
               <p>Setup tasks are processing automatically in the background.</p>
               <p className="font-medium text-purple-700">
-                Registration will complete only after ALL tasks including welcome notification are successful.
+                You can log out and the registration will continue. Log back in anytime to check progress.
               </p>
               {hasFailedTasks && (
                 <p className="text-red-600 font-medium mt-2">
@@ -363,7 +392,7 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
         {isFullyComplete && autoRedirectCountdown === null && (
           <div className="pt-4 border-t">
             <Button 
-              onClick={handleManualRedirect}
+              onClick={handleManualComplete}
               className="w-full bg-green-600 hover:bg-green-700"
             >
               Access Your Dashboard <ArrowRight className="h-4 w-4 ml-2" />
