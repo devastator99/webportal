@@ -132,6 +132,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     });
   };
 
+  // Handle registration completion
+  const handleRegistrationComplete = () => {
+    handleClose();
+    navigate('/dashboard');
+  };
+
   // Handle modal close
   const handleClose = () => {
     // Don't close if we're in the middle of patient registration
@@ -168,12 +174,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     // Clean up localStorage when switching views
     localStorage.removeItem('registration_payment_pending');
     localStorage.removeItem('registration_payment_complete');
-  };
-
-  // Function to navigate to dashboard
-  const goToDashboard = () => {
-    handleClose();
-    navigate('/dashboard');
   };
 
   return (
@@ -254,13 +254,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         Registration Status
                       </h1>
                       <RegistrationProgressReport 
-                        onCheckAgain={() => {
-                          // Refresh status
-                          toast({
-                            title: "Refreshing",
-                            description: "Checking your registration status...",
-                          });
-                        }} 
+                        onComplete={handleRegistrationComplete}
                       />
                     </div>
                   )}
