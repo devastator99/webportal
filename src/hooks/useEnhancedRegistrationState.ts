@@ -15,22 +15,9 @@ export interface EnhancedRegistrationState {
   lastError: string | null;
 }
 
-interface StateTransition {
-  from: number;
-  to: number;
-  condition: () => boolean;
-  action?: () => void;
-}
-
 export const useEnhancedRegistrationState = () => {
   const { user, userRole } = useAuth();
   const [debugMode, setDebugMode] = useState(false);
-  const stateRef = useRef<EnhancedRegistrationState | null>(null);
-  const validationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // State validation interval (5 minutes)
-  const VALIDATION_INTERVAL = 5 * 60 * 1000;
-  const MAX_ERROR_COUNT = 3;
 
   // Atomic localStorage operations with error handling
   const atomicSetItem = useCallback((key: string, value: string): boolean => {
@@ -68,30 +55,6 @@ export const useEnhancedRegistrationState = () => {
     return atomicGetItem('registration_payment_complete') === 'true';
   }, [atomicGetItem]);
 
-  // Define valid state transitions
-  const stateTransitions: StateTransition[] = [
-    {
-      from: 1,
-      to: 2,
-      condition: () => Boolean(user && getStoredRole()),
-    },
-    {
-      from: 2,
-      to: 3,
-      condition: () => getStoredRole() === 'patient' && getStoredPaymentStatus(),
-    },
-    {
-      from: 2,
-      to: 0,
-      condition: () => getStoredRole() !== 'patient' && Boolean(user && userRole),
-    },
-    {
-      from: 3,
-      to: 0,
-      condition: () => Boolean(user && userRole),
-    },
-  ];
-
   // Enhanced state retrieval with validation
   const getRegistrationState = useCallback((): EnhancedRegistrationState => {
     const now = Date.now();
@@ -118,8 +81,6 @@ export const useEnhancedRegistrationState = () => {
       lastError
     };
 
-    // Cache the state
-    stateRef.current = state;
     return state;
   }, [user, userRole, atomicGetItem, getStoredRole, getStoredPaymentStatus]);
 
@@ -164,22 +125,8 @@ export const useEnhancedRegistrationState = () => {
     };
   }, [getRegistrationState, atomicSetItem, debugMode]);
 
-  // Enhanced state transitions with validation
-  const updateRegistrationStep = useCallback((step: number, skipValidation = false): boolean => {
-    if (!skipValidation) {
-      const currentState = getRegistrationState();
-      const validTransition = stateTransitions.find(t => 
-        t.from === currentState.step && t.to === step && t.condition()
-      );
-
-      if (!validTransition && step !== 1) {
-        if (debugMode) {
-          console.error(`[EnhancedRegistrationState] Invalid transition from ${currentState.step} to ${step}`);
-        }
-        return false;
-      }
-    }
-
+  // SIMPLIFIED state transitions
+  const updateRegistrationStep = useCallback((step: number): boolean => {
     if (debugMode) {
       console.log(`[EnhancedRegistrationState] Updating step to: ${step}`);
     }
@@ -191,23 +138,16 @@ export const useEnhancedRegistrationState = () => {
       atomicRemoveItem('registration_last_error');
     }
     return success;
-  }, [getRegistrationState, stateTransitions, atomicSetItem, atomicRemoveItem, debugMode]);
+  }, [atomicSetItem, atomicRemoveItem, debugMode]);
 
-  // Enhanced role update with validation
+  // SIMPLIFIED role update
   const updateUserRole = useCallback((role: string): boolean => {
     if (debugMode) {
       console.log(`[EnhancedRegistrationState] Updating role to: ${role}`);
     }
 
-    const success = atomicSetItem('registration_user_role', role);
-    if (success) {
-      // Auto-advance step for valid role
-      if (user && role) {
-        updateRegistrationStep(2, true);
-      }
-    }
-    return success;
-  }, [user, atomicSetItem, updateRegistrationStep, debugMode]);
+    return atomicSetItem('registration_user_role', role);
+  }, [atomicSetItem, debugMode]);
 
   // Enhanced payment status update
   const updatePaymentStatus = useCallback((complete: boolean, pending: boolean = false): boolean => {
@@ -224,12 +164,8 @@ export const useEnhancedRegistrationState = () => {
     const success1 = atomicSetItem('registration_payment_complete', complete.toString());
     const success2 = atomicSetItem('registration_payment_pending', pending.toString());
     
-    if (success1 && success2 && complete && getStoredRole() === 'patient') {
-      updateRegistrationStep(3, true);
-    }
-
     return success1 && success2;
-  }, [atomicSetItem, getStoredRole, updateRegistrationStep, debugMode]);
+  }, [atomicSetItem, debugMode]);
 
   // Enhanced error handling
   const recordError = useCallback((error: string): void => {
@@ -241,11 +177,11 @@ export const useEnhancedRegistrationState = () => {
     atomicSetItem('registration_last_error_time', Date.now().toString());
 
     if (debugMode) {
-      console.error(`[EnhancedRegistrationState] Error recorded (${newCount}/${MAX_ERROR_COUNT}):`, error);
+      console.error(`[EnhancedRegistrationState] Error recorded (${newCount}):`, error);
     }
 
     // Auto-reset if too many errors
-    if (newCount >= MAX_ERROR_COUNT) {
+    if (newCount >= 3) {
       if (debugMode) {
         console.warn('[EnhancedRegistrationState] Max errors reached, clearing state');
       }
@@ -277,36 +213,15 @@ export const useEnhancedRegistrationState = () => {
       }
     });
 
-    stateRef.current = null;
     return allSuccess;
   }, [atomicRemoveItem, debugMode]);
 
-  // Check if user is in active registration flow
+  // Check if user is in active registration flow - SIMPLIFIED
   const isUserInActiveRegistration = useCallback((): boolean => {
     const state = getRegistrationState();
-    return Boolean(state.step > 1 && state.userRole);
+    // User is in active registration if they have a role set and are not at step 1
+    return Boolean(state.userRole && state.step > 1);
   }, [getRegistrationState]);
-
-  // Automatic state validation
-  const startPeriodicValidation = useCallback(() => {
-    if (validationTimeoutRef.current) {
-      clearInterval(validationTimeoutRef.current);
-    }
-
-    validationTimeoutRef.current = setInterval(() => {
-      const result = validateAndCorrectState();
-      if (result.corrected && debugMode) {
-        console.log('[EnhancedRegistrationState] Periodic validation corrected state');
-      }
-    }, VALIDATION_INTERVAL);
-  }, [validateAndCorrectState, debugMode]);
-
-  const stopPeriodicValidation = useCallback(() => {
-    if (validationTimeoutRef.current) {
-      clearInterval(validationTimeoutRef.current);
-      validationTimeoutRef.current = null;
-    }
-  }, []);
 
   // Database state synchronization
   const syncWithDatabase = useCallback(async (): Promise<boolean> => {
@@ -338,15 +253,12 @@ export const useEnhancedRegistrationState = () => {
     }
   }, [user?.id, userRole, recordError, clearRegistrationState]);
 
-  // Initialize debug mode and validation
+  // Initialize debug mode
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
       setDebugMode(true);
     }
-    
-    startPeriodicValidation();
-    return () => stopPeriodicValidation();
-  }, [startPeriodicValidation, stopPeriodicValidation]);
+  }, []);
 
   return {
     getRegistrationState,
@@ -358,8 +270,6 @@ export const useEnhancedRegistrationState = () => {
     validateAndCorrectState,
     recordError,
     syncWithDatabase,
-    startPeriodicValidation,
-    stopPeriodicValidation,
     debugMode
   };
 };

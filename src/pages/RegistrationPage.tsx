@@ -20,92 +20,59 @@ const RegistrationPage = () => {
   const [registrationStep, setRegistrationStep] = useState(1);
   const [userInfo, setUserInfo] = useState<any>(null);
   const [registeredUserRole, setRegisteredUserRole] = useState<string | null>(null);
-  const [preventRedirection, setPreventRedirection] = useState(false);
   const [isProcessingRegistration, setIsProcessingRegistration] = useState(false);
-  const [hasIncompleteRegistration, setHasIncompleteRegistration] = useState(false);
 
   const enhancedState = useEnhancedRegistrationState();
 
+  console.log("Registration page state:", { 
+    registrationStep, 
+    registeredUserRole, 
+    user: user?.id, 
+    userRole,
+    enhancedStateData: enhancedState.getRegistrationState()
+  });
+
   // Check for existing registration state on load
   useEffect(() => {
-    const checkRegistrationState = () => {
-      const state = enhancedState.getRegistrationState();
-      
-      if (enhancedState.debugMode) {
-        console.log("Registration page loaded with enhanced state:", state);
-      }
-      
-      // Validate and fix any state issues
-      const validation = enhancedState.validateAndCorrectState();
-      if (validation.corrected && enhancedState.debugMode) {
-        console.log("State issues corrected:", validation.issues);
-      }
-      
-      // If user exists but has no role and no active registration, they have incomplete registration
-      if (user && !userRole && !state.userRole && state.step === 1) {
-        if (enhancedState.debugMode) {
-          console.log("Detected incomplete registration for existing user");
-        }
-        setHasIncompleteRegistration(true);
-        setPreventRedirection(true);
-        return;
-      }
-      
-      if (user && state.userRole && state.step > 1) {
-        setRegisteredUserRole(state.userRole);
-        
-        // For patients, if payment is complete, go to progress step
-        if (state.userRole === 'patient' && state.paymentComplete) {
-          if (enhancedState.debugMode) {
-            console.log("Patient with completed payment, setting step to 3");
-          }
-          setRegistrationStep(3);
-        } else if (state.userRole === 'patient' && state.step >= 2) {
-          if (enhancedState.debugMode) {
-            console.log("Patient registration, setting step to 2 (payment)");
-          }
-          setRegistrationStep(2);
-        } else if (state.userRole !== 'patient' && state.step >= 2) {
-          if (enhancedState.debugMode) {
-            console.log("Non-patient registration, setting step to 2 (progress)");
-          }
-          setRegistrationStep(2);
-        } else {
-          if (enhancedState.debugMode) {
-            console.log("Starting from form step");
-          }
-          setRegistrationStep(1);
-        }
-        
-        setPreventRedirection(true);
-      } else {
-        if (enhancedState.debugMode) {
-          console.log("No saved registration state");
-        }
-        setRegistrationStep(1);
-      }
-    };
+    const state = enhancedState.getRegistrationState();
     
-    checkRegistrationState();
-  }, [user, userRole, enhancedState]);
-
-  // Enhanced redirect logic for authenticated users with completed registration
-  useEffect(() => {
-    if (!isLoading && !isLoadingRole && user && userRole && !preventRedirection && !hasIncompleteRegistration) {
-      if (enhancedState.debugMode) {
-        console.log("User with role detected, checking if should redirect to dashboard");
-      }
+    console.log("Checking registration state on load:", state);
+    
+    // If user exists and has completed registration, redirect to dashboard
+    if (user && userRole && !state.userRole && state.step === 1) {
+      console.log("User has completed registration, redirecting to dashboard");
+      navigate('/dashboard', { replace: true });
+      return;
+    }
+    
+    // If user has saved registration state, restore it
+    if (user && state.userRole && state.step > 1) {
+      console.log("Restoring saved registration state");
+      setRegisteredUserRole(state.userRole);
       
-      // Check if this is a completed registration
-      const state = enhancedState.getRegistrationState();
-      if (state.step === 1 && !state.userRole) {
-        if (enhancedState.debugMode) {
-          console.log("No registration in progress, redirecting to dashboard");
+      if (state.userRole === 'patient') {
+        if (state.paymentComplete) {
+          setRegistrationStep(3); // Progress step
+        } else {
+          setRegistrationStep(2); // Payment step
         }
+      } else {
+        setRegistrationStep(2); // Progress step for non-patients
+      }
+    }
+  }, [user, userRole, navigate, enhancedState]);
+
+  // Redirect authenticated users with roles to dashboard
+  useEffect(() => {
+    if (!isLoading && !isLoadingRole && user && userRole) {
+      const state = enhancedState.getRegistrationState();
+      // Only redirect if not in active registration
+      if (!state.userRole || state.step === 1) {
+        console.log("User with role detected, redirecting to dashboard");
         navigate('/dashboard', { replace: true });
       }
     }
-  }, [user, userRole, isLoading, isLoadingRole, navigate, preventRedirection, hasIncompleteRegistration, enhancedState]);
+  }, [user, userRole, isLoading, isLoadingRole, navigate, enhancedState]);
 
   // Show loading state
   if (isLoading || isLoadingRole) {
@@ -117,7 +84,7 @@ const RegistrationPage = () => {
     );
   }
 
-  // Handle form submission with enhanced state management
+  // Handle form submission - SIMPLIFIED
   const handleFormSubmit = async (
     email: string,
     password: string,
@@ -127,35 +94,26 @@ const RegistrationPage = () => {
     patientData?: any
   ) => {
     try {
-      if (enhancedState.debugMode) {
-        console.log("=== ENHANCED FORM SUBMISSION STARTED ===");
-        console.log("Registration form submitted with user type:", userType);
-      }
+      console.log("=== FORM SUBMISSION STARTED ===");
+      console.log("User type:", userType);
       
       setError(null);
-      setPreventRedirection(true);
       setIsProcessingRegistration(true);
       
-      // Store user info and role FIRST
+      // Store user info and role
       setUserInfo({ firstName, lastName });
       setRegisteredUserRole(userType!);
       
-      // Use enhanced state management
-      const stepUpdated = enhancedState.updateRegistrationStep(2);
-      const roleUpdated = enhancedState.updateUserRole(userType!);
+      // Update enhanced state IMMEDIATELY
+      enhancedState.updateUserRole(userType!);
+      enhancedState.updateRegistrationStep(2);
       
-      if (!stepUpdated || !roleUpdated) {
-        throw new Error('Failed to update registration state');
-      }
+      console.log("Enhanced state updated, creating user account...");
       
       const enhancedPatientData = patientData ? {
         ...patientData,
         emergencyContact: patientData.emergencyContact || patientData.phone
       } : undefined;
-      
-      if (enhancedState.debugMode) {
-        console.log("Calling handleSignUp with enhanced state management...");
-      }
       
       // Create the user account
       const newUser = await handleSignUp(
@@ -168,53 +126,36 @@ const RegistrationPage = () => {
       );
       
       if (newUser) {
-        if (enhancedState.debugMode) {
-          console.log("=== ACCOUNT CREATED SUCCESSFULLY ===");
-          console.log("Account created successfully for role:", userType);
-        }
-        
-        // Clear incomplete registration flag
-        setHasIncompleteRegistration(false);
+        console.log("=== ACCOUNT CREATED SUCCESSFULLY ===");
         setIsProcessingRegistration(false);
         
+        // Move to next step based on user type
         if (userType === 'patient') {
-          if (enhancedState.debugMode) {
-            console.log("Patient registration - moving to PAYMENT step");
-          }
+          console.log("Patient registration - moving to PAYMENT step");
           setRegistrationStep(2);
           toast({
             title: "Account Created!",
             description: "Please complete the payment to activate your account.",
           });
         } else {
-          if (enhancedState.debugMode) {
-            console.log("Non-patient registration - moving to PROGRESS step");
-          }
+          console.log("Non-patient registration - moving to PROGRESS step");
           setRegistrationStep(2);
           toast({
             title: "Account Created!",
             description: "Setting up your account and permissions...",
           });
         }
-        
-        if (enhancedState.debugMode) {
-          console.log("=== ENHANCED FORM SUBMISSION COMPLETED ===");
-        }
       } else {
-        console.error("User creation failed - no user returned");
         throw new Error("Failed to create user account");
       }
     } catch (error: any) {
-      console.error("=== ENHANCED REGISTRATION ERROR ===");
-      console.error("Registration error:", error);
+      console.error("=== REGISTRATION ERROR ===", error);
       
-      // Record error with enhanced state management
-      enhancedState.recordError(`Form submission failed: ${error.message}`);
-      
-      // Clean up state if registration fails
+      // Clean up state on error
       enhancedState.clearRegistrationState();
-      setPreventRedirection(false);
       setIsProcessingRegistration(false);
+      setRegistrationStep(1);
+      setRegisteredUserRole(null);
       
       toast({
         title: "Registration failed",
@@ -224,97 +165,46 @@ const RegistrationPage = () => {
     }
   };
 
-  // Handle payment completion with enhanced state
+  // Handle payment completion
   const handlePaymentComplete = () => {
-    if (enhancedState.debugMode) {
-      console.log("Payment completed, using enhanced state management");
-    }
+    console.log("Payment completed");
     
-    const paymentUpdated = enhancedState.updatePaymentStatus(true, false);
-    const stepUpdated = enhancedState.updateRegistrationStep(3);
+    enhancedState.updatePaymentStatus(true, false);
+    enhancedState.updateRegistrationStep(3);
     
-    if (paymentUpdated && stepUpdated) {
-      toast({
-        title: "Payment Complete!",
-        description: "Your registration is being processed. Please wait while we set up your account.",
-      });
-      
-      setRegistrationStep(3);
-    } else {
-      enhancedState.recordError('Failed to update payment status');
-      toast({
-        title: "State Update Error",
-        description: "Payment completed but failed to update state. Please refresh the page.",
-        variant: "destructive"
-      });
-    }
+    setRegistrationStep(3);
+    
+    toast({
+      title: "Payment Complete!",
+      description: "Your registration is being processed. Please wait while we set up your account.",
+    });
   };
 
-  // Handle final registration completion with enhanced cleanup
+  // Handle registration completion
   const handleRegistrationComplete = () => {
-    if (enhancedState.debugMode) {
-      console.log("Registration fully complete, enhanced cleanup and redirect");
-    }
+    console.log("Registration fully complete");
     
-    // Clear all registration state using enhanced method
-    const cleared = enhancedState.clearRegistrationState();
-    if (!cleared && enhancedState.debugMode) {
-      console.warn("Failed to completely clear registration state");
-    }
-    
-    setPreventRedirection(false);
-    setHasIncompleteRegistration(false);
+    enhancedState.clearRegistrationState();
     
     toast({
       title: "Welcome!",
       description: "Your account setup is complete. Welcome aboard!",
     });
     
-    // Redirect to dashboard
     navigate("/dashboard", { replace: true });
   };
 
-  // Enhanced navigation back to home with proper cleanup
+  // Navigation handlers
   const handleBackToHome = () => {
-    if (enhancedState.debugMode) {
-      console.log('[RegistrationPage] Enhanced back to home navigation');
-    }
-    
-    // Clear registration state using enhanced method
     enhancedState.clearRegistrationState();
-    
-    // Reset component state
-    setPreventRedirection(false);
     setRegistrationStep(1);
     setRegisteredUserRole(null);
     setUserInfo(null);
-    setIsProcessingRegistration(false);
-    setHasIncompleteRegistration(false);
-    
     navigate('/', { replace: true });
   };
 
-  // Handle sign out for users with incomplete registration
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      toast({
-        title: "Signed out successfully",
-        description: "You have been signed out. You can now create a new account or sign in with a different account.",
-      });
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast({
-        title: "Sign out error",
-        description: "There was an error signing you out. Please try again.",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Determine step title based on role and step
+  // Determine step title
   const getStepTitle = () => {
-    if (hasIncompleteRegistration) return 'Complete Your Registration';
     if (registrationStep === 1) return 'Create your account';
     
     if (registeredUserRole === 'patient') {
@@ -327,20 +217,15 @@ const RegistrationPage = () => {
     return 'Registration';
   };
 
-  if (enhancedState.debugMode) {
-    console.log("=== ENHANCED REGISTRATION PAGE RENDER ===");
-    console.log("Current state:", {
-      registrationStep,
-      registeredUserRole,
-      userInfo,
-      preventRedirection,
-      user: user?.id,
-      userRole,
-      isProcessingRegistration,
-      hasIncompleteRegistration,
-      enhancedStateData: enhancedState.getRegistrationState()
-    });
-  }
+  console.log("=== REGISTRATION PAGE RENDER ===");
+  console.log("Current state:", {
+    registrationStep,
+    registeredUserRole,
+    userInfo,
+    user: user?.id,
+    userRole,
+    isProcessingRegistration
+  });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 pt-16 md:pt-20 overflow-hidden">
@@ -356,8 +241,7 @@ const RegistrationPage = () => {
             Back to Home
           </Button>
           
-          {/* Show sign out button for users with incomplete registration */}
-          {(hasIncompleteRegistration || user) && (
+          {user && (
             <Button
               variant="outline"
               onClick={signOut}
@@ -373,29 +257,18 @@ const RegistrationPage = () => {
           {getStepTitle()}
         </h2>
         
-        {/* Show incomplete registration notice */}
-        {hasIncompleteRegistration && (
-          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-yellow-800 text-sm text-center">
-              It looks like your registration was not completed. Please fill out the form below to complete your account setup.
-            </p>
-          </div>
-        )}
-        
-        {/* Enhanced debug info in development */}
-        {enhancedState.debugMode && (
+        {/* Debug info in development */}
+        {process.env.NODE_ENV === 'development' && (
           <div className="mb-4 p-2 bg-blue-100 border border-blue-300 rounded text-xs">
-            <strong>Enhanced Debug:</strong> Step {registrationStep}, Role: {registeredUserRole || 'none'}, 
-            User: {user?.id || 'none'}, Processing: {isProcessingRegistration}, Incomplete: {hasIncompleteRegistration}
-            <br />
-            <strong>Enhanced State:</strong> {JSON.stringify(enhancedState.getRegistrationState(), null, 2)}
+            <strong>Debug:</strong> Step {registrationStep}, Role: {registeredUserRole || 'none'}, 
+            User: {user?.id || 'none'}, Processing: {isProcessingRegistration}
           </div>
         )}
       </div>
 
       <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        {/* Step 1: Registration Form (All Roles) */}
-        {(registrationStep === 1 || hasIncompleteRegistration) && (
+        {/* Step 1: Registration Form */}
+        {registrationStep === 1 && (
           <div className="bg-white py-6 sm:py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10 relative">
             <ScrollArea 
               className="w-full" 
@@ -425,14 +298,14 @@ const RegistrationPage = () => {
         )}
         
         {/* Step 2: Payment (Patients Only) or Progress (Others) */}
-        {registrationStep === 2 && !isProcessingRegistration && !hasIncompleteRegistration && registeredUserRole === 'patient' && (
+        {registrationStep === 2 && !isProcessingRegistration && registeredUserRole === 'patient' && (
           <RegistrationPayment 
             onComplete={handlePaymentComplete}
             userInfo={userInfo}
           />
         )}
 
-        {registrationStep === 2 && !isProcessingRegistration && !hasIncompleteRegistration && registeredUserRole !== 'patient' && (
+        {registrationStep === 2 && !isProcessingRegistration && registeredUserRole !== 'patient' && (
           <RegistrationProgressReport 
             onComplete={handleRegistrationComplete}
             userRole={registeredUserRole}
@@ -440,7 +313,7 @@ const RegistrationPage = () => {
         )}
 
         {/* Step 3: Progress (Patients After Payment) */}
-        {registrationStep === 3 && !isProcessingRegistration && !hasIncompleteRegistration && registeredUserRole === 'patient' && (
+        {registrationStep === 3 && !isProcessingRegistration && registeredUserRole === 'patient' && (
           <RegistrationProgressReport 
             onComplete={handleRegistrationComplete}
             userRole={registeredUserRole}
