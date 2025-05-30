@@ -17,6 +17,66 @@ interface RegistrationTask {
   next_retry_at: string;
 }
 
+// Process assign_care_team task
+async function processAssignCareTeam(supabaseClient: any, task: RegistrationTask) {
+  console.log(`Processing assign care team task for user ${task.user_id}`);
+  
+  try {
+    // Get default care team
+    const { data: careTeamData, error: careTeamError } = await supabaseClient
+      .from('default_care_teams')
+      .select('default_doctor_id, default_nutritionist_id')
+      .eq('is_active', true)
+      .maybeSingle();
+      
+    if (careTeamError) {
+      console.error("Error fetching default care team:", careTeamError);
+      throw new Error(`Error fetching default care team: ${careTeamError.message}`);
+    }
+    
+    if (!careTeamData) {
+      throw new Error('No active default care team configured');
+    }
+
+    const doctorId = careTeamData.default_doctor_id;
+    const nutritionistId = careTeamData.default_nutritionist_id;
+    
+    if (!doctorId) {
+      throw new Error('Default doctor not configured in care team settings');
+    }
+    
+    // Create or update assignment
+    const { data: assignmentData, error: assignmentError } = await supabaseClient
+      .from('patient_assignments')
+      .upsert({
+        patient_id: task.user_id,
+        doctor_id: doctorId,
+        nutritionist_id: nutritionistId,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'patient_id'
+      })
+      .select()
+      .single();
+      
+    if (assignmentError) {
+      console.error("Care team assignment error:", assignmentError);
+      throw new Error(`Error creating care team assignment: ${assignmentError.message}`);
+    }
+    
+    console.log("Care team assigned successfully:", assignmentData);
+    return {
+      assignment_id: assignmentData.id,
+      doctor_id: doctorId,
+      nutritionist_id: nutritionistId
+    };
+    
+  } catch (error) {
+    console.error(`Error in processAssignCareTeam:`, error);
+    throw error;
+  }
+}
+
 // Process create_chat_room task
 async function processCreateChatRoom(supabaseClient: any, task: RegistrationTask) {
   console.log(`Processing create chat room task for user ${task.user_id}`);
@@ -54,12 +114,12 @@ async function processCreateChatRoom(supabaseClient: any, task: RegistrationTask
   }
 }
 
-// Process send_welcome_notification task
+// Process send_welcome_notification task  
 async function processSendWelcomeNotification(supabaseClient: any, task: RegistrationTask) {
   console.log(`Processing comprehensive welcome notification for user ${task.user_id}`);
   
   try {
-    // Get patient profile with email from auth.users
+    // Get patient profile
     const { data: patientProfile, error: profileError } = await supabaseClient
       .from('profiles')
       .select(`
@@ -85,7 +145,7 @@ async function processSendWelcomeNotification(supabaseClient: any, task: Registr
       throw new Error(`Cannot retrieve user email: ${authError?.message || 'User not found'}`);
     }
     
-    // Get care team assignment with doctor and nutritionist details
+    // Get care team assignment with details
     const { data: careTeamData, error: careTeamError } = await supabaseClient
       .from('patient_assignments')
       .select(`
@@ -104,7 +164,7 @@ async function processSendWelcomeNotification(supabaseClient: any, task: Registr
       throw new Error(`Cannot retrieve care team: ${careTeamError.message}`);
     }
     
-    // Prepare comprehensive notification data
+    // Prepare notification data
     const notificationData = {
       patient_id: task.user_id,
       patient_email: authUser.user.email,
@@ -135,40 +195,6 @@ async function processSendWelcomeNotification(supabaseClient: any, task: Registr
   }
 }
 
-// Mark task as completed
-async function markTaskCompleted(supabaseClient: any, taskId: string, result: any) {
-  const { error } = await supabaseClient
-    .from('registration_tasks')
-    .update({
-      status: 'completed',
-      result_payload: result,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', taskId);
-    
-  if (error) {
-    console.error(`Error marking task ${taskId} as completed:`, error);
-  }
-}
-
-// Mark task as failed
-async function markTaskFailed(supabaseClient: any, taskId: string, error: any, retryCount: number) {
-  const { error: updateError } = await supabaseClient
-    .from('registration_tasks')
-    .update({
-      status: retryCount >= 3 ? 'failed' : 'pending',
-      retry_count: retryCount + 1,
-      error_details: { message: error.message, timestamp: new Date().toISOString() },
-      next_retry_at: new Date(Date.now() + (retryCount + 1) * 60000).toISOString(), // Exponential backoff
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', taskId);
-    
-  if (updateError) {
-    console.error(`Error updating failed task ${taskId}:`, updateError);
-  }
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -184,14 +210,14 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Triggering registration notifications for patient: ${patient_id}`);
+    console.log(`Processing ALL pending tasks for patient: ${patient_id}`);
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get pending tasks for this patient
+    // Get ALL pending tasks for this patient (not just one)
     const { data: tasks, error: tasksError } = await supabaseClient
       .from('registration_tasks')
       .select('*')
@@ -208,92 +234,111 @@ serve(async (req) => {
     if (!tasks || tasks.length === 0) {
       console.log(`No pending tasks found for patient: ${patient_id}`);
       return new Response(
-        JSON.stringify({ message: "No pending tasks found", patient_id }),
+        JSON.stringify({ 
+          message: "No pending tasks found", 
+          patient_id,
+          successful_tasks: 0,
+          failed_tasks: 0 
+        }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Found ${tasks.length} pending tasks for patient ${patient_id}: ${tasks.map(t => `${t.task_type} (retry: ${t.retry_count})`).join(', ')}`);
+    console.log(`Found ${tasks.length} pending tasks for patient ${patient_id}`);
 
-    // Process tasks in parallel with independent error handling
-    console.log(`Processing ${tasks.length} tasks in parallel for patient ${patient_id}`);
-    
-    const taskResults = await Promise.allSettled(
-      tasks.map(async (task) => {
-        console.log(`Starting independent processing of task ${task.task_type} for patient ${patient_id}`);
-        try {
-          let result;
-          
-          if (task.task_type === 'create_chat_room') {
-            console.log(`Processing create_chat_room task ${task.id}`);
-            result = await processCreateChatRoom(supabaseClient, task);
-          } else if (task.task_type === 'send_welcome_notification') {
-            console.log(`Processing send_welcome_notification task ${task.id}`);
-            result = await processSendWelcomeNotification(supabaseClient, task);
-          } else {
-            throw new Error(`Unknown task type: ${task.task_type}`);
-          }
-          
-          await markTaskCompleted(supabaseClient, task.id, result);
-          return { taskId: task.id, taskType: task.task_type, success: true, result };
-          
-        } catch (error) {
-          console.error(`Error processing task ${task.id} (${task.task_type}): ${error}`);
-          await markTaskFailed(supabaseClient, task.id, error, task.retry_count);
-          return { taskId: task.id, taskType: task.task_type, success: false, error: error.message };
-        }
-      })
-    );
+    // Process tasks in the correct order: assign_care_team -> create_chat_room -> send_welcome_notification
+    const orderedTasks = tasks.sort((a, b) => {
+      const order = { 'assign_care_team': 1, 'create_chat_room': 2, 'send_welcome_notification': 3 };
+      return (order[a.task_type] || 999) - (order[b.task_type] || 999);
+    });
 
-    // Count successful and failed tasks
-    const successCount = taskResults.filter(result => result.status === 'fulfilled' && result.value.success).length;
-    const failedCount = taskResults.length - successCount;
-    
-    console.log(`Independent task processing summary for patient ${patient_id}: ${successCount}/${tasks.length} successful, ${failedCount} failed`);
+    let successCount = 0;
+    let failedCount = 0;
+    const results = [];
 
-    // Check if all tasks are completed
-    console.log(`Checking if all tasks completed for user ${patient_id}...`);
-    
-    const { data: pendingTasks, error: pendingError } = await supabaseClient
-      .from('registration_tasks')
-      .select('id')
-      .eq('user_id', patient_id)
-      .eq('status', 'pending');
-    
-    if (pendingError) {
-      console.error("Error checking pending tasks:", pendingError);
-    } else {
-      console.log(`Checking pending tasks for user ${patient_id}...`);
-      console.log(`Found ${pendingTasks?.length || 0} pending tasks for user ${patient_id}`);
+    // Process tasks sequentially to avoid dependency issues
+    for (const task of orderedTasks) {
+      console.log(`Processing task ${task.task_type} (${task.id}) for patient ${patient_id}`);
       
-      if (!pendingTasks || pendingTasks.length === 0) {
-        console.log(`Marking user ${patient_id} as fully_registered...`);
+      try {
+        let result;
         
-        // Update user registration status to fully_registered
-        const { error: statusError } = await supabaseClient
-          .from('profiles')
-          .update({ 
-            registration_status: 'fully_registered',
-            registration_completed_at: new Date().toISOString()
-          })
-          .eq('id', patient_id);
-        
-        if (statusError) {
-          console.error(`Error updating registration status:`, statusError);
+        if (task.task_type === 'assign_care_team') {
+          result = await processAssignCareTeam(supabaseClient, task);
+        } else if (task.task_type === 'create_chat_room') {
+          result = await processCreateChatRoom(supabaseClient, task);
+        } else if (task.task_type === 'send_welcome_notification') {
+          result = await processSendWelcomeNotification(supabaseClient, task);
         } else {
-          console.log(`User ${patient_id} registration marked as fully_registered`);
+          throw new Error(`Unknown task type: ${task.task_type}`);
+        }
+        
+        // Mark task as completed
+        await supabaseClient
+          .from('registration_tasks')
+          .update({
+            status: 'completed',
+            result_payload: result,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', task.id);
+          
+        successCount++;
+        results.push({ taskId: task.id, taskType: task.task_type, success: true, result });
+        console.log(`Task ${task.task_type} completed successfully`);
+        
+      } catch (error) {
+        console.error(`Error processing task ${task.id} (${task.task_type}):`, error);
+        
+        // Mark task as failed with retry logic
+        const newRetryCount = task.retry_count + 1;
+        const maxRetries = 3;
+        
+        await supabaseClient
+          .from('registration_tasks')
+          .update({
+            status: newRetryCount >= maxRetries ? 'failed' : 'pending',
+            retry_count: newRetryCount,
+            error_details: { message: error.message, timestamp: new Date().toISOString() },
+            next_retry_at: new Date(Date.now() + newRetryCount * 60000).toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', task.id);
+        
+        failedCount++;
+        results.push({ taskId: task.id, taskType: task.task_type, success: false, error: error.message });
+        
+        // If a critical task fails (like assign_care_team), don't continue with dependent tasks
+        if (task.task_type === 'assign_care_team') {
+          console.error(`Critical task assign_care_team failed, stopping processing for patient ${patient_id}`);
+          break;
         }
       }
+    }
+
+    // Check if all tasks are completed and update user status
+    if (successCount === orderedTasks.length) {
+      console.log(`All tasks completed for user ${patient_id}, marking as fully_registered`);
+      
+      await supabaseClient
+        .from('profiles')
+        .update({ 
+          registration_status: 'fully_registered',
+          registration_completed_at: new Date().toISOString()
+        })
+        .eq('id', patient_id);
+        
+      console.log(`User ${patient_id} registration marked as fully_registered`);
     }
 
     return new Response(
       JSON.stringify({
         message: "Task processing completed",
         patient_id,
-        processed_tasks: tasks.length,
+        processed_tasks: orderedTasks.length,
         successful_tasks: successCount,
         failed_tasks: failedCount,
-        task_results: taskResults.map(r => r.status === 'fulfilled' ? r.value : { error: r.reason })
+        task_results: results
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
