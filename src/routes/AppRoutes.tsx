@@ -1,10 +1,8 @@
-
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LandingPage } from '@/pages/LandingPage';
 import Auth from '@/pages/Auth';
-import RegistrationPage from '@/pages/RegistrationPage';
 import UpdatePassword from '@/pages/UpdatePassword';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { RoleProtectedRoute } from '@/components/auth/RoleProtectedRoute';
@@ -46,8 +44,8 @@ export const AppRoutes = () => {
         <Route path="/auth/*" element={<Auth />} />
         <Route path="/auth/login" element={<Auth />} />
         
-        {/* Registration Route - Completely Separate from Auth */}
-        <Route path="/register" element={<RegistrationPage />} />
+        {/* Redirect /register to /auth for unified auth experience */}
+        <Route path="/register" element={<Navigate to="/auth" replace />} />
         
         <Route path="/verify-code" element={<VerifyCodePage />} />
         <Route path="/forgot-password" element={<ForgotPasswordRouteWrapper />} />

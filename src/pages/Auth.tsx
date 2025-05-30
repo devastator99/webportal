@@ -41,21 +41,15 @@ const Auth = () => {
     );
   }
 
-  // Login form for unauthenticated users
+  // Unified auth form for both login and registration
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-saas-dark">
-          Sign in to your account
+          Welcome
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Or{' '}
-          <button
-            onClick={() => navigate('/register')}
-            className="font-medium text-purple-600 hover:text-purple-500"
-          >
-            create a new account
-          </button>
+          Sign in to your account or create a new one
         </p>
       </div>
 
@@ -64,7 +58,7 @@ const Auth = () => {
           <SupabaseAuthUI 
             view="sign_in"
             redirectTo={`${window.location.origin}/auth`}
-            showLinks={false}
+            showLinks={true}
           />
         </div>
       </div>
