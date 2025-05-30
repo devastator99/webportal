@@ -13,38 +13,39 @@ import { DoctorAppLayout } from "@/layouts/DoctorAppLayout";
 import { AdminAppLayout } from "@/layouts/AdminAppLayout";
 import { AppLayout } from "@/layouts/AppLayout";
 import { RegistrationStatusChecker } from "@/components/auth/RegistrationStatusChecker";
-import { useRegistrationState } from "@/hooks/useRegistrationState";
 
 const Dashboard = () => {
   const { user, userRole, isLoading, isLoadingRole } = useAuth();
   const navigate = useNavigate();
-  const { isUserInActiveRegistration } = useRegistrationState();
   
   console.log("Dashboard:", { user: user?.id, userRole, isLoading, isLoadingRole });
 
   useEffect(() => {
-    // Check if user is in active registration flow - if so, redirect to registration
-    if (!isLoading && user && isUserInActiveRegistration()) {
-      console.log("Dashboard: User in active registration, redirecting to registration");
+    // If user is in registration flow, immediately redirect to registration
+    const registrationStep = localStorage.getItem('registration_step');
+    const registrationRole = localStorage.getItem('registration_user_role');
+    
+    if (registrationStep || registrationRole) {
+      console.log("Dashboard: User in registration flow, redirecting to registration");
       navigate("/register", { replace: true });
       return;
     }
 
-    // Only redirect unauthenticated users - do NOT redirect users in registration
+    // Only redirect unauthenticated users who are NOT in registration
     if (!isLoading && !user) {
       console.log("Dashboard: No user found, redirecting to auth");
       navigate("/auth", { replace: true });
       return;
     }
-  }, [user, isLoading, navigate, isUserInActiveRegistration]);
+  }, [user, isLoading, navigate]);
 
-  // Handle users without roles - but ONLY if they're not in active registration
+  // Handle users without roles - redirect to auth
   useEffect(() => {
-    if (!isLoading && !isLoadingRole && user && !userRole && !isUserInActiveRegistration()) {
-      console.log("Dashboard: User has no role and not in registration, redirecting to auth");
+    if (!isLoading && !isLoadingRole && user && !userRole) {
+      console.log("Dashboard: User has no role, redirecting to auth");
       navigate("/auth", { replace: true });
     }
-  }, [user, userRole, isLoading, isLoadingRole, navigate, isUserInActiveRegistration]);
+  }, [user, userRole, isLoading, isLoadingRole, navigate]);
 
   // Show loading while auth or role is loading
   if (isLoading || isLoadingRole) {
@@ -53,11 +54,6 @@ const Dashboard = () => {
 
   // No user - redirect will handle this
   if (!user) {
-    return null;
-  }
-
-  // User in active registration - redirect will handle this
-  if (isUserInActiveRegistration()) {
     return null;
   }
 
@@ -101,7 +97,7 @@ const Dashboard = () => {
         </AppLayout>
       );
     default:
-      // For unknown roles, redirect to auth (not register)
+      // For unknown roles, redirect to auth
       navigate("/auth", { replace: true });
       return null;
   }

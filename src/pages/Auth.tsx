@@ -4,15 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { SupabaseAuthUI } from "@/components/auth/SupabaseAuthUI";
 import { LucideLoader2 } from "lucide-react";
-import { useRegistrationState } from "@/hooks/useRegistrationState";
 
 const Auth = () => {
   const { user, userRole, isLoading, isLoadingRole } = useAuth();
   const navigate = useNavigate();
-  const { isUserInActiveRegistration } = useRegistrationState();
 
   // ONLY redirect users who are fully authenticated AND have roles to dashboard
-  // Do NOT redirect users during registration process
+  // NEVER redirect users who might be in registration
   useEffect(() => {
     const handleRedirect = async () => {
       // Don't redirect while still loading
@@ -21,26 +19,26 @@ const Auth = () => {
         return;
       }
       
-      // If user is in active registration, don't redirect to dashboard
-      if (user && isUserInActiveRegistration()) {
-        console.log("Auth page: User in active registration, not redirecting to dashboard");
+      // Check if user is in registration flow - if so, NEVER redirect to dashboard
+      const registrationStep = localStorage.getItem('registration_step');
+      const registrationRole = localStorage.getItem('registration_user_role');
+      if (registrationStep || registrationRole) {
+        console.log("Auth page: User in registration flow, not redirecting");
         return;
       }
       
-      // Only redirect if user is FULLY authenticated with a role
-      // This prevents redirects during registration
+      // Only redirect if user is FULLY authenticated with a role AND not in registration
       if (user && userRole) {
         console.log("Auth page: User has complete authentication, redirecting to dashboard:", userRole);
         navigate("/dashboard", { replace: true });
         return;
       }
       
-      // For all other cases (no user, or user without role), stay on auth page
       console.log("Auth page: User not fully authenticated, staying on auth page");
     };
     
     handleRedirect();
-  }, [user, userRole, isLoading, isLoadingRole, navigate, isUserInActiveRegistration]);
+  }, [user, userRole, isLoading, isLoadingRole, navigate]);
 
   // Show loading state while auth is loading
   if (isLoading || isLoadingRole) {

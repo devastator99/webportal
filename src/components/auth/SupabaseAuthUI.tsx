@@ -19,17 +19,19 @@ export const SupabaseAuthUI = ({
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Listen for auth state changes but be careful about navigation during registration
+  // Listen for auth state changes but NEVER navigate during registration
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        // Check if we're in registration flow - if so, don't navigate
-        if (location.pathname.includes('/register')) {
+        // Check if we're in registration flow
+        const registrationStep = localStorage.getItem('registration_step');
+        const registrationRole = localStorage.getItem('registration_user_role');
+        
+        if (registrationStep || registrationRole || location.pathname.includes('/register')) {
           console.log('SupabaseAuthUI: User signed in during registration, staying in registration flow');
           return;
         }
         
-        // Only navigate if we're not in registration and not already on auth page
         console.log('SupabaseAuthUI: User signed in, staying on current page for parent to handle');
       }
     });
