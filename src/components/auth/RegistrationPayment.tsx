@@ -7,15 +7,21 @@ import { useRegistrationProcess } from '@/hooks/useRegistrationProcess';
 import { useToast } from '@/hooks/use-toast';
 import { RegistrationProgressReport } from './RegistrationProgressReport';
 import { Spinner } from '@/components/ui/spinner';
+import { Shield, Clock, Users, MessageSquare, FileText, CheckCircle } from 'lucide-react';
 
 interface RegistrationPaymentProps {
   onComplete: () => void;
   registrationFee?: number;
+  userInfo?: {
+    firstName: string;
+    lastName: string;
+  };
 }
 
 export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
   onComplete,
-  registrationFee = 500
+  registrationFee = 500,
+  userInfo
 }) => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -237,14 +243,104 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
   
   return (
     <Card className="bg-white shadow-lg border border-gray-100">
-      <CardHeader>
-        <CardTitle>Complete Your Registration</CardTitle>
-        <CardDescription>A one-time registration fee is required</CardDescription>
+      <CardHeader className="text-center">
+        <CardTitle className="text-2xl">
+          Welcome{userInfo ? `, ${userInfo.firstName}` : ''}!
+        </CardTitle>
+        <CardDescription className="text-lg">
+          Complete your registration with a one-time setup fee
+        </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex justify-between items-center p-4 bg-gray-50 rounded-md">
-          <span className="text-sm font-medium">Registration Fee</span>
-          <span className="font-bold">₹{registrationFee}</span>
+      <CardContent className="space-y-6">
+        {/* Welcome Message */}
+        <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg">
+          <h3 className="font-semibold text-purple-800 mb-2">🎉 You're Almost There!</h3>
+          <p className="text-sm text-purple-700">
+            Your account has been created successfully. Complete the payment to unlock your personalized health dashboard and connect with your care team.
+          </p>
+        </div>
+
+        {/* What's Included */}
+        <div className="space-y-4">
+          <h3 className="font-semibold text-gray-800 text-center">What's Included in Your Registration</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
+              <Users className="h-5 w-5 text-green-600 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-green-800">Dedicated Care Team</h4>
+                <p className="text-sm text-green-700">Personal doctor and nutritionist assignment</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+              <MessageSquare className="h-5 w-5 text-blue-600 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-blue-800">Secure Messaging</h4>
+                <p className="text-sm text-blue-700">Direct communication with your care team</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg">
+              <FileText className="h-5 w-5 text-orange-600 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-orange-800">Digital Health Records</h4>
+                <p className="text-sm text-orange-700">Secure document storage and management</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
+              <Shield className="h-5 w-5 text-purple-600 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-purple-800">Platform Access</h4>
+                <p className="text-sm text-purple-700">Full access to health dashboard and tools</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Payment Details */}
+        <div className="border border-gray-200 rounded-lg p-4">
+          <div className="flex justify-between items-center mb-4">
+            <span className="text-lg font-medium">Registration Fee</span>
+            <span className="text-2xl font-bold text-purple-600">₹{registrationFee}</span>
+          </div>
+          <div className="text-sm text-gray-600 space-y-1">
+            <div className="flex items-center gap-2">
+              <CheckCircle className="h-4 w-4 text-green-500" />
+              <span>One-time payment only</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Shield className="h-4 w-4 text-green-500" />
+              <span>Secure payment processing</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-green-500" />
+              <span>Instant account activation</span>
+            </div>
+          </div>
+        </div>
+
+        {/* What Happens Next */}
+        <div className="bg-gray-50 p-4 rounded-lg">
+          <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <Clock className="h-5 w-5" />
+            What Happens After Payment?
+          </h3>
+          <div className="space-y-2 text-sm text-gray-600">
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-medium">1</span>
+              <span>Instant account activation (within seconds)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-medium">2</span>
+              <span>Care team assignment (within 2-4 hours)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-medium">3</span>
+              <span>Welcome message from your care team (same day)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-6 h-6 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center text-xs font-medium">4</span>
+              <span>Full platform access immediately</span>
+            </div>
+          </div>
         </div>
         
         {isDemoMode && (
@@ -254,33 +350,36 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
             </p>
           </div>
         )}
-        
-        <div className="text-sm text-gray-500">
-          <p>This fee includes:</p>
-          <ul className="list-disc ml-5 mt-2 space-y-1">
-            <li>Access to the health app platform</li>
-            <li>Digital document management</li>
-            <li>Secure messaging with care team</li>
-            <li>Personalized health dashboard</li>
-          </ul>
-        </div>
       </CardContent>
-      <CardFooter className="flex flex-col gap-2">
+      <CardFooter className="flex flex-col gap-3 pt-6">
         <Button 
-          className="w-full" 
+          className="w-full h-12 text-lg font-semibold bg-purple-600 hover:bg-purple-700" 
           onClick={handleInitiatePayment}
           disabled={isLoading || isCreatingOrder || isProcessing}
         >
           {isLoading || isCreatingOrder ? (
             <span className="inline-flex items-center">
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
               Processing...
             </span>
-          ) : "Pay Registration Fee"}
+          ) : (
+            `Complete Registration - Pay ₹${registrationFee}`
+          )}
         </Button>
+        
+        <div className="flex items-center justify-center gap-4 text-xs text-gray-500">
+          <div className="flex items-center gap-1">
+            <Shield className="h-3 w-3" />
+            <span>Secure Payment</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <CheckCircle className="h-3 w-3" />
+            <span>Instant Activation</span>
+          </div>
+        </div>
         
         {process.env.NODE_ENV === 'development' && (
           <Button 

@@ -1,13 +1,13 @@
-import React, { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, Clock, LogIn, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
-import { UserRegistrationStatus, RegistrationStatus, RegistrationStatusValues } from "@/types/registration";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { CheckCircle, Clock, Users, MessageSquare, ArrowRight, Loader2 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
+import { UserRegistrationStatus, RegistrationStatusValues } from '@/types/registration';
 
 interface RegistrationProgressReportProps {
   onCheckAgain?: () => void;
@@ -16,59 +16,28 @@ interface RegistrationProgressReportProps {
 export const RegistrationProgressReport: React.FC<RegistrationProgressReportProps> = ({
   onCheckAgain
 }) => {
-  const { user, signOut, isLoading: authIsLoading } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [isFetching, setIsFetching] = useState(false);
-  const [isProcessingTasks, setIsProcessingTasks] = useState(false);
-  const [registrationStatus, setRegistrationStatus] = useState<UserRegistrationStatus | null>(null);
-  const [isSigningOut, setIsSigningOut] = useState(false);
-  const [lastProcessingError, setLastProcessingError] = useState<string | null>(null);
-  const [hasRedirected, setHasRedirected] = useState(false);
-  
-  // Helper function to check if all required tasks are actually completed
-  const areAllTasksCompleted = (status: UserRegistrationStatus | null) => {
-    if (!status || !status.tasks) return false;
+  const [status, setStatus] = useState<UserRegistrationStatus | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [autoRedirectCountdown, setAutoRedirectCountdown] = useState<number | null>(null);
+
+  const fetchStatus = async (showLoadingToast = false) => {
+    if (!user) return;
     
-    // Check if we have the minimum required tasks completed
-    const requiredTaskTypes = ['assign_care_team', 'create_chat_room', 'send_welcome_notification'];
-    const completedTasks = status.tasks.filter(task => task.status === 'completed');
-    const completedTaskTypes = completedTasks.map(task => task.task_type);
-    
-    // Check if all required task types are completed
-    const allRequiredCompleted = requiredTaskTypes.every(taskType => 
-      completedTaskTypes.includes(taskType)
-    );
-    
-    console.log("Task completion check:", {
-      requiredTaskTypes,
-      completedTaskTypes,
-      allRequiredCompleted,
-      registrationStatus: status.registration_status
-    });
-    
-    return allRequiredCompleted && status.registration_status === RegistrationStatusValues.FULLY_REGISTERED;
-  };
-  
-  const fetchRegistrationStatus = async () => {
-    // Don't fetch if auth is still loading or no user
-    if (authIsLoading || !user?.id) {
-      console.log("Skipping fetch - auth loading:", authIsLoading, "user ID:", user?.id);
-      return;
+    if (showLoadingToast) {
+      setIsRefreshing(true);
     }
     
-    setIsFetching(true);
     try {
-      console.log("Fetching registration status for user:", user.id);
-      // Use the new secure function that bypasses RLS issues
       const { data, error } = await supabase.rpc('get_user_registration_status_safe', {
         p_user_id: user.id
       });
       
-      console.log("Registration status response:", { data, error });
-      
       if (error) {
-        console.error("Error getting registration status:", error);
+        console.error("Error fetching registration status:", error);
         toast({
           title: "Error",
           description: "Failed to fetch registration status",
@@ -77,460 +46,282 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
         return;
       }
       
-      // The secure function returns JSONB directly, so we need to handle it properly
-      if (data) {
-        console.log("Setting registration status:", data);
-        setRegistrationStatus(data as unknown as UserRegistrationStatus);
+      const regStatus = data as unknown as UserRegistrationStatus;
+      console.log("Registration status:", regStatus);
+      setStatus(regStatus);
+      
+      // If fully registered, start countdown for auto-redirect
+      if (regStatus.registration_status === RegistrationStatusValues.FULLY_REGISTERED) {
+        const requiredTaskTypes = ['assign_care_team', 'create_chat_room', 'send_welcome_notification'];
+        const completedTasks = regStatus.tasks?.filter(task => task.status === 'completed') || [];
+        const completedTaskTypes = completedTasks.map(task => task.task_type);
+        const allRequiredTasksCompleted = requiredTaskTypes.every(taskType => 
+          completedTaskTypes.includes(taskType)
+        );
         
-        // Check if ALL tasks are actually completed (not just status)
-        const allCompleted = areAllTasksCompleted(data as unknown as UserRegistrationStatus);
-        if (allCompleted && !hasRedirected) {
-          console.log("All registration tasks are truly complete, redirecting to dashboard immediately");
-          
-          // Clear localStorage flags immediately
+        if (allRequiredTasksCompleted) {
+          // Clear localStorage flags
           localStorage.removeItem('registration_payment_pending');
           localStorage.removeItem('registration_payment_complete');
           
-          // Set redirect flag to prevent multiple redirects
-          setHasRedirected(true);
-          
-          toast({
-            title: "Registration Complete",
-            description: "Welcome! Redirecting to your dashboard...",
-          });
-          
-          // Navigate immediately without delay
-          navigate("/dashboard", { replace: true });
+          // Start 5-second countdown
+          setAutoRedirectCountdown(5);
         }
-      } else {
-        console.log("No data returned, setting default status");
-        setRegistrationStatus({
-          registration_status: 'payment_pending',
-          tasks: []
-        } as UserRegistrationStatus);
       }
-    } catch (err) {
-      console.error("Exception checking registration status:", err);
+      
+    } catch (err: any) {
+      console.error("Exception fetching registration status:", err);
       toast({
         title: "Error",
         description: "Failed to fetch registration status",
         variant: "destructive"
       });
     } finally {
-      setIsFetching(false);
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
-  const handleProcessRegistrationTasks = async () => {
-    if (!user?.id) {
-      const errorMsg = "User not authenticated";
-      console.error("Process tasks error:", errorMsg);
-      setLastProcessingError(errorMsg);
+  // Auto-redirect countdown effect
+  useEffect(() => {
+    if (autoRedirectCountdown === null) return;
+    
+    if (autoRedirectCountdown <= 0) {
       toast({
-        title: "Error",
-        description: errorMsg,
-        variant: "destructive"
+        title: "Welcome to your Health Dashboard!",
+        description: "Registration completed successfully. Redirecting...",
       });
+      navigate('/dashboard', { replace: true });
       return;
     }
+    
+    const timer = setTimeout(() => {
+      setAutoRedirectCountdown(autoRedirectCountdown - 1);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [autoRedirectCountdown, navigate, toast]);
 
-    setIsProcessingTasks(true);
-    setLastProcessingError(null);
-    
-    try {
-      console.log("=== STARTING TASK PROCESSING ===");
-      console.log("Triggering registration task processing for user:", user.id);
-      
-      toast({
-        title: "Processing Started",
-        description: "Processing your registration tasks. This may take a moment...",
-      });
-      
-      // First check Twilio configuration
-      console.log("Checking Twilio configuration...");
-      const { data: configData, error: configError } = await supabase.functions.invoke('configure-twilio-notifications');
-      
-      if (configError) {
-        console.error("Twilio configuration check failed:", configError);
-        toast({
-          title: "Configuration Issue",
-          description: "Notification configuration needs attention. Processing will continue with email only.",
-          variant: "destructive"
-        });
-      } else if (configData && !configData.configured) {
-        console.warn("Twilio not fully configured:", configData.message);
-        toast({
-          title: "Partial Configuration",
-          description: "SMS/WhatsApp notifications may not work. Email notifications will work.",
-        });
-      }
-      
-      // Add timeout to the function call
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Function call timeout after 30 seconds')), 30000);
-      });
-      
-      const functionPromise = supabase.functions.invoke('trigger-registration-notifications', {
-        body: { patient_id: user.id }
-      });
-      
-      console.log("Function call initiated, waiting for response...");
-      
-      // Race between the function call and timeout
-      const result = await Promise.race([functionPromise, timeoutPromise]) as any;
-      const { data, error } = result;
-      
-      console.log("=== FUNCTION RESPONSE RECEIVED ===");
-      console.log("Function response data:", data);
-      console.log("Function response error:", error);
-      
-      if (error) {
-        console.error("Edge function error details:", error);
-        
-        // Handle specific known errors with user-friendly messages
-        let errorMessage = error.message || "Failed to process registration tasks";
-        
-        if (error.message?.includes('column profiles.email does not exist')) {
-          errorMessage = "System configuration issue detected. Please contact support.";
-        } else if (error.message?.includes('care team')) {
-          errorMessage = "Care team assignment is in progress. Please try again in a few minutes.";
-        } else if (error.message?.includes('timeout')) {
-          errorMessage = "Processing is taking longer than usual. Please try again.";
-        }
-        
-        setLastProcessingError(errorMessage);
-        throw new Error(errorMessage);
-      }
-      
-      console.log("Registration tasks processing result:", data);
-      
-      const successMessage = data?.message || "Registration tasks are being processed. Please check back in a few moments.";
-      
-      toast({
-        title: "Processing Complete",
-        description: successMessage,
-      });
-      
-      console.log("=== REFRESHING STATUS ===");
-      // Wait a moment then refresh status
-      setTimeout(() => {
-        console.log("Fetching updated registration status...");
-        fetchRegistrationStatus();
-      }, 3000);
-      
-    } catch (err: any) {
-      console.error("=== TASK PROCESSING ERROR ===");
-      console.error("Error details:", err);
-      
-      const errorMessage = err.message || "Failed to process registration tasks";
-      setLastProcessingError(errorMessage);
-      
-      toast({
-        title: "Processing Failed",
-        description: errorMessage,
-        variant: "destructive"
-      });
-    } finally {
-      setIsProcessingTasks(false);
-      console.log("=== TASK PROCESSING COMPLETED ===");
-    }
-  };
-  
   useEffect(() => {
-    console.log("RegistrationProgressReport effect - authIsLoading:", authIsLoading, "user:", user?.id);
+    fetchStatus();
+  }, [user]);
+
+  const handleManualRedirect = () => {
+    // Clear localStorage flags
+    localStorage.removeItem('registration_payment_pending');
+    localStorage.removeItem('registration_payment_complete');
     
-    // Only fetch when auth is done loading and we have a user
-    if (!authIsLoading && user?.id) {
-      fetchRegistrationStatus();
-    } else if (!authIsLoading && !user?.id) {
-      // Auth is done loading but no user - this shouldn't happen on this page
-      console.log("Auth loaded but no user found");
-      setIsFetching(false);
-    }
-  }, [user?.id, authIsLoading]);
-  
-  const handleCheckAgain = () => {
-    console.log("=== CHECK AGAIN CLICKED ===");
-    console.log("User ID:", user?.id);
-    console.log("Current registration status:", registrationStatus);
-    
-    // First refresh the status, then trigger task processing
-    fetchRegistrationStatus();
-    
-    // Then trigger task processing
-    handleProcessRegistrationTasks();
-    
+    toast({
+      title: "Welcome to your Health Dashboard!",
+      description: "Registration completed successfully.",
+    });
+    navigate('/dashboard', { replace: true });
+  };
+
+  const handleRefresh = () => {
+    fetchStatus(true);
     if (onCheckAgain) {
       onCheckAgain();
     }
   };
-  
-  const handleSignInWithDifferentAccount = async () => {
-    try {
-      setIsSigningOut(true);
-      
-      // Clear registration progress from localStorage
-      localStorage.removeItem('registration_payment_pending');
-      localStorage.removeItem('registration_payment_complete');
-      
-      // Sign out the current user
-      await signOut();
-      
-      // Redirect to the login page
-      navigate("/auth");
-    } catch (err) {
-      console.error("Error signing out:", err);
-      toast({
-        title: "Error",
-        description: "Failed to sign out. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSigningOut(false);
-    }
-  };
-  
-  // Show loading while auth is loading OR while fetching registration status
-  if (authIsLoading || isFetching) {
+
+  if (isLoading) {
     return (
-      <Card className="bg-white">
-        <CardContent className="pt-6 flex justify-center items-center h-40">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#9b87f5]"></div>
+      <Card className="bg-white shadow-lg border border-gray-100">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-purple-600 mb-4" />
+          <p className="text-gray-600">Checking your registration status...</p>
         </CardContent>
       </Card>
     );
   }
 
-  // If auth is done loading but no user, show error
-  if (!authIsLoading && !user?.id) {
+  if (!status) {
     return (
-      <Card className="bg-white">
-        <CardHeader>
-          <CardTitle>Authentication Required</CardTitle>
-          <CardDescription>Please sign in to view registration status</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-            <AlertDescription>
-              You must be signed in to view your registration status.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={() => navigate("/auth")} className="w-full">
-            Sign In
+      <Card className="bg-white shadow-lg border border-gray-100">
+        <CardContent className="text-center py-12">
+          <p className="text-gray-600 mb-4">Unable to fetch registration status</p>
+          <Button onClick={handleRefresh} disabled={isRefreshing}>
+            {isRefreshing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+            Try Again
           </Button>
-        </CardFooter>
+        </CardContent>
       </Card>
     );
   }
-  
-  // Only show completion when ALL tasks are actually done
-  if (registrationStatus && areAllTasksCompleted(registrationStatus)) {
-    return (
-      <Card className="bg-white">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-green-500" />
-            Registration Complete
-          </CardTitle>
-          <CardDescription>Your account setup is complete</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert className="bg-green-50 border-green-200">
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
-            <AlertDescription className="text-green-800">
-              Your registration is now complete! Redirecting to dashboard...
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-        <CardFooter>
-          <Button 
-            onClick={() => navigate("/dashboard")} 
-            className="w-full"
-          >
-            Go to Dashboard
-          </Button>
-        </CardFooter>
-      </Card>
-    );
-  }
-  
-  if (!registrationStatus) {
-    return (
-      <Card className="bg-white">
-        <CardHeader>
-          <CardTitle>Registration Status</CardTitle>
-          <CardDescription>Could not retrieve status</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert variant="destructive">
-            <AlertDescription>
-              We couldn't retrieve your registration status. Please try again later.
-            </AlertDescription>
-          </Alert>
-          
-          {lastProcessingError && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Last error: {lastProcessingError}
-              </AlertDescription>
-            </Alert>
-          )}
-        </CardContent>
-        <CardFooter className="flex-col gap-2">
-          <Button 
-            onClick={handleCheckAgain} 
-            className="w-full"
-            disabled={isProcessingTasks}
-          >
-            {isProcessingTasks ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Process Registration Tasks
-              </>
-            )}
-          </Button>
-          <Button 
-            variant="outline" 
-            onClick={handleSignInWithDifferentAccount} 
-            className="w-full"
-            disabled={isSigningOut}
-          >
-            <LogIn className="mr-2 h-4 w-4" />
-            {isSigningOut ? "Signing Out..." : "Sign In with Different Account"}
-          </Button>
-        </CardFooter>
-      </Card>
-    );
-  }
-  
+
+  const tasks = status.tasks || [];
+  const careTeamTask = tasks.find(t => t.task_type === 'assign_care_team');
+  const chatRoomTask = tasks.find(t => t.task_type === 'create_chat_room');
+  const welcomeTask = tasks.find(t => t.task_type === 'send_welcome_notification');
+
+  const isFullyComplete = status.registration_status === RegistrationStatusValues.FULLY_REGISTERED &&
+    careTeamTask?.status === 'completed' &&
+    chatRoomTask?.status === 'completed' &&
+    welcomeTask?.status === 'completed';
+
   return (
-    <Card className="bg-white">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5 text-[#9b87f5]" />
-          Registration Status
+    <Card className="bg-white shadow-lg border border-gray-100">
+      <CardHeader className="text-center">
+        <CardTitle className="text-2xl text-green-600">
+          🎉 Registration Complete!
         </CardTitle>
-        <CardDescription>Your account is being set up</CardDescription>
+        <p className="text-gray-600">
+          Your account setup is in progress. Here's what's happening:
+        </p>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <Alert className="bg-[#E5DEFF]/20 border-[#9b87f5]/30">
-          <AlertDescription>
-            Your account is currently being set up. This includes assigning your care team and creating your communication channels. This process should be completed shortly.
-          </AlertDescription>
-        </Alert>
-        
-        {lastProcessingError && (
-          <Alert variant="destructive">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              Processing error: {lastProcessingError}
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className={`h-5 w-5 ${registrationStatus?.registration_status !== RegistrationStatusValues.PAYMENT_PENDING ? 'text-green-500' : 'text-gray-300'}`} />
-              <span>Payment Completed</span>
+      <CardContent className="space-y-6">
+        {/* Progress Steps */}
+        <div className="space-y-4">
+          {/* Payment */}
+          <div className="flex items-center gap-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <CheckCircle className="h-6 w-6 text-green-600" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-green-800">Payment Processed</h3>
+              <p className="text-sm text-green-700">Your registration fee has been successfully processed</p>
             </div>
-            <span className="text-sm text-muted-foreground">
-              {registrationStatus?.registration_status !== RegistrationStatusValues.PAYMENT_PENDING ? 'Completed' : 'Pending'}
-            </span>
           </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className={`h-5 w-5 ${
-                registrationStatus?.tasks?.some(task => task.task_type === 'assign_care_team' && task.status === 'completed') ? 'text-green-500' : 'text-gray-300'
-              }`} />
-              <span>Care Team Assignment</span>
+
+          {/* Care Team Assignment */}
+          <div className={`flex items-center gap-4 p-4 rounded-lg border ${
+            careTeamTask?.status === 'completed' 
+              ? 'bg-green-50 border-green-200' 
+              : 'bg-blue-50 border-blue-200'
+          }`}>
+            {careTeamTask?.status === 'completed' ? (
+              <CheckCircle className="h-6 w-6 text-green-600" />
+            ) : (
+              <Clock className="h-6 w-6 text-blue-600 animate-pulse" />
+            )}
+            <div className="flex-1">
+              <h3 className={`font-semibold ${
+                careTeamTask?.status === 'completed' ? 'text-green-800' : 'text-blue-800'
+              }`}>
+                Care Team Assignment
+              </h3>
+              <p className={`text-sm ${
+                careTeamTask?.status === 'completed' ? 'text-green-700' : 'text-blue-700'
+              }`}>
+                {careTeamTask?.status === 'completed' 
+                  ? 'Your dedicated doctor and nutritionist have been assigned'
+                  : 'Assigning your personal doctor and nutritionist (typically takes 2-4 hours)'
+                }
+              </p>
             </div>
-            <span className="text-sm text-muted-foreground">
-              {registrationStatus?.tasks?.some(task => task.task_type === 'assign_care_team' && task.status === 'completed') ? 'Completed' : 'In Progress'}
-            </span>
           </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className={`h-5 w-5 ${
-                registrationStatus?.tasks?.some(task => task.task_type === 'create_chat_room' && task.status === 'completed') ? 'text-green-500' : 'text-gray-300'
-              }`} />
-              <span>Chat Room Creation</span>
+
+          {/* Chat Room Setup */}
+          <div className={`flex items-center gap-4 p-4 rounded-lg border ${
+            chatRoomTask?.status === 'completed' 
+              ? 'bg-green-50 border-green-200' 
+              : 'bg-blue-50 border-blue-200'
+          }`}>
+            {chatRoomTask?.status === 'completed' ? (
+              <CheckCircle className="h-6 w-6 text-green-600" />
+            ) : (
+              <Clock className="h-6 w-6 text-blue-600 animate-pulse" />
+            )}
+            <div className="flex-1">
+              <h3 className={`font-semibold ${
+                chatRoomTask?.status === 'completed' ? 'text-green-800' : 'text-blue-800'
+              }`}>
+                Communication Setup
+              </h3>
+              <p className={`text-sm ${
+                chatRoomTask?.status === 'completed' ? 'text-green-700' : 'text-blue-700'
+              }`}>
+                {chatRoomTask?.status === 'completed' 
+                  ? 'Your secure chat room with the care team is ready'
+                  : 'Setting up secure messaging with your care team'
+                }
+              </p>
             </div>
-            <span className="text-sm text-muted-foreground">
-              {registrationStatus?.tasks?.some(task => task.task_type === 'create_chat_room' && task.status === 'completed') ? 'Completed' : 'In Progress'}
-            </span>
           </div>
-          
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className={`h-5 w-5 ${
-                registrationStatus?.tasks?.some(task => task.task_type === 'send_welcome_notification' && task.status === 'completed') ? 'text-green-500' : 'text-gray-300'
-              }`} />
-              <span>Welcome Notifications</span>
+
+          {/* Welcome Message */}
+          <div className={`flex items-center gap-4 p-4 rounded-lg border ${
+            welcomeTask?.status === 'completed' 
+              ? 'bg-green-50 border-green-200' 
+              : 'bg-blue-50 border-blue-200'
+          }`}>
+            {welcomeTask?.status === 'completed' ? (
+              <CheckCircle className="h-6 w-6 text-green-600" />
+            ) : (
+              <Clock className="h-6 w-6 text-blue-600 animate-pulse" />
+            )}
+            <div className="flex-1">
+              <h3 className={`font-semibold ${
+                welcomeTask?.status === 'completed' ? 'text-green-800' : 'text-blue-800'
+              }`}>
+                Welcome Message
+              </h3>
+              <p className={`text-sm ${
+                welcomeTask?.status === 'completed' ? 'text-green-700' : 'text-blue-700'
+              }`}>
+                {welcomeTask?.status === 'completed' 
+                  ? 'Welcome message sent to your dashboard'
+                  : 'Preparing your personalized welcome message'
+                }
+              </p>
             </div>
-            <span className="text-sm text-muted-foreground">
-              {registrationStatus?.tasks?.some(task => task.task_type === 'send_welcome_notification' && task.status === 'completed') ? 'Completed' : 'In Progress'}
-            </span>
           </div>
-          
-          {/* Show task status if available */}
-          {registrationStatus?.tasks && registrationStatus.tasks.length > 0 && (
-            <div className="mt-4 pt-4 border-t">
-              <p className="text-sm font-medium mb-2">Task Status:</p>
-              {registrationStatus.tasks.map(task => (
-                <div key={task.id} className="flex items-center justify-between text-sm">
-                  <span>{task.task_type.replace(/_/g, ' ')}</span>
-                  <span className={`${
-                    task.status === 'completed' ? 'text-green-500' : 
-                    task.status === 'failed' ? 'text-red-500' : 
-                    task.status === 'in_progress' ? 'text-blue-500' : 'text-gray-400'
-                  }`}>
-                    {task.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
+
+        {/* Auto-redirect countdown */}
+        {autoRedirectCountdown !== null && (
+          <div className="bg-purple-50 border border-purple-200 p-4 rounded-lg text-center">
+            <h3 className="font-semibold text-purple-800 mb-2">
+              🎉 Everything is Ready!
+            </h3>
+            <p className="text-purple-700 mb-3">
+              Automatically redirecting to your dashboard in {autoRedirectCountdown} seconds...
+            </p>
+            <Button 
+              onClick={handleManualRedirect}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              Go to Dashboard Now <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        )}
+
+        {/* Actions */}
+        {!isFullyComplete && (
+          <div className="flex flex-col gap-3 pt-4 border-t">
+            <Button
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              variant="outline"
+              className="w-full"
+            >
+              {isRefreshing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Checking Status...
+                </>
+              ) : (
+                'Refresh Status'
+              )}
+            </Button>
+            
+            <div className="text-center text-sm text-gray-600">
+              <p>Most tasks complete within 2-4 hours during business hours.</p>
+              <p>You'll receive notifications when everything is ready!</p>
+            </div>
+          </div>
+        )}
+
+        {isFullyComplete && autoRedirectCountdown === null && (
+          <div className="pt-4 border-t">
+            <Button 
+              onClick={handleManualRedirect}
+              className="w-full bg-green-600 hover:bg-green-700"
+            >
+              Access Your Dashboard <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        )}
       </CardContent>
-      <CardFooter className="flex-col gap-2">
-        <Button 
-          onClick={handleCheckAgain}
-          className="w-full"
-          disabled={isProcessingTasks}
-        >
-          {isProcessingTasks ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Processing Registration Tasks...
-            </>
-          ) : (
-            <>
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Process Registration Tasks
-            </>
-          )}
-        </Button>
-        <Button 
-          variant="outline" 
-          onClick={handleSignInWithDifferentAccount} 
-          className="w-full"
-          disabled={isSigningOut}
-        >
-          <LogIn className="mr-2 h-4 w-4" />
-          {isSigningOut ? "Signing Out..." : "Sign In with Different Account"}
-        </Button>
-      </CardFooter>
     </Card>
   );
 };
