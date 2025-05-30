@@ -1,31 +1,22 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TestingDashboard } from "@/components/testing/TestingDashboard";
-import { TwilioConfigValidator } from "@/components/testing/TwilioConfigValidator";
-import { UserPhoneChecker } from "@/components/testing/UserPhoneChecker";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { TestingDashboard } from '@/components/testing/TestingDashboard';
+import { TestDataCleanup } from '@/components/testing/TestDataCleanup';
+import { SpecificUserDeletion } from '@/components/testing/SpecificUserDeletion';
 
 const TestingPage = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-indigo-100 p-4">
-      <div className="max-w-6xl mx-auto space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold text-center">
-              Testing & Validation Dashboard
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-center text-muted-foreground">
-              Comprehensive testing tools for validating system functionality
-            </p>
-          </CardContent>
-        </Card>
+    <div className="container mx-auto py-8 space-y-8">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold mb-2">Testing & Development Tools</h1>
+        <p className="text-gray-600">
+          Tools for testing, debugging, and managing the application in development
+        </p>
+      </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <UserPhoneChecker />
-          <TwilioConfigValidator />
-        </div>
-
+      <div className="grid gap-8">
+        <SpecificUserDeletion />
+        <TestDataCleanup />
         <TestingDashboard />
       </div>
     </div>
