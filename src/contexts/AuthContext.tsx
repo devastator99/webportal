@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import AuthService, { UserRole } from '@/services/AuthService';
@@ -22,21 +21,12 @@ export const redirectFixForDoctor = (): string => {
   return '/dashboard';
 };
 
-// Helper function to check if user is in active registration
-const isUserInActiveRegistration = (): boolean => {
-  const registrationStep = localStorage.getItem('registration_step');
-  const registrationRole = localStorage.getItem('registration_user_role');
-  return !!(registrationStep && registrationRole);
-};
-
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   userRole: UserRole;
   isLoading: boolean;
   isLoadingRole: boolean;
-  isRegistrationComplete: boolean;
-  isLoadingRegistrationStatus: boolean;
   isSigningOut: boolean;
   signOut: () => Promise<void>;
   forceSignOut: () => Promise<void>;
@@ -50,8 +40,6 @@ const AuthContext = createContext<AuthContextType>({
   userRole: null,
   isLoading: true,
   isLoadingRole: false,
-  isRegistrationComplete: false,
-  isLoadingRegistrationStatus: false,
   isSigningOut: false,
   signOut: async () => {},
   forceSignOut: async () => {},
@@ -64,8 +52,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userRole, setUserRole] = useState<UserRole>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingRole, setIsLoadingRole] = useState(false);
-  const [isRegistrationComplete, setIsRegistrationComplete] = useState(false);
-  const [isLoadingRegistrationStatus, setIsLoadingRegistrationStatus] = useState(false);
   const authServiceRef = useRef<AuthService>(AuthService.getInstance());
   const authStateInitializedRef = useRef(false);
   
@@ -107,30 +93,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     if (authStateInitializedRef.current) return;
     
-    console.log("Initializing auth state with database trigger support");
+    console.log("Initializing auth state");
     authStateInitializedRef.current = true;
     
-    // Enhanced role setter with proper loading state management
+    // Enhanced role setter that tracks loading state
     const enhancedSetUserRole = (role: UserRole) => {
       console.log("Setting user role:", role);
       setIsLoadingRole(false);
       setUserRole(role);
     };
 
-    // Enhanced user setter with database trigger awareness
+    // Enhanced user setter that triggers role loading
     const enhancedSetUser = (newUser: User | null) => {
       console.log("Setting user:", newUser?.email || 'null');
       setUser(newUser);
-      
       if (newUser) {
-        // Always load role for authenticated users - database trigger should have created it
-        console.log("User authenticated, loading role (database trigger should have created it)");
         setIsLoadingRole(true);
       } else {
         setIsLoadingRole(false);
         setUserRole(null);
-        setIsRegistrationComplete(false);
-        setIsLoadingRegistrationStatus(false);
       }
     };
     
@@ -139,9 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       enhancedSetUser, 
       setSession, 
       enhancedSetUserRole, 
-      setIsLoading,
-      setIsRegistrationComplete,
-      setIsLoadingRegistrationStatus
+      setIsLoading
     );
     
     return () => {
@@ -201,8 +180,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userRole,
     isLoading,
     isLoadingRole,
-    isRegistrationComplete,
-    isLoadingRegistrationStatus,
     isSigningOut: authServiceRef.current.isSigningOut(),
     signOut,
     forceSignOut,

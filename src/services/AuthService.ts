@@ -67,121 +67,39 @@ class AuthService {
     }
   }
 
-  // Fetch user role with improved retry logic and no aggressive timeout
+  // Fetch user role with proper error handling and timeout
   private async fetchUserRole(userId: string, setUserRole: (role: UserRole) => void): Promise<void> {
-    const maxRetries = 3;
-    let currentRetry = 0;
-    
-    while (currentRetry < maxRetries) {
-      try {
-        console.log(`Fetching user role for: ${userId} (attempt ${currentRetry + 1})`);
-        
-        const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
-          lookup_user_id: userId
-        });
-        
-        if (roleError) {
-          console.error(`Error fetching user role (attempt ${currentRetry + 1}):`, roleError);
-          
-          // If it's the last retry, set null and break
-          if (currentRetry === maxRetries - 1) {
-            console.warn("Max retries reached, setting role to null");
-            setUserRole(null);
-            return;
-          }
-          
-          // Wait before retrying (exponential backoff)
-          await new Promise(resolve => setTimeout(resolve, Math.pow(2, currentRetry) * 1000));
-          currentRetry++;
-          continue;
-        }
-        
-        if (roleData && roleData.length > 0) {
-          const userRoleValue = roleData[0]?.role as UserRole || null;
-          console.log("User role fetched successfully:", userRoleValue);
-          setUserRole(userRoleValue);
-          return;
-        } else {
-          console.warn(`No role data returned for user: ${userId}`);
-          
-          // For database trigger, role might not exist yet for very new users
-          // Wait a bit and retry
-          if (currentRetry < maxRetries - 1) {
-            console.log("Role not found, retrying in case database trigger is still processing...");
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            currentRetry++;
-            continue;
-          } else {
-            console.warn("No role found after all retries");
-            setUserRole(null);
-            return;
-          }
-        }
-      } catch (error) {
-        console.error(`Exception in role fetching (attempt ${currentRetry + 1}):`, error);
-        
-        if (currentRetry === maxRetries - 1) {
-          setUserRole(null);
-          return;
-        }
-        
-        await new Promise(resolve => setTimeout(resolve, Math.pow(2, currentRetry) * 1000));
-        currentRetry++;
-      }
-    }
-  }
-
-  // Check registration completion status
-  private async checkRegistrationStatus(
-    userId: string, 
-    userRole: UserRole,
-    setIsRegistrationComplete: (complete: boolean) => void,
-    setIsLoadingRegistrationStatus: (loading: boolean) => void
-  ): Promise<void> {
     try {
-      console.log("Checking registration completion status for:", userId, "with role:", userRole);
+      console.log("Fetching user role for:", userId);
       
-      // Non-patient users are always considered complete
-      if (userRole && userRole !== 'patient') {
-        console.log("Non-patient user, marking registration as complete");
-        setIsRegistrationComplete(true);
-        setIsLoadingRegistrationStatus(false);
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Role fetch timeout')), 10000);
+      });
+      
+      const rolePromise = supabase.rpc('get_user_role', {
+        lookup_user_id: userId
+      });
+      
+      const { data: roleData, error: roleError } = await Promise.race([rolePromise, timeoutPromise]) as any;
+      
+      if (roleError) {
+        console.error("Error fetching user role:", roleError);
+        setUserRole(null);
         return;
       }
       
-      // For patients, check if registration tasks are complete
-      if (userRole === 'patient') {
-        setIsLoadingRegistrationStatus(true);
-        
-        const { data: registrationData, error: registrationError } = await supabase.rpc(
-          'get_user_registration_status_safe', 
-          { lookup_user_id: userId }
-        );
-        
-        if (registrationError) {
-          console.error("Error checking registration status:", registrationError);
-          // Default to incomplete if we can't check
-          setIsRegistrationComplete(false);
-        } else if (registrationData && registrationData.length > 0) {
-          const status = registrationData[0];
-          const isComplete = status.status === 'fully_registered';
-          console.log("Registration status check result:", { status: status.status, isComplete });
-          setIsRegistrationComplete(isComplete);
-        } else {
-          console.log("No registration status found, marking as incomplete");
-          setIsRegistrationComplete(false);
-        }
-        
-        setIsLoadingRegistrationStatus(false);
+      if (roleData && roleData.length > 0) {
+        const userRoleValue = roleData[0]?.role as UserRole || null;
+        console.log("User role fetched successfully:", userRoleValue);
+        setUserRole(userRoleValue);
       } else {
-        // No role yet, can't determine completion
-        setIsRegistrationComplete(false);
-        setIsLoadingRegistrationStatus(false);
+        console.warn("No role data returned for user:", userId);
+        setUserRole(null);
       }
     } catch (error) {
-      console.error("Exception checking registration status:", error);
-      setIsRegistrationComplete(false);
-      setIsLoadingRegistrationStatus(false);
+      console.error("Exception in role fetching:", error);
+      setUserRole(null);
     }
   }
 
@@ -190,23 +108,14 @@ class AuthService {
     setUser: (user: User | null) => void,
     setSession: (session: Session | null) => void,
     setUserRole: (role: UserRole) => void,
-    setIsLoading: (loading: boolean) => void,
-    setIsRegistrationComplete: (complete: boolean) => void,
-    setIsLoadingRegistrationStatus: (loading: boolean) => void
+    setIsLoading: (loading: boolean) => void
   ): void {
     console.log('Initializing auth state');
     
-    // Enhanced role setter that tracks loading state and checks registration
+    // Enhanced role setter that tracks loading state
     const enhancedSetUserRole = (role: UserRole) => {
       console.log("Setting user role:", role);
       setUserRole(role);
-      
-      // Check registration status when role is set
-      const currentUser = supabase.auth.getUser().then(({ data: { user } }) => {
-        if (user) {
-          this.checkRegistrationStatus(user.id, role, setIsRegistrationComplete, setIsLoadingRegistrationStatus);
-        }
-      });
     };
 
     // Enhanced user setter that handles role loading
@@ -214,7 +123,7 @@ class AuthService {
       console.log("Setting user:", newUser?.email || 'null');
       setUser(newUser);
       if (newUser) {
-        // Fetch role immediately for authenticated users
+        // Fetch role immediately without setTimeout
         this.fetchUserRole(newUser.id, enhancedSetUserRole);
       } else {
         enhancedSetUserRole(null);

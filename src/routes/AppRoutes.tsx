@@ -43,10 +43,7 @@ export const AppRoutes = () => {
         <Route path="/" element={<LandingPage />} />
         <Route path="/auth/*" element={<Auth />} />
         <Route path="/auth/login" element={<Auth />} />
-        
-        {/* Redirect /register to /auth for unified auth experience */}
-        <Route path="/register" element={<Navigate to="/auth" replace />} />
-        
+        <Route path="/auth/register" element={<Auth />} />
         <Route path="/verify-code" element={<VerifyCodePage />} />
         <Route path="/forgot-password" element={<ForgotPasswordRouteWrapper />} />
         <Route path="/update-password" element={<UpdatePassword />} />

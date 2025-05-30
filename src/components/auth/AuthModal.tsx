@@ -5,7 +5,7 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useAuthHandlers } from "@/hooks/useAuthHandlers";
-import { PatientData } from "@/hooks/useRegistrationAuth";
+import { PatientData } from "@/hooks/useAuthHandlers";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -31,8 +31,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [view, setView] = useState<"login" | "register">(initialView);
   const [registrationStep, setRegistrationStep] = useState<number>(1);
   const [registeredUser, setRegisteredUser] = useState<any>(null);
-  const [error, setError] = useState<string | null>(null);
-  const { handleSignUp, handleLogin, loading } = useAuthHandlers();
+  const { handleSignUp, handleSignIn, error, loading, setError } = useAuthHandlers();
   const location = useLocation();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -42,12 +41,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     if (isOpen) {
       setView(initialView);
       
-      // FIXED: Don't automatically check for pending registration - let user flow naturally
-      // Clear any stale flags when modal opens fresh
-      if (view === "register") {
-        localStorage.removeItem('registration_payment_pending');
-        localStorage.removeItem('registration_payment_complete');
-        setRegistrationStep(1); // Always start at step 1 for new registration
+      // Check if there's any pending registration process
+      const paymentPending = localStorage.getItem('registration_payment_pending') === 'true';
+      const paymentComplete = localStorage.getItem('registration_payment_complete') === 'true';
+      
+      if (paymentPending) {
+        setRegistrationStep(2);
+      } else if (paymentComplete) {
+        setRegistrationStep(3);
+      } else {
+        setRegistrationStep(1);
       }
     }
   }, [isOpen, initialView]);
@@ -62,12 +65,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     patientData?: PatientData
   ) => {
     try {
-      setError(null);
-      
       if (view === "login") {
         // Handle login
-        const result = await handleLogin(email, password);
-        if (result.user) {
+        const user = await handleSignIn(email, password);
+        if (user) {
           toast({
             title: "Login Successful",
             description: "Welcome back!",
@@ -76,19 +77,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           navigate("/dashboard");
         }
       } else if (view === "register") {
-        // FIXED: For patient registration, don't set localStorage flags until later
-        const result = await handleSignUp(email, password, userType as any, firstName, lastName);
+        // Set localStorage flag to prevent redirection race condition
+        if (userType === 'patient') {
+          localStorage.setItem('registration_payment_pending', 'true');
+          localStorage.setItem('registration_payment_complete', 'false');
+        }
+        
+        const user = await handleSignUp(email, password, userType as any, firstName, lastName, patientData);
         
         // If this is a patient registration and we were successful, move to payment step
-        if (result.user && userType === 'patient') {
-          setRegisteredUser(result.user);
-          setRegistrationStep(2); // Go to PAYMENT step, not status step
+        if (user && userType === 'patient') {
+          setRegisteredUser(user);
+          setRegistrationStep(2);
           toast({
             title: "Account Created",
             description: "Please complete your registration with payment",
           });
           return; // Important! Don't close the modal yet
-        } else if (result.user) {
+        } else if (user) {
           // Non-patient users can go directly to dashboard
           toast({
             title: "Account Created",
@@ -107,12 +113,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         localStorage.removeItem('registration_payment_complete');
       }
       
-      const errorMessage = error.message || `Failed to ${view === "login" ? "sign in" : "create account"}`;
-      setError(errorMessage);
-      
       toast({
         title: view === "login" ? "Login Error" : "Registration Error",
-        description: errorMessage,
+        description: error.message || `Failed to ${view === "login" ? "sign in" : "create account"}`,
         variant: "destructive",
       });
     }
@@ -127,12 +130,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       title: "Registration Payment Complete",
       description: "Your payment has been processed. Your care team is being assigned.",
     });
-  };
-
-  // Handle registration completion
-  const handleRegistrationComplete = () => {
-    handleClose();
-    navigate('/dashboard');
   };
 
   // Handle modal close
@@ -171,6 +168,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     // Clean up localStorage when switching views
     localStorage.removeItem('registration_payment_pending');
     localStorage.removeItem('registration_payment_complete');
+  };
+
+  // Function to navigate to dashboard
+  const goToDashboard = () => {
+    handleClose();
+    navigate('/dashboard');
   };
 
   return (
@@ -251,7 +254,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                         Registration Status
                       </h1>
                       <RegistrationProgressReport 
-                        onComplete={handleRegistrationComplete}
+                        onCheckAgain={() => {
+                          // Refresh status
+                          toast({
+                            title: "Refreshing",
+                            description: "Checking your registration status...",
+                          });
+                        }} 
                       />
                     </div>
                   )}

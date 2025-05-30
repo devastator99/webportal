@@ -1,6 +1,7 @@
 
 import { useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { NoRoleWarning } from "@/components/auth/NoRoleWarning";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { PatientDashboard } from "@/components/dashboard/PatientDashboard";
 import { DoctorDashboard } from "@/components/dashboard/doctor/DoctorDashboard";
@@ -8,97 +9,152 @@ import { NutritionistDashboard } from "@/components/dashboard/NutritionistDashbo
 import { AdminDashboard } from "@/components/dashboard/AdminDashboard";
 import { ReceptionDashboard } from "@/components/dashboard/ReceptionDashboard";
 import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 import { PatientAppLayout } from "@/layouts/PatientAppLayout";
 import { DoctorAppLayout } from "@/layouts/DoctorAppLayout";
 import { AdminAppLayout } from "@/layouts/AdminAppLayout";
 import { AppLayout } from "@/layouts/AppLayout";
-import { DashboardRegistrationHandler } from "@/components/dashboard/DashboardRegistrationHandler";
+import { RegistrationStatusChecker } from "@/components/auth/RegistrationStatusChecker";
+
+// Map user roles to their respective layouts and dashboards
+const roleLayouts = {
+  patient: {
+    Layout: PatientAppLayout,
+    Dashboard: ({ children }: { children?: React.ReactNode }) => (
+      <RegistrationStatusChecker>
+        <PatientDashboard />
+        {children}
+      </RegistrationStatusChecker>
+    ),
+  },
+  doctor: {
+    Layout: DoctorAppLayout,
+    Dashboard: DoctorDashboard,
+  },
+  nutritionist: {
+    Layout: AppLayout,
+    Dashboard: NutritionistDashboard,
+  },
+  administrator: {
+    Layout: AdminAppLayout,
+    Dashboard: AdminDashboard,
+  },
+  reception: {
+    Layout: AppLayout,
+    Dashboard: ReceptionDashboard,
+  },
+};
 
 const Dashboard = () => {
-  const { user, userRole, isLoading, isLoadingRole } = useAuth();
+  const { user, userRole, isLoading, signOut } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
   
-  console.log("Dashboard:", { user: user?.id, userRole, isLoading, isLoadingRole });
+  console.log("Dashboard render:", { 
+    user: user?.id, 
+    userEmail: user?.email,
+    userRole, 
+    isLoading
+  });
 
   useEffect(() => {
-    // Only redirect if not loading AND no user
+    console.log("[Dashboard] useEffect triggered:", { 
+      userId: user?.id, 
+      userRole, 
+      isLoading
+    });
+    
+    // Only redirect if we're not loading and there's no user
     if (!isLoading && !user) {
-      console.log("Dashboard: No user found, redirecting to auth");
-      navigate("/auth", { replace: true });
-      return;
+      console.log("[Dashboard] No user found, redirecting to /");
+      navigate("/");
     }
   }, [user, isLoading, navigate]);
 
-  // CRITICAL: Only redirect users without roles AFTER loading is completely done
-  // This prevents redirect loops during role creation
-  useEffect(() => {
-    if (!isLoading && !isLoadingRole && user && !userRole) {
-      console.log("Dashboard: User has no role after loading complete, redirecting to auth for role creation");
-      navigate("/auth", { replace: true });
-    }
-  }, [user, userRole, isLoading, isLoadingRole, navigate]);
-
-  // Show loading while anything is loading
-  if (isLoading || isLoadingRole) {
+  // Show loading state while auth is loading
+  if (isLoading) {
+    console.log("[Dashboard] Showing loading skeleton - isLoading:", isLoading);
     return <DashboardSkeleton />;
   }
 
-  // No user - redirect will handle this
+  // After loading, if no user is found, useEffect will handle redirect
   if (!user) {
+    console.log("[Dashboard] No user, returning null");
     return null;
   }
 
-  // No role - redirect will handle this  
+  // Handle no role case - but only after loading is complete
   if (!userRole) {
-    return null;
+    console.log("[Dashboard] No role assigned, showing NoRoleWarning");
+    return (
+      <AppLayout>
+        <NoRoleWarning onSignOut={signOut} />
+      </AppLayout>
+    );
   }
 
-  // User has both auth and role - safe to render dashboard
-  switch (userRole) {
-    case 'patient':
+  console.log(`[Dashboard] Attempting to render ${userRole} dashboard`);
+  
+  // Render appropriate dashboard based on role
+  try {
+    // Get the layout and dashboard components for the current role
+    const roleConfig = roleLayouts[userRole as keyof typeof roleLayouts];
+    
+    if (roleConfig) {
+      const { Layout, Dashboard: RoleDashboard } = roleConfig;
+      console.log(`[Dashboard] Rendering ${userRole} dashboard`);
+      
       return (
-        <PatientAppLayout>
-          <DashboardRegistrationHandler userRole={userRole}>
-            <PatientDashboard />
-          </DashboardRegistrationHandler>
-        </PatientAppLayout>
+        <Layout>
+          <RoleDashboard />
+        </Layout>
       );
-    case 'doctor':
-      return (
-        <DoctorAppLayout>
-          <DashboardRegistrationHandler userRole={userRole}>
-            <DoctorDashboard />
-          </DashboardRegistrationHandler>
-        </DoctorAppLayout>
-      );
-    case 'nutritionist':
-      return (
-        <AppLayout>
-          <DashboardRegistrationHandler userRole={userRole}>
-            <NutritionistDashboard />
-          </DashboardRegistrationHandler>
-        </AppLayout>
-      );
-    case 'administrator':
-      return (
-        <AdminAppLayout>
-          <DashboardRegistrationHandler userRole={userRole}>
-            <AdminDashboard />
-          </DashboardRegistrationHandler>
-        </AdminAppLayout>
-      );
-    case 'reception':
+    } else {
+      // Fallback for unknown roles
+      console.log(`[Dashboard] Invalid role: ${userRole}, rendering NoRoleWarning`);
       return (
         <AppLayout>
-          <DashboardRegistrationHandler userRole={userRole}>
-            <ReceptionDashboard />
-          </DashboardRegistrationHandler>
+          <NoRoleWarning onSignOut={signOut} />
         </AppLayout>
       );
-    default:
-      // Unknown role - redirect to auth
-      navigate("/auth", { replace: true });
-      return null;
+    }
+  } catch (error) {
+    console.error("[Dashboard] Error rendering dashboard:", error);
+    toast({
+      title: "Dashboard Error",
+      description: `Failed to load dashboard: ${error instanceof Error ? error.message : 'Unknown error'}`,
+      variant: "destructive"
+    });
+    
+    return (
+      <AppLayout>
+        <div className="container mx-auto px-4 py-8 mt-20">
+          <Alert variant="destructive" className="mb-8">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              We couldn't load your dashboard correctly. This might be due to a role configuration issue or a temporary system problem.
+            </AlertDescription>
+          </Alert>
+          <div className="flex justify-center mt-8">
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700 mr-4"
+            >
+              Retry
+            </button>
+            <button 
+              onClick={() => signOut()}
+              className="bg-gray-600 text-white px-4 py-2 rounded hover:bg-gray-700"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </AppLayout>
+    );
   }
 };
 
