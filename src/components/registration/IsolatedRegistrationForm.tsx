@@ -22,7 +22,7 @@ export const IsolatedRegistrationForm: React.FC = () => {
       setUserType(userType!);
       setUserInfo({ firstName, lastName, email });
       
-      // Create user without role for patients, with role for others
+      // Create user with role for all user types
       const newUser = await handleRegistration(
         email,
         password,
@@ -30,7 +30,7 @@ export const IsolatedRegistrationForm: React.FC = () => {
         firstName,
         lastName,
         patientData,
-        userType !== 'patient' // skipRoleCreation for patients
+        false // Don't skip role creation for any user type
       );
       
       if (newUser) {
