@@ -9,7 +9,8 @@ const Auth = () => {
   const { user, userRole, isLoading, isLoadingRole } = useAuth();
   const navigate = useNavigate();
 
-  // Clean redirect logic for authenticated users - only dashboard
+  // ONLY redirect users who are fully authenticated AND have roles to dashboard
+  // Do NOT redirect users during registration process
   useEffect(() => {
     const handleRedirect = async () => {
       // Don't redirect while still loading
@@ -18,24 +19,16 @@ const Auth = () => {
         return;
       }
       
-      if (!user) {
-        console.log("Auth page: No user found, staying on auth page");
-        return;
-      }
-      
-      console.log("Auth page detected logged in user. Role:", userRole);
-      
-      // ONLY redirect users who have completed roles to dashboard
-      // Users without roles should stay here or go to registration manually
-      if (userRole) {
-        console.log("User has role, redirecting to dashboard:", userRole);
+      // Only redirect if user is FULLY authenticated with a role
+      // This prevents redirects during registration
+      if (user && userRole) {
+        console.log("Auth page: User has complete authentication, redirecting to dashboard:", userRole);
         navigate("/dashboard", { replace: true });
         return;
       }
       
-      // For users without roles, don't auto-redirect - let them choose
-      // This prevents the redirect loop during registration
-      console.log("User has no role - staying on auth page, user can navigate to registration manually");
+      // For all other cases (no user, or user without role), stay on auth page
+      console.log("Auth page: User not fully authenticated, staying on auth page");
     };
     
     handleRedirect();
@@ -51,7 +44,7 @@ const Auth = () => {
     );
   }
 
-  // Login form for unauthenticated users
+  // Login form for unauthenticated users OR users in registration process
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
