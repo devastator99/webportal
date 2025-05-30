@@ -19,6 +19,7 @@ const RegistrationPage = () => {
   const [userInfo, setUserInfo] = useState<any>(null);
   const [registeredUserRole, setRegisteredUserRole] = useState<string | null>(null);
   const [preventRedirection, setPreventRedirection] = useState(false);
+  const [isProcessingRegistration, setIsProcessingRegistration] = useState(false);
 
   // Check for existing registration state on load
   useEffect(() => {
@@ -101,6 +102,7 @@ const RegistrationPage = () => {
       
       setError(null);
       setPreventRedirection(true);
+      setIsProcessingRegistration(true); // Add processing state
       
       // Store user info and role FIRST
       setUserInfo({ firstName, lastName });
@@ -131,10 +133,11 @@ const RegistrationPage = () => {
         console.log("=== ACCOUNT CREATED SUCCESSFULLY ===");
         console.log("Account created successfully for role:", userType);
         
-        // IMMEDIATELY set the registration step based on user type
+        // IMMEDIATELY set the registration step and stop processing
         if (userType === 'patient') {
           console.log("Patient registration - IMMEDIATELY moving to PAYMENT step");
           setRegistrationStep(2);
+          setIsProcessingRegistration(false); // Stop processing immediately
           toast({
             title: "Account Created!",
             description: "Please complete the payment to activate your account.",
@@ -142,6 +145,7 @@ const RegistrationPage = () => {
         } else {
           console.log("Non-patient registration - IMMEDIATELY moving to PROGRESS step");
           setRegistrationStep(2);
+          setIsProcessingRegistration(false); // Stop processing immediately
           toast({
             title: "Account Created!",
             description: "Setting up your account and permissions...",
@@ -162,6 +166,7 @@ const RegistrationPage = () => {
       localStorage.removeItem('registration_user_role');
       localStorage.removeItem('registration_payment_complete');
       setPreventRedirection(false);
+      setIsProcessingRegistration(false);
       
       toast({
         title: "Registration failed",
@@ -226,7 +231,8 @@ const RegistrationPage = () => {
     userInfo,
     preventRedirection,
     user: user?.id,
-    userRole
+    userRole,
+    isProcessingRegistration
   });
 
   return (
@@ -239,14 +245,14 @@ const RegistrationPage = () => {
         {/* Debug info in development */}
         {process.env.NODE_ENV === 'development' && (
           <div className="mb-4 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs">
-            <strong>Debug:</strong> Step {registrationStep}, Role: {registeredUserRole || 'none'}, User: {user?.id || 'none'}
+            <strong>Debug:</strong> Step {registrationStep}, Role: {registeredUserRole || 'none'}, User: {user?.id || 'none'}, Processing: {isProcessingRegistration}
           </div>
         )}
       </div>
 
       <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        {/* Step 1: Registration Form (All Roles) */}
-        {registrationStep === 1 && (
+        {/* Step 1: Registration Form (All Roles) - Hide if processing */}
+        {registrationStep === 1 && !isProcessingRegistration && (
           <div className="bg-white py-6 sm:py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10 relative">
             <ScrollArea 
               className="w-full" 
@@ -257,22 +263,33 @@ const RegistrationPage = () => {
                 <RegistrationForm 
                   onSubmit={handleFormSubmit}
                   error={error}
-                  loading={loading}
+                  loading={loading || isProcessingRegistration}
                 />
               </div>
             </ScrollArea>
           </div>
         )}
+
+        {/* Processing State */}
+        {isProcessingRegistration && (
+          <div className="bg-white py-6 sm:py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10 relative">
+            <div className="flex flex-col items-center justify-center py-8">
+              <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600 mb-4" />
+              <p className="text-lg font-medium text-gray-800">Creating your account...</p>
+              <p className="text-sm text-gray-600 mt-2">Please wait while we set up everything for you.</p>
+            </div>
+          </div>
+        )}
         
         {/* Step 2: Payment (Patients Only) or Progress (Others) */}
-        {registrationStep === 2 && registeredUserRole === 'patient' && (
+        {registrationStep === 2 && !isProcessingRegistration && registeredUserRole === 'patient' && (
           <RegistrationPayment 
             onComplete={handlePaymentComplete}
             userInfo={userInfo}
           />
         )}
 
-        {registrationStep === 2 && registeredUserRole !== 'patient' && (
+        {registrationStep === 2 && !isProcessingRegistration && registeredUserRole !== 'patient' && (
           <RegistrationProgressReport 
             onComplete={handleRegistrationComplete}
             userRole={registeredUserRole}
@@ -280,7 +297,7 @@ const RegistrationPage = () => {
         )}
 
         {/* Step 3: Progress (Patients After Payment) */}
-        {registrationStep === 3 && registeredUserRole === 'patient' && (
+        {registrationStep === 3 && !isProcessingRegistration && registeredUserRole === 'patient' && (
           <RegistrationProgressReport 
             onComplete={handleRegistrationComplete}
             userRole={registeredUserRole}
