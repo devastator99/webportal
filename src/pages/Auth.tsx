@@ -25,19 +25,17 @@ const Auth = () => {
       
       console.log("Auth page detected logged in user. Role:", userRole);
       
-      // For users with roles, redirect to dashboard
+      // ONLY redirect users who have completed roles to dashboard
+      // Users without roles should stay here or go to registration manually
       if (userRole) {
         console.log("User has role, redirecting to dashboard:", userRole);
         navigate("/dashboard", { replace: true });
         return;
       }
       
-      // User has no role - they need to complete registration
-      if (user && !userRole) {
-        console.log("User has no role, redirecting to registration");
-        navigate("/register", { replace: true });
-        return;
-      }
+      // For users without roles, don't auto-redirect - let them choose
+      // This prevents the redirect loop during registration
+      console.log("User has no role - staying on auth page, user can navigate to registration manually");
     };
     
     handleRedirect();
@@ -75,7 +73,7 @@ const Auth = () => {
         <div className="bg-white py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10">
           <SupabaseAuthUI 
             view="sign_in"
-            redirectTo={`${window.location.origin}/dashboard`}
+            redirectTo={`${window.location.origin}/auth`}
             showLinks={false}
           />
         </div>
