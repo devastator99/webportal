@@ -9,8 +9,7 @@ const Auth = () => {
   const { user, userRole, isLoading, isLoadingRole } = useAuth();
   const navigate = useNavigate();
 
-  // ONLY redirect users who are fully authenticated AND have roles to dashboard
-  // NEVER redirect users who might be in registration
+  // Redirect authenticated users with roles to dashboard
   useEffect(() => {
     const handleRedirect = async () => {
       // Don't redirect while still loading
@@ -19,17 +18,9 @@ const Auth = () => {
         return;
       }
       
-      // Check if user is in registration flow - if so, NEVER redirect to dashboard
-      const registrationStep = localStorage.getItem('registration_step');
-      const registrationRole = localStorage.getItem('registration_user_role');
-      if (registrationStep || registrationRole) {
-        console.log("Auth page: User in registration flow, not redirecting");
-        return;
-      }
-      
-      // Only redirect if user is FULLY authenticated with a role AND not in registration
+      // Redirect if user is authenticated and has a role
       if (user && userRole) {
-        console.log("Auth page: User has complete authentication, redirecting to dashboard:", userRole);
+        console.log("Auth page: User has authentication and role, redirecting to dashboard:", userRole);
         navigate("/dashboard", { replace: true });
         return;
       }
@@ -50,7 +41,7 @@ const Auth = () => {
     );
   }
 
-  // Login form for unauthenticated users OR users in registration process
+  // Login form for unauthenticated users
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8 pt-16 md:pt-20">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">

@@ -12,7 +12,7 @@ import { PatientAppLayout } from "@/layouts/PatientAppLayout";
 import { DoctorAppLayout } from "@/layouts/DoctorAppLayout";
 import { AdminAppLayout } from "@/layouts/AdminAppLayout";
 import { AppLayout } from "@/layouts/AppLayout";
-import { RegistrationStatusChecker } from "@/components/auth/RegistrationStatusChecker";
+import { DashboardRegistrationHandler } from "@/components/dashboard/DashboardRegistrationHandler";
 
 const Dashboard = () => {
   const { user, userRole, isLoading, isLoadingRole } = useAuth();
@@ -21,17 +21,7 @@ const Dashboard = () => {
   console.log("Dashboard:", { user: user?.id, userRole, isLoading, isLoadingRole });
 
   useEffect(() => {
-    // If user is in registration flow, immediately redirect to registration
-    const registrationStep = localStorage.getItem('registration_step');
-    const registrationRole = localStorage.getItem('registration_user_role');
-    
-    if (registrationStep || registrationRole) {
-      console.log("Dashboard: User in registration flow, redirecting to registration");
-      navigate("/register", { replace: true });
-      return;
-    }
-
-    // Only redirect unauthenticated users who are NOT in registration
+    // Only redirect unauthenticated users
     if (!isLoading && !user) {
       console.log("Dashboard: No user found, redirecting to auth");
       navigate("/auth", { replace: true });
@@ -62,38 +52,46 @@ const Dashboard = () => {
     return null;
   }
 
-  // Render dashboard based on role
+  // Render dashboard based on role with registration completion handler
   switch (userRole) {
     case 'patient':
       return (
         <PatientAppLayout>
-          <RegistrationStatusChecker>
+          <DashboardRegistrationHandler userRole={userRole}>
             <PatientDashboard />
-          </RegistrationStatusChecker>
+          </DashboardRegistrationHandler>
         </PatientAppLayout>
       );
     case 'doctor':
       return (
         <DoctorAppLayout>
-          <DoctorDashboard />
+          <DashboardRegistrationHandler userRole={userRole}>
+            <DoctorDashboard />
+          </DashboardRegistrationHandler>
         </DoctorAppLayout>
       );
     case 'nutritionist':
       return (
         <AppLayout>
-          <NutritionistDashboard />
+          <DashboardRegistrationHandler userRole={userRole}>
+            <NutritionistDashboard />
+          </DashboardRegistrationHandler>
         </AppLayout>
       );
     case 'administrator':
       return (
         <AdminAppLayout>
-          <AdminDashboard />
+          <DashboardRegistrationHandler userRole={userRole}>
+            <AdminDashboard />
+          </DashboardRegistrationHandler>
         </AdminAppLayout>
       );
     case 'reception':
       return (
         <AppLayout>
-          <ReceptionDashboard />
+          <DashboardRegistrationHandler userRole={userRole}>
+            <ReceptionDashboard />
+          </DashboardRegistrationHandler>
         </AppLayout>
       );
     default:
