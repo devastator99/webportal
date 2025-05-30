@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import AuthService, { UserRole } from '@/services/AuthService';
@@ -104,35 +103,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log("Initializing auth state");
     authStateInitializedRef.current = true;
     
-    // Enhanced role setter that tracks loading state and respects registration
+    // Simplified role setter - always load role for authenticated users
     const enhancedSetUserRole = (role: UserRole) => {
       console.log("Setting user role:", role);
-      
-      // If user is in active registration and has no role, don't set role yet
-      if (isUserInActiveRegistration() && !role) {
-        console.log("User in active registration, not setting role yet");
-        setIsLoadingRole(false);
-        return;
-      }
-      
       setIsLoadingRole(false);
       setUserRole(role);
     };
 
-    // Enhanced user setter that triggers role loading but respects registration state
+    // Simplified user setter - always trigger role loading for authenticated users
     const enhancedSetUser = (newUser: User | null) => {
       console.log("Setting user:", newUser?.email || 'null');
       setUser(newUser);
       
       if (newUser) {
-        // Check if user is in active registration
-        if (isUserInActiveRegistration()) {
-          console.log("User in active registration, not loading role yet");
-          setIsLoadingRole(false);
-          setUserRole(null);
-        } else {
-          setIsLoadingRole(true);
-        }
+        // Always load role for authenticated users
+        console.log("User authenticated, loading role");
+        setIsLoadingRole(true);
       } else {
         setIsLoadingRole(false);
         setUserRole(null);
@@ -154,7 +140,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Set up inactivity timer whenever user changes
   useEffect(() => {
-    if (user && !isUserInActiveRegistration()) {
+    if (user) {
       authServiceRef.current.setupInactivityTimer(signOut);
       
       const handleActivity = () => resetInactivityTimer();
@@ -174,7 +160,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Reset inactivity timer - memoized through the ref to prevent unnecessary re-renders
   const resetInactivityTimer = useCallback(() => {
-    if (user && !isUserInActiveRegistration()) {
+    if (user) {
       authServiceRef.current.resetInactivityTimer(signOut);
     }
   }, [user]);

@@ -16,10 +16,10 @@ import { AppLayout } from "@/layouts/AppLayout";
 import { RegistrationStatusChecker } from "@/components/auth/RegistrationStatusChecker";
 
 const Dashboard = () => {
-  const { user, userRole, isLoading, signOut } = useAuth();
+  const { user, userRole, isLoading, isLoadingRole, signOut } = useAuth();
   const navigate = useNavigate();
   
-  console.log("Dashboard:", { user: user?.id, userRole, isLoading });
+  console.log("Dashboard:", { user: user?.id, userRole, isLoading, isLoadingRole });
 
   useEffect(() => {
     // Simple redirect: no user = go to auth
@@ -28,8 +28,8 @@ const Dashboard = () => {
     }
   }, [user, isLoading, navigate]);
 
-  // Show loading
-  if (isLoading) {
+  // Show loading while auth or role is loading
+  if (isLoading || isLoadingRole) {
     return <DashboardSkeleton />;
   }
 
@@ -38,7 +38,7 @@ const Dashboard = () => {
     return null;
   }
 
-  // No role - show warning
+  // No role - show warning (only if not loading)
   if (!userRole) {
     return (
       <AppLayout>
