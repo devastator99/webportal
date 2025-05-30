@@ -9,6 +9,38 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 // Valid user roles that can be created
 export type ValidUserRole = 'patient' | 'doctor' | 'nutritionist' | 'administrator' | 'reception';
 
+// Type definitions for existing functionality
+export interface PatientProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  gender?: string | null;
+  blood_group?: string | null;
+  allergies?: string | null;
+  emergency_contact?: string | null;
+  height?: number | null;
+  date_of_birth?: string | null;
+  chronic_conditions?: string | null;
+}
+
+export interface PatientInvoice {
+  id: string;
+  invoice_number: string;
+  patient_id: string;
+  doctor_id: string | null;
+  amount: number;
+  description: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AdminOperationResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
+
 // Helper function to create user role using the unified RPC
 export const completeUserRegistration = async (
   userId: string, 
@@ -68,4 +100,72 @@ export const completeUserRegistration = async (
 export const createUserRole = async (userId: string, role: ValidUserRole) => {
   console.log("Legacy createUserRole called - this should not be used anymore");
   throw new Error("Use completeUserRegistration instead of createUserRole");
+};
+
+// Doctor patients functions
+export const getDoctorPatients = async (doctorId: string): Promise<PatientProfile[]> => {
+  try {
+    console.log("Fetching patients for doctor:", doctorId);
+    
+    const { data, error } = await supabase.functions.invoke('get-doctor-patients', {
+      body: { doctor_id: doctorId }
+    });
+    
+    if (error) {
+      console.error("Error fetching doctor patients:", error);
+      throw error;
+    }
+    
+    console.log(`Retrieved ${data?.length || 0} patients for doctor ${doctorId}`);
+    return data || [];
+  } catch (error: any) {
+    console.error("Error in getDoctorPatients:", error);
+    throw new Error(`Failed to fetch patients: ${error.message}`);
+  }
+};
+
+// Nutritionist patients functions
+export const getNutritionistPatients = async (nutritionistId: string): Promise<PatientProfile[]> => {
+  try {
+    console.log("Fetching patients for nutritionist:", nutritionistId);
+    
+    const { data, error } = await supabase.functions.invoke('get-nutritionist-patients', {
+      body: { nutritionist_id: nutritionistId }
+    });
+    
+    if (error) {
+      console.error("Error fetching nutritionist patients:", error);
+      throw error;
+    }
+    
+    console.log(`Retrieved ${data?.length || 0} patients for nutritionist ${nutritionistId}`);
+    return data || [];
+  } catch (error: any) {
+    console.error("Error in getNutritionistPatients:", error);
+    throw new Error(`Failed to fetch patients: ${error.message}`);
+  }
+};
+
+// Patient invoices functions
+export const getPatientInvoices = async (patientId: string): Promise<PatientInvoice[]> => {
+  try {
+    console.log("Fetching invoices for patient:", patientId);
+    
+    const { data, error } = await supabase
+      .from('patient_invoices')
+      .select('*')
+      .eq('patient_id', patientId)
+      .order('created_at', { ascending: false });
+    
+    if (error) {
+      console.error("Error fetching patient invoices:", error);
+      throw error;
+    }
+    
+    console.log(`Retrieved ${data?.length || 0} invoices for patient ${patientId}`);
+    return data || [];
+  } catch (error: any) {
+    console.error("Error in getPatientInvoices:", error);
+    throw new Error(`Failed to fetch invoices: ${error.message}`);
+  }
 };
