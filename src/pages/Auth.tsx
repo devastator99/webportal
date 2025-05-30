@@ -91,7 +91,7 @@ const Auth = () => {
     checkLocalStorageState();
   }, [isRegistration, location.pathname]);
 
-  // Enhanced redirect logic - but don't interfere with registration flow
+  // FIXED: Enhanced redirect logic - only redirect when NOT in active registration flow
   useEffect(() => {
     const handleRedirect = async () => {
       // Don't redirect while still loading
@@ -107,6 +107,12 @@ const Auth = () => {
       
       console.log("Auth page detected logged in user. Role:", userRole, "isRegistrationFlow:", isRegistrationFlow, "isRegistration:", isRegistration, "registrationStep:", registrationStep);
       
+      // CRITICAL FIX: Don't redirect if user is in active registration flow (steps 2 or 3)
+      if (isRegistration && isRegistrationFlow && (registrationStep === 2 || registrationStep === 3)) {
+        console.log("User in active registration flow, step:", registrationStep, "- NOT redirecting");
+        return;
+      }
+      
       // For non-patient roles, redirect to dashboard (they don't need registration)
       if (userRole && userRole !== 'patient') {
         console.log("Redirecting non-patient to dashboard:", userRole);
@@ -116,12 +122,6 @@ const Auth = () => {
       
       // For patients: Only redirect if we're NOT in an active registration flow
       if (userRole === 'patient') {
-        // If we're in registration flow (step 2 or 3), let the flow continue - DON'T redirect
-        if (isRegistration && isRegistrationFlow && registrationStep >= 2) {
-          console.log("Patient in active registration flow, step:", registrationStep, "- staying in flow");
-          return;
-        }
-        
         // If not in registration flow, check completion status
         if (!isRegistrationFlow && !hasCompletionCheck) {
           console.log("Patient not in registration flow, checking completion status");
@@ -151,10 +151,16 @@ const Auth = () => {
         return;
       }
       
-      // User has no role yet - this shouldn't happen after proper registration
-      if (user && !userRole) {
-        console.log("User has no role, this indicates an incomplete registration");
-        // For users with no role, redirect to registration to complete the process
+      // CRITICAL FIX: For users with no role on registration page, don't redirect immediately
+      // Let them complete the flow they're already in
+      if (user && !userRole && isRegistration) {
+        console.log("User has no role but is on registration page - allowing registration flow to continue");
+        return;
+      }
+      
+      // User has no role and not on registration page - redirect to registration
+      if (user && !userRole && !isRegistration) {
+        console.log("User has no role, redirecting to registration");
         navigate("/auth/register", { replace: true });
         return;
       }
