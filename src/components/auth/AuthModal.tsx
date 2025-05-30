@@ -41,16 +41,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     if (isOpen) {
       setView(initialView);
       
-      // Check if there's any pending registration process
-      const paymentPending = localStorage.getItem('registration_payment_pending') === 'true';
-      const paymentComplete = localStorage.getItem('registration_payment_complete') === 'true';
-      
-      if (paymentPending) {
-        setRegistrationStep(2);
-      } else if (paymentComplete) {
-        setRegistrationStep(3);
-      } else {
-        setRegistrationStep(1);
+      // FIXED: Don't automatically check for pending registration - let user flow naturally
+      // Clear any stale flags when modal opens fresh
+      if (view === "register") {
+        localStorage.removeItem('registration_payment_pending');
+        localStorage.removeItem('registration_payment_complete');
+        setRegistrationStep(1); // Always start at step 1 for new registration
       }
     }
   }, [isOpen, initialView]);
@@ -77,18 +73,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           navigate("/dashboard");
         }
       } else if (view === "register") {
-        // Set localStorage flag to prevent redirection race condition
-        if (userType === 'patient') {
-          localStorage.setItem('registration_payment_pending', 'true');
-          localStorage.setItem('registration_payment_complete', 'false');
-        }
-        
+        // FIXED: For patient registration, don't set localStorage flags until later
         const user = await handleSignUp(email, password, userType as any, firstName, lastName, patientData);
         
         // If this is a patient registration and we were successful, move to payment step
         if (user && userType === 'patient') {
           setRegisteredUser(user);
-          setRegistrationStep(2);
+          setRegistrationStep(2); // Go to PAYMENT step, not status step
           toast({
             title: "Account Created",
             description: "Please complete your registration with payment",

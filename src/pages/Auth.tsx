@@ -70,23 +70,31 @@ const Auth = () => {
     }
   };
 
-  // Check registration state from localStorage on initial load (only for registration routes)
+  // FIXED: Check registration state more carefully to avoid jumping to status screen
   useEffect(() => {
     const checkLocalStorageState = () => {
       if (!isRegistration) return;
       
+      // Clear any stale localStorage flags first
       const paymentComplete = localStorage.getItem('registration_payment_complete') === 'true';
       
       console.log("Auth page loaded with state:", { paymentComplete });
       
-      if (paymentComplete) {
+      // CRITICAL FIX: Only go to status screen if payment is actually complete AND user exists
+      if (paymentComplete && user) {
+        console.log("Payment marked complete and user exists, checking actual status...");
         setIsRegistrationFlow(true);
-        setRegistrationStep(3); // Go to status screen
+        setRegistrationStep(3); // Go to status screen only if payment is truly complete
+      } else {
+        console.log("No payment completion flag or no user, staying on form");
+        // Clear any stale flags
+        localStorage.removeItem('registration_payment_complete');
+        localStorage.removeItem('registration_payment_pending');
       }
     };
     
     checkLocalStorageState();
-  }, [isRegistration, location.pathname]);
+  }, [isRegistration, location.pathname, user]);
 
   // Enhanced redirect logic - but ONLY when not in active registration flow
   useEffect(() => {
@@ -184,7 +192,7 @@ const Auth = () => {
     );
   }
 
-  // Handle signup form submission - create account and move to payment step
+  // FIXED: Handle signup form submission - create account and move to payment step (NOT status step)
   const handleFormSubmit = async (
     email: string, 
     password: string, 
@@ -220,14 +228,17 @@ const Auth = () => {
         );
         
         if (user) {
-          console.log("Patient account created successfully, moving to payment step");
+          console.log("Patient account created successfully, moving to PAYMENT step (not status)");
           
           // Store user info for payment step
           setUserInfo({ firstName, lastName });
           
-          // Move to payment step IMMEDIATELY after account creation
+          // CRITICAL FIX: Move to payment step (2) IMMEDIATELY after account creation, NOT status step (3)
           setIsRegistrationFlow(true);
-          setRegistrationStep(2); // Move to payment step
+          setRegistrationStep(2); // PAYMENT STEP - NOT 3!
+          
+          // Clear any stale localStorage flags
+          localStorage.removeItem('registration_payment_complete');
           
           toast({
             title: "Account Created!",
