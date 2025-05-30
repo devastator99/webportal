@@ -10,25 +10,75 @@ import { useAuthHandlers } from '@/hooks/useAuthHandlers';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
+import { useRegistrationState } from '@/hooks/useRegistrationState';
 
 const RegistrationPage = () => {
   const { user, userRole, isLoading, signOut } = useAuth();
   const { handleSignUp, error, loading } = useAuthHandlers();
   const navigate = useNavigate();
   
-  const [step, setStep] = useState(1);
-  const [userType, setUserType] = useState<string | null>(null);
+  const {
+    getRegistrationState,
+    updateRegistrationStep,
+    updateUserRole,
+    updatePaymentStatus,
+    clearRegistrationState,
+    isUserInActiveRegistration
+  } = useRegistrationState();
+
+  // Initialize state from localStorage or defaults
+  const initialState = getRegistrationState();
+  const [step, setStep] = useState(initialState.step);
+  const [userType, setUserType] = useState<string | null>(initialState.userRole);
   const [userInfo, setUserInfo] = useState<any>(null);
 
-  console.log("RegistrationPage:", { user: user?.id, userRole, step, userType });
+  console.log("RegistrationPage:", { 
+    user: user?.id, 
+    userRole, 
+    step, 
+    userType,
+    hasIncompleteRegistration: initialState.hasIncompleteRegistration,
+    isInActiveRegistration: isUserInActiveRegistration()
+  });
 
-  // If user has role and registration is complete, go to dashboard
+  // Handle existing users with roles - redirect to dashboard
   useEffect(() => {
-    if (user && userRole && step === 1) {
-      console.log("User has role, redirecting to dashboard");
+    if (user && userRole && !isUserInActiveRegistration()) {
+      console.log("User has role and no active registration, redirecting to dashboard");
+      clearRegistrationState();
       navigate('/dashboard', { replace: true });
     }
-  }, [user, userRole, navigate, step]);
+  }, [user, userRole, navigate, isUserInActiveRegistration, clearRegistrationState]);
+
+  // Handle incomplete registration resumption
+  useEffect(() => {
+    if (user && !userRole && isUserInActiveRegistration()) {
+      const state = getRegistrationState();
+      console.log("Resuming incomplete registration:", state);
+      
+      // Resume from saved state
+      setStep(state.step);
+      setUserType(state.userRole);
+      
+      // If payment was completed but we're still in registration
+      if (state.paymentComplete && state.step < 3) {
+        console.log("Payment was completed, moving to progress step");
+        setStep(3);
+        updateRegistrationStep(3);
+      }
+    }
+  }, [user, userRole, isUserInActiveRegistration, getRegistrationState, updateRegistrationStep]);
+
+  // Sync state with localStorage
+  useEffect(() => {
+    updateRegistrationStep(step);
+  }, [step, updateRegistrationStep]);
+
+  useEffect(() => {
+    if (userType) {
+      updateUserRole(userType);
+    }
+  }, [userType, updateUserRole]);
 
   if (isLoading) {
     return (
@@ -52,6 +102,9 @@ const RegistrationPage = () => {
       setUserType(userType!);
       setUserInfo({ firstName, lastName });
       
+      // Update state immediately to prevent form from showing again
+      updateUserRole(userType!);
+      
       const newUser = await handleSignUp(
         email,
         password,
@@ -66,7 +119,8 @@ const RegistrationPage = () => {
         
         if (userType === 'patient') {
           console.log("Patient account created, moving to payment step");
-          setStep(2); // Move to payment step
+          setStep(2);
+          updateRegistrationStep(2);
           toast({
             title: "Account Created!",
             description: "Please complete the payment to activate your account.",
@@ -74,6 +128,7 @@ const RegistrationPage = () => {
         } else {
           // Non-patients go directly to dashboard
           console.log("Non-patient account created, redirecting to dashboard");
+          clearRegistrationState();
           toast({
             title: "Account Created!",
             description: "Your account has been created successfully.",
@@ -85,6 +140,11 @@ const RegistrationPage = () => {
       }
     } catch (error: any) {
       console.error("Registration error:", error);
+      // Reset state on error so user can try again
+      setStep(1);
+      setUserType(null);
+      updateRegistrationStep(1);
+      updateUserRole('');
       toast({
         title: "Registration failed",
         description: error.message || "An error occurred during registration",
@@ -95,7 +155,9 @@ const RegistrationPage = () => {
 
   const handlePaymentComplete = () => {
     console.log("Payment completed, moving to progress step");
-    setStep(3); // Move to progress step
+    setStep(3);
+    updateRegistrationStep(3);
+    updatePaymentStatus(true, false);
     toast({
       title: "Payment Complete!",
       description: "Your registration is being processed...",
@@ -104,6 +166,7 @@ const RegistrationPage = () => {
 
   const handleRegistrationComplete = () => {
     console.log("Registration complete, redirecting to dashboard");
+    clearRegistrationState();
     navigate("/dashboard", { replace: true });
   };
 
@@ -148,8 +211,8 @@ const RegistrationPage = () => {
       </div>
 
       <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        {/* Step 1: Registration Form */}
-        {step === 1 && (
+        {/* Step 1: Registration Form - Only show if no active registration */}
+        {step === 1 && !isUserInActiveRegistration() && (
           <div className="bg-white py-6 sm:py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10">
             <ScrollArea className="w-full" maxHeight="65vh">
               <RegistrationForm 
