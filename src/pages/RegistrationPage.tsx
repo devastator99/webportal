@@ -5,14 +5,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { RegistrationForm } from '@/components/registration/RegistrationForm';
 import { RegistrationPayment } from '@/components/auth/RegistrationPayment';
 import { RegistrationProgressReport } from '@/components/auth/RegistrationProgressReport';
-import { LucideLoader2, ArrowLeft } from 'lucide-react';
+import { LucideLoader2, ArrowLeft, LogOut } from 'lucide-react';
 import { useAuthHandlers } from '@/hooks/useAuthHandlers';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { toast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 
 const RegistrationPage = () => {
-  const { user, userRole, isLoading, isLoadingRole } = useAuth();
+  const { user, userRole, isLoading, isLoadingRole, signOut } = useAuth();
   const { handleSignUp, error, loading, setError } = useAuthHandlers();
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,6 +22,7 @@ const RegistrationPage = () => {
   const [registeredUserRole, setRegisteredUserRole] = useState<string | null>(null);
   const [preventRedirection, setPreventRedirection] = useState(false);
   const [isProcessingRegistration, setIsProcessingRegistration] = useState(false);
+  const [hasIncompleteRegistration, setHasIncompleteRegistration] = useState(false);
 
   // Check for existing registration state on load
   useEffect(() => {
@@ -30,7 +31,15 @@ const RegistrationPage = () => {
       const savedRole = localStorage.getItem('registration_user_role');
       const paymentComplete = localStorage.getItem('registration_payment_complete') === 'true';
       
-      console.log("Registration page loaded with state:", { savedStep, savedRole, paymentComplete, user });
+      console.log("Registration page loaded with state:", { savedStep, savedRole, paymentComplete, user, userRole });
+      
+      // If user exists but has no role and no active registration, they have incomplete registration
+      if (user && !userRole && !savedStep && !savedRole) {
+        console.log("Detected incomplete registration for existing user");
+        setHasIncompleteRegistration(true);
+        setPreventRedirection(true);
+        return;
+      }
       
       if (user && savedStep && savedRole) {
         const step = parseInt(savedStep, 10);
@@ -63,11 +72,11 @@ const RegistrationPage = () => {
     };
     
     checkRegistrationState();
-  }, [user]);
+  }, [user, userRole]);
 
-  // Redirect authenticated users with completed registration
+  // Enhanced redirect logic for authenticated users with completed registration
   useEffect(() => {
-    if (!isLoading && !isLoadingRole && user && userRole && !preventRedirection) {
+    if (!isLoading && !isLoadingRole && user && userRole && !preventRedirection && !hasIncompleteRegistration) {
       console.log("User with role detected, checking if should redirect to dashboard");
       
       // Check if this is a completed registration
@@ -77,7 +86,7 @@ const RegistrationPage = () => {
         navigate('/dashboard', { replace: true });
       }
     }
-  }, [user, userRole, isLoading, isLoadingRole, navigate, preventRedirection]);
+  }, [user, userRole, isLoading, isLoadingRole, navigate, preventRedirection, hasIncompleteRegistration]);
 
   // Show loading state
   if (isLoading || isLoadingRole) {
@@ -134,6 +143,9 @@ const RegistrationPage = () => {
       if (newUser) {
         console.log("=== ACCOUNT CREATED SUCCESSFULLY ===");
         console.log("Account created successfully for role:", userType);
+        
+        // Clear incomplete registration flag
+        setHasIncompleteRegistration(false);
         
         // IMMEDIATELY update state synchronously - don't wait for anything
         setIsProcessingRegistration(false);
@@ -202,6 +214,7 @@ const RegistrationPage = () => {
     localStorage.removeItem('registration_user_role');
     localStorage.removeItem('registration_payment_complete');
     setPreventRedirection(false);
+    setHasIncompleteRegistration(false);
     
     toast({
       title: "Welcome!",
@@ -225,13 +238,33 @@ const RegistrationPage = () => {
     setRegisteredUserRole(null);
     setUserInfo(null);
     setIsProcessingRegistration(false);
+    setHasIncompleteRegistration(false);
     
     // Navigate back to home
     navigate('/', { replace: true });
   };
 
+  // Handle sign out for users with incomplete registration
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Signed out successfully",
+        description: "You have been signed out. You can now create a new account or sign in with a different account.",
+      });
+    } catch (error) {
+      console.error("Error signing out:", error);
+      toast({
+        title: "Sign out error",
+        description: "There was an error signing you out. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
   // Determine step title based on role and step
   const getStepTitle = () => {
+    if (hasIncompleteRegistration) return 'Complete Your Registration';
     if (registrationStep === 1) return 'Create your account';
     
     if (registeredUserRole === 'patient') {
@@ -252,14 +285,15 @@ const RegistrationPage = () => {
     preventRedirection,
     user: user?.id,
     userRole,
-    isProcessingRegistration
+    isProcessingRegistration,
+    hasIncompleteRegistration
   });
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 pt-16 md:pt-20 overflow-hidden">
       <div className="sm:mx-auto sm:w-full sm:max-w-4xl">
-        {/* Back to Home Button */}
-        <div className="mb-6">
+        {/* Navigation Buttons */}
+        <div className="mb-6 flex justify-between items-center">
           <Button
             variant="ghost"
             onClick={handleBackToHome}
@@ -268,23 +302,44 @@ const RegistrationPage = () => {
             <ArrowLeft className="w-4 h-4" />
             Back to Home
           </Button>
+          
+          {/* Show sign out button for users with incomplete registration */}
+          {(hasIncompleteRegistration || user) && (
+            <Button
+              variant="outline"
+              onClick={handleSignOut}
+              className="flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+            >
+              <LogOut className="w-4 h-4" />
+              Sign Out
+            </Button>
+          )}
         </div>
         
         <h2 className="mt-3 text-center text-2xl sm:text-3xl font-bold text-saas-dark mb-8">
           {getStepTitle()}
         </h2>
         
+        {/* Show incomplete registration notice */}
+        {hasIncompleteRegistration && (
+          <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <p className="text-yellow-800 text-sm text-center">
+              It looks like your registration was not completed. Please fill out the form below to complete your account setup.
+            </p>
+          </div>
+        )}
+        
         {/* Debug info in development */}
         {process.env.NODE_ENV === 'development' && (
           <div className="mb-4 p-2 bg-yellow-100 border border-yellow-300 rounded text-xs">
-            <strong>Debug:</strong> Step {registrationStep}, Role: {registeredUserRole || 'none'}, User: {user?.id || 'none'}, Processing: {isProcessingRegistration}
+            <strong>Debug:</strong> Step {registrationStep}, Role: {registeredUserRole || 'none'}, User: {user?.id || 'none'}, Processing: {isProcessingRegistration}, Incomplete: {hasIncompleteRegistration}
           </div>
         )}
       </div>
 
       <div className="mt-6 sm:mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         {/* Step 1: Registration Form (All Roles) */}
-        {registrationStep === 1 && (
+        {(registrationStep === 1 || hasIncompleteRegistration) && (
           <div className="bg-white py-6 sm:py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10 relative">
             <ScrollArea 
               className="w-full" 
@@ -314,14 +369,14 @@ const RegistrationPage = () => {
         )}
         
         {/* Step 2: Payment (Patients Only) or Progress (Others) */}
-        {registrationStep === 2 && !isProcessingRegistration && registeredUserRole === 'patient' && (
+        {registrationStep === 2 && !isProcessingRegistration && !hasIncompleteRegistration && registeredUserRole === 'patient' && (
           <RegistrationPayment 
             onComplete={handlePaymentComplete}
             userInfo={userInfo}
           />
         )}
 
-        {registrationStep === 2 && !isProcessingRegistration && registeredUserRole !== 'patient' && (
+        {registrationStep === 2 && !isProcessingRegistration && !hasIncompleteRegistration && registeredUserRole !== 'patient' && (
           <RegistrationProgressReport 
             onComplete={handleRegistrationComplete}
             userRole={registeredUserRole}
@@ -329,7 +384,7 @@ const RegistrationPage = () => {
         )}
 
         {/* Step 3: Progress (Patients After Payment) */}
-        {registrationStep === 3 && !isProcessingRegistration && registeredUserRole === 'patient' && (
+        {registrationStep === 3 && !isProcessingRegistration && !hasIncompleteRegistration && registeredUserRole === 'patient' && (
           <RegistrationProgressReport 
             onComplete={handleRegistrationComplete}
             userRole={registeredUserRole}

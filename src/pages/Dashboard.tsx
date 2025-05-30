@@ -87,11 +87,25 @@ const Dashboard = () => {
       return;
     }
     
-    // Check if user has no role and no active registration - redirect to registration
+    // More lenient approach for users with no role - only redirect after a delay
+    // This prevents immediate redirects for users who just completed registration
     if (user && !userRole && !isUserInActiveRegistration()) {
-      console.log("[Dashboard] User has no role and no active registration, redirecting to /register");
-      navigate("/register", { replace: true });
-      return;
+      console.log("[Dashboard] User has no role, checking if this is a new registration completion...");
+      
+      // Check if user was just redirected from registration
+      const fromRegistration = window.history.state?.from === 'registration';
+      
+      if (!fromRegistration) {
+        // Add a small delay to allow for auth state to settle
+        const timeoutId = setTimeout(() => {
+          console.log("[Dashboard] User has no role after delay, redirecting to /register");
+          navigate("/register", { replace: true });
+        }, 1000);
+        
+        return () => clearTimeout(timeoutId);
+      } else {
+        console.log("[Dashboard] User just came from registration, giving more time for role to load");
+      }
     }
   }, [user, userRole, isLoading, navigate]);
 

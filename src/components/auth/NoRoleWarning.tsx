@@ -1,8 +1,9 @@
 
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, User, ArrowRight } from "lucide-react";
+import { AlertTriangle, User, ArrowRight, RefreshCw } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 interface NoRoleWarningProps {
   onSignOut: () => Promise<void>;
@@ -10,9 +11,31 @@ interface NoRoleWarningProps {
 
 export const NoRoleWarning = ({ onSignOut }: NoRoleWarningProps) => {
   const navigate = useNavigate();
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const handleCompleteRegistration = () => {
-    navigate("/auth/register");
+    // Clear any stale registration state first
+    localStorage.removeItem('registration_step');
+    localStorage.removeItem('registration_user_role');
+    localStorage.removeItem('registration_payment_complete');
+    
+    navigate("/register");
+  };
+
+  const handleRetryRoleCheck = async () => {
+    setIsRetrying(true);
+    // Force a page reload to re-check authentication state
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await onSignOut();
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
   };
 
   return (
@@ -45,9 +68,19 @@ export const NoRoleWarning = ({ onSignOut }: NoRoleWarningProps) => {
           </Button>
           
           <Button
-            onClick={onSignOut}
+            onClick={handleRetryRoleCheck}
             variant="outline"
             className="w-full"
+            disabled={isRetrying}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRetrying ? 'animate-spin' : ''}`} />
+            {isRetrying ? 'Checking...' : 'Check Account Status'}
+          </Button>
+          
+          <Button
+            onClick={handleSignOut}
+            variant="outline"
+            className="w-full text-red-600 border-red-200 hover:bg-red-50"
           >
             Sign Out & Use Different Account
           </Button>

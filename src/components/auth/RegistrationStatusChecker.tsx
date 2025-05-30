@@ -40,23 +40,12 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
         return;
       }
       
-      // Prevent infinite loops - if we're already on the registration page, don't redirect
-      if (location.pathname.includes('/auth/register')) {
-        console.log("RegistrationStatusChecker: Already on registration page, skipping redirect");
-        setIsChecking(false);
-        return;
-      }
+      // Prevent infinite loops - be more conservative about redirects
+      const criticalPaths = ['/register', '/auth/register', '/dashboard'];
+      const isOnCriticalPath = criticalPaths.some(path => location.pathname.includes(path));
       
-      // Don't check if we've already redirected in this session
-      if (hasRedirected) {
-        console.log("RegistrationStatusChecker: Already redirected in this session, skipping");
-        setIsChecking(false);
-        return;
-      }
-      
-      // If user is on dashboard, be less aggressive about checking - they might have just completed registration
-      if (location.pathname.includes('/dashboard')) {
-        console.log("RegistrationStatusChecker: User on dashboard, being less aggressive");
+      if (location.pathname.includes('/register') || hasRedirected) {
+        console.log("RegistrationStatusChecker: Already on registration page or redirected, skipping");
         setIsChecking(false);
         return;
       }
@@ -84,40 +73,40 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
           console.log("RegistrationStatusChecker: Registration is fully complete, clearing flags and proceeding");
           localStorage.removeItem('registration_payment_pending');
           localStorage.removeItem('registration_payment_complete');
+          localStorage.removeItem('registration_step');
+          localStorage.removeItem('registration_user_role');
           setIsChecking(false);
           return;
         }
         
-        // Handle incomplete registration states - be more conservative
+        // Only redirect for incomplete registrations if we're in a safe state
         if (regStatus.registration_status === RegistrationStatusValues.PAYMENT_PENDING) {
-          console.log("RegistrationStatusChecker: Registration payment pending, redirecting to auth/register");
+          console.log("RegistrationStatusChecker: Registration payment pending, will redirect if safe");
           localStorage.setItem('registration_payment_pending', 'true');
           localStorage.setItem('registration_payment_complete', 'false');
-          setHasRedirected(true);
-          navigate('/auth/register', { replace: true });
-          return;
+          
+          // Only redirect if we're not already in a critical flow
+          if (!isOnCriticalPath) {
+            setHasRedirected(true);
+            navigate('/register', { replace: true });
+            return;
+          }
         }
         
-        // For any other incomplete status, redirect to registration only if not critical paths
+        // For other incomplete statuses, be very conservative
         if ([
           RegistrationStatusValues.PAYMENT_COMPLETE, 
           RegistrationStatusValues.CARE_TEAM_ASSIGNED
         ].includes(regStatus.registration_status)) {
-          console.log("RegistrationStatusChecker: Registration progress pending, checking if redirect is safe");
+          console.log("RegistrationStatusChecker: Registration progress pending, but being conservative");
+          localStorage.setItem('registration_payment_pending', 'false');
+          localStorage.setItem('registration_payment_complete', 'true');
           
-          // Only redirect if user is not on critical paths
-          const criticalPaths = ['/dashboard', '/auth'];
-          const isOnCriticalPath = criticalPaths.some(path => location.pathname.includes(path));
-          
-          if (!isOnCriticalPath) {
-            console.log("RegistrationStatusChecker: Safe to redirect, redirecting to auth/register");
-            localStorage.setItem('registration_payment_pending', 'false');
-            localStorage.setItem('registration_payment_complete', 'true');
+          // Only redirect if absolutely necessary and safe
+          if (location.pathname === '/' || location.pathname === '/home') {
             setHasRedirected(true);
-            navigate('/auth/register', { replace: true });
+            navigate('/register', { replace: true });
             return;
-          } else {
-            console.log("RegistrationStatusChecker: User on critical path, not redirecting");
           }
         }
         
@@ -128,10 +117,10 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
       }
     };
     
-    // Add a small delay to prevent immediate redirect loops
+    // Add a delay to prevent immediate redirect loops and allow auth state to settle
     const timeoutId = setTimeout(() => {
       checkRegistrationStatus();
-    }, 100);
+    }, 500);
     
     return () => clearTimeout(timeoutId);
   }, [user?.id, userRole, navigate, location.pathname, hasRedirected]);
