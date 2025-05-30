@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { useAuth } from '@/contexts/AuthContext';
 import { useRegistrationProcess } from '@/hooks/useRegistrationProcess';
 import { useToast } from '@/hooks/use-toast';
-import { RegistrationProgressReport } from './RegistrationProgressReport';
+import { PaymentSuccessMessage } from './PaymentSuccessMessage';
 import { Spinner } from '@/components/ui/spinner';
 
 interface RegistrationPaymentProps {
@@ -20,7 +20,7 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
   const { user } = useAuth();
   const { toast } = useToast();
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
-  const [showRegistrationProgress, setShowRegistrationProgress] = useState(false);
+  const [showPaymentSuccess, setShowPaymentSuccess] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [razorpayKeyId, setRazorpayKeyId] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
@@ -42,9 +42,9 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
       if (user) {
         const status = await fetchRegistrationProgress();
         
-        // If payment is already complete, show the registration progress
+        // If payment is already complete, show the success message
         if (status && status.registration_status !== 'payment_pending') {
-          setShowRegistrationProgress(true);
+          setShowPaymentSuccess(true);
         }
       }
     };
@@ -109,8 +109,11 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
             
             if (success) {
               console.log("Registration completed successfully");
-              setShowRegistrationProgress(true);
-              onComplete();
+              setShowPaymentSuccess(true);
+              toast({
+                title: "Payment Successful",
+                description: "Your registration payment has been completed successfully",
+              });
             }
           } catch (err: any) {
             console.error("Payment verification error:", err);
@@ -194,8 +197,7 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
             title: "Registration Payment",
             description: "Test payment processed successfully",
           });
-          setShowRegistrationProgress(true);
-          onComplete();
+          setShowPaymentSuccess(true);
         }
       } else {
         throw new Error("Failed to create test order");
@@ -231,8 +233,8 @@ export const RegistrationPayment: React.FC<RegistrationPaymentProps> = ({
     }
   }, []);
   
-  if (showRegistrationProgress) {
-    return <RegistrationProgressReport />;
+  if (showPaymentSuccess) {
+    return <PaymentSuccessMessage onRefresh={onComplete} />;
   }
   
   return (
