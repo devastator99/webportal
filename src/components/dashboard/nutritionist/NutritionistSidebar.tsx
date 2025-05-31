@@ -1,5 +1,5 @@
 
-import { Home, Users, FileText, Calendar, UserRound, Menu, Salad } from "lucide-react";
+import { Home, Users, FileText, Calendar, UserRound, Menu, Salad, MessageCircle } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -43,6 +43,11 @@ export function NutritionistSidebar() {
       title: "Health Plans",
       icon: Salad,
       path: "/health-plans"
+    },
+    {
+      title: "Chat",
+      icon: MessageCircle,
+      path: "/chat"
     },
     {
       title: "Calendar",
