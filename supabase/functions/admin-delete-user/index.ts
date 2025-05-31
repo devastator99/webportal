@@ -85,7 +85,40 @@ serve(async (req) => {
 
     // Delete user from database tables in correct order to avoid foreign key constraints
     
-    // 1. Delete from patient_details first (this was causing the original error)
+    // 1. Delete from room_messages first (references chat_rooms and users)
+    const { error: roomMessagesError } = await supabaseAdmin
+      .from('room_messages')
+      .delete()
+      .eq('sender_id', user_id);
+
+    if (roomMessagesError) {
+      console.error("Error deleting room messages:", roomMessagesError);
+      // Continue with deletion
+    }
+
+    // 2. Delete from room_members (references chat_rooms and users)
+    const { error: roomMembersError } = await supabaseAdmin
+      .from('room_members')
+      .delete()
+      .eq('user_id', user_id);
+
+    if (roomMembersError) {
+      console.error("Error deleting room members:", roomMembersError);
+      // Continue with deletion
+    }
+
+    // 3. Delete from chat_rooms where patient_id references the user
+    const { error: chatRoomsError } = await supabaseAdmin
+      .from('chat_rooms')
+      .delete()
+      .eq('patient_id', user_id);
+
+    if (chatRoomsError) {
+      console.error("Error deleting chat rooms:", chatRoomsError);
+      // Continue with deletion
+    }
+
+    // 4. Delete from patient_details first (this was causing the original error)
     const { error: patientDetailsError } = await supabaseAdmin
       .from('patient_details')
       .delete()
@@ -93,10 +126,10 @@ serve(async (req) => {
 
     if (patientDetailsError) {
       console.error("Error deleting patient details:", patientDetailsError);
-      // Continue with deletion even if this fails
+      // Continue with deletion
     }
 
-    // 2. Delete from habit_progress_logs
+    // 5. Delete from habit_progress_logs
     const { error: habitLogsError } = await supabaseAdmin
       .from('habit_progress_logs')
       .delete()
@@ -107,7 +140,7 @@ serve(async (req) => {
       // Continue with deletion
     }
 
-    // 3. Delete from health_plan_items
+    // 6. Delete from health_plan_items
     const { error: healthPlanError } = await supabaseAdmin
       .from('health_plan_items')
       .delete()
@@ -118,7 +151,7 @@ serve(async (req) => {
       // Continue with deletion
     }
 
-    // 4. Delete from medical_records where user is patient or doctor
+    // 7. Delete from medical_records where user is patient or doctor
     const { error: medicalRecordsError } = await supabaseAdmin
       .from('medical_records')
       .delete()
@@ -129,7 +162,7 @@ serve(async (req) => {
       // Continue with deletion
     }
 
-    // 5. Delete from patient_invoices
+    // 8. Delete from patient_invoices
     const { error: invoicesError } = await supabaseAdmin
       .from('patient_invoices')
       .delete()
@@ -140,7 +173,7 @@ serve(async (req) => {
       // Continue with deletion
     }
 
-    // 6. Delete from chat_messages
+    // 9. Delete from chat_messages
     const { error: chatMessagesError } = await supabaseAdmin
       .from('chat_messages')
       .delete()
@@ -151,7 +184,7 @@ serve(async (req) => {
       // Continue with deletion
     }
 
-    // 7. Delete from appointments
+    // 10. Delete from appointments
     const { error: appointmentsError } = await supabaseAdmin
       .from('appointments')
       .delete()
@@ -162,7 +195,7 @@ serve(async (req) => {
       // Continue with deletion
     }
 
-    // 8. Delete from registration_tasks
+    // 11. Delete from registration_tasks
     const { error: tasksError } = await supabaseAdmin
       .from('registration_tasks')
       .delete()
@@ -173,7 +206,40 @@ serve(async (req) => {
       // Continue with deletion
     }
 
-    // 9. Delete from patient_assignments (must be done before user_roles)
+    // 12. Delete from notification_logs
+    const { error: notificationLogsError } = await supabaseAdmin
+      .from('notification_logs')
+      .delete()
+      .eq('user_id', user_id);
+
+    if (notificationLogsError) {
+      console.error("Error deleting notification logs:", notificationLogsError);
+      // Continue with deletion
+    }
+
+    // 13. Delete from push_subscriptions
+    const { error: pushSubscriptionsError } = await supabaseAdmin
+      .from('push_subscriptions')
+      .delete()
+      .eq('user_id', user_id);
+
+    if (pushSubscriptionsError) {
+      console.error("Error deleting push subscriptions:", pushSubscriptionsError);
+      // Continue with deletion
+    }
+
+    // 14. Delete from notification_preferences
+    const { error: notificationPreferencesError } = await supabaseAdmin
+      .from('notification_preferences')
+      .delete()
+      .eq('user_id', user_id);
+
+    if (notificationPreferencesError) {
+      console.error("Error deleting notification preferences:", notificationPreferencesError);
+      // Continue with deletion
+    }
+
+    // 15. Delete from patient_assignments (must be done before user_roles)
     const { error: assignmentsError } = await supabaseAdmin
       .from('patient_assignments')
       .delete()
@@ -184,7 +250,7 @@ serve(async (req) => {
       // Continue with deletion
     }
 
-    // 10. Delete from user_roles
+    // 16. Delete from user_roles
     const { error: userRolesError } = await supabaseAdmin
       .from('user_roles')
       .delete()
@@ -195,7 +261,7 @@ serve(async (req) => {
       throw userRolesError;
     }
 
-    // 11. Delete from profiles
+    // 17. Delete from profiles
     const { error: profilesError } = await supabaseAdmin
       .from('profiles')
       .delete()
@@ -206,7 +272,7 @@ serve(async (req) => {
       throw profilesError;
     }
 
-    // 12. Finally delete the user from auth.users
+    // 18. Finally delete the user from auth.users
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
 
     if (deleteError) {
