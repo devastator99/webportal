@@ -2024,6 +2024,10 @@ export type Database = {
         }
         Returns: Json
       }
+      complete_professional_registration: {
+        Args: { p_user_id: string; p_phone?: string }
+        Returns: Json
+      }
       complete_user_registration: {
         Args: {
           p_user_id: string
@@ -2885,6 +2889,8 @@ export type Database = {
         | "payment_complete"
         | "care_team_assigned"
         | "fully_registered"
+        | "profile_complete"
+        | "notifications_sent"
       reset_method: "email" | "sms"
       resource_type: "pdf" | "video" | "article" | "image"
       task_status: "pending" | "in_progress" | "completed" | "failed"
@@ -3025,6 +3031,8 @@ export const Constants = {
         "payment_complete",
         "care_team_assigned",
         "fully_registered",
+        "profile_complete",
+        "notifications_sent",
       ],
       reset_method: ["email", "sms"],
       resource_type: ["pdf", "video", "article", "image"],

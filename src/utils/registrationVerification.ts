@@ -349,3 +349,92 @@ export const migratePhoneNumbersFromMetadata = async () => {
     return { success: false, error: error.message };
   }
 };
+
+// Helper function to trigger professional registration for existing users
+export const triggerProfessionalRegistration = async (userId: string, phone?: string) => {
+  try {
+    console.log("=== TRIGGERING PROFESSIONAL REGISTRATION ===");
+    console.log("User ID:", userId);
+    console.log("Phone:", phone);
+    
+    const { data: result, error } = await supabase.functions.invoke(
+      'complete-professional-registration',
+      {
+        body: {
+          user_id: userId,
+          phone: phone
+        }
+      }
+    );
+    
+    if (error) {
+      console.error("Error triggering professional registration:", error);
+      return { success: false, error: error.message };
+    }
+    
+    console.log("Professional registration triggered successfully:", result);
+    return result;
+    
+  } catch (error: any) {
+    console.error("Error triggering professional registration:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Helper function to check if user needs professional registration
+export const checkProfessionalRegistrationStatus = async (userId: string) => {
+  try {
+    console.log("=== CHECKING PROFESSIONAL REGISTRATION STATUS ===");
+    console.log("User ID:", userId);
+    
+    // Get user role
+    const { data: userRole, error: roleError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userId)
+      .single();
+    
+    if (roleError) {
+      console.error("Error fetching user role:", roleError);
+      return { success: false, error: roleError.message };
+    }
+    
+    // Only check for doctors and nutritionists
+    if (!userRole || !['doctor', 'nutritionist'].includes(userRole.role)) {
+      return { 
+        success: true, 
+        needs_registration: false, 
+        reason: 'Not a professional user' 
+      };
+    }
+    
+    // Get user profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('registration_status, registration_completed_at')
+      .eq('id', userId)
+      .single();
+    
+    if (profileError) {
+      console.error("Error fetching profile:", profileError);
+      return { success: false, error: profileError.message };
+    }
+    
+    // Check if registration is complete
+    const needsRegistration = profile.registration_status === 'payment_pending' || 
+                             profile.registration_status === null ||
+                             !profile.registration_completed_at;
+    
+    return {
+      success: true,
+      needs_registration: needsRegistration,
+      current_status: profile.registration_status,
+      role: userRole.role,
+      registration_completed_at: profile.registration_completed_at
+    };
+    
+  } catch (error: any) {
+    console.error("Error checking professional registration status:", error);
+    return { success: false, error: error.message };
+  }
+};

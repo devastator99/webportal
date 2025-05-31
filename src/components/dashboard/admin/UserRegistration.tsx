@@ -114,9 +114,6 @@ export const UserRegistration = () => {
         console.log("Creating user role...");
         const roleResult = await createUserRole(authData.user.id, role);
         console.log("User role created successfully:", roleResult);
-        
-        // The createUserRole function will throw if there's an error
-        // so if we get here, it was successful
       } catch (roleError: any) {
         console.error("Error creating user role:", roleError);
         throw new Error(`Failed to assign user role: ${roleError.message}`);
@@ -164,47 +161,91 @@ export const UserRegistration = () => {
         }
       }
 
-      // Step 4: Send welcome notification for all user types
-      try {
-        console.log(`Sending welcome notification for ${role}:`, authData.user.id);
-        
-        const fullName = `${firstName} ${lastName}`.trim();
-        const userEmail = email || primaryIdentifier;
-        
-        const { data: notificationResult, error: notificationError } = await supabase.functions.invoke('send-comprehensive-welcome-notification', {
-          body: {
-            patient_id: authData.user.id,
-            patient_email: userEmail,
-            patient_phone: phone,
-            patient_name: fullName,
-            patient_details: {
-              role: role,
-              registration_type: role === 'patient' ? 'patient' : 'professional'
+      // Step 4: Handle registration completion based on role
+      if (role === "patient") {
+        // For patients, send welcome notification directly (existing flow)
+        try {
+          console.log(`Sending welcome notification for patient:`, authData.user.id);
+          
+          const fullName = `${firstName} ${lastName}`.trim();
+          const userEmail = email || primaryIdentifier;
+          
+          const { data: notificationResult, error: notificationError } = await supabase.functions.invoke('send-comprehensive-welcome-notification', {
+            body: {
+              patient_id: authData.user.id,
+              patient_email: userEmail,
+              patient_phone: phone,
+              patient_name: fullName,
+              patient_details: {
+                role: role,
+                registration_type: 'patient'
+              }
             }
-          }
-        });
+          });
 
-        if (notificationError) {
-          console.error("Welcome notification error:", notificationError);
+          if (notificationError) {
+            console.error("Welcome notification error:", notificationError);
+            toast({
+              title: "Registration Complete",
+              description: `Patient account created successfully, but welcome email may not have been sent.`,
+              variant: "default",
+            });
+          } else {
+            console.log("Welcome notification sent successfully:", notificationResult);
+            toast({
+              title: "Registration Complete",
+              description: `Patient account created and welcome email sent to ${userEmail}`,
+            });
+          }
+        } catch (notificationError: any) {
+          console.error("Exception sending welcome notification:", notificationError);
           toast({
             title: "Registration Complete",
-            description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created successfully, but welcome email may not have been sent.`,
+            description: `Patient account created successfully, but welcome email may not have been sent.`,
             variant: "default",
           });
-        } else {
-          console.log("Welcome notification sent successfully:", notificationResult);
+        }
+      } else {
+        // For doctors and nutritionists, use the new professional registration flow
+        try {
+          console.log(`Completing professional registration for ${role}:`, authData.user.id);
+          
+          const { data: professionalResult, error: professionalError } = await supabase.functions.invoke('complete-professional-registration', {
+            body: {
+              user_id: authData.user.id,
+              phone: phone
+            }
+          });
+
+          if (professionalError) {
+            console.error("Professional registration error:", professionalError);
+            toast({
+              title: "Registration Complete",
+              description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created successfully, but notifications may not have been sent.`,
+              variant: "default",
+            });
+          } else if (professionalResult && professionalResult.success) {
+            console.log("Professional registration completed successfully:", professionalResult);
+            toast({
+              title: "Registration Complete",
+              description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created and welcome notifications sent.`,
+            });
+          } else {
+            console.error("Professional registration failed:", professionalResult);
+            toast({
+              title: "Registration Complete",
+              description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created, but registration completion failed.`,
+              variant: "default",
+            });
+          }
+        } catch (professionalError: any) {
+          console.error("Exception during professional registration:", professionalError);
           toast({
             title: "Registration Complete",
-            description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created and welcome email sent to ${userEmail}`,
+            description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created, but notifications may not have been sent.`,
+            variant: "default",
           });
         }
-      } catch (notificationError: any) {
-        console.error("Exception sending welcome notification:", notificationError);
-        toast({
-          title: "Registration Complete",
-          description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created successfully, but welcome email may not have been sent.`,
-          variant: "default",
-        });
       }
 
       // Reset form
