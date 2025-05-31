@@ -33,6 +33,28 @@
   padding-bottom: 120px; /* Space for mobile navigation */
 }
 
+/* Health Cards Grid - Custom responsive layout for 4 cards */
+.health-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.health-card {
+  width: 100%;
+  border-radius: 0.75rem;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.health-card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #1f2937;
+}
+
 /* Enhanced responsive breakpoints */
 @media (min-width: 640px) {
   .mobile-container {
@@ -52,6 +74,21 @@
   
   .mobile-header {
     padding: 1rem;
+  }
+
+  /* Health cards grid for tablet - all 4 in one row */
+  .health-cards-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+
+  .health-card {
+    border-radius: 1rem;
+  }
+
+  .health-card-title {
+    font-size: 1rem;
+    line-height: 1.25;
   }
 }
 
@@ -74,6 +111,15 @@
   .mobile-content-spacing {
     padding-bottom: 100px;
   }
+
+  /* Health cards grid maintains 4 columns with better spacing */
+  .health-cards-grid {
+    gap: 1.25rem;
+  }
+
+  .health-card {
+    border-radius: 1.25rem;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -90,6 +136,20 @@
   
   .mobile-content-spacing {
     padding-bottom: 32px;
+  }
+
+  /* Health cards grid - optimal spacing for desktop */
+  .health-cards-grid {
+    gap: 1.5rem;
+  }
+
+  .health-card {
+    border-radius: 1.5rem;
+  }
+
+  .health-card-title {
+    font-size: 1.125rem;
+    line-height: 1.375;
   }
 }
 
@@ -256,9 +316,20 @@
   transition: all 0.2s ease;
 }
 
+.health-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(147, 51, 234, 0.15);
+  transition: all 0.2s ease;
+}
+
 @media (min-width: 1024px) {
   .mobile-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  .health-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(147, 51, 234, 0.2);
   }
 }

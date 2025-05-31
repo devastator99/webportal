@@ -77,25 +77,25 @@ export const HealthTrackingCards = ({ habitSummary }: HealthTrackingCardsProps) 
   ];
 
   return (
-    <div className="mobile-grid">
+    <div className="health-cards-grid">
       {habits.map((habit) => {
         const Icon = habit.icon;
         const value = getHabitValue(habit.type);
         const percentage = getHabitPercentage(habit.type);
         
         return (
-          <Card key={habit.type} className="mobile-card shadow-sm hover:shadow-md transition-all duration-200">
-            <CardContent className="p-0">
+          <Card key={habit.type} className="health-card border-2 border-purple-400 hover:border-purple-500 shadow-sm hover:shadow-md transition-all duration-200">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center gap-2">
                   <Icon className={`h-4 w-4 ${habit.color}`} />
-                  <h3 className="mobile-card-title">{habit.name}</h3>
+                  <h3 className="health-card-title text-sm sm:text-base font-medium">{habit.name}</h3>
                 </div>
-                <span className="font-semibold mobile-text-scale">{value}</span>
+                <span className="font-semibold text-sm sm:text-base">{value}</span>
               </div>
               <div className="space-y-2">
                 <Progress value={percentage} className="h-2" />
-                <p className="text-muted-foreground mobile-text-scale">
+                <p className="text-muted-foreground text-xs sm:text-sm">
                   {percentage}% of goal
                 </p>
               </div>
