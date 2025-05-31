@@ -1,3 +1,4 @@
+
 import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,6 +11,7 @@ import { DashboardSkeleton } from '@/components/dashboard/DashboardSkeleton';
 import PatientDetailsPage from '@/pages/PatientDetailsPage';
 import PatientsView from '@/pages/PatientsView';
 import Dashboard from '@/pages/Dashboard';
+import DoctorProfilePage from '@/pages/DoctorProfilePage';
 import PatientPrescriptionsRoute from '@/routes/PatientPrescriptionsRoute';
 import VerifyCodePage from '@/pages/VerifyCodePage';
 import { ForgotPasswordRouteWrapper } from '@/pages/ForgotPasswordRouteWrapper';
@@ -186,12 +188,28 @@ export const AppRoutes = () => {
           }
         />
 
-        {/* Add a temporary route handler for non-patient profiles */}
+        {/* Doctor Profile Route */}
+        <Route
+          path="/doctor-profile"
+          element={
+            <RoleProtectedRoute allowedRoles={['doctor']}>
+              <DoctorProfilePage />
+            </RoleProtectedRoute>
+          }
+        />
+
+        {/* Update the user-profile route to handle different roles */}
         <Route
           path="/user-profile"
           element={
             <ProtectedRoute>
-              <Navigate to="/dashboard" replace />
+              {userRole === 'patient' ? (
+                <Navigate to="/patient-profile" replace />
+              ) : userRole === 'doctor' ? (
+                <Navigate to="/doctor-profile" replace />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )}
             </ProtectedRoute>
           }
         />
