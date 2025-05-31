@@ -29,6 +29,8 @@ const PatientHabitsPage = lazy(() => import('@/pages/PatientHabitsPage'));
 const PatientProfilePage = lazy(() => import('@/pages/PatientProfilePage'));
 const NutritionistPatientsView = lazy(() => import('@/pages/NutritionistPatientsView'));
 const NutritionistHealthPlansView = lazy(() => import('@/pages/NutritionistHealthPlansView'));
+const NutritionistProfilePage = lazy(() => import('@/pages/NutritionistProfilePage'));
+const NutritionistCalendarPage = lazy(() => import('@/pages/NutritionistCalendarPage'));
 
 export const AppRoutes = () => {
   const { userRole } = useAuth();
@@ -104,6 +106,26 @@ export const AppRoutes = () => {
           element={
             <RoleProtectedRoute allowedRoles={['nutritionist']}>
               <NutritionistHealthPlansView />
+            </RoleProtectedRoute>
+          }
+        />
+        
+        {/* Nutritionist Profile route */}
+        <Route
+          path="/nutritionist-profile"
+          element={
+            <RoleProtectedRoute allowedRoles={['nutritionist']}>
+              <NutritionistProfilePage />
+            </RoleProtectedRoute>
+          }
+        />
+        
+        {/* Nutritionist Calendar route */}
+        <Route
+          path="/nutritionist-calendar"
+          element={
+            <RoleProtectedRoute allowedRoles={['nutritionist']}>
+              <NutritionistCalendarPage />
             </RoleProtectedRoute>
           }
         />
@@ -220,6 +242,8 @@ export const AppRoutes = () => {
                 <Navigate to="/patient-profile" replace />
               ) : userRole === 'doctor' ? (
                 <Navigate to="/doctor-profile" replace />
+              ) : userRole === 'nutritionist' ? (
+                <Navigate to="/nutritionist-profile" replace />
               ) : (
                 <Navigate to="/dashboard" replace />
               )}

@@ -52,12 +52,12 @@ export function NutritionistSidebar() {
     {
       title: "Calendar",
       icon: Calendar,
-      path: "/calendar"
+      path: "/nutritionist-calendar"
     },
     {
       title: "Profile",
       icon: UserRound,
-      path: "/user-profile"
+      path: "/nutritionist-profile"
     }
   ];
 
