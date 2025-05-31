@@ -208,7 +208,7 @@ async function sendEmailNotification(supabaseClient: any, data: NotificationRequ
   }
 }
 
-// Independent SMS notification function (optional, will not affect email)
+// Enhanced SMS notification function for all user types
 async function sendSmsNotification(supabaseClient: any, data: NotificationRequest): Promise<{ success: boolean; result?: any; error?: string }> {
   try {
     if (!data.patient_phone) {
@@ -218,12 +218,32 @@ async function sendSmsNotification(supabaseClient: any, data: NotificationReques
 
     console.log(`Attempting SMS notification to: ${data.patient_phone}`);
     
-    const smsMessage = `Welcome to AnubhootiHealth, ${data.patient_name}! Your registration is complete and your care team has been assigned. ${data.doctor_name ? `Doctor: ${data.doctor_name}. ` : ''}${data.nutritionist_name ? `Nutritionist: ${data.nutritionist_name}. ` : ''}Log in to access your personalized health dashboard.`;
+    // Determine the role from patient_details
+    const userRole = data.patient_details?.role || 'patient';
+    const isPatient = userRole === 'patient';
+    const isDoctor = userRole === 'doctor';
+    const isNutritionist = userRole === 'nutritionist';
+    const isAdministrator = userRole === 'administrator';
+    
+    let smsMessage: string;
+    
+    if (isPatient) {
+      smsMessage = `Welcome to AnubhootiHealth, ${data.patient_name}! Your registration is complete and your care team has been assigned. ${data.doctor_name ? `Doctor: ${data.doctor_name}. ` : ''}${data.nutritionist_name ? `Nutritionist: ${data.nutritionist_name}. ` : ''}Log in to access your personalized health dashboard.`;
+    } else if (isDoctor) {
+      smsMessage = `Welcome to AnubhootiHealth Medical Team, Dr. ${data.patient_name}! Your doctor account is now active. Access your dashboard to manage patients, prescriptions, and care team collaboration. Thank you for joining our healthcare platform.`;
+    } else if (isNutritionist) {
+      smsMessage = `Welcome to AnubhootiHealth Nutrition Team, ${data.patient_name}! Your nutritionist account is now active. Access your dashboard to create health plans, manage patients, and collaborate with the care team. Thank you for joining our platform.`;
+    } else if (isAdministrator) {
+      smsMessage = `Welcome to AnubhootiHealth Administration, ${data.patient_name}! Your administrator account is now active. Access your admin dashboard to manage users, assignments, and system operations.`;
+    } else {
+      smsMessage = `Welcome to AnubhootiHealth, ${data.patient_name}! Your account is now active. Log in to access your dashboard and explore our healthcare platform features.`;
+    }
 
     const { data: smsResult, error: smsError } = await supabaseClient.functions.invoke('send-sms-notification', {
       body: {
-        to: data.patient_phone,
-        message: smsMessage
+        phone_number: data.patient_phone,
+        message: smsMessage,
+        user_id: data.patient_id
       }
     });
 
@@ -250,6 +270,7 @@ serve(async (req) => {
     const requestData: NotificationRequest = await req.json();
     
     console.log("Processing comprehensive welcome notification for:", requestData.patient_id);
+    console.log("User role:", requestData.patient_details?.role || 'patient');
 
     if (!requestData.patient_id || !requestData.patient_email || !requestData.patient_name) {
       throw new Error("Missing required fields: patient_id, patient_email, or patient_name");
@@ -270,20 +291,21 @@ serve(async (req) => {
     console.log("Attempting email notification...");
     results.email = await sendEmailNotification(supabaseClient, requestData);
 
-    // Attempt SMS notification independently (won't affect email result)
-    console.log("Attempting SMS notification...");
+    // Always attempt SMS notification for all user types (not just patients)
+    console.log("Attempting SMS notification for all user types...");
     results.sms = await sendSmsNotification(supabaseClient, requestData);
 
     // Log comprehensive results
     console.log("Notification results:", {
       patient_id: requestData.patient_id,
+      user_role: requestData.patient_details?.role || 'patient',
       email_success: results.email.success,
       sms_success: results.sms.success,
       email_error: results.email.error,
       sms_error: results.sms.error
     });
 
-    // Determine overall success - email is primary, SMS is optional
+    // Determine overall success - email is primary, SMS is optional but important
     const overallSuccess = results.email.success;
     const successfulMethods = [];
     const failedMethods = [];
@@ -308,6 +330,7 @@ serve(async (req) => {
       success: overallSuccess,
       message: responseMessage,
       patient_id: requestData.patient_id,
+      user_role: requestData.patient_details?.role || 'patient',
       results: results,
       successful_methods: successfulMethods,
       failed_methods: failedMethods
