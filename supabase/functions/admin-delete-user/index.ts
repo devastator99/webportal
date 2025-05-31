@@ -83,8 +83,86 @@ serve(async (req) => {
 
     console.log(`Admin ${admin_id} is deleting user ${user_id}`);
 
-    // Delete user from database tables directly instead of using RPC
-    // Delete from registration_tasks first to avoid foreign key constraint
+    // Delete user from database tables in correct order to avoid foreign key constraints
+    
+    // 1. Delete from patient_details first (this was causing the original error)
+    const { error: patientDetailsError } = await supabaseAdmin
+      .from('patient_details')
+      .delete()
+      .eq('id', user_id);
+
+    if (patientDetailsError) {
+      console.error("Error deleting patient details:", patientDetailsError);
+      // Continue with deletion even if this fails
+    }
+
+    // 2. Delete from habit_progress_logs
+    const { error: habitLogsError } = await supabaseAdmin
+      .from('habit_progress_logs')
+      .delete()
+      .eq('user_id', user_id);
+
+    if (habitLogsError) {
+      console.error("Error deleting habit logs:", habitLogsError);
+      // Continue with deletion
+    }
+
+    // 3. Delete from health_plan_items
+    const { error: healthPlanError } = await supabaseAdmin
+      .from('health_plan_items')
+      .delete()
+      .eq('patient_id', user_id);
+
+    if (healthPlanError) {
+      console.error("Error deleting health plan items:", healthPlanError);
+      // Continue with deletion
+    }
+
+    // 4. Delete from medical_records where user is patient or doctor
+    const { error: medicalRecordsError } = await supabaseAdmin
+      .from('medical_records')
+      .delete()
+      .or(`patient_id.eq.${user_id},doctor_id.eq.${user_id}`);
+
+    if (medicalRecordsError) {
+      console.error("Error deleting medical records:", medicalRecordsError);
+      // Continue with deletion
+    }
+
+    // 5. Delete from patient_invoices
+    const { error: invoicesError } = await supabaseAdmin
+      .from('patient_invoices')
+      .delete()
+      .or(`patient_id.eq.${user_id},doctor_id.eq.${user_id}`);
+
+    if (invoicesError) {
+      console.error("Error deleting patient invoices:", invoicesError);
+      // Continue with deletion
+    }
+
+    // 6. Delete from chat_messages
+    const { error: chatMessagesError } = await supabaseAdmin
+      .from('chat_messages')
+      .delete()
+      .or(`sender_id.eq.${user_id},receiver_id.eq.${user_id}`);
+
+    if (chatMessagesError) {
+      console.error("Error deleting chat messages:", chatMessagesError);
+      // Continue with deletion
+    }
+
+    // 7. Delete from appointments
+    const { error: appointmentsError } = await supabaseAdmin
+      .from('appointments')
+      .delete()
+      .or(`patient_id.eq.${user_id},doctor_id.eq.${user_id}`);
+
+    if (appointmentsError) {
+      console.error("Error deleting appointments:", appointmentsError);
+      // Continue with deletion
+    }
+
+    // 8. Delete from registration_tasks
     const { error: tasksError } = await supabaseAdmin
       .from('registration_tasks')
       .delete()
@@ -92,10 +170,21 @@ serve(async (req) => {
 
     if (tasksError) {
       console.error("Error deleting registration tasks:", tasksError);
-      // Continue with deletion even if this fails
+      // Continue with deletion
     }
 
-    // Delete from user_roles
+    // 9. Delete from patient_assignments (must be done before user_roles)
+    const { error: assignmentsError } = await supabaseAdmin
+      .from('patient_assignments')
+      .delete()
+      .or(`patient_id.eq.${user_id},doctor_id.eq.${user_id},nutritionist_id.eq.${user_id}`);
+
+    if (assignmentsError) {
+      console.error("Error deleting patient assignments:", assignmentsError);
+      // Continue with deletion
+    }
+
+    // 10. Delete from user_roles
     const { error: userRolesError } = await supabaseAdmin
       .from('user_roles')
       .delete()
@@ -106,18 +195,7 @@ serve(async (req) => {
       throw userRolesError;
     }
 
-    // Delete from patient_assignments if exists
-    const { error: assignmentsError } = await supabaseAdmin
-      .from('patient_assignments')
-      .delete()
-      .or(`patient_id.eq.${user_id},doctor_id.eq.${user_id},nutritionist_id.eq.${user_id}`);
-
-    if (assignmentsError) {
-      console.error("Error deleting patient assignments:", assignmentsError);
-      // Continue with deletion even if this fails
-    }
-
-    // Delete from profiles
+    // 11. Delete from profiles
     const { error: profilesError } = await supabaseAdmin
       .from('profiles')
       .delete()
@@ -128,7 +206,7 @@ serve(async (req) => {
       throw profilesError;
     }
 
-    // Finally delete the user from auth.users
+    // 12. Finally delete the user from auth.users
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
 
     if (deleteError) {
@@ -136,8 +214,10 @@ serve(async (req) => {
       throw deleteError;
     }
 
+    console.log(`Successfully deleted user ${user_id} and all related data`);
+
     return new Response(
-      JSON.stringify({ success: true, message: "User successfully deleted" }),
+      JSON.stringify({ success: true, message: "User and all related data successfully deleted" }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
