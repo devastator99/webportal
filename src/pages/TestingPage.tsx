@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TestingDashboard } from "@/components/testing/TestingDashboard";
 import { TwilioConfigValidator } from "@/components/testing/TwilioConfigValidator";
 import { UserPhoneChecker } from "@/components/testing/UserPhoneChecker";
+import { DeleteSpecificUser } from "@/components/testing/DeleteSpecificUser";
 
 const TestingPage = () => {
   return (
@@ -25,6 +26,8 @@ const TestingPage = () => {
           <UserPhoneChecker />
           <TwilioConfigValidator />
         </div>
+
+        <DeleteSpecificUser />
 
         <TestingDashboard />
       </div>
