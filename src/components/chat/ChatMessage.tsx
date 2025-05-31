@@ -99,21 +99,21 @@ export const ChatMessage = ({
 
   const getBubbleClass = () => {
     if (isSystemMessage) return "system-message";
-    if (isCurrentUser) return "current-user";
-    if (isAiBot) return "ai-message";
-    if (isDoctor) return "doctor-message";
-    if (isNutritionist) return "nutritionist-message";
-    return "";
+    if (isCurrentUser) return "current-user bg-[#9b87f5] text-white";
+    if (isAiBot) return "ai-message bg-[#E5DEFF] text-[#7E69AB] border border-[#9b87f5]/20";
+    if (isDoctor) return "doctor-message bg-[#E5DEFF]/50 text-[#7E69AB] border border-[#9b87f5]/20";
+    if (isNutritionist) return "nutritionist-message bg-[#E5DEFF]/30 text-[#7E69AB] border border-[#9b87f5]/20";
+    return "bg-[#E5DEFF]/20 text-[#7E69AB] border border-[#9b87f5]/10";
   };
   
   // Get the appropriate file icon
   const getFileIcon = () => {
     if (isPdf) {
-      return <FileIcon className="h-4 w-4 text-red-500" />;
+      return <FileIcon className="h-4 w-4 text-[#9b87f5]" />;
     } else if (isImage) {
-      return <Image className="h-4 w-4 text-blue-500" />;
+      return <Image className="h-4 w-4 text-[#9b87f5]" />;
     } else {
-      return <FileText className="h-4 w-4 text-gray-500" />;
+      return <FileText className="h-4 w-4 text-[#7E69AB]" />;
     }
   };
   
@@ -123,15 +123,15 @@ export const ChatMessage = ({
       className={cn(
         "max-w-[75%] min-w-24 px-3 py-2 rounded-lg shadow-sm transition-all duration-200 message-bubble relative",
         getBubbleClass(),
-        isSystemMessage && "mx-auto text-center",
-        isAiBot && !isCurrentUser && !isSystemMessage && "hover:shadow-md"
+        isSystemMessage && "mx-auto text-center bg-[#E5DEFF]/10 text-[#7E69AB]",
+        isAiBot && !isCurrentUser && !isSystemMessage && "hover:shadow-md hover:bg-[#E5DEFF]/60"
       )}
     >
       {showAvatar && !isCurrentUser && (
-        <span className="text-xs font-medium text-blue-600 dark:text-blue-400 block mb-1">
+        <span className="text-xs font-medium text-[#9b87f5] block mb-1">
           {senderFullName}
           {message.sender.role && message.sender.role !== "patient" && (
-            <span className="ml-1 text-xs text-blue-500/80 dark:text-blue-300/80">
+            <span className="ml-1 text-xs text-[#7E69AB]/80">
               ({message.sender.role})
             </span>
           )}
@@ -141,7 +141,7 @@ export const ChatMessage = ({
       {isPdfMessage && onPdfDownload && (
         <button
           onClick={onPdfDownload}
-          className="flex items-center gap-1 text-blue-600 dark:text-blue-400 mb-2 hover:underline"
+          className="flex items-center gap-1 text-[#9b87f5] mb-2 hover:underline font-medium"
           aria-label="Download Prescription"
         >
           <span>Download Prescription</span>
@@ -149,7 +149,7 @@ export const ChatMessage = ({
       )}
       
       {isAiBot && !isCurrentUser && (
-        <div className="flex items-center gap-1 mb-1 text-purple-700 dark:text-purple-400">
+        <div className="flex items-center gap-1 mb-1 text-[#9b87f5]">
           <Sparkles className="h-3 w-3" />
           <span className="text-xs font-medium">AI Assistant</span>
         </div>
@@ -157,7 +157,8 @@ export const ChatMessage = ({
       
       <p className={cn(
         "text-sm whitespace-pre-wrap mb-4",
-        isAiBot && !isCurrentUser && "leading-relaxed text-white"
+        isAiBot && !isCurrentUser && "leading-relaxed text-[#7E69AB]",
+        isCurrentUser && "text-white"
       )}>
         {message.message}
       </p>
@@ -166,8 +167,8 @@ export const ChatMessage = ({
       {hasFile && (
         <div 
           className={cn(
-            "mb-4 p-2 rounded bg-background/50 flex items-center gap-2 cursor-pointer hover:bg-background/80 transition-colors",
-            isPdf && "border border-red-200"
+            "mb-4 p-2 rounded bg-white/20 flex items-center gap-2 cursor-pointer hover:bg-white/30 transition-colors",
+            isPdf && "border border-[#9b87f5]/30"
           )}
           onClick={handleFileClick}
         >
@@ -191,30 +192,33 @@ export const ChatMessage = ({
           </button>
         )}
         
-        <span className="text-xs opacity-70">{formattedTime}</span>
+        <span className={cn(
+          "text-xs opacity-70",
+          isCurrentUser ? "text-white/80" : "text-[#7E69AB]/70"
+        )}>{formattedTime}</span>
         
         {isCurrentUser && (
           <>
             {offlineMode || !message.synced ? (
-              <Clock className="h-3 w-3 opacity-70" />
+              <Clock className="h-3 w-3 opacity-70 text-white/80" />
             ) : isAiBot ? (
-              <Check className="h-3 w-3 text-blue-500" />
+              <Check className="h-3 w-3 text-white/80" />
             ) : isNutritionist ? (
-              <CheckCheck className="h-3 w-3 text-blue-500" />
+              <CheckCheck className="h-3 w-3 text-white/80" />
             ) : message.read ? (
-              <CheckCheck className="h-3 w-3 opacity-70 text-blue-400" />
+              <CheckCheck className="h-3 w-3 opacity-70 text-white/80" />
             ) : (
-              <Check className="h-3 w-3 opacity-70" />
+              <Check className="h-3 w-3 opacity-70 text-white/80" />
             )}
           </>
         )}
         
         {!isCurrentUser && isAiBot && (
-          <Bot className="h-3 w-3 text-purple-500 ml-1" />
+          <Bot className="h-3 w-3 text-[#9b87f5] ml-1" />
         )}
         
         {!isCurrentUser && isNutritionist && (
-          <CheckCheck className="h-3 w-3 text-blue-500 ml-1" />
+          <CheckCheck className="h-3 w-3 text-[#9b87f5] ml-1" />
         )}
       </div>
     </div>

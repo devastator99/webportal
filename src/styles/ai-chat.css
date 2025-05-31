@@ -12,7 +12,7 @@
   top: 50%;
   height: 0%;
   width: 3px;
-  background: linear-gradient(to bottom, rgba(139, 92, 246, 0), rgba(139, 92, 246, 0.6), rgba(139, 92, 246, 0));
+  background: linear-gradient(to bottom, rgba(155, 135, 245, 0), rgba(155, 135, 245, 0.6), rgba(155, 135, 245, 0));
   transition: height 0.3s ease-in-out;
   transform: translateY(-50%);
   opacity: 0;
@@ -29,7 +29,7 @@
   align-items: center;
   padding: 0.5rem 1rem;
   border-radius: 1rem;
-  background-color: rgba(139, 92, 246, 0.1);
+  background-color: rgba(229, 222, 255, 0.4);
   margin: 0.5rem 0;
   width: fit-content;
 }
@@ -38,7 +38,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: rgba(139, 92, 246, 0.6);
+  background-color: rgba(155, 135, 245, 0.8);
   margin: 0 1px;
   animation: ai-typing 1.4s infinite ease-in-out;
 }
@@ -83,22 +83,22 @@
   content: '';
   flex-grow: 1;
   height: 1px;
-  background-color: rgba(156, 163, 175, 0.3);
+  background-color: rgba(155, 135, 245, 0.2);
 }
 
 .message-date-label {
   padding: 0 0.75rem;
   font-size: 0.8rem;
-  color: rgb(107, 114, 128);
+  color: rgb(126, 105, 171);
   background-color: white;
   border-radius: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(155, 135, 245, 0.1);
+  border: 1px solid rgba(155, 135, 245, 0.1);
 }
 
 .dark .message-date-label {
   background-color: rgb(30, 30, 30);
-  color: rgb(156, 163, 175);
+  color: rgb(155, 135, 245);
 }
 
 /* Message highlights */
@@ -108,10 +108,10 @@
 
 @keyframes highlight-pulse {
   0%, 100% {
-    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+    box-shadow: 0 0 0 0 rgba(155, 135, 245, 0);
   }
   50% {
-    box-shadow: 0 0 0 10px rgba(139, 92, 246, 0.2);
+    box-shadow: 0 0 0 10px rgba(155, 135, 245, 0.2);
   }
 }
 
@@ -139,7 +139,7 @@
 
 /* AI command highlight */
 .ai-command-highlight {
-  background-color: rgba(139, 92, 246, 0.1);
+  background-color: rgba(155, 135, 245, 0.1);
   border-radius: 0.25rem;
   padding: 0 0.25rem;
   font-family: monospace;

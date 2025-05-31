@@ -16,39 +16,42 @@
 
 /* Style classes for different role avatars */
 .doctor-avatar {
-  background-color: rgba(37, 99, 235, 0.1);
-  color: rgb(37, 99, 235);
+  background-color: rgba(155, 135, 245, 0.1);
+  color: rgb(155, 135, 245);
 }
 
 .nutritionist-avatar {
-  background-color: rgba(22, 163, 74, 0.1);
-  color: rgb(22, 163, 74);
+  background-color: rgba(126, 105, 171, 0.1);
+  color: rgb(126, 105, 171);
 }
 
 .patient-avatar {
-  background-color: rgba(234, 88, 12, 0.1);
-  color: rgb(234, 88, 12);
+  background-color: rgba(155, 135, 245, 0.1);
+  color: rgb(155, 135, 245);
 }
 
 .ai-avatar {
-  background-color: rgba(147, 51, 234, 0.1);
-  color: rgb(147, 51, 234);
+  background-color: rgba(155, 135, 245, 0.1);
+  color: rgb(155, 135, 245);
 }
 
 /* Message bubble styles based on sender role */
 .message-bubble.doctor-message {
-  background-color: rgba(37, 99, 235, 0.05);
-  border-left: 2px solid rgba(37, 99, 235, 0.3);
+  background-color: rgba(229, 222, 255, 0.5);
+  border-left: 2px solid rgba(155, 135, 245, 0.3);
+  color: rgb(126, 105, 171);
 }
 
 .message-bubble.nutritionist-message {
-  background-color: rgba(22, 163, 74, 0.05);
-  border-left: 2px solid rgba(22, 163, 74, 0.3);
+  background-color: rgba(229, 222, 255, 0.3);
+  border-left: 2px solid rgba(155, 135, 245, 0.3);
+  color: rgb(126, 105, 171);
 }
 
 .message-bubble.ai-message {
-  background-color: rgba(147, 51, 234, 0.05);
-  border-left: 2px solid rgba(147, 51, 234, 0.3);
+  background-color: rgba(229, 222, 255, 1);
+  border-left: 2px solid rgba(155, 135, 245, 0.3);
+  color: rgb(126, 105, 171);
 }
 
 .message-bubble.current-user {
@@ -57,9 +60,9 @@
 }
 
 .message-bubble.system-message {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: rgba(229, 222, 255, 0.1);
   font-style: italic;
-  color: #666;
+  color: rgb(126, 105, 171);
 }
 
 /* Animation for new messages */
@@ -89,7 +92,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background-color: #7E69AB;
+  background-color: #9b87f5;
   margin: 0 2px;
   animation: typingAnimation 1.4s infinite ease-in-out both;
 }
