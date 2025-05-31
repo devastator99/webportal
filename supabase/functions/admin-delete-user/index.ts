@@ -83,217 +83,174 @@ serve(async (req) => {
 
     console.log(`Admin ${admin_id} is deleting user ${user_id}`);
 
+    // Helper function to safely delete from a table
+    const safeDelete = async (tableName: string, condition: string) => {
+      try {
+        const { error } = await supabaseAdmin
+          .from(tableName)
+          .delete()
+          .or(condition);
+        
+        if (error) {
+          console.error(`Error deleting from ${tableName}:`, error);
+          // Don't throw, just log and continue
+        } else {
+          console.log(`Successfully deleted from ${tableName}`);
+        }
+      } catch (error) {
+        console.error(`Exception deleting from ${tableName}:`, error);
+        // Continue with other deletions
+      }
+    };
+
     // Delete user from database tables in correct order to avoid foreign key constraints
+    // Start with tables that have foreign key references to other tables
     
     // 1. Delete from room_messages first (references chat_rooms and users)
-    const { error: roomMessagesError } = await supabaseAdmin
-      .from('room_messages')
-      .delete()
-      .eq('sender_id', user_id);
-
-    if (roomMessagesError) {
-      console.error("Error deleting room messages:", roomMessagesError);
-      // Continue with deletion
-    }
+    await safeDelete('room_messages', `sender_id.eq.${user_id}`);
 
     // 2. Delete from room_members (references chat_rooms and users)
-    const { error: roomMembersError } = await supabaseAdmin
-      .from('room_members')
-      .delete()
-      .eq('user_id', user_id);
-
-    if (roomMembersError) {
-      console.error("Error deleting room members:", roomMembersError);
-      // Continue with deletion
-    }
+    await safeDelete('room_members', `user_id.eq.${user_id}`);
 
     // 3. Delete from chat_rooms where patient_id references the user
-    const { error: chatRoomsError } = await supabaseAdmin
-      .from('chat_rooms')
-      .delete()
-      .eq('patient_id', user_id);
+    await safeDelete('chat_rooms', `patient_id.eq.${user_id}`);
 
-    if (chatRoomsError) {
-      console.error("Error deleting chat rooms:", chatRoomsError);
-      // Continue with deletion
-    }
+    // 4. Delete from patient_details
+    await safeDelete('patient_details', `id.eq.${user_id}`);
 
-    // 4. Delete from patient_details first (this was causing the original error)
-    const { error: patientDetailsError } = await supabaseAdmin
-      .from('patient_details')
-      .delete()
-      .eq('id', user_id);
+    // 5. Delete from health_plan_items
+    await safeDelete('health_plan_items', `patient_id.eq.${user_id}`);
 
-    if (patientDetailsError) {
-      console.error("Error deleting patient details:", patientDetailsError);
-      // Continue with deletion
-    }
+    // 6. Delete from medical_records where user is patient or doctor
+    await safeDelete('medical_records', `patient_id.eq.${user_id},doctor_id.eq.${user_id}`);
 
-    // 5. Delete from habit_progress_logs
-    const { error: habitLogsError } = await supabaseAdmin
-      .from('habit_progress_logs')
-      .delete()
-      .eq('user_id', user_id);
+    // 7. Delete from patient_invoices
+    await safeDelete('patient_invoices', `patient_id.eq.${user_id},doctor_id.eq.${user_id}`);
 
-    if (habitLogsError) {
-      console.error("Error deleting habit logs:", habitLogsError);
-      // Continue with deletion
-    }
+    // 8. Delete from chat_messages
+    await safeDelete('chat_messages', `sender_id.eq.${user_id},receiver_id.eq.${user_id}`);
 
-    // 6. Delete from health_plan_items
-    const { error: healthPlanError } = await supabaseAdmin
-      .from('health_plan_items')
-      .delete()
-      .eq('patient_id', user_id);
+    // 9. Delete from appointments
+    await safeDelete('appointments', `patient_id.eq.${user_id},doctor_id.eq.${user_id}`);
 
-    if (healthPlanError) {
-      console.error("Error deleting health plan items:", healthPlanError);
-      // Continue with deletion
-    }
+    // 10. Delete from registration_tasks
+    await safeDelete('registration_tasks', `user_id.eq.${user_id}`);
 
-    // 7. Delete from medical_records where user is patient or doctor
-    const { error: medicalRecordsError } = await supabaseAdmin
-      .from('medical_records')
-      .delete()
-      .or(`patient_id.eq.${user_id},doctor_id.eq.${user_id}`);
+    // 11. Delete from notification_logs
+    await safeDelete('notification_logs', `user_id.eq.${user_id}`);
 
-    if (medicalRecordsError) {
-      console.error("Error deleting medical records:", medicalRecordsError);
-      // Continue with deletion
-    }
+    // 12. Delete from push_subscriptions
+    await safeDelete('push_subscriptions', `user_id.eq.${user_id}`);
 
-    // 8. Delete from patient_invoices
-    const { error: invoicesError } = await supabaseAdmin
-      .from('patient_invoices')
-      .delete()
-      .or(`patient_id.eq.${user_id},doctor_id.eq.${user_id}`);
+    // 13. Delete from notification_preferences
+    await safeDelete('notification_preferences', `user_id.eq.${user_id}`);
 
-    if (invoicesError) {
-      console.error("Error deleting patient invoices:", invoicesError);
-      // Continue with deletion
-    }
+    // 14. Delete from patient_assignments (must be done before user_roles)
+    await safeDelete('patient_assignments', `patient_id.eq.${user_id},doctor_id.eq.${user_id},nutritionist_id.eq.${user_id}`);
 
-    // 9. Delete from chat_messages
-    const { error: chatMessagesError } = await supabaseAdmin
-      .from('chat_messages')
-      .delete()
-      .or(`sender_id.eq.${user_id},receiver_id.eq.${user_id}`);
+    // 15. Delete from prescription_medications (references medical_records)
+    await safeDelete('prescription_medications', `prescription_id.in.(select id from medical_records where patient_id=${user_id} or doctor_id=${user_id})`);
 
-    if (chatMessagesError) {
-      console.error("Error deleting chat messages:", chatMessagesError);
-      // Continue with deletion
-    }
+    // 16. Delete from prescribed_tests (references medical_records)
+    await safeDelete('prescribed_tests', `prescription_id.in.(select id from medical_records where patient_id=${user_id} or doctor_id=${user_id})`);
 
-    // 10. Delete from appointments
-    const { error: appointmentsError } = await supabaseAdmin
-      .from('appointments')
-      .delete()
-      .or(`patient_id.eq.${user_id},doctor_id.eq.${user_id}`);
+    // 17. Delete from doctor_details
+    await safeDelete('doctor_details', `id.eq.${user_id}`);
 
-    if (appointmentsError) {
-      console.error("Error deleting appointments:", appointmentsError);
-      // Continue with deletion
-    }
+    // 18. Delete from doctor_availability
+    await safeDelete('doctor_availability', `doctor_id.eq.${user_id}`);
 
-    // 11. Delete from registration_tasks
-    const { error: tasksError } = await supabaseAdmin
-      .from('registration_tasks')
-      .delete()
-      .eq('user_id', user_id);
+    // 19. Delete from patient_medical_reports
+    await safeDelete('patient_medical_reports', `patient_id.eq.${user_id}`);
 
-    if (tasksError) {
-      console.error("Error deleting registration tasks:", tasksError);
-      // Continue with deletion
-    }
+    // 20. Delete from payments (via appointments)
+    await safeDelete('payments', `appointment_id.in.(select id from appointments where patient_id=${user_id} or doctor_id=${user_id})`);
 
-    // 12. Delete from notification_logs
-    const { error: notificationLogsError } = await supabaseAdmin
-      .from('notification_logs')
-      .delete()
-      .eq('user_id', user_id);
+    // 21. Delete from password_reset_otps
+    await safeDelete('password_reset_otps', `user_id.eq.${user_id}`);
 
-    if (notificationLogsError) {
-      console.error("Error deleting notification logs:", notificationLogsError);
-      // Continue with deletion
-    }
+    // 22. Delete from registration_progress
+    await safeDelete('registration_progress', `user_id.eq.${user_id}`);
 
-    // 13. Delete from push_subscriptions
-    const { error: pushSubscriptionsError } = await supabaseAdmin
-      .from('push_subscriptions')
-      .delete()
-      .eq('user_id', user_id);
-
-    if (pushSubscriptionsError) {
-      console.error("Error deleting push subscriptions:", pushSubscriptionsError);
-      // Continue with deletion
-    }
-
-    // 14. Delete from notification_preferences
-    const { error: notificationPreferencesError } = await supabaseAdmin
-      .from('notification_preferences')
-      .delete()
-      .eq('user_id', user_id);
-
-    if (notificationPreferencesError) {
-      console.error("Error deleting notification preferences:", notificationPreferencesError);
-      // Continue with deletion
-    }
-
-    // 15. Delete from patient_assignments (must be done before user_roles)
-    const { error: assignmentsError } = await supabaseAdmin
-      .from('patient_assignments')
-      .delete()
-      .or(`patient_id.eq.${user_id},doctor_id.eq.${user_id},nutritionist_id.eq.${user_id}`);
-
-    if (assignmentsError) {
-      console.error("Error deleting patient assignments:", assignmentsError);
-      // Continue with deletion
-    }
-
-    // 16. Delete from user_roles
+    // 23. Delete from user_roles (critical - must be successful)
     const { error: userRolesError } = await supabaseAdmin
       .from('user_roles')
       .delete()
       .eq('user_id', user_id);
 
     if (userRolesError) {
-      console.error("Error deleting user roles:", userRolesError);
-      throw userRolesError;
+      console.error("Critical error deleting user roles:", userRolesError);
+      return new Response(
+        JSON.stringify({ 
+          error: `Failed to delete user roles: ${userRolesError.message}`,
+          details: userRolesError
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    // 17. Delete from profiles
+    // 24. Delete from profiles (critical - must be successful)
     const { error: profilesError } = await supabaseAdmin
       .from('profiles')
       .delete()
       .eq('id', user_id);
 
     if (profilesError) {
-      console.error("Error deleting profile:", profilesError);
-      throw profilesError;
+      console.error("Critical error deleting profile:", profilesError);
+      return new Response(
+        JSON.stringify({ 
+          error: `Failed to delete user profile: ${profilesError.message}`,
+          details: profilesError
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    // 18. Finally delete the user from auth.users
+    // 25. Finally delete the user from auth.users (critical - must be successful)
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
 
     if (deleteError) {
-      console.error("Auth deletion error:", deleteError);
-      throw deleteError;
+      console.error("Critical auth deletion error:", deleteError);
+      return new Response(
+        JSON.stringify({ 
+          error: `Failed to delete user from auth: ${deleteError.message}`,
+          details: deleteError
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
     console.log(`Successfully deleted user ${user_id} and all related data`);
 
     return new Response(
-      JSON.stringify({ success: true, message: "User and all related data successfully deleted" }),
+      JSON.stringify({ 
+        success: true, 
+        message: "User and all related data successfully deleted",
+        user_id: user_id
+      }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
+
   } catch (error) {
-    console.error("Error in admin-delete-user function:", error);
+    console.error("Unexpected error in admin-delete-user function:", error);
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: `Unexpected error: ${error.message}`,
+        details: error
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
