@@ -27,6 +27,8 @@ const NotificationsPage = lazy(() => import('@/pages/NotificationsPage'));
 const MessageSearchPage = lazy(() => import('@/pages/MessageSearchPage'));
 const PatientHabitsPage = lazy(() => import('@/pages/PatientHabitsPage'));
 const PatientProfilePage = lazy(() => import('@/pages/PatientProfilePage'));
+const NutritionistPatientsView = lazy(() => import('@/pages/NutritionistPatientsView'));
+const NutritionistHealthPlansView = lazy(() => import('@/pages/NutritionistHealthPlansView'));
 
 export const AppRoutes = () => {
   const { userRole } = useAuth();
@@ -86,11 +88,22 @@ export const AppRoutes = () => {
           }
         />
         
+        {/* Patients routes - accessible by doctors, administrators, and nutritionists */}
         <Route
           path="/patients"
           element={
-            <RoleProtectedRoute allowedRoles={['doctor', 'administrator']}>
-              <PatientsView />
+            <RoleProtectedRoute allowedRoles={['doctor', 'administrator', 'nutritionist']}>
+              {userRole === 'nutritionist' ? <NutritionistPatientsView /> : <PatientsView />}
+            </RoleProtectedRoute>
+          }
+        />
+        
+        {/* Health Plans route - for nutritionists */}
+        <Route
+          path="/health-plans"
+          element={
+            <RoleProtectedRoute allowedRoles={['nutritionist']}>
+              <NutritionistHealthPlansView />
             </RoleProtectedRoute>
           }
         />
