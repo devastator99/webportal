@@ -7,241 +7,260 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface NotificationRequest {
+  patient_id: string;
+  patient_email: string;
+  patient_phone?: string;
+  patient_name: string;
+  doctor_name?: string;
+  nutritionist_name?: string;
+  patient_details?: any;
+}
+
+// Independent email notification function
+async function sendEmailNotification(supabaseClient: any, data: NotificationRequest): Promise<{ success: boolean; result?: any; error?: string }> {
+  try {
+    console.log(`Sending email notification to: ${data.patient_email}`);
+    
+    const emailSubject = `Welcome to AnubhootiHealth, ${data.patient_name}!`;
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to AnubhootiHealth</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #9b87f5, #7E69AB); color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f8f9fa; padding: 30px; border-radius: 0 0 8px 8px; }
+          .highlight { background: #E5DEFF; padding: 15px; border-radius: 6px; margin: 20px 0; }
+          .care-team { background: white; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #9b87f5; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
+          .button { display: inline-block; background: #9b87f5; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 15px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>🎉 Welcome to AnubhootiHealth!</h1>
+          <p>Your journey to better health starts now</p>
+        </div>
+        
+        <div class="content">
+          <h2>Hello ${data.patient_name},</h2>
+          
+          <p>Congratulations! Your registration is complete and your personalized care team has been assigned. We're excited to be part of your health journey.</p>
+          
+          <div class="highlight">
+            <h3>✅ Your Account is Ready!</h3>
+            <p>You can now access all features of the AnubhootiHealth platform:</p>
+            <ul>
+              <li>📱 Secure messaging with your care team</li>
+              <li>📋 Digital health records management</li>
+              <li>💊 Prescription tracking</li>
+              <li>📊 Personalized health dashboard</li>
+              <li>🎯 Custom health plans and goals</li>
+            </ul>
+          </div>
+          
+          ${data.doctor_name || data.nutritionist_name ? `
+          <div class="care-team">
+            <h3>👥 Your Dedicated Care Team</h3>
+            ${data.doctor_name ? `<p><strong>Doctor:</strong> ${data.doctor_name}</p>` : ''}
+            ${data.nutritionist_name ? `<p><strong>Nutritionist:</strong> ${data.nutritionist_name}</p>` : ''}
+            <p>Your care team is here to support you every step of the way. They will be in touch with you soon to discuss your personalized health plan.</p>
+          </div>
+          ` : ''}
+          
+          <div class="highlight">
+            <h3>🚀 Next Steps</h3>
+            <ol>
+              <li>Log into your dashboard to explore your new account</li>
+              <li>Complete your health profile for personalized recommendations</li>
+              <li>Check your messages - your care team may have already sent you a welcome message</li>
+              <li>Set up your notification preferences</li>
+            </ol>
+          </div>
+          
+          <p>If you have any questions or need assistance, don't hesitate to reach out to your care team through the platform's secure messaging system.</p>
+          
+          <p>Welcome aboard!</p>
+          
+          <div class="footer">
+            <p><strong>The AnubhootiHealth Team</strong></p>
+            <p>🌟 Empowering your health journey with personalized care</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const emailText = `
+      Welcome to AnubhootiHealth, ${data.patient_name}!
+      
+      Congratulations! Your registration is complete and your personalized care team has been assigned.
+      
+      Your Account is Ready!
+      You can now access:
+      - Secure messaging with your care team
+      - Digital health records management
+      - Prescription tracking
+      - Personalized health dashboard
+      - Custom health plans and goals
+      
+      ${data.doctor_name ? `Your Doctor: ${data.doctor_name}` : ''}
+      ${data.nutritionist_name ? `Your Nutritionist: ${data.nutritionist_name}` : ''}
+      
+      Next Steps:
+      1. Log into your dashboard to explore your new account
+      2. Complete your health profile for personalized recommendations
+      3. Check your messages from your care team
+      4. Set up your notification preferences
+      
+      Welcome aboard!
+      The AnubhootiHealth Team
+    `;
+
+    const { data: emailResult, error: emailError } = await supabaseClient.functions.invoke('send-email-notification', {
+      body: {
+        to: data.patient_email,
+        subject: emailSubject,
+        html: emailHtml,
+        text: emailText
+      }
+    });
+
+    if (emailError) {
+      console.error("Email notification error:", emailError);
+      return { success: false, error: emailError.message };
+    }
+
+    console.log("Email notification sent successfully:", emailResult);
+    return { success: true, result: emailResult };
+
+  } catch (error: any) {
+    console.error("Exception in email notification:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Independent SMS notification function (optional, will not affect email)
+async function sendSmsNotification(supabaseClient: any, data: NotificationRequest): Promise<{ success: boolean; result?: any; error?: string }> {
+  try {
+    if (!data.patient_phone) {
+      console.log("No phone number provided, skipping SMS");
+      return { success: false, error: "No phone number provided" };
+    }
+
+    console.log(`Attempting SMS notification to: ${data.patient_phone}`);
+    
+    const smsMessage = `Welcome to AnubhootiHealth, ${data.patient_name}! Your registration is complete and your care team has been assigned. ${data.doctor_name ? `Doctor: ${data.doctor_name}. ` : ''}${data.nutritionist_name ? `Nutritionist: ${data.nutritionist_name}. ` : ''}Log in to access your personalized health dashboard.`;
+
+    const { data: smsResult, error: smsError } = await supabaseClient.functions.invoke('send-sms-notification', {
+      body: {
+        to: data.patient_phone,
+        message: smsMessage
+      }
+    });
+
+    if (smsError) {
+      console.error("SMS notification error (will not affect email):", smsError);
+      return { success: false, error: smsError.message };
+    }
+
+    console.log("SMS notification sent successfully:", smsResult);
+    return { success: true, result: smsResult };
+
+  } catch (error: any) {
+    console.error("Exception in SMS notification (will not affect email):", error);
+    return { success: false, error: error.message };
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const {
-      patient_id,
-      patient_email,
-      patient_phone,
-      patient_name,
-      doctor_name,
-      nutritionist_name,
-      patient_details
-    } = await req.json();
+    const requestData: NotificationRequest = await req.json();
+    
+    console.log("Processing comprehensive welcome notification for:", requestData.patient_id);
 
-    console.log(`Starting comprehensive welcome notification for patient: ${patient_name} (${patient_id})`);
-    console.log(`Email: ${patient_email}, Phone: ${patient_phone}`);
+    if (!requestData.patient_id || !requestData.patient_email || !requestData.patient_name) {
+      throw new Error("Missing required fields: patient_id, patient_email, or patient_name");
+    }
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Prepare welcome message content
-    const welcomeMessage = `
-🎉 Welcome to our Healthcare Platform, ${patient_name}!
-
-Your registration is now complete and your care team has been assigned:
-
-👨‍⚕️ Doctor: ${doctor_name}
-🥗 Nutritionist: ${nutritionist_name}
-
-What's next?
-✅ Your care team chat room has been created
-✅ You can now access your personalized health dashboard
-✅ Start tracking your health habits and goals
-✅ Schedule appointments with your care team
-
-We're excited to support you on your health journey!
-
-Best regards,
-Your Healthcare Team
-    `.trim();
-
+    // Process notifications independently
     const results = {
-      email: { success: false, attempted: false },
-      sms: { success: false, attempted: false },
-      whatsapp: { success: false, attempted: false }
+      email: { success: false, error: "Not attempted" },
+      sms: { success: false, error: "Not attempted" }
     };
 
-    // Send email notification using Resend
-    if (patient_email) {
-      results.email.attempted = true;
-      try {
-        console.log("Attempting to send email notification...");
-        const { data: emailResult, error: emailError } = await supabaseClient.functions.invoke(
-          'send-email-notification',
-          {
-            body: {
-              to: patient_email,
-              subject: `Welcome ${patient_name}! Your care team is ready`,
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                  <h1 style="color: #7E69AB;">🎉 Welcome to our Healthcare Platform!</h1>
-                  <p>Dear ${patient_name},</p>
-                  <p>Your registration is now complete and your care team has been assigned:</p>
-                  <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
-                    <p><strong>👨‍⚕️ Doctor:</strong> ${doctor_name}</p>
-                    <p><strong>🥗 Nutritionist:</strong> ${nutritionist_name}</p>
-                  </div>
-                  <h3>What's next?</h3>
-                  <ul>
-                    <li>✅ Your care team chat room has been created</li>
-                    <li>✅ You can now access your personalized health dashboard</li>
-                    <li>✅ Start tracking your health habits and goals</li>
-                    <li>✅ Schedule appointments with your care team</li>
-                  </ul>
-                  <p>We're excited to support you on your health journey!</p>
-                  <p>Best regards,<br>Your Healthcare Team</p>
-                </div>
-              `,
-              text: welcomeMessage
-            }
-          }
-        );
+    // Always attempt email notification (primary method)
+    console.log("Attempting email notification...");
+    results.email = await sendEmailNotification(supabaseClient, requestData);
 
-        if (emailError) {
-          console.error("Email notification error:", emailError);
-          results.email = { success: false, attempted: true, error: emailError.message };
-        } else if (emailResult && emailResult.success) {
-          console.log("Email notification sent successfully");
-          results.email = { success: true, attempted: true, result: emailResult };
-        } else {
-          console.error("Email notification failed:", emailResult);
-          results.email = { success: false, attempted: true, error: "Unknown email error" };
-        }
-      } catch (error) {
-        console.error("Email notification exception:", error);
-        results.email = { success: false, attempted: true, error: error.message };
-      }
+    // Attempt SMS notification independently (won't affect email result)
+    console.log("Attempting SMS notification...");
+    results.sms = await sendSmsNotification(supabaseClient, requestData);
+
+    // Log comprehensive results
+    console.log("Notification results:", {
+      patient_id: requestData.patient_id,
+      email_success: results.email.success,
+      sms_success: results.sms.success,
+      email_error: results.email.error,
+      sms_error: results.sms.error
+    });
+
+    // Determine overall success - email is primary, SMS is optional
+    const overallSuccess = results.email.success;
+    const successfulMethods = [];
+    const failedMethods = [];
+
+    if (results.email.success) {
+      successfulMethods.push("email");
     } else {
-      console.log("No email provided, skipping email notification");
+      failedMethods.push(`email: ${results.email.error}`);
     }
 
-    // Send SMS notification using Twilio
-    if (patient_phone) {
-      results.sms.attempted = true;
-      try {
-        console.log("Attempting to send SMS notification...");
-        const { data: smsResult, error: smsError } = await supabaseClient.functions.invoke(
-          'send-sms-notification',
-          {
-            body: {
-              phone_number: patient_phone,
-              message: welcomeMessage,
-              user_id: patient_id
-            }
-          }
-        );
-
-        if (smsError) {
-          console.error("SMS notification error:", smsError);
-          results.sms = { success: false, attempted: true, error: smsError.message };
-        } else if (smsResult && smsResult.success) {
-          console.log("SMS notification sent successfully");
-          results.sms = { success: true, attempted: true, result: smsResult };
-        } else {
-          console.error("SMS notification failed:", smsResult);
-          results.sms = { success: false, attempted: true, error: "Unknown SMS error" };
-        }
-      } catch (error) {
-        console.error("SMS notification exception:", error);
-        results.sms = { success: false, attempted: true, error: error.message };
-      }
+    if (results.sms.success) {
+      successfulMethods.push("sms");
     } else {
-      console.log("No phone provided, skipping SMS notification");
+      failedMethods.push(`sms: ${results.sms.error}`);
     }
 
-    // Send WhatsApp notification using Twilio
-    if (patient_phone) {
-      results.whatsapp.attempted = true;
-      try {
-        console.log("Attempting to send WhatsApp notification...");
-        const { data: whatsappResult, error: whatsappError } = await supabaseClient.functions.invoke(
-          'send-whatsapp-notification',
-          {
-            body: {
-              phone_number: patient_phone,
-              message: welcomeMessage,
-              user_id: patient_id
-            }
-          }
-        );
+    const responseMessage = overallSuccess 
+      ? `Welcome notifications processed. Successful: [${successfulMethods.join(", ")}]${failedMethods.length > 0 ? `. Failed: [${failedMethods.join(", ")}]` : ""}`
+      : `Welcome notification failed. Errors: [${failedMethods.join(", ")}]`;
 
-        if (whatsappError) {
-          console.error("WhatsApp notification error:", whatsappError);
-          results.whatsapp = { success: false, attempted: true, error: whatsappError.message };
-        } else if (whatsappResult && whatsappResult.success) {
-          console.log("WhatsApp notification sent successfully");
-          results.whatsapp = { success: true, attempted: true, result: whatsappResult };
-        } else {
-          console.error("WhatsApp notification failed:", whatsappResult);
-          results.whatsapp = { success: false, attempted: true, error: "Unknown WhatsApp error" };
-        }
-      } catch (error) {
-        console.error("WhatsApp notification exception:", error);
-        results.whatsapp = { success: false, attempted: true, error: error.message };
-      }
-    } else {
-      console.log("No phone provided, skipping WhatsApp notification");
-    }
+    return new Response(JSON.stringify({
+      success: overallSuccess,
+      message: responseMessage,
+      patient_id: requestData.patient_id,
+      results: results,
+      successful_methods: successfulMethods,
+      failed_methods: failedMethods
+    }), {
+      status: overallSuccess ? 200 : 207, // 207 Multi-Status for partial success
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
 
-    // Log the welcome notification in the database
-    try {
-      const { error: logError } = await supabaseClient
-        .from('notification_logs')
-        .insert({
-          user_id: patient_id,
-          type: 'general',
-          title: `Welcome ${patient_name}!`,
-          body: welcomeMessage,
-          status: 'sent',
-          data: {
-            doctor_name,
-            nutritionist_name,
-            notifications_sent: results
-          }
-        });
-
-      if (logError) {
-        console.error("Error logging notification:", logError);
-      } else {
-        console.log("Notification logged successfully");
-      }
-    } catch (error) {
-      console.error("Notification logging exception:", error);
-    }
-
-    // Determine overall success
-    const successfulNotifications = Object.values(results).filter(r => r.success).length;
-    const attemptedNotifications = Object.values(results).filter(r => r.attempted).length;
-    
-    console.log(`Comprehensive welcome notification completed for ${patient_name}`);
-    console.log(`Success rate: ${successfulNotifications}/${attemptedNotifications} notifications sent`);
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: "Comprehensive welcome notification process completed",
-        patient_id,
-        results,
-        summary: {
-          attempted: attemptedNotifications,
-          successful: successfulNotifications,
-          success_rate: attemptedNotifications > 0 ? (successfulNotifications / attemptedNotifications * 100).toFixed(1) + '%' : '0%'
-        }
-      }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
-
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in send-comprehensive-welcome-notification:', error);
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message 
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+    return new Response(JSON.stringify({
+      success: false,
+      error: error.message,
+      message: "Failed to process welcome notifications"
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 });
