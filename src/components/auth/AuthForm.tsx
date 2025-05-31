@@ -43,9 +43,7 @@ const patientDataSchema = z.object({
 });
 
 const patientSignupSchema = z.object({
-  email: z.string().optional().refine((val) => !val || z.string().email().safeParse(val).success, {
-    message: "Invalid email address",
-  }),
+  email: z.string().email("Invalid email address"),
   phone: z.string().min(10, "Phone number must be at least 10 digits").max(15, "Phone number must be at most 15 digits"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
@@ -68,9 +66,7 @@ const patientSignupSchema = z.object({
 });
 
 const standardSignupSchema = z.object({
-  email: z.string().optional().refine((val) => !val || z.string().email().safeParse(val).success, {
-    message: "Invalid email address",
-  }),
+  email: z.string().email("Invalid email address"),
   phone: z.string().min(10, "Phone number must be at least 10 digits").max(15, "Phone number must be at most 15 digits"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
@@ -170,11 +166,11 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           return;
         }
 
-        if (!firstName || !lastName || !phone) {
+        if (!firstName || !lastName || !phone || !email) {
           toast({
             variant: "destructive",
             title: "Error",
-            description: "Please fill in all required fields"
+            description: "Please fill in all required fields including email"
           });
           return;
         }
@@ -219,10 +215,10 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           phone: phone, // Primary phone number for notifications
         };
         console.log("Submitting patient data:", patientData);
-        await onSubmit(email || phone, password, userType, firstName, lastName, patientData);
+        await onSubmit(email, password, userType, firstName, lastName, patientData);
       } else {
         if (type === "register") {
-          await onSubmit(email || phone, password, userType, firstName, lastName);
+          await onSubmit(email, password, userType, firstName, lastName);
         } else {
           // For login, prioritize email if provided, otherwise use phone
           await onSubmit(email || phone, password);
@@ -399,18 +395,17 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
         <motion.div variants={itemVariants} className="space-y-1">
           <FormField
             control={form.control}
-            name="phone"
+            name="email"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-gray-600 font-medium">
-                  Phone Number {type === "register" && <span className="text-red-500">*</span>}
-                  {type === "register" && <span className="text-sm text-gray-500 ml-2">(Used for notifications)</span>}
+                  Email {type === "register" ? <span className="text-red-500">*</span> : "(Optional)"}
                 </FormLabel>
                 <FormControl>
                   <Input
                     {...field}
-                    type="tel"
-                    placeholder="+1 234 567 890"
+                    type="email"
+                    placeholder="john@example.com"
                     disabled={loading}
                     className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   />
@@ -423,17 +418,18 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
         <motion.div variants={itemVariants} className="space-y-1">
           <FormField
             control={form.control}
-            name="email"
+            name="phone"
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-gray-600 font-medium">
-                  Email {type === "login" ? "(Optional)" : "(Optional)"}
+                  Phone Number {type === "register" && <span className="text-red-500">*</span>}
+                  {type === "register" && <span className="text-sm text-gray-500 ml-2">(Used for notifications)</span>}
                 </FormLabel>
                 <FormControl>
                   <Input
                     {...field}
-                    type="email"
-                    placeholder="john@example.com"
+                    type="tel"
+                    placeholder="+1 234 567 890"
                     disabled={loading}
                     className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
                   />
