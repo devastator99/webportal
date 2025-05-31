@@ -66,9 +66,22 @@ export const NutritionistDashboard = () => {
     setViewMode('list');
   };
 
+  // Extract user's name from metadata
+  const firstName = user?.user_metadata?.first_name || "";
+  const lastName = user?.user_metadata?.last_name || "";
+  const fullName = `${firstName} ${lastName}`.trim();
+
   return (
-    <div className="container mx-auto pt-20 pb-6 px-6 space-y-6">
-      <DashboardHeader />
+    <div className="container mx-auto pt-6 pb-6 px-6 space-y-6">
+      {/* Welcome Header */}
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-[#7E69AB]">
+          Welcome back, {fullName || "Nutritionist"}! 👋
+        </h1>
+        <p className="text-muted-foreground mt-2">
+          Here's an overview of your patients and health plans
+        </p>
+      </div>
       
       <Card className="mb-4">
         <CardContent className="p-4">
@@ -139,7 +152,6 @@ export const NutritionistDashboard = () => {
         <>
           <div className="flex justify-between mb-4">
             <h2 className="text-2xl font-bold">Patient Management</h2>
-            {/* Care Team Chat button removed as requested */}
           </div>
         
           <Card>

@@ -15,6 +15,7 @@ import { AlertCircle } from "lucide-react";
 import { PatientAppLayout } from "@/layouts/PatientAppLayout";
 import { DoctorAppLayout } from "@/layouts/DoctorAppLayout";
 import { AdminAppLayout } from "@/layouts/AdminAppLayout";
+import { NutritionistAppLayout } from "@/layouts/NutritionistAppLayout";
 import { AppLayout } from "@/layouts/AppLayout";
 
 // Map user roles to their respective layouts and dashboards
@@ -28,7 +29,7 @@ const roleLayouts = {
     Dashboard: DoctorDashboard,
   },
   nutritionist: {
-    Layout: AppLayout,
+    Layout: NutritionistAppLayout,
     Dashboard: NutritionistDashboard,
   },
   administrator: {
