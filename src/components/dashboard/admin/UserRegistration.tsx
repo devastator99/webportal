@@ -164,6 +164,49 @@ export const UserRegistration = () => {
         }
       }
 
+      // Step 4: Send welcome notification for all user types
+      try {
+        console.log(`Sending welcome notification for ${role}:`, authData.user.id);
+        
+        const fullName = `${firstName} ${lastName}`.trim();
+        const userEmail = email || primaryIdentifier;
+        
+        const { data: notificationResult, error: notificationError } = await supabase.functions.invoke('send-comprehensive-welcome-notification', {
+          body: {
+            patient_id: authData.user.id,
+            patient_email: userEmail,
+            patient_phone: phone,
+            patient_name: fullName,
+            patient_details: {
+              role: role,
+              registration_type: role === 'patient' ? 'patient' : 'professional'
+            }
+          }
+        });
+
+        if (notificationError) {
+          console.error("Welcome notification error:", notificationError);
+          toast({
+            title: "Registration Complete",
+            description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created successfully, but welcome email may not have been sent.`,
+            variant: "default",
+          });
+        } else {
+          console.log("Welcome notification sent successfully:", notificationResult);
+          toast({
+            title: "Registration Complete",
+            description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created and welcome email sent to ${userEmail}`,
+          });
+        }
+      } catch (notificationError: any) {
+        console.error("Exception sending welcome notification:", notificationError);
+        toast({
+          title: "Registration Complete",
+          description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created successfully, but welcome email may not have been sent.`,
+          variant: "default",
+        });
+      }
+
       // Reset form
       setEmail("");
       setPhone("");
@@ -177,11 +220,6 @@ export const UserRegistration = () => {
       setBloodGroup("");
       setAllergies("");
       setEmergencyContact("");
-      
-      toast({
-        title: "User registered successfully",
-        description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created for ${firstName} ${lastName}`,
-      });
       
       console.log("Registration completed successfully");
       

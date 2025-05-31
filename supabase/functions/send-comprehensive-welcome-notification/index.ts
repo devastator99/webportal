@@ -22,7 +22,33 @@ async function sendEmailNotification(supabaseClient: any, data: NotificationRequ
   try {
     console.log(`Sending email notification to: ${data.patient_email}`);
     
-    const emailSubject = `Welcome to AnubhootiHealth, ${data.patient_name}!`;
+    // Determine the role from patient_details
+    const userRole = data.patient_details?.role || 'patient';
+    const isPatient = userRole === 'patient';
+    const isDoctor = userRole === 'doctor';
+    const isNutritionist = userRole === 'nutritionist';
+    const isAdministrator = userRole === 'administrator';
+    
+    let emailSubject: string;
+    let roleName: string;
+    
+    if (isPatient) {
+      emailSubject = `Welcome to AnubhootiHealth, ${data.patient_name}!`;
+      roleName = "Patient";
+    } else if (isDoctor) {
+      emailSubject = `Welcome to AnubhootiHealth Medical Team, Dr. ${data.patient_name}!`;
+      roleName = "Doctor";
+    } else if (isNutritionist) {
+      emailSubject = `Welcome to AnubhootiHealth Nutrition Team, ${data.patient_name}!`;
+      roleName = "Nutritionist";
+    } else if (isAdministrator) {
+      emailSubject = `Welcome to AnubhootiHealth Administration, ${data.patient_name}!`;
+      roleName = "Administrator";
+    } else {
+      emailSubject = `Welcome to AnubhootiHealth, ${data.patient_name}!`;
+      roleName = "Team Member";
+    }
+    
     const emailHtml = `
       <!DOCTYPE html>
       <html>
@@ -43,27 +69,39 @@ async function sendEmailNotification(supabaseClient: any, data: NotificationRequ
       <body>
         <div class="header">
           <h1>🎉 Welcome to AnubhootiHealth!</h1>
-          <p>Your journey to better health starts now</p>
+          <p>${isPatient ? 'Your journey to better health starts now' : 'Thank you for joining our healthcare team'}</p>
         </div>
         
         <div class="content">
           <h2>Hello ${data.patient_name},</h2>
           
-          <p>Congratulations! Your registration is complete and your personalized care team has been assigned. We're excited to be part of your health journey.</p>
+          ${isPatient ? `
+            <p>Congratulations! Your registration is complete and your personalized care team has been assigned. We're excited to be part of your health journey.</p>
+          ` : `
+            <p>Welcome to the AnubhootiHealth team! Your ${roleName.toLowerCase()} account has been successfully created and you now have access to our healthcare platform.</p>
+          `}
           
           <div class="highlight">
             <h3>✅ Your Account is Ready!</h3>
             <p>You can now access all features of the AnubhootiHealth platform:</p>
             <ul>
-              <li>📱 Secure messaging with your care team</li>
-              <li>📋 Digital health records management</li>
-              <li>💊 Prescription tracking</li>
-              <li>📊 Personalized health dashboard</li>
-              <li>🎯 Custom health plans and goals</li>
+              ${isPatient ? `
+                <li>📱 Secure messaging with your care team</li>
+                <li>📋 Digital health records management</li>
+                <li>💊 Prescription tracking</li>
+                <li>📊 Personalized health dashboard</li>
+                <li>🎯 Custom health plans and goals</li>
+              ` : `
+                <li>👥 Care team collaboration tools</li>
+                <li>📱 Secure patient communication</li>
+                <li>📋 Patient management dashboard</li>
+                <li>📊 Health analytics and reporting</li>
+                <li>🔧 Professional healthcare tools</li>
+              `}
             </ul>
           </div>
           
-          ${data.doctor_name || data.nutritionist_name ? `
+          ${(data.doctor_name || data.nutritionist_name) && isPatient ? `
           <div class="care-team">
             <h3>👥 Your Dedicated Care Team</h3>
             ${data.doctor_name ? `<p><strong>Doctor:</strong> ${data.doctor_name}</p>` : ''}
@@ -76,19 +114,28 @@ async function sendEmailNotification(supabaseClient: any, data: NotificationRequ
             <h3>🚀 Next Steps</h3>
             <ol>
               <li>Log into your dashboard to explore your new account</li>
-              <li>Complete your health profile for personalized recommendations</li>
-              <li>Check your messages - your care team may have already sent you a welcome message</li>
-              <li>Set up your notification preferences</li>
+              ${isPatient ? `
+                <li>Complete your health profile for personalized recommendations</li>
+                <li>Check your messages - your care team may have already sent you a welcome message</li>
+                <li>Set up your notification preferences</li>
+              ` : `
+                <li>Complete your professional profile setup</li>
+                <li>Explore the ${roleName.toLowerCase()} dashboard and tools</li>
+                <li>Join the care team communication channels</li>
+              `}
             </ol>
           </div>
           
-          <p>If you have any questions or need assistance, don't hesitate to reach out to your care team through the platform's secure messaging system.</p>
+          <p>${isPatient ? 
+            'If you have any questions or need assistance, don\'t hesitate to reach out to your care team through the platform\'s secure messaging system.' :
+            'If you have any questions about using the platform or need technical assistance, please contact our support team.'
+          }</p>
           
           <p>Welcome aboard!</p>
           
           <div class="footer">
             <p><strong>The AnubhootiHealth Team</strong></p>
-            <p>🌟 Empowering your health journey with personalized care</p>
+            <p>🌟 ${isPatient ? 'Empowering your health journey with personalized care' : 'Empowering healthcare professionals with advanced tools'}</p>
           </div>
         </div>
       </body>
@@ -98,24 +145,41 @@ async function sendEmailNotification(supabaseClient: any, data: NotificationRequ
     const emailText = `
       Welcome to AnubhootiHealth, ${data.patient_name}!
       
-      Congratulations! Your registration is complete and your personalized care team has been assigned.
+      ${isPatient ? 
+        'Congratulations! Your registration is complete and your personalized care team has been assigned.' :
+        `Welcome to the AnubhootiHealth team! Your ${roleName.toLowerCase()} account has been successfully created.`
+      }
       
       Your Account is Ready!
       You can now access:
+      ${isPatient ? `
       - Secure messaging with your care team
       - Digital health records management
       - Prescription tracking
       - Personalized health dashboard
       - Custom health plans and goals
+      ` : `
+      - Care team collaboration tools
+      - Secure patient communication
+      - Patient management dashboard
+      - Health analytics and reporting
+      - Professional healthcare tools
+      `}
       
       ${data.doctor_name ? `Your Doctor: ${data.doctor_name}` : ''}
       ${data.nutritionist_name ? `Your Nutritionist: ${data.nutritionist_name}` : ''}
       
       Next Steps:
       1. Log into your dashboard to explore your new account
+      ${isPatient ? `
       2. Complete your health profile for personalized recommendations
       3. Check your messages from your care team
       4. Set up your notification preferences
+      ` : `
+      2. Complete your professional profile setup
+      3. Explore the ${roleName.toLowerCase()} dashboard and tools
+      4. Join the care team communication channels
+      `}
       
       Welcome aboard!
       The AnubhootiHealth Team
