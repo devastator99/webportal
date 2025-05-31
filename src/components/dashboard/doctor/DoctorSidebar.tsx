@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { SignOutButton } from "@/components/auth/SignOutButton";
 
 export function DoctorSidebar() {
   const location = useLocation();
@@ -86,6 +87,16 @@ export function DoctorSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         ))}
+        
+        {/* Add SignOut button */}
+        <SidebarMenuItem>
+          <div className="px-4 py-2">
+            <SignOutButton 
+              variant="ghost" 
+              className="w-full justify-start text-[#403E43] hover:bg-[#E5DEFF] hover:text-[#7E69AB]" 
+            />
+          </div>
+        </SidebarMenuItem>
       </SidebarMenu>
     </>
   );
