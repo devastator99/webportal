@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
 import { AllPatientsList } from "@/components/dashboard/doctor/AllPatientsList";
-import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
+import { DoctorAppLayout } from "@/layouts/DoctorAppLayout";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -27,24 +27,26 @@ const PatientsView = () => {
   console.log("Rendering PatientsView component");
 
   return (
-    <div className="pt-16 md:pt-20">
-      <div className="container mx-auto pb-6 px-6 space-y-6">
-        <DashboardHeader 
-          actionButton={
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate("/dashboard")}
-              className="gap-1"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to Dashboard
-            </Button>
-          }
-        />
+    <DoctorAppLayout 
+      showHeader={true} 
+      title="All Patients"
+      description="View and manage your assigned patients"
+    >
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => navigate("/dashboard")}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Dashboard
+          </Button>
+        </div>
         <AllPatientsList />
       </div>
-    </div>
+    </DoctorAppLayout>
   );
 };
 
