@@ -275,7 +275,7 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
       console.log("Triggering task processing for user:", user.id);
       
       const result = await retrySupabaseOperation(async () => {
-        const { data, error } = await supabase.functions.invoke('trigger-registration-notifications', {
+        const { data, error } = await supabase.functions.invoke('process-registration-tasks', {
           body: { patient_id: user.id }
         });
         

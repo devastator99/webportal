@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -144,14 +143,14 @@ export const PatientDashboard = () => {
     
     try {
       console.log("=== DASHBOARD: STARTING TASK PROCESSING ===");
-      console.log("Triggering registration task processing for user:", user.id);
+      console.log("Processing registration tasks for user:", user.id);
       
       // Add timeout to the function call
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Function call timeout after 30 seconds')), 30000);
       });
       
-      const functionPromise = supabase.functions.invoke('trigger-registration-notifications', {
+      const functionPromise = supabase.functions.invoke('process-registration-tasks', {
         body: { patient_id: user.id }
       });
       

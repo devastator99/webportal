@@ -13,95 +13,67 @@ serve(async (req) => {
   }
 
   try {
-    const { patient_email } = await req.json();
+    const { patient_id } = await req.json();
     
-    if (!patient_email) {
+    if (!patient_id) {
       return new Response(
-        JSON.stringify({ error: "Patient email is required" }),
+        JSON.stringify({ error: "Patient ID is required" }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Resetting registration tasks for: ${patient_email}`);
+    console.log(`Resetting stuck registration tasks for patient: ${patient_id}`);
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get user ID by email using RPC function
-    const { data: userId, error: userIdError } = await supabaseClient.rpc(
-      'get_user_id_by_email',
-      { user_email: patient_email }
-    );
-
-    if (userIdError || !userId) {
-      console.error("User not found or error:", userIdError);
-      return new Response(
-        JSON.stringify({ error: `User with email ${patient_email} not found` }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log(`Found user ID: ${userId} for email: ${patient_email}`);
-
-    // Reset all failed and stuck tasks for this user
-    const { data: resetData, error: resetError } = await supabaseClient
+    // Reset failed registration tasks back to pending status
+    const { data: resetResult, error: resetError } = await supabaseClient
       .from('registration_tasks')
       .update({
         status: 'pending',
         retry_count: 0,
-        error_details: null,
         next_retry_at: new Date().toISOString(),
+        error_details: null,
         updated_at: new Date().toISOString()
       })
-      .eq('user_id', userId)
-      .in('status', ['failed', 'pending'])
-      .select();
+      .eq('user_id', patient_id)
+      .eq('status', 'failed');
 
     if (resetError) {
       console.error("Error resetting tasks:", resetError);
-      return new Response(
-        JSON.stringify({ error: `Failed to reset tasks: ${resetError.message}` }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error(`Failed to reset tasks: ${resetError.message}`);
     }
 
-    console.log(`Reset ${resetData?.length || 0} tasks for user ${userId}`);
+    console.log(`Reset result:`, resetResult);
 
-    // Now trigger the processing
-    console.log("Triggering task processing...");
-    const { data: processResult, error: processError } = await supabaseClient.functions.invoke(
-      'process-registration-tasks',
-      { body: { patient_id: userId } }
-    );
+    // Also update the user's registration status back to payment_complete so tasks can be processed
+    const { error: statusError } = await supabaseClient
+      .from('profiles')
+      .update({ 
+        registration_status: 'payment_complete',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', patient_id);
 
-    if (processError) {
-      console.error("Error triggering task processing:", processError);
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: `Tasks reset for ${patient_email} but failed to trigger processing: ${processError.message}`,
-          reset_count: resetData?.length || 0,
-          user_id: userId,
-          processing_error: processError.message
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (statusError) {
+      console.error(`Error updating registration status:`, statusError);
+    } else {
+      console.log(`User ${patient_id} registration status reset to payment_complete`);
     }
 
     return new Response(
       JSON.stringify({
-        success: true,
-        message: `Registration tasks reset and processing triggered for ${patient_email}`,
-        reset_count: resetData?.length || 0,
-        user_id: userId,
-        processing_result: processResult
+        message: "Registration tasks reset successfully",
+        patient_id,
+        reset_count: resetResult?.length || 0
       }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error in reset-stuck-registration-tasks:', error);
     return new Response(
       JSON.stringify({ error: error.message }),

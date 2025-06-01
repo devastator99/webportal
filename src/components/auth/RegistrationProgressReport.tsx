@@ -139,38 +139,19 @@ export const RegistrationProgressReport: React.FC<RegistrationProgressReportProp
     
     try {
       console.log("=== STARTING TASK PROCESSING ===");
-      console.log("Triggering registration task processing for user:", user.id);
+      console.log("Processing registration tasks for user:", user.id);
       
       toast({
         title: "Processing Started",
         description: "Processing your registration tasks. This may take a moment...",
       });
       
-      // First check Twilio configuration
-      console.log("Checking Twilio configuration...");
-      const { data: configData, error: configError } = await supabase.functions.invoke('configure-twilio-notifications');
-      
-      if (configError) {
-        console.error("Twilio configuration check failed:", configError);
-        toast({
-          title: "Configuration Issue",
-          description: "Notification configuration needs attention. Processing will continue with email only.",
-          variant: "destructive"
-        });
-      } else if (configData && !configData.configured) {
-        console.warn("Twilio not fully configured:", configData.message);
-        toast({
-          title: "Partial Configuration",
-          description: "SMS/WhatsApp notifications may not work. Email notifications will work.",
-        });
-      }
-      
       // Add timeout to the function call
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(() => reject(new Error('Function call timeout after 30 seconds')), 30000);
       });
       
-      const functionPromise = supabase.functions.invoke('trigger-registration-notifications', {
+      const functionPromise = supabase.functions.invoke('process-registration-tasks', {
         body: { patient_id: user.id }
       });
       
