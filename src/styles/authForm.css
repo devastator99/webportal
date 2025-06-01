@@ -15,24 +15,26 @@
 /* Mobile Scroll Area Styling */
 .mobile-scroll-area {
   scrollbar-width: thin;
-  scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
+  scrollbar-color: rgba(139, 92, 246, 0.4) rgba(0, 0, 0, 0.1);
 }
 
 .mobile-scroll-area::-webkit-scrollbar {
-  width: 6px;
+  width: 8px;
 }
 
 .mobile-scroll-area::-webkit-scrollbar-track {
-  background: transparent;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 4px;
 }
 
 .mobile-scroll-area::-webkit-scrollbar-thumb {
-  background-color: rgba(139, 92, 246, 0.3);
-  border-radius: 3px;
+  background-color: rgba(139, 92, 246, 0.4);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .mobile-scroll-area::-webkit-scrollbar-thumb:hover {
-  background-color: rgba(139, 92, 246, 0.5);
+  background-color: rgba(139, 92, 246, 0.6);
 }
 
 /* Dialog and Modal Improvements */
@@ -74,14 +76,30 @@
     margin-bottom: 1.5rem;
   }
   
-  /* Ensure scrollbar is visible on mobile */
+  /* Enhanced mobile scrollbar visibility */
   .mobile-scroll-area {
     scrollbar-width: thin !important;
+    scrollbar-color: rgba(139, 92, 246, 0.5) rgba(0, 0, 0, 0.1) !important;
   }
   
   .mobile-scroll-area::-webkit-scrollbar {
     display: block !important;
-    width: 6px !important;
+    width: 8px !important;
+  }
+  
+  .mobile-scroll-area::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.08) !important;
+    border-radius: 4px !important;
+  }
+  
+  .mobile-scroll-area::-webkit-scrollbar-thumb {
+    background-color: rgba(139, 92, 246, 0.5) !important;
+    border-radius: 4px !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  }
+  
+  .mobile-scroll-area::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(139, 92, 246, 0.7) !important;
   }
 }
 
@@ -125,4 +143,18 @@
   margin-top: 1.5rem;
   margin-bottom: 1.5rem;
   width: 100%;
+}
+
+/* Mobile scroll area container improvements */
+@media (max-width: 639px) {
+  .mobile-form-container {
+    padding-bottom: 100px; /* Extra padding for mobile scrolling */
+    min-height: calc(100vh - 200px); /* Ensure content height for scrolling */
+  }
+  
+  /* Better touch scrolling on mobile */
+  .mobile-scroll-area {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto !important;
+  }
 }

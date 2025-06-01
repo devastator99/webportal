@@ -79,9 +79,14 @@ const standardSignupSchema = z.object({
 });
 
 const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
+  email: z.string().optional().refine((val) => !val || z.string().email().safeParse(val).success, {
+    message: "Invalid email address",
+  }),
   phone: z.string().optional().or(z.literal("")),
   password: z.string().min(1, "Password is required"),
+}).refine((data) => data.email || data.phone, {
+  message: "Either email or phone number is required",
+  path: ["email"],
 });
 
 export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
@@ -179,12 +184,12 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           return;
         }
       } else {
-        // For login, ensure email is provided
-        if (!email) {
+        // For login, ensure either email or phone is provided
+        if (!email && !phone) {
           toast({
             variant: "destructive",
             title: "Error",
-            description: "Please enter your email address"
+            description: "Please enter either email or phone number"
           });
           return;
         }
@@ -215,8 +220,8 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
         if (type === "register") {
           await onSubmit(email, password, userType, firstName, lastName);
         } else {
-          // For login, use email (now mandatory)
-          await onSubmit(email, password);
+          // For login, prioritize email if provided, otherwise use phone
+          await onSubmit(email || phone, password);
         }
       }
     } catch (error) {
@@ -394,7 +399,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel className="text-gray-600 font-medium">
-                  Email <span className="text-red-500">*</span>
+                  Email {type === "register" ? <span className="text-red-500">*</span> : "(Optional)"}
                 </FormLabel>
                 <FormControl>
                   <Input
@@ -410,31 +415,29 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           />
         </motion.div>
 
-        {type === "register" && (
-          <motion.div variants={itemVariants} className="space-y-1">
-            <FormField
-              control={form.control}
-              name="phone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-gray-600 font-medium">
-                    Phone Number <span className="text-red-500">*</span>
-                    <span className="text-sm text-gray-500 ml-2">(Used for notifications)</span>
-                  </FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      type="tel"
-                      placeholder="+1 234 567 890"
-                      disabled={loading}
-                      className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </motion.div>
-        )}
+        <motion.div variants={itemVariants} className="space-y-1">
+          <FormField
+            control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-gray-600 font-medium">
+                  Phone Number {type === "register" && <span className="text-red-500">*</span>}
+                  {type === "register" && <span className="text-sm text-gray-500 ml-2">(Used for notifications)</span>}
+                </FormLabel>
+                <FormControl>
+                  <Input
+                    {...field}
+                    type="tel"
+                    placeholder="+1 234 567 890"
+                    disabled={loading}
+                    className="rounded-lg border-gray-200 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+        </motion.div>
 
         <motion.div variants={itemVariants} className="space-y-1">
           <FormField
