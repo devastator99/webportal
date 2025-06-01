@@ -1,6 +1,6 @@
 
 import { Home, FileText, Users, Video, UserRound, Menu, MessageCircle } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -21,9 +21,7 @@ import { SignOutButton } from "@/components/auth/SignOutButton";
 export function DoctorSidebar() {
   const location = useLocation();
   const { user } = useAuth();
-  const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { toggleSidebar } = useSidebar();
   
   if (!user) return null;
 
