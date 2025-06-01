@@ -5,13 +5,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import Index from "./pages/Index";
+import Index from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import CompleteDoctorProfile from "./pages/CompleteDoctorProfile";
 import CompleteNutritionistProfile from "./pages/CompleteNutritionistProfile";
-import Chat from "./pages/Chat";
-import { Prescriptions } from "./pages/Prescriptions";
+import Chat from "./pages/ChatPage";
+import { Prescriptions } from "./pages/PatientPrescriptionsView";
 import { Appointments } from "./pages/Appointments";
 import { NotificationManager } from "@/components/notifications/NotificationManager";
 
