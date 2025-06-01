@@ -17,11 +17,94 @@ interface RegistrationTask {
   next_retry_at: string;
 }
 
+// Process assign_care_team task
+async function processAssignCareTeam(supabaseClient: any, task: RegistrationTask) {
+  console.log(`Processing assign care team task for user ${task.user_id}`);
+  
+  try {
+    // Check if user is a patient
+    const { data: userRole, error: roleError } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', task.user_id)
+      .single();
+    
+    if (roleError || !userRole || userRole.role !== 'patient') {
+      console.log(`Skipping care team assignment for non-patient user ${task.user_id}`);
+      return { success: true, message: 'Care team assignment skipped for non-patient user' };
+    }
+    
+    // Check if already assigned
+    const { data: existingAssignment, error: assignmentError } = await supabaseClient
+      .from('patient_assignments')
+      .select('*')
+      .eq('patient_id', task.user_id)
+      .single();
+    
+    if (!assignmentError && existingAssignment) {
+      console.log(`Care team already assigned for patient ${task.user_id}`);
+      return { success: true, assignment_id: existingAssignment.id };
+    }
+    
+    // Get available doctors and nutritionists
+    const { data: doctors, error: doctorsError } = await supabaseClient
+      .from('profiles')
+      .select('id')
+      .eq('user_type', 'doctor')
+      .limit(1);
+    
+    const { data: nutritionists, error: nutritionistsError } = await supabaseClient
+      .from('profiles')
+      .select('id')
+      .eq('user_type', 'nutritionist')
+      .limit(1);
+    
+    if (doctorsError || nutritionistsError || !doctors?.length || !nutritionists?.length) {
+      throw new Error('No available doctors or nutritionists for assignment');
+    }
+    
+    // Create assignment
+    const { data: assignment, error: createError } = await supabaseClient
+      .from('patient_assignments')
+      .insert({
+        patient_id: task.user_id,
+        doctor_id: doctors[0].id,
+        nutritionist_id: nutritionists[0].id,
+        assigned_at: new Date().toISOString()
+      })
+      .select()
+      .single();
+    
+    if (createError) {
+      throw new Error(`Failed to create care team assignment: ${createError.message}`);
+    }
+    
+    console.log(`Care team assigned successfully for patient ${task.user_id}`);
+    return { success: true, assignment_id: assignment.id };
+    
+  } catch (error) {
+    console.error(`Error in processAssignCareTeam:`, error);
+    throw error;
+  }
+}
+
 // Process create_chat_room task
 async function processCreateChatRoom(supabaseClient: any, task: RegistrationTask) {
   console.log(`Processing create chat room task for user ${task.user_id}`);
   
   try {
+    // Check if user is a patient
+    const { data: userRole, error: roleError } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', task.user_id)
+      .single();
+    
+    if (roleError || !userRole || userRole.role !== 'patient') {
+      console.log(`Skipping chat room creation for non-patient user ${task.user_id}`);
+      return { success: true, message: 'Chat room creation skipped for non-patient user' };
+    }
+    
     // Get patient's care team assignment
     const { data: careTeam, error: careTeamError } = await supabaseClient
       .from('patient_assignments')
@@ -59,22 +142,29 @@ async function processSendWelcomeNotification(supabaseClient: any, task: Registr
   console.log(`Processing comprehensive welcome notification for user ${task.user_id}`);
   
   try {
-    // Get patient profile with email from auth.users
-    const { data: patientProfile, error: profileError } = await supabaseClient
+    // Get user role to determine notification type
+    const { data: userRole, error: roleError } = await supabaseClient
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', task.user_id)
+      .single();
+    
+    if (roleError || !userRole) {
+      throw new Error(`Cannot retrieve user role: ${roleError?.message || 'Role not found'}`);
+    }
+    
+    // Get user profile with email from auth.users
+    const { data: userProfile, error: profileError } = await supabaseClient
       .from('profiles')
       .select(`
-        id, first_name, last_name, phone,
-        patient_details (
-          gender, date_of_birth, height, weight, blood_group,
-          allergies, chronic_conditions, emergency_contact
-        )
+        id, first_name, last_name, phone, user_type
       `)
       .eq('id', task.user_id)
       .single();
     
     if (profileError) {
-      console.error("Cannot retrieve patient profile:", profileError);
-      throw new Error(`Cannot retrieve patient profile: ${profileError.message}`);
+      console.error("Cannot retrieve user profile:", profileError);
+      throw new Error(`Cannot retrieve user profile: ${profileError.message}`);
     }
     
     // Get email from auth.users
@@ -85,49 +175,96 @@ async function processSendWelcomeNotification(supabaseClient: any, task: Registr
       throw new Error(`Cannot retrieve user email: ${authError?.message || 'User not found'}`);
     }
     
-    // Get care team assignment with doctor and nutritionist details
-    const { data: careTeamData, error: careTeamError } = await supabaseClient
-      .from('patient_assignments')
-      .select(`
-        doctor:doctor_id (
-          id, first_name, last_name, specialty
-        ),
-        nutritionist:nutritionist_id (
-          id, first_name, last_name
-        )
-      `)
-      .eq('patient_id', task.user_id)
-      .single();
-    
-    if (careTeamError) {
-      console.error("Cannot retrieve care team:", careTeamError);
-      throw new Error(`Cannot retrieve care team: ${careTeamError.message}`);
-    }
-    
-    // Prepare comprehensive notification data
-    const notificationData = {
-      patient_id: task.user_id,
-      patient_email: authUser.user.email,
-      patient_phone: patientProfile.phone,
-      patient_name: `${patientProfile.first_name || ''} ${patientProfile.last_name || ''}`.trim(),
-      doctor_name: careTeamData.doctor ? `Dr. ${careTeamData.doctor.first_name} ${careTeamData.doctor.last_name}` : 'Your assigned doctor',
-      nutritionist_name: careTeamData.nutritionist ? `${careTeamData.nutritionist.first_name} ${careTeamData.nutritionist.last_name}` : 'Your assigned nutritionist',
-      patient_details: patientProfile.patient_details || {}
+    let notificationData = {
+      user_id: task.user_id,
+      user_email: authUser.user.email,
+      user_phone: userProfile.phone,
+      user_name: `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim(),
+      user_type: userRole.role
     };
     
-    // Call the comprehensive welcome notification edge function
-    const { data: notificationResult, error: notificationError } = await supabaseClient.functions.invoke(
-      'send-comprehensive-welcome-notification',
-      { body: notificationData }
-    );
-    
-    if (notificationError) {
-      console.error("Welcome notification error:", notificationError);
-      throw new Error(`Failed to send comprehensive welcome notification: ${notificationError.message}`);
+    // For patients, get care team details
+    if (userRole.role === 'patient') {
+      const { data: careTeamData, error: careTeamError } = await supabaseClient
+        .from('patient_assignments')
+        .select(`
+          doctor:doctor_id (
+            id, first_name, last_name, specialty
+          ),
+          nutritionist:nutritionist_id (
+            id, first_name, last_name
+          )
+        `)
+        .eq('patient_id', task.user_id)
+        .single();
+      
+      if (careTeamError) {
+        console.error("Cannot retrieve care team:", careTeamError);
+        throw new Error(`Cannot retrieve care team: ${careTeamError.message}`);
+      }
+      
+      // Get patient details
+      const { data: patientDetails, error: detailsError } = await supabaseClient
+        .from('profiles')
+        .select(`
+          patient_details (
+            gender, date_of_birth, height, weight, blood_group,
+            allergies, chronic_conditions, emergency_contact
+          )
+        `)
+        .eq('id', task.user_id)
+        .single();
+      
+      notificationData = {
+        ...notificationData,
+        patient_id: task.user_id,
+        patient_email: authUser.user.email,
+        patient_phone: userProfile.phone,
+        patient_name: notificationData.user_name,
+        doctor_name: careTeamData.doctor ? `Dr. ${careTeamData.doctor.first_name} ${careTeamData.doctor.last_name}` : 'Your assigned doctor',
+        nutritionist_name: careTeamData.nutritionist ? `${careTeamData.nutritionist.first_name} ${careTeamData.nutritionist.last_name}` : 'Your assigned nutritionist',
+        patient_details: patientDetails?.patient_details || {}
+      };
+      
+      // Call the comprehensive welcome notification edge function for patients
+      const { data: notificationResult, error: notificationError } = await supabaseClient.functions.invoke(
+        'send-comprehensive-welcome-notification',
+        { body: notificationData }
+      );
+      
+      if (notificationError) {
+        console.error("Patient welcome notification error:", notificationError);
+        throw new Error(`Failed to send patient welcome notification: ${notificationError.message}`);
+      }
+      
+      console.log(`Patient welcome notification sent successfully for user ${task.user_id}`);
+      return { success: true, result: notificationResult };
+    } else {
+      // For professionals (doctors/nutritionists), send a simpler welcome notification
+      const { data: notificationResult, error: notificationError } = await supabaseClient.functions.invoke(
+        'send-email-notification',
+        { 
+          body: {
+            to: authUser.user.email,
+            subject: `Welcome to HealthCare Platform - ${userRole.role.charAt(0).toUpperCase() + userRole.role.slice(1)} Account`,
+            html: `
+              <h2>Welcome ${notificationData.user_name}!</h2>
+              <p>Your ${userRole.role} account has been successfully created.</p>
+              <p>You can now access your dashboard and start using the platform.</p>
+              <p>If you have any questions, please don't hesitate to contact our support team.</p>
+            `
+          }
+        }
+      );
+      
+      if (notificationError) {
+        console.error("Professional welcome notification error:", notificationError);
+        throw new Error(`Failed to send professional welcome notification: ${notificationError.message}`);
+      }
+      
+      console.log(`Professional welcome notification sent successfully for user ${task.user_id}`);
+      return { success: true, result: notificationResult };
     }
-    
-    console.log(`Welcome notification sent successfully for user ${task.user_id}`);
-    return { success: true, result: notificationResult };
     
   } catch (error) {
     console.error(`Error in processSendWelcomeNotification:`, error);
@@ -184,14 +321,14 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Triggering registration notifications for patient: ${patient_id}`);
+    console.log(`Triggering registration notifications for user: ${patient_id}`);
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get pending tasks for this patient
+    // Get pending tasks for this user
     const { data: tasks, error: tasksError } = await supabaseClient
       .from('registration_tasks')
       .select('*')
@@ -206,25 +343,28 @@ serve(async (req) => {
     }
 
     if (!tasks || tasks.length === 0) {
-      console.log(`No pending tasks found for patient: ${patient_id}`);
+      console.log(`No pending tasks found for user: ${patient_id}`);
       return new Response(
-        JSON.stringify({ message: "No pending tasks found", patient_id }),
+        JSON.stringify({ message: "No pending tasks found", user_id: patient_id }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Found ${tasks.length} pending tasks for patient ${patient_id}: ${tasks.map(t => `${t.task_type} (retry: ${t.retry_count})`).join(', ')}`);
+    console.log(`Found ${tasks.length} pending tasks for user ${patient_id}: ${tasks.map(t => `${t.task_type} (retry: ${t.retry_count})`).join(', ')}`);
 
     // Process tasks in parallel with independent error handling
-    console.log(`Processing ${tasks.length} tasks in parallel for patient ${patient_id}`);
+    console.log(`Processing ${tasks.length} tasks in parallel for user ${patient_id}`);
     
     const taskResults = await Promise.allSettled(
       tasks.map(async (task) => {
-        console.log(`Starting independent processing of task ${task.task_type} for patient ${patient_id}`);
+        console.log(`Starting independent processing of task ${task.task_type} for user ${patient_id}`);
         try {
           let result;
           
-          if (task.task_type === 'create_chat_room') {
+          if (task.task_type === 'assign_care_team') {
+            console.log(`Processing assign_care_team task ${task.id}`);
+            result = await processAssignCareTeam(supabaseClient, task);
+          } else if (task.task_type === 'create_chat_room') {
             console.log(`Processing create_chat_room task ${task.id}`);
             result = await processCreateChatRoom(supabaseClient, task);
           } else if (task.task_type === 'send_welcome_notification') {
@@ -249,7 +389,7 @@ serve(async (req) => {
     const successCount = taskResults.filter(result => result.status === 'fulfilled' && result.value.success).length;
     const failedCount = taskResults.length - successCount;
     
-    console.log(`Independent task processing summary for patient ${patient_id}: ${successCount}/${tasks.length} successful, ${failedCount} failed`);
+    console.log(`Independent task processing summary for user ${patient_id}: ${successCount}/${tasks.length} successful, ${failedCount} failed`);
 
     // Check if all tasks are completed
     console.log(`Checking if all tasks completed for user ${patient_id}...`);
@@ -289,7 +429,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         message: "Task processing completed",
-        patient_id,
+        user_id: patient_id,
         processed_tasks: tasks.length,
         successful_tasks: successCount,
         failed_tasks: failedCount,
