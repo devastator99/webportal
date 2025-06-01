@@ -1,13 +1,11 @@
 
-import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Card, CardContent } from "@/components/ui/card";
 import { PatientAppLayout } from '@/layouts/PatientAppLayout';
 import { DoctorAppLayout } from '@/layouts/DoctorAppLayout';
 import { AdminAppLayout } from '@/layouts/AdminAppLayout';
 import { AppLayout } from '@/layouts/AppLayout';
-import UnderConstructionPage from '@/components/common/UnderConstructionPage';
 import { ContentContainer } from '@/components/layout/ContentContainer';
+import { PrescriptionWriter } from '@/components/dashboard/doctor/PrescriptionWriter';
 
 const NewPrescriptionPage: React.FC = () => {
   const { userRole } = useAuth();
@@ -18,7 +16,7 @@ const NewPrescriptionPage: React.FC = () => {
       case "patient":
         return <PatientAppLayout showHeader title="Prescriptions" description="View your prescriptions and recommendations" fullWidth={true}>{children}</PatientAppLayout>;
       case "doctor":
-        return <DoctorAppLayout showHeader title="Prescriptions" description="Create and manage patient prescriptions" fullWidth={true}>{children}</DoctorAppLayout>;
+        return <DoctorAppLayout showHeader title="New Prescription" description="Create and manage patient prescriptions" fullWidth={true}>{children}</DoctorAppLayout>;
       case "administrator":
         return <AdminAppLayout showHeader title="Prescriptions" description="Manage system prescriptions" fullWidth={true}>{children}</AdminAppLayout>;
       default:
@@ -28,10 +26,7 @@ const NewPrescriptionPage: React.FC = () => {
 
   return getLayout(
     <ContentContainer>
-      <UnderConstructionPage 
-        title="Prescriptions Coming Soon" 
-        description="We're working on enhancing your prescription experience. Please check back soon!"
-      />
+      <PrescriptionWriter />
     </ContentContainer>
   );
 };
