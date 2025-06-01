@@ -12,6 +12,29 @@
   padding-bottom: 80px; /* Increased padding at the bottom for mobile */
 }
 
+/* Mobile Scroll Area Styling */
+.mobile-scroll-area {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
+}
+
+.mobile-scroll-area::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mobile-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.mobile-scroll-area::-webkit-scrollbar-thumb {
+  background-color: rgba(139, 92, 246, 0.3);
+  border-radius: 3px;
+}
+
+.mobile-scroll-area::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(139, 92, 246, 0.5);
+}
+
 /* Dialog and Modal Improvements */
 .glass-dialog {
   display: flex;
@@ -23,6 +46,16 @@
 @media (min-width: 640px) {
   .glass-dialog {
     max-height: 90vh; /* Slightly taller on desktop */
+  }
+  
+  /* Hide scrollbar on desktop for cleaner look */
+  .mobile-scroll-area {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  
+  .mobile-scroll-area::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -40,16 +73,16 @@
   .auth-form-container .bg-gray-50 {
     margin-bottom: 1.5rem;
   }
-}
-
-/* Make sure the modal is tall enough on mobile but doesn't overflow */
-.glass-dialog .scrollbar-hide {
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.glass-dialog .scrollbar-hide::-webkit-scrollbar {
-  display: none;
+  
+  /* Ensure scrollbar is visible on mobile */
+  .mobile-scroll-area {
+    scrollbar-width: thin !important;
+  }
+  
+  .mobile-scroll-area::-webkit-scrollbar {
+    display: block !important;
+    width: 6px !important;
+  }
 }
 
 /* Ensure buttons are always visible */
@@ -92,14 +125,4 @@
   margin-top: 1.5rem;
   margin-bottom: 1.5rem;
   width: 100%;
-}
-
-/* Added invisible scrollbar class that works across browsers */
-.invisible-scroll {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.invisible-scroll::-webkit-scrollbar {
-  display: none;
 }

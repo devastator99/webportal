@@ -190,9 +190,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </Button>
           
           <ScrollArea 
-            className="flex-1 w-full overflow-y-auto invisible-scroll"
-            invisibleScrollbar={true} 
+            className="flex-1 w-full overflow-y-auto mobile-scroll-area"
             orientation="vertical"
+            maxHeight="calc(85vh - 2rem)"
           >
             <motion.div
               className="p-6 mobile-form-container"

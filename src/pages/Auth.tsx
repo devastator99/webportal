@@ -401,8 +401,7 @@ const Auth = () => {
         {registrationStep === 1 && (
           <div className="bg-white py-6 sm:py-8 px-4 shadow-lg shadow-saas-light-purple/20 sm:rounded-lg sm:px-10 relative">
             <ScrollArea 
-              className="w-full" 
-              invisibleScrollbar={true}
+              className="w-full mobile-scroll-area" 
               maxHeight="65vh"
             >
               <div className="mobile-form-container pr-1">
