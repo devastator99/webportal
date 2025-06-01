@@ -276,7 +276,7 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
       
       const result = await retrySupabaseOperation(async () => {
         const { data, error } = await supabase.functions.invoke('process-registration-tasks', {
-          body: { patient_id: user.id }
+          body: { user_id: user.id }
         });
         
         if (error) {
