@@ -1,5 +1,5 @@
 
-import { UnderConstructionPage } from "@/components/common/UnderConstructionPage";
+import UnderConstructionPage from "@/components/common/UnderConstructionPage";
 
 export const Appointments = () => {
   return <UnderConstructionPage />;

@@ -5,13 +5,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
-import Index from "./pages/LandingPage";
+import { LandingPage } from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import Auth from "./pages/Auth";
 import CompleteDoctorProfile from "./pages/CompleteDoctorProfile";
 import CompleteNutritionistProfile from "./pages/CompleteNutritionistProfile";
 import Chat from "./pages/ChatPage";
-import { Prescriptions } from "./pages/PatientPrescriptionsView";
+import PatientPrescriptionsView from "./pages/PatientPrescriptionsView";
 import { Appointments } from "./pages/Appointments";
 import { NotificationManager } from "@/components/notifications/NotificationManager";
 
@@ -27,13 +27,13 @@ function App() {
           <AuthProvider>
             <NotificationManager />
             <Routes>
-              <Route path="/" element={<Index />} />
+              <Route path="/" element={<LandingPage />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/auth/*" element={<Auth />} />
               <Route path="/complete-doctor-profile" element={<CompleteDoctorProfile />} />
               <Route path="/complete-nutritionist-profile" element={<CompleteNutritionistProfile />} />
               <Route path="/chat" element={<Chat />} />
-              <Route path="/prescriptions" element={<Prescriptions />} />
+              <Route path="/prescriptions" element={<PatientPrescriptionsView />} />
               <Route path="/appointments" element={<Appointments />} />
             </Routes>
           </AuthProvider>
