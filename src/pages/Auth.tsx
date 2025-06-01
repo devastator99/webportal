@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,6 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { RegistrationProgressReport } from "@/components/auth/RegistrationProgressReport";
 import { supabase } from "@/integrations/supabase/client";
 import { UserRegistrationStatus, RegistrationStatusValues } from "@/types/registration";
+import { checkDoctorProfileComplete, checkNutritionistProfileComplete } from "@/utils/profileCompletionCheck";
 
 const Auth = () => {
   const { user, userRole, isLoading, isLoadingRole } = useAuth();
@@ -24,6 +24,7 @@ const Auth = () => {
   const [isRegistrationFlow, setIsRegistrationFlow] = useState(false);
   const [isCheckingRegistrationStatus, setIsCheckingRegistrationStatus] = useState(false);
   const [hasCompletionCheck, setHasCompletionCheck] = useState(false);
+  const [isCheckingProfileCompletion, setIsCheckingProfileCompletion] = useState(false);
   
   const isRegistration = location.pathname.includes('/register');
 
@@ -95,7 +96,7 @@ const Auth = () => {
   useEffect(() => {
     const handleRedirect = async () => {
       // Don't redirect while still loading
-      if (isLoading || isLoadingRole || isCheckingRegistrationStatus) {
+      if (isLoading || isLoadingRole || isCheckingRegistrationStatus || isCheckingProfileCompletion) {
         console.log("Auth page: Still loading auth state, waiting...");
         return;
       }
@@ -114,16 +115,62 @@ const Auth = () => {
         return;
       }
       
-      // For doctors and nutritionists, redirect to profile completion if not complete
+      // For doctors and nutritionists, check if profile is complete before redirecting
       if (userRole === 'doctor') {
         console.log("Doctor detected, checking profile completion");
-        navigate("/complete-doctor-profile", { replace: true });
+        
+        // Only check once to avoid infinite loops
+        if (!hasCompletionCheck) {
+          setIsCheckingProfileCompletion(true);
+          setHasCompletionCheck(true);
+          
+          try {
+            const isComplete = await checkDoctorProfileComplete(user.id);
+            
+            if (isComplete) {
+              console.log("Doctor profile is complete, redirecting to dashboard");
+              navigate("/dashboard", { replace: true });
+            } else {
+              console.log("Doctor profile is incomplete, redirecting to profile completion");
+              navigate("/complete-doctor-profile", { replace: true });
+            }
+          } catch (error) {
+            console.error("Error checking doctor profile completion:", error);
+            // On error, redirect to profile completion to be safe
+            navigate("/complete-doctor-profile", { replace: true });
+          } finally {
+            setIsCheckingProfileCompletion(false);
+          }
+        }
         return;
       }
       
       if (userRole === 'nutritionist') {
         console.log("Nutritionist detected, checking profile completion");
-        navigate("/complete-nutritionist-profile", { replace: true });
+        
+        // Only check once to avoid infinite loops
+        if (!hasCompletionCheck) {
+          setIsCheckingProfileCompletion(true);
+          setHasCompletionCheck(true);
+          
+          try {
+            const isComplete = await checkNutritionistProfileComplete(user.id);
+            
+            if (isComplete) {
+              console.log("Nutritionist profile is complete, redirecting to dashboard");
+              navigate("/dashboard", { replace: true });
+            } else {
+              console.log("Nutritionist profile is incomplete, redirecting to profile completion");
+              navigate("/complete-nutritionist-profile", { replace: true });
+            }
+          } catch (error) {
+            console.error("Error checking nutritionist profile completion:", error);
+            // On error, redirect to profile completion to be safe
+            navigate("/complete-nutritionist-profile", { replace: true });
+          } finally {
+            setIsCheckingProfileCompletion(false);
+          }
+        }
         return;
       }
       
@@ -209,12 +256,13 @@ const Auth = () => {
   }, [user, userRole, isLoading, isLoadingRole, navigate, isRegistrationFlow, isRegistration, registrationStep, hasCompletionCheck]);
 
   // Show loading state while auth is loading or checking registration status
-  if (isLoading || isLoadingRole || isCheckingRegistrationStatus) {
+  if (isLoading || isLoadingRole || isCheckingRegistrationStatus || isCheckingProfileCompletion) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col items-center justify-center pt-16 md:pt-20">
         <LucideLoader2 className="w-8 h-8 animate-spin text-purple-600" />
         <p className="mt-4 text-sm text-gray-600">
-          {isCheckingRegistrationStatus ? "Checking registration status..." : "Loading..."}
+          {isCheckingRegistrationStatus ? "Checking registration status..." : 
+           isCheckingProfileCompletion ? "Checking profile completion..." : "Loading..."}
         </p>
       </div>
     );
