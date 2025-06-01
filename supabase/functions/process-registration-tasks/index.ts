@@ -77,7 +77,7 @@ serve(async (req) => {
           throw new Error('No active default care team found')
         }
 
-        const { error: assignError } = await supabase.rpc('admin_assign_care_team', {
+        const { data: assignmentResult, error: assignError } = await supabase.rpc('admin_assign_care_team', {
           p_patient_id: task.user_id,
           p_doctor_id: defaultCareTeam.default_doctor_id,
           p_nutritionist_id: defaultCareTeam.default_nutritionist_id,
@@ -88,7 +88,13 @@ serve(async (req) => {
           throw new Error(`Care team assignment failed: ${assignError.message}`)
         }
 
-        return { care_team_assigned: true }
+        // Check if the RPC returned success in the response data
+        if (!assignmentResult || !assignmentResult.success) {
+          const errorMsg = assignmentResult?.error || 'Care team assignment returned failure'
+          throw new Error(`Care team assignment failed: ${errorMsg}`)
+        }
+
+        return { care_team_assigned: true, assignment_id: assignmentResult.id }
       },
 
       'create_chat_room': async (supabase, task) => {
@@ -105,8 +111,15 @@ serve(async (req) => {
           throw new Error(`Failed to create care team room: ${roomError.message}`)
         }
         
-        console.log(`Care team room created/found: ${roomData.room_id}`)
-        return { success: true, room_id: roomData.room_id }
+        // Check if we actually got a valid room ID
+        const roomId = roomData?.room_id || roomData?.id || roomData
+        if (!roomId) {
+          console.error("No room ID returned from care team room creation")
+          throw new Error('Failed to create care team room: No room ID returned')
+        }
+        
+        console.log(`Care team room created/found: ${roomId}`)
+        return { success: true, room_id: roomId }
       },
 
       'send_welcome_notification': async (supabase, task) => {

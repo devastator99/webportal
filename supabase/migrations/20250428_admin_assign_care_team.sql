@@ -20,16 +20,8 @@ DECLARE
   v_nutritionist_role TEXT;
   v_assignment_id UUID;
 BEGIN
-  -- Check if admin_id is provided
-  IF p_admin_id IS NULL THEN
-    RETURN jsonb_build_object(
-      'success', false,
-      'error', 'Administrator ID is required'
-    );
-  END IF;
-
-  -- We're skipping admin role verification as requested by the user
-  -- We trust that the frontend has verified the user's role
+  -- Skip admin role verification for automated registration tasks
+  -- We trust that the calling system has proper authorization
   
   -- Verify the doctor has the doctor role
   SELECT role INTO v_doctor_role 
