@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -68,7 +69,7 @@ const Auth = () => {
     }
   };
 
-  // Check registration state from localStorage on initial load (only for registration routes)
+  // Check registration state from localStorage on initial load (only for patient registration routes)
   useEffect(() => {
     const checkLocalStorageState = () => {
       if (!isRegistration) return;
@@ -90,7 +91,7 @@ const Auth = () => {
     checkLocalStorageState();
   }, [isRegistration, location.pathname]);
 
-  // Enhanced redirect logic - but don't interfere with step 3
+  // Enhanced redirect logic for different user types
   useEffect(() => {
     const handleRedirect = async () => {
       // Don't redirect while still loading
@@ -106,7 +107,20 @@ const Auth = () => {
       
       console.log("Auth page detected logged in user. Role:", userRole, "isRegistrationFlow:", isRegistrationFlow, "isRegistration:", isRegistration, "registrationStep:", registrationStep);
       
-      // For non-patient roles, redirect to dashboard (they don't need registration)
+      // For doctors and nutritionists, redirect to profile completion if not complete
+      if (userRole === 'doctor') {
+        console.log("Doctor detected, checking profile completion");
+        navigate("/complete-doctor-profile", { replace: true });
+        return;
+      }
+      
+      if (userRole === 'nutritionist') {
+        console.log("Nutritionist detected, checking profile completion");
+        navigate("/complete-nutritionist-profile", { replace: true });
+        return;
+      }
+      
+      // For other non-patient roles, redirect to dashboard
       if (userRole && userRole !== 'patient') {
         console.log("Redirecting non-patient to dashboard:", userRole);
         navigate("/dashboard", { replace: true });
@@ -206,7 +220,7 @@ const Auth = () => {
     );
   }
 
-  // Handle signup form submission - Enhanced to better handle role assignment
+  // Handle signup form submission - Enhanced to properly handle professional registration
   const handleFormSubmit = async (
     email: string, 
     password: string, 
@@ -221,10 +235,10 @@ const Auth = () => {
       
       setError(null);
       
-      // Flag this as a registration flow before user creation
+      // Flag this as a patient registration flow only for patients
       const isPatientRegistration = userType === 'patient';
       
-      // Set localStorage flags for patient registration
+      // Set localStorage flags only for patient registration
       if (isPatientRegistration) {
         localStorage.setItem('registration_payment_pending', 'true');
         localStorage.setItem('registration_payment_complete', 'false');
@@ -241,7 +255,7 @@ const Auth = () => {
       // Attempt registration
       const user = await handleSignUp(email, password, userType as any, firstName, lastName, enhancedPatientData);
       
-      // If this is a patient registration and we were successful, move to payment step
+      // Handle post-registration flow based on user type
       if (user && isPatientRegistration) {
         console.log("Patient registered successfully, moving to payment step");
         setRegisteredUser(user);
@@ -250,6 +264,19 @@ const Auth = () => {
           title: "Account created",
           description: "Please complete your registration by making the payment",
         });
+      } else if (user && (userType === 'doctor' || userType === 'nutritionist')) {
+        // For professionals, redirect to profile completion immediately
+        console.log(`${userType} registered successfully, redirecting to profile completion`);
+        toast({
+          title: "Account created",
+          description: `Please complete your ${userType} profile to finish registration`,
+        });
+        
+        if (userType === 'doctor') {
+          navigate("/complete-doctor-profile");
+        } else if (userType === 'nutritionist') {
+          navigate("/complete-nutritionist-profile");
+        }
       } else if (user) {
         // Non-patient users can go directly to dashboard
         toast({
@@ -311,7 +338,7 @@ const Auth = () => {
     );
   }
 
-  // For registration process with multiple steps
+  // For registration process with multiple steps (patients only)
   return (
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-6 sm:py-12 px-4 sm:px-6 lg:px-8 pt-16 md:pt-20 overflow-hidden">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">

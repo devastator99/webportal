@@ -20,67 +20,69 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { LucideLoader2 } from "lucide-react";
 
-const doctorProfileSchema = z.object({
-  specialty: z.string().min(2, "Specialty is required"),
-  visiting_hours: z.string().min(2, "Visiting hours are required"),
-  clinic_location: z.string().min(2, "Clinic location is required"),
+const nutritionistProfileSchema = z.object({
+  specialization: z.string().min(2, "Specialization is required"),
+  certifications: z.string().min(2, "Certifications are required"),
+  experience_years: z.string().refine(val => !isNaN(Number(val)) && Number(val) >= 0, {
+    message: "Experience years must be a valid number",
+  }),
   consultation_fee: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, {
     message: "Consultation fee must be a valid number greater than 0",
   }),
   phone: z.string().min(10, "Phone number is required"),
 });
 
-type DoctorProfileFormValues = z.infer<typeof doctorProfileSchema>;
+type NutritionistProfileFormValues = z.infer<typeof nutritionistProfileSchema>;
 
-export const DoctorProfileForm = () => {
+export const NutritionistProfileForm = () => {
   const { user, userRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [profileComplete, setProfileComplete] = useState(false);
 
-  const form = useForm<DoctorProfileFormValues>({
-    resolver: zodResolver(doctorProfileSchema),
+  const form = useForm<NutritionistProfileFormValues>({
+    resolver: zodResolver(nutritionistProfileSchema),
     defaultValues: {
-      specialty: "",
-      visiting_hours: "",
-      clinic_location: "",
-      consultation_fee: "500", // Default consultation fee
+      specialization: "",
+      certifications: "",
+      experience_years: "0",
+      consultation_fee: "300", // Default consultation fee
       phone: "",
     },
   });
 
-  // Check if the doctor profile is already complete
+  // Check if the nutritionist profile is already complete
   useEffect(() => {
     const checkProfile = async () => {
-      if (!user || userRole !== "doctor") return;
+      if (!user || userRole !== "nutritionist") return;
 
       setLoading(true);
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("specialty, visiting_hours, clinic_location, consultation_fee, phone")
+          .select("specialization, certifications, experience_years, consultation_fee, phone")
           .eq("id", user.id)
           .single();
 
         if (error) throw error;
 
         // If all required fields are present, consider profile complete
-        if (data?.specialty && data?.visiting_hours && data?.clinic_location && data?.phone) {
+        if (data?.specialization && data?.certifications && data?.phone) {
           setProfileComplete(true);
           navigate("/dashboard");
         } else if (data) {
           // Pre-fill the form with any existing data
           form.reset({
-            specialty: data.specialty || "",
-            visiting_hours: data.visiting_hours || "",
-            clinic_location: data.clinic_location || "",
-            consultation_fee: data.consultation_fee?.toString() || "500",
+            specialization: data.specialization || "",
+            certifications: data.certifications || "",
+            experience_years: data.experience_years?.toString() || "0",
+            consultation_fee: data.consultation_fee?.toString() || "300",
             phone: data.phone || "",
           });
         }
       } catch (error) {
-        console.error("Error checking doctor profile:", error);
+        console.error("Error checking nutritionist profile:", error);
       } finally {
         setLoading(false);
       }
@@ -89,18 +91,18 @@ export const DoctorProfileForm = () => {
     checkProfile();
   }, [user, userRole, navigate, form]);
 
-  const onSubmit = async (values: DoctorProfileFormValues) => {
+  const onSubmit = async (values: NutritionistProfileFormValues) => {
     if (!user) return;
     
     setLoading(true);
     try {
-      // Update the profile with doctor-specific information
+      // Update the profile with nutritionist-specific information
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
-          specialty: values.specialty,
-          visiting_hours: values.visiting_hours,
-          clinic_location: values.clinic_location,
+          specialization: values.specialization,
+          certifications: values.certifications,
+          experience_years: parseInt(values.experience_years),
           consultation_fee: parseFloat(values.consultation_fee),
           phone: values.phone,
           updated_at: new Date().toISOString(),
@@ -110,7 +112,7 @@ export const DoctorProfileForm = () => {
       if (profileError) throw profileError;
 
       // Trigger professional registration completion
-      console.log("Triggering professional registration completion for doctor:", user.id);
+      console.log("Triggering professional registration completion for nutritionist:", user.id);
       
       const { data: registrationResult, error: registrationError } = await supabase.functions.invoke(
         'complete-professional-registration',
@@ -133,7 +135,7 @@ export const DoctorProfileForm = () => {
         console.log("Professional registration completed successfully:", registrationResult);
         toast({
           title: "Registration complete",
-          description: "Your doctor profile has been completed and welcome notifications have been sent.",
+          description: "Your nutritionist profile has been completed and welcome notifications have been sent.",
         });
       } else {
         console.error("Professional registration failed:", registrationResult);
@@ -147,7 +149,7 @@ export const DoctorProfileForm = () => {
       // Redirect to dashboard after successful update
       navigate("/dashboard");
     } catch (error: any) {
-      console.error("Error updating doctor profile:", error);
+      console.error("Error updating nutritionist profile:", error);
       toast({
         variant: "destructive",
         title: "Error updating profile",
@@ -158,8 +160,8 @@ export const DoctorProfileForm = () => {
     }
   };
 
-  // If user is not a doctor or profile is already complete
-  if (!user || userRole !== "doctor") {
+  // If user is not a nutritionist or profile is already complete
+  if (!user || userRole !== "nutritionist") {
     return null;
   }
 
@@ -167,7 +169,7 @@ export const DoctorProfileForm = () => {
     <div className="min-h-screen bg-gradient-to-br from-saas-light-purple to-white flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-extrabold text-saas-dark">
-          Complete Your Doctor Profile
+          Complete Your Nutritionist Profile
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Please provide your professional details to complete registration
@@ -198,13 +200,13 @@ export const DoctorProfileForm = () => {
 
               <FormField
                 control={form.control}
-                name="specialty"
+                name="specialization"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Specialty *</FormLabel>
+                    <FormLabel>Specialization *</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="e.g., Endocrinology, Cardiology" 
+                        placeholder="e.g., Clinical Nutrition, Sports Nutrition" 
                         disabled={loading}
                         {...field} 
                       />
@@ -216,13 +218,13 @@ export const DoctorProfileForm = () => {
 
               <FormField
                 control={form.control}
-                name="visiting_hours"
+                name="certifications"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Visiting Hours *</FormLabel>
+                    <FormLabel>Certifications *</FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="e.g., Mon-Fri: 9AM-5PM, Sat: 9AM-1PM" 
+                        placeholder="e.g., Registered Dietitian, Certified Nutrition Specialist" 
                         disabled={loading}
                         {...field} 
                       />
@@ -234,13 +236,15 @@ export const DoctorProfileForm = () => {
 
               <FormField
                 control={form.control}
-                name="clinic_location"
+                name="experience_years"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Clinic Location *</FormLabel>
+                    <FormLabel>Years of Experience *</FormLabel>
                     <FormControl>
-                      <Textarea 
-                        placeholder="Full address of your clinic" 
+                      <Input 
+                        type="number"
+                        min="0"
+                        placeholder="e.g., 5" 
                         disabled={loading}
                         {...field} 
                       />
@@ -260,7 +264,7 @@ export const DoctorProfileForm = () => {
                       <Input 
                         type="number"
                         min="1"
-                        placeholder="e.g., 500" 
+                        placeholder="e.g., 300" 
                         disabled={loading}
                         {...field} 
                       />

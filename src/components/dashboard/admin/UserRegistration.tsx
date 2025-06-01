@@ -83,13 +83,13 @@ export const UserRegistration = () => {
       
       console.log("Creating auth user with identifier:", primaryIdentifier);
       
-      // Step 1: Create the user in Auth (simplified without enum in metadata)
+      // Step 1: Create the user in Auth
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: primaryIdentifier,
         password,
         options: {
           data: {
-            user_type_string: role, // Use string instead of enum
+            user_type_string: role,
             first_name: firstName,
             last_name: lastName,
             phone: phone,
@@ -109,7 +109,7 @@ export const UserRegistration = () => {
 
       console.log("Auth user created successfully:", authData.user.id);
 
-      // Step 2: Create user role using the RPC function with proper type
+      // Step 2: Create user role
       try {
         console.log("Creating user role...");
         const roleResult = await createUserRole(authData.user.id, role);
@@ -146,15 +146,6 @@ export const UserRegistration = () => {
               description: "User created but some patient details could not be saved",
               variant: "default",
             });
-          } else if (patientResult && typeof patientResult === 'object' && patientResult.success === false) {
-            console.error("Patient details creation failed:", patientResult);
-            toast({
-              title: "Partial success",
-              description: "User created but some patient details could not be saved",
-              variant: "default",
-            });
-          } else {
-            console.log("Patient details created successfully");
           }
         } catch (patientError: any) {
           console.error("Exception creating patient details:", patientError);
@@ -325,14 +316,14 @@ export const UserRegistration = () => {
           <div className="space-y-2">
             <Label htmlFor="phone">
               Phone Number * 
-              <span className="text-sm text-gray-500 ml-2">(Used for notifications)</span>
+              <span className="text-sm text-gray-500 ml-2">(Required for all users)</span>
             </Label>
             <Input 
               id="phone"
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="+1 234 567 890"
+              placeholder="+91 98765 43210"
               required
             />
           </div>
