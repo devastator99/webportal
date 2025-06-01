@@ -14,7 +14,6 @@ import Chat from "./pages/ChatPage";
 import PatientPrescriptionsView from "./pages/PatientPrescriptionsView";
 import { Appointments } from "./pages/Appointments";
 import TestingPage from "./pages/TestingPage";
-import { NotificationManager } from "@/components/notifications/NotificationManager";
 
 const queryClient = new QueryClient();
 
@@ -26,7 +25,6 @@ function App() {
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <NotificationManager />
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/dashboard" element={<Dashboard />} />
