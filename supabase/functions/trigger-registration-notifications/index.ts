@@ -17,12 +17,12 @@ interface RegistrationTask {
   next_retry_at: string;
 }
 
-// Process assign_care_team task
+// Process assign_care_team task - FIXED to use working default care team logic
 async function processAssignCareTeam(supabaseClient: any, task: RegistrationTask) {
   console.log(`Processing assign care team task for user ${task.user_id}`);
   
   try {
-    // Check if user is a patient
+    // Check if user is a patient using correct table
     const { data: userRole, error: roleError } = await supabaseClient
       .from('user_roles')
       .select('role')
@@ -46,41 +46,33 @@ async function processAssignCareTeam(supabaseClient: any, task: RegistrationTask
       return { success: true, assignment_id: existingAssignment.id };
     }
     
-    // Get available doctors and nutritionists
-    const { data: doctors, error: doctorsError } = await supabaseClient
-      .from('profiles')
-      .select('id')
-      .eq('user_type', 'doctor')
-      .limit(1);
-    
-    const { data: nutritionists, error: nutritionistsError } = await supabaseClient
-      .from('profiles')
-      .select('id')
-      .eq('user_type', 'nutritionist')
-      .limit(1);
-    
-    if (doctorsError || nutritionistsError || !doctors?.length || !nutritionists?.length) {
-      throw new Error('No available doctors or nutritionists for assignment');
-    }
-    
-    // Create assignment
-    const { data: assignment, error: createError } = await supabaseClient
-      .from('patient_assignments')
-      .insert({
-        patient_id: task.user_id,
-        doctor_id: doctors[0].id,
-        nutritionist_id: nutritionists[0].id,
-        assigned_at: new Date().toISOString()
-      })
-      .select()
+    // Use the working default care team logic from process-registration-tasks
+    const { data: defaultCareTeam, error: careTeamError } = await supabaseClient
+      .from('default_care_teams')
+      .select('*')
+      .eq('is_active', true)
       .single();
-    
-    if (createError) {
-      throw new Error(`Failed to create care team assignment: ${createError.message}`);
+
+    if (careTeamError || !defaultCareTeam) {
+      throw new Error('No active default care team found');
+    }
+
+    console.log(`Using default care team - Doctor: ${defaultCareTeam.default_doctor_id}, Nutritionist: ${defaultCareTeam.default_nutritionist_id}`);
+
+    // Use the admin_assign_care_team RPC function that already works
+    const { error: assignError } = await supabaseClient.rpc('admin_assign_care_team', {
+      p_patient_id: task.user_id,
+      p_doctor_id: defaultCareTeam.default_doctor_id,
+      p_nutritionist_id: defaultCareTeam.default_nutritionist_id,
+      p_admin_id: defaultCareTeam.default_doctor_id // Use doctor as admin for assignment
+    });
+
+    if (assignError) {
+      throw new Error(`Care team assignment failed: ${assignError.message}`);
     }
     
     console.log(`Care team assigned successfully for patient ${task.user_id}`);
-    return { success: true, assignment_id: assignment.id };
+    return { success: true, care_team_assigned: true };
     
   } catch (error) {
     console.error(`Error in processAssignCareTeam:`, error);
@@ -93,7 +85,7 @@ async function processCreateChatRoom(supabaseClient: any, task: RegistrationTask
   console.log(`Processing create chat room task for user ${task.user_id}`);
   
   try {
-    // Check if user is a patient
+    // Check if user is a patient using correct table
     const { data: userRole, error: roleError } = await supabaseClient
       .from('user_roles')
       .select('role')
@@ -137,12 +129,12 @@ async function processCreateChatRoom(supabaseClient: any, task: RegistrationTask
   }
 }
 
-// Process send_welcome_notification task
+// Process send_welcome_notification task - FIXED to use correct table
 async function processSendWelcomeNotification(supabaseClient: any, task: RegistrationTask) {
   console.log(`Processing comprehensive welcome notification for user ${task.user_id}`);
   
   try {
-    // Get user role to determine notification type
+    // Get user role using correct table
     const { data: userRole, error: roleError } = await supabaseClient
       .from('user_roles')
       .select('role')
@@ -153,11 +145,11 @@ async function processSendWelcomeNotification(supabaseClient: any, task: Registr
       throw new Error(`Cannot retrieve user role: ${roleError?.message || 'Role not found'}`);
     }
     
-    // Get user profile with email from auth.users
+    // Get user profile (no user_type field)
     const { data: userProfile, error: profileError } = await supabaseClient
       .from('profiles')
       .select(`
-        id, first_name, last_name, phone, user_type
+        id, first_name, last_name, phone
       `)
       .eq('id', task.user_id)
       .single();

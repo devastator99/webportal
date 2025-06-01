@@ -63,7 +63,7 @@ serve(async (req) => {
       console.error("Error updating registration status:", statusError);
     }
 
-    // Now trigger the registration process again
+    // Now trigger the registration process again using the FIXED function
     const { data: triggerResult, error: triggerError } = await supabaseClient.functions.invoke(
       'trigger-registration-notifications',
       { body: { patient_id } }
