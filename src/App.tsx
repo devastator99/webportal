@@ -13,6 +13,7 @@ import CompleteNutritionistProfile from "./pages/CompleteNutritionistProfile";
 import Chat from "./pages/ChatPage";
 import PatientPrescriptionsView from "./pages/PatientPrescriptionsView";
 import { Appointments } from "./pages/Appointments";
+import TestingPage from "./pages/TestingPage";
 import { NotificationManager } from "@/components/notifications/NotificationManager";
 
 const queryClient = new QueryClient();
@@ -35,6 +36,7 @@ function App() {
               <Route path="/chat" element={<Chat />} />
               <Route path="/prescriptions" element={<PatientPrescriptionsView />} />
               <Route path="/appointments" element={<Appointments />} />
+              <Route path="/testing" element={<TestingPage />} />
             </Routes>
           </AuthProvider>
         </BrowserRouter>

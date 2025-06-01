@@ -107,6 +107,13 @@ const Auth = () => {
       
       console.log("Auth page detected logged in user. Role:", userRole, "isRegistrationFlow:", isRegistrationFlow, "isRegistration:", isRegistration, "registrationStep:", registrationStep);
       
+      // For administrators, redirect directly to dashboard - no profile completion needed
+      if (userRole === 'administrator') {
+        console.log("Administrator detected, redirecting to dashboard");
+        navigate("/dashboard", { replace: true });
+        return;
+      }
+      
       // For doctors and nutritionists, redirect to profile completion if not complete
       if (userRole === 'doctor') {
         console.log("Doctor detected, checking profile completion");
@@ -117,13 +124,6 @@ const Auth = () => {
       if (userRole === 'nutritionist') {
         console.log("Nutritionist detected, checking profile completion");
         navigate("/complete-nutritionist-profile", { replace: true });
-        return;
-      }
-      
-      // For other non-patient roles, redirect to dashboard
-      if (userRole && userRole !== 'patient') {
-        console.log("Redirecting non-patient to dashboard:", userRole);
-        navigate("/dashboard", { replace: true });
         return;
       }
       
@@ -278,7 +278,7 @@ const Auth = () => {
           navigate("/complete-nutritionist-profile");
         }
       } else if (user) {
-        // Non-patient users can go directly to dashboard
+        // Non-patient users (including admins) can go directly to dashboard
         toast({
           title: "Account created",
           description: "Your account has been created successfully",
