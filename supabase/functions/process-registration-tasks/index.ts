@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -21,15 +22,16 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { user_id } = await req.json()
+    const { patient_id, user_id } = await req.json()
+    const userId = patient_id || user_id
     
-    console.log('Processing registration tasks for user:', user_id)
+    console.log('Processing registration tasks for user:', userId)
 
     // Get pending tasks for the user
     const { data: tasks, error: tasksError } = await supabaseClient
       .from('registration_tasks')
       .select('*')
-      .eq('user_id', user_id)
+      .eq('user_id', userId)
       .eq('status', 'pending')
       .order('priority', { ascending: true })
 
@@ -42,16 +44,71 @@ serve(async (req) => {
     }
 
     if (!tasks || tasks.length === 0) {
-      console.log('No pending tasks found for user:', user_id)
+      console.log('No pending tasks found for user:', userId)
       return new Response(
         JSON.stringify({ success: true, message: 'No pending tasks found', processed: 0 }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log(`Found ${tasks.length} pending tasks for user ${user_id}`)
+    console.log(`Found ${tasks.length} pending tasks for user ${userId}`)
 
     const taskProcessors: TaskProcessor = {
+      'assign_care_team': async (supabase, task) => {
+        // Get user role to check if this is a patient
+        const { data: userRole } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', task.user_id)
+          .single()
+
+        if (userRole?.role !== 'patient') {
+          return { skipped: true, reason: 'Not applicable for professionals' }
+        }
+
+        // Get default care team
+        const { data: defaultCareTeam } = await supabase
+          .from('default_care_teams')
+          .select('*')
+          .eq('is_active', true)
+          .single()
+
+        if (!defaultCareTeam) {
+          throw new Error('No active default care team found')
+        }
+
+        const { error: assignError } = await supabase.rpc('admin_assign_care_team', {
+          p_patient_id: task.user_id,
+          p_doctor_id: defaultCareTeam.default_doctor_id,
+          p_nutritionist_id: defaultCareTeam.default_nutritionist_id,
+          p_admin_id: defaultCareTeam.default_doctor_id // Use doctor as admin for assignment
+        })
+
+        if (assignError) {
+          throw new Error(`Care team assignment failed: ${assignError.message}`)
+        }
+
+        return { care_team_assigned: true }
+      },
+
+      'create_chat_room': async (supabase, task) => {
+        console.log(`Creating chat room for user ${task.user_id}`)
+        
+        // Call the get-patient-care-team-room edge function to create/get the room
+        const { data: roomData, error: roomError } = await supabase.functions.invoke(
+          'get-patient-care-team-room',
+          { body: { patient_id: task.user_id } }
+        )
+        
+        if (roomError) {
+          console.error("Error creating care team room:", roomError)
+          throw new Error(`Failed to create care team room: ${roomError.message}`)
+        }
+        
+        console.log(`Care team room created/found: ${roomData.room_id}`)
+        return { success: true, room_id: roomData.room_id }
+      },
+
       'send_welcome_notification': async (supabase, task) => {
         // Get user profile and role
         const { data: profile } = await supabase
@@ -140,44 +197,6 @@ serve(async (req) => {
         }
 
         return { profile_setup: true, role: userRole.role }
-      },
-
-      // Keep existing patient-specific task processors
-      'assign_care_team': async (supabase, task) => {
-        // This is for patients only, skip for professionals
-        const { data: userRole } = await supabase
-          .from('user_roles')
-          .select('role')
-          .eq('user_id', task.user_id)
-          .single()
-
-        if (userRole?.role !== 'patient') {
-          return { skipped: true, reason: 'Not applicable for professionals' }
-        }
-
-        // Existing care team assignment logic for patients
-        const { data: defaultCareTeam } = await supabase
-          .from('default_care_teams')
-          .select('*')
-          .eq('is_active', true)
-          .single()
-
-        if (!defaultCareTeam) {
-          throw new Error('No active default care team found')
-        }
-
-        const { error: assignError } = await supabase.rpc('admin_assign_care_team', {
-          p_patient_id: task.user_id,
-          p_doctor_id: defaultCareTeam.default_doctor_id,
-          p_nutritionist_id: defaultCareTeam.default_nutritionist_id,
-          p_admin_id: defaultCareTeam.default_doctor_id // Use doctor as admin for assignment
-        })
-
-        if (assignError) {
-          throw new Error(`Care team assignment failed: ${assignError.message}`)
-        }
-
-        return { care_team_assigned: true }
       }
     }
 
@@ -243,20 +262,20 @@ serve(async (req) => {
       const { data: remainingTasks } = await supabaseClient
         .from('registration_tasks')
         .select('id')
-        .eq('user_id', user_id)
+        .eq('user_id', userId)
         .eq('status', 'pending')
 
       if (!remainingTasks || remainingTasks.length === 0) {
         await supabaseClient
           .from('profiles')
           .update({ 
-            registration_status: 'notifications_sent',
+            registration_status: 'fully_registered',
             registration_completed_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           })
-          .eq('id', user_id)
+          .eq('id', userId)
 
-        console.log(`Registration completed for user ${user_id}`)
+        console.log(`Registration completed for user ${userId}`)
       }
     }
 
