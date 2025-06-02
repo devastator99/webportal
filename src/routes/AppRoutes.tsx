@@ -19,6 +19,8 @@ import VideosPage from '@/pages/VideosPage';
 import NewPrescriptionPage from '@/pages/NewPrescriptionPage';
 import { RegistrationStatusChecker } from '@/components/auth/RegistrationStatusChecker';
 import TestingPage from '@/pages/TestingPage';
+import { DoctorProfileForm } from '@/components/auth/DoctorProfileForm';
+import { NutritionistProfileForm } from '@/components/auth/NutritionistProfileForm';
 
 // Lazy loaded components
 const ChatPage = lazy(() => import('@/pages/ChatPage'));
@@ -53,6 +55,25 @@ export const AppRoutes = () => {
         <Route path="/verify-code" element={<VerifyCodePage />} />
         <Route path="/forgot-password" element={<ForgotPasswordRouteWrapper />} />
         <Route path="/update-password" element={<UpdatePassword />} />
+        
+        {/* Profile Completion Routes */}
+        <Route
+          path="/complete-doctor-profile"
+          element={
+            <RoleProtectedRoute allowedRoles={['doctor']}>
+              <DoctorProfileForm />
+            </RoleProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/complete-nutritionist-profile"
+          element={
+            <RoleProtectedRoute allowedRoles={['nutritionist']}>
+              <NutritionistProfileForm />
+            </RoleProtectedRoute>
+          }
+        />
         
         {/* Testing Route - Available in development/staging environments */}
         <Route

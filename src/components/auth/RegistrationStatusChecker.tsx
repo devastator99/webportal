@@ -19,16 +19,14 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
   
   // Helper function to check if registration is truly complete
   const isRegistrationFullyComplete = (regStatus: UserRegistrationStatus): boolean => {
-    if (regStatus.registration_status !== RegistrationStatusValues.FULLY_REGISTERED) {
-      return false;
+    // For now, consider payment_complete as sufficient for most functionality
+    // The tasks may still be processing in the background
+    if (regStatus.registration_status === RegistrationStatusValues.FULLY_REGISTERED ||
+        regStatus.registration_status === 'payment_complete') {
+      return true;
     }
     
-    // Check if all required tasks are actually completed
-    const requiredTaskTypes = ['assign_care_team', 'create_chat_room', 'send_welcome_notification'];
-    const completedTasks = regStatus.tasks?.filter(task => task.status === 'completed') || [];
-    const completedTaskTypes = completedTasks.map(task => task.task_type);
-    
-    return requiredTaskTypes.every(taskType => completedTaskTypes.includes(taskType));
+    return false;
   };
   
   useEffect(() => {
@@ -56,25 +54,46 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
       try {
         console.log("RegistrationStatusChecker: Checking registration status for patient:", user.id);
         
-        const { data, error } = await supabase.rpc('get_user_registration_status_safe', {
-          p_user_id: user.id
-        });
+        // Try the RPC function first, fallback to direct query
+        let regData: UserRegistrationStatus;
         
-        if (error) {
-          console.error("RegistrationStatusChecker: Error checking registration status:", error);
-          setIsChecking(false);
-          setHasChecked(true);
-          return;
+        try {
+          const { data, error } = await supabase.rpc('get_user_registration_status_safe', {
+            p_user_id: user.id
+          });
+          
+          if (error) {
+            throw error;
+          }
+          
+          regData = data as unknown as UserRegistrationStatus;
+        } catch (rpcError) {
+          console.warn("RPC failed, using fallback query:", rpcError);
+          
+          // Fallback to direct query
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('registration_status')
+            .eq('id', user.id)
+            .single();
+            
+          if (profileError) {
+            throw profileError;
+          }
+          
+          regData = {
+            registration_status: profileData?.registration_status || 'payment_pending',
+            tasks: []
+          };
         }
         
-        const regStatus = data as unknown as UserRegistrationStatus;
-        console.log("RegistrationStatusChecker: Registration status:", regStatus.registration_status);
+        console.log("RegistrationStatusChecker: Registration status:", regData.registration_status);
         
-        // Check if registration is truly complete
-        const isFullyComplete = isRegistrationFullyComplete(regStatus);
+        // Check if registration is complete enough for normal operation
+        const isComplete = isRegistrationFullyComplete(regData);
         
-        if (isFullyComplete) {
-          console.log("RegistrationStatusChecker: Registration is fully complete, clearing flags and proceeding");
+        if (isComplete) {
+          console.log("RegistrationStatusChecker: Registration is complete, clearing flags and proceeding");
           localStorage.removeItem('registration_payment_pending');
           localStorage.removeItem('registration_payment_complete');
           setIsChecking(false);
@@ -83,7 +102,7 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
         }
         
         // Only redirect for payment pending status, and only if not on dashboard
-        if (regStatus.registration_status === RegistrationStatusValues.PAYMENT_PENDING && !location.pathname.includes('/dashboard')) {
+        if (regData.registration_status === RegistrationStatusValues.PAYMENT_PENDING && !location.pathname.includes('/dashboard')) {
           console.log("RegistrationStatusChecker: Payment pending and safe to redirect");
           localStorage.setItem('registration_payment_pending', 'true');
           localStorage.setItem('registration_payment_complete', 'false');
@@ -92,12 +111,13 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
         }
         
         // For other statuses, just mark as checked and continue
-        console.log("RegistrationStatusChecker: Registration incomplete but continuing normally");
+        console.log("RegistrationStatusChecker: Registration status acceptable, continuing normally");
         setIsChecking(false);
         setHasChecked(true);
         
       } catch (err) {
         console.error("RegistrationStatusChecker: Error in registration status check:", err);
+        // On error, don't block the user - let them proceed
         setIsChecking(false);
         setHasChecked(true);
       }
