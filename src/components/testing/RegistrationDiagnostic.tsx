@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Search, AlertTriangle, CheckCircle2, Clock, XCircle } from 'lucide-react';
+import { Loader2, Search, AlertTriangle, CheckCircle2, Clock, XCircle, FileText } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface TaskData {
@@ -77,6 +77,7 @@ export const RegistrationDiagnostic = () => {
   const [userId, setUserId] = useState('66aa639b-38ce-4092-a700-f115b9fcce38'); // Pre-fill with the problematic user
   const [result, setResult] = useState<DiagnosticResult | null>(null);
   const [taskSummary, setTaskSummary] = useState<any[]>([]);
+  const [systemLogs, setSystemLogs] = useState<any[]>([]);
 
   const runDiagnostic = async () => {
     if (!userId.trim()) {
@@ -106,8 +107,21 @@ export const RegistrationDiagnostic = () => {
         console.warn('Failed to get task summary:', summaryError);
       }
 
+      // Get recent system logs for this user
+      const { data: logsData, error: logsError } = await supabase
+        .from('system_logs')
+        .select('*')
+        .eq('user_id', userId.trim())
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (logsError) {
+        console.warn('Failed to get system logs:', logsError);
+      }
+
       setResult(diagnosticData);
       setTaskSummary(summaryData || []);
+      setSystemLogs(logsData || []);
       
       toast({
         title: "Diagnostic Complete",
@@ -130,6 +144,16 @@ export const RegistrationDiagnostic = () => {
     if (isGood) return <CheckCircle2 className="h-4 w-4 text-green-500" />;
     if (isWarning) return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
     return <XCircle className="h-4 w-4 text-red-500" />;
+  };
+
+  const formatLogLevel = (level: string) => {
+    const colors = {
+      error: 'text-red-600',
+      warn: 'text-yellow-600',
+      info: 'text-blue-600',
+      debug: 'text-gray-600'
+    };
+    return colors[level as keyof typeof colors] || 'text-gray-600';
   };
 
   return (
@@ -209,6 +233,12 @@ export const RegistrationDiagnostic = () => {
                 <span>Phone:</span>
                 <span>{result.profile.phone || 'Not set'}</span>
               </div>
+              {result.profile.registration_completed_at && (
+                <div className="flex items-center justify-between">
+                  <span>Registration Completed:</span>
+                  <span className="text-sm">{new Date(result.profile.registration_completed_at).toLocaleString()}</span>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -227,6 +257,11 @@ export const RegistrationDiagnostic = () => {
                       <div>
                         <span className="font-medium">{task.task_type}</span>
                         {task.retry_count > 0 && <span className="text-sm text-gray-500"> (retries: {task.retry_count})</span>}
+                        {task.error_details && (
+                          <div className="text-xs text-red-600 mt-1">
+                            Error: {typeof task.error_details === 'string' ? task.error_details : JSON.stringify(task.error_details)}
+                          </div>
+                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         {getStatusIcon(
@@ -342,6 +377,41 @@ export const RegistrationDiagnostic = () => {
               </div>
             </CardContent>
           </Card>
+
+          {/* System Logs */}
+          {systemLogs.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Recent System Logs ({systemLogs.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {systemLogs.map((log, index) => (
+                    <div key={index} className="p-2 border rounded text-sm">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">{log.action}</span>
+                        <span className={`text-xs ${formatLogLevel(log.level)}`}>
+                          {log.level?.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="text-gray-600 mt-1">{log.message}</div>
+                      {log.details && (
+                        <div className="text-xs text-gray-500 mt-1 bg-gray-50 p-1 rounded">
+                          {JSON.stringify(log.details, null, 2)}
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-400 mt-1">
+                        {new Date(log.created_at).toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Raw Data */}
           <Card>

@@ -51,7 +51,7 @@ serve(async (req) => {
       }
     );
     
-    // Call RPC function to complete registration and queue tasks
+    // Call enhanced RPC function to complete registration and queue tasks
     const { data, error } = await supabaseClient.rpc(
       'complete_patient_registration',
       {
@@ -73,7 +73,19 @@ serve(async (req) => {
       );
     }
     
-    console.log("Registration tasks queued:", data);
+    // Check if the RPC function returned an error
+    if (data && typeof data === 'object' && data.success === false) {
+      console.error("Registration function returned error:", data.error);
+      return new Response(
+        JSON.stringify({ error: data.error }),
+        { 
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400 
+        }
+      );
+    }
+    
+    console.log("Registration completed successfully:", data);
     
     // Enhanced task processing trigger with better error handling
     console.log("Triggering background task processing...");
@@ -85,7 +97,7 @@ serve(async (req) => {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ user_id: user_id }),
       });
       
       if (processResponse.ok) {
@@ -104,7 +116,7 @@ serve(async (req) => {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
               },
-              body: JSON.stringify({}),
+              body: JSON.stringify({ user_id: user_id }),
             }).catch(err => {
               console.error("Background task processor fallback failed:", err);
             })
@@ -123,7 +135,7 @@ serve(async (req) => {
               "Content-Type": "application/json",
               "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
             },
-            body: JSON.stringify({}),
+            body: JSON.stringify({ user_id: user_id }),
           });
         } catch (delayedError) {
           console.error("Delayed task processing also failed:", delayedError);
@@ -131,13 +143,16 @@ serve(async (req) => {
       }, 2000);
     }
     
-    // Return success response immediately, without waiting for background tasks
+    // Return enhanced success response with detailed information
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Registration payment completed successfully. Multi-channel notifications are being sent.",
+        message: "Registration payment completed successfully. Profile status updated and tasks are being processed.",
         payment_id: razorpay_payment_id,
         order_id: razorpay_order_id,
+        profile_updated: data?.profile_updated || false,
+        patient_details_created: data?.patient_details_created || false,
+        tasks_created: Array.isArray(data?.tasks) ? data.tasks.length : 0,
         tasks: data?.tasks || [],
         notification_channels: ["SMS", "Email", "WhatsApp", "Care Team Chat"]
       }),
@@ -150,7 +165,10 @@ serve(async (req) => {
   } catch (error) {
     console.error("Error in complete-registration function:", error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: error.message,
+        details: "An unexpected error occurred during registration completion"
+      }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 500 
