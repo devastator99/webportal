@@ -32,7 +32,7 @@ serve(async (req) => {
 
     console.log('Processing professional registration for user:', user_id, 'with phone:', phone)
 
-    // Get user details for comprehensive notification
+    // Get user details for validation
     const { data: userProfile, error: profileError } = await supabaseClient
       .from('profiles')
       .select(`
@@ -94,77 +94,62 @@ serve(async (req) => {
       )
     }
 
-    console.log('Sending comprehensive welcome notification with phone:', finalPhone)
+    console.log('Creating registration tasks for professional:', user_id)
 
-    // Send comprehensive welcome notification immediately
-    try {
-      const { data: notificationResult, error: notificationError } = await supabaseClient.functions.invoke(
-        'send-comprehensive-welcome-notification',
-        {
-          body: {
-            patient_id: user_id,
-            patient_email: `${user_id}@temp.placeholder`, // Will be ignored in favor of phone
-            patient_phone: finalPhone,
-            patient_name: `${userProfile.first_name} ${userProfile.last_name}`,
-            patient_details: {
-              role: userRole.role,
-              phone: finalPhone
-            }
-          }
-        }
-      )
-
-      if (notificationError) {
-        console.error('Welcome notification failed:', notificationError)
-        // Don't fail the entire process if notification fails
-      } else {
-        console.log('Welcome notification sent successfully:', notificationResult)
+    // Create registration tasks if they don't exist
+    const registrationTasks = [
+      {
+        user_id: user_id,
+        task_type: 'send_welcome_notification',
+        status: 'pending',
+        priority: 1
+      },
+      {
+        user_id: user_id,
+        task_type: 'setup_professional_profile',
+        status: 'pending',
+        priority: 2
       }
-    } catch (notificationErr) {
-      console.error('Exception during welcome notification:', notificationErr)
-      // Don't fail the entire process if notification fails
+    ];
+
+    // Insert tasks (use upsert to avoid duplicates)
+    for (const task of registrationTasks) {
+      const { error: taskError } = await supabaseClient
+        .from('registration_tasks')
+        .upsert(
+          {
+            ...task,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            next_retry_at: new Date().toISOString(),
+            retry_count: 0
+          },
+          { 
+            onConflict: 'user_id,task_type',
+            ignoreDuplicates: false 
+          }
+        );
+
+      if (taskError) {
+        console.error('Failed to create registration task:', task.task_type, taskError);
+      } else {
+        console.log('Created registration task:', task.task_type, 'for user:', user_id);
+      }
     }
 
-    // Update the registration task as completed
-    try {
-      const { error: taskUpdateError } = await supabaseClient
-        .from('registration_tasks')
-        .update({ 
-          status: 'completed',
-          updated_at: new Date().toISOString(),
-          result_payload: {
-            notification_sent: true,
-            phone: finalPhone,
-            completed_at: new Date().toISOString()
-          }
-        })
-        .eq('user_id', user_id)
-        .eq('task_type', 'complete_professional_registration')
+    // Trigger the task processor to handle the registration tasks
+    console.log('Triggering task processor for user:', user_id);
 
-      if (taskUpdateError) {
-        console.error('Failed to update registration task:', taskUpdateError)
-      }
+    const { data: processorResult, error: processorError } = await supabaseClient.functions.invoke(
+      'process-registration-tasks',
+      { body: { user_id: user_id } }
+    );
 
-      // Also update welcome notification task
-      const { error: welcomeTaskError } = await supabaseClient
-        .from('registration_tasks')
-        .update({ 
-          status: 'completed',
-          updated_at: new Date().toISOString(),
-          result_payload: {
-            notification_sent: true,
-            phone: finalPhone,
-            completed_at: new Date().toISOString()
-          }
-        })
-        .eq('user_id', user_id)
-        .eq('task_type', 'send_welcome_notification')
-
-      if (welcomeTaskError) {
-        console.error('Failed to update welcome notification task:', welcomeTaskError)
-      }
-    } catch (taskErr) {
-      console.error('Exception updating tasks:', taskErr)
+    if (processorError) {
+      console.error('Failed to process registration tasks:', processorError);
+      // Don't fail the entire process if task processing fails
+    } else {
+      console.log('Registration tasks processed successfully:', processorResult);
     }
 
     // Log successful completion
@@ -177,10 +162,10 @@ serve(async (req) => {
           details: {
             role: userRole.role,
             phone: finalPhone,
-            notification_sent: true
+            tasks_triggered: true
           },
           level: 'info',
-          message: 'Professional registration completed successfully with notifications',
+          message: 'Professional registration completed with task processing',
           metadata: {
             role: userRole.role,
             phone: finalPhone,
@@ -197,7 +182,8 @@ serve(async (req) => {
         message: 'Professional registration completed successfully',
         user_id: user_id,
         phone: finalPhone,
-        notification_sent: true
+        tasks_created: true,
+        tasks_processed: !processorError
       }),
       { 
         status: 200, 
