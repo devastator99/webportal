@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, completeNutritionistRegistration } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Form,
@@ -21,15 +21,33 @@ import * as z from "zod";
 import { LucideLoader2 } from "lucide-react";
 
 const nutritionistProfileSchema = z.object({
-  specialization: z.string().min(2, "Specialization is required"),
-  certifications: z.string().min(2, "Certifications are required"),
-  experience_years: z.string().refine(val => !isNaN(Number(val)) && Number(val) >= 0, {
-    message: "Experience years must be a valid number",
-  }),
-  consultation_fee: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, {
-    message: "Consultation fee must be a valid number greater than 0",
-  }),
-  phone: z.string().min(10, "Phone number is required"),
+  specialization: z.string()
+    .min(2, "Specialization must be at least 2 characters")
+    .max(100, "Specialization cannot exceed 100 characters")
+    .trim(),
+  certifications: z.string()
+    .min(2, "Certifications must be at least 2 characters")
+    .max(500, "Certifications description too long")
+    .trim(),
+  experience_years: z.string()
+    .refine(val => {
+      const num = parseInt(val, 10);
+      return !isNaN(num) && num >= 0 && num <= 50;
+    }, {
+      message: "Experience years must be a valid number between 0 and 50",
+    }),
+  consultation_fee: z.string()
+    .refine(val => {
+      const num = parseFloat(val);
+      return !isNaN(num) && num > 0 && num <= 10000;
+    }, {
+      message: "Consultation fee must be a valid number between 1 and 10,000",
+    }),
+  phone: z.string()
+    .min(10, "Phone number must be at least 10 digits")
+    .max(15, "Phone number cannot exceed 15 characters")
+    .regex(/^[\+]?[0-9\s\-\(\)]{8,15}$/, "Please enter a valid phone number")
+    .trim(),
 });
 
 type NutritionistProfileFormValues = z.infer<typeof nutritionistProfileSchema>;
@@ -39,7 +57,6 @@ export const NutritionistProfileForm = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [profileComplete, setProfileComplete] = useState(false);
 
   const form = useForm<NutritionistProfileFormValues>({
     resolver: zodResolver(nutritionistProfileSchema),
@@ -47,7 +64,7 @@ export const NutritionistProfileForm = () => {
       specialization: "",
       certifications: "",
       experience_years: "0",
-      consultation_fee: "300", // Default consultation fee
+      consultation_fee: "300",
       phone: "",
     },
   });
@@ -61,106 +78,128 @@ export const NutritionistProfileForm = () => {
       try {
         const { data, error } = await supabase
           .from("profiles")
-          .select("specialization, certifications, experience_years, consultation_fee, phone")
+          .select("specialty, consultation_fee, phone")
           .eq("id", user.id)
           .single();
 
-        if (error) throw error;
+        if (error && error.code !== 'PGRST116') {
+          console.error("Error checking nutritionist profile:", error);
+          throw error;
+        }
 
         // If all required fields are present, consider profile complete
-        if (data?.specialization && data?.certifications && data?.phone) {
-          setProfileComplete(true);
+        if (data?.specialty && data?.phone) {
           navigate("/dashboard");
         } else if (data) {
           // Pre-fill the form with any existing data
           form.reset({
-            specialization: data.specialization || "",
-            certifications: data.certifications || "",
-            experience_years: data.experience_years?.toString() || "0",
-            consultation_fee: data.consultation_fee?.toString() || "300",
+            specialization: data.specialty || "",
+            certifications: "",
+            experience_years: "0",
+            consultation_fee: data.consultation_fee ? data.consultation_fee.toString() : "300",
             phone: data.phone || "",
           });
         }
       } catch (error) {
         console.error("Error checking nutritionist profile:", error);
+        toast({
+          variant: "destructive",
+          title: "Error loading profile",
+          description: "Could not load existing profile data. Please try refreshing the page.",
+        });
       } finally {
         setLoading(false);
       }
     };
 
     checkProfile();
-  }, [user, userRole, navigate, form]);
+  }, [user, userRole, navigate, form, toast]);
 
   const onSubmit = async (values: NutritionistProfileFormValues) => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "User session not found. Please log in again.",
+      });
+      return;
+    }
     
     setLoading(true);
     try {
-      // Update the profile with nutritionist-specific information
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          specialization: values.specialization,
-          certifications: values.certifications,
-          experience_years: parseInt(values.experience_years),
-          consultation_fee: parseFloat(values.consultation_fee),
-          phone: values.phone,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
-
-      if (profileError) throw profileError;
-
-      // Trigger professional registration completion
-      console.log("Triggering professional registration completion for nutritionist:", user.id);
+      console.log("Starting nutritionist registration completion with values:", values);
       
-      const { data: registrationResult, error: registrationError } = await supabase.functions.invoke(
-        'complete-professional-registration',
-        {
-          body: {
-            user_id: user.id,
-            phone: values.phone
-          }
-        }
+      // Use the enhanced nutritionist registration function
+      const registrationResult = await completeNutritionistRegistration(
+        user.id,
+        user.user_metadata?.first_name || "Nutritionist",
+        user.user_metadata?.last_name || "User",
+        values.phone.trim(),
+        values.specialization.trim(),
+        values.certifications.trim(),
+        parseInt(values.experience_years, 10),
+        parseFloat(values.consultation_fee)
       );
 
-      if (registrationError) {
-        console.error("Professional registration error:", registrationError);
+      console.log("Nutritionist registration completed successfully:", registrationResult);
+
+      if (registrationResult && registrationResult.success) {
         toast({
-          title: "Profile updated",
-          description: "Your profile has been updated, but there was an issue with sending notifications.",
-          variant: "default",
+          title: "Registration Complete",
+          description: "Your nutritionist profile has been completed successfully. Welcome notifications will be sent automatically.",
         });
-      } else if (registrationResult && registrationResult.success) {
-        console.log("Professional registration completed successfully:", registrationResult);
-        toast({
-          title: "Registration complete",
-          description: "Your nutritionist profile has been completed and welcome notifications have been sent.",
-        });
+
+        // Trigger task processing to handle the registration tasks
+        setTimeout(async () => {
+          try {
+            const { error: processError } = await supabase.functions.invoke(
+              'process-registration-tasks',
+              { body: { user_id: user.id } }
+            );
+            
+            if (processError) {
+              console.error("Failed to process registration tasks:", processError);
+            } else {
+              console.log("Registration tasks processing triggered successfully");
+            }
+          } catch (err) {
+            console.error("Error triggering task processing:", err);
+          }
+        }, 2000);
+
+        // Navigate to dashboard after successful registration
+        navigate("/dashboard");
       } else {
-        console.error("Professional registration failed:", registrationResult);
-        toast({
-          title: "Profile updated",
-          description: "Your profile has been updated, but there was an issue completing the registration process.",
-          variant: "default",
-        });
+        console.error("Nutritionist registration failed:", registrationResult);
+        throw new Error(registrationResult?.error || "Registration failed with unknown error");
       }
       
-      // Redirect to dashboard after successful update
-      navigate("/dashboard");
     } catch (error: any) {
-      console.error("Error updating nutritionist profile:", error);
+      console.error("Error completing nutritionist registration:", error);
+      
+      let errorMessage = "Something went wrong during registration. Please try again.";
+      
+      if (error.message?.includes("phone")) {
+        errorMessage = "Invalid phone number. Please check the format and try again.";
+      } else if (error.message?.includes("specialization")) {
+        errorMessage = "Please provide a valid specialization.";
+      } else if (error.message?.includes("consultation_fee")) {
+        errorMessage = "Please provide a valid consultation fee amount.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         variant: "destructive",
-        title: "Error updating profile",
-        description: error.message || "Something went wrong. Please try again.",
+        title: "Registration Error",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
     }
   };
 
-  // If user is not a nutritionist or profile is already complete
+  // If user is not a nutritionist
   if (!user || userRole !== "nutritionist") {
     return null;
   }
@@ -226,6 +265,7 @@ export const NutritionistProfileForm = () => {
                       <Textarea 
                         placeholder="e.g., Registered Dietitian, Certified Nutrition Specialist" 
                         disabled={loading}
+                        rows={3}
                         {...field} 
                       />
                     </FormControl>
@@ -244,6 +284,7 @@ export const NutritionistProfileForm = () => {
                       <Input 
                         type="number"
                         min="0"
+                        max="50"
                         placeholder="e.g., 5" 
                         disabled={loading}
                         {...field} 
@@ -264,6 +305,8 @@ export const NutritionistProfileForm = () => {
                       <Input 
                         type="number"
                         min="1"
+                        max="10000"
+                        step="1"
                         placeholder="e.g., 300" 
                         disabled={loading}
                         {...field} 

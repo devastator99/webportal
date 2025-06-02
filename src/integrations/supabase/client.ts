@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = "https://hcaqodjylicmppxcbqbh.supabase.co"
@@ -98,11 +97,6 @@ export const completeUserRegistration = async (
     throw new Error(data.error || 'Registration failed');
   }
 
-  // The RPC function now handles everything including:
-  // 1. Setting correct registration status (payment_complete for professionals)
-  // 2. Creating registration tasks
-  // 3. The process-registration-tasks edge function will handle notifications automatically
-  
   console.log("User registration completed successfully via RPC. Tasks created and will be processed automatically.");
 
   return data;
@@ -193,36 +187,20 @@ export const completeDoctorRegistration = async (
   clinicLocation?: string,
   consultationFee?: number
 ) => {
-  // Comprehensive field validation
+  // Basic validation
   if (!userId || !firstName || !lastName || !phone) {
     throw new Error('User ID, first name, last name, and phone number are required');
   }
 
-  // Phone number validation - ensure it's not empty or whitespace
   const cleanPhone = phone.trim();
   if (cleanPhone === '') {
     throw new Error('Phone number cannot be empty');
   }
 
-  // Validate phone number format (basic validation)
-  if (!/^[\+]?[0-9\s\-\(\)]{8,15}$/.test(cleanPhone)) {
-    throw new Error('Phone number format is invalid');
-  }
-
-  // Name validation - ensure they're not just whitespace
   const cleanFirstName = firstName.trim();
   const cleanLastName = lastName.trim();
   if (cleanFirstName === '' || cleanLastName === '') {
     throw new Error('First name and last name cannot be empty');
-  }
-
-  // Consultation fee validation - ensure it's a positive number if provided
-  let validatedFee: number | undefined = consultationFee;
-  if (consultationFee !== undefined) {
-    if (isNaN(consultationFee) || consultationFee < 0) {
-      console.warn('Invalid consultation fee provided, using default');
-      validatedFee = 500; // Default value
-    }
   }
 
   console.log('Starting doctor registration with validated fields:', {
@@ -233,7 +211,7 @@ export const completeDoctorRegistration = async (
     specialty: specialty || null,
     visitingHours: visitingHours || null,
     clinicLocation: clinicLocation || null,
-    consultationFee: validatedFee || 500
+    consultationFee: consultationFee || 500
   });
 
   try {
@@ -245,7 +223,7 @@ export const completeDoctorRegistration = async (
       p_specialty: specialty && specialty.trim() !== '' ? specialty.trim() : null,
       p_visiting_hours: visitingHours && visitingHours.trim() !== '' ? visitingHours.trim() : null,
       p_clinic_location: clinicLocation && clinicLocation.trim() !== '' ? clinicLocation.trim() : null,
-      p_consultation_fee: validatedFee || 500
+      p_consultation_fee: consultationFee || 500
     });
 
     if (error) {
@@ -255,12 +233,10 @@ export const completeDoctorRegistration = async (
 
     console.log('Doctor registration RPC result:', data);
 
-    // Validate the response structure
     if (!data || typeof data !== 'object') {
       throw new Error('Invalid response from doctor registration function');
     }
 
-    // Check if the registration was successful
     if (data.success === false) {
       throw new Error(data.error || 'Doctor registration failed');
     }
@@ -269,5 +245,85 @@ export const completeDoctorRegistration = async (
   } catch (error: any) {
     console.error('Error in completeDoctorRegistration:', error);
     throw new Error(`Doctor registration failed: ${error.message}`);
+  }
+};
+
+// Add nutritionist registration function
+export const completeNutritionistRegistration = async (
+  userId: string,
+  firstName: string,
+  lastName: string,
+  phone: string,
+  specialization?: string,
+  certifications?: string,
+  experienceYears?: number,
+  consultationFee?: number
+) => {
+  // Basic validation
+  if (!userId || !firstName || !lastName || !phone) {
+    throw new Error('User ID, first name, last name, and phone number are required');
+  }
+
+  const cleanPhone = phone.trim();
+  if (cleanPhone === '') {
+    throw new Error('Phone number cannot be empty');
+  }
+
+  const cleanFirstName = firstName.trim();
+  const cleanLastName = lastName.trim();
+  if (cleanFirstName === '' || cleanLastName === '') {
+    throw new Error('First name and last name cannot be empty');
+  }
+
+  console.log('Starting nutritionist registration with validated fields:', {
+    userId,
+    firstName: cleanFirstName,
+    lastName: cleanLastName,
+    phone: cleanPhone,
+    specialization: specialization || null,
+    certifications: certifications || null,
+    experienceYears: experienceYears || 0,
+    consultationFee: consultationFee || 300
+  });
+
+  try {
+    // Use the general registration function with nutritionist role
+    const registrationResult = await completeUserRegistration(
+      userId,
+      'nutritionist',
+      cleanFirstName,
+      cleanLastName,
+      cleanPhone
+    );
+
+    // Update profile with nutritionist-specific fields
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        specialty: specialization && specialization.trim() !== '' ? specialization.trim() : null,
+        consultation_fee: consultationFee || 300,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', userId);
+
+    if (updateError) {
+      console.error('Error updating nutritionist profile:', updateError);
+      throw new Error(`Failed to update nutritionist profile: ${updateError.message}`);
+    }
+
+    console.log('Nutritionist registration completed successfully:', registrationResult);
+
+    return {
+      success: true,
+      message: 'Nutritionist registration completed successfully',
+      user_id: userId,
+      role: 'nutritionist',
+      phone: cleanPhone,
+      registration_status: 'payment_complete',
+      tasks_created: true
+    };
+  } catch (error: any) {
+    console.error('Error in completeNutritionistRegistration:', error);
+    throw new Error(`Nutritionist registration failed: ${error.message}`);
   }
 };
