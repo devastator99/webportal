@@ -16,7 +16,7 @@ UPDATE system_logs SET message = details::text WHERE message IS NULL AND details
 CREATE INDEX IF NOT EXISTS idx_system_logs_level ON system_logs(level);
 CREATE INDEX IF NOT EXISTS idx_system_logs_user_id ON system_logs(user_id);
 
--- Create or replace the complete_user_registration function with proper error handling and type casting
+-- Create or replace the complete_user_registration function with proper enum casting
 CREATE OR REPLACE FUNCTION public.complete_user_registration(
   p_user_id UUID,
   p_role TEXT,
@@ -42,7 +42,7 @@ AS $$
 DECLARE
   v_profile_exists BOOLEAN;
   v_role_exists BOOLEAN;
-  v_registration_status registration_status; -- Proper type declaration
+  v_registration_status registration_status;
 BEGIN
   -- Validate inputs
   IF p_user_id IS NULL OR p_role IS NULL OR p_first_name IS NULL OR p_last_name IS NULL THEN
@@ -53,11 +53,11 @@ BEGIN
     RAISE EXCEPTION 'Phone number is required for all user registrations';
   END IF;
 
-  -- Determine correct registration status based on role with proper type casting
+  -- Determine correct registration status based on role
   IF p_role IN ('doctor', 'nutritionist', 'administrator', 'reception') THEN
-    v_registration_status := 'payment_complete'::registration_status;
+    v_registration_status := 'payment_complete';
   ELSE
-    v_registration_status := 'payment_pending'::registration_status;
+    v_registration_status := 'payment_pending';
   END IF;
 
   -- Log the start of registration
@@ -83,9 +83,9 @@ BEGIN
       first_name = COALESCE(p_first_name, first_name),
       last_name = COALESCE(p_last_name, last_name),
       phone = COALESCE(p_phone, phone),
-      registration_status = v_registration_status, -- Now properly typed
+      registration_status = v_registration_status,
       registration_completed_at = CASE 
-        WHEN v_registration_status = 'payment_complete'::registration_status THEN NOW()
+        WHEN v_registration_status = 'payment_complete' THEN NOW()
         ELSE registration_completed_at
       END,
       updated_at = NOW()
@@ -97,7 +97,7 @@ BEGIN
     )
     VALUES (
       p_user_id, p_first_name, p_last_name, p_phone, v_registration_status,
-      CASE WHEN v_registration_status = 'payment_complete'::registration_status THEN NOW() ELSE NULL END
+      CASE WHEN v_registration_status = 'payment_complete' THEN NOW() ELSE NULL END
     );
   END IF;
 
@@ -203,7 +203,7 @@ BEGIN
     JOIN user_roles ur ON p.id = ur.user_id
     WHERE ur.role IN ('doctor', 'nutritionist', 'administrator', 'reception')
     AND (
-      p.registration_status != 'payment_complete'::registration_status 
+      p.registration_status != 'payment_complete' 
       OR NOT EXISTS (
         SELECT 1 FROM registration_tasks rt 
         WHERE rt.user_id = p.id 
@@ -213,7 +213,7 @@ BEGIN
   LOOP
     -- Fix registration status for professionals
     UPDATE profiles 
-    SET registration_status = 'payment_complete'::registration_status,
+    SET registration_status = 'payment_complete',
         registration_completed_at = COALESCE(registration_completed_at, NOW()),
         updated_at = NOW()
     WHERE id = v_user.id;
