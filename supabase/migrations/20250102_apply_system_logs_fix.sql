@@ -1,4 +1,5 @@
 
+
 -- Apply the system_logs schema fix and update the complete_user_registration function
 -- Fix system_logs table schema to match what the RPC functions expect
 
@@ -42,7 +43,7 @@ AS $$
 DECLARE
   v_profile_exists BOOLEAN;
   v_role_exists BOOLEAN;
-  v_registration_status registration_status;
+  v_registration_status_text TEXT;
 BEGIN
   -- Validate inputs
   IF p_user_id IS NULL OR p_role IS NULL OR p_first_name IS NULL OR p_last_name IS NULL THEN
@@ -55,9 +56,9 @@ BEGIN
 
   -- Determine correct registration status based on role
   IF p_role IN ('doctor', 'nutritionist', 'administrator', 'reception') THEN
-    v_registration_status := 'payment_complete';
+    v_registration_status_text := 'payment_complete';
   ELSE
-    v_registration_status := 'payment_pending';
+    v_registration_status_text := 'payment_pending';
   END IF;
 
   -- Log the start of registration
@@ -65,10 +66,10 @@ BEGIN
   VALUES (
     p_user_id, 
     'user_registration_start', 
-    jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status::text),
+    jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status_text),
     'info',
     'Starting complete user registration process',
-    jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status::text, 'step', 'start')
+    jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status_text, 'step', 'start')
   );
 
   -- Check if profile already exists
@@ -83,9 +84,9 @@ BEGIN
       first_name = COALESCE(p_first_name, first_name),
       last_name = COALESCE(p_last_name, last_name),
       phone = COALESCE(p_phone, phone),
-      registration_status = v_registration_status,
+      registration_status = v_registration_status_text::registration_status,
       registration_completed_at = CASE 
-        WHEN v_registration_status = 'payment_complete' THEN NOW()
+        WHEN v_registration_status_text = 'payment_complete' THEN NOW()
         ELSE registration_completed_at
       END,
       updated_at = NOW()
@@ -96,8 +97,8 @@ BEGIN
       registration_completed_at
     )
     VALUES (
-      p_user_id, p_first_name, p_last_name, p_phone, v_registration_status,
-      CASE WHEN v_registration_status = 'payment_complete' THEN NOW() ELSE NULL END
+      p_user_id, p_first_name, p_last_name, p_phone, v_registration_status_text::registration_status,
+      CASE WHEN v_registration_status_text = 'payment_complete' THEN NOW() ELSE NULL END
     );
   END IF;
 
@@ -127,10 +128,10 @@ BEGIN
     VALUES (
       p_user_id, 
       'professional_tasks_created', 
-      jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status::text, 'tasks_created', 2),
+      jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status_text, 'tasks_created', 2),
       'info',
       'Professional registration tasks created successfully with payment_complete status',
-      jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status::text, 'step', 'tasks_created')
+      jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status_text, 'step', 'tasks_created')
     );
   ELSE
     -- For patients, create welcome notification task (they need to complete payment first)
@@ -145,10 +146,10 @@ BEGIN
   VALUES (
     p_user_id, 
     'user_registration_complete', 
-    jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status::text, 'profile_exists', v_profile_exists, 'role_exists', v_role_exists),
+    jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status_text, 'profile_exists', v_profile_exists, 'role_exists', v_role_exists),
     'info',
     'User registration completed successfully with correct status',
-    jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status::text, 'step', 'complete')
+    jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status_text, 'step', 'complete')
   );
 
   RETURN jsonb_build_object(
@@ -157,7 +158,7 @@ BEGIN
     'user_id', p_user_id,
     'role', p_role,
     'phone', p_phone,
-    'registration_status', v_registration_status::text,
+    'registration_status', v_registration_status_text,
     'tasks_created', true
   );
 
@@ -203,7 +204,7 @@ BEGIN
     JOIN user_roles ur ON p.id = ur.user_id
     WHERE ur.role IN ('doctor', 'nutritionist', 'administrator', 'reception')
     AND (
-      p.registration_status != 'payment_complete' 
+      p.registration_status != 'payment_complete'::registration_status 
       OR NOT EXISTS (
         SELECT 1 FROM registration_tasks rt 
         WHERE rt.user_id = p.id 
@@ -213,7 +214,7 @@ BEGIN
   LOOP
     -- Fix registration status for professionals
     UPDATE profiles 
-    SET registration_status = 'payment_complete',
+    SET registration_status = 'payment_complete'::registration_status,
         registration_completed_at = COALESCE(registration_completed_at, NOW()),
         updated_at = NOW()
     WHERE id = v_user.id;
@@ -262,3 +263,4 @@ GRANT EXECUTE ON FUNCTION public.fix_existing_professional_users TO authenticate
 
 -- Apply the fix immediately to existing users
 SELECT public.fix_existing_professional_users();
+
