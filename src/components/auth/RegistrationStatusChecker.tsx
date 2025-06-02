@@ -83,6 +83,7 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
           
           regData = {
             registration_status: profileData?.registration_status || 'payment_pending',
+            registration_completed_at: null,
             tasks: []
           };
         }
