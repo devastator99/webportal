@@ -9,6 +9,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { Loader2, Search, AlertTriangle, CheckCircle2, Clock, XCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
+interface TaskData {
+  id: string;
+  task_type: string;
+  status: string;
+  priority: number;
+  retry_count: number;
+  created_at: string;
+  updated_at: string;
+  next_retry_at: string;
+  error_details: any;
+  result_payload: any;
+}
+
 interface DiagnosticResult {
   user_id: string;
   timestamp: string;
@@ -23,7 +36,7 @@ interface DiagnosticResult {
   };
   tasks: {
     total_count: number;
-    tasks: any[];
+    tasks: TaskData[];
   };
   care_team_assignment: {
     exists: boolean;
@@ -77,7 +90,7 @@ export const RegistrationDiagnostic = () => {
 
     setLoading(true);
     try {
-      // Run diagnostic for specific user - FIXED function name
+      // Run diagnostic for specific user
       const { data: diagnosticData, error: diagnosticError } = await supabase
         .rpc('diagnose_registration_state', { p_user_id: userId.trim() });
 
@@ -85,7 +98,7 @@ export const RegistrationDiagnostic = () => {
         throw diagnosticError;
       }
 
-      // Get overall task summary - FIXED function name
+      // Get overall task summary
       const { data: summaryData, error: summaryError } = await supabase
         .rpc('get_registration_task_summary');
 
@@ -209,34 +222,27 @@ export const RegistrationDiagnostic = () => {
                 <p className="text-gray-500">No registration tasks found</p>
               ) : (
                 <div className="space-y-2">
-                  {result.tasks.tasks.map((task: any, index: number) => {
-                    const taskData = task.split(',');
-                    const taskType = taskData[1]?.replace(/[()]/g, '');
-                    const status = taskData[2]?.replace(/[()]/g, '');
-                    const retryCount = parseInt(taskData[4]?.replace(/[()]/g, '') || '0');
-                    
-                    return (
-                      <div key={index} className="flex items-center justify-between p-2 border rounded">
-                        <div>
-                          <span className="font-medium">{taskType}</span>
-                          {retryCount > 0 && <span className="text-sm text-gray-500"> (retries: {retryCount})</span>}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {getStatusIcon(
-                            status === 'completed',
-                            status === 'pending' || status === 'in_progress'
-                          )}
-                          <span className={`text-sm ${
-                            status === 'completed' ? 'text-green-600' :
-                            status === 'failed' ? 'text-red-600' :
-                            'text-yellow-600'
-                          }`}>
-                            {status}
-                          </span>
-                        </div>
+                  {result.tasks.tasks.map((task: TaskData, index: number) => (
+                    <div key={task.id || index} className="flex items-center justify-between p-2 border rounded">
+                      <div>
+                        <span className="font-medium">{task.task_type}</span>
+                        {task.retry_count > 0 && <span className="text-sm text-gray-500"> (retries: {task.retry_count})</span>}
                       </div>
-                    );
-                  })}
+                      <div className="flex items-center gap-2">
+                        {getStatusIcon(
+                          task.status === 'completed',
+                          task.status === 'pending' || task.status === 'in_progress'
+                        )}
+                        <span className={`text-sm ${
+                          task.status === 'completed' ? 'text-green-600' :
+                          task.status === 'failed' ? 'text-red-600' :
+                          'text-yellow-600'
+                        }`}>
+                          {task.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </CardContent>

@@ -2154,6 +2154,10 @@ export type Database = {
         Args: { p_endpoint: string }
         Returns: boolean
       }
+      diagnose_registration_state: {
+        Args: { p_user_id: string }
+        Returns: Json
+      }
       fix_existing_doctors: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -2610,6 +2614,16 @@ export type Database = {
           duration: string
           timing: string
           instructions: string
+        }[]
+      }
+      get_registration_task_summary: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          status: string
+          task_type: string
+          count: number
+          avg_retry_count: number
+          oldest_pending: string
         }[]
       }
       get_room_messages: {
