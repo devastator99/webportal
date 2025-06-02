@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = "https://hcaqodjylicmppxcbqbh.supabase.co"
@@ -40,6 +41,18 @@ export interface AdminOperationResponse {
   error?: string;
 }
 
+// Updated interface for registration responses
+export interface RegistrationResponse {
+  success: boolean;
+  message?: string;
+  error?: string;
+  user_id?: string;
+  role?: string;
+  phone?: string;
+  registration_status?: string;
+  tasks_created?: boolean;
+}
+
 // Enhanced helper function to create user role using the unified RPC
 export const completeUserRegistration = async (
   userId: string, 
@@ -59,7 +72,7 @@ export const completeUserRegistration = async (
     knownAllergies?: string;
     currentMedicalConditions?: string;
   }
-) => {
+): Promise<RegistrationResponse> => {
   console.log("Calling complete_user_registration RPC for user:", userId, "role:", role, "phone:", phone);
   
   // Validate phone number is provided
@@ -99,7 +112,7 @@ export const completeUserRegistration = async (
 
   console.log("User registration completed successfully via RPC. Tasks created and will be processed automatically.");
 
-  return data;
+  return data as RegistrationResponse;
 };
 
 // Legacy function for backward compatibility - now just calls the unified RPC
@@ -186,7 +199,7 @@ export const completeDoctorRegistration = async (
   visitingHours?: string,
   clinicLocation?: string,
   consultationFee?: number
-) => {
+): Promise<RegistrationResponse> => {
   // Basic validation
   if (!userId || !firstName || !lastName || !phone) {
     throw new Error('User ID, first name, last name, and phone number are required');
@@ -241,7 +254,7 @@ export const completeDoctorRegistration = async (
       throw new Error(data.error || 'Doctor registration failed');
     }
 
-    return data;
+    return data as RegistrationResponse;
   } catch (error: any) {
     console.error('Error in completeDoctorRegistration:', error);
     throw new Error(`Doctor registration failed: ${error.message}`);
@@ -258,7 +271,7 @@ export const completeNutritionistRegistration = async (
   certifications?: string,
   experienceYears?: number,
   consultationFee?: number
-) => {
+): Promise<RegistrationResponse> => {
   // Basic validation
   if (!userId || !firstName || !lastName || !phone) {
     throw new Error('User ID, first name, last name, and phone number are required');
