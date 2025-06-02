@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { RegistrationTaskProcessor } from '@/components/testing/RegistrationTaskProcessor';
 import { RegistrationDiagnostic } from '@/components/testing/RegistrationDiagnostic';
-import { Bug, Wrench, Search } from 'lucide-react';
+import { NotificationChecker } from '@/components/testing/NotificationChecker';
+import { Bug, Wrench, Search, Bell } from 'lucide-react';
 
 const TestingPage = () => {
   return (
@@ -15,10 +16,14 @@ const TestingPage = () => {
       </div>
 
       <Tabs defaultValue="diagnostic" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="diagnostic" className="flex items-center gap-2">
             <Search className="h-4 w-4" />
             Registration Diagnostic
+          </TabsTrigger>
+          <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <Bell className="h-4 w-4" />
+            Notification Checker
           </TabsTrigger>
           <TabsTrigger value="processor" className="flex items-center gap-2">
             <Wrench className="h-4 w-4" />
@@ -28,6 +33,10 @@ const TestingPage = () => {
 
         <TabsContent value="diagnostic">
           <RegistrationDiagnostic />
+        </TabsContent>
+
+        <TabsContent value="notifications">
+          <NotificationChecker />
         </TabsContent>
 
         <TabsContent value="processor">
