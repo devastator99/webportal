@@ -71,15 +71,18 @@ export const useAuthHandlers = () => {
         throw new Error(`Invalid user type: ${userType}`);
       }
 
-      // Determine if identifier is email or phone
+      // Determine if identifier is email or phone and extract phone number
       const isEmail = identifier.includes('@');
-      let phoneNumber: string | undefined;
+      let phoneNumber: string;
       let emailAddress: string;
       
       if (isEmail) {
         emailAddress = identifier;
-        // Phone might be provided in patientData or other form data
-        phoneNumber = patientData?.emergencyContact; // Fallback, should be passed separately
+        // Phone must be provided in patientData for email registrations
+        phoneNumber = patientData?.phone || patientData?.emergencyContact || '';
+        if (!phoneNumber) {
+          throw new Error("Phone number is required for registration");
+        }
       } else {
         phoneNumber = identifier;
         emailAddress = `${identifier.replace(/[^0-9]/g, '')}@temp.placeholder`;
@@ -92,7 +95,12 @@ export const useAuthHandlers = () => {
         userType 
       });
 
-      // Step 1: Auth signup with metadata
+      // Validate phone number is available
+      if (!phoneNumber || phoneNumber.trim() === '') {
+        throw new Error("Phone number is required for registration and notifications");
+      }
+
+      // Step 1: Auth signup with metadata including phone
       const signUpData = {
         email: emailAddress,
         password,
@@ -101,13 +109,13 @@ export const useAuthHandlers = () => {
             user_type_string: userType,
             first_name: firstName,
             last_name: lastName,
-            phone: phoneNumber,
-            primary_contact: identifier
+            phone: phoneNumber, // Store phone in auth metadata
+            primary_contact: phoneNumber
           }
         }
       };
 
-      console.log("Attempting Supabase auth signup...");
+      console.log("Attempting Supabase auth signup with phone:", phoneNumber);
       
       const { data: authData, error: signUpError } = await retryWithDelay(async () => {
         return await supabase.auth.signUp(signUpData);
@@ -133,24 +141,18 @@ export const useAuthHandlers = () => {
         throw new Error("Registration failed - please try again or contact support");
       }
 
-      console.log("Auth user created successfully:", authData.user.id);
+      console.log("Auth user created successfully:", authData.user.id, "with phone:", phoneNumber);
 
       // Step 2: Complete user registration using unified RPC (atomic operation)
       try {
-        console.log("Completing user registration with unified RPC...");
+        console.log("Completing user registration with unified RPC and phone:", phoneNumber);
         
-        // Ensure we have the primary phone number for the unified call
-        const primaryPhone = phoneNumber || patientData?.phone || patientData?.emergencyContact;
-        if (!primaryPhone) {
-          throw new Error("Phone number is required for registration");
-        }
-
         const registrationResult = await completeUserRegistration(
           authData.user.id,
           userType as ValidUserRole,
           firstName,
           lastName,
-          primaryPhone,
+          phoneNumber, // Pass the phone number explicitly
           userType === 'patient' ? patientData : undefined
         );
         
@@ -161,7 +163,7 @@ export const useAuthHandlers = () => {
         throw new Error(`Account created but setup failed: ${registrationError.message}`);
       }
 
-      console.log("Registration completed successfully");
+      console.log("Registration completed successfully with phone:", phoneNumber);
       return authData.user;
       
     } catch (error: any) {
@@ -175,6 +177,8 @@ export const useAuthHandlers = () => {
         userMessage = "Email address issue - it may already be in use or invalid.";
       } else if (error.message?.includes('password')) {
         userMessage = "Password must be at least 6 characters long.";
+      } else if (error.message?.includes('phone')) {
+        userMessage = "Phone number is required for registration and notifications.";
       } else if (error.message?.includes('rate limit')) {
         userMessage = "Too many registration attempts. Please wait a few minutes and try again.";
       } else if (error.message) {

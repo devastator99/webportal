@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = "https://hcaqodjylicmppxcbqbh.supabase.co"
@@ -60,14 +61,19 @@ export const completeUserRegistration = async (
     currentMedicalConditions?: string;
   }
 ) => {
-  console.log("Calling complete_user_registration RPC for user:", userId, "role:", role);
+  console.log("Calling complete_user_registration RPC for user:", userId, "role:", role, "phone:", phone);
   
+  // Validate phone number is provided
+  if (!phone || phone.trim() === '') {
+    throw new Error("Phone number is required for registration");
+  }
+
   const { data, error } = await supabase.rpc('complete_user_registration', {
     p_user_id: userId,
     p_role: role,
     p_first_name: firstName,
     p_last_name: lastName,
-    p_phone: phone,
+    p_phone: phone, // Ensure phone is always passed
     p_email: null,
     p_age: patientData?.age ? parseInt(patientData.age, 10) : null,
     p_gender: patientData?.gender || null,
@@ -95,12 +101,12 @@ export const completeUserRegistration = async (
   // For professionals, manually trigger the edge function since the RPC can't call it reliably
   if (role === 'doctor' || role === 'nutritionist') {
     try {
-      console.log(`Manually triggering professional registration for ${role}:`, userId);
+      console.log(`Manually triggering professional registration for ${role}:`, userId, "with phone:", phone);
       
       const { data: professionalResult, error: professionalError } = await supabase.functions.invoke('complete-professional-registration', {
         body: {
           user_id: userId,
-          phone: phone
+          phone: phone // Ensure phone is passed to edge function
         }
       });
 

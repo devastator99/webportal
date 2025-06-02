@@ -39,6 +39,16 @@ export const UserRegistration = () => {
       return false;
     }
     
+    // Enhanced phone validation
+    if (phone.trim() === '') {
+      toast({
+        title: "Phone number required",
+        description: "Phone number is mandatory for all user registrations",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
     if (password !== confirmPassword) {
       toast({
         title: "Password mismatch",
@@ -76,14 +86,14 @@ export const UserRegistration = () => {
     
     setLoading(true);
     try {
-      console.log("Starting user registration process...");
+      console.log("Starting user registration process with phone:", phone);
       
-      // Use phone as primary identifier
-      const primaryIdentifier = email || phone;
+      // Use phone as primary identifier if no email provided
+      const primaryIdentifier = email || `${phone.replace(/[^0-9]/g, '')}@temp.placeholder`;
       
-      console.log("Creating auth user with identifier:", primaryIdentifier);
+      console.log("Creating auth user with identifier:", primaryIdentifier, "and phone:", phone);
       
-      // Step 1: Create the user in Auth
+      // Step 1: Create the user in Auth with phone number in metadata
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: primaryIdentifier,
         password,
@@ -92,7 +102,7 @@ export const UserRegistration = () => {
             user_type_string: role,
             first_name: firstName,
             last_name: lastName,
-            phone: phone,
+            phone: phone, // Store phone in auth metadata
             primary_contact: phone
           }
         }
@@ -107,11 +117,11 @@ export const UserRegistration = () => {
         throw new Error("User creation failed - no user returned from authentication");
       }
 
-      console.log("Auth user created successfully:", authData.user.id);
+      console.log("Auth user created successfully:", authData.user.id, "proceeding with phone:", phone);
 
       // Step 2: Complete user registration using the unified RPC
       try {
-        console.log("Completing user registration...");
+        console.log("Completing user registration with phone number:", phone);
         
         const patientData = role === "patient" ? {
           age,
@@ -121,12 +131,13 @@ export const UserRegistration = () => {
           emergencyContact
         } : undefined;
         
+        // Ensure phone is passed to completeUserRegistration
         const registrationResult = await completeUserRegistration(
           authData.user.id,
           role,
           firstName,
           lastName,
-          phone,
+          phone, // Pass the phone number explicitly
           patientData
         );
         
@@ -136,12 +147,12 @@ export const UserRegistration = () => {
         if (role === "patient") {
           toast({
             title: "Registration Complete",
-            description: `Patient account created successfully. Welcome notifications will be sent shortly.`,
+            description: `Patient account created successfully with phone ${phone}. Welcome notifications will be sent shortly.`,
           });
         } else {
           toast({
             title: "Registration Complete",
-            description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created successfully. Welcome notifications and profile completion reminders will be sent.`,
+            description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created successfully with phone ${phone}. Welcome notifications and profile completion reminders will be sent.`,
           });
         }
         
@@ -168,7 +179,7 @@ export const UserRegistration = () => {
       setAllergies("");
       setEmergencyContact("");
       
-      console.log("Registration process completed");
+      console.log("Registration process completed with phone:", phone);
       
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -180,7 +191,7 @@ export const UserRegistration = () => {
       } else if (error.message?.includes("password")) {
         errorMessage = "Password requirements not met";
       } else if (error.message?.includes("phone")) {
-        errorMessage = "Invalid phone number format";
+        errorMessage = "Invalid phone number format or phone number required";
       } else if (error.message?.includes("role")) {
         errorMessage = "Failed to assign user role - please contact administrator";
       } else if (error.message) {
@@ -231,7 +242,7 @@ export const UserRegistration = () => {
           <div className="space-y-2">
             <Label htmlFor="phone">
               Phone Number * 
-              <span className="text-sm text-gray-500 ml-2">(Required for all users)</span>
+              <span className="text-sm text-gray-500 ml-2">(Required for all users - notifications will be sent here)</span>
             </Label>
             <Input 
               id="phone"
@@ -240,7 +251,11 @@ export const UserRegistration = () => {
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+91 98765 43210"
               required
+              className={!phone ? "border-red-500" : ""}
             />
+            {!phone && (
+              <p className="text-sm text-red-500">Phone number is required for registration and notifications</p>
+            )}
           </div>
           
           <div className="space-y-2">
@@ -413,7 +428,7 @@ export const UserRegistration = () => {
           <Button 
             type="submit" 
             className="w-full" 
-            disabled={loading || (password && confirmPassword && password !== confirmPassword)}
+            disabled={loading || (password && confirmPassword && password !== confirmPassword) || !phone}
           >
             {loading ? "Registering..." : "Register User"}
           </Button>
