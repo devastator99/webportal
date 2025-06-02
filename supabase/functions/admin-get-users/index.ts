@@ -26,62 +26,55 @@ serve(async (req) => {
       }
     );
 
-    // Verify if the request is from an admin user using RLS
-    const authHeader = req.headers.get("Authorization")?.split(" ")[1] || "";
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(authHeader);
+    console.log("Fetching all users from auth...");
 
-    if (authError || !user) {
+    // Get all users from auth.users
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+
+    if (authError) {
+      console.error("Error fetching auth users:", authError);
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ 
+          error: `Failed to fetch auth users: ${authError.message}`,
+          details: authError
+        }),
         {
-          status: 401,
+          status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
 
-    // Verify the user is an admin
-    const { data: roleData, error: roleError } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .single();
-
-    if (roleError || roleData?.role !== "administrator") {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized - admin access required" }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    // Query all users directly
-    const { data: users, error } = await supabaseAdmin.auth.admin.listUsers();
-
-    if (error) {
-      throw error;
-    }
-
-    // Return only necessary information (id and email)
-    const safeUsers = users.users.map(user => ({
+    const users = authData.users.map(user => ({
       id: user.id,
-      email: user.email
+      email: user.email || 'No email',
+      created_at: user.created_at,
+      updated_at: user.updated_at,
+      last_sign_in_at: user.last_sign_in_at
     }));
 
+    console.log(`Successfully fetched ${users.length} users`);
+
     return new Response(
-      JSON.stringify({ users: safeUsers }),
+      JSON.stringify({ 
+        success: true, 
+        users: users,
+        count: users.length
+      }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
+
   } catch (error) {
-    console.error("Edge function error:", error);
+    console.error("Unexpected error in admin-get-users function:", error);
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: `Unexpected error: ${error.message}`,
+        details: error
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

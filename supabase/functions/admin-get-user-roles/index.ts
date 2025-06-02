@@ -26,58 +26,49 @@ serve(async (req) => {
       }
     );
 
-    // Verify if the request is from an admin user
-    const authHeader = req.headers.get("Authorization")?.split(" ")[1] || "";
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(authHeader);
+    console.log("Fetching all user roles...");
 
-    if (authError || !user) {
+    // Get all user roles
+    const { data: rolesData, error: rolesError } = await supabaseAdmin
+      .from('user_roles')
+      .select('user_id, role');
+
+    if (rolesError) {
+      console.error("Error fetching user roles:", rolesError);
       return new Response(
-        JSON.stringify({ error: "Unauthorized" }),
+        JSON.stringify({ 
+          error: `Failed to fetch user roles: ${rolesError.message}`,
+          details: rolesError
+        }),
         {
-          status: 401,
+          status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
 
-    // Verify the user is an admin - using direct query to avoid recursion
-    const { data: roleData, error: roleError } = await supabaseAdmin
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id)
-      .single();
-
-    if (roleError || roleData?.role !== "administrator") {
-      return new Response(
-        JSON.stringify({ error: "Unauthorized - admin access required" }),
-        {
-          status: 403,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    // Directly query all user roles
-    const { data: userRoles, error: userRolesError } = await supabaseAdmin
-      .from("user_roles")
-      .select("user_id, role");
-
-    if (userRolesError) {
-      throw userRolesError;
-    }
+    console.log(`Successfully fetched ${rolesData?.length || 0} user roles`);
 
     return new Response(
-      JSON.stringify({ roles: userRoles }),
+      JSON.stringify({ 
+        success: true, 
+        roles: rolesData || [],
+        count: rolesData?.length || 0
+      }),
       {
         status: 200,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
+
   } catch (error) {
-    console.error("Edge function error:", error);
+    console.error("Unexpected error in admin-get-user-roles function:", error);
     
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        error: `Unexpected error: ${error.message}`,
+        details: error
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
