@@ -2052,6 +2052,19 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      complete_doctor_registration: {
+        Args: {
+          p_user_id: string
+          p_first_name: string
+          p_last_name: string
+          p_phone: string
+          p_specialty?: string
+          p_visiting_hours?: string
+          p_clinic_location?: string
+          p_consultation_fee?: number
+        }
+        Returns: Json
+      }
       complete_patient_registration: {
         Args: {
           p_user_id: string
@@ -2140,6 +2153,10 @@ export type Database = {
       delete_push_subscription: {
         Args: { p_endpoint: string }
         Returns: boolean
+      }
+      fix_existing_doctors: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       fix_existing_professional_users: {
         Args: Record<PropertyKey, never>

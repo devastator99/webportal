@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, completeDoctorRegistration } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Form,
@@ -45,7 +45,7 @@ export const DoctorProfileForm = () => {
       specialty: "",
       visiting_hours: "",
       clinic_location: "",
-      consultation_fee: "500", // Default consultation fee
+      consultation_fee: "500",
       phone: "",
     },
   });
@@ -94,63 +94,61 @@ export const DoctorProfileForm = () => {
     
     setLoading(true);
     try {
-      // Update the profile with doctor-specific information
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .update({
-          specialty: values.specialty,
-          visiting_hours: values.visiting_hours,
-          clinic_location: values.clinic_location,
-          consultation_fee: parseFloat(values.consultation_fee),
-          phone: values.phone,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", user.id);
-
-      if (profileError) throw profileError;
-
-      // Trigger professional registration completion
-      console.log("Triggering professional registration completion for doctor:", user.id);
+      console.log("Starting doctor registration completion with phone:", values.phone);
       
-      const { data: registrationResult, error: registrationError } = await supabase.functions.invoke(
-        'complete-professional-registration',
-        {
-          body: {
-            user_id: user.id,
-            phone: values.phone
-          }
-        }
+      // Use the new dedicated doctor registration function
+      const registrationResult = await completeDoctorRegistration(
+        user.id,
+        user.user_metadata?.first_name || "Doctor",
+        user.user_metadata?.last_name || "User",
+        values.phone,
+        values.specialty,
+        values.visiting_hours,
+        values.clinic_location,
+        parseFloat(values.consultation_fee)
       );
 
-      if (registrationError) {
-        console.error("Professional registration error:", registrationError);
-        toast({
-          title: "Profile updated",
-          description: "Your profile has been updated, but there was an issue with sending notifications.",
-          variant: "default",
-        });
-      } else if (registrationResult && registrationResult.success) {
-        console.log("Professional registration completed successfully:", registrationResult);
+      console.log("Doctor registration completed successfully:", registrationResult);
+
+      if (registrationResult && registrationResult.success) {
         toast({
           title: "Registration complete",
-          description: "Your doctor profile has been completed and welcome notifications have been sent.",
+          description: "Your doctor profile has been completed and welcome notifications will be sent automatically.",
         });
+
+        // Trigger task processing to handle the registration tasks
+        setTimeout(async () => {
+          try {
+            const { error: processError } = await supabase.functions.invoke(
+              'process-registration-tasks',
+              { body: {} }
+            );
+            
+            if (processError) {
+              console.error("Failed to process registration tasks:", processError);
+            } else {
+              console.log("Registration tasks processing triggered successfully");
+            }
+          } catch (err) {
+            console.error("Error triggering task processing:", err);
+          }
+        }, 2000);
       } else {
-        console.error("Professional registration failed:", registrationResult);
+        console.error("Doctor registration failed:", registrationResult);
         toast({
-          title: "Profile updated",
-          description: "Your profile has been updated, but there was an issue completing the registration process.",
-          variant: "default",
+          title: "Registration error",
+          description: registrationResult?.error || "There was an issue completing the registration process.",
+          variant: "destructive",
         });
       }
       
       // Redirect to dashboard after successful update
       navigate("/dashboard");
     } catch (error: any) {
-      console.error("Error updating doctor profile:", error);
+      console.error("Error completing doctor registration:", error);
       toast({
         variant: "destructive",
-        title: "Error updating profile",
+        title: "Error completing registration",
         description: error.message || "Something went wrong. Please try again.",
       });
     } finally {

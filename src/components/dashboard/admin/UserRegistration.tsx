@@ -113,36 +113,47 @@ export const UserRegistration = () => {
 
       console.log("Auth user created successfully:", authData.user.id, "proceeding with phone:", phone);
 
-      // Step 2: Complete user registration using the unified RPC
+      // Step 2: Complete user registration using role-specific functions
       try {
         console.log("Completing user registration with phone number:", phone);
         
-        const patientData = role === "patient" ? {
-          age,
-          gender,
-          bloodGroup,
-          allergies,
-          emergencyContact
-        } : undefined;
+        let registrationResult;
         
-        // Call the updated complete_user_registration function
-        const registrationResult = await completeUserRegistration(
-          authData.user.id,
-          role,
-          firstName,
-          lastName,
-          phone,
-          patientData
-        );
+        if (role === "doctor") {
+          // Use the new doctor-specific registration function
+          registrationResult = await supabase.rpc('complete_doctor_registration', {
+            p_user_id: authData.user.id,
+            p_first_name: firstName,
+            p_last_name: lastName,
+            p_phone: phone
+          });
+        } else {
+          // Use the general registration function for other roles
+          const patientData = role === "patient" ? {
+            age,
+            gender,
+            bloodGroup,
+            allergies,
+            emergencyContact
+          } : undefined;
+          
+          registrationResult = await completeUserRegistration(
+            authData.user.id,
+            role,
+            firstName,
+            lastName,
+            phone,
+            patientData
+          );
+        }
         
         console.log("User registration completed successfully:", registrationResult);
         
-        // For professionals, the new RPC will automatically create registration tasks
-        // and trigger the notification process immediately
+        // For professionals, trigger the notification process
         if (role === "doctor" || role === "nutritionist" || role === "administrator") {
           console.log("Professional registration completed - notifications should be sent automatically");
           
-          // Wait a moment then trigger the task processor to handle the tasks
+          // Wait a moment then trigger the task processor
           setTimeout(async () => {
             try {
               const { error: processError } = await supabase.functions.invoke(

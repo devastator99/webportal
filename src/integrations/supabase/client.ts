@@ -6,7 +6,7 @@ const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 // Valid user roles that can be created
-export type ValidUserRole = 'patient' | 'doctor' | 'nutritionist' | 'administrator' | 'reception';
+export type ValidUserRole = "patient" | "doctor" | "nutritionist" | "administrator" | "reception";
 
 // Type definitions for existing functionality
 export interface PatientProfile {
@@ -179,4 +179,34 @@ export const getPatientInvoices = async (patientId: string): Promise<PatientInvo
     console.error("Error in getPatientInvoices:", error);
     throw new Error(`Failed to fetch invoices: ${error.message}`);
   }
+};
+
+// Add the new doctor registration function
+export const completeDoctorRegistration = async (
+  userId: string,
+  firstName: string,
+  lastName: string,
+  phone: string,
+  specialty?: string,
+  visitingHours?: string,
+  clinicLocation?: string,
+  consultationFee?: number
+) => {
+  const { data, error } = await supabase.rpc('complete_doctor_registration', {
+    p_user_id: userId,
+    p_first_name: firstName,
+    p_last_name: lastName,
+    p_phone: phone,
+    p_specialty: specialty,
+    p_visiting_hours: visitingHours,
+    p_clinic_location: clinicLocation,
+    p_consultation_fee: consultationFee
+  });
+
+  if (error) {
+    console.error('Doctor registration error:', error);
+    throw error;
+  }
+
+  return data;
 };
