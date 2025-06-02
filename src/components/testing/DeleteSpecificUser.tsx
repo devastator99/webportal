@@ -33,20 +33,33 @@ export const DeleteSpecificUser = () => {
   const fetchAllUsers = async () => {
     setLoadingUsers(true);
     try {
-      const { data: usersData, error } = await supabase.functions.invoke('admin-get-users', {
+      console.log('Fetching users via admin-get-users function...');
+      const { data: usersResponse, error } = await supabase.functions.invoke('admin-get-users', {
         body: {}
       });
 
+      console.log('Users response:', usersResponse);
+
       if (error) {
+        console.error('Error invoking admin-get-users:', error);
         throw new Error(`Failed to fetch users: ${error.message}`);
       }
 
-      if (usersData?.users) {
-        setUsers(usersData.users);
+      if (!usersResponse.success) {
+        throw new Error(usersResponse.error || 'Failed to fetch users');
+      }
+
+      if (usersResponse.users && Array.isArray(usersResponse.users)) {
+        setUsers(usersResponse.users);
+        toast.success(`Loaded ${usersResponse.users.length} users`);
+      } else {
+        console.error('Invalid users response format:', usersResponse);
+        throw new Error('Invalid response format from admin-get-users');
       }
     } catch (error: any) {
       console.error('Error fetching users:', error);
       toast.error(`Failed to fetch users: ${error.message}`);
+      setUsers([]);
     } finally {
       setLoadingUsers(false);
     }
@@ -84,16 +97,7 @@ export const DeleteSpecificUser = () => {
 
     setIsDeleting(true);
     try {
-      // First, get all users to find the one with this email
-      const { data: usersData, error: usersError } = await supabase.functions.invoke('admin-get-users', {
-        body: {}
-      });
-
-      if (usersError) {
-        throw new Error(`Failed to get users: ${usersError.message}`);
-      }
-
-      const targetUser = usersData?.users?.find((u: any) => u.email === emailToDelete);
+      const targetUser = users.find(u => u.email === emailToDelete);
       
       if (!targetUser) {
         toast.error(`User with email ${emailToDelete} not found`);
@@ -102,7 +106,6 @@ export const DeleteSpecificUser = () => {
 
       console.log(`Found user to delete:`, targetUser);
 
-      // Delete the user using the admin delete function
       const { data, error } = await supabase.functions.invoke('admin-delete-user', {
         body: {
           user_id: targetUser.id,
@@ -110,7 +113,10 @@ export const DeleteSpecificUser = () => {
         }
       });
 
+      console.log('Delete response:', data);
+
       if (error) {
+        console.error('Delete error:', error);
         throw new Error(`Delete failed: ${error.message}`);
       }
 
@@ -156,16 +162,20 @@ export const DeleteSpecificUser = () => {
           });
 
           if (error) {
-            throw new Error(`Delete failed: ${error.message}`);
+            console.error(`Error deleting user ${userId}:`, error);
+            errorCount++;
+            continue;
           }
 
           if (!data.success) {
-            throw new Error(data.error || 'Delete operation failed');
+            console.error(`Delete failed for user ${userId}:`, data.error);
+            errorCount++;
+            continue;
           }
 
           successCount++;
         } catch (error: any) {
-          console.error(`Error deleting user ${userId}:`, error);
+          console.error(`Exception deleting user ${userId}:`, error);
           errorCount++;
         }
       }
@@ -274,7 +284,7 @@ export const DeleteSpecificUser = () => {
               className="flex items-center gap-2"
             >
               <RefreshCw className={`h-4 w-4 ${loadingUsers ? 'animate-spin' : ''}`} />
-              Refresh List
+              {loadingUsers ? 'Loading...' : 'Refresh List'}
             </Button>
             <Button
               onClick={selectAllUsers}

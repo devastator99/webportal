@@ -41,27 +41,31 @@ export const UserManagement = () => {
     try {
       console.log("Fetching users...");
       
-      // Get all auth users and their emails via the admin-get-users edge function
+      // Get all auth users via the admin-get-users edge function
       const { data: authUsers, error: authUsersError } = await supabase.functions.invoke(
         'admin-get-users',
         { body: {} }
       );
+      
+      console.log("Auth users response:", authUsers);
       
       if (authUsersError) {
         console.error("Auth users fetch error:", authUsersError);
         throw authUsersError;
       }
       
-      console.log("Auth users data:", authUsers);
+      if (!authUsers || !authUsers.success) {
+        throw new Error(authUsers?.error || "Failed to fetch users from admin function");
+      }
       
-      if (!authUsers || !Array.isArray(authUsers.users)) {
+      if (!Array.isArray(authUsers.users)) {
         throw new Error("Invalid response from admin-get-users");
       }
       
       // Create a map of user profiles and roles
       const formattedUsers: UserItem[] = [];
       
-      // Get profiles directly - this should not have recursion issues
+      // Get profiles directly
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, first_name, last_name');
@@ -84,15 +88,21 @@ export const UserManagement = () => {
         });
       }
       
-      // Get roles from the edge function not directly
+      // Get roles from the edge function
       const { data: rolesData, error: rolesError } = await supabase.functions.invoke(
         'admin-get-user-roles',
         { body: {} }
       );
       
+      console.log("Roles response:", rolesData);
+      
       if (rolesError) {
         console.error("Roles fetch error:", rolesError);
         throw rolesError;
+      }
+      
+      if (!rolesData || !rolesData.success) {
+        throw new Error(rolesData?.error || "Failed to fetch roles from admin function");
       }
       
       // Create a map of user roles
@@ -153,28 +163,52 @@ export const UserManagement = () => {
     }
     
     setDeleting(true);
+    let successCount = 0;
+    let errorCount = 0;
+    
     try {
       for (const userId of selectedUsers) {
         // Skip current user
         if (userId === user?.id) {
           toast.error("Cannot delete your own account");
+          errorCount++;
           continue;
         }
         
-        const { data, error } = await supabase.functions.invoke('admin-delete-user', { 
-          body: { 
-            user_id: userId,
-            admin_id: user?.id
-          } 
-        });
-        
-        if (error) {
-          console.error("Error deleting user:", error);
-          toast.error(`Failed to delete user: ${error.message}`);
+        try {
+          const { data, error } = await supabase.functions.invoke('admin-delete-user', { 
+            body: { 
+              user_id: userId,
+              admin_id: user?.id
+            } 
+          });
+          
+          if (error) {
+            console.error("Error deleting user:", error);
+            errorCount++;
+            continue;
+          }
+          
+          if (!data.success) {
+            console.error("Delete failed:", data.error);
+            errorCount++;
+            continue;
+          }
+          
+          successCount++;
+        } catch (error: any) {
+          console.error("Exception deleting user:", error);
+          errorCount++;
         }
       }
       
-      toast.success("Successfully deleted selected users");
+      if (successCount > 0) {
+        toast.success(`Successfully deleted ${successCount} user(s)`);
+      }
+      if (errorCount > 0) {
+        toast.error(`Failed to delete ${errorCount} user(s)`);
+      }
+      
       fetchUsers(); // Refresh the list
     } catch (error: any) {
       console.error("Error in delete operation:", error);

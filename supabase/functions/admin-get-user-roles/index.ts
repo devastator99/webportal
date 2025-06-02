@@ -28,7 +28,7 @@ serve(async (req) => {
 
     console.log("Fetching all user roles...");
 
-    // Get all user roles
+    // Get all user roles using the admin client
     const { data: rolesData, error: rolesError } = await supabaseAdmin
       .from('user_roles')
       .select('user_id, role');
@@ -38,7 +38,8 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ 
           error: `Failed to fetch user roles: ${rolesError.message}`,
-          details: rolesError
+          details: rolesError,
+          success: false
         }),
         {
           status: 500,
@@ -67,7 +68,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: `Unexpected error: ${error.message}`,
-        details: error
+        details: error,
+        success: false
       }),
       {
         status: 500,

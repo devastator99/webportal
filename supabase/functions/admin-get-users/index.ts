@@ -28,15 +28,16 @@ serve(async (req) => {
 
     console.log("Fetching all users from auth...");
 
-    // Get all users from auth.users
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers();
+    // Get all users from auth.users using the admin client
+    const { data: authResponse, error: authError } = await supabaseAdmin.auth.admin.listUsers();
 
     if (authError) {
       console.error("Error fetching auth users:", authError);
       return new Response(
         JSON.stringify({ 
           error: `Failed to fetch auth users: ${authError.message}`,
-          details: authError
+          details: authError,
+          success: false
         }),
         {
           status: 500,
@@ -45,7 +46,21 @@ serve(async (req) => {
       );
     }
 
-    const users = authData.users.map(user => ({
+    if (!authResponse || !authResponse.users) {
+      console.error("Invalid response from auth.admin.listUsers");
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid response from auth service",
+          success: false
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const users = authResponse.users.map(user => ({
       id: user.id,
       email: user.email || 'No email',
       created_at: user.created_at,
@@ -73,7 +88,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: `Unexpected error: ${error.message}`,
-        details: error
+        details: error,
+        success: false
       }),
       {
         status: 500,
