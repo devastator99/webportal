@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
@@ -177,7 +176,7 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
     }
   };
   
-  // Enhanced registration status fetching
+  // Enhanced registration status fetching with better error handling
   const fetchRegistrationProgress = async () => {
     if (!user?.id) {
       setError('User not authenticated');
@@ -188,12 +187,33 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
       console.log("Fetching registration status for user:", user.id);
       
       const result = await retrySupabaseOperation(async () => {
+        // First try the RPC function
         const { data, error } = await supabase.rpc('get_user_registration_status_safe', {
           p_user_id: user.id
         });
         
         if (error) {
-          throw error;
+          console.warn("RPC failed, trying direct table query:", error);
+          // Fallback to direct table queries
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('registration_status')
+            .eq('id', user.id)
+            .single();
+            
+          if (profileError) throw profileError;
+          
+          const { data: tasksData, error: tasksError } = await supabase
+            .from('registration_tasks')
+            .select('id, task_type, status')
+            .eq('user_id', user.id);
+            
+          if (tasksError) throw tasksError;
+          
+          return {
+            registration_status: profileData?.registration_status || 'payment_pending',
+            tasks: tasksData || []
+          };
         }
         
         return data;
@@ -201,7 +221,6 @@ export function useRegistrationProcess(options: RegistrationOptions = {}) {
       
       console.log("Registration status result:", result);
       
-      // Make sure we parse the data as UserRegistrationStatus
       const regData = result as unknown as UserRegistrationStatus;
       
       setRegistrationProgress({
