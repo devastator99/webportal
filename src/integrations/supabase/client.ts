@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = "https://hcaqodjylicmppxcbqbh.supabase.co"
@@ -98,29 +97,12 @@ export const completeUserRegistration = async (
     throw new Error(data.error || 'Registration failed');
   }
 
-  // For professionals, manually trigger the edge function since the RPC can't call it reliably
-  if (role === 'doctor' || role === 'nutritionist') {
-    try {
-      console.log(`Manually triggering professional registration for ${role}:`, userId, "with phone:", phone);
-      
-      const { data: professionalResult, error: professionalError } = await supabase.functions.invoke('complete-professional-registration', {
-        body: {
-          user_id: userId,
-          phone: phone // Ensure phone is passed to edge function
-        }
-      });
-
-      if (professionalError) {
-        console.error("Professional registration failed:", professionalError);
-        // Don't throw here - basic registration succeeded
-      } else {
-        console.log("Professional registration completed:", professionalResult);
-      }
-    } catch (err) {
-      console.error("Exception during professional registration:", err);
-      // Don't throw here - basic registration succeeded
-    }
-  }
+  // The RPC function now handles everything including:
+  // 1. Setting correct registration status (payment_complete for professionals)
+  // 2. Creating registration tasks
+  // 3. The process-registration-tasks edge function will handle notifications automatically
+  
+  console.log("User registration completed successfully via RPC. Tasks created and will be processed automatically.");
 
   return data;
 };
