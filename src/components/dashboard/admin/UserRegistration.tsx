@@ -69,15 +69,6 @@ export const UserRegistration = () => {
       return false;
     }
     
-    if (role === "patient" && (!age || !gender || !bloodGroup)) {
-      toast({
-        title: "Missing patient information",
-        description: "Please fill all required patient fields (age, gender, blood group)",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
     return true;
   };
   
@@ -376,7 +367,7 @@ export const UserRegistration = () => {
                 <TabsContent value="basic" className="space-y-4 mt-4">
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="age">Age *</Label>
+                      <Label htmlFor="age">Age (Optional)</Label>
                       <Input 
                         id="age"
                         type="number"
@@ -385,7 +376,7 @@ export const UserRegistration = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="gender">Gender *</Label>
+                      <Label htmlFor="gender">Gender (Optional)</Label>
                       <Select 
                         value={gender} 
                         onValueChange={setGender}
@@ -418,7 +409,7 @@ export const UserRegistration = () => {
                 
                 <TabsContent value="health" className="space-y-4 mt-4">
                   <div className="space-y-2">
-                    <Label htmlFor="bloodGroup">Blood Group *</Label>
+                    <Label htmlFor="bloodGroup">Blood Group (Optional)</Label>
                     <Select 
                       value={bloodGroup} 
                       onValueChange={setBloodGroup}
