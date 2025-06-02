@@ -40,7 +40,7 @@ export interface AdminOperationResponse {
   error?: string;
 }
 
-// Helper function to create user role using the unified RPC
+// Enhanced helper function to create user role using the unified RPC
 export const completeUserRegistration = async (
   userId: string, 
   role: ValidUserRole, 
@@ -68,7 +68,7 @@ export const completeUserRegistration = async (
     p_first_name: firstName,
     p_last_name: lastName,
     p_phone: phone,
-    p_email: null, // Not used currently
+    p_email: null,
     p_age: patientData?.age ? parseInt(patientData.age, 10) : null,
     p_gender: patientData?.gender || null,
     p_blood_group: patientData?.bloodGroup || null,
@@ -92,9 +92,28 @@ export const completeUserRegistration = async (
     throw new Error(data.error || 'Registration failed');
   }
 
-  // Log if professional setup was triggered
-  if (data?.professional_setup_triggered) {
-    console.log(`Professional registration setup triggered for ${role}:`, userId);
+  // For professionals, manually trigger the edge function since the RPC can't call it reliably
+  if (role === 'doctor' || role === 'nutritionist') {
+    try {
+      console.log(`Manually triggering professional registration for ${role}:`, userId);
+      
+      const { data: professionalResult, error: professionalError } = await supabase.functions.invoke('complete-professional-registration', {
+        body: {
+          user_id: userId,
+          phone: phone
+        }
+      });
+
+      if (professionalError) {
+        console.error("Professional registration failed:", professionalError);
+        // Don't throw here - basic registration succeeded
+      } else {
+        console.log("Professional registration completed:", professionalResult);
+      }
+    } catch (err) {
+      console.error("Exception during professional registration:", err);
+      // Don't throw here - basic registration succeeded
+    }
   }
 
   return data;
@@ -102,7 +121,7 @@ export const completeUserRegistration = async (
 
 // Legacy function for backward compatibility - now just calls the unified RPC
 export const createUserRole = async (userId: string, role: ValidUserRole) => {
-  console.log("Legacy createUserRole called - this should not be used anymore");
+  console.log("Legacy createUserRole called - redirecting to completeUserRegistration");
   throw new Error("Use completeUserRegistration instead of createUserRole");
 };
 

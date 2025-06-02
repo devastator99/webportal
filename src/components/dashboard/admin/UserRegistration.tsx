@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { createUserRole, supabase, ValidUserRole } from "@/integrations/supabase/client";
+import { completeUserRegistration, supabase, ValidUserRole } from "@/integrations/supabase/client";
 import { UserPlus, Eye, EyeOff } from "lucide-react";
 
 export const UserRegistration = () => {
@@ -109,134 +109,49 @@ export const UserRegistration = () => {
 
       console.log("Auth user created successfully:", authData.user.id);
 
-      // Step 2: Create user role
+      // Step 2: Complete user registration using the unified RPC
       try {
-        console.log("Creating user role...");
-        const roleResult = await createUserRole(authData.user.id, role);
-        console.log("User role created successfully:", roleResult);
-      } catch (roleError: any) {
-        console.error("Error creating user role:", roleError);
-        throw new Error(`Failed to assign user role: ${roleError.message}`);
-      }
-      
-      // Step 3: If patient, create patient details
-      if (role === "patient") {
-        try {
-          console.log("Creating patient details...");
-          const { data: patientResult, error: patientError } = await supabase.rpc(
-            'upsert_patient_details',
-            {
-              p_user_id: authData.user.id,
-              p_age: parseInt(age, 10),
-              p_gender: gender,
-              p_blood_group: bloodGroup,
-              p_allergies: allergies,
-              p_emergency_contact: emergencyContact || null,
-              p_height: null,
-              p_birth_date: null,
-              p_food_habit: null,
-              p_current_medical_conditions: null
-            }
-          );
-          
-          if (patientError) {
-            console.error("Error creating patient details:", patientError);
-            toast({
-              title: "Partial success",
-              description: "User created but some patient details could not be saved",
-              variant: "default",
-            });
-          }
-        } catch (patientError: any) {
-          console.error("Exception creating patient details:", patientError);
-        }
-      }
-
-      // Step 4: Handle registration completion based on role
-      if (role === "patient") {
-        // For patients, send welcome notification directly (existing flow)
-        try {
-          console.log(`Sending welcome notification for patient:`, authData.user.id);
-          
-          const fullName = `${firstName} ${lastName}`.trim();
-          const userEmail = email || primaryIdentifier;
-          
-          const { data: notificationResult, error: notificationError } = await supabase.functions.invoke('send-comprehensive-welcome-notification', {
-            body: {
-              patient_id: authData.user.id,
-              patient_email: userEmail,
-              patient_phone: phone,
-              patient_name: fullName,
-              patient_details: {
-                role: role,
-                registration_type: 'patient'
-              }
-            }
-          });
-
-          if (notificationError) {
-            console.error("Welcome notification error:", notificationError);
-            toast({
-              title: "Registration Complete",
-              description: `Patient account created successfully, but welcome email may not have been sent.`,
-              variant: "default",
-            });
-          } else {
-            console.log("Welcome notification sent successfully:", notificationResult);
-            toast({
-              title: "Registration Complete",
-              description: `Patient account created and welcome email sent to ${userEmail}`,
-            });
-          }
-        } catch (notificationError: any) {
-          console.error("Exception sending welcome notification:", notificationError);
+        console.log("Completing user registration...");
+        
+        const patientData = role === "patient" ? {
+          age,
+          gender,
+          bloodGroup,
+          allergies,
+          emergencyContact
+        } : undefined;
+        
+        const registrationResult = await completeUserRegistration(
+          authData.user.id,
+          role,
+          firstName,
+          lastName,
+          phone,
+          patientData
+        );
+        
+        console.log("User registration completed successfully:", registrationResult);
+        
+        // Show appropriate success message based on role
+        if (role === "patient") {
           toast({
             title: "Registration Complete",
-            description: `Patient account created successfully, but welcome email may not have been sent.`,
-            variant: "default",
+            description: `Patient account created successfully. Welcome notifications will be sent shortly.`,
           });
-        }
-      } else {
-        // For doctors and nutritionists, use the new professional registration flow
-        try {
-          console.log(`Completing professional registration for ${role}:`, authData.user.id);
-          
-          const { data: professionalResult, error: professionalError } = await supabase.functions.invoke('complete-professional-registration', {
-            body: {
-              user_id: authData.user.id,
-              phone: phone
-            }
-          });
-
-          if (professionalError) {
-            console.error("Professional registration error:", professionalError);
-            toast({
-              title: "Registration Complete",
-              description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created successfully, but notifications may not have been sent.`,
-              variant: "default",
-            });
-          } else if (professionalResult && professionalResult.success) {
-            console.log("Professional registration completed successfully:", professionalResult);
-            toast({
-              title: "Registration Complete",
-              description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created and welcome notifications sent.`,
-            });
-          } else {
-            console.error("Professional registration failed:", professionalResult);
-            toast({
-              title: "Registration Complete",
-              description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created, but registration completion failed.`,
-              variant: "default",
-            });
-          }
-        } catch (professionalError: any) {
-          console.error("Exception during professional registration:", professionalError);
+        } else {
           toast({
             title: "Registration Complete",
-            description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created, but notifications may not have been sent.`,
-            variant: "default",
+            description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created successfully. Welcome notifications and profile completion reminders will be sent.`,
           });
         }
+        
+      } catch (registrationError: any) {
+        console.error("Registration completion error:", registrationError);
+        toast({
+          title: "Partial Success",
+          description: `User account created but registration completion failed: ${registrationError.message}`,
+          variant: "default",
+        });
       }
 
       // Reset form
@@ -253,7 +168,7 @@ export const UserRegistration = () => {
       setAllergies("");
       setEmergencyContact("");
       
-      console.log("Registration completed successfully");
+      console.log("Registration process completed");
       
     } catch (error: any) {
       console.error("Registration error:", error);
