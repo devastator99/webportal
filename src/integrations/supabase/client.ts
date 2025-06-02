@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = "https://hcaqodjylicmppxcbqbh.supabase.co"
@@ -93,33 +92,9 @@ export const completeUserRegistration = async (
     throw new Error(data.error || 'Registration failed');
   }
 
-  // For professionals (doctors and nutritionists), trigger professional registration
-  if (role === 'doctor' || role === 'nutritionist') {
-    console.log(`Triggering professional registration for ${role}:`, userId);
-    
-    try {
-      const { data: professionalData, error: professionalError } = await supabase.functions.invoke(
-        'complete-professional-registration',
-        {
-          body: {
-            user_id: userId,
-            phone: phone
-          }
-        }
-      );
-
-      if (professionalError) {
-        console.error("Professional registration failed:", professionalError);
-        // Don't throw here - basic registration was successful
-        console.warn("Basic registration completed but professional setup failed. User can complete it later.");
-      } else {
-        console.log("Professional registration completed successfully:", professionalData);
-      }
-    } catch (professionalErr) {
-      console.error("Error during professional registration:", professionalErr);
-      // Don't throw here - basic registration was successful
-      console.warn("Basic registration completed but professional setup encountered an error. User can complete it later.");
-    }
+  // Log if professional setup was triggered
+  if (data?.professional_setup_triggered) {
+    console.log(`Professional registration setup triggered for ${role}:`, userId);
   }
 
   return data;
