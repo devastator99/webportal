@@ -1,4 +1,5 @@
 
+
 -- Apply the system_logs schema fix and update the complete_user_registration function
 -- Fix system_logs table schema to match what the RPC functions expect
 
@@ -53,11 +54,11 @@ BEGIN
     RAISE EXCEPTION 'Phone number is required for all user registrations';
   END IF;
 
-  -- Determine correct registration status based on role - use direct enum assignment
+  -- Determine correct registration status based on role - use explicit enum casting
   IF p_role IN ('doctor', 'nutritionist', 'administrator', 'reception') THEN
-    v_target_status := 'payment_complete';
+    v_target_status := 'payment_complete'::registration_status;
   ELSE
-    v_target_status := 'payment_pending';
+    v_target_status := 'payment_pending'::registration_status;
   END IF;
 
   -- Log the start of registration
@@ -85,7 +86,7 @@ BEGIN
       phone = COALESCE(p_phone, phone),
       registration_status = v_target_status,
       registration_completed_at = CASE 
-        WHEN v_target_status = 'payment_complete' THEN NOW()
+        WHEN v_target_status = 'payment_complete'::registration_status THEN NOW()
         ELSE registration_completed_at
       END,
       updated_at = NOW()
@@ -97,7 +98,7 @@ BEGIN
     )
     VALUES (
       p_user_id, p_first_name, p_last_name, p_phone, v_target_status,
-      CASE WHEN v_target_status = 'payment_complete' THEN NOW() ELSE NULL END
+      CASE WHEN v_target_status = 'payment_complete'::registration_status THEN NOW() ELSE NULL END
     );
   END IF;
 
@@ -203,7 +204,7 @@ BEGIN
     JOIN user_roles ur ON p.id = ur.user_id
     WHERE ur.role IN ('doctor', 'nutritionist', 'administrator', 'reception')
     AND (
-      p.registration_status != 'payment_complete' 
+      p.registration_status != 'payment_complete'::registration_status 
       OR NOT EXISTS (
         SELECT 1 FROM registration_tasks rt 
         WHERE rt.user_id = p.id 
@@ -213,7 +214,7 @@ BEGIN
   LOOP
     -- Fix registration status for professionals
     UPDATE profiles 
-    SET registration_status = 'payment_complete',
+    SET registration_status = 'payment_complete'::registration_status,
         registration_completed_at = COALESCE(registration_completed_at, NOW()),
         updated_at = NOW()
     WHERE id = v_user.id;
@@ -262,3 +263,4 @@ GRANT EXECUTE ON FUNCTION public.fix_existing_professional_users TO authenticate
 
 -- Apply the fix immediately to existing users
 SELECT public.fix_existing_professional_users();
+
