@@ -14,8 +14,8 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
   const { user, userRole } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [isChecking, setIsChecking] = useState(true);
-  const [hasRedirected, setHasRedirected] = useState(false);
+  const [isChecking, setIsChecking] = useState(false);
+  const [hasChecked, setHasChecked] = useState(false);
   
   // Helper function to check if registration is truly complete
   const isRegistrationFullyComplete = (regStatus: UserRegistrationStatus): boolean => {
@@ -33,33 +33,25 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
   
   useEffect(() => {
     const checkRegistrationStatus = async () => {
-      // Only check for patients with valid roles
-      if (!user?.id || userRole !== 'patient') {
-        console.log("RegistrationStatusChecker: Not a patient or no user, skipping check");
+      // Only check for patients with valid roles and avoid checking multiple times
+      if (!user?.id || userRole !== 'patient' || hasChecked) {
+        console.log("RegistrationStatusChecker: Skipping check - not a patient, no user, or already checked");
         setIsChecking(false);
         return;
       }
       
-      // Prevent infinite loops - if we're already on the registration page, don't redirect
-      if (location.pathname.includes('/auth/register')) {
-        console.log("RegistrationStatusChecker: Already on registration page, skipping redirect");
+      // Prevent checking on certain critical paths
+      const criticalPaths = ['/dashboard', '/auth/register', '/auth'];
+      const isOnCriticalPath = criticalPaths.some(path => location.pathname.includes(path));
+      
+      if (isOnCriticalPath) {
+        console.log("RegistrationStatusChecker: On critical path, skipping registration check");
         setIsChecking(false);
+        setHasChecked(true);
         return;
       }
       
-      // Don't check if we've already redirected in this session
-      if (hasRedirected) {
-        console.log("RegistrationStatusChecker: Already redirected in this session, skipping");
-        setIsChecking(false);
-        return;
-      }
-      
-      // If user is on dashboard, be less aggressive about checking - they might have just completed registration
-      if (location.pathname.includes('/dashboard')) {
-        console.log("RegistrationStatusChecker: User on dashboard, being less aggressive");
-        setIsChecking(false);
-        return;
-      }
+      setIsChecking(true);
       
       try {
         console.log("RegistrationStatusChecker: Checking registration status for patient:", user.id);
@@ -71,6 +63,7 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
         if (error) {
           console.error("RegistrationStatusChecker: Error checking registration status:", error);
           setIsChecking(false);
+          setHasChecked(true);
           return;
         }
         
@@ -85,59 +78,43 @@ export const RegistrationStatusChecker: React.FC<RegistrationStatusCheckerProps>
           localStorage.removeItem('registration_payment_pending');
           localStorage.removeItem('registration_payment_complete');
           setIsChecking(false);
+          setHasChecked(true);
           return;
         }
         
-        // Handle incomplete registration states - be more conservative
-        if (regStatus.registration_status === RegistrationStatusValues.PAYMENT_PENDING) {
-          console.log("RegistrationStatusChecker: Registration payment pending, redirecting to auth/register");
+        // Only redirect for payment pending status, and only if not on dashboard
+        if (regStatus.registration_status === RegistrationStatusValues.PAYMENT_PENDING && !location.pathname.includes('/dashboard')) {
+          console.log("RegistrationStatusChecker: Payment pending and safe to redirect");
           localStorage.setItem('registration_payment_pending', 'true');
           localStorage.setItem('registration_payment_complete', 'false');
-          setHasRedirected(true);
           navigate('/auth/register', { replace: true });
           return;
         }
         
-        // For any other incomplete status, redirect to registration only if not critical paths
-        if ([
-          RegistrationStatusValues.PAYMENT_COMPLETE, 
-          RegistrationStatusValues.CARE_TEAM_ASSIGNED
-        ].includes(regStatus.registration_status)) {
-          console.log("RegistrationStatusChecker: Registration progress pending, checking if redirect is safe");
-          
-          // Only redirect if user is not on critical paths
-          const criticalPaths = ['/dashboard', '/auth'];
-          const isOnCriticalPath = criticalPaths.some(path => location.pathname.includes(path));
-          
-          if (!isOnCriticalPath) {
-            console.log("RegistrationStatusChecker: Safe to redirect, redirecting to auth/register");
-            localStorage.setItem('registration_payment_pending', 'false');
-            localStorage.setItem('registration_payment_complete', 'true');
-            setHasRedirected(true);
-            navigate('/auth/register', { replace: true });
-            return;
-          } else {
-            console.log("RegistrationStatusChecker: User on critical path, not redirecting");
-          }
-        }
-        
+        // For other statuses, just mark as checked and continue
+        console.log("RegistrationStatusChecker: Registration incomplete but continuing normally");
         setIsChecking(false);
+        setHasChecked(true);
+        
       } catch (err) {
         console.error("RegistrationStatusChecker: Error in registration status check:", err);
         setIsChecking(false);
+        setHasChecked(true);
       }
     };
     
-    // Add a small delay to prevent immediate redirect loops
-    const timeoutId = setTimeout(() => {
-      checkRegistrationStatus();
-    }, 100);
-    
-    return () => clearTimeout(timeoutId);
-  }, [user?.id, userRole, navigate, location.pathname, hasRedirected]);
+    // Only check once per session
+    if (!hasChecked && user?.id && userRole === 'patient') {
+      const timeoutId = setTimeout(() => {
+        checkRegistrationStatus();
+      }, 500); // Small delay to prevent immediate checks
+      
+      return () => clearTimeout(timeoutId);
+    }
+  }, [user?.id, userRole, navigate, location.pathname, hasChecked]);
   
-  // Show loading if we're still checking registration
-  if (isChecking) {
+  // Show loading only if actively checking and not already on dashboard
+  if (isChecking && !location.pathname.includes('/dashboard')) {
     return (
       <Card className="shadow-none border-none">
         <CardContent className="flex items-center justify-center p-6">

@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { NoRoleWarning } from "@/components/auth/NoRoleWarning";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
@@ -22,7 +22,7 @@ import { AppLayout } from "@/layouts/AppLayout";
 const roleLayouts = {
   patient: {
     Layout: PatientAppLayout,
-    Dashboard: PatientDashboard, // Removed RegistrationStatusChecker wrapper
+    Dashboard: PatientDashboard,
   },
   doctor: {
     Layout: DoctorAppLayout,
@@ -46,13 +46,19 @@ const Dashboard = () => {
   const { user, userRole, isLoading, isLoadingRole, signOut, refreshUserRole } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [roleRefreshAttempts, setRoleRefreshAttempts] = useState(0);
+  const [hasTriedRoleRefresh, setHasTriedRoleRefresh] = useState(false);
+  
+  const MAX_ROLE_REFRESH_ATTEMPTS = 2;
   
   console.log("Dashboard render:", { 
     user: user?.id, 
     userEmail: user?.email,
     userRole, 
     isLoading,
-    isLoadingRole
+    isLoadingRole,
+    roleRefreshAttempts,
+    hasTriedRoleRefresh
   });
 
   useEffect(() => {
@@ -70,16 +76,27 @@ const Dashboard = () => {
     }
   }, [user, isLoading, navigate]);
 
-  // Auto-refresh role if user exists but no role after loading is complete
+  // Controlled role refresh with attempt limiting
   useEffect(() => {
-    if (!isLoading && !isLoadingRole && user && !userRole) {
-      console.log("[Dashboard] User exists but no role found, attempting to refresh role");
-      refreshUserRole();
+    if (!isLoading && !isLoadingRole && user && !userRole && !hasTriedRoleRefresh && roleRefreshAttempts < MAX_ROLE_REFRESH_ATTEMPTS) {
+      console.log("[Dashboard] Attempting role refresh, attempt:", roleRefreshAttempts + 1);
+      setRoleRefreshAttempts(prev => prev + 1);
+      setHasTriedRoleRefresh(true);
+      
+      // Add a delay to prevent rapid refresh attempts
+      setTimeout(() => {
+        refreshUserRole().finally(() => {
+          // Reset the flag after a delay to allow future attempts if needed
+          setTimeout(() => {
+            setHasTriedRoleRefresh(false);
+          }, 5000);
+        });
+      }, 1000);
     }
-  }, [user, userRole, isLoading, isLoadingRole, refreshUserRole]);
+  }, [user, userRole, isLoading, isLoadingRole, refreshUserRole, roleRefreshAttempts, hasTriedRoleRefresh]);
 
   // Show loading state while auth is loading or role is loading
-  if (isLoading || isLoadingRole) {
+  if (isLoading || (isLoadingRole && roleRefreshAttempts < MAX_ROLE_REFRESH_ATTEMPTS)) {
     console.log("[Dashboard] Showing loading skeleton - isLoading:", isLoading, "isLoadingRole:", isLoadingRole);
     return <DashboardSkeleton />;
   }
@@ -90,12 +107,21 @@ const Dashboard = () => {
     return null;
   }
 
-  // Handle no role case - but only after loading is complete
+  // Handle no role case - but only after loading is complete and we've tried refreshing
   if (!userRole) {
-    console.log("[Dashboard] No role assigned, showing NoRoleWarning");
+    console.log("[Dashboard] No role assigned after", roleRefreshAttempts, "attempts, showing NoRoleWarning");
     return (
       <AppLayout>
-        <NoRoleWarning onSignOut={signOut} />
+        <div className="container mx-auto px-4 py-8">
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>No Role Assigned</AlertTitle>
+            <AlertDescription>
+              Your account does not have a role assigned. This might be because your registration is incomplete or there was an issue during setup.
+            </AlertDescription>
+          </Alert>
+          <NoRoleWarning onSignOut={signOut} />
+        </div>
       </AppLayout>
     );
   }
@@ -121,6 +147,13 @@ const Dashboard = () => {
       console.log(`[Dashboard] Invalid role: ${userRole}, rendering NoRoleWarning`);
       return (
         <AppLayout>
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Invalid Role</AlertTitle>
+            <AlertDescription>
+              Your account has an unrecognized role: {userRole}. Please contact support.
+            </AlertDescription>
+          </Alert>
           <NoRoleWarning onSignOut={signOut} />
         </AppLayout>
       );
