@@ -1,4 +1,3 @@
-
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = "https://hcaqodjylicmppxcbqbh.supabase.co"
@@ -338,5 +337,76 @@ export const completeNutritionistRegistration = async (
   } catch (error: any) {
     console.error('Error in completeNutritionistRegistration:', error);
     throw new Error(`Nutritionist registration failed: ${error.message}`);
+  }
+};
+
+// Enhanced professional registration function that calls the existing edge function
+export const completeProfessionalRegistration = async (
+  userId: string,
+  firstName: string,
+  lastName: string,
+  phone: string,
+  role: 'doctor' | 'nutritionist'
+): Promise<RegistrationResponse> => {
+  // Basic validation
+  if (!userId || !firstName || !lastName || !phone) {
+    throw new Error('User ID, first name, last name, and phone number are required');
+  }
+
+  const cleanPhone = phone.trim();
+  if (cleanPhone === '') {
+    throw new Error('Phone number cannot be empty');
+  }
+
+  const cleanFirstName = firstName.trim();
+  const cleanLastName = lastName.trim();
+  if (cleanFirstName === '' || cleanLastName === '') {
+    throw new Error('First name and last name cannot be empty');
+  }
+
+  console.log('Starting professional registration with validated fields:', {
+    userId,
+    firstName: cleanFirstName,
+    lastName: cleanLastName,
+    phone: cleanPhone,
+    role
+  });
+
+  try {
+    // Call the existing complete-professional-registration edge function
+    const { data, error } = await supabase.functions.invoke('complete-professional-registration', {
+      body: {
+        user_id: userId,
+        phone: cleanPhone
+      }
+    });
+
+    if (error) {
+      console.error('Professional registration edge function error:', error);
+      throw new Error(`Professional registration failed: ${error.message}`);
+    }
+
+    console.log('Professional registration edge function result:', data);
+
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid response from professional registration function');
+    }
+
+    if (data.success === false) {
+      throw new Error(data.error || 'Professional registration failed');
+    }
+
+    return {
+      success: true,
+      message: 'Professional registration completed successfully',
+      user_id: userId,
+      role: role,
+      phone: cleanPhone,
+      registration_status: 'complete',
+      tasks_created: true
+    };
+  } catch (error: any) {
+    console.error('Error in completeProfessionalRegistration:', error);
+    throw new Error(`Professional registration failed: ${error.message}`);
   }
 };

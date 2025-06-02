@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase, completeDoctorRegistration } from "@/integrations/supabase/client";
+import { supabase, completeProfessionalRegistration } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Form,
@@ -137,16 +136,31 @@ export const DoctorProfileForm = () => {
 
       console.log("Starting doctor registration completion with cleaned values:", cleanedValues);
       
-      // Use the enhanced doctor registration function with proper field validation
-      const registrationResult = await completeDoctorRegistration(
+      // First update the profile with doctor-specific fields
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          phone: cleanedValues.phone,
+          specialty: cleanedValues.specialty,
+          visiting_hours: cleanedValues.visiting_hours,
+          clinic_location: cleanedValues.clinic_location,
+          consultation_fee: cleanedValues.consultation_fee,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (updateError) {
+        console.error('Error updating doctor profile:', updateError);
+        throw new Error(`Failed to update profile: ${updateError.message}`);
+      }
+
+      // Use the unified professional registration function
+      const registrationResult = await completeProfessionalRegistration(
         user.id,
         user.user_metadata?.first_name || "Doctor",
         user.user_metadata?.last_name || "User",
         cleanedValues.phone,
-        cleanedValues.specialty,
-        cleanedValues.visiting_hours,
-        cleanedValues.clinic_location,
-        cleanedValues.consultation_fee
+        'doctor'
       );
 
       console.log("Doctor registration completed successfully:", registrationResult);

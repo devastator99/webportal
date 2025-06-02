@@ -1,8 +1,7 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase, completeNutritionistRegistration } from "@/integrations/supabase/client";
+import { supabase, completeProfessionalRegistration } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Form,
@@ -129,16 +128,29 @@ export const NutritionistProfileForm = () => {
     try {
       console.log("Starting nutritionist registration completion with values:", values);
       
-      // Use the enhanced nutritionist registration function
-      const registrationResult = await completeNutritionistRegistration(
+      // First update the profile with nutritionist-specific fields
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          phone: values.phone.trim(),
+          specialty: values.specialization.trim(),
+          consultation_fee: parseFloat(values.consultation_fee),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id);
+
+      if (updateError) {
+        console.error('Error updating nutritionist profile:', updateError);
+        throw new Error(`Failed to update profile: ${updateError.message}`);
+      }
+
+      // Use the unified professional registration function
+      const registrationResult = await completeProfessionalRegistration(
         user.id,
         user.user_metadata?.first_name || "Nutritionist",
         user.user_metadata?.last_name || "User",
         values.phone.trim(),
-        values.specialization.trim(),
-        values.certifications.trim(),
-        parseInt(values.experience_years, 10),
-        parseFloat(values.consultation_fee)
+        'nutritionist'
       );
 
       console.log("Nutritionist registration completed successfully:", registrationResult);
