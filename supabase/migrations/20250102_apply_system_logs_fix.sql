@@ -42,6 +42,7 @@ AS $$
 DECLARE
   v_profile_exists BOOLEAN;
   v_role_exists BOOLEAN;
+  v_registration_status TEXT;
 BEGIN
   -- Validate inputs
   IF p_user_id IS NULL OR p_role IS NULL OR p_first_name IS NULL OR p_last_name IS NULL THEN
@@ -52,15 +53,22 @@ BEGIN
     RAISE EXCEPTION 'Phone number is required for all user registrations';
   END IF;
 
+  -- Determine correct registration status based on role
+  IF p_role IN ('doctor', 'nutritionist', 'administrator', 'reception') THEN
+    v_registration_status := 'payment_complete';
+  ELSE
+    v_registration_status := 'payment_pending';
+  END IF;
+
   -- Log the start of registration
   INSERT INTO system_logs (user_id, action, details, level, message, metadata)
   VALUES (
     p_user_id, 
     'user_registration_start', 
-    jsonb_build_object('role', p_role, 'phone', p_phone),
+    jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status),
     'info',
     'Starting complete user registration process',
-    jsonb_build_object('role', p_role, 'phone', p_phone, 'step', 'start')
+    jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status, 'step', 'start')
   );
 
   -- Check if profile already exists
@@ -69,31 +77,27 @@ BEGIN
   -- Check if user role already exists
   SELECT EXISTS(SELECT 1 FROM user_roles WHERE user_id = p_user_id) INTO v_role_exists;
 
-  -- Update or insert profile with phone number
+  -- Update or insert profile with phone number and correct registration status
   IF v_profile_exists THEN
     UPDATE profiles SET
       first_name = COALESCE(p_first_name, first_name),
       last_name = COALESCE(p_last_name, last_name),
       phone = COALESCE(p_phone, phone),
-      age = COALESCE(p_age, age),
-      gender = COALESCE(p_gender, gender),
-      blood_group = COALESCE(p_blood_group, blood_group),
-      allergies = COALESCE(p_allergies, allergies),
-      emergency_contact = COALESCE(p_emergency_contact, emergency_contact),
-      height = COALESCE(p_height, height),
-      date_of_birth = COALESCE(p_birth_date, date_of_birth),
-      food_habit = COALESCE(p_food_habit, food_habit),
-      chronic_conditions = COALESCE(p_current_medical_conditions, chronic_conditions),
+      registration_status = v_registration_status,
+      registration_completed_at = CASE 
+        WHEN v_registration_status = 'payment_complete' THEN NOW()
+        ELSE registration_completed_at
+      END,
       updated_at = NOW()
     WHERE id = p_user_id;
   ELSE
     INSERT INTO profiles (
-      id, first_name, last_name, phone, age, gender, blood_group, 
-      allergies, emergency_contact, height, date_of_birth, food_habit, chronic_conditions
+      id, first_name, last_name, phone, registration_status,
+      registration_completed_at
     )
     VALUES (
-      p_user_id, p_first_name, p_last_name, p_phone, p_age, p_gender, p_blood_group,
-      p_allergies, p_emergency_contact, p_height, p_birth_date, p_food_habit, p_current_medical_conditions
+      p_user_id, p_first_name, p_last_name, p_phone, v_registration_status,
+      CASE WHEN v_registration_status = 'payment_complete' THEN NOW() ELSE NULL END
     );
   END IF;
 
@@ -108,14 +112,8 @@ BEGIN
     VALUES (p_user_id, p_role::user_type);
   END IF;
 
-  -- Always create registration tasks for ALL user types (including professionals)
+  -- Create registration tasks based on user type
   IF p_role IN ('doctor', 'nutritionist', 'administrator', 'reception') THEN
-    -- Set registration status for professionals
-    UPDATE profiles SET 
-      registration_status = 'payment_complete',
-      registration_completed_at = NOW()
-    WHERE id = p_user_id;
-    
     -- Create professional registration tasks with phone number
     INSERT INTO registration_tasks (user_id, task_type, status, metadata, priority)
     VALUES 
@@ -129,19 +127,13 @@ BEGIN
     VALUES (
       p_user_id, 
       'professional_tasks_created', 
-      jsonb_build_object('role', p_role, 'phone', p_phone, 'tasks_created', 2),
+      jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status, 'tasks_created', 2),
       'info',
-      'Professional registration tasks created successfully',
-      jsonb_build_object('role', p_role, 'phone', p_phone, 'step', 'tasks_created')
+      'Professional registration tasks created successfully with payment_complete status',
+      jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status, 'step', 'tasks_created')
     );
   ELSE
-    -- For patients, set appropriate status
-    UPDATE profiles SET 
-      registration_status = 'payment_complete',
-      registration_completed_at = NOW()
-    WHERE id = p_user_id;
-    
-    -- Create welcome notification task for patients
+    -- For patients, create welcome notification task (they need to complete payment first)
     INSERT INTO registration_tasks (user_id, task_type, status, metadata, priority)
     VALUES 
       (p_user_id, 'send_welcome_notification', 'pending', 
@@ -153,10 +145,10 @@ BEGIN
   VALUES (
     p_user_id, 
     'user_registration_complete', 
-    jsonb_build_object('role', p_role, 'phone', p_phone, 'profile_exists', v_profile_exists, 'role_exists', v_role_exists),
+    jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status, 'profile_exists', v_profile_exists, 'role_exists', v_role_exists),
     'info',
-    'User registration completed successfully',
-    jsonb_build_object('role', p_role, 'phone', p_phone, 'step', 'complete')
+    'User registration completed successfully with correct status',
+    jsonb_build_object('role', p_role, 'phone', p_phone, 'registration_status', v_registration_status, 'step', 'complete')
   );
 
   RETURN jsonb_build_object(
@@ -165,6 +157,7 @@ BEGIN
     'user_id', p_user_id,
     'role', p_role,
     'phone', p_phone,
+    'registration_status', v_registration_status,
     'tasks_created', true
   );
 
@@ -203,20 +196,35 @@ DECLARE
   v_tasks_created INTEGER := 0;
   v_users_fixed INTEGER := 0;
 BEGIN
-  -- Find professional users who don't have registration tasks
+  -- Find professional users who have wrong registration status or missing tasks
   FOR v_user IN 
-    SELECT p.id, p.first_name, p.last_name, p.phone, ur.role
+    SELECT p.id, p.first_name, p.last_name, p.phone, ur.role, p.registration_status
     FROM profiles p
     JOIN user_roles ur ON p.id = ur.user_id
     WHERE ur.role IN ('doctor', 'nutritionist', 'administrator', 'reception')
-    AND NOT EXISTS (
-      SELECT 1 FROM registration_tasks rt 
-      WHERE rt.user_id = p.id 
-      AND rt.task_type IN ('complete_professional_registration', 'send_welcome_notification')
+    AND (
+      p.registration_status != 'payment_complete' 
+      OR NOT EXISTS (
+        SELECT 1 FROM registration_tasks rt 
+        WHERE rt.user_id = p.id 
+        AND rt.task_type IN ('complete_professional_registration', 'send_welcome_notification')
+      )
     )
   LOOP
-    -- Create missing registration tasks for this user
+    -- Fix registration status for professionals
+    UPDATE profiles 
+    SET registration_status = 'payment_complete',
+        registration_completed_at = COALESCE(registration_completed_at, NOW()),
+        updated_at = NOW()
+    WHERE id = v_user.id;
+    
+    -- Create missing registration tasks for this user if they have a phone number
     IF v_user.phone IS NOT NULL AND v_user.phone != '' THEN
+      -- Clear any existing tasks to avoid duplicates
+      DELETE FROM registration_tasks 
+      WHERE user_id = v_user.id 
+      AND task_type IN ('complete_professional_registration', 'send_welcome_notification');
+      
       INSERT INTO registration_tasks (user_id, task_type, status, metadata, priority)
       VALUES 
         (v_user.id, 'complete_professional_registration', 'pending', 
@@ -232,9 +240,9 @@ BEGIN
       VALUES (
         v_user.id, 
         'fix_existing_professional_user', 
-        jsonb_build_object('role', v_user.role, 'phone', v_user.phone, 'tasks_created', 2),
+        jsonb_build_object('role', v_user.role, 'phone', v_user.phone, 'old_status', v_user.registration_status, 'new_status', 'payment_complete', 'tasks_created', 2),
         'info',
-        'Fixed existing professional user - created missing registration tasks',
+        'Fixed existing professional user - corrected status and created missing registration tasks',
         jsonb_build_object('role', v_user.role, 'phone', v_user.phone, 'step', 'fix_existing')
       );
     END IF;
@@ -252,5 +260,5 @@ $$;
 -- Grant permissions
 GRANT EXECUTE ON FUNCTION public.fix_existing_professional_users TO authenticated;
 
--- Apply the fix immediately
+-- Apply the fix immediately to existing users
 SELECT public.fix_existing_professional_users();
