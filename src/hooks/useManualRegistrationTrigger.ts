@@ -71,7 +71,7 @@ export const useManualRegistrationTrigger = () => {
     try {
       console.log('Fixing existing professional users...');
 
-      // Call the database function to fix existing users
+      // Call the new database function to fix existing users
       const { data: fixResult, error: fixError } = await supabase.rpc('fix_existing_professional_users');
 
       if (fixError) {
@@ -93,7 +93,7 @@ export const useManualRegistrationTrigger = () => {
 
       toast({
         title: 'Users Fixed',
-        description: `Fixed ${fixResult?.users_fixed || 0} users and created ${fixResult?.tasks_created || 0} tasks.`,
+        description: `Fixed ${fixResult?.users_fixed || 0} users and created ${fixResult?.tasks_created || 0} tasks. Registration tasks processing has been triggered.`,
       });
 
       return fixResult;

@@ -133,7 +133,7 @@ export const UserRegistration = () => {
           emergencyContact
         } : undefined;
         
-        // Ensure phone is passed to completeUserRegistration
+        // Call the updated complete_user_registration function
         const registrationResult = await completeUserRegistration(
           authData.user.id,
           role,
@@ -145,27 +145,40 @@ export const UserRegistration = () => {
         
         console.log("User registration completed successfully:", registrationResult);
         
-        // For professionals, immediately trigger the registration process
+        // For professionals, the new RPC will automatically create registration tasks
+        // and trigger the notification process immediately
         if (role === "doctor" || role === "nutritionist" || role === "administrator") {
-          console.log("Triggering professional registration process...");
-          try {
-            await triggerProfessionalRegistration(authData.user.id, phone);
-          } catch (triggerError) {
-            console.error("Professional registration trigger failed:", triggerError);
-            // Don't fail the whole process
-          }
+          console.log("Professional registration completed - notifications should be sent automatically");
+          
+          // Wait a moment then trigger the task processor to handle the tasks
+          setTimeout(async () => {
+            try {
+              const { error: processError } = await supabase.functions.invoke(
+                'process-registration-tasks',
+                { body: {} }
+              );
+              
+              if (processError) {
+                console.error("Failed to process registration tasks:", processError);
+              } else {
+                console.log("Registration tasks processing triggered successfully");
+              }
+            } catch (err) {
+              console.error("Error triggering task processing:", err);
+            }
+          }, 2000);
         }
         
         // Show appropriate success message based on role
         if (role === "patient") {
           toast({
             title: "Registration Complete",
-            description: `Patient account created successfully with phone ${phone}. Welcome notifications will be sent shortly.`,
+            description: `Patient account created successfully with phone ${phone}. They can now complete payment to access the platform.`,
           });
         } else {
           toast({
-            title: "Registration Complete",
-            description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created successfully with phone ${phone}. Professional registration and notifications have been triggered.`,
+            title: "Registration Complete", 
+            description: `${role.charAt(0).toUpperCase() + role.slice(1)} account created successfully with phone ${phone}. Welcome notifications will be sent automatically.`,
           });
         }
         

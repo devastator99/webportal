@@ -1755,6 +1755,9 @@ export type Database = {
           created_at: string | null
           details: Json | null
           id: string
+          level: string | null
+          message: string | null
+          metadata: Json | null
           user_id: string | null
         }
         Insert: {
@@ -1762,6 +1765,9 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           id?: string
+          level?: string | null
+          message?: string | null
+          metadata?: Json | null
           user_id?: string | null
         }
         Update: {
@@ -1769,6 +1775,9 @@ export type Database = {
           created_at?: string | null
           details?: Json | null
           id?: string
+          level?: string | null
+          message?: string | null
+          metadata?: Json | null
           user_id?: string | null
         }
         Relationships: []
@@ -2131,6 +2140,10 @@ export type Database = {
       delete_push_subscription: {
         Args: { p_endpoint: string }
         Returns: boolean
+      }
+      fix_existing_professional_users: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
       }
       generate_patient_invoice: {
         Args: {
