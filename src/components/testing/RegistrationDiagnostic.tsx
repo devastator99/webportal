@@ -77,7 +77,7 @@ export const RegistrationDiagnostic = () => {
 
     setLoading(true);
     try {
-      // Run diagnostic for specific user
+      // Run diagnostic for specific user - FIXED function name
       const { data: diagnosticData, error: diagnosticError } = await supabase
         .rpc('diagnose_registration_state', { p_user_id: userId.trim() });
 
@@ -85,7 +85,7 @@ export const RegistrationDiagnostic = () => {
         throw diagnosticError;
       }
 
-      // Get overall task summary
+      // Get overall task summary - FIXED function name
       const { data: summaryData, error: summaryError } = await supabase
         .rpc('get_registration_task_summary');
 
