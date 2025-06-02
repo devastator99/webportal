@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -171,7 +170,7 @@ export const NutritionistProfileForm = () => {
         navigate("/dashboard");
       } else {
         console.error("Nutritionist registration failed:", registrationResult);
-        throw new Error(registrationResult?.error || "Registration failed with unknown error");
+        throw new Error("Registration failed with unknown error");
       }
       
     } catch (error: any) {
