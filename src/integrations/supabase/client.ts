@@ -1,3 +1,4 @@
+
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = "https://hcaqodjylicmppxcbqbh.supabase.co"
@@ -181,7 +182,7 @@ export const getPatientInvoices = async (patientId: string): Promise<PatientInvo
   }
 };
 
-// Add the new doctor registration function
+// Enhanced doctor registration function with comprehensive field validation
 export const completeDoctorRegistration = async (
   userId: string,
   firstName: string,
@@ -192,21 +193,81 @@ export const completeDoctorRegistration = async (
   clinicLocation?: string,
   consultationFee?: number
 ) => {
-  const { data, error } = await supabase.rpc('complete_doctor_registration', {
-    p_user_id: userId,
-    p_first_name: firstName,
-    p_last_name: lastName,
-    p_phone: phone,
-    p_specialty: specialty,
-    p_visiting_hours: visitingHours,
-    p_clinic_location: clinicLocation,
-    p_consultation_fee: consultationFee
-  });
-
-  if (error) {
-    console.error('Doctor registration error:', error);
-    throw error;
+  // Comprehensive field validation
+  if (!userId || !firstName || !lastName || !phone) {
+    throw new Error('User ID, first name, last name, and phone number are required');
   }
 
-  return data;
+  // Phone number validation - ensure it's not empty or whitespace
+  const cleanPhone = phone.trim();
+  if (cleanPhone === '') {
+    throw new Error('Phone number cannot be empty');
+  }
+
+  // Validate phone number format (basic validation)
+  if (!/^[\+]?[0-9\s\-\(\)]{8,15}$/.test(cleanPhone)) {
+    throw new Error('Phone number format is invalid');
+  }
+
+  // Name validation - ensure they're not just whitespace
+  const cleanFirstName = firstName.trim();
+  const cleanLastName = lastName.trim();
+  if (cleanFirstName === '' || cleanLastName === '') {
+    throw new Error('First name and last name cannot be empty');
+  }
+
+  // Consultation fee validation - ensure it's a positive number if provided
+  let validatedFee: number | undefined = consultationFee;
+  if (consultationFee !== undefined) {
+    if (isNaN(consultationFee) || consultationFee < 0) {
+      console.warn('Invalid consultation fee provided, using default');
+      validatedFee = 500; // Default value
+    }
+  }
+
+  console.log('Starting doctor registration with validated fields:', {
+    userId,
+    firstName: cleanFirstName,
+    lastName: cleanLastName,
+    phone: cleanPhone,
+    specialty: specialty || null,
+    visitingHours: visitingHours || null,
+    clinicLocation: clinicLocation || null,
+    consultationFee: validatedFee || 500
+  });
+
+  try {
+    const { data, error } = await supabase.rpc('complete_doctor_registration', {
+      p_user_id: userId,
+      p_first_name: cleanFirstName,
+      p_last_name: cleanLastName,
+      p_phone: cleanPhone,
+      p_specialty: specialty && specialty.trim() !== '' ? specialty.trim() : null,
+      p_visiting_hours: visitingHours && visitingHours.trim() !== '' ? visitingHours.trim() : null,
+      p_clinic_location: clinicLocation && clinicLocation.trim() !== '' ? clinicLocation.trim() : null,
+      p_consultation_fee: validatedFee || 500
+    });
+
+    if (error) {
+      console.error('Doctor registration RPC error:', error);
+      throw new Error(`Doctor registration failed: ${error.message}`);
+    }
+
+    console.log('Doctor registration RPC result:', data);
+
+    // Validate the response structure
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid response from doctor registration function');
+    }
+
+    // Check if the registration was successful
+    if (data.success === false) {
+      throw new Error(data.error || 'Doctor registration failed');
+    }
+
+    return data;
+  } catch (error: any) {
+    console.error('Error in completeDoctorRegistration:', error);
+    throw new Error(`Doctor registration failed: ${error.message}`);
+  }
 };

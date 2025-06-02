@@ -21,13 +21,30 @@ import * as z from "zod";
 import { LucideLoader2 } from "lucide-react";
 
 const doctorProfileSchema = z.object({
-  specialty: z.string().min(2, "Specialty is required"),
-  visiting_hours: z.string().min(2, "Visiting hours are required"),
-  clinic_location: z.string().min(2, "Clinic location is required"),
-  consultation_fee: z.string().refine(val => !isNaN(Number(val)) && Number(val) > 0, {
-    message: "Consultation fee must be a valid number greater than 0",
-  }),
-  phone: z.string().min(10, "Phone number is required"),
+  specialty: z.string()
+    .min(2, "Specialty must be at least 2 characters")
+    .max(100, "Specialty cannot exceed 100 characters")
+    .trim(),
+  visiting_hours: z.string()
+    .min(2, "Visiting hours are required")
+    .max(500, "Visiting hours description too long")
+    .trim(),
+  clinic_location: z.string()
+    .min(2, "Clinic location is required")
+    .max(500, "Clinic location description too long")
+    .trim(),
+  consultation_fee: z.string()
+    .refine(val => {
+      const num = parseFloat(val);
+      return !isNaN(num) && num > 0 && num <= 50000;
+    }, {
+      message: "Consultation fee must be a valid number between 1 and 50,000",
+    }),
+  phone: z.string()
+    .min(10, "Phone number must be at least 10 digits")
+    .max(15, "Phone number cannot exceed 15 characters")
+    .regex(/^[\+]?[0-9\s\-\(\)]{8,15}$/, "Please enter a valid phone number")
+    .trim(),
 });
 
 type DoctorProfileFormValues = z.infer<typeof doctorProfileSchema>;
@@ -63,57 +80,81 @@ export const DoctorProfileForm = () => {
           .eq("id", user.id)
           .single();
 
-        if (error) throw error;
+        if (error && error.code !== 'PGRST116') {
+          console.error("Error checking doctor profile:", error);
+          throw error;
+        }
 
         // If all required fields are present, consider profile complete
         if (data?.specialty && data?.visiting_hours && data?.clinic_location && data?.phone) {
           setProfileComplete(true);
           navigate("/dashboard");
         } else if (data) {
-          // Pre-fill the form with any existing data
+          // Pre-fill the form with any existing data, ensuring proper types
           form.reset({
             specialty: data.specialty || "",
             visiting_hours: data.visiting_hours || "",
             clinic_location: data.clinic_location || "",
-            consultation_fee: data.consultation_fee?.toString() || "500",
+            consultation_fee: data.consultation_fee ? data.consultation_fee.toString() : "500",
             phone: data.phone || "",
           });
         }
       } catch (error) {
         console.error("Error checking doctor profile:", error);
+        toast({
+          variant: "destructive",
+          title: "Error loading profile",
+          description: "Could not load existing profile data. Please try refreshing the page.",
+        });
       } finally {
         setLoading(false);
       }
     };
 
     checkProfile();
-  }, [user, userRole, navigate, form]);
+  }, [user, userRole, navigate, form, toast]);
 
   const onSubmit = async (values: DoctorProfileFormValues) => {
-    if (!user) return;
+    if (!user) {
+      toast({
+        variant: "destructive",
+        title: "Authentication Error",
+        description: "User session not found. Please log in again.",
+      });
+      return;
+    }
     
     setLoading(true);
     try {
-      console.log("Starting doctor registration completion with phone:", values.phone);
+      // Validate and clean all form values before submission
+      const cleanedValues = {
+        phone: values.phone.trim(),
+        specialty: values.specialty.trim(),
+        visiting_hours: values.visiting_hours.trim(),
+        clinic_location: values.clinic_location.trim(),
+        consultation_fee: parseFloat(values.consultation_fee)
+      };
+
+      console.log("Starting doctor registration completion with cleaned values:", cleanedValues);
       
-      // Use the new dedicated doctor registration function
+      // Use the enhanced doctor registration function with proper field validation
       const registrationResult = await completeDoctorRegistration(
         user.id,
         user.user_metadata?.first_name || "Doctor",
         user.user_metadata?.last_name || "User",
-        values.phone,
-        values.specialty,
-        values.visiting_hours,
-        values.clinic_location,
-        parseFloat(values.consultation_fee)
+        cleanedValues.phone,
+        cleanedValues.specialty,
+        cleanedValues.visiting_hours,
+        cleanedValues.clinic_location,
+        cleanedValues.consultation_fee
       );
 
       console.log("Doctor registration completed successfully:", registrationResult);
 
       if (registrationResult && registrationResult.success) {
         toast({
-          title: "Registration complete",
-          description: "Your doctor profile has been completed and welcome notifications will be sent automatically.",
+          title: "Registration Complete",
+          description: "Your doctor profile has been completed successfully. Welcome notifications will be sent automatically.",
         });
 
         // Trigger task processing to handle the registration tasks
@@ -133,23 +174,37 @@ export const DoctorProfileForm = () => {
             console.error("Error triggering task processing:", err);
           }
         }, 2000);
+
+        // Navigate to dashboard after successful registration
+        navigate("/dashboard");
       } else {
         console.error("Doctor registration failed:", registrationResult);
-        toast({
-          title: "Registration error",
-          description: registrationResult?.error || "There was an issue completing the registration process.",
-          variant: "destructive",
-        });
+        throw new Error(registrationResult?.error || "Registration failed with unknown error");
       }
       
-      // Redirect to dashboard after successful update
-      navigate("/dashboard");
     } catch (error: any) {
       console.error("Error completing doctor registration:", error);
+      
+      let errorMessage = "Something went wrong during registration. Please try again.";
+      
+      if (error.message?.includes("phone")) {
+        errorMessage = "Invalid phone number. Please check the format and try again.";
+      } else if (error.message?.includes("specialty")) {
+        errorMessage = "Please provide a valid medical specialty.";
+      } else if (error.message?.includes("consultation_fee")) {
+        errorMessage = "Please provide a valid consultation fee amount.";
+      } else if (error.message?.includes("visiting_hours")) {
+        errorMessage = "Please provide valid visiting hours information.";
+      } else if (error.message?.includes("clinic_location")) {
+        errorMessage = "Please provide a valid clinic location.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         variant: "destructive",
-        title: "Error completing registration",
-        description: error.message || "Something went wrong. Please try again.",
+        title: "Registration Error",
+        description: errorMessage,
       });
     } finally {
       setLoading(false);
@@ -199,10 +254,10 @@ export const DoctorProfileForm = () => {
                 name="specialty"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Specialty *</FormLabel>
+                    <FormLabel>Medical Specialty *</FormLabel>
                     <FormControl>
                       <Input 
-                        placeholder="e.g., Endocrinology, Cardiology" 
+                        placeholder="e.g., Endocrinology, Cardiology, General Medicine" 
                         disabled={loading}
                         {...field} 
                       />
@@ -220,8 +275,9 @@ export const DoctorProfileForm = () => {
                     <FormLabel>Visiting Hours *</FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="e.g., Mon-Fri: 9AM-5PM, Sat: 9AM-1PM" 
+                        placeholder="e.g., Mon-Fri: 9:00 AM - 5:00 PM, Sat: 9:00 AM - 1:00 PM" 
                         disabled={loading}
+                        rows={3}
                         {...field} 
                       />
                     </FormControl>
@@ -238,8 +294,9 @@ export const DoctorProfileForm = () => {
                     <FormLabel>Clinic Location *</FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="Full address of your clinic" 
+                        placeholder="Full address of your clinic or hospital" 
                         disabled={loading}
+                        rows={3}
                         {...field} 
                       />
                     </FormControl>
@@ -258,6 +315,8 @@ export const DoctorProfileForm = () => {
                       <Input 
                         type="number"
                         min="1"
+                        max="50000"
+                        step="1"
                         placeholder="e.g., 500" 
                         disabled={loading}
                         {...field} 
