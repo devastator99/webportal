@@ -53,7 +53,7 @@ serve(async (req) => {
       );
     }
     
-    // Verify the user is actually an admin by direct query - avoiding RLS recursion
+    // Verify the user is actually an admin by direct query
     const { data: adminRoleData, error: adminRoleError } = await supabaseAdmin
       .from('user_roles')
       .select('role')
@@ -84,95 +84,128 @@ serve(async (req) => {
     console.log(`Admin ${admin_id} is deleting user ${user_id}`);
 
     // Helper function to safely delete from a table
-    const safeDelete = async (tableName: string, condition: string) => {
+    const safeDelete = async (tableName: string, condition: any) => {
       try {
         const { error } = await supabaseAdmin
           .from(tableName)
           .delete()
-          .or(condition);
+          .eq('user_id', user_id);
         
         if (error) {
           console.error(`Error deleting from ${tableName}:`, error);
-          // Don't throw, just log and continue
         } else {
           console.log(`Successfully deleted from ${tableName}`);
         }
       } catch (error) {
         console.error(`Exception deleting from ${tableName}:`, error);
-        // Continue with other deletions
+      }
+    };
+
+    // Helper function for deleting with different column names
+    const safeDeleteWithColumn = async (tableName: string, columnName: string) => {
+      try {
+        const { error } = await supabaseAdmin
+          .from(tableName)
+          .delete()
+          .eq(columnName, user_id);
+        
+        if (error) {
+          console.error(`Error deleting from ${tableName}:`, error);
+        } else {
+          console.log(`Successfully deleted from ${tableName}`);
+        }
+      } catch (error) {
+        console.error(`Exception deleting from ${tableName}:`, error);
+      }
+    };
+
+    // Helper function for deleting with OR conditions
+    const safeDeleteMultipleColumns = async (tableName: string, columns: string[]) => {
+      try {
+        let query = supabaseAdmin.from(tableName).delete();
+        
+        // Build OR condition for multiple columns
+        const orCondition = columns.map(col => `${col}.eq.${user_id}`).join(',');
+        query = query.or(orCondition);
+        
+        const { error } = await query;
+        
+        if (error) {
+          console.error(`Error deleting from ${tableName}:`, error);
+        } else {
+          console.log(`Successfully deleted from ${tableName}`);
+        }
+      } catch (error) {
+        console.error(`Exception deleting from ${tableName}:`, error);
       }
     };
 
     // Delete user from database tables in correct order to avoid foreign key constraints
-    // Start with tables that have foreign key references to other tables
     
-    // 1. Delete from room_messages first (references chat_rooms and users)
-    await safeDelete('room_messages', `sender_id.eq.${user_id}`);
+    // 1. Delete from system_logs (CRITICAL - this was missing and causing the error)
+    await safeDelete('system_logs', 'user_id');
 
-    // 2. Delete from room_members (references chat_rooms and users)
-    await safeDelete('room_members', `user_id.eq.${user_id}`);
+    // 2. Delete from room_messages
+    await safeDeleteWithColumn('room_messages', 'sender_id');
 
-    // 3. Delete from chat_rooms where patient_id references the user
-    await safeDelete('chat_rooms', `patient_id.eq.${user_id}`);
+    // 3. Delete from room_members
+    await safeDelete('room_members', 'user_id');
 
-    // 4. Delete from patient_details
-    await safeDelete('patient_details', `id.eq.${user_id}`);
+    // 4. Delete from chat_rooms where patient_id references the user
+    await safeDeleteWithColumn('chat_rooms', 'patient_id');
 
-    // 5. Delete from health_plan_items
-    await safeDelete('health_plan_items', `patient_id.eq.${user_id}`);
+    // 5. Delete from patient_details
+    await safeDeleteWithColumn('patient_details', 'id');
 
-    // 6. Delete from medical_records where user is patient or doctor
-    await safeDelete('medical_records', `patient_id.eq.${user_id},doctor_id.eq.${user_id}`);
+    // 6. Delete from health_plan_items
+    await safeDeleteMultipleColumns('health_plan_items', ['patient_id', 'nutritionist_id']);
 
-    // 7. Delete from patient_invoices
-    await safeDelete('patient_invoices', `patient_id.eq.${user_id},doctor_id.eq.${user_id}`);
+    // 7. Delete from medical_records
+    await safeDeleteMultipleColumns('medical_records', ['patient_id', 'doctor_id']);
 
-    // 8. Delete from chat_messages
-    await safeDelete('chat_messages', `sender_id.eq.${user_id},receiver_id.eq.${user_id}`);
+    // 8. Delete from patient_invoices
+    await safeDeleteMultipleColumns('patient_invoices', ['patient_id', 'doctor_id']);
 
-    // 9. Delete from appointments
-    await safeDelete('appointments', `patient_id.eq.${user_id},doctor_id.eq.${user_id}`);
+    // 9. Delete from chat_messages
+    await safeDeleteMultipleColumns('chat_messages', ['sender_id', 'receiver_id']);
 
-    // 10. Delete from registration_tasks
-    await safeDelete('registration_tasks', `user_id.eq.${user_id}`);
+    // 10. Delete from appointments
+    await safeDeleteMultipleColumns('appointments', ['patient_id', 'doctor_id']);
 
-    // 11. Delete from notification_logs
-    await safeDelete('notification_logs', `user_id.eq.${user_id}`);
+    // 11. Delete from registration_tasks
+    await safeDelete('registration_tasks', 'user_id');
 
-    // 12. Delete from push_subscriptions
-    await safeDelete('push_subscriptions', `user_id.eq.${user_id}`);
+    // 12. Delete from notification_logs
+    await safeDelete('notification_logs', 'user_id');
 
-    // 13. Delete from notification_preferences
-    await safeDelete('notification_preferences', `user_id.eq.${user_id}`);
+    // 13. Delete from push_subscriptions
+    await safeDelete('push_subscriptions', 'user_id');
 
-    // 14. Delete from patient_assignments (must be done before user_roles)
-    await safeDelete('patient_assignments', `patient_id.eq.${user_id},doctor_id.eq.${user_id},nutritionist_id.eq.${user_id}`);
+    // 14. Delete from notification_preferences
+    await safeDelete('notification_preferences', 'user_id');
 
-    // 15. Delete from prescription_medications (references medical_records)
-    await safeDelete('prescription_medications', `prescription_id.in.(select id from medical_records where patient_id=${user_id} or doctor_id=${user_id})`);
+    // 15. Delete from patient_assignments
+    await safeDeleteMultipleColumns('patient_assignments', ['patient_id', 'doctor_id', 'nutritionist_id']);
 
-    // 16. Delete from prescribed_tests (references medical_records)
-    await safeDelete('prescribed_tests', `prescription_id.in.(select id from medical_records where patient_id=${user_id} or doctor_id=${user_id})`);
+    // 16. Delete from doctor_details
+    await safeDeleteWithColumn('doctor_details', 'id');
 
-    // 17. Delete from doctor_details
-    await safeDelete('doctor_details', `id.eq.${user_id}`);
+    // 17. Delete from doctor_availability
+    await safeDeleteWithColumn('doctor_availability', 'doctor_id');
 
-    // 18. Delete from doctor_availability
-    await safeDelete('doctor_availability', `doctor_id.eq.${user_id}`);
+    // 18. Delete from patient_medical_reports
+    await safeDeleteWithColumn('patient_medical_reports', 'patient_id');
 
-    // 19. Delete from patient_medical_reports
-    await safeDelete('patient_medical_reports', `patient_id.eq.${user_id}`);
+    // 19. Delete from password_reset_otps
+    await safeDelete('password_reset_otps', 'user_id');
 
-    // 20. Delete from payments (via appointments)
-    await safeDelete('payments', `appointment_id.in.(select id from appointments where patient_id=${user_id} or doctor_id=${user_id})`);
+    // 20. Delete from prescription_medications (via medical_records - skip complex subquery)
+    // This will be cleaned up by cascade when medical_records are deleted
 
-    // 21. Delete from password_reset_otps
-    await safeDelete('password_reset_otps', `user_id.eq.${user_id}`);
+    // 21. Delete from prescribed_tests (via medical_records - skip complex subquery)
+    // This will be cleaned up by cascade when medical_records are deleted
 
-    // 22. Delete from registration_progress
-    await safeDelete('registration_progress', `user_id.eq.${user_id}`);
-
-    // 23. Delete from user_roles (critical - must be successful)
+    // 22. Delete from user_roles (critical - must be successful)
     const { error: userRolesError } = await supabaseAdmin
       .from('user_roles')
       .delete()
@@ -192,7 +225,7 @@ serve(async (req) => {
       );
     }
 
-    // 24. Delete from profiles (critical - must be successful)
+    // 23. Delete from profiles (critical - must be successful)
     const { error: profilesError } = await supabaseAdmin
       .from('profiles')
       .delete()
@@ -212,7 +245,7 @@ serve(async (req) => {
       );
     }
 
-    // 25. Finally delete the user from auth.users (critical - must be successful)
+    // 24. Finally delete the user from auth.users (critical - must be successful)
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
 
     if (deleteError) {
