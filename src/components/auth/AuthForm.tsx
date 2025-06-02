@@ -170,7 +170,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
           toast({
             variant: "destructive",
             title: "Error",
-            description: "Please fill in all required fields including email"
+            description: "Please fill in all required fields including email and phone number"
           });
           return;
         }
@@ -198,31 +198,38 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
       // Reset retry count on new attempt
       setRetryCount(0);
 
-      if (type === "register" && userType === "patient") {
-        const birthDateFormatted = data.birthDate ? new Date(data.birthDate).toISOString().split('T')[0] : null;
+      if (type === "register") {
+        console.log("Registration submission for user type:", userType, "with phone:", phone);
         
-        const patientData: PatientData = {
-          age: data.age || undefined,
-          gender: data.gender || undefined,
-          bloodGroup: data.bloodGroup || undefined,
-          allergies: data.allergies || "",
-          emergencyContact: data.emergencyContact || undefined,
-          height: data.height || undefined,
-          birthDate: birthDateFormatted,
-          foodHabit: data.foodHabit || undefined,
-          knownAllergies: data.knownAllergies || undefined,
-          currentMedicalConditions: data.currentMedicalConditions || undefined,
-          phone: phone, // Primary phone number for notifications
-        };
-        console.log("Submitting patient data:", patientData);
-        await onSubmit(email, password, userType, firstName, lastName, patientData);
-      } else {
-        if (type === "register") {
-          await onSubmit(email, password, userType, firstName, lastName);
+        if (userType === "patient") {
+          const birthDateFormatted = data.birthDate ? new Date(data.birthDate).toISOString().split('T')[0] : null;
+          
+          const patientData: PatientData = {
+            age: data.age || undefined,
+            gender: data.gender || undefined,
+            bloodGroup: data.bloodGroup || undefined,
+            allergies: data.allergies || "",
+            emergencyContact: data.emergencyContact || undefined,
+            height: data.height || undefined,
+            birthDate: birthDateFormatted,
+            foodHabit: data.foodHabit || undefined,
+            knownAllergies: data.knownAllergies || undefined,
+            currentMedicalConditions: data.currentMedicalConditions || undefined,
+            phone: phone, // Primary phone number for notifications
+          };
+          console.log("Submitting patient data:", patientData);
+          await onSubmit(email, password, userType, firstName, lastName, patientData);
         } else {
-          // For login, prioritize email if provided, otherwise use phone
-          await onSubmit(email || phone, password);
+          // For doctors and nutritionists, create a basic data structure with phone number
+          const professionalData: PatientData = {
+            phone: phone, // Ensure phone is passed for professionals too
+          };
+          console.log("Submitting professional data with phone:", professionalData);
+          await onSubmit(email, password, userType, firstName, lastName, professionalData);
         }
+      } else {
+        // For login, prioritize email if provided, otherwise use phone
+        await onSubmit(email || phone, password);
       }
     } catch (error) {
       console.error("Form submission error:", error);
@@ -423,7 +430,7 @@ export const AuthForm = ({ type, onSubmit, error, loading }: AuthFormProps) => {
               <FormItem>
                 <FormLabel className="text-gray-600 font-medium">
                   Phone Number {type === "register" && <span className="text-red-500">*</span>}
-                  {type === "register" && <span className="text-sm text-gray-500 ml-2">(Used for notifications)</span>}
+                  {type === "register" && <span className="text-sm text-gray-500 ml-2">(Required for all registrations - used for notifications)</span>}
                 </FormLabel>
                 <FormControl>
                   <Input

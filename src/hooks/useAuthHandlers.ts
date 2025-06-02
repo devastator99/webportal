@@ -55,6 +55,13 @@ export const useAuthHandlers = () => {
 
     try {
       console.log("Starting unified user registration process...");
+      console.log("Registration data received:", { 
+        identifier, 
+        userType, 
+        firstName, 
+        lastName, 
+        patientData 
+      });
       
       // Validate inputs
       if (!identifier || !password || !firstName || !lastName) {
@@ -71,34 +78,34 @@ export const useAuthHandlers = () => {
         throw new Error(`Invalid user type: ${userType}`);
       }
 
-      // Determine if identifier is email or phone and extract phone number
-      const isEmail = identifier.includes('@');
+      // Extract phone number from patientData or identifier
       let phoneNumber: string;
       let emailAddress: string;
       
+      // Determine if identifier is email or phone and extract phone number
+      const isEmail = identifier.includes('@');
+      
       if (isEmail) {
         emailAddress = identifier;
-        // Phone must be provided in patientData for email registrations
-        phoneNumber = patientData?.phone || patientData?.emergencyContact || '';
-        if (!phoneNumber) {
-          throw new Error("Phone number is required for registration");
-        }
+        // For email registrations, phone must be provided in patientData
+        phoneNumber = patientData?.phone || '';
       } else {
         phoneNumber = identifier;
         emailAddress = `${identifier.replace(/[^0-9]/g, '')}@temp.placeholder`;
+      }
+
+      // Validate phone number is available
+      if (!phoneNumber || phoneNumber.trim() === '') {
+        throw new Error("Phone number is required for all user registrations and notifications");
       }
 
       console.log("Registration details:", { 
         emailAddress, 
         phoneNumber, 
         isEmail, 
-        userType 
+        userType,
+        hasPatientData: !!patientData
       });
-
-      // Validate phone number is available
-      if (!phoneNumber || phoneNumber.trim() === '') {
-        throw new Error("Phone number is required for registration and notifications");
-      }
 
       // Step 1: Auth signup with metadata including phone
       const signUpData = {
@@ -147,13 +154,18 @@ export const useAuthHandlers = () => {
       try {
         console.log("Completing user registration with unified RPC and phone:", phoneNumber);
         
+        // For non-patient users, use the phone from patientData or create minimal patient data
+        const finalPatientData = userType === 'patient' ? patientData : {
+          phone: phoneNumber
+        };
+        
         const registrationResult = await completeUserRegistration(
           authData.user.id,
           userType as ValidUserRole,
           firstName,
           lastName,
           phoneNumber, // Pass the phone number explicitly
-          userType === 'patient' ? patientData : undefined
+          finalPatientData
         );
         
         console.log("Unified registration completed successfully:", registrationResult);
@@ -178,7 +190,7 @@ export const useAuthHandlers = () => {
       } else if (error.message?.includes('password')) {
         userMessage = "Password must be at least 6 characters long.";
       } else if (error.message?.includes('phone')) {
-        userMessage = "Phone number is required for registration and notifications.";
+        userMessage = "Phone number is required for all registrations and notifications.";
       } else if (error.message?.includes('rate limit')) {
         userMessage = "Too many registration attempts. Please wait a few minutes and try again.";
       } else if (error.message) {
