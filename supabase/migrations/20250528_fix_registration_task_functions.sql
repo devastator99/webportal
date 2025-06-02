@@ -27,14 +27,14 @@ BEGIN
     rt.retry_count,
     rt.created_at
   FROM registration_tasks rt
-  WHERE rt.status = 'pending'
+  WHERE rt.status = 'pending'::task_status
     AND rt.next_retry_at <= NOW()
   ORDER BY rt.priority DESC, rt.created_at ASC
   LIMIT 1;
 END;
 $function$;
 
--- Create function to update registration task status
+-- Create function to update registration task status with proper enum casting
 CREATE OR REPLACE FUNCTION public.update_registration_task_status(
   p_task_id uuid,
   p_status task_status,
@@ -54,11 +54,11 @@ BEGIN
     error_details = COALESCE(p_error_details, error_details),
     updated_at = NOW(),
     retry_count = CASE 
-      WHEN p_status = 'failed' THEN retry_count + 1
+      WHEN p_status = 'failed'::task_status THEN retry_count + 1
       ELSE retry_count
     END,
     next_retry_at = CASE 
-      WHEN p_status = 'failed' THEN NOW() + INTERVAL '5 minutes' * (retry_count + 1)
+      WHEN p_status = 'failed'::task_status THEN NOW() + INTERVAL '5 minutes' * (retry_count + 1)
       ELSE next_retry_at
     END
   WHERE id = p_task_id;
@@ -84,21 +84,21 @@ DECLARE
   v_task_ids uuid[] := ARRAY[]::uuid[];
   v_task_id uuid;
 BEGIN
-  -- Update user registration status
+  -- Update user registration status with proper enum casting
   UPDATE profiles
   SET 
-    registration_status = 'payment_complete',
+    registration_status = 'payment_complete'::registration_status,
     registration_completed_at = NOW(),
     updated_at = NOW()
   WHERE id = p_user_id;
   
   -- Clear any existing pending tasks for this user
   DELETE FROM registration_tasks 
-  WHERE user_id = p_user_id AND status = 'pending';
+  WHERE user_id = p_user_id AND status = 'pending'::task_status;
   
   -- Create assign care team task
   INSERT INTO registration_tasks (user_id, task_type, priority, status)
-  VALUES (p_user_id, 'assign_care_team', 1, 'pending')
+  VALUES (p_user_id, 'assign_care_team', 1, 'pending'::task_status)
   RETURNING id INTO v_task_id;
   
   v_task_ids := array_append(v_task_ids, v_task_id);
@@ -106,7 +106,7 @@ BEGIN
   
   -- Create chat room task
   INSERT INTO registration_tasks (user_id, task_type, priority, status)
-  VALUES (p_user_id, 'create_chat_room', 2, 'pending')
+  VALUES (p_user_id, 'create_chat_room', 2, 'pending'::task_status)
   RETURNING id INTO v_task_id;
   
   v_task_ids := array_append(v_task_ids, v_task_id);
@@ -114,7 +114,7 @@ BEGIN
   
   -- Create welcome notification task
   INSERT INTO registration_tasks (user_id, task_type, priority, status)
-  VALUES (p_user_id, 'send_welcome_notification', 3, 'pending')
+  VALUES (p_user_id, 'send_welcome_notification', 3, 'pending'::task_status)
   RETURNING id INTO v_task_id;
   
   v_task_ids := array_append(v_task_ids, v_task_id);

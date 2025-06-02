@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { completeUserRegistration, supabase, ValidUserRole } from "@/integrations/supabase/client";
 import { UserPlus, Eye, EyeOff } from "lucide-react";
 import { useManualRegistrationTrigger } from "@/hooks/useManualRegistrationTrigger";
+import { TaskTrigger } from "@/components/testing/TaskTrigger";
 
 export const UserRegistration = () => {
   const { toast } = useToast();
@@ -454,26 +455,7 @@ export const UserRegistration = () => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Debug & Fix Tools</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col gap-4">
-            <Button
-              onClick={fixExistingUsers}
-              disabled={triggerLoading}
-              variant="outline"
-              className="w-full"
-            >
-              {triggerLoading ? "Fixing..." : "Fix Existing Professional Users"}
-            </Button>
-            <p className="text-sm text-gray-600">
-              This will create missing registration tasks for existing professional users and trigger their notifications.
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <TaskTrigger />
     </div>
   );
 };

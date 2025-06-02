@@ -1,5 +1,4 @@
 
-
 -- Apply the system_logs schema fix and update the complete_user_registration function
 -- Fix system_logs table schema to match what the RPC functions expect
 
@@ -17,7 +16,7 @@ UPDATE system_logs SET message = details::text WHERE message IS NULL AND details
 CREATE INDEX IF NOT EXISTS idx_system_logs_level ON system_logs(level);
 CREATE INDEX IF NOT EXISTS idx_system_logs_user_id ON system_logs(user_id);
 
--- Create or replace the complete_user_registration function with proper enum handling
+-- Create or replace the complete_user_registration function with proper schema alignment
 CREATE OR REPLACE FUNCTION public.complete_user_registration(
   p_user_id UUID,
   p_role TEXT,
@@ -102,26 +101,23 @@ BEGIN
     );
   END IF;
 
-  -- Insert or update user role
+  -- Insert or update user role (user_roles table only has: id, user_id, role, created_at)
   IF v_role_exists THEN
     UPDATE user_roles SET 
-      role = p_role::user_type,
-      updated_at = NOW()
+      role = p_role::user_type
     WHERE user_id = p_user_id;
   ELSE
     INSERT INTO user_roles (user_id, role)
     VALUES (p_user_id, p_role::user_type);
   END IF;
 
-  -- Create registration tasks based on user type
+  -- Create registration tasks based on user type (registration_tasks table structure aligned)
   IF p_role IN ('doctor', 'nutritionist', 'administrator', 'reception') THEN
-    -- Create professional registration tasks with phone number
-    INSERT INTO registration_tasks (user_id, task_type, status, metadata, priority)
+    -- Create professional registration tasks with correct column structure
+    INSERT INTO registration_tasks (user_id, task_type, status, priority)
     VALUES 
-      (p_user_id, 'complete_professional_registration', 'pending', 
-       jsonb_build_object('phone', p_phone, 'role', p_role, 'first_name', p_first_name, 'last_name', p_last_name), 1),
-      (p_user_id, 'send_welcome_notification', 'pending', 
-       jsonb_build_object('phone', p_phone, 'role', p_role, 'first_name', p_first_name, 'last_name', p_last_name), 2);
+      (p_user_id, 'complete_professional_registration', 'pending'::task_status, 1),
+      (p_user_id, 'send_welcome_notification', 'pending'::task_status, 2);
        
     -- Log professional registration task creation
     INSERT INTO system_logs (user_id, action, details, level, message, metadata)
@@ -135,10 +131,9 @@ BEGIN
     );
   ELSE
     -- For patients, create welcome notification task (they need to complete payment first)
-    INSERT INTO registration_tasks (user_id, task_type, status, metadata, priority)
+    INSERT INTO registration_tasks (user_id, task_type, status, priority)
     VALUES 
-      (p_user_id, 'send_welcome_notification', 'pending', 
-       jsonb_build_object('phone', p_phone, 'role', p_role, 'first_name', p_first_name, 'last_name', p_last_name), 1);
+      (p_user_id, 'send_welcome_notification', 'pending'::task_status, 1);
   END IF;
 
   -- Log successful completion
@@ -185,7 +180,7 @@ $$;
 -- Grant proper permissions
 GRANT EXECUTE ON FUNCTION public.complete_user_registration TO authenticated;
 
--- Create a function to fix existing users who are stuck
+-- Create a function to fix existing users who are stuck with schema-aligned operations
 CREATE OR REPLACE FUNCTION public.fix_existing_professional_users()
 RETURNS JSONB
 SECURITY DEFINER
@@ -226,12 +221,11 @@ BEGIN
       WHERE user_id = v_user.id 
       AND task_type IN ('complete_professional_registration', 'send_welcome_notification');
       
-      INSERT INTO registration_tasks (user_id, task_type, status, metadata, priority)
+      -- Insert with correct schema (no metadata column)
+      INSERT INTO registration_tasks (user_id, task_type, status, priority)
       VALUES 
-        (v_user.id, 'complete_professional_registration', 'pending', 
-         jsonb_build_object('phone', v_user.phone, 'role', v_user.role, 'first_name', v_user.first_name, 'last_name', v_user.last_name), 1),
-        (v_user.id, 'send_welcome_notification', 'pending', 
-         jsonb_build_object('phone', v_user.phone, 'role', v_user.role, 'first_name', v_user.first_name, 'last_name', v_user.last_name), 2);
+        (v_user.id, 'complete_professional_registration', 'pending'::task_status, 1),
+        (v_user.id, 'send_welcome_notification', 'pending'::task_status, 2);
       
       v_tasks_created := v_tasks_created + 2;
       v_users_fixed := v_users_fixed + 1;
@@ -263,4 +257,3 @@ GRANT EXECUTE ON FUNCTION public.fix_existing_professional_users TO authenticate
 
 -- Apply the fix immediately to existing users
 SELECT public.fix_existing_professional_users();
-
