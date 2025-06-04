@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { MermaidDiagramRenderer } from './MermaidDiagramRenderer';
-import { Search, FileDown, Architecture } from 'lucide-react';
+import { Search, FileDown, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Architecture diagrams data
@@ -321,7 +321,7 @@ export const ArchitectureDocumentation = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Architecture className="h-5 w-5" />
+            <Building2 className="h-5 w-5" />
             System Architecture Documentation
           </CardTitle>
           <p className="text-muted-foreground">

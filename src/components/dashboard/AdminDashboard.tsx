@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserManagement } from "@/components/dashboard/admin/UserManagement";
@@ -5,7 +6,7 @@ import { PatientAssignmentManager } from "@/components/dashboard/admin/PatientAs
 import { PatientAssignmentsReport } from "@/components/dashboard/admin/PatientAssignmentsReport";
 import { UserRegistration } from "@/components/dashboard/admin/UserRegistration";
 import { CollapsibleSection } from "@/components/ui/collapsible-section";
-import { Settings, Users, FileText, Database, UserPlus, Building, CreditCard, FileDown, Wrench, Architecture } from "lucide-react";
+import { Settings, Users, FileText, Database, UserPlus, Building, CreditCard, FileDown, Wrench, Building2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AdminSettings } from "@/components/dashboard/admin/AdminSettings";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -115,7 +116,7 @@ export const AdminDashboard = () => {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Architecture className="h-5 w-5" />
+                <Building2 className="h-5 w-5" />
                 System Architecture Documentation
               </CardTitle>
             </CardHeader>
